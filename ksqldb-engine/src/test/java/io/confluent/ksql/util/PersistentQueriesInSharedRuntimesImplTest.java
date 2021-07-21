@@ -19,7 +19,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -27,14 +26,13 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.streams.KafkaStreams.State;
+
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +67,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
     @Mock
     private Listener listener;
     @Mock
-    private SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
+    private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
     @Mock
     private QueryErrorClassifier classifier;
     @Mock
@@ -87,7 +85,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
             EXECUTION_PLAN,
             APPLICATION_ID,
             topology,
-            sharedKafkaStreamsRuntime,
+            sharedKafkaStreamsRuntimeImpl,
             schemas,
             overrides,
             QUERY_ID,
@@ -110,8 +108,8 @@ public class PersistentQueriesInSharedRuntimesImplTest {
         query.stop();
 
         // Then:
-        final InOrder inOrder = inOrder(sharedKafkaStreamsRuntime);
-        inOrder.verify(sharedKafkaStreamsRuntime).close(QUERY_ID);
+        final InOrder inOrder = inOrder(sharedKafkaStreamsRuntimeImpl);
+        inOrder.verify(sharedKafkaStreamsRuntimeImpl).close(QUERY_ID);
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -130,6 +128,6 @@ public class PersistentQueriesInSharedRuntimesImplTest {
         query.stop();
 
         // Then:
-        verify(sharedKafkaStreamsRuntime).close(QUERY_ID);
+        verify(sharedKafkaStreamsRuntimeImpl).close(QUERY_ID);
     }
 }

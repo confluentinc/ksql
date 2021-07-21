@@ -14,7 +14,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SharedKafkaStreamsRuntimeTest {
+public class SharedKafkaStreamsRuntimeImplTest {
 
     @Mock
     private KafkaStreamsBuilder kafkaStreamsBuilder;
@@ -25,12 +25,12 @@ public class SharedKafkaStreamsRuntimeTest {
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
 
-    private SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
+    private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
 
     @Before
     public void setUp() throws Exception {
         when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
-        sharedKafkaStreamsRuntime = new SharedKafkaStreamsRuntime(
+        sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             5,
             streamProps

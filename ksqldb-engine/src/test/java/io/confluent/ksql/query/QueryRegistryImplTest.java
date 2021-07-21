@@ -71,7 +71,7 @@ public class QueryRegistryImplTest {
 
   @Before
   public void setup() {
-    when(executorFactory.create(any(), any(), any(), any(), any())).thenReturn(executor);
+    when(executorFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(executor);
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());
     registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory);

@@ -238,6 +238,7 @@ public class QueryExecutorTest {
             ksMaterializationFactory,
             ksqlMaterializationFactory
         ),
+        new ArrayList<>(),
         new ArrayList<>());
   }
 

@@ -53,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.streams.KafkaStreams.State;
 
 public class QueryRegistryImpl implements QueryRegistry {
@@ -66,6 +67,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Collection<QueryEventListener> eventListeners;
   private final QueryExecutorFactory executorFactory;
   private final ArrayList<SharedKafkaStreamsRuntime> streams;
+  private final ArrayList<SharedKafkaStreamsRuntime> validationSet;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
     this(eventListeners, QueryExecutor::new);
@@ -82,6 +84,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     this.eventListeners = Objects.requireNonNull(eventListeners);
     this.executorFactory = Objects.requireNonNull(executorFactory);
     this.streams = new ArrayList<>();
+    this.validationSet = new ArrayList<>();
   }
 
   // Used to construct a sandbox
@@ -125,6 +128,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         .map(Optional::get)
         .collect(Collectors.toList());
     this.streams = original.streams;
+    this.validationSet = original.validationSet;
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -144,8 +148,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor
-        = executorFactory.create(config, processingLogContext, serviceContext, metaStore, streams);
+    final QueryExecutor executor = executorFactory.create(
+        config,
+        processingLogContext,
+        serviceContext,
+        metaStore,
+        streams,
+        validationSet);
     final TransientQueryMetadata query = executor.buildTransientQuery(
         statementText,
         queryId,
@@ -178,7 +187,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final boolean createAsQuery) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor =
-        executorFactory.create(config, processingLogContext, serviceContext, metaStore, streams);
+        executorFactory.create(config, processingLogContext, serviceContext, metaStore, streams, validationSet);
     final PersistentQueryMetadata query = executor.buildPersistentQuery(
         createAsQuery
             ? KsqlConstants.PersistentQueryType.CREATE_AS
@@ -255,7 +264,10 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public void close(final boolean closePersistent) {
-    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime: streams) {
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+      sharedKafkaStreamsRuntime.close();
+    }
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : validationSet) {
       sharedKafkaStreamsRuntime.close();
     }
     for (final QueryMetadata queryMetadata : getAllLiveQueries()) {
@@ -366,7 +378,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,
         FunctionRegistry functionRegistry,
-        ArrayList<SharedKafkaStreamsRuntime> streams
+        ArrayList<SharedKafkaStreamsRuntime> streams,
+        ArrayList<SharedKafkaStreamsRuntime> validationSet
     );
   }
 

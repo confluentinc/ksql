@@ -116,7 +116,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
     this.sharedKafkaStreamsRuntime =
-        Objects.requireNonNull(sharedKafkaStreamsRuntime, "kafkaStreamsBuilder");
+        Objects.requireNonNull(sharedKafkaStreamsRuntime, "sharedKafkaStreamsRuntime");
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
     this.overriddenProperties =
@@ -132,7 +132,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = materializationProviderBuilder
             .flatMap(builder -> builder.apply(
-                    sharedKafkaStreamsRuntime.getKafkaStreams(),
+                    this.sharedKafkaStreamsRuntime.getKafkaStreams(),
                     getTopology()
             ));
     this.classifier = requireNonNull(classifier, "classifier");
@@ -341,10 +341,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public KafkaStreams getKafkaStreams() {
-    if (everStarted) {
-      return sharedKafkaStreamsRuntime.getKafkaStreams();
-    }
-    return null;
+    return sharedKafkaStreamsRuntime.getKafkaStreams();
   }
 
   @Override

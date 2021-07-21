@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.1.0-0, 7.1.1-0)</version>
+        <version>[7.0.0-0, 7.0.1-0)</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -154,19 +154,19 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
-                <version>v0.0.0-WALKER-6-SNAPSHOT</version>
+                <version>v0.0.0-WALKER-7-SNAPSHOT</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
-                <version>v0.0.0-WALKER-6-SNAPSHOT</version>
+                <version>v0.0.0-WALKER-7-SNAPSHOT</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams-test-utils</artifactId>
-                <version>v0.0.0-WALKER-6-SNAPSHOT</version>
+                <version>v0.0.0-WALKER-7-SNAPSHOT</version>
             </dependency>
 
             <dependency>

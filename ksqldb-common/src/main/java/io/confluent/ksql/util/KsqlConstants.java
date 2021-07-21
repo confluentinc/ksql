@@ -16,7 +16,6 @@
 package io.confluent.ksql.util;
 
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 
 public final class KsqlConstants {
 
@@ -64,8 +63,7 @@ public final class KsqlConstants {
   }
 
   public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
-    return state == State.ERROR || state == State.CREATED 
-        ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
+    return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
   }
 
   public static String getSRSubject(final String topicName, final boolean isKey) {

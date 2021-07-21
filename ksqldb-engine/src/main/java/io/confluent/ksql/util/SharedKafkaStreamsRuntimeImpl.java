@@ -78,6 +78,9 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
           final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
           final QueryId queryId) {
     this.errorClassifier = errorClassifier;
+    if(metadata.containsKey(queryId.toString())) {
+      kafkaStreams.removeNamedTopology(queryId.toString());
+    }
     metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
     LOG.debug("mapping {}", metadata);
   }
@@ -153,14 +156,14 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
   }
 
   public void close(final QueryId queryId) {
-    //    metadata.remove(queryId.toString());
+    metadata.remove(queryId.toString());
     if (kafkaStreams.state() == KafkaStreams.State.RUNNING
             || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
-    //      try {
-    ////          kafkaStreams.removeNamedTopology(queryId.toString());
-    //      } catch (IllegalArgumentException e) {
-    //          //don't block
-    //      }
+          try {
+              kafkaStreams.removeNamedTopology(queryId.toString());
+          } catch (IllegalArgumentException e) {
+              //don't block
+          }
     }
   }
 

@@ -36,6 +36,11 @@ public final class SandboxedPersistentQueriesInSharedRuntimesImpl
   }
 
   @Override
+  public void stop() {
+    //no-op
+  }
+
+  @Override
   public void close() {
     getListener().onClose(this);
   }

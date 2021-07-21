@@ -16,7 +16,6 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.common.Configurable;
 
 import java.io.Closeable;
 import java.time.Instant;
@@ -24,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * This interface is used to report metrics as data points to a
@@ -33,7 +31,7 @@ import java.util.function.Supplier;
  * a specific metrics framework (e.g. JMX or Confluent's Telemetry
  * pipeline)
  */
-public interface MetricsReporter extends Closeable, Configurable {
+public interface MetricsReporter extends Closeable {
 
   /**
    * A data point that should be reported.
@@ -106,7 +104,7 @@ public interface MetricsReporter extends Closeable, Configurable {
   /**
    * Reports a list of data points.
    *
-   * @param dataPointSupplier supplier of the list of data points
+   * @param dataPoints list of data points
    */
-  void report(Supplier<List<DataPoint>> dataPointSupplier);
+  void report(List<DataPoint> dataPoints);
 }

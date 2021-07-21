@@ -71,6 +71,12 @@
         </dependency>
 
         <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>confluent-metrics</artifactId>
+            <version>${confluent.version.range}</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
         </dependency>

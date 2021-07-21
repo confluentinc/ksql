@@ -186,6 +186,9 @@ public class CommandRunnerTest {
     verify(queryMetadata1).start();
     verify(queryMetadata2).start();
     verify(queryMetadata3).start();
+    verify(queryMetadata1, never()).setCorruptionQueryError();
+    verify(queryMetadata2, never()).setCorruptionQueryError();
+    verify(queryMetadata3, never()).setCorruptionQueryError();
   }
 
   @Test
@@ -206,6 +209,9 @@ public class CommandRunnerTest {
     verify(queryMetadata1, never()).start();
     verify(queryMetadata2, never()).start();
     verify(queryMetadata3, never()).start();
+    verify(queryMetadata1).setCorruptionQueryError();
+    verify(queryMetadata2).setCorruptionQueryError();
+    verify(queryMetadata3).setCorruptionQueryError();
   }
 
   @Test

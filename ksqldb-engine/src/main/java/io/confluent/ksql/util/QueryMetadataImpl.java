@@ -290,6 +290,16 @@ public class QueryMetadataImpl implements QueryMetadata {
     return queryErrors.toImmutableList();
   }
 
+  public void setCorruptionQueryError() {
+    final QueryError corruptionQueryError = new QueryError(
+        System.currentTimeMillis(),
+        "Query in error state due to corruption in the command topic.",
+        Type.USER
+    );
+    listener.onError(this, corruptionQueryError);
+    queryErrors.add(corruptionQueryError);
+  }
+
   protected boolean isClosed() {
     return closed;
   }

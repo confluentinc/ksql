@@ -47,10 +47,10 @@ public interface MetricsReporter extends Closeable {
     }
 
     public DataPoint(
-        final Instant time,
-        final String name,
-        final Object value,
-        final Map<String, String> tags
+            final Instant time,
+            final String name,
+            final Object value,
+            final Map<String, String> tags
     ) {
       this.name = Objects.requireNonNull(name, "name");
       this.time = Objects.requireNonNull(time, "time");
@@ -84,15 +84,15 @@ public interface MetricsReporter extends Closeable {
       }
       final DataPoint dataPoint = (DataPoint) o;
       return time == dataPoint.time
-          && value == dataPoint.value
-          && Objects.equals(name, dataPoint.name)
-          && Objects.equals(tags, dataPoint.tags);
+              && value == dataPoint.value
+              && Objects.equals(name, dataPoint.name)
+              && Objects.equals(tags, dataPoint.tags);
     }
 
     @Override
     public String toString() {
       return "DataPoint{" + "name='" + name + '\''
-          + ", time=" + time + ", value=" + value + ", tags=" + tags + '}';
+              + ", time=" + time + ", value=" + value + ", tags=" + tags + '}';
     }
 
     @Override

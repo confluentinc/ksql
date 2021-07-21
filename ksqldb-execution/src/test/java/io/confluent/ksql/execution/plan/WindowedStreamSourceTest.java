@@ -56,7 +56,9 @@ public class WindowedStreamSourceTest {
             new WindowedStreamSource(
                 properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
+            new WindowedStreamSource(
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.empty()))
         .addEqualityGroup(
             new WindowedStreamSource(
                 properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))

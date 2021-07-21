@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,7 +45,7 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
         formats,
         timestampColumn,
         sourceSchema,
-        pseudoColumnVersion.orElse(0)
+        pseudoColumnVersion.orElse(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER)
     );
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
   }

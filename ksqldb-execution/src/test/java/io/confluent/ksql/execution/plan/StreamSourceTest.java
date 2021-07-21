@@ -51,7 +51,9 @@ public class StreamSourceTest {
             new StreamSource(
                 properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
             new StreamSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
+            new StreamSource(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.empty()))
         .addEqualityGroup(
             new StreamSource(
                 properties2, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))

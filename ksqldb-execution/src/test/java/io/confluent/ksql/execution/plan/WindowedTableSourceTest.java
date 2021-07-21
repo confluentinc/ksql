@@ -56,7 +56,9 @@ public class WindowedTableSourceTest {
             new WindowedTableSource(
                 properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
             new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
+            new WindowedTableSource(
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.empty()))
         .addEqualityGroup(
             new WindowedTableSource(
                 properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))

@@ -77,6 +77,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -500,7 +501,7 @@ final class QueryExecutor {
           return validationRuntime;
         }
       }
-      final SharedKafkaStreamsRuntimeImpl stream = new SharedKafkaStreamsRuntimeImpl(
+      final ValidationSharedKafkaStreamsRuntimeImpl stream = new ValidationSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)

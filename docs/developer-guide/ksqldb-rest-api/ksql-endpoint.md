@@ -195,6 +195,7 @@ The ``/ksql`` endpoint may return the following error codes in the ``error_code`
 curl --http1.1
      -X "POST" "http://<ksqldb-host-name>:8088/ksql" \
      -H "Accept: application/vnd.ksql.v1+json" \
+     -H "Content-Type: application/json" \
      -d $'{
   "ksql": "LIST STREAMS;",
   "streamsProperties": {}

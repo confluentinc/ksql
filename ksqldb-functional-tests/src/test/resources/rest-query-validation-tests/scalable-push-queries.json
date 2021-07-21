@@ -422,31 +422,6 @@
       ]
     },
     {
-      "name": "zero limit",
-      "statements": [
-        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
-        "CREATE STREAM INPUT as SELECT * FROM I;",
-        "SELECT * FROM INPUT EMIT CHANGES LIMIT 0;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}}
-      ],
-      "inputConditions": {
-        "waitForQueryHeader": true
-      },
-      "properties": {
-        "auto.offset.reset" : "latest"
-      },
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
-          {"finalMessage":"Limit Reached"}
-        ]}
-      ]
-    },
-    {
       "name": "out-of-order columns",
       "statements": [
         "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",

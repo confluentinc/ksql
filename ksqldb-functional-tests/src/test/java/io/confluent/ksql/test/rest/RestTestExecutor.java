@@ -641,6 +641,7 @@ private void waitForRunningPushQueries(
         threadYield();
       } else {
         resp.getResponse().close();
+        threadYield();
         return;
       }
     }

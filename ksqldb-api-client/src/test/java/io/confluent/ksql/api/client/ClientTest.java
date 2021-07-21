@@ -1777,6 +1777,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(row.getLong("f_long"), is(((long) index) * index));
     assertThat(row.getDouble("f_double"), is(index + 0.1111));
     assertThat(row.getDecimal("f_decimal"), is(BigDecimal.valueOf(index + 0.1)));
+    assertThat(row.getBytes("f_bytes"), is(new byte[]{0, 1, 2, 3, 4, 5}));
     final KsqlArray arrayVal = row.getKsqlArray("f_array");
     assertThat(arrayVal, is(new KsqlArray().add("s" + index).add("t" + index)));
     assertThat(arrayVal.getString(0), is("s" + index));
@@ -1810,10 +1811,11 @@ public class ClientTest extends BaseApiTest {
     assertThat(values.getLong(3), is(row.getLong("f_long")));
     assertThat(values.getDouble(4), is(row.getDouble("f_double")));
     assertThat(values.getDecimal(5), is(row.getDecimal("f_decimal")));
-    assertThat(values.getKsqlArray(6), is(row.getKsqlArray("f_array")));
-    assertThat(values.getKsqlObject(7), is(row.getKsqlObject("f_map")));
-    assertThat(values.getKsqlObject(8), is(row.getKsqlObject("f_struct")));
-    assertThat(values.getValue(9), is(nullValue()));
+    assertThat(values.getBytes(6), is(row.getBytes("f_bytes")));
+    assertThat(values.getKsqlArray(7), is(row.getKsqlArray("f_array")));
+    assertThat(values.getKsqlObject(8), is(row.getKsqlObject("f_map")));
+    assertThat(values.getKsqlObject(9), is(row.getKsqlObject("f_struct")));
+    assertThat(values.getValue(10), is(nullValue()));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 
@@ -1828,6 +1830,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(obj.getLong("f_long"), is(row.getLong("f_long")));
     assertThat(obj.getDouble("f_double"), is(row.getDouble("f_double")));
     assertThat(obj.getDecimal("f_decimal"), is(row.getDecimal("f_decimal")));
+    assertThat(obj.getBytes("f_bytes"), is(row.getBytes("f_bytes")));
     assertThat(obj.getKsqlArray("f_array"), is(row.getKsqlArray("f_array")));
     assertThat(obj.getKsqlObject("f_map"), is(row.getKsqlObject("f_map")));
     assertThat(obj.getKsqlObject("f_struct"), is(row.getKsqlObject("f_struct")));
@@ -1860,6 +1863,7 @@ public class ClientTest extends BaseApiTest {
           .put("f_long", i * i)
           .put("f_double", i + 0.1111)
           .put("f_decimal", new BigDecimal(i + 0.1))
+          .put("f_bytes", new byte[]{0, 1, 2, 3, 4, 5})
           .put("f_array", new KsqlArray().add("s" + i).add("t" + i))
           .put("f_map", new KsqlObject().put("k" + i, "v" + i))
           .put("f_struct", new KsqlObject().put("F1", "v" + i).put("F2", i))

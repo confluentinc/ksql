@@ -384,7 +384,7 @@ Specifies the server properties that ksqlDB clients and users can't override.
 !!! important
     Validation of a dynamic property assignment doesn't happen until a DDL or
     query statement executes, so an attempt to set a property that's on the
-    deny doesn't cause an immediate error.
+    deny list doesn't cause an immediate error.
 
     For example, the following commands show an attempt to set the
     `ksql.streams.num.stream.threads` property, which is on the deny list.

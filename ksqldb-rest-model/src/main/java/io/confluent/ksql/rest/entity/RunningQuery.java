@@ -34,6 +34,7 @@ public class RunningQuery {
   private final Set<String> sinkKafkaTopics;
   private final QueryId id;
   private final QueryStatusCount statusCount;
+  private final RawQueryStatusCount rawQueryStatusCount;
   private final KsqlConstants.KsqlQueryType queryType;
 
   @JsonCreator
@@ -43,6 +44,7 @@ public class RunningQuery {
       @JsonProperty("sinkKafkaTopics") final Set<String> sinkKafkaTopics,
       @JsonProperty("id") final QueryId id,
       @JsonProperty("statusCount") final QueryStatusCount statusCount,
+      @JsonProperty("rawStatusCount") final RawQueryStatusCount rawQueryStatusCount,
       @JsonProperty("queryType") final KsqlQueryType queryType
   ) {
     this.queryString = Objects.requireNonNull(queryString, "queryString");
@@ -50,6 +52,7 @@ public class RunningQuery {
     this.sinks = Objects.requireNonNull(sinks, "sinks");
     this.id = Objects.requireNonNull(id, "id");
     this.statusCount = Objects.requireNonNull(statusCount, "statusCount");
+    this.rawQueryStatusCount = Objects.requireNonNull(rawQueryStatusCount, "rawQueryStatusCount");
     this.queryType = Objects.requireNonNull(queryType, "queryType");
   }
 
@@ -82,6 +85,10 @@ public class RunningQuery {
 
   public QueryStatusCount getStatusCount() {
     return statusCount;
+  }
+
+  public RawQueryStatusCount getRawStatusCount() {
+    return rawQueryStatusCount;
   }
 
   public KsqlQueryType getQueryType() {

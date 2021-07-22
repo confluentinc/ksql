@@ -124,6 +124,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.RawQueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -2297,7 +2298,9 @@ public class KsqlResourceTest {
             ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
             md.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
-                Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)
+                Collections.singletonMap(md.getState(), 1)),
+            new RawQueryStatusCount(Collections.singletonMap(md.getState(), 1)),
+            KsqlConstants.KsqlQueryType.PERSISTENT)
     ).collect(Collectors.toList());
   }
 

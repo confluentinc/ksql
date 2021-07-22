@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.RawQueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -42,6 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.state.HostInfo;
 
 @SuppressFBWarnings("SE_BAD_FIELD")
@@ -100,6 +102,7 @@ public final class ListQueriesExecutor {
                     q.getQueryId(),
                     QueryStatusCount.fromStreamsStateCounts(
                         Collections.singletonMap(q.getState(), 1)),
+                    new RawQueryStatusCount(Collections.singletonMap(q.getState(), 1)),
                     q.getQueryType());
               }
 
@@ -110,6 +113,7 @@ public final class ListQueriesExecutor {
                   q.getQueryId(),
                   QueryStatusCount.fromStreamsStateCounts(
                       Collections.singletonMap(q.getState(), 1)),
+                  new RawQueryStatusCount(Collections.singletonMap(q.getState(), 1)),
                   q.getQueryType());
             }
         ));
@@ -138,6 +142,13 @@ public final class ListQueriesExecutor {
               .get(queryId)
               .getStatusCount()
               .updateStatusCount(entry.getKey(), entry.getValue());
+        }
+        for (Map.Entry<KafkaStreams.State, Integer> entry :
+            q.getRawStatusCount().getStatuses().entrySet()) {
+          allResults
+              .get(queryId)
+              .getRawStatusCount()
+              .updateRawStatusCount(entry.getKey(), entry.getValue());
         }
       } else {
         allResults.put(queryId, q);

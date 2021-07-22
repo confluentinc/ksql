@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.RawQueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
@@ -353,6 +354,8 @@ public class ListSourceExecutorTest {
     // Then:
     final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
         Collections.singletonMap(metadata.getState(), 1));
+    final RawQueryStatusCount rawQueryStatusCount = new RawQueryStatusCount(
+        Collections.singletonMap(metadata.getState(), 1));
 
     assertThat(sourceDescription.getSourceDescription(),
         equalTo(SourceDescriptionFactory.create(
@@ -365,6 +368,7 @@ public class ListSourceExecutorTest {
                 ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
                 metadata.getQueryId(),
                 queryStatusCount,
+                rawQueryStatusCount,
                 KsqlConstants.KsqlQueryType.PERSISTENT)),
             Optional.empty(),
             ImmutableList.of(),

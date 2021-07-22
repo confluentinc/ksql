@@ -19,6 +19,7 @@ import com.google.common.io.BaseEncoding;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
 import java.util.function.Function;
@@ -91,15 +92,23 @@ public final class BytesUtils {
       return null;
     }
 
-    // ByteBuffer.array() throws an exception if it is in read-only state. Protobuf usually
-    // returns ByteBuffer in read-only, so this util allows us to get the internal byte array.
-    if (buffer.isReadOnly()) {
+    // ByteBuffer.array() throws an exception if it is read-only or the array is null.
+    // Protobuf returns ByteBuffer as read-only, so this util allows us to get the internal
+    // byte array.
+    if (!buffer.hasArray()) {
+      // Reset internal array position to 0, which affects read-only buffers
+      buffer.clear();
+
       final byte[] internalByteArray = new byte[buffer.capacity()];
       buffer.get(internalByteArray);
       return internalByteArray;
     }
 
     return buffer.array();
+  }
+
+  public static byte[] getByteArray(final ByteBuffer buffer, final int start, final int end) {
+    return Arrays.copyOfRange(getByteArray(buffer), start, end);
   }
 
   private static String hexEncoding(final byte[] value) {

@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.string;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
 
@@ -32,7 +33,9 @@ import java.nio.ByteBuffer;
 public class FromBytes {
   @Udf(description = "Converts a BYTES value to STRING in the specified encoding. "
       + "The accepted encoders are 'hex', 'utf8', 'ascii', and 'base64'.")
-  public String fromBytes(final ByteBuffer value, final String encoding) {
+  public String fromBytes(
+      @UdfParameter(description = "The bytes value to convert.") final ByteBuffer value,
+      @UdfParameter(description = "The encoding to use on conversion.") final String encoding) {
     return (value == null) ? null : BytesUtils.encode(BytesUtils.getByteArray(value), encoding);
   }
 }

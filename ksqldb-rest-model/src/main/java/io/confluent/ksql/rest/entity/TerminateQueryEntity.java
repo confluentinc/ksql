@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public class TerminateQueryEntity extends KsqlEntity {
 
   private final String queryId;
 
+  @JsonCreator
   public TerminateQueryEntity(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("queryId") final String queryId

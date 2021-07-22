@@ -57,11 +57,13 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -86,7 +88,8 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -103,7 +106,8 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -121,7 +125,8 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        Optional.of(true)
+        Optional.of(true),
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -140,7 +145,8 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 

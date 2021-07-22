@@ -1039,7 +1039,7 @@ public class CliTest {
     assertThat(output, containsString(
         "Name        : SUBSTRING\n"
         + "Author      : Confluent\n"
-        + "Overview    : Returns a substring of the passed in value.\n"
+        + "Overview    : Returns the portion of the string or bytes passed in value.\n"
     ));
     assertThat(output, containsString(
         "Type        : SCALAR\n"
@@ -1051,7 +1051,7 @@ public class CliTest {
     assertThat(output, containsString(
         "\tVariation   : SUBSTRING(str VARCHAR, pos INT)\n"
         + "\tReturns     : VARCHAR\n"
-        + "\tDescription : Returns a substring of str from pos to the end of str"
+        + "\tDescription : Returns the portion of str from pos to the end of str"
     ));
     assertThat(output, containsString(
         "\tstr         : The source string.\n"

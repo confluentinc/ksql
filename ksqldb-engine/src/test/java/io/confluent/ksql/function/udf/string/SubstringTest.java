@@ -45,8 +45,8 @@ public class SubstringTest {
   public void shouldReturnNullOnBytesNullValue() {
     assertThat(udf.substring((ByteBuffer) null, 1), is(nullValue()));
     assertThat(udf.substring((ByteBuffer) null, 1, 1), is(nullValue()));
-    assertThat(udf.substring("some string", null, 1), is(nullValue()));
-    assertThat(udf.substring("some string", 1, null), is(nullValue()));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1}), null, 1), is(nullValue()));
+    assertThat(udf.substring(ByteBuffer.wrap(new byte[]{1}), 1, null), is(nullValue()));
   }
 
   @Test

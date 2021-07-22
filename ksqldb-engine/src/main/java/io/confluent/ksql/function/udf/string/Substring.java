@@ -81,7 +81,7 @@ public class Substring {
       @UdfParameter(description = "The base-one position to start from.") final Integer pos,
       @UdfParameter(description = "The length to extract.") final Integer length
   ) {
-    if (bytes == null || pos == null) {
+    if (bytes == null || pos == null || length == null) {
       return null;
     }
 

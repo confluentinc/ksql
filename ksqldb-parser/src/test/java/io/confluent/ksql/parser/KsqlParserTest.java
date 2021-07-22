@@ -464,7 +464,7 @@ public class KsqlParserTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("ROWTIME is a reserved system column name. You cannot use it as an alias for a column."));
+    assertThat(e.getMessage(), containsString("'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."));
   }
 
   @Test

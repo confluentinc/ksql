@@ -227,7 +227,8 @@ public final class CreateSourceFactory {
 
     tableElements.forEach(e -> {
       if (SystemColumns.isSystemColumn(e.getName())) {
-        throw new KsqlException("'" + e.getName().text() + "' is a reserved column name.");
+        throw new KsqlException("'" + e.getName().text() + "' is a reserved column name. "
+            + "You cannot use it as a name for a column.");
       }
     });
 

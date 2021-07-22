@@ -120,7 +120,7 @@ public final class ComparisonInterpreter {
       return Optional.of((o1, o2) -> castLeft.cast(o1).compareTo(castRight.cast(o2)));
     } else if (leftType == SqlBaseType.STRING) {
       return Optional.of((o1, o2) -> o1.toString().compareTo(o2.toString()));
-    } else if (either(leftType, rightType, SqlBaseType.BYTES)) {
+    } else if (leftType == SqlBaseType.BYTES && rightType == SqlBaseType.BYTES) {
       final ComparableCastFunction<ByteBuffer> castLeft = castToBytesFunction(
           left.getSqlType());
       final ComparableCastFunction<ByteBuffer> castRight = castToBytesFunction(

@@ -75,6 +75,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   // the object is made available to other threads.
   private KafkaStreams kafkaStreams;
   private boolean initialized = false;
+  private boolean corruptionCommandTopic = false;
 
   private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -225,6 +226,9 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public State getState() {
+    if (corruptionCommandTopic) {
+      return State.ERROR;
+    }
     return kafkaStreams.state();
   }
 
@@ -288,6 +292,17 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   public List<QueryError> getQueryErrors() {
     return queryErrors.toImmutableList();
+  }
+
+  public void setCorruptionQueryError() {
+    final QueryError corruptionQueryError = new QueryError(
+        System.currentTimeMillis(),
+        "Query not started due to corruption in the command topic.",
+        Type.USER
+    );
+    listener.onError(this, corruptionQueryError);
+    queryErrors.add(corruptionQueryError);
+    corruptionCommandTopic = true;
   }
 
   protected boolean isClosed() {

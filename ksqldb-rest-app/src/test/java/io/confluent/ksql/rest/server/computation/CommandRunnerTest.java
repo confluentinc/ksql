@@ -46,7 +46,7 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
-
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -115,7 +115,13 @@ public class CommandRunnerTest {
   @Mock
   private Errors errorHandler;
   @Mock
-  PersistentQueryCleanupImpl persistentQueryCleanupImpl;
+  private PersistentQueryMetadata queryMetadata1;
+  @Mock
+  private PersistentQueryMetadata queryMetadata2;
+  @Mock
+  private PersistentQueryMetadata queryMetadata3;
+  @Mock
+  private PersistentQueryCleanupImpl persistentQueryCleanupImpl;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -167,6 +173,7 @@ public class CommandRunnerTest {
   public void shouldRunThePriorCommandsCorrectly() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
 
     // When:
     commandRunner.processPriorCommands(persistentQueryCleanupImpl);
@@ -176,6 +183,35 @@ public class CommandRunnerTest {
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(queryMetadata1).start();
+    verify(queryMetadata2).start();
+    verify(queryMetadata3).start();
+    verify(queryMetadata1, never()).setCorruptionQueryError();
+    verify(queryMetadata2, never()).setCorruptionQueryError();
+    verify(queryMetadata3, never()).setCorruptionQueryError();
+  }
+
+  @Test
+  public void shouldNotStartQueriesDuringRestoreWhenCorrupted() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+    when(commandStore.corruptionDetected()).thenReturn(true);
+
+    // When:
+    commandRunner.processPriorCommands(persistentQueryCleanupImpl);
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(queryMetadata1, never()).start();
+    verify(queryMetadata2, never()).start();
+    verify(queryMetadata3, never()).start();
+    verify(queryMetadata1).setCorruptionQueryError();
+    verify(queryMetadata2).setCorruptionQueryError();
+    verify(queryMetadata3).setCorruptionQueryError();
   }
 
   @Test

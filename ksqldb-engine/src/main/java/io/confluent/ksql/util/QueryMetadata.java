@@ -69,6 +69,8 @@ public interface QueryMetadata {
 
   List<QueryError> getQueryErrors();
 
+  void setCorruptionQueryError();
+
   KafkaStreams getKafkaStreams();
 
   void close();

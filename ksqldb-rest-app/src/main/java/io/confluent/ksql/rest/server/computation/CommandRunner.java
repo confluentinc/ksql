@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.time.Clock;
@@ -287,9 +288,14 @@ public class CommandRunner implements Closeable {
           .getPersistentQueries();
 
       queryCleanup.cleanupLeakedQueries(queries);
-      LOG.info("Restarting {} queries.", queries.size());
 
-      queries.forEach(PersistentQueryMetadata::start);
+      if (commandStore.corruptionDetected()) {
+        LOG.info("Corruption detected, queries will not be started.");
+        queries.forEach(QueryMetadata::setCorruptionQueryError);
+      } else {
+        LOG.info("Restarting {} queries.", queries.size());
+        queries.forEach(PersistentQueryMetadata::start);
+      }
 
       LOG.info("Restore complete");
 

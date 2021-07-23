@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -103,10 +104,12 @@ public final class ServerClusterId {
       this.clusters = ImmutableMap.copyOf(requireNonNull(clusters, "clusters"));
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "path is ImmutableList")
     public List<String> getPath() {
       return path;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "clusters is ImmutableMap")
     public Map<String, String> getClusters() {
       return clusters;
     }

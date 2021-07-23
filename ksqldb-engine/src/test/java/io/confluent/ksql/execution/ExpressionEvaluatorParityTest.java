@@ -37,6 +37,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -74,6 +75,7 @@ public class ExpressionEvaluatorParityTest {
   private static final Timestamp TIMESTAMP = new Timestamp(1273881610000L);
   private static final Time TIME = new Time(7205000);
   private static final Date DATE = new Date(864000000);
+  private static final ByteBuffer BYTES = ByteBuffer.wrap(new byte[] {123});
 
   private GenericRow ordersRow;
 
@@ -107,7 +109,7 @@ public class ExpressionEvaluatorParityTest {
     final Map<String, Double> map = ImmutableMap.of("abc", 6.75d, "def", 9.5d);
     // Note key isn't included first since it's assumed that it's provided as a value
     ordersRow = GenericRow.genericRow(ORDER_ID, ITEM_ID, itemInfo, ORDER_UNITS,
-        doubleArray, map, null, TIMESTAMP, TIME, DATE, ROW_TIME, ORDER_TIME);
+        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ORDER_TIME);
   }
 
   @After
@@ -136,6 +138,7 @@ public class ExpressionEvaluatorParityTest {
     assertOrdersError("TIMESTAMPCOL = TIMECOL",
         compileTime("Unexpected comparison to TIME: TIMESTAMP"),
         compileTime("Cannot compare TIMESTAMPCOL (TIMESTAMP) to TIMECOL (TIME)"));
+    assertOrders("BYTESCOL = BYTESCOL", true);
   }
 
   @Test
@@ -259,6 +262,10 @@ public class ExpressionEvaluatorParityTest {
     assertOrdersError("CAST(TIMECOL as TIMESTAMP)",
         compileTime("Cast of TIME to TIMESTAMP is not supported"),
         compileTime("Unsupported cast from TIME to TIMESTAMP"));
+    assertOrdersError("CAST(BYTESCOL as STRING)",
+        compileTime("Cast of BYTES to STRING is not supported"),
+        compileTime("Unsupported cast from BYTES to STRING"));
+    assertOrders("CAST(BYTESCOL as BYTES)", BYTES);
   }
 
   @Test

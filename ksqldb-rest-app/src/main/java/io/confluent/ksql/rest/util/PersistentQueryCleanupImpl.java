@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -47,8 +48,12 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
         .stream()
         .map(PersistentQueryMetadata::getQueryApplicationId)
         .collect(Collectors.toSet());
-    try {
-      final Set<String> allStateStores = new HashSet<>(Arrays.asList(new File(stateDir).list()));
+
+    final String[] stateDirFileNames = new File(stateDir).list();
+    if (stateDirFileNames == null) {
+      LOG.info("No state stores to clean up");
+    } else {
+      final Set<String> allStateStores = new HashSet<>(Arrays.asList(stateDirFileNames));
       allStateStores.removeAll(stateStoreNames);
       allStateStores.forEach((appId) -> queryCleanupService.addCleanupTask(
           new QueryCleanupService.QueryCleanupTask(
@@ -56,11 +61,10 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
           appId,
           false,
           stateDir)));
-    } catch (NullPointerException e) {
-      LOG.info("No state stores to clean up");
     }
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public QueryCleanupService getQueryCleanupService() {
     return queryCleanupService;
   }

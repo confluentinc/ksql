@@ -18,7 +18,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  SUBSTRING(TEST.SOURCE, 6) SUBSTRING,\n  SUBSTRING(null, 1) NULL_STR,\n  SUBSTRING(TEST.SOURCE, null) NULL_POS\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  SUBSTRING(TEST.SOURCE, 6) SUBSTRING,\n  SUBSTRING(CAST(null AS STRING), 1) NULL_STR,\n  SUBSTRING(TEST.SOURCE, null) NULL_POS\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
@@ -62,7 +62,7 @@
             },
             "sourceSchema" : "`K` STRING KEY, `SOURCE` STRING"
           },
-          "selectExpressions" : [ "SUBSTRING(SOURCE, 6) AS SUBSTRING", "SUBSTRING(null, 1) AS NULL_STR", "SUBSTRING(SOURCE, null) AS NULL_POS" ]
+          "selectExpressions" : [ "SUBSTRING(SOURCE, 6) AS SUBSTRING", "SUBSTRING(CAST(null AS STRING), 1) AS NULL_STR", "SUBSTRING(SOURCE, null) AS NULL_POS" ]
         },
         "formats" : {
           "keyFormat" : {

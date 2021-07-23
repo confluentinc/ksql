@@ -1,6 +1,6 @@
 {
-  "version" : "6.0.0",
-  "timestamp" : 1589910891615,
+  "version" : "7.1.0",
+  "timestamp" : 1626980273891,
   "path" : "query-validation-tests/substring.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -23,29 +23,29 @@
     }
   },
   "testCase" : {
-    "name" : "do substring with pos and length - JSON",
+    "name" : "do substring with strings with pos and length - PROTOBUF",
     "inputs" : [ {
       "topic" : "test_topic",
-      "key" : "",
+      "key" : null,
       "value" : {
         "source" : "some_string"
       }
     }, {
       "topic" : "test_topic",
-      "key" : "",
+      "key" : null,
       "value" : {
         "source" : "another"
       }
     }, {
       "topic" : "test_topic",
-      "key" : "",
+      "key" : null,
       "value" : {
         "source" : "short"
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "SUBSTRING" : "str",
         "NULL_STR" : null,
@@ -54,7 +54,7 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "SUBSTRING" : "er",
         "NULL_STR" : null,
@@ -63,7 +63,7 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "",
+      "key" : null,
       "value" : {
         "SUBSTRING" : "",
         "NULL_STR" : null,

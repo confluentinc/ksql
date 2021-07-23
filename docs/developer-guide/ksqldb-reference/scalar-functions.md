@@ -1047,12 +1047,13 @@ SUBSTRING(col1, 2, 5)
 
 ```sql
 SUBSTRING(str, pos, [len])
+SUBSTRING(bytes, pos, [len])
 ```
 
-Returns a substring of `str` that starts at
-`pos` (first character is at position 1) and
+Returns the portion of `str` or `bytes` that starts at
+`pos` (first character or byte is at position 1) and
 has length `len`, or continues to the end of
-the string.
+the string or bytes.
 
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".

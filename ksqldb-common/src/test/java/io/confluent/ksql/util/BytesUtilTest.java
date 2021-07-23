@@ -46,4 +46,48 @@ public class BytesUtilTest {
         // Then
         assertThat(bytes, is(new byte[]{5}));
     }
+
+    @Test
+    public void shouldReturnFullByteArrayWhenByteBufferPositionIsNotZero() {
+        // Given
+        final ByteBuffer buffer = ByteBuffer.wrap(new byte[]{5, 10, 15}).asReadOnlyBuffer();
+
+        // This moves the internal array position to the next element and affects when we get
+        // bytes from read-only buffers
+        buffer.get();
+
+        // When
+        final byte[] bytes = BytesUtils.getByteArray(buffer);
+
+        // Then
+        assertThat(bytes, is(new byte[]{5, 10, 15}));
+    }
+
+    @Test
+    public void shouldReturnSubArray() {
+        // Given
+        final ByteBuffer buffer = ByteBuffer.wrap(new byte[]{1, 2, 3, 4});
+
+        // When
+        final byte[] bytes = BytesUtils.getByteArray(buffer, 1, 3);
+
+        // Then
+        assertThat(bytes, is(new byte[]{2, 3}));
+    }
+
+    @Test
+    public void shouldReturnSubArrayWhenByteBufferPositionIsNotZero() {
+        // Given
+        final ByteBuffer buffer = ByteBuffer.wrap(new byte[]{1, 2, 3, 4}).asReadOnlyBuffer();
+
+        // This moves the internal array position to the next element and affects when we get
+        // bytes from read-only buffers
+        buffer.get();
+
+        // When
+        final byte[] bytes = BytesUtils.getByteArray(buffer, 1, 3);
+
+        // Then
+        assertThat(bytes, is(new byte[]{2, 3}));
+    }
 }

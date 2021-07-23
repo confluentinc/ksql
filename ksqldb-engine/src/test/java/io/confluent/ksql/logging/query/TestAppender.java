@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.spi.LoggingEvent;
 
-public class TestAppender extends AppenderSkeleton {
+class TestAppender extends AppenderSkeleton {
     private final List<LoggingEvent> log = new ArrayList<>();
     @Override
     public boolean requiresLayout() {

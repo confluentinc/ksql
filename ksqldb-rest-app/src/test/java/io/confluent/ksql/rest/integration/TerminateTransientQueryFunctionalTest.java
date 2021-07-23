@@ -15,55 +15,22 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.GenericKey.genericKey;
-import static io.confluent.ksql.GenericRow.genericRow;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.startsWith;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.entity.CommandStatus.Status;
-import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.PushQueryId;
-import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SchemaTranslator;
-import io.confluent.ksql.serde.SerdeFeature;
-import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -133,6 +100,4 @@ public class TerminateTransientQueryFunctionalTest {
     );
 
   }
-
-
 }

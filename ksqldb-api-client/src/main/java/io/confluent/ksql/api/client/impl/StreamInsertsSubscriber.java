@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
@@ -35,6 +36,7 @@ public class StreamInsertsSubscriber extends BaseSubscriber<KsqlObject> {
   private int outstandingTokens;
   private boolean drainHandlerSet;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public StreamInsertsSubscriber(final Context context, final HttpClientRequest httpRequest) {
     super(context);
     this.httpRequest = Objects.requireNonNull(httpRequest);

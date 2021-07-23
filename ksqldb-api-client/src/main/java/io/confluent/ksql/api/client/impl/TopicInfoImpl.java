@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.TopicInfo;
 import java.util.List;
 import java.util.Objects;
@@ -23,12 +25,12 @@ public class TopicInfoImpl implements TopicInfo {
 
   private final String name;
   private final int partitions;
-  private final List<Integer> replicasPerPartition;
+  private final ImmutableList<Integer> replicasPerPartition;
 
   TopicInfoImpl(final String name, final int partitions, final List<Integer> replicasPerPartition) {
     this.name = Objects.requireNonNull(name);
     this.partitions = partitions;
-    this.replicasPerPartition = Objects.requireNonNull(replicasPerPartition);
+    this.replicasPerPartition = ImmutableList.copyOf(Objects.requireNonNull(replicasPerPartition));
   }
 
   @Override
@@ -42,6 +44,10 @@ public class TopicInfoImpl implements TopicInfo {
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "replicasPerPartition is ImmutableList"
+  )
   public List<Integer> getReplicasPerPartition() {
     return replicasPerPartition;
   }

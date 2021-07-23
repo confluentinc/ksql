@@ -97,7 +97,9 @@ public final class ComparisonInterpreter {
     };
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static Optional<ComparisonFunction> doCompareTo(final Term left, final Term right) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final SqlBaseType leftType = left.getSqlType().baseType();
     final SqlBaseType rightType = right.getSqlType().baseType();
     if (either(leftType, rightType, SqlBaseType.DECIMAL)) {

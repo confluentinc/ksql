@@ -17,6 +17,10 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWBOUND_TYPE;
@@ -123,10 +127,30 @@ public final class LogicalSchema {
    *
    * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
    * WINDOWEND} columns will added to the value schema to represent the window bounds.
+   *
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuild(true, windowed);
+    return rebuild(
+        true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  /**
+   * Copies pseudo and key columns to the value schema.
+   *
+   * <p>If the columns already exist in the value schema the function returns the same schema.
+   *
+   * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
+   * WINDOWEND} columns will added to the value schema to represent the window bounds.
+   *
+   * @param pseudoColumnVersion indicates the pseudocolumn version number of the given query.
+   * Queries passed to this method will receive the corresponding pseudocolumns in their schema.
+   *
+   * @return the new schema.
+   */
+  public LogicalSchema withPseudoAndKeyColsInValue(
+      final boolean windowed, final int pseudoColumnVersion) {
+    return rebuild(true, windowed, pseudoColumnVersion);
   }
 
   /**
@@ -135,12 +159,12 @@ public final class LogicalSchema {
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
-    return rebuild(false, false);
+    return rebuild(false, false, -1);
   }
 
   /**
    * Remove all non-key columns from the value, and copy all key columns into the value.
-   * 
+   *
    * @return the new schema
    */
   public LogicalSchema withKeyColsOnly() {
@@ -236,7 +260,8 @@ public final class LogicalSchema {
 
   private LogicalSchema rebuild(
       final boolean withPseudoAndKeyColsInValue,
-      final boolean windowedKey
+      final boolean windowedKey,
+      final int pseudoColumnVersion
   ) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
@@ -262,6 +287,11 @@ public final class LogicalSchema {
 
     if (withPseudoAndKeyColsInValue) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
+
+      if (pseudoColumnVersion > 0) {
+        builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
+        builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
+      }
 
       for (final Column c : key) {
         builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));

@@ -15,39 +15,67 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public final class SystemColumns {
 
   public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
-
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
   public static final SqlType ROWTIME_TYPE = SqlTypes.BIGINT;
+
+  public static final ColumnName ROWOFFSET_NAME = ColumnName.of("ROWOFFSET");
+  public static final SqlType ROWOFFSET_TYPE = SqlTypes.BIGINT;
+
+  public static final ColumnName ROWPARTITION_NAME = ColumnName.of("ROWPARTITION");
+  public static final SqlType ROWPARTITION_TYPE = SqlTypes.INTEGER;
 
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
   public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
   public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = 0;
-  public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER = 5;
+  public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER = 0;
 
-  private static final Set<ColumnName> PSEUDO_COLUMN_NAMES = ImmutableSet.of(
+  public static Set<ColumnName> getPseudoColumnsFromVersion(final int version) {
+    return versionedPseudoColumns.get(version);
+  }
+
+  private static final Set<ColumnName> VERSION_ONE_NAMES = ImmutableSet.of(
+      ROWTIME_NAME,
+      ROWPARTITION_NAME,
+      ROWOFFSET_NAME
+      );
+
+  private static final Set<ColumnName> VERSION_ZERO_NAMES = ImmutableSet.of(
       ROWTIME_NAME
   );
+
+  private static final Map<Integer, Set<ColumnName>> versionedPseudoColumns = ImmutableMap.of(
+      0, VERSION_ZERO_NAMES,
+      1, VERSION_ONE_NAMES
+      );
 
   private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
       WINDOWSTART_NAME,
       WINDOWEND_NAME
   );
 
-  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES = ImmutableSet.<ColumnName>builder()
-      .addAll(PSEUDO_COLUMN_NAMES)
+  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES_CURRENT =
+      ImmutableSet.<ColumnName>builder()
+      .addAll(getPseudoColumnsFromVersion(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER))
       .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
       .build();
+
+
+  private static final Map<Integer, Set<ColumnName>> systemColumnNamesByVersion =
+      new HashMap<>();
 
   private SystemColumns() {
   }
@@ -65,7 +93,7 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> pseudoColumnNames() {
-    return PSEUDO_COLUMN_NAMES;
+    return getPseudoColumnsFromVersion(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static boolean isSystemColumn(final ColumnName columnName) {
@@ -73,6 +101,18 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> systemColumnNames() {
-    return SYSTEM_COLUMN_NAMES;
+    return SYSTEM_COLUMN_NAMES_CURRENT;
+  }
+
+  //cache version numbers we have used, otherwise create as needed
+  public static Set<ColumnName> systemColumnNames(final int versionNumber) {
+    if (!systemColumnNamesByVersion.containsKey(versionNumber)) {
+      systemColumnNamesByVersion.put(versionNumber,
+          ImmutableSet.<ColumnName>builder()
+              .addAll(getPseudoColumnsFromVersion(versionNumber))
+              .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
+              .build());
+    }
+    return systemColumnNamesByVersion.get(versionNumber);
   }
 }

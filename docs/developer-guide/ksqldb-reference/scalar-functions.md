@@ -794,10 +794,11 @@ Convert a string to lowercase.
 Since: -
 
 ```sql
-LEN(col1)
+LEN(string)
+LEN(bytes)
 ```
 
-The length of a string.
+The length of a string or the number of bytes in a BYTES value.
 
 ### `LPAD`
 

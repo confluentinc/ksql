@@ -18,6 +18,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.nio.ByteBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,8 +45,14 @@ public class LenTest {
 
   @Test
   public void shouldReturnNullForNullInput() {
-    final Integer result = udf.len(null);
-    assertThat(result, is(nullValue()));
+    assertThat(udf.len((String) null), is(nullValue()));
+    assertThat(udf.len((ByteBuffer) null), is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnLengthOfByteArray() {
+    final Integer result = udf.len(ByteBuffer.wrap(new byte[] {123, 89}));
+    assertThat(result, is(2));
   }
 
 }

@@ -89,7 +89,7 @@ public class UtilizationMetricsListenerTest {
   public void shouldReportNodeLevelStorageUsage() {
     // Given:
     directories.add(file);
-    when(file.getFreeSpace()).thenReturn(50L);
+    when(file.getFreeSpace()).thenReturn(30L);
     when(file.getTotalSpace()).thenReturn(100L);
     when(file.getName()).thenReturn("/tmp/cat/new_query");
 
@@ -98,9 +98,10 @@ public class UtilizationMetricsListenerTest {
     listener.nodeDiskUsage(dataPoints, Instant.EPOCH);
 
     // Then
-    assertEquals("Should record storage usage", dataPoints.get(0), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-usage", 50.0));
-    assertEquals("Should record storage percentage", dataPoints.get(1), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-usage-perc", 50.0));
-    assertEquals(dataPoints.size(),2);
+    assertEquals("Should record storage usage", dataPoints.get(0), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-usage", 70.0));
+    assertEquals("Should record storage total", dataPoints.get(1), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-total", 100.0));
+    assertEquals("Should record storage percentage", dataPoints.get(2), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-usage-perc", 70.0));
+    assertEquals(dataPoints.size(),3);
 
   }
 

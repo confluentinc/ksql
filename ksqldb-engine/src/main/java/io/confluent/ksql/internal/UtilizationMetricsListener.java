@@ -98,12 +98,13 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
       final List<MetricsReporter.DataPoint> dataPoints,
       final Instant sampleTime) {
     for (File f : streamsDirectories) {
-      final double freeSpace = f.getFreeSpace();
       final long totalSpace = f.getTotalSpace();
-      final double percFree = percentage(freeSpace, (double) totalSpace);
-      dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-usage", freeSpace));
+      final long usedSpace = totalSpace - f.getFreeSpace();
+      final double percFree = percentage((double) usedSpace, (double) totalSpace);
+      dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-usage", (double) usedSpace));
+      dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-total", (double) totalSpace));
       dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-usage-perc", percFree));
-      logger.info("The disk usage for {} is {}", f.getName(), freeSpace);
+      logger.info("The disk usage for {} is {}", f.getName(), usedSpace);
       logger.info("The % disk space free for {} is {}%", f.getName(), percFree);
     }
   }

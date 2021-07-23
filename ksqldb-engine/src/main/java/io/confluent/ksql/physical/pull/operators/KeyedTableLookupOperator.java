@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
@@ -40,7 +41,7 @@ public class KeyedTableLookupOperator
   private final Materialization mat;
   private final DataSourceNode logicalNode;
 
-  private List<KsqlPartitionLocation> partitionLocations;
+  private ImmutableList<KsqlPartitionLocation> partitionLocations;
   private Iterator<Row> resultIterator;
   private Iterator<GenericKey> keyIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
@@ -133,6 +134,10 @@ public class KeyedTableLookupOperator
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "partitionLocations is ImmutableList"
+  )
   public List<KsqlPartitionLocation> getPartitionLocations() {
     return partitionLocations;
   }
@@ -140,7 +145,7 @@ public class KeyedTableLookupOperator
   @Override
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
-    partitionLocations = locations;
+    partitionLocations = ImmutableList.copyOf(locations);
   }
 
   @Override

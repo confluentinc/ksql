@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -96,6 +97,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private final LogicalSchema schema;
   private final String defaultKeyFormat;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public JoinNode(
       final PlanNodeId id,
       final JoinType joinType,

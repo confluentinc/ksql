@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.scalablepush;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
@@ -51,6 +52,7 @@ public class PushPhysicalPlan {
   private volatile boolean closed = false;
   private long timer = -1;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public PushPhysicalPlan(
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
@@ -123,6 +125,7 @@ public class PushPhysicalPlan {
     root.close();
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public AbstractPhysicalOperator getRoot() {
     return root;
   }

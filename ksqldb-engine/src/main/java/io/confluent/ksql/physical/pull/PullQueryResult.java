@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.base.Preconditions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
@@ -47,6 +48,7 @@ public class PullQueryResult {
   private CompletableFuture<Void> future = new CompletableFuture<>();
   private boolean started = false;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PullQueryResult(
       final LogicalSchema schema,
       final PullQueryQueuePopulator populator,
@@ -77,6 +79,7 @@ public class PullQueryResult {
     return queryId;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public PullQueryQueue getPullQueryQueue() {
     return pullQueryQueue;
   }

@@ -17,6 +17,7 @@ package io.confluent.ksql.physical.scalablepush.locator;
 
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
@@ -39,10 +40,16 @@ public class AllHostsLocator implements PushLocator {
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
   private final URL localhost;
 
-  public AllHostsLocator(final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final URL localhost) {
+  public AllHostsLocator(
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final URL localhost
+  ) {
     this.allPersistentQueries = allPersistentQueries;
-    this.localhost = localhost;
+    try {
+      this.localhost = new URL(localhost.toString());
+    } catch (final MalformedURLException fatalError) {
+      throw new IllegalStateException("Could not deep copy URL: " + localhost);
+    }
   }
 
 

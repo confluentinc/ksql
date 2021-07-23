@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.reactive;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Objects;
@@ -40,6 +41,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   private boolean sentComplete;
   private volatile Throwable failure;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "ctx should be mutable")
   public BasePublisher(final Context ctx) {
     this.ctx = Objects.requireNonNull(ctx);
   }
@@ -67,6 +69,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     ctx.runOnContext(v -> doClose());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "ctx should be mutable")
   public Context getContext() {
     return ctx;
   }

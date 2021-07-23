@@ -128,21 +128,6 @@ public final class LogicalSchema {
    * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
    * WINDOWEND} columns will added to the value schema to represent the window bounds.
    *
-   * @return the new schema.
-   */
-  public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuild(
-        true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
-  }
-
-  /**
-   * Copies pseudo and key columns to the value schema.
-   *
-   * <p>If the columns already exist in the value schema the function returns the same schema.
-   *
-   * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
-   * WINDOWEND} columns will added to the value schema to represent the window bounds.
-   *
    * @param pseudoColumnVersion indicates the pseudocolumn version number of the given query.
    * Queries passed to this method will receive the corresponding pseudocolumns in their schema.
    *
@@ -150,7 +135,15 @@ public final class LogicalSchema {
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed, final int pseudoColumnVersion) {
-    return rebuild(true, windowed, pseudoColumnVersion);
+    return rebuild(//this will use current pseudocolumn version when feature is fully released
+        true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  //This will eventually use the current pseudocolumn version whenever it is not explicitly
+  //provided (as we WILL explicitly provide it whenever we are reading old queries)
+  public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
+    return rebuild(
+        true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**

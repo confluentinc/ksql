@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
@@ -94,11 +95,13 @@ public class TestCaseNode {
   }
 
   @JsonIgnore
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "formats is ImmutableList")
   public List<String> formats() {
     return formats;
   }
 
   @JsonProperty("statements")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "statements is ImmutableList")
   public List<String> statements() {
     return statements;
   }
@@ -109,16 +112,19 @@ public class TestCaseNode {
   }
 
   @JsonProperty("topics")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableList")
   public List<TopicNode> topics() {
     return topics;
   }
 
   @JsonProperty("inputs")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "inputs is ImmutableList")
   public List<RecordNode> inputs() {
     return inputs;
   }
 
   @JsonProperty("outputs")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "outputs is ImmutableList")
   public List<RecordNode> outputs() {
     return outputs;
   }
@@ -129,6 +135,7 @@ public class TestCaseNode {
   }
 
   @JsonProperty("properties")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
   public Map<String, Object> properties() {
     return properties;
   }

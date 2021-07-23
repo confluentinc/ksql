@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Arrays;
 import java.util.Set;
@@ -32,7 +33,7 @@ import org.antlr.v4.runtime.Vocabulary;
  */
 @ThreadSafe
 public class ParserKeywordValidatorUtil implements Predicate<String> {
-  private static final Set<String> JAVA_RESERVED_WORDS
+  private static final ImmutableSet<String> JAVA_RESERVED_WORDS
       = ImmutableSet.<String>builder()
       .add("abstract").add("assert").add("boolean").add("break").add("byte").add("case")
       .add("catch").add("char").add("class").add("const").add("continue").add("default")
@@ -46,10 +47,10 @@ public class ParserKeywordValidatorUtil implements Predicate<String> {
 
 
   // These are in the reserved words set, but we already use them for function names
-  private static final Set<String> ALLOWED_KSQL_WORDS
+  private static final ImmutableSet<String> ALLOWED_KSQL_WORDS
       = ImmutableSet.copyOf(Arrays.asList("concat", "substring", "replace"));
 
-  private static final Set<String> KSQL_RESERVED_WORDS = createFromVocabulary();
+  private static final ImmutableSet<String> KSQL_RESERVED_WORDS = createFromVocabulary();
 
   @Override
   public boolean test(final String functionName) {
@@ -77,7 +78,7 @@ public class ParserKeywordValidatorUtil implements Predicate<String> {
     return true;
   }
 
-  private static Set<String> createFromVocabulary() {
+  private static ImmutableSet<String> createFromVocabulary() {
     final Vocabulary vocabulary = SqlBaseParser.VOCABULARY;
     final int tokens = vocabulary.getMaxTokenType();
     final ImmutableSet.Builder<String> builder = ImmutableSet.builder();
@@ -94,6 +95,10 @@ public class ParserKeywordValidatorUtil implements Predicate<String> {
     return builder.build();
   }
 
+  @SuppressFBWarnings(
+      value = "MS_EXPOSE_REP",
+      justification = "KSQL_RESERVED_WORDS is ImmutableSet"
+  )
   public static Set<String> getKsqlReservedWords() {
     return KSQL_RESERVED_WORDS;
   }

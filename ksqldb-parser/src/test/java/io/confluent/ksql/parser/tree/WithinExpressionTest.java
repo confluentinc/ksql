@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.windows.WindowTimeClause;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
 public class WithinExpressionTest {
 
   @Test

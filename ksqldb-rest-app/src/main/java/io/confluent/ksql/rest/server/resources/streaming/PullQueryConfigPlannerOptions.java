@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -22,12 +24,15 @@ import java.util.Map;
 public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   private final KsqlConfig ksqlConfig;
-  private final Map<String, ?> configOverrides;
+  private final ImmutableMap<String, ?> configOverrides;
 
-  public PullQueryConfigPlannerOptions(final KsqlConfig ksqlConfig,
-      final Map<String, ?> configOverrides) {
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  public PullQueryConfigPlannerOptions(
+      final KsqlConfig ksqlConfig,
+      final Map<String, ?> configOverrides
+  ) {
     this.ksqlConfig = ksqlConfig;
-    this.configOverrides = configOverrides;
+    this.configOverrides = ImmutableMap.copyOf(configOverrides);
   }
 
   @Override

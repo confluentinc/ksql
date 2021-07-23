@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
@@ -83,6 +84,7 @@ public class Server {
   private WorkerExecutor workerExecutor;
   private FileWatcher fileWatcher;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public Server(
       final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,

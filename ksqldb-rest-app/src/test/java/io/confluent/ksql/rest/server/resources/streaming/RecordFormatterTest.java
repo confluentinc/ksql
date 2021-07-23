@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Message;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -1189,6 +1190,7 @@ public class RecordFormatterTest {
       }
     }
 
+    @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
     private static Bytes getBytes(final int size) {
       final byte[] bytes = new byte[size];
       RNG.nextBytes(bytes);

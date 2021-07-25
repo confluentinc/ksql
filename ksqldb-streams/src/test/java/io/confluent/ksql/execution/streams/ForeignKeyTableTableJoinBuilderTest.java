@@ -137,7 +137,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDoLeftJoinOnNonKey() {
     // Given:
     givenLeftJoin(left, JOIN_COLUMN);
@@ -166,7 +165,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
   // the query), ie, if key-format or partition-count do not match -- it's an open question
   // if it would be a good idea to do this though
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDoLeftJoinOnKey() {
     // Given:
     givenLeftJoin(left, L_KEY);
@@ -187,7 +185,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDoLeftJoinOnSubKey() {
     // Given:
     givenLeftJoin(leftMultiKey, L_KEY_2);
@@ -208,7 +205,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDoInnerJoinOnNonKey() {
     // Given:
     givenInnerJoin(left, JOIN_COLUMN);
@@ -237,7 +233,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
   // the query), ie, if key-format or partition-count do not match -- it's an open question
   // if it would be a good idea to do this though
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDoInnerJoinOnKey() {
     // Given:
     givenInnerJoin(left, L_KEY);
@@ -258,7 +253,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldDoInnerJoinOnSubKey() {
     // Given:
     givenInnerJoin(leftMultiKey, L_KEY_2);

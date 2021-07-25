@@ -32,7 +32,6 @@ public final class QueryLogger {
 
   private QueryLogger() {}
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
   public static void initialize() {
     logger.setAdditivity(false);
 

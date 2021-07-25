@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Confluent Inc.
+ * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -119,7 +119,6 @@ public class SchemaKStreamTest {
   private FormatInfo internalFormats;
 
   @Before
-  @SuppressWarnings("rawtypes")
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
@@ -265,7 +264,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   public void shouldRewriteTimeComparisonInFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
@@ -474,7 +472,6 @@ public class SchemaKStreamTest {
   }
 
   @FunctionalInterface
-  @SuppressWarnings("rawtypes")
   private interface StreamStreamJoin {
     SchemaKStream join(
         SchemaKStream otherSchemaKStream,
@@ -487,7 +484,6 @@ public class SchemaKStreamTest {
   }
 
   @FunctionalInterface
-  @SuppressWarnings("rawtypes")
   private interface StreamTableJoin {
     SchemaKStream join(
         SchemaKTable other,
@@ -498,7 +494,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  @SuppressWarnings({"rawtypes", "deprecation"}) // can be fixed after GRACE clause is made mandatory
   public void shouldBuildStepForStreamStreamJoin() {
     // Given:
     final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
@@ -544,7 +539,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   public void shouldBuildStepForStreamTableJoin() {
     // Given:
     final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
@@ -581,7 +575,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   public void shouldBuildSchemaForStreamTableJoin() {
     // Given:
     final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
@@ -609,7 +602,6 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  @SuppressWarnings("rawtypes")
   public void shouldThrowOnIntoIfKeyFormatWindowInfoIsDifferent() {
     // Given:
     final SchemaKStream stream = new SchemaKStream(
@@ -633,7 +625,6 @@ public class SchemaKStreamTest {
     );
   }
 
-  @SuppressWarnings("rawtypes")
   private SchemaKStream buildSchemaKStream(
       final LogicalSchema schema,
       final ExecutionStep sourceStep
@@ -647,7 +638,6 @@ public class SchemaKStreamTest {
     );
   }
 
-  @SuppressWarnings("rawtypes")
   private LogicalSchema buildJoinSchema(final KsqlStream stream) {
     final LogicalSchema.Builder builder = LogicalSchema.builder();
     builder.keyColumns(stream.getSchema().key());
@@ -657,7 +647,6 @@ public class SchemaKStreamTest {
     return builder.build();
   }
 
-  @SuppressWarnings("rawtypes")
   private SchemaKStream buildSchemaKStreamForJoin(final KsqlStream ksqlStream) {
     return buildSchemaKStream(
         buildJoinSchema(ksqlStream),
@@ -669,7 +658,6 @@ public class SchemaKStreamTest {
     return givenInitialKStreamOf(selectQuery, keyFormat);
   }
 
-  @SuppressWarnings("rawtypes")
   private PlanNode givenInitialKStreamOf(final String selectQuery, final KeyFormat keyFormat) {
     final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
         ksqlConfig,

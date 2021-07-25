@@ -35,7 +35,6 @@ public final class StreamStreamJoinBuilder {
   private StreamStreamJoinBuilder() {
   }
 
-  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> left,
       final KStreamHolder<K> right,

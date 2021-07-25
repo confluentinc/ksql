@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
@@ -40,7 +40,7 @@ public class ArrayConcat {
     }
     final int leftSize = left != null ? left.size() : 0;
     final int rightSize = right != null ? right.size() : 0;
-    final List<T> result = new ArrayList<>(leftSize + rightSize);
+    final List<T> result = new ArrayList(leftSize + rightSize);
     if (left != null) {
       result.addAll(left);
     }

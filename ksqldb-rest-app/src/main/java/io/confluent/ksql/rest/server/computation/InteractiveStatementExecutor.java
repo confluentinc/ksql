@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -101,7 +100,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void configure(final KsqlConfig config) {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");

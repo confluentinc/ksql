@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.api;
 
-import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
@@ -41,7 +39,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +57,7 @@ public class TestEndpoints implements Endpoints {
   private JsonObject lastProperties;
   private JsonObject lastSessionVariables;
   private String lastTarget;
-  private final Set<TestQueryPublisher> queryPublishers = new HashSet<>();
+  private Set<TestQueryPublisher> queryPublishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
   private int rowsBeforePublisherError = -1;
   private RuntimeException createQueryPublisherException;
@@ -114,7 +111,7 @@ public class TestEndpoints implements Endpoints {
       completableFuture.completeExceptionally(createInsertsSubscriberException);
     } else {
       this.lastTarget = target;
-      this.lastProperties = properties.copy();
+      this.lastProperties = properties;
       this.lastApiSecurityContext = apiSecurityContext;
       BufferedPublisher<InsertResult> acksPublisher = new BufferedPublisher<>(
           Vertx.currentContext());
@@ -241,7 +238,7 @@ public class TestEndpoints implements Endpoints {
   }
 
   public synchronized void setKsqlEndpointResponse(final List<KsqlEntity> entities) {
-    this.ksqlEndpointResponse = ImmutableList.copyOf(entities);
+    this.ksqlEndpointResponse = entities;
   }
 
   public synchronized String getLastSql() {
@@ -249,15 +246,15 @@ public class TestEndpoints implements Endpoints {
   }
 
   public synchronized JsonObject getLastProperties() {
-    return lastProperties.copy();
+    return lastProperties;
   }
 
   public synchronized JsonObject getLastSessionVariables() {
-    return lastSessionVariables.copy();
+    return lastSessionVariables;
   }
 
   public synchronized Set<TestQueryPublisher> getQueryPublishers() {
-    return Collections.unmodifiableSet(queryPublishers);
+    return queryPublishers;
   }
 
   public synchronized String getLastTarget() {
@@ -276,17 +273,14 @@ public class TestEndpoints implements Endpoints {
     this.rowsBeforePublisherError = rowsBeforePublisherError;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public synchronized void setCreateQueryPublisherException(final RuntimeException exception) {
     this.createQueryPublisherException = exception;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public synchronized void setCreateInsertsSubscriberException(final RuntimeException exception) {
     this.createInsertsSubscriberException = exception;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public synchronized void setExecuteKsqlRequestException(final RuntimeException exception) {
     this.executeKsqlRequestException = exception;
   }

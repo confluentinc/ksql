@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -28,7 +27,6 @@ public class StatusResource {
 
   private final InteractiveStatementExecutor statementExecutor;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public StatusResource(final InteractiveStatementExecutor statementExecutor) {
     this.statementExecutor = statementExecutor;
   }
@@ -42,8 +40,10 @@ public class StatusResource {
 
     final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
 
-    return commandStatus.map(EndpointResponse::ok)
-        .orElseGet(() -> Errors.notFound("Command not found"));
+    if (!commandStatus.isPresent()) {
+      return Errors.notFound("Command not found");
+    }
 
+    return EndpointResponse.ok(commandStatus.get());
   }
 }

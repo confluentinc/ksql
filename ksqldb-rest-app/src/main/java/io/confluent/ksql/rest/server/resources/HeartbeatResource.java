@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
@@ -32,7 +31,6 @@ public class HeartbeatResource {
 
   private final HeartbeatAgent heartbeatAgent;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public HeartbeatResource(final HeartbeatAgent heartbeatAgent) {
     this.heartbeatAgent = heartbeatAgent;
   }

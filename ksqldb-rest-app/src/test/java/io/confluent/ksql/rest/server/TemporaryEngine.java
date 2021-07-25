@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -80,7 +79,7 @@ public class TemporaryEngine extends ExternalResource {
   private KsqlConfig ksqlConfig;
   private KsqlEngine engine;
   private ServiceContext serviceContext;
-  private ImmutableMap<String, Object> configs = ImmutableMap.of();
+  private Map<String, Object> configs = ImmutableMap.of();
 
   @Override
   protected void before() {
@@ -109,7 +108,7 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   public TemporaryEngine withConfigs(final Map<String, Object> configs) {
-    this.configs = ImmutableMap.copyOf(configs);
+    this.configs = configs;
     return this;
   }
 
@@ -119,6 +118,7 @@ public class TemporaryEngine extends ExternalResource {
     serviceContext.close();
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends DataSource> T givenSource(
       final DataSourceType type,
       final String name
@@ -183,7 +183,6 @@ public class TemporaryEngine extends ExternalResource {
         SessionConfig.of(ksqlConfig, ImmutableMap.of()));
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlConfig getKsqlConfig() {
     return ksqlConfig;
   }

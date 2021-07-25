@@ -125,7 +125,7 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public List<URL> getListeners() {
-    return Collections.unmodifiableList(this.listeners);
+    return this.listeners;
   }
 
   public Optional<URL> getInternalListener() {

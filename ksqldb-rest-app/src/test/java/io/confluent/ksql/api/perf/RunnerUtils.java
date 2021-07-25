@@ -16,7 +16,6 @@
 package io.confluent.ksql.api.perf;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
@@ -41,7 +40,6 @@ public class RunnerUtils {
 
     private RecordParser recordParser;
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public ReceiveStream(final RecordParser recordParser) {
       this.recordParser = recordParser;
     }

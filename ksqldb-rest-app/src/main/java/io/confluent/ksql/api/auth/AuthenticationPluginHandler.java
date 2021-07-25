@@ -21,7 +21,6 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -51,7 +50,6 @@ public class AuthenticationPluginHandler implements Handler<RoutingContext> {
 
   private final Pattern unauthedPathsPattern;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public AuthenticationPluginHandler(final Server server,
       final AuthenticationPlugin securityHandlerPlugin) {
     this.server = Objects.requireNonNull(server);

@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
@@ -395,7 +394,6 @@ public class CommandRunner implements Closeable {
     return compatibleCommands;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public CommandQueue getCommandQueue() {
     return commandStore;
   }

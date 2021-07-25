@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.RateLimiter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
@@ -203,7 +202,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void configure(final KsqlConfig config) {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
@@ -423,9 +421,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
           true
       );
       resultForMetrics.set(result);
-      result.onCompletionOrException(
-          (v, t) -> optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce)
-      );
+      result.onCompletionOrException((v, t) -> {
+        optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      });
 
       final PullQueryStreamWriter pullQueryStreamWriter = new PullQueryStreamWriter(
           result,

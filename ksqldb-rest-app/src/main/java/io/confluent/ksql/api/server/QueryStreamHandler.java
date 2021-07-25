@@ -17,7 +17,6 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -45,7 +44,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private final Context context;
   private final Server server;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryStreamHandler(final Endpoints endpoints,
       final ConnectionQueryManager connectionQueryManager,
       final Context context,

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.utils;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -31,7 +30,6 @@ public class ReceiveStream implements WriteStream<Buffer> {
   private long firstReceivedTime;
   private boolean ended;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ReceiveStream(final Vertx vertx) {
     this.vertx = vertx;
   }

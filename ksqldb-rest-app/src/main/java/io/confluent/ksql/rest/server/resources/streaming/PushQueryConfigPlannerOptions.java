@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -25,7 +24,6 @@ public class PushQueryConfigPlannerOptions implements QueryPlannerOptions {
   private final KsqlConfig ksqlConfig;
   private final Map<String, ?> configOverrides;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PushQueryConfigPlannerOptions(final KsqlConfig ksqlConfig,
       final Map<String, ?> configOverrides) {
     this.ksqlConfig = ksqlConfig;

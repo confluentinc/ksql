@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.impl;
 
-import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
@@ -52,8 +51,8 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   private boolean isPullQuery;
   private boolean isScalablePushQuery;
   private QueryHandle queryHandle;
-  private ImmutableList<String> columnNames;
-  private ImmutableList<String> columnTypes;
+  private List<String> columnNames;
+  private List<String> columnTypes;
   private QueryId queryId;
   private boolean complete;
   private volatile boolean closed;
@@ -66,8 +65,8 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
 
   public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
       final boolean isScalablePushQuery) {
-    this.columnNames = ImmutableList.copyOf(queryHandle.getColumnNames());
-    this.columnTypes = ImmutableList.copyOf(queryHandle.getColumnTypes());
+    this.columnNames = queryHandle.getColumnNames();
+    this.columnTypes = queryHandle.getColumnTypes();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
     this.isScalablePushQuery = isScalablePushQuery;
@@ -85,13 +84,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnNames is ImmutableList")
   public List<String> getColumnNames() {
     return columnNames;
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<String> getColumnTypes() {
     return columnTypes;
   }

@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 
 import com.google.common.util.concurrent.RateLimiter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.InsertsStreamEndpoint;
 import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
@@ -97,7 +96,6 @@ public class KsqlServerEndpoints implements Endpoints {
   private final Optional<LocalCommands> localCommands;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.impl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.rest.client.KsqlClient;
@@ -37,7 +36,6 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   private final KsqlClient sharedClient;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public DefaultKsqlSecurityContextProvider(
       final KsqlSecurityExtension securityExtension,
       final DefaultServiceContextFactory defaultServiceContextFactory,

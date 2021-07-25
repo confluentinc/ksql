@@ -17,7 +17,6 @@ package io.confluent.ksql.api.impl;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -89,7 +88,6 @@ public class QueryEndpoint {
   private final Optional<LocalCommands> localCommands;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryEndpoint(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,

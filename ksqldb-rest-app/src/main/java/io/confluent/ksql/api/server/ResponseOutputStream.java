@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.api.server;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.buffer.Buffer;
@@ -41,7 +40,6 @@ public class ResponseOutputStream extends OutputStream {
   private final int writeTimeoutMs;
   private volatile boolean closed;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ResponseOutputStream(final HttpServerResponse response, final int writeTimeoutMs) {
     this.response = response;
     this.writeTimeoutMs = writeTimeoutMs;

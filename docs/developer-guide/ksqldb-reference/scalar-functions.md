@@ -650,9 +650,10 @@ Since: -
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
+CONCAT(bytes1, bytes2, ..., bytes-n)
 ```
 
-Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+Concatenate two or more string or bytes expressions. Any inputs which evaluate to NULL are replaced with an empty string or bytes in the output.
 
 ### `CONCAT_WS`
 
@@ -662,7 +663,7 @@ Since: 0.10.0
 CONCAT_WS(separator, expr1, expr2, ...)
 ```
 
-Concatenates two or more string expressions, inserting a separator string between each.
+Concatenates two or more string or bytes expressions, inserting a separator string or bytes between each.
 
 If the separator is NULL, this function returns NULL.
 Any expressions which evaluate to NULL are skipped.

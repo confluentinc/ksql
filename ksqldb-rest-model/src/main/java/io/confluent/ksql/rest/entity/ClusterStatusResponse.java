@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.Objects;
 
@@ -39,7 +38,6 @@ public final class ClusterStatusResponse {
     this.clusterStatus = ImmutableMap.copyOf(requireNonNull(clusterStatus, "status"));
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "clusterStatus is ImmutableMap")
   public Map<KsqlHostInfoEntity, HostStatusEntity> getClusterStatus() {
     return clusterStatus;
   }

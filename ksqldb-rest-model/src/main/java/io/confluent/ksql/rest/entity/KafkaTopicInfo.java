@@ -19,8 +19,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,7 +27,7 @@ import java.util.Objects;
 public class KafkaTopicInfo {
 
   private final String name;
-  private final ImmutableList<Integer> replicaInfo;
+  private final List<Integer> replicaInfo;
 
   @JsonCreator
   public KafkaTopicInfo(
@@ -37,14 +35,13 @@ public class KafkaTopicInfo {
       @JsonProperty("replicaInfo") final List<Integer> replicaInfo
   ) {
     this.name = name;
-    this.replicaInfo = ImmutableList.copyOf(replicaInfo);
+    this.replicaInfo = replicaInfo;
   }
 
   public String getName() {
     return name;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "replicaInfo is ImmutableList")
   public List<Integer> getReplicaInfo() {
     return replicaInfo;
   }

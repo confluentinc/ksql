@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.util.ClassFinder;
 import java.lang.reflect.Modifier;
 import java.util.Collection;
@@ -48,7 +47,6 @@ public class EntityTest {
         .collect(Collectors.toList());
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public EntityTest(final Class<?> entityClass) {
     this.entityClass = entityClass;
   }

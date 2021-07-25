@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,7 +40,6 @@ public final class ConnectorPluginsList extends KsqlEntity {
         ImmutableList.copyOf(Objects.requireNonNull(connectorPlugins, "connectorPlugins"));
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "connectorPlugins is ImmutableList")
   public ImmutableList<SimpleConnectorPluginInfo> getConnectorsPlugins() {
     return connectorPlugins;
   }

@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.json.StructSerializationModule;
 import io.confluent.ksql.schema.ksql.SqlTimeTypes;
@@ -62,7 +61,6 @@ public enum ApiJsonMapper {
           .addSerializer(Date.class, new DateSerializer())
       );
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public ObjectMapper get() {
     return mapper;
   }

@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -40,7 +39,6 @@ public class ConnectorList extends KsqlEntity {
     this.connectors = ImmutableList.copyOf(Objects.requireNonNull(connectors, "connectors"));
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "connectors is ImmutableList")
   public ImmutableList<SimpleConnectorInfo> getConnectors() {
     return connectors;
   }

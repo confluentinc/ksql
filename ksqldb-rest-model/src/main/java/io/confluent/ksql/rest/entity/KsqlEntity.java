@@ -72,7 +72,7 @@ public abstract class KsqlEntity {
   }
 
   public List<KsqlWarning> getWarnings() {
-    return Collections.unmodifiableList(warnings);
+    return warnings;
   }
   
   public void updateWarnings(final List<KsqlWarning> warnings) {

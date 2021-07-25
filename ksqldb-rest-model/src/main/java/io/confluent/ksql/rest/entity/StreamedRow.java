@@ -27,7 +27,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -313,7 +312,6 @@ public final class StreamedRow {
       return new DataRow(columns, Optional.of(true));
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is unmodifiableList()")
     public List<?> getColumns() {
       return columns;
     }
@@ -328,10 +326,8 @@ public final class StreamedRow {
         @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
     ) {
       this.tombstone = tombstone.orElse(false);
-      // cannot use ImmutableList, as we need to handle `null`
-      this.columns = Collections.unmodifiableList(
-          new ArrayList<>(requireNonNull(columns, "columns"))
-      );
+      this.columns = Collections
+          .unmodifiableList(new ArrayList<>(requireNonNull(columns, "columns")));
     }
 
     @Override

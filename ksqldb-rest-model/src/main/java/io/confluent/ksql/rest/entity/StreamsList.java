@@ -18,9 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.rest.entity.SourceInfo.Stream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -28,7 +26,7 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamsList extends KsqlEntity {
 
-  private final ImmutableList<Stream> streams;
+  private final Collection<SourceInfo.Stream> streams;
 
   @JsonCreator
   public StreamsList(
@@ -36,12 +34,11 @@ public class StreamsList extends KsqlEntity {
       @JsonProperty("streams") final Collection<SourceInfo.Stream> streams
   ) {
     super(statementText);
-    this.streams = ImmutableList.copyOf(streams);
+    this.streams = streams;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streams is ImmutableList")
   public List<SourceInfo.Stream> getStreams() {
-    return streams;
+    return new ArrayList<>(streams);
   }
 
   @Override

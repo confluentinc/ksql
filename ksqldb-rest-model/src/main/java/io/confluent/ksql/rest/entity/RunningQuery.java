@@ -22,7 +22,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -64,11 +63,11 @@ public class RunningQuery {
   }
 
   public Set<String> getSinks() {
-    return Collections.unmodifiableSet(sinks);
+    return sinks;
   }
 
   public Set<String> getSinkKafkaTopics() {
-    return Collections.unmodifiableSet(sinkKafkaTopics);
+    return sinkKafkaTopics;
   }
 
   public QueryId getId() {

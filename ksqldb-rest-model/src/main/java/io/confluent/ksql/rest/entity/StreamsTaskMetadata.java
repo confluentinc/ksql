@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -69,7 +68,6 @@ public class StreamsTaskMetadata {
     return taskId;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topicOffsets is ImmutableSet")
   public Set<TopicOffset> getTopicOffsets() {
     return topicOffsets;
   }

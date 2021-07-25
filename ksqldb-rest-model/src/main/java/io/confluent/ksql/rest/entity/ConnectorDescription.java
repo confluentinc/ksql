@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -29,8 +27,8 @@ public class ConnectorDescription extends KsqlEntity {
 
   private final String connectorClass;
   private final ConnectorStateInfo status;
-  private final ImmutableList<SourceDescription> sources;
-  private final ImmutableList<String> topics;
+  private final List<SourceDescription> sources;
+  private final List<String> topics;
 
   @JsonCreator
   public ConnectorDescription(
@@ -44,8 +42,8 @@ public class ConnectorDescription extends KsqlEntity {
     super(statementText, warnings);
     this.connectorClass = Objects.requireNonNull(connectorClass, "connectorClass");
     this.status = Objects.requireNonNull(status, "status");
-    this.sources = ImmutableList.copyOf(Objects.requireNonNull(sources, "sources"));
-    this.topics = ImmutableList.copyOf(Objects.requireNonNull(topics, "topics"));
+    this.sources = Objects.requireNonNull(sources, "sources");
+    this.topics = Objects.requireNonNull(topics, "topics");
   }
 
   public String getConnectorClass() {
@@ -56,12 +54,10 @@ public class ConnectorDescription extends KsqlEntity {
     return status;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sources is ImmutableList")
   public List<SourceDescription> getSources() {
     return sources;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableList")
   public List<String> getTopics() {
     return topics;
   }

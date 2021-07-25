@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
@@ -102,7 +101,6 @@ public class QueryDescription {
     return windowType;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "fields is ImmutableList")
   public List<FieldInfo> getFields() {
     return fields;
   }
@@ -115,20 +113,14 @@ public class QueryDescription {
     return executionPlan;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sources is ImmutableSet")
   public Set<String> getSources() {
     return sources;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sinks is ImmutableSet")
   public Set<String> getSinks() {
     return sinks;
   }
 
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "overriddenProperties is ImmutableMap"
-  )
   public Map<String, Object> getOverriddenProperties() {
     return overriddenProperties;
   }
@@ -167,7 +159,6 @@ public class QueryDescription {
     return queryType;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public List<QueryError> getQueryErrors() {
     return queryErrors;
   }

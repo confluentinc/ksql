@@ -108,7 +108,7 @@ public final class ExplainExecutor {
     final QueryMetadata metadata;
     final KsqlExecutionContext sandbox = executionContext.createSandbox(serviceContext);
     if (preparedStatement.getStatement() instanceof Query) {
-      metadata = sandbox.executeQuery(
+      metadata = sandbox.executeTransientQuery(
           serviceContext,
           ConfiguredStatement.of(preparedStatement, explain.getSessionConfig()).cast(),
           false);

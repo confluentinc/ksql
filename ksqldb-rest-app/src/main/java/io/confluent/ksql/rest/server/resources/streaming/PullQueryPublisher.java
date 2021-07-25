@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -109,7 +110,11 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryResult result = null;
     try {
-      result = ksqlEngine.executePullQuery(
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutput(query.getStatement(), query.getStatementText());
+
+      result = ksqlEngine.executeTablePullQuery(
+          analysis,
           serviceContext,
           query,
           routing,

@@ -19,9 +19,6 @@ import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.rest.model.ExpectedErrorNode;
@@ -86,12 +83,10 @@ public class RestTestCaseNode {
     return name;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "formats is ImmutableList")
   public List<String> formats() {
     return formats;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "statements is ImmutableList")
   public List<String> statements() {
     return statements;
   }
@@ -100,27 +95,22 @@ public class RestTestCaseNode {
     return expectedError;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableList")
   public List<TopicNode> topics() {
     return topics;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "inputs is ImmutableList")
   public List<RecordNode> inputs() {
     return inputs;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "outputs is ImmutableList")
   public List<RecordNode> outputs() {
     return outputs;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "responses is ImmutableList")
   public List<Response> getResponses() {
     return responses;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
   public Map<String, Object> properties() {
     return properties;
   }

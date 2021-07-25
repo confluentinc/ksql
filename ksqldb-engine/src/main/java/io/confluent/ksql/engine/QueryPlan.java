@@ -16,9 +16,7 @@
 package io.confluent.ksql.engine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
@@ -28,7 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 
 public final class QueryPlan  {
-  private final ImmutableSet<SourceName> sources;
+  private final Set<SourceName> sources;
   private final SourceName sink;
   private final ExecutionStep<?> physicalPlan;
   private final QueryId queryId;
@@ -52,7 +50,6 @@ public final class QueryPlan  {
     return sink;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sources is ImmutableSet")
   public Set<SourceName> getSources() {
     return sources;
   }

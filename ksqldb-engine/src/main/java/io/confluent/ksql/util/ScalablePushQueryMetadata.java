@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -41,7 +40,6 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   // on the forwarding node), this is tracks errors.
   private CompletableFuture<Void> runningFuture = new CompletableFuture<>();
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ScalablePushQueryMetadata(
       final LogicalSchema logicalSchema,
       final QueryId queryId,
@@ -85,7 +83,6 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public BlockingRowQueue getRowQueue() {
     return rowQueue;
   }

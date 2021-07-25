@@ -21,8 +21,6 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -60,9 +58,9 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final String queryApplicationId;
   private final Topology topology;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final ImmutableMap<String, Object> streamsProperties;
-  private final ImmutableMap<String, Object> overriddenProperties;
-  private final ImmutableSet<SourceName> sourceNames;
+  private final Map<String, Object> streamsProperties;
+  private final Map<String, Object> overriddenProperties;
+  private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Duration closeTimeout;
   private final QueryId queryId;
@@ -119,9 +117,7 @@ public class QueryMetadataImpl implements QueryMetadata {
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
     this.listener = Objects.requireNonNull(listener, "listener");
-    this.sourceNames = ImmutableSet.copyOf(
-        Objects.requireNonNull(sourceNames, "sourceNames")
-    );
+    this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
     this.closeTimeout = Duration.ofMillis(closeTimeout);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
@@ -217,11 +213,7 @@ public class QueryMetadataImpl implements QueryMetadata {
                        .collect(Collectors.toSet());
   }
 
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "overriddenProperties is ImmutableMap"
-  )
-  public ImmutableMap<String, Object> getOverriddenProperties() {
+  public Map<String, Object> getOverriddenProperties() {
     return overriddenProperties;
   }
 
@@ -270,8 +262,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     return ImmutableList.of();
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is ImmutableMap")
-  public ImmutableMap<String, Object> getStreamsProperties() {
+  public Map<String, Object> getStreamsProperties() {
     return streamsProperties;
   }
 
@@ -279,8 +270,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     return logicalSchema;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sourceNames is ImmutableSet")
-  public ImmutableSet<SourceName> getSourceNames() {
+  public Set<SourceName> getSourceNames() {
     return sourceNames;
   }
 
@@ -319,7 +309,6 @@ public class QueryMetadataImpl implements QueryMetadata {
     return closed;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KafkaStreams getKafkaStreams() {
     return kafkaStreams;
   }

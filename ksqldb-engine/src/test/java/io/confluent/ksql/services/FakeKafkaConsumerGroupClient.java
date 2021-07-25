@@ -2,7 +2,6 @@ package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -14,18 +13,17 @@ import org.apache.kafka.common.TopicPartition;
 
 public class FakeKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
 
-  private static final ImmutableList<String> groups = ImmutableList.of("cg1", "cg2");
+  private static final List<String> groups = ImmutableList.of("cg1", "cg2");
 
-  private final Set<String> deletedConsumerGroups = new HashSet<>();
+  private Set<String> deletedConsumerGroups = new HashSet<>();
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "groups is ImmutableList")
   public List<String> listGroups() {
     return groups;
   }
 
   @Override
-  public ConsumerGroupSummary describeConsumerGroup(final String group) {
+  public ConsumerGroupSummary describeConsumerGroup(String group) {
     if (groups.contains(group)) {
       Set<ConsumerSummary> instances = ImmutableSet.of(
           new ConsumerSummary(group + "-1"),
@@ -41,7 +39,7 @@ public class FakeKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
   }
 
   @Override
-  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(final String group) {
+  public Map<TopicPartition, OffsetAndMetadata> listConsumerGroupOffsets(String group) {
     if (groups.contains(group)) {
       Map<TopicPartition, OffsetAndMetadata> offsets = new LinkedHashMap<>();
       offsets.put(new TopicPartition("topic1", 0), new OffsetAndMetadata(10));

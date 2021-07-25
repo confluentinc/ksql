@@ -178,7 +178,7 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   public List<JoinInfo> getJoin() {
-    return Collections.unmodifiableList(joinInfo);
+    return joinInfo;
   }
 
   public boolean isJoin() {
@@ -258,7 +258,7 @@ public class Analysis implements ImmutableAnalysis {
 
   @Override
   public List<FunctionCall> getTableFunctions() {
-    return Collections.unmodifiableList(tableFunctions);
+    return tableFunctions;
   }
 
   private LogicalSchema buildStreamsSchema(

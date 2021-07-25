@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -99,7 +98,6 @@ public final class IntegrationTestHarness extends ExternalResource {
     this.serviceContext = new LazyServiceContext(schemaRegistryClient);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public EmbeddedSingleNodeKafkaCluster getKafkaCluster() {
     return kafkaCluster;
   }
@@ -755,7 +753,6 @@ public final class IntegrationTestHarness extends ExternalResource {
     }
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public final class ContextBuilder {
 
     private final Map<String, Object> additionalConfig = new HashMap<>();

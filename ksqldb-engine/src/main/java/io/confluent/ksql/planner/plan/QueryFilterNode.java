@@ -20,7 +20,6 @@ import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
@@ -88,7 +87,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
   private final Expression rewrittenPredicate;
   // The separated disjuncts.  In the above example, [(A AND B), (C AND D)]
   private final List<Expression> disjuncts;
-  private final ImmutableList<LookupConstraint> lookupConstraints;
+  private final List<LookupConstraint> lookupConstraints;
   private final Set<UnqualifiedColumnReferenceExp> keyColumns = new HashSet<>();
   private final Set<UnqualifiedColumnReferenceExp> systemColumns = new HashSet<>();
   private final QueryPlannerOptions queryPlannerOptions;
@@ -156,7 +155,6 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     return isWindowed;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "lookupConstraints is ImmutableList")
   public List<LookupConstraint> getLookupConstraints() {
     return lookupConstraints;
   }
@@ -220,7 +218,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
    * keyContents has the key values for each columns of a key.
    * @return the constraints on the key values used to to do keyed lookup.
    */
-  private ImmutableList<LookupConstraint> extractLookupConstraints() {
+  private List<LookupConstraint> extractLookupConstraints() {
     if (requiresTableScan) {
       LOG.debug("Skipping extracting key value extraction. Already requires table scan");
       return ImmutableList.of(new NonKeyConstraint());

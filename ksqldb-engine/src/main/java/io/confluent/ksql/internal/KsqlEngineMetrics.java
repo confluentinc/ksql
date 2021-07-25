@@ -16,7 +16,6 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.metrics.MetricCollectors;
@@ -140,7 +139,6 @@ public class KsqlEngineMetrics implements Closeable {
     recordErrorRate(MetricCollectors.currentErrorRate());
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Metrics getMetrics() {
     return metrics;
   }

@@ -16,7 +16,6 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
@@ -25,7 +24,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -217,10 +215,9 @@ public class PullQueryExecutorMetrics implements Closeable {
   }
 
   public List<Sensor> getSensors() {
-    return Collections.unmodifiableList(sensors);
+    return sensors;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Metrics getMetrics() {
     return metrics;
   }

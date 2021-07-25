@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -37,6 +36,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -68,7 +68,7 @@ public class QueryProjectNode extends ProjectNode {
   private final ImmutableList<SelectExpression> selectExpressions;
   private final LogicalSchema outputSchema;
   private final LogicalSchema intermediateSchema;
-  private final ImmutableList<ExpressionEvaluator> compiledSelectExpressions;
+  private final List<ExpressionEvaluator> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
   private final QueryPlannerOptions queryPlannerOptions;
   private final boolean isScalablePush;
@@ -102,7 +102,7 @@ public class QueryProjectNode extends ProjectNode {
           isWindowed
       );
     this.compiledSelectExpressions = isSelectStar
-        ? ImmutableList.of()
+        ? Collections.emptyList()
         : selectExpressions
         .stream()
         .map(selectExpression ->
@@ -119,15 +119,10 @@ public class QueryProjectNode extends ProjectNode {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectExpressions is ImmutableList")
   public List<SelectExpression> getSelectExpressions() {
     return selectExpressions;
   }
 
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "compiledSelectExpressions is ImmutableList"
-  )
   public List<ExpressionEvaluator> getCompiledSelectExpressions() {
     if (isSelectStar) {
       throw new IllegalStateException("Select expressions aren't compiled for select star");

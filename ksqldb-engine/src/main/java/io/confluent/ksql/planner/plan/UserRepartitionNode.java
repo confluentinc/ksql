@@ -18,8 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
@@ -35,9 +33,9 @@ import java.util.stream.Stream;
 
 public class UserRepartitionNode extends SingleSourcePlanNode {
 
-  private final ImmutableList<Expression> partitionBys;
+  private final List<Expression> partitionBys;
   private final LogicalSchema schema;
-  private final ImmutableList<Expression> originalPartitionBys;
+  private final List<Expression> originalPartitionBys;
   private final ValueFormat valueFormat;
 
   public UserRepartitionNode(
@@ -49,10 +47,8 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
     this.schema = requireNonNull(schema, "schema");
-    this.partitionBys = ImmutableList.copyOf(requireNonNull(partitionBys, "partitionBys"));
-    this.originalPartitionBys = ImmutableList.copyOf(
-        requireNonNull(originalPartitionBys, "originalPartitionBys")
-    );
+    this.partitionBys = requireNonNull(partitionBys, "partitionBys");
+    this.originalPartitionBys = requireNonNull(originalPartitionBys, "originalPartitionBys");
     this.valueFormat = getLeftmostSourceNode()
         .getDataSource()
         .getKsqlTopic()
@@ -77,7 +73,6 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   }
 
   @VisibleForTesting
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "partitionBys is ImmutableList")
   public List<Expression> getPartitionBys() {
     return partitionBys;
   }

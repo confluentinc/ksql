@@ -16,14 +16,12 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
@@ -83,7 +81,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectExpressions is ImmutableList")
   public List<SelectExpression> getSelectExpressions() {
     return selectExpressions;
   }
@@ -96,7 +93,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
   private Optional<LogicalSchema> getTargetSchema(final MetaStore metaStore) {
     return into.filter(i -> !i.isCreate())
         .map(i -> metaStore.getSource(i.getName()))
-        .map(DataSource::getSchema);
+        .map(target -> target.getSchema());
   }
 
   private Pair<LogicalSchema, List<SelectExpression>> build(final MetaStore metaStore) {

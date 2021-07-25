@@ -16,7 +16,6 @@
 package io.confluent.ksql.function.udaf.topkdistinct;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -32,7 +31,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   private static final String NAME = "TOPKDISTINCT";
 
-  private static final ImmutableList<List<ParamType>> SUPPORTED_TYPES = ImmutableList
+  private static final List<List<ParamType>> SUPPORTED_TYPES = ImmutableList
       .<List<ParamType>>builder()
       .add(ImmutableList.of(ParamTypes.INTEGER))
       .add(ImmutableList.of(ParamTypes.LONG))
@@ -75,7 +74,6 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "SUPPORTED_TYPES is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
     return SUPPORTED_TYPES;
   }

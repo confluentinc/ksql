@@ -16,7 +16,6 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -113,7 +112,6 @@ public class PullPhysicalPlan {
     root.close();
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public AbstractPhysicalOperator getRoot() {
     return root;
   }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.services;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
@@ -79,7 +78,6 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KafkaTopicClient getTopicClient() {
     return topicClient;
   }
@@ -90,7 +88,6 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public SchemaRegistryClient getSchemaRegistryClient() {
     return srClient;
   }
@@ -101,7 +98,6 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ConnectClient getConnectClient() {
     return connectClient;
   }
@@ -112,7 +108,6 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KafkaConsumerGroupClient getConsumerGroupClient() {
     return consumerGroupClient;
   }

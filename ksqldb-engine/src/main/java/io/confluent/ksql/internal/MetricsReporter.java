@@ -16,7 +16,6 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.Configurable;
 
 import java.io.Closeable;
@@ -43,7 +42,7 @@ public interface MetricsReporter extends Closeable, Configurable {
     private final String name;
     private final Instant time;
     private final Object value;
-    private final ImmutableMap<String, String> tags;
+    private final Map<String, String> tags;
 
     public DataPoint(final Instant time, final String name, final Object value) {
       this(time, name, value, Collections.emptyMap());
@@ -56,7 +55,7 @@ public interface MetricsReporter extends Closeable, Configurable {
         final Map<String, String> tags
     ) {
       this.name = Objects.requireNonNull(name, "name");
-      this.time = Instant.from(Objects.requireNonNull(time, "time"));
+      this.time = Objects.requireNonNull(time, "time");
       this.value = Objects.requireNonNull(value, "value");
       this.tags = ImmutableMap.copyOf(Objects.requireNonNull(tags, "tags"));
     }
@@ -66,14 +65,13 @@ public interface MetricsReporter extends Closeable, Configurable {
     }
 
     public Instant getTime() {
-      return Instant.from(time);
+      return time;
     }
 
     public Object getValue() {
       return value;
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "tags is ImmutableMap")
     public Map<String, String> getTags() {
       return tags;
     }

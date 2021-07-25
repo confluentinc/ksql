@@ -24,7 +24,6 @@ import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -46,7 +45,7 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void
   }
 
   public Set<String> getSourceTopics() {
-    return Collections.unmodifiableSet(sourceTopics);
+    return sourceTopics;
   }
 
   @Override

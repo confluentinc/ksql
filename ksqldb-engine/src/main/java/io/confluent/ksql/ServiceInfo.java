@@ -15,8 +15,6 @@
 
 package io.confluent.ksql;
 
-import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.internal.KsqlMetricsExtension;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -27,7 +25,7 @@ public final class ServiceInfo {
 
   private final String serviceId;
   private final String metricsPrefix;
-  private final ImmutableMap<String, String> customMetricsTags;
+  private final Map<String, String> customMetricsTags;
   private final Optional<KsqlMetricsExtension> metricsExtension;
 
   /**
@@ -70,9 +68,7 @@ public final class ServiceInfo {
       final String metricsPrefix
   ) {
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
-    this.customMetricsTags = ImmutableMap.copyOf(
-        Objects.requireNonNull(customMetricsTags, "customMetricsTags")
-    );
+    this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
     this.metricsExtension = Objects.requireNonNull(metricsExtension, "metricsExtension");
     this.metricsPrefix = Objects.requireNonNull(metricsPrefix, "metricsPrefix");
   }
@@ -81,7 +77,6 @@ public final class ServiceInfo {
     return serviceId;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "customMetricsTags is ImmutableMap")
   public Map<String, String> customMetricsTags() {
     return customMetricsTags;
   }

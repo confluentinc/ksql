@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
-import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -43,7 +41,7 @@ public class KeyedWindowedTableLookupOperator
   private final Materialization mat;
   private final DataSourceNode logicalNode;
 
-  private ImmutableList<KsqlPartitionLocation> partitionLocations;
+  private List<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
   private Iterator<KsqlKey> keyIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
@@ -119,7 +117,7 @@ public class KeyedWindowedTableLookupOperator
     final KeyConstraintKey keyConstraintKey = (KeyConstraintKey) ksqlKey;
     if (!keyConstraintKey.getWindowBounds().isPresent()) {
       throw new IllegalStateException(String.format("Table windowed queries should be done with "
-          + "window bounds: %s", ksqlKey));
+          + "window bounds: %s", ksqlKey.toString()));
     }
     return keyConstraintKey.getWindowBounds().get();
   }
@@ -155,10 +153,6 @@ public class KeyedWindowedTableLookupOperator
   }
 
   @Override
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "partitionLocations is ImmutableList"
-  )
   public List<KsqlPartitionLocation> getPartitionLocations() {
     return partitionLocations;
   }
@@ -166,7 +160,7 @@ public class KeyedWindowedTableLookupOperator
   @Override
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
-    partitionLocations = ImmutableList.copyOf(locations);
+    partitionLocations = locations;
   }
 
   @Override

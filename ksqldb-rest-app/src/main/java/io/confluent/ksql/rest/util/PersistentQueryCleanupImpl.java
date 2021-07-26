@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -61,6 +62,7 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
     }
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public QueryCleanupService getQueryCleanupService() {
     return queryCleanupService;
   }

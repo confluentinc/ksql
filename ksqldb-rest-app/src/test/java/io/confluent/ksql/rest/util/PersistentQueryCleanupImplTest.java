@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.util;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.logging.query.TestAppender;
 import io.confluent.ksql.services.ServiceContext;
@@ -38,7 +37,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -54,14 +52,17 @@ public class PersistentQueryCleanupImplTest {
   public void setUp() {
     tempFile = new File("/tmp/cat/");
     if (!tempFile.exists()){
-      tempFile.mkdirs();
+      if (!tempFile.mkdirs()) {
+        throw new IllegalStateException(String.format(
+            "Could not create temp directory: %s",
+            tempFile.getAbsolutePath()
+        ));
+      }
     }
 
     cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context);
-
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldDeleteExtraStateStores() {
     // Given:
@@ -70,10 +71,9 @@ public class PersistentQueryCleanupImplTest {
     logger.addAppender(appender);
 
     File fakeStateStore = new File(tempFile.getAbsolutePath() + "/fakeStateStore");
-    if (!fakeStateStore.exists()){
-      fakeStateStore.mkdirs();
+    if (!fakeStateStore.exists()) {
+      assertTrue(fakeStateStore.mkdirs());
     }
-    assertTrue(fakeStateStore.exists());
 
     // When:
     cleanup.cleanupLeakedQueries(Collections.emptyList());
@@ -91,16 +91,14 @@ public class PersistentQueryCleanupImplTest {
         "This is not expected and was likely due to a race condition when the query was dropped before."));
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldKeepStateStoresBelongingToRunningQueries() {
     // Given:
     when(runningQuery.getQueryApplicationId()).thenReturn("testQueryID");
-    List<PersistentQueryMetadata> queryMocks = ImmutableList.of(runningQuery);
 
     File fakeStateStore = new File(tempFile.getAbsolutePath() + "testQueryID");
-    if (!fakeStateStore.exists()){
-      fakeStateStore.mkdirs();
+    if (!fakeStateStore.exists()) {
+      assertTrue(fakeStateStore.mkdirs());
     }
     // When:
     cleanup.cleanupLeakedQueries(ImmutableList.of(runningQuery));

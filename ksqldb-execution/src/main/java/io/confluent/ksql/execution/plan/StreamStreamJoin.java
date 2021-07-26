@@ -137,11 +137,11 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   public Duration getAfterMillis() {
-    return afterMillis;
+    return Duration.ofMillis(afterMillis.toMillis());
   }
 
   public Duration getBeforeMillis() {
-    return beforeMillis;
+    return Duration.ofMillis(beforeMillis.toMillis());
   }
 
   public Optional<Duration> getGraceMillis() {

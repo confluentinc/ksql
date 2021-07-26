@@ -171,9 +171,9 @@ public class InterpretedExpressionTest {
     );
   }
 
-  private GenericRow make(int rowNum, Object val) {
+  private GenericRow make(final int rowNum, final Object val) {
     int i = 0;
-    GenericRow row = new GenericRow();
+    final GenericRow row = new GenericRow();
     for (Object o : ROW.values()) {
       if (i == rowNum) {
         row.append(val);

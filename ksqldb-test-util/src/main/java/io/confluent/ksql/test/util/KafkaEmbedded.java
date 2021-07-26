@@ -33,7 +33,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.cluster.EndPoint;
@@ -43,8 +42,6 @@ import kafka.utils.TestUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.ConsumerGroupDescription;
-import org.apache.kafka.clients.admin.DescribeConsumerGroupsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListOffsetsOptions;
@@ -279,27 +276,28 @@ class KafkaEmbedded {
 
 
   /**
-   * Clear all ACLs from the cluster.
+   * Gets the mapping of TopicPartitions to current consumed offset for a given consumer group.
+   * @param consumerGroup The consumer group to read the offset for
+   * @return The mapping of TopicPartitions to current consumed offsets
    */
-  public Map<TopicPartition, Long> getConsumerGroupOffset(String consumerGroup) {
+  public Map<TopicPartition, Long> getConsumerGroupOffset(final String consumerGroup) {
     try (AdminClient adminClient = adminClient()) {
-      DescribeConsumerGroupsResult res = adminClient.describeConsumerGroups(ImmutableList.of(consumerGroup));
-      Map<String, ConsumerGroupDescription> m = res.all().get();
-      System.out.println("ALAN: DESC " + m.get(consumerGroup).toString());
-//      final Set<String> names = getTopicNames(adminClient);
       final ListConsumerGroupOffsetsResult result =
           adminClient.listConsumerGroupOffsets(consumerGroup);
       final Map<TopicPartition, OffsetAndMetadata> metadataMap =
           result.partitionsToOffsetAndMetadata().get();
       return metadataMap.entrySet().stream()
           .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().offset()));
-    } catch (InterruptedException| ExecutionException e) {
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }
 
   /**
-   * Clear all ACLs from the cluster.
+   * The end offsets for a given collection of TopicPartitions
+   * @param topicPartitions The collection of TopicPartitions to get end offsets for
+   * @param isolationLevel The isolation level to use when reading end offsets.
+   * @return The map of TopicPartition to end offset
    */
   public Map<TopicPartition, Long> getEndOffsets(
       final Collection<TopicPartition> topicPartitions,
@@ -315,11 +313,16 @@ class KafkaEmbedded {
           .entrySet()
           .stream()
           .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
-    } catch (InterruptedException|ExecutionException e) {
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }
 
+  /**
+   * Gets the partition count for a given collection of topics.
+   * @param topics The collection of topics to lookup
+   * @return The mapping of topic to partition count
+   */
   public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
     try (AdminClient adminClient = adminClient()) {
       final DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(topics);
@@ -327,8 +330,8 @@ class KafkaEmbedded {
       return topicDescriptionMap
           .entrySet()
           .stream()
-          .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().partitions().size()));
-    } catch (InterruptedException|ExecutionException e) {
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().partitions().size()));
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }

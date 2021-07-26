@@ -55,14 +55,9 @@ import kafka.security.authorizer.AclAuthorizer;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
-import org.apache.kafka.clients.admin.ListOffsetsOptions;
-import org.apache.kafka.clients.admin.ListOffsetsResult;
-import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -161,12 +156,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
     tmpFolder.create();
 
-    //installJaasConfig();
+    installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
 
-//    initialAcls.forEach((key, ops) ->
-//        addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
+    initialAcls.forEach((key, ops) ->
+        addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));
   }
 
   @Override
@@ -531,14 +526,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
-   * Clear all ACLs from the cluster.
+   * Returns mapping of all TopicPartitions to current offsets for a given consumer group.
    */
-  public Map<TopicPartition, Long> getConsumerGroupOffset(String consumerGroup) {
+  public Map<TopicPartition, Long> getConsumerGroupOffset(final String consumerGroup) {
     return broker.getConsumerGroupOffset(consumerGroup);
   }
 
   /**
-   * Clear all ACLs from the cluster.
+   * The end offsets for a given collection of TopicPartitions
    */
   public Map<TopicPartition, Long> getEndOffsets(
       final Collection<TopicPartition> topicPartitions,
@@ -547,14 +542,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
-   * Clear all ACLs from the cluster.
+   * Gets the partition count for a given collection of topics.
    */
   public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
     return broker.getPartitionCount(topics);
   }
 
   /**
-   * Clear all ACLs from the cluster.
+   * Gets all topics on this broker.
    */
   public Set<String> getTopics() {
     return broker.getTopics();

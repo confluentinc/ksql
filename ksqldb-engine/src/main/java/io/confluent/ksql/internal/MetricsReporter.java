@@ -108,5 +108,5 @@ public interface MetricsReporter extends Closeable, Configurable {
    *
    * @param dataPointSupplier supplier of the list of data points
    */
-  void report(List<DataPoint> dataPointSupplier);
+  void report(List<DataPoint> dataPoints);
 }

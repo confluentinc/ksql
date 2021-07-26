@@ -86,7 +86,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
   public void run() {
     logger.info("Reporting Observability Metrics");
     final Instant currentTime = Instant.now();
-    logger.info("Reporting CSU thread level metrics");
+    logger.info("Reporting storage metrics");
     final List<MetricsReporter.DataPoint> dataPoints = new ArrayList<>();
     nodeDiskUsage(dataPoints, currentTime);
     taskDiskUsage(dataPoints, currentTime);
@@ -97,16 +97,20 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
   public void nodeDiskUsage(
       final List<MetricsReporter.DataPoint> dataPoints,
       final Instant sampleTime) {
+    long totalSpace = 0L;
+    long usedSpace = 0L;
     for (File f : streamsDirectories) {
-      final long totalSpace = f.getTotalSpace();
-      final long usedSpace = totalSpace - f.getFreeSpace();
-      final double percFree = percentage((double) usedSpace, (double) totalSpace);
-      dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-usage", (double) usedSpace));
-      dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-total", (double) totalSpace));
-      dataPoints.add(new MetricsReporter.DataPoint(sampleTime,"storage-usage-perc", percFree));
-      logger.info("The disk usage for {} is {}", f.getName(), usedSpace);
-      logger.info("The % disk space free for {} is {}%", f.getName(), percFree);
+      totalSpace += f.getTotalSpace();
+      usedSpace += f.getTotalSpace() - f.getFreeSpace();
+      logger.info("The disk free for {} is {}", f.getName(), f.getTotalSpace() - f.getFreeSpace());
     }
+    final double percFree = percentage((double) usedSpace, (double) totalSpace);
+
+    dataPoints.add(new MetricsReporter.DataPoint(sampleTime, "storage-usage", (double) usedSpace));
+    dataPoints.add(new MetricsReporter.DataPoint(sampleTime, "storage-total", (double) totalSpace));
+    dataPoints.add(new MetricsReporter.DataPoint(sampleTime, "storage-usage-perc", percFree));
+    logger.info("The disk usage for this node is {}", usedSpace);
+    logger.info("The % disk space free for this node is {}%", percFree);
   }
 
   public void taskDiskUsage(

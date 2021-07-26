@@ -27,19 +27,29 @@ import static org.hamcrest.Matchers.startsWith;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.LagInfoEntity;
+import io.confluent.ksql.rest.entity.StateStoreLags;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
@@ -54,28 +64,46 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import io.vertx.core.Context;
 import java.io.Closeable;
+import java.lang.management.ManagementFactory;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.management.MBeanServer;
+import javax.management.ObjectInstance;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Source;
+import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.reactivestreams.Subscription;
@@ -90,6 +118,7 @@ public class RestTestExecutor implements Closeable {
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
 
+  private final KsqlExecutionContext engine;
   private final KsqlRestClient restClient;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
   private final ServiceContext serviceContext;
@@ -101,6 +130,7 @@ public class RestTestExecutor implements Closeable {
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final ServiceContext serviceContext
   ) {
+    this.engine = engine;
     this.restClient = KsqlRestClient.create(
         url.toString(),
         ImmutableMap.of(),
@@ -576,37 +606,173 @@ public class RestTestExecutor implements Closeable {
       return;
     }
 
-    final ImmutableList<Response> expectedResponse = ImmutableList.of(queryResponse);
-    final ImmutableList<String> statements = ImmutableList.of(querySql);
+    List<String> queryApplicationIds = engine.getPersistentQueries().stream()
+        .map(QueryMetadata::getQueryApplicationId)
+        .collect(Collectors.toList());
 
-    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
-    while (System.currentTimeMillis() < threshold) {
-      final RestResponse<List<StreamedRow>> resp = restClient.makeQueryRequest(querySql, null);
-      if (resp.isErroneous()) {
-        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
-        LOG.info("Server responded with an error code to a pull query. "
-            + "This could be because the materialized store is not yet warm."
-            + System.lineSeparator() + errorMessage);
-        threadYield();
-        continue;
-      }
+    Map<String, Set<String>> possibleTopicNamesByAppId = engine.getPersistentQueries().stream()
+        .collect(Collectors.toMap(
+            QueryMetadata::getQueryApplicationId,
+            m -> {
+              Set<String> topics = getSourceTopics(m);
+              Set<String> possibleInternalNames = topics.stream()
+                  .map(t -> m.getQueryApplicationId() + "-" + t)
+                  .collect(Collectors.toSet());
+              Set<String> all = new HashSet<>();
+              all.addAll(topics);
+              all.addAll(possibleInternalNames);
+              return all;
+            }
+        ));
+    //        .map(m -> {
+//          Set<String> topics = getSourceTopics(m);
+//          Set<String> possibleInternalNames = topics.stream()
+//              .map(t -> m.getQueryApplicationId() + "-" + t)
+//              .collect(Collectors.toSet());
+//          return Streams.concat(topics.stream(), possibleInternalNames.stream());
+//        })
+    final Set<String> possibleTopicNames = possibleTopicNamesByAppId.values()
+        .stream()
+        .flatMap(Collection::stream)
+        .collect(Collectors.toSet());
+    int expectedTopics = possibleTopicNames.size() / 2;
 
-      final List<RqttResponse> actualResponses = ImmutableList
-          .of(RqttResponse.query(resp.getResponse()));
-
-      try {
-        verifyResponses(actualResponses, expectedResponse, statements);
-        LOG.info("Correct response received");
-        return;
-      } catch (final AssertionError e) {
-        // Potentially, state stores not warm yet
-        LOG.info("Server responded with incorrect result to a pull query. "
-            + "This could be because the materialized store is not yet warm.", e);
-        threadYield();
+    final Set<String> topics = new HashSet<>();
+    boolean foundTopics = false;
+    final long topicThreshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
+    while (System.currentTimeMillis() < topicThreshold) {
+      Set<String> expectedNames = kafkaCluster.getTopics();
+      expectedNames.retainAll(possibleTopicNames);
+      if (expectedNames.size() == expectedTopics) {
+        foundTopics = true;
+        topics.addAll(expectedNames);
+        break;
       }
     }
+    if (!foundTopics) {
+      throw new AssertionError("Timed out while trying to find topics");
+    }
+
+    Map<String, Set<String>> topicNamesByAppId = possibleTopicNamesByAppId.entrySet().stream()
+        .collect(Collectors.toMap(
+            e -> e.getKey(),
+            e -> {
+              e.getValue().retainAll(topics);
+              return e.getValue();
+            }
+        ));
+
+    Map<String, Integer> partitionCount = kafkaCluster.getPartitionCount(topics);
+
+    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
+    mainloop:
+    while (System.currentTimeMillis() < threshold) {
+      for (String queryApplicationId : queryApplicationIds) {
+        final List<TopicPartition> allTopicPartitions = new ArrayList<>();
+        for (String topic : topicNamesByAppId.get(queryApplicationId)) {
+          for (int i = 0; i < partitionCount.get(topic); i++) {
+            final TopicPartition tp = new TopicPartition(topic, i);
+            allTopicPartitions.add(tp);
+          }
+        }
+
+        Map<TopicPartition, Long> currentOffsets =
+            kafkaCluster.getConsumerGroupOffset(queryApplicationId);
+        Map<TopicPartition, Long> endOffsets = kafkaCluster.getEndOffsets(allTopicPartitions,
+            IsolationLevel.READ_COMMITTED);
+
+        System.out.println("Alan: currentOffsets " + currentOffsets + " endOffsets " + endOffsets);
+        for (final TopicPartition tp : allTopicPartitions) {
+            if (!currentOffsets.containsKey(tp) && endOffsets.get(tp) > 0) {
+              LOG.info("Haven't committed offsets yet for " + tp + " end offset " + endOffsets.get(tp));
+              threadYield();
+              continue mainloop;
+            }
+        }
+
+        for (TopicPartition tp : currentOffsets.keySet()) {
+          long currentOffset = currentOffsets.get(tp);
+          long endOffset = endOffsets.get(tp);
+//          boolean isInternal = tp.topic().startsWith(queryApplicationId);
+          if (currentOffset < endOffset) {
+            LOG.info("Offsets are not caught up current: " + currentOffsets + " end: "
+                + endOffsets);
+            threadYield();
+            continue mainloop;
+          }
+        }
+      }
+      LOG.info("Offsets are all up to date");
+      return;
+      //final RestResponse<List<StreamedRow>> resp = restClient.makeQueryRequest(querySql, null);
+//      final RestResponse<ClusterStatusResponse> resp = restClient.makeClusterStatusRequest();
+//      if (resp.isErroneous()) {
+//        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
+//        LOG.info("Server responded with an error code to a pull query. "
+//            + "This could be because the materialized store is not yet warm."
+//            + System.lineSeparator() + errorMessage);
+//        threadYield();
+//        continue;
+//      }
+//
+//      final ClusterStatusResponse clusterStatusResponse = resp.getResponse();
+//      final Map<KsqlHostInfoEntity, HostStatusEntity> statusMap
+//          = clusterStatusResponse.getClusterStatus();
+//      if (statusMap.size() == 0) {
+//        LOG.info("Haven't yet found host's entry in the status map");
+//        threadYield();
+//        continue;
+//      }
+//      HostStatusEntity hostStatusEntity = Iterables.getLast(statusMap.values());
+//      if (hostStatusEntity.getHostStoreLags().getStateStoreLags().size() == 0) {
+//        LOG.info("No state store lags data yet: " + hostStatusEntity);
+//        threadYield();
+//        continue;
+//      }
+//      boolean notReady = false;
+//      for (final StateStoreLags lags :
+//          hostStatusEntity.getHostStoreLags().getStateStoreLags().values()) {
+//        if (lags.getLagByPartition().size() == 0) {
+//          LOG.info("Not partition data yet: " + hostStatusEntity);
+//          notReady = true;
+//          break;
+//        }
+//        Long totalEndPositions = lags.getLagByPartition().values().stream()
+//            .map(LagInfoEntity::getEndOffsetPosition)
+//            .reduce(0L, Long::sum);
+//        if (totalEndPositions == 0) {
+//          LOG.info("No data yet " + hostStatusEntity);
+//          notReady = true;
+//        }
+//      }
+//      if (notReady) {
+//        threadYield();
+//        continue;
+//      }
+//      LOG.info("Lags are all zero so test can begin: " + hostStatusEntity);
+//      return;
+    }
     LOG.info("Timed out waiting for correct response");
+    throw new AssertionError("Timed out while trying to wait for offsets");
   }
+
+  private Set<String> getSourceTopics(
+      final PersistentQueryMetadata persistentQueryMetadata
+  ) {
+    Set<String> topics = new HashSet<>();
+    for (final Subtopology subtopology :
+        persistentQueryMetadata.getTopology().describe().subtopologies()) {
+      for (final TopologyDescription.Node node : subtopology.nodes()) {
+        if (node instanceof Source) {
+          final Source source = (Source) node;
+          Preconditions.checkNotNull(source.topicSet(), "Expecting topic set, not regex");
+          topics.addAll(source.topicSet());
+        }
+      }
+    }
+    return topics;
+  }
+
 
 private void waitForRunningPushQueries(
       final List<String> queries
@@ -651,7 +817,7 @@ private void waitForRunningPushQueries(
   private static void threadYield() {
     try {
       // More reliable than Thread.yield
-      Thread.sleep(1);
+      Thread.sleep(10);
     } catch (final InterruptedException e) {
       // ignore
     }

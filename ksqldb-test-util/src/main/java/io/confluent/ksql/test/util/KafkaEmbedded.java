@@ -29,10 +29,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import kafka.cluster.EndPoint;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
@@ -40,7 +43,18 @@ import kafka.utils.TestUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.ConsumerGroupDescription;
+import org.apache.kafka.clients.admin.DescribeConsumerGroupsResult;
+import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.clients.admin.ListOffsetsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.SystemTime;
 import org.slf4j.Logger;
@@ -228,6 +242,7 @@ class KafkaEmbedded {
 
       final Supplier<Collection<String>> remaining = () -> {
         final Set<String> names = getTopicNames(adminClient);
+        System.out.println("NAMES ARE " + names);
         names.retainAll(required);
         return names;
       };
@@ -259,6 +274,62 @@ class KafkaEmbedded {
           remaining,
           is(empty())
       );
+    }
+  }
+
+
+  /**
+   * Clear all ACLs from the cluster.
+   */
+  public Map<TopicPartition, Long> getConsumerGroupOffset(String consumerGroup) {
+    try (AdminClient adminClient = adminClient()) {
+      DescribeConsumerGroupsResult res = adminClient.describeConsumerGroups(ImmutableList.of(consumerGroup));
+      Map<String, ConsumerGroupDescription> m = res.all().get();
+      System.out.println("ALAN: DESC " + m.get(consumerGroup).toString());
+//      final Set<String> names = getTopicNames(adminClient);
+      final ListConsumerGroupOffsetsResult result =
+          adminClient.listConsumerGroupOffsets(consumerGroup);
+      final Map<TopicPartition, OffsetAndMetadata> metadataMap =
+          result.partitionsToOffsetAndMetadata().get();
+      return metadataMap.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().offset()));
+    } catch (InterruptedException| ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Clear all ACLs from the cluster.
+   */
+  public Map<TopicPartition, Long> getEndOffsets(
+      final Collection<TopicPartition> topicPartitions,
+      final IsolationLevel isolationLevel) {
+    final Map<TopicPartition, OffsetSpec> topicPartitionsWithSpec = topicPartitions.stream()
+        .collect(Collectors.toMap(tp -> tp, tp -> OffsetSpec.latest()));
+    try (AdminClient adminClient = adminClient()) {
+      final ListOffsetsResult listOffsetsResult = adminClient.listOffsets(
+          topicPartitionsWithSpec, new ListOffsetsOptions(isolationLevel));
+      final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
+          listOffsetsResult.all().get();
+      return partitionResultMap
+          .entrySet()
+          .stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
+    } catch (InterruptedException|ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
+    try (AdminClient adminClient = adminClient()) {
+      final DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(topics);
+      final Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
+      return topicDescriptionMap
+          .entrySet()
+          .stream()
+          .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().partitions().size()));
+    } catch (InterruptedException|ExecutionException e) {
+      throw new RuntimeException(e);
     }
   }
 

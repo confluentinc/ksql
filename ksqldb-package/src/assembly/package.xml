@@ -35,8 +35,6 @@
                 <include>README*</include>
                 <include>LICENSE*</include>
                 <include>NOTICE*</include>
-                <include>licenses/</include>
-                <include>notices/</include>
             </includes>
         </fileSet>
         <fileSet>

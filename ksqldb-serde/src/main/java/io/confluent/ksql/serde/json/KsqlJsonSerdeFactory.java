@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
+import io.confluent.connect.json.JsonSchemaDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -127,6 +128,7 @@ class KsqlJsonSerdeFactory {
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());
+    config.put(JsonSchemaDataConfig.OBJECT_ADDITIONAL_PROPERTIES_CONFIG, false);
 
     final Converter converter = new JsonSchemaConverter(schemaRegistryClient);
     converter.configure(config, isKey);

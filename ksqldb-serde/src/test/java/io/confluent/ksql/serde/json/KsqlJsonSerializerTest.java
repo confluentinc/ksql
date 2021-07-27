@@ -656,6 +656,27 @@ public class KsqlJsonSerializerTest {
     assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void jsonSchemaShouldSetAdditionalPropertiesToFalse() throws Exception {
+    // Given:
+    final Serializer serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+
+    // When:
+    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+
+    if (useSchemas) {
+      final String schemaJson =
+          srClient.getLatestSchemaMetadata(SOME_TOPIC + "-value").getSchema();
+      final JsonNode schema = new ObjectMapper().readTree(schemaJson);
+
+      // Then:
+      // Explicitly check that the property is defined, since asBoolean() returns nulls as false.
+      assertThat(schema.path("additionalProperties").isNull(), is(false));
+      assertThat(schema.path("additionalProperties").asBoolean(), is(false));
+    }
+  }
+
   private String asJsonString(final byte[] bytes) {
     if (useSchemas) {
       return new String(Arrays.copyOfRange(bytes, 5, bytes.length), StandardCharsets.UTF_8);

@@ -25,6 +25,7 @@ public interface ClientOptions {
   String DEFAULT_HOST = "localhost";
   int DEFAULT_HOST_PORT = 8088;
   int DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS = 10000;
+  int DEFAULT_HTTP2_MULTIPLEXING_LIMIT = -1;
 
   /**
    * Sets the host name of the ksqlDB server to connect to. Defaults to "localhost".
@@ -135,6 +136,14 @@ public interface ClientOptions {
   ClientOptions setExecuteQueryMaxResultRows(int maxRows);
 
   /**
+   * Sets the maximum number of requests per HTTP/2 connection. Defaults to -1.
+   *
+   * @param http2MultiplexingLimit number of requests
+   * @return a reference to this
+   */
+  ClientOptions setHttp2MultiplexingLimit(int http2MultiplexingLimit);
+
+  /**
    * Returns the host name of the ksqlDB server to connect to.
    *
    * @return host name
@@ -238,6 +247,13 @@ public interface ClientOptions {
    * @return number of rows
    */
   int getExecuteQueryMaxResultRows();
+
+  /**
+   * Returns the maximum number of requests per HTTP/2 connection.
+   *
+   * @return number of requests
+   */
+  int getHttp2MultiplexingLimit();
 
   /**
    * Creates a copy of these {@code ClientOptions}.

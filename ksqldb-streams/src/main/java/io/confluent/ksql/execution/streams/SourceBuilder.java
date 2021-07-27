@@ -514,13 +514,13 @@ public final class SourceBuilder {
           final long timestamp = processorContext.timestamp();
           final Collection<?> keyColumns = keyGenerator.apply(key);
 
-          final int additionalColumns = SystemColumns
+          final int numPseudoColumns = SystemColumns
               .getPseudoColumnsFromVersion(pseudoColumnVersion).size();
 
-          row.ensureAdditionalCapacity(additionalColumns + keyColumns.size());
+          row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size());
           row.append(timestamp);
 
-          if (pseudoColumnVersion > 0) {
+          if (pseudoColumnVersion > SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
             final long offset = processorContext.offset();
             final int partition = processorContext.partition();
             row.append(offset);

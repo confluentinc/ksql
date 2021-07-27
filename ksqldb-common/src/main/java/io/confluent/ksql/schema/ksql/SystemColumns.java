@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.HashMap;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,8 +43,11 @@ public final class SystemColumns {
   public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = 0;
   public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER = 0;
 
-  public static Set<ColumnName> getPseudoColumnsFromVersion(final int version) {
-    return versionedPseudoColumns.get(version);
+  public static Set<ColumnName> getPseudoColumnsFromVersion(final int pseudoColumnVersion) {
+    if (!VERSIONED_PSEUDO_COLUMNS.containsKey(pseudoColumnVersion)) {
+      throw new KsqlException("Provided pseudoColumnVersion has no corresponding columns defined");
+    }
+    return VERSIONED_PSEUDO_COLUMNS.get(pseudoColumnVersion);
   }
 
   private static final Set<ColumnName> VERSION_ONE_NAMES = ImmutableSet.of(
@@ -57,7 +60,7 @@ public final class SystemColumns {
       ROWTIME_NAME
   );
 
-  private static final Map<Integer, Set<ColumnName>> versionedPseudoColumns = ImmutableMap.of(
+  private static final Map<Integer, Set<ColumnName>> VERSIONED_PSEUDO_COLUMNS = ImmutableMap.of(
       0, VERSION_ZERO_NAMES,
       1, VERSION_ONE_NAMES
       );
@@ -68,14 +71,14 @@ public final class SystemColumns {
   );
 
   private static final Set<ColumnName> SYSTEM_COLUMN_NAMES_CURRENT =
-      ImmutableSet.<ColumnName>builder()
-      .addAll(getPseudoColumnsFromVersion(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER))
-      .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
-      .build();
+      buildColumns(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
 
 
-  private static final Map<Integer, Set<ColumnName>> systemColumnNamesByVersion =
-      new HashMap<>();
+  private static final Map<Integer, Set<ColumnName>> SYSTEM_COLUMN_NAMES_BY_VERSION = 
+      ImmutableMap.of(
+      0, buildColumns(0),
+      1, buildColumns(1)
+  );
 
   private SystemColumns() {
   }
@@ -104,15 +107,14 @@ public final class SystemColumns {
     return SYSTEM_COLUMN_NAMES_CURRENT;
   }
 
-  //cache version numbers we have used, otherwise create as needed
-  public static Set<ColumnName> systemColumnNames(final int versionNumber) {
-    if (!systemColumnNamesByVersion.containsKey(versionNumber)) {
-      systemColumnNamesByVersion.put(versionNumber,
-          ImmutableSet.<ColumnName>builder()
-              .addAll(getPseudoColumnsFromVersion(versionNumber))
-              .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
-              .build());
-    }
-    return systemColumnNamesByVersion.get(versionNumber);
+  public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
+    return SYSTEM_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
+  }
+
+  private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {
+    return ImmutableSet.<ColumnName>builder()
+        .addAll(getPseudoColumnsFromVersion(pseudoColumnVersion))
+        .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
+        .build();
   }
 }

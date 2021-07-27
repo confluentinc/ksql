@@ -353,7 +353,6 @@ public final class StepSchemaResolver {
     return schema;
   }
 
-  //todo: pipe pseudocolumnVersion here
   private LogicalSchema buildSourceSchema(
       final LogicalSchema schema,
       final boolean windowed,

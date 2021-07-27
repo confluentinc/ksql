@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
@@ -128,8 +129,7 @@ public final class LogicalSchema {
    * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
    * WINDOWEND} columns will added to the value schema to represent the window bounds.
    *
-   * @param pseudoColumnVersion indicates the pseudocolumn version number of the given query.
-   * Queries passed to this method will receive the corresponding pseudocolumns in their schema.
+   * @param pseudoColumnVersion determines the set of pseudocolumns to be added to the schema
    *
    * @return the new schema.
    */
@@ -139,11 +139,9 @@ public final class LogicalSchema {
         true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
-  //This will eventually use the current pseudocolumn version whenever it is not explicitly
-  //provided (as we WILL explicitly provide it whenever we are reading old queries)
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
     return rebuild(
-        true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+        true, windowed, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**
@@ -152,7 +150,7 @@ public final class LogicalSchema {
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
-    return rebuild(false, false, -1);
+    return rebuild(false, false, 0);
   }
 
   /**
@@ -281,7 +279,7 @@ public final class LogicalSchema {
     if (withPseudoAndKeyColsInValue) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
 
-      if (pseudoColumnVersion > 0) {
+      if (pseudoColumnVersion > LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
         builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
         builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
       }

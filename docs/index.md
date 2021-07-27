@@ -40,6 +40,7 @@ for stream processing applications on top of {{ site.aktm }}.
       <li><a href="/tutorials/materialized/">Materialized cache</a></li>
       <li><a href="/tutorials/etl/">Streaming ETL pipeline</a></li>
       <li><a href="/tutorials/event-driven-microservice/">Event-driven microservice</a></li>
+      <li><a href="https://developer.confluent.io/learn-kafka/inside-ksqldb/streaming-architecture/">Course: Inside ksqlDB </a></li>
     </ul>
     <small><a href="/tutorials/" class="card-more">More →</a></small>
   </div>

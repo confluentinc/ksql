@@ -67,7 +67,7 @@ public final class RemoteHostExecutor {
   }
 
   public static RemoteHostExecutor create(
-      final ConfiguredStatement<? extends StatementWithExtendedClause> statement,
+      final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final SimpleKsqlClient ksqlClient

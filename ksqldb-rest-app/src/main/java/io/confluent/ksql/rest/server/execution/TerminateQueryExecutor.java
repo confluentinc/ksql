@@ -20,12 +20,17 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class TerminateQueryExecutor {
 
@@ -43,18 +48,46 @@ public final class TerminateQueryExecutor {
     final TerminateQuery terminateQuery = statement.getStatement();
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
 
+    final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext.getKsqlClient()
+    );
+
     if (executionContext.getPersistentQuery(queryId.get()).isPresent()) {
       // do default behaviour for terminating persistent queries
       distributingExecutor.execute(statement, executionContext, securityContext);
     } else {
-      executionContext.getQuery(statement.getStatement().getQueryId().get()).get().close();
-      return Optional.of(
-          new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString())
-      );
+      // Check are we running this push query locally, if yes then terminate, otherwise
+      // propagate terminate query to other nodes
+
+      if (executionContext.getQuery(queryId.get()).isPresent()) {
+        executionContext.getQuery(queryId.get()).get().close();
+        return Optional.of(
+            new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), true)
+        );
+      } else {
+        final List<Boolean> wasTerminatedList = remoteHostExecutor.fetchAllRemoteResults().getLeft()
+            .values()
+            .stream()
+            .map(TerminateQueryEntity.class::cast)
+            .map(TerminateQueryEntity::getWasTerminatedLocally)
+            .collect(Collectors.toList());
+
+        for (Boolean w : wasTerminatedList) {
+          if (w) {
+            return Optional.of(
+                new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), w)
+            );
+          }
+        }
+        return Optional.of(
+            new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), false)
+        );
+      }
     }
     return Optional.empty();
   }
-
-
 }
 

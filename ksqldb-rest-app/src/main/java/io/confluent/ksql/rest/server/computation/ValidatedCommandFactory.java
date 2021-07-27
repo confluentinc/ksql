@@ -117,11 +117,11 @@ public final class ValidatedCommandFactory {
       context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
       return Command.of(statement);
     }
-    context.getQuery(queryId.get())
-        .orElseThrow(() -> new KsqlStatementException(
-            "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()))
-        .close();
+//    context.getQuery(queryId.get())
+//        .orElseThrow(() -> new KsqlStatementException(
+//            "Unknown queryId: " + queryId.get(),
+//            statement.getStatementText()))
+//        .close();
 
     return Command.of(statement);
   }

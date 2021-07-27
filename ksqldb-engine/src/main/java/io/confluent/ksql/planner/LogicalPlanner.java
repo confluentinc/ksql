@@ -797,24 +797,7 @@ public class LogicalPlanner {
       );
     }
 
-
-    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> aliasRewritter =
-        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
-          @Override
-          public Optional<Expression> visitQualifiedColumnReference(
-              final QualifiedColumnReferenceExp node,
-              final Context<Void> ctx
-          ) {
-            return Optional.of(new UnqualifiedColumnReferenceExp(
-                ColumnNames.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
-            ));
-          }
-        };
-
-    final Expression leftExpressionPrefixed =
-        ExpressionTreeRewriter.rewriteWith(aliasRewritter::process, leftExpression);
-
-    return Optional.of(leftExpressionPrefixed);
+    return Optional.of(leftExpression);
   }
 
   private static boolean joinOnNonKeyAttribute(
@@ -909,7 +892,24 @@ public class LogicalPlanner {
             .map(c -> new QualifiedColumnReferenceExp(alias, c.name()))
             .collect(Collectors.toList());
 
-    return JoinKey.foreignKeyColumn(foreignKeyExpression, leftSourceKeys);
+    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> aliasRewritter =
+        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
+          @Override
+          public Optional<Expression> visitQualifiedColumnReference(
+              final QualifiedColumnReferenceExp node,
+              final Context<Void> ctx
+          ) {
+            return Optional.of(new UnqualifiedColumnReferenceExp(
+                ColumnNames.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
+            ));
+          }
+        };
+
+    final Expression aliasedForeignKeyExpression =
+        ExpressionTreeRewriter.rewriteWith(aliasRewritter::process, foreignKeyExpression);
+
+
+    return JoinKey.foreignKeyColumn(aliasedForeignKeyExpression, leftSourceKeys);
   }
 
   private static void verifyJoinConditionTypes(

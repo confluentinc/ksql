@@ -20,9 +20,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Optional;
 import org.junit.Test;
 
 public class ForeignKeyJoinParamsFactoryTest {
@@ -48,7 +51,7 @@ public class ForeignKeyJoinParamsFactoryTest {
 
     // When:
     final ForeignKeyJoinParams<String> joinParams =
-        ForeignKeyJoinParamsFactory.create(leftJoinColumnName, LEFT_SCHEMA, RIGHT_SCHEMA);
+        ForeignKeyJoinParamsFactory.create(Optional.of(leftJoinColumnName), Optional.empty(), LEFT_SCHEMA, RIGHT_SCHEMA, null);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
@@ -70,7 +73,7 @@ public class ForeignKeyJoinParamsFactoryTest {
 
     final Exception e = assertThrows(
         IllegalStateException.class,
-        () -> ForeignKeyJoinParamsFactory.create(leftJoinColumnName, LEFT_SCHEMA, RIGHT_SCHEMA)
+        () -> ForeignKeyJoinParamsFactory.create(Optional.of(leftJoinColumnName), Optional.empty(), LEFT_SCHEMA, RIGHT_SCHEMA, null)
     );
 
     // Then:

@@ -53,6 +53,7 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
@@ -334,10 +335,11 @@ public final class ExecutionStepFactory {
       foreignKeyTableTableJoin(
           final QueryContext.Stacker stacker,
           final JoinType joinType,
-          final ColumnName leftJoinColumnName,
+          final Optional<ColumnName> leftJoinColumnName,
           final Formats formats,
           final ExecutionStep<KTableHolder<KLeftT>> left,
-          final ExecutionStep<KTableHolder<KRightT>> right
+          final ExecutionStep<KTableHolder<KRightT>> right,
+          final Optional<Expression> expression
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new ForeignKeyTableTableJoin<>(
@@ -346,7 +348,8 @@ public final class ExecutionStepFactory {
         leftJoinColumnName,
         formats,
         left,
-        right
+        right,
+        expression
     );
   }
 

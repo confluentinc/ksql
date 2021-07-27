@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
@@ -321,9 +322,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public <KRightT> SchemaKTable<K> foreignKeyInnerJoin(
       final SchemaKTable<KRightT> schemaKTable,
-      final ColumnName leftJoinColumnName,
+      final Optional<ColumnName> leftJoinColumnName,
       final Stacker contextStacker,
-      final FormatInfo valueFormatInfo
+      final FormatInfo valueFormatInfo,
+      final Optional<Expression> expression
   ) {
     final ForeignKeyTableTableJoin<K, KRightT> step =
         ExecutionStepFactory.foreignKeyTableTableJoin(
@@ -332,7 +334,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             leftJoinColumnName,
             InternalFormats.of(keyFormat, valueFormatInfo),
             sourceTableStep,
-            schemaKTable.getSourceTableStep()
+            schemaKTable.getSourceTableStep(),
+            expression
         );
 
     return new SchemaKTable<>(
@@ -346,9 +349,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public <KRightT> SchemaKTable<K> foreignKeyLeftJoin(
       final SchemaKTable<KRightT> schemaKTable,
-      final ColumnName leftJoinColumnName,
+      final Optional<ColumnName> leftJoinColumnName,
       final Stacker contextStacker,
-      final FormatInfo valueFormatInfo
+      final FormatInfo valueFormatInfo,
+      final Optional<Expression> expression
   ) {
     final ForeignKeyTableTableJoin<K, KRightT> step =
         ExecutionStepFactory.foreignKeyTableTableJoin(
@@ -357,7 +361,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             leftJoinColumnName,
             InternalFormats.of(keyFormat, valueFormatInfo),
             sourceTableStep,
-            schemaKTable.getSourceTableStep()
+            schemaKTable.getSourceTableStep(),
+            expression
         );
 
     return new SchemaKTable<>(

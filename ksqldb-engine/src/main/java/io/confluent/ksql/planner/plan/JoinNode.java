@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.streams.ForeignKeyJoinParamsFactory;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
@@ -535,7 +536,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
                 contextStacker,
-                valueFormatInfo
+                valueFormatInfo,
+                ((ForeignJoinKey) joinKey).getForeignKeyExpression()
             );
           } else {
             return leftTable.leftJoin(
@@ -550,7 +552,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
                 contextStacker,
-                valueFormatInfo
+                valueFormatInfo,
+                ((ForeignJoinKey) joinKey).getForeignKeyExpression()
             );
           } else {
             return leftTable.innerJoin(
@@ -643,10 +646,10 @@ public class JoinNode extends PlanNode implements JoiningNode {
     }
 
     static JoinKey foreignKeyColumn(
-        final ColumnName foreignKeyColumn,
+        final Expression foreignKeyExpression,
         final Collection<QualifiedColumnReferenceExp> viableKeyColumns
     ) {
-      return ForeignJoinKey.of(foreignKeyColumn, viableKeyColumns);
+      return ForeignJoinKey.of(foreignKeyExpression, viableKeyColumns);
     }
 
     /**
@@ -806,17 +809,33 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   private static final class ForeignJoinKey implements JoinKey {
-    private final ColumnName foreignKeyColumn;
+    private final Optional<ColumnName> foreignKeyColumn;
+    private final Optional<Expression> foreignKeyExpression;
     private final ImmutableList<? extends ColumnReferenceExp> leftSourceKeyColumns;
 
     static JoinKey of(final ColumnName foreignKeyColumn,
                       final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {
-      return new ForeignJoinKey(foreignKeyColumn, leftSourceKeyColumns);
+      return new ForeignJoinKey(
+          Optional.of(foreignKeyColumn),
+          Optional.empty(),
+          leftSourceKeyColumns
+      );
     }
 
-    private ForeignJoinKey(final ColumnName foreignKeyColumn,
+    static JoinKey of(final Expression foreignKeyExpression,
+                      final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {
+      return new ForeignJoinKey(
+          Optional.empty(),
+          Optional.of(foreignKeyExpression),
+          leftSourceKeyColumns
+      );
+    }
+
+    private ForeignJoinKey(final Optional<ColumnName> foreignKeyColumn,
+                           final Optional<Expression> foreignKeyExpression,
                            final Collection<? extends ColumnReferenceExp> viableKeyColumns) {
-      this.foreignKeyColumn = requireNonNull(foreignKeyColumn, "foreignKeyColumn");
+      this.foreignKeyColumn = foreignKeyColumn;
+      this.foreignKeyExpression = foreignKeyExpression;
       this.leftSourceKeyColumns = ImmutableList
           .copyOf(requireNonNull(viableKeyColumns, "viableKeyColumns"));
     }
@@ -853,11 +872,15 @@ public class JoinNode extends PlanNode implements JoiningNode {
           .map(e -> ExpressionTreeRewriter.rewriteWith(plugin, e))
           .collect(Collectors.toList());
 
-      return new ForeignJoinKey(foreignKeyColumn, rewrittenViable);
+      return new ForeignJoinKey(Optional.empty(), foreignKeyExpression, rewrittenViable);
     }
 
-    public ColumnName getForeignKeyColumn() {
+    public Optional<ColumnName> getForeignKeyColumn() {
       return foreignKeyColumn;
+    }
+
+    public Optional<Expression> getForeignKeyExpression() {
+      return foreignKeyExpression;
     }
   }
 }

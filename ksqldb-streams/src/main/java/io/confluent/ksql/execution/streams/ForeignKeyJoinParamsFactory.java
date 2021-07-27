@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -27,18 +29,28 @@ public final class ForeignKeyJoinParamsFactory {
   }
 
   public static <KRightT> ForeignKeyJoinParams<KRightT> create(
-      final ColumnName leftJoinColumnName,
+      final Optional<ColumnName> leftJoinColumnName,
+      final Optional<ExpressionEvaluator> expressionEvaluator,
       final LogicalSchema leftSchema,
-      final LogicalSchema rightSchema
+      final LogicalSchema rightSchema,
+      final ProcessingLogger processingLogger
   ) {
     if (rightSchema.key().size() != 1) {
       throw new IllegalStateException("rightSchema must have single column key");
     }
-    return new ForeignKeyJoinParams<>(
-        createKeyExtractor(leftSchema, leftJoinColumnName),
-        new KsqlValueJoiner(leftSchema.value().size(), rightSchema.value().size(), 0),
-        createSchema(leftSchema, rightSchema)
-    );
+    if (leftJoinColumnName.isPresent()) {
+      return new ForeignKeyJoinParams<>(
+          createKeyExtractor(leftSchema, leftJoinColumnName.get()),
+          new KsqlValueJoiner(leftSchema.value().size(), rightSchema.value().size(), 0),
+          createSchema(leftSchema, rightSchema)
+      );
+    } else {
+      return new ForeignKeyJoinParams<>(
+          new KsqlKeyExtractor<>(expressionEvaluator.get(), processingLogger),
+          new KsqlValueJoiner(leftSchema.value().size(), rightSchema.value().size(), 0),
+          createSchema(leftSchema, rightSchema)
+      );
+    }
   }
 
   public static LogicalSchema createSchema(

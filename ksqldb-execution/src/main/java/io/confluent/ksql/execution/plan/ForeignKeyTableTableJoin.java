@@ -21,9 +21,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.name.ColumnName;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class ForeignKeyTableTableJoin<KLeftT, KRightT>
@@ -31,7 +34,8 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
 
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
-  private final ColumnName leftJoinColumnName;
+  private final Optional<ColumnName> leftJoinColumnName;
+  private final Optional<Expression> leftJoinExpression;
   private final Formats formats;
   private final ExecutionStep<KTableHolder<KLeftT>> leftSource;
   private final ExecutionStep<KTableHolder<KRightT>> rightSource;
@@ -42,24 +46,27 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "joinType", required = true)
       final JoinType joinType,
-      @JsonProperty(value = "leftJoinColumnName", required = true)
-      final ColumnName leftJoinColumnName,
+      @JsonProperty(value = "leftJoinColumnName")
+      final Optional<ColumnName> leftJoinColumnName,
       @JsonProperty(value = "formats", required = true)
       final Formats formats,
       @JsonProperty(value = "leftSource", required = true)
       final ExecutionStep<KTableHolder<KLeftT>> leftSource,
       @JsonProperty(value = "rightSource", required = true)
-      final ExecutionStep<KTableHolder<KRightT>> rightSource
+      final ExecutionStep<KTableHolder<KRightT>> rightSource,
+      @JsonProperty(value = "leftJoinExpression")
+      final Optional<Expression> leftJoinExpression
   ) {
     this.properties = requireNonNull(props, "props");
     this.joinType = requireNonNull(joinType, "joinType");
     if (joinType == JoinType.OUTER) {
       throw new IllegalArgumentException("OUTER join not supported.");
     }
-    this.leftJoinColumnName = requireNonNull(leftJoinColumnName, "leftJoinColumnName");
+    this.leftJoinColumnName = leftJoinColumnName;
     this.formats = requireNonNull(formats, "formats");
     this.leftSource = requireNonNull(leftSource, "leftSource");
     this.rightSource = requireNonNull(rightSource, "rightSource");
+    this.leftJoinExpression = leftJoinExpression;
   }
 
   @Override
@@ -85,8 +92,12 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     return joinType;
   }
 
-  public ColumnName getLeftJoinColumnName() {
+  public Optional<ColumnName> getLeftJoinColumnName() {
     return leftJoinColumnName;
+  }
+
+  public Optional<Expression> getLeftJoinExpression() {
+    return leftJoinExpression;
   }
 
   public Formats getFormats() {

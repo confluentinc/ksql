@@ -40,8 +40,13 @@ public final class SystemColumns {
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
   public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
-  public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = 0;
-  public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER = 0;
+
+  public static final int ROWTIME_PSEUDOCOLUMN_VERSION = 0;
+  public static final int ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION = 1;
+
+  public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = ROWTIME_PSEUDOCOLUMN_VERSION;
+  public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER =
+      ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 
   public static Set<ColumnName> getPseudoColumnsFromVersion(final int pseudoColumnVersion) {
     if (!VERSIONED_PSEUDO_COLUMNS.containsKey(pseudoColumnVersion)) {
@@ -50,6 +55,7 @@ public final class SystemColumns {
     return VERSIONED_PSEUDO_COLUMNS.get(pseudoColumnVersion);
   }
 
+  //todo: remove duplication, collect pseudo columns
   private static final Set<ColumnName> VERSION_ONE_NAMES = ImmutableSet.of(
       ROWTIME_NAME,
       ROWPARTITION_NAME,

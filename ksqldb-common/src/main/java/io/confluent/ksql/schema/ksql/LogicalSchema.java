@@ -17,12 +17,13 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
-import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWBOUND_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
@@ -135,13 +136,11 @@ public final class LogicalSchema {
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed, final int pseudoColumnVersion) {
-    return rebuild(//this will use current pseudocolumn version when feature is fully released
-        true, windowed, SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    return rebuild(windowed, pseudoColumnVersion);
   }
 
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuild(
-        true, windowed, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    return rebuild(windowed, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**
@@ -150,7 +149,7 @@ public final class LogicalSchema {
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
-    return rebuild(false, false, 0);
+    return rebuildWithoutPseudoAndKeyColsInValue();
   }
 
   /**
@@ -249,11 +248,7 @@ public final class LogicalSchema {
     return byNamespace;
   }
 
-  private LogicalSchema rebuild(
-      final boolean withPseudoAndKeyColsInValue,
-      final boolean windowedKey,
-      final int pseudoColumnVersion
-  ) {
+  private LogicalSchema rebuild(final boolean windowedKey, final int pseudoColumnVersion) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
@@ -276,24 +271,51 @@ public final class LogicalSchema {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
-    if (withPseudoAndKeyColsInValue) {
+    if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
+    }
 
-      if (pseudoColumnVersion > LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
-        builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
-        builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
+    if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
+      builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
+      builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
+    }
+
+    for (final Column c : key) {
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
+
+    if (windowedKey) {
+      builder.add(
+          Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex++));
+      builder.add(
+          Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex));
+    }
+
+
+    return new LogicalSchema(builder.build());
+  }
+
+  private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue() {
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+
+    final List<Column> key = byNamespace.get(Namespace.KEY);
+    final List<Column> value = byNamespace.get(VALUE);
+
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+
+    builder.addAll(key);
+
+    int valueIndex = 0;
+    for (final Column c : value) {
+      if (SystemColumns.isSystemColumn(c.name())) {
+        continue;
       }
 
-      for (final Column c : key) {
-        builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+        continue;
       }
 
-      if (windowedKey) {
-        builder.add(
-            Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex++));
-        builder.add(
-            Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex));
-      }
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
     return new LogicalSchema(builder.build());

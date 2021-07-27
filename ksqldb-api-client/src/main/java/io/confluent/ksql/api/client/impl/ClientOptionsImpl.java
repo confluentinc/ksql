@@ -234,7 +234,9 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
-  public int getHttp2MultiplexingLimit() { return http2MultiplexingLimit; }
+  public int getHttp2MultiplexingLimit() {
+    return http2MultiplexingLimit;
+  }
 
   @Override
   public ClientOptions copy() {

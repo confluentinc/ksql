@@ -46,7 +46,9 @@ import java.util.Optional;
  */
 public final class ComparisonInterpreter {
 
-  private ComparisonInterpreter() { }
+  private ComparisonInterpreter() {
+
+  }
 
   /**
    * Does a comparison between the two terms

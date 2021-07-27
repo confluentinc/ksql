@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -141,6 +142,7 @@ public class ExpressionTreeRewriterTest {
   }
 
   @SuppressWarnings("unchecked")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   private void shouldRewriteUsingPlugin(final Expression parsed) {
     // Given:
     when(plugin.apply(any(), any())).thenReturn(Optional.of(expr1));

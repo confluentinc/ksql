@@ -26,7 +26,9 @@ import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public final class ServiceContextFactory {
 
-  private ServiceContextFactory() { }
+  private ServiceContextFactory() {
+
+  }
 
   public static ServiceContext create(
       final KsqlConfig ksqlConfig,

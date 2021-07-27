@@ -31,7 +31,9 @@ import java.util.stream.Collectors;
 
 public final class ListFunctionsExecutor {
 
-  private ListFunctionsExecutor() { }
+  private ListFunctionsExecutor() {
+
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListFunctions> statement,

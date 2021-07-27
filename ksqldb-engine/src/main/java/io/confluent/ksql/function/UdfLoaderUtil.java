@@ -20,7 +20,9 @@ import java.io.File;
 import java.util.Optional;
 
 public final class UdfLoaderUtil {
-  private UdfLoaderUtil() {}
+  private UdfLoaderUtil() {
+
+  }
 
   public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry,
       final String extensionDir) {

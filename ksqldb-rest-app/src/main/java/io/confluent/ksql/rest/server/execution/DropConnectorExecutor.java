@@ -30,7 +30,9 @@ import org.apache.hc.core5.http.HttpStatus;
 
 public final class DropConnectorExecutor {
 
-  private DropConnectorExecutor() { }
+  private DropConnectorExecutor() {
+
+  }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<DropConnector> statement,

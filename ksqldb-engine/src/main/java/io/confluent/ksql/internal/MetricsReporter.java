@@ -18,7 +18,6 @@ package io.confluent.ksql.internal;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.Configurable;
-
 import java.io.Closeable;
 import java.time.Instant;
 import java.util.Collections;

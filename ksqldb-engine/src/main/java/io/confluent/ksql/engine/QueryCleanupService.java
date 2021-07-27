@@ -20,7 +20,6 @@ import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.spun.util.io.FileUtils;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;

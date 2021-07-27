@@ -34,7 +34,9 @@ public final class ScalablePushUtil {
   private static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
   private static String LATEST_VALUE = "latest";
 
-  private ScalablePushUtil() { }
+  private ScalablePushUtil() {
+
+  }
 
   @SuppressWarnings({"BooleanExpressionComplexity", "CyclomaticComplexity"})
   public static boolean isScalablePushQuery(

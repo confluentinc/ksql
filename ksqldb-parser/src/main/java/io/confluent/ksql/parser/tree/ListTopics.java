@@ -18,7 +18,6 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import io.confluent.ksql.parser.NodeLocation;
-
 import java.util.Objects;
 import java.util.Optional;
 

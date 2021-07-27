@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -90,6 +91,7 @@ public class ReduceTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldNotSkipNullValuesWhenReducing() {
     assertThrows(
         NullPointerException.class,

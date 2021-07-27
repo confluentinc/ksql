@@ -27,7 +27,9 @@ import javax.annotation.Nonnull;
  */
 final class UrlParser {
 
-  private UrlParser() { }
+  private UrlParser() {
+
+  }
 
   /**
    * @param url       an application/x-www-form-urlencoded string

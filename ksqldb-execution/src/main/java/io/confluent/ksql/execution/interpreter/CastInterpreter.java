@@ -42,7 +42,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class CastInterpreter {
-  private CastInterpreter() { }
+  private CastInterpreter() {
+
+  }
 
   public static CastTerm cast(
       final Term term,

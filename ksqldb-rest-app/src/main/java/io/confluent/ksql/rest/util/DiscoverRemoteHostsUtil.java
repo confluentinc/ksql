@@ -29,7 +29,9 @@ import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 public final class DiscoverRemoteHostsUtil {
 
-  private DiscoverRemoteHostsUtil() {}
+  private DiscoverRemoteHostsUtil() {
+
+  }
 
   public static Set<HostInfo> getRemoteHosts(
       final List<PersistentQueryMetadata> currentQueries, 

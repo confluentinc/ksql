@@ -20,7 +20,6 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
-
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;

@@ -29,7 +29,9 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class LiteralTerms {
 
-  private LiteralTerms() { }
+  private LiteralTerms() {
+
+  }
 
   public static Term of(final Boolean value) {
     return new BooleanTermImpl(value);
@@ -275,10 +277,12 @@ public final class LiteralTerms {
 
     private final ByteBuffer value;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public BytesTermImpl(final ByteBuffer bytes) {
       this.value = bytes;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @Override
     public Object getValue(final TermEvaluationContext context) {
       return value;

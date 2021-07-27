@@ -134,7 +134,8 @@ public class RestQueryTranslationTest {
     REST_APP.dropSourcesExcept();
     TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
 
-    if (STARTING_THREADS.get() == null) {
+    final ThreadSnapshot thread = STARTING_THREADS.get();
+    if (thread == null) {
       // Only set once one full run completed to ensure all persistent threads created:
       STARTING_THREADS.set(ThreadTestUtil.threadSnapshot(filterBuilder()
           .excludeTerminated()
@@ -144,7 +145,7 @@ public class RestQueryTranslationTest {
           .nameMatches(name -> !name.startsWith("pull-query-executor"))
           .build()));
     } else {
-      STARTING_THREADS.get().assertSameThreads();
+      thread.assertSameThreads();
     }
   }
 

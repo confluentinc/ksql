@@ -32,6 +32,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -39,7 +40,6 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
-import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -47,6 +47,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
@@ -158,28 +159,28 @@ public class KsLocatorTest {
     locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
         APPLICATION_ID);
 
-    activeNode = locator.asNode(ACTIVE_HOST);
-    standByNode1 = locator.asNode(STANDBY_HOST1);
-    standByNode2 = locator.asNode(STANDBY_HOST2);
+    activeNode = locator.asNode(Host.include(ACTIVE_HOST));
+    standByNode1 = locator.asNode(Host.include(STANDBY_HOST1));
+    standByNode2 = locator.asNode(Host.include(STANDBY_HOST2));
 
     routingStandbyFilters = new RoutingFilters(ImmutableList.of(livenessFilter));
     routingActiveFilters = new RoutingFilters(ImmutableList.of(activeFilter, livenessFilter));
 
     // Only active serves query
     when(activeFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(true);
+        .thenReturn(Host.include(ACTIVE_HOST));
     when(activeFilter.filter(eq(STANDBY_HOST1)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(STANDBY_HOST1, "active"));
     when(activeFilter.filter(eq(STANDBY_HOST2)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(STANDBY_HOST2, "active"));
 
     // Heartbeat not enabled, all hosts alive
     when(livenessFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(true);
+        .thenReturn(Host.include(ACTIVE_HOST));
     when(livenessFilter.filter(eq(STANDBY_HOST1)))
-        .thenReturn(true);
+        .thenReturn(Host.include(STANDBY_HOST1));
     when(livenessFilter.filter(eq(STANDBY_HOST2)))
-        .thenReturn(true);
+        .thenReturn(Host.include(STANDBY_HOST2));
 
     routingFilterFactoryActive = (routingOptions, hosts, active, applicationQueryId,
                                   storeName, partition) -> routingActiveFilters;
@@ -237,9 +238,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY),
@@ -257,9 +258,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -277,9 +278,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -297,9 +298,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -318,9 +319,9 @@ public class KsLocatorTest {
     final KsqlHostInfo localHost = locator.asKsqlHost(localHostInfo);
     getActiveAndStandbyMetadata(localHostInfo);
     when(activeFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
     when(livenessFilter.filter(eq(localHost)))
-        .thenReturn(true);
+        .thenReturn(Host.include(localHost));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
@@ -342,7 +343,9 @@ public class KsLocatorTest {
         routingFilterFactoryActive);
 
     // Then:
-    List<KsqlNode> nodeList = result.get(0).getNodes();
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());
     assertThat(nodeList.size(), is(1));
     assertThat(nodeList.stream().findFirst().get(), is(activeNode));
   }
@@ -368,14 +371,16 @@ public class KsLocatorTest {
     // Given:
     getActiveAndStandbyMetadata();
     when(livenessFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(ACTIVE_HOST, "liveness"));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    List<KsqlNode> nodeList = result.get(0).getNodes();
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());;
     assertThat(nodeList.size(), is(2));
     assertThat(nodeList, containsInAnyOrder(standByNode1, standByNode2));
   }
@@ -385,16 +390,18 @@ public class KsLocatorTest {
     // Given:
     getActiveAndStandbyMetadata();
     when(livenessFilter.filter(eq(ACTIVE_HOST)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(ACTIVE_HOST, "liveness"));
     when(livenessFilter.filter(eq(STANDBY_HOST1)))
-        .thenReturn(false);
+        .thenReturn(Host.exclude(STANDBY_HOST1, "liveness"));
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
-    List<KsqlNode> nodeList = result.get(0).getNodes();
+    List<KsqlNode> nodeList = result.get(0).getNodes().stream()
+        .filter(node -> node.getHost().isSelected())
+        .collect(Collectors.toList());
     assertThat(nodeList.size(), is(1));
     assertThat(nodeList.stream().findFirst().get(), is(standByNode2));
   }

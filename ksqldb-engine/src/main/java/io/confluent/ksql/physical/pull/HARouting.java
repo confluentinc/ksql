@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
@@ -106,21 +107,38 @@ public final class HARouting implements AutoCloseable {
       final QueryId queryId,
       final PullQueryQueue pullQueryQueue
   ) {
-    final List<KsqlPartitionLocation> locations = pullPhysicalPlan.getMaterialization().locator()
+    final List<KsqlPartitionLocation> allLocations = pullPhysicalPlan.getMaterialization().locator()
         .locate(
             pullPhysicalPlan.getKeys(),
             routingOptions,
             routingFilterFactory
     );
 
-    final boolean anyPartitionsEmpty = locations.stream()
-        .anyMatch(location -> location.getNodes().isEmpty());
-    if (anyPartitionsEmpty) {
-      LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
-                statement.getStatementText());
-      throw new MaterializationException("Unable to execute pull query. "
-          + "All nodes are dead or exceed max allowed lag.");
+    final Map<Integer, List<Host>> emptyPartitions = allLocations.stream()
+        .filter(loc -> loc.getNodes().stream().noneMatch(node -> node.getHost().isSelected()))
+        .collect(Collectors.toMap(
+            KsqlPartitionLocation::getPartition,
+            loc -> loc.getNodes().stream().map(KsqlNode::getHost).collect(Collectors.toList())));
+
+    if (!emptyPartitions.isEmpty()) {
+      final MaterializationException materializationException = new MaterializationException(
+          "Unable to execute pull query. "
+              + emptyPartitions.entrySet()
+              .stream()
+              .map(kv -> String.format(
+                  "Partition %s failed to find valid host. Hosts scanned: %s",
+                  kv.getKey(), kv.getValue()))
+              .collect(Collectors.joining(",", "[", "]")));
+
+      LOG.debug(materializationException.getMessage());
+      throw materializationException;
     }
+
+    // at this point we should filter out the hosts that we should not route to
+    final List<KsqlPartitionLocation> locations = allLocations
+        .stream()
+        .map(KsqlPartitionLocation::removeFilteredHosts)
+        .collect(Collectors.toList());
 
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
     executorService.submit(() -> {

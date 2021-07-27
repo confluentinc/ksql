@@ -66,6 +66,14 @@ ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration/#schema-inference) to
 spare you from defining columns manually in your `CREATE TABLE` statements.
 
+!!! note
+    - To use Avro, Protobuf, or JSON_SR you must have {{ site.sr }} enabled and
+      `ksql.schema.registry.url` must be set in the ksqlDB server configuration
+      file. For more information, see
+      [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md).
+    - Avro and Protobuf field names are not case sensitive in ksqlDB.
+      This matches the ksqlDB column name behavior.
+
 ### ROWTIME
 
 Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 
@@ -95,12 +103,6 @@ following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed, i.e. was created using ksqlDB using a query that contains a `WINDOW` clause, then the `WINDOW_TYPE` property can be used to provide the window type. Valid values are `SESSION`, `HOPPING`, and `TUMBLING`. |
 | WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed, i.e., was created using ksqlDB using a query that contains a `WINDOW` clause, and the `WINDOW_TYPE` property is TUMBLING or HOPPING, then the WINDOW_SIZE property should be set. The property is a string with two literals, window size (a number) and window size unit (a time unit). For example: `10 SECONDS`. |
 
-!!! note
-	  - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
-    `ksql.schema.registry.url` must be set in the ksqlDB server configuration
-    file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md).
-    - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB column name behavior.
-
 Examples
 --------
 
@@ -123,6 +125,6 @@ CREATE TABLE users (
      id BIGINT PRIMARY KEY
    ) WITH (
      KAFKA_TOPIC = 'my-users-topic', 
-     VALUE_FORMAT = 'JSON'
+     VALUE_FORMAT = 'JSON_SR'
    );
 ```

@@ -511,16 +511,19 @@ public final class SourceBuilder {
             return row;
           }
 
-          final long timestamp = processorContext.timestamp();
           final Collection<?> keyColumns = keyGenerator.apply(key);
 
           final int numPseudoColumns = SystemColumns
               .getPseudoColumnsFromVersion(pseudoColumnVersion).size();
 
           row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size());
-          row.append(timestamp);
 
-          if (pseudoColumnVersion > SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
+          if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
+            final long timestamp = processorContext.timestamp();
+            row.append(timestamp);
+          }
+
+          if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final long offset = processorContext.offset();
             final int partition = processorContext.partition();
             row.append(offset);

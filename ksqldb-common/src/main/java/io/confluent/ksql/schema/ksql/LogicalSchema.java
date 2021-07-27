@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
@@ -140,7 +141,7 @@ public final class LogicalSchema {
   }
 
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuild(windowed, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    return rebuild(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**

@@ -55,7 +55,7 @@ public class LivenessFilter implements RoutingFilter {
     if (status.isHostAlive()) {
       return Host.include(host);
     } else {
-      return Host.exclude(host, "Host is not alive as of " + status.getLastStatusUpdateMs());
+      return Host.exclude(host, "Host is not alive as of time " + status.getLastStatusUpdateMs());
     }
   }
 }

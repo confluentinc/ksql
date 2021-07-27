@@ -476,7 +476,11 @@ public final class KsLocator implements Locator {
       final PartitionLocation that = (PartitionLocation) o;
       return partition == that.partition
           && Objects.equals(keys, that.keys)
-          && Objects.equals(nodes, that.nodes);
+          // order does not matter when comparing nodes list, but we don't
+          // want to allocate a new set each time `equals` is called, so we
+          // just do the O(n^2) containsAll check. n is usually very small
+          && nodes.size() == that.nodes.size()
+          && nodes.containsAll(that.nodes);
     }
 
     @Override

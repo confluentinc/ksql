@@ -128,7 +128,7 @@ public final class HARouting implements AutoCloseable {
               .map(kv -> String.format(
                   "Partition %s failed to find valid host. Hosts scanned: %s",
                   kv.getKey(), kv.getValue()))
-              .collect(Collectors.joining(",", "[", "]")));
+              .collect(Collectors.joining(", ", "[", "]")));
 
       LOG.debug(materializationException.getMessage());
       throw materializationException;

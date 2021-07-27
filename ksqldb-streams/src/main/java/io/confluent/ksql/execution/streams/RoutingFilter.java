@@ -41,12 +41,16 @@ public interface RoutingFilter {
   class Host {
     private final KsqlHostInfo sourceInfo;
     private final boolean selected;
-    private final String reason;
+    private final String reasonNotSelected;
 
-    private Host(final KsqlHostInfo sourceInfo, final boolean selected, final String reason) {
+    private Host(
+        final KsqlHostInfo sourceInfo,
+        final boolean selected,
+        final String reasonNotSelected
+    ) {
       this.sourceInfo = Objects.requireNonNull(sourceInfo, "sourceInfo");
-      this. selected = selected;
-      this.reason = Objects.requireNonNull(reason, "reason");
+      this.selected = selected;
+      this.reasonNotSelected = Objects.requireNonNull(reasonNotSelected, "reasonNotSelected");
     }
 
     public static Host include(final KsqlHostInfo host) {
@@ -65,8 +69,8 @@ public interface RoutingFilter {
       return selected;
     }
 
-    public String getReason() {
-      return reason;
+    public String getReasonNotSelected() {
+      return reasonNotSelected;
     }
 
     public Host combine(final Host other) {
@@ -77,13 +81,15 @@ public interface RoutingFilter {
       return new Host(
           sourceInfo,
           selected && other.selected,
-          Stream.of(reason, other.reason).filter(s -> !s.isEmpty()).collect(Collectors.joining(","))
+          Stream.of(reasonNotSelected, other.reasonNotSelected)
+              .filter(s -> !s.isEmpty()).collect(Collectors.joining(","))
       );
     }
 
     @Override
     public String toString() {
-      return sourceInfo + " was " + (selected ? "selected" : "not selected because " + reason);
+      return sourceInfo + " was "
+          + (selected ? "selected" : "not selected because " + reasonNotSelected);
     }
   }
 

@@ -65,7 +65,7 @@ public class MaximumLagFilterTest {
     // Then:
     final Host host = filter.filter(HOST1);
     assertTrue(host.isSelected());
-    assertEquals(host.getReason(), "");
+    assertEquals(host.getReasonNotSelected(), "");
   }
 
   @Test
@@ -83,7 +83,7 @@ public class MaximumLagFilterTest {
     // Then:
     final Host host = filter.filter(HOST1);
     assertFalse(host.isSelected());
-    assertEquals(host.getReason(), "Host excluded because lag 12 exceeds maximum allowed lag 11.");
+    assertEquals(host.getReasonNotSelected(), "Host excluded because lag 12 exceeds maximum allowed lag 11.");
   }
 
   @Test
@@ -102,7 +102,7 @@ public class MaximumLagFilterTest {
     // Then:
     final Host host = filter.filter(HOST1);
     assertFalse(host.isSelected());
-    assertEquals(host.getReason(), "Lag information is not present for host.");
+    assertEquals(host.getReasonNotSelected(), "Lag information is not present for host.");
   }
 
   @Test

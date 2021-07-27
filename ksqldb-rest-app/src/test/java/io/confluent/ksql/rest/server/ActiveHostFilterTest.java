@@ -52,6 +52,6 @@ public class ActiveHostFilterTest {
     // Then:
     assertThat(filterActive.isSelected(), is(true));
     assertThat(filterStandby.isSelected(), is(false));
-    assertThat(filterStandby.getReason(), is("Host is not the active host for this partition."));
+    assertThat(filterStandby.getReasonNotSelected(), is("Host is not the active host for this partition."));
   }
 }

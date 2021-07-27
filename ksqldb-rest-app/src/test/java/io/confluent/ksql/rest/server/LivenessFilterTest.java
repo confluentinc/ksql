@@ -74,10 +74,10 @@ public class LivenessFilterTest {
     assertThat(filterActive.isSelected(), is(true));
 
     assertThat(filterStandby1.isSelected(), is(false));
-    assertThat(filterStandby1.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterStandby1.getReasonNotSelected(), is("Host is not alive as of time 0"));
 
     assertThat(filterStandby2.isSelected(), is(false));
-    assertThat(filterStandby2.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterStandby2.getReasonNotSelected(), is("Host is not alive as of time 0"));
   }
 
   @Test
@@ -97,12 +97,12 @@ public class LivenessFilterTest {
 
     // Then:
     assertThat(filterActive.isSelected(), is(false));
-    assertThat(filterActive.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
 
     assertThat(filterStandby1.isSelected(), is(true));
 
     assertThat(filterStandby2.isSelected(), is(false));
-    assertThat(filterActive.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
   }
 
   @Test
@@ -143,13 +143,13 @@ public class LivenessFilterTest {
 
     // Then:
     assertThat(filterActive.isSelected(), is(false));
-    assertThat(filterActive.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
 
     assertThat(filterStandby1.isSelected(), is(false));
-    assertThat(filterActive.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
 
     assertThat(filterStandby2.isSelected(), is(false));
-    assertThat(filterActive.getReason(), is("Host is not alive as of 0"));
+    assertThat(filterActive.getReasonNotSelected(), is("Host is not alive as of time 0"));
   }
 
 }

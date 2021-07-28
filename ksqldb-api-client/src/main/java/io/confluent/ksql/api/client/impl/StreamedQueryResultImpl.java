@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -31,8 +33,8 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResultImpl.class);
 
   private final String queryId;
-  private final List<String> columnNames;
-  private final List<ColumnType> columnTypes;
+  private final ImmutableList<String> columnNames;
+  private final ImmutableList<ColumnType> columnTypes;
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
@@ -45,17 +47,19 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   ) {
     super(context);
     this.queryId = queryId;
-    this.columnNames = columnNames;
-    this.columnTypes = columnTypes;
+    this.columnNames = ImmutableList.copyOf(columnNames);
+    this.columnTypes = ImmutableList.copyOf(columnTypes);
     this.pollableSubscriber = new PollableSubscriber(ctx, this::handleErrorWhilePolling);
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnNames is ImmutableList")
   public List<String> columnNames() {
     return columnNames;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<ColumnType> columnTypes() {
     return columnTypes;
   }

@@ -12,6 +12,7 @@
 
 package io.confluent.ksql.logging.query;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -32,6 +33,7 @@ public final class QueryLogger {
 
   private QueryLogger() {}
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public static void initialize() {
     logger.setAdditivity(false);
 
@@ -50,6 +52,7 @@ public final class QueryLogger {
     logger.addAppender(appender);
   }
 
+  @SuppressFBWarnings(value = "MS_EXPOSE_REP")
   public static Logger getLogger() {
     return logger;
   }

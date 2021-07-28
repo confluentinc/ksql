@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
-import io.confluent.ksql.embedded.KsqlContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -59,10 +59,28 @@ public class KsqlAuthorizationValidatorImplTest {
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
-  private static final String STREAM_TOPIC_1 = "s1";
-  private static final String STREAM_TOPIC_2 = "s2";
-  private final static String TOPIC_1 = "topic1";
-  private final static String TOPIC_2 = "topic2";
+  private static final KeyFormat KAFKA_KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(
+      FormatFactory.KAFKA.name()), SerdeFeatures.of());
+
+  private static final ValueFormat KAFKA_VALUE_FORMAT = ValueFormat.of(FormatInfo.of(
+      FormatFactory.KAFKA.name()), SerdeFeatures.of());
+
+  private static final KeyFormat AVRO_KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(
+      FormatFactory.AVRO.name()), SerdeFeatures.of());
+
+  private static final ValueFormat AVRO_VALUE_FORMAT = ValueFormat.of(FormatInfo.of(
+      FormatFactory.AVRO.name()), SerdeFeatures.of());
+
+  private static final String KAFKA_STREAM_TOPIC = "kafka_stream";
+  private static final String AVRO_STREAM_TOPIC = "avro_stream";
+  private final static String KAFKA_TOPIC = "kafka_topic";
+  private final static String AVRO_TOPIC = "avro_topic";
+
+  private final static KsqlTopic KAFKA_KSQL_TOPIC =
+      new KsqlTopic(KAFKA_TOPIC, KAFKA_KEY_FORMAT, KAFKA_VALUE_FORMAT);
+
+  private final static KsqlTopic AVRO_KSQL_TOPIC =
+      new KsqlTopic(AVRO_TOPIC, AVRO_KEY_FORMAT, AVRO_VALUE_FORMAT);
 
   @Mock
   private KsqlAccessValidator accessValidator;
@@ -82,8 +100,8 @@ public class KsqlAuthorizationValidatorImplTest {
     authorizationValidator = new KsqlAuthorizationValidatorImpl(accessValidator);
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
-    givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
-    givenStreamWithTopic(STREAM_TOPIC_2, TOPIC_2);
+    givenStreamWithTopic(KAFKA_STREAM_TOPIC, KAFKA_KSQL_TOPIC);
+    givenStreamWithTopic(AVRO_STREAM_TOPIC, AVRO_KSQL_TOPIC);
   }
 
   @After
@@ -98,7 +116,7 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldSingleSelectWithReadPermissionsAllowed() {
     // Given:
-    final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
+    final Statement statement = givenStatement("SELECT * FROM " + KAFKA_STREAM_TOPIC + ";");
 
     // When/Then:
     authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
@@ -107,9 +125,9 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenSingleSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "SELECT * FROM %s;", STREAM_TOPIC_1)
+        "SELECT * FROM %s;", KAFKA_STREAM_TOPIC)
     );
 
     // When:
@@ -120,7 +138,27 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
+    )));
+  }
+
+  @Test
+  public void shouldThrowWhenSingleSelectWithoutSubjectReadPermissionsDenied() {
+    // Given:
+    givenSubjectAccessDenied(AVRO_TOPIC + "-key", AclOperation.READ);
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s;", AVRO_STREAM_TOPIC)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on Schema Registry subject: [%s-key]", AVRO_TOPIC
     )));
   }
 
@@ -128,7 +166,7 @@ public class KsqlAuthorizationValidatorImplTest {
   public void shouldJoinSelectWithReadPermissionsAllowed() {
     // Given:
     final Statement statement = givenStatement(String.format(
-        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", KAFKA_STREAM_TOPIC, AVRO_STREAM_TOPIC)
     );
 
     // When/Then:
@@ -138,9 +176,9 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenJoinSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", KAFKA_STREAM_TOPIC, AVRO_STREAM_TOPIC)
     );
 
     // When:
@@ -151,16 +189,36 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
+    )));
+  }
+
+  @Test
+  public void shouldThrowWhenJoinSelectWithoutSubjectReadPermissionsDenied() {
+    // Given:
+    givenSubjectAccessDenied(AVRO_TOPIC + "-value", AclOperation.READ);
+    final Statement statement = givenStatement(String.format(
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", KAFKA_STREAM_TOPIC, AVRO_STREAM_TOPIC)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Read on Schema Registry subject: [%s-value]", AVRO_TOPIC
     )));
   }
 
   @Test
   public void shouldThrowWhenJoinWithOneRightTopicWithReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_2, AclOperation.READ);
+    givenTopicAccessDenied(AVRO_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", KAFKA_STREAM_TOPIC, AVRO_STREAM_TOPIC)
     );
 
     // When:
@@ -171,16 +229,16 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_2
+        "Authorization denied to Read on topic(s): [%s]", AVRO_TOPIC
     )));
   }
 
   @Test
   public void shouldThrowWhenJoinWitOneLeftTopicWithReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
+        "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", KAFKA_STREAM_TOPIC, AVRO_STREAM_TOPIC)
     );
 
     // When:
@@ -191,7 +249,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
     )));
   }
 
@@ -199,7 +257,7 @@ public class KsqlAuthorizationValidatorImplTest {
   public void shouldInsertIntoWithAllPermissionsAllowed() {
     // Given:
     final Statement statement = givenStatement(String.format(
-        "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+        "INSERT INTO %s SELECT * FROM %s;", AVRO_STREAM_TOPIC, KAFKA_STREAM_TOPIC)
     );
 
     // When/then:
@@ -209,9 +267,9 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenInsertIntoWithOnlyReadPermissionsAllowed() {
     // Given:
-    givenAccessDenied(TOPIC_2, AclOperation.WRITE);
+    givenTopicAccessDenied(AVRO_TOPIC, AclOperation.WRITE);
     final Statement statement = givenStatement(String.format(
-        "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+        "INSERT INTO %s SELECT * FROM %s;", AVRO_STREAM_TOPIC, KAFKA_STREAM_TOPIC)
     );
 
     // When:
@@ -222,16 +280,16 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
+        "Authorization denied to Write on topic(s): [%s]", AVRO_TOPIC
     )));
   }
 
   @Test
   public void shouldThrowWhenInsertIntoWithOnlyWritePermissionsAllowed() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "INSERT INTO %s SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+        "INSERT INTO %s SELECT * FROM %s;", AVRO_STREAM_TOPIC, KAFKA_STREAM_TOPIC)
     );
 
     // When:
@@ -242,16 +300,16 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
     )));
   }
 
   @Test
   public void shouldThrowWhenCreateAsSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM newStream AS SELECT * FROM %s;", STREAM_TOPIC_1)
+        "CREATE STREAM newStream AS SELECT * FROM %s;", KAFKA_STREAM_TOPIC)
     );
 
     // When:
@@ -262,7 +320,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
     )));
   }
 
@@ -270,7 +328,7 @@ public class KsqlAuthorizationValidatorImplTest {
   public void shouldCreateAsSelectExistingTopicWithWritePermissionsAllowed() {
     // Given:
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+        "CREATE STREAM %s AS SELECT * FROM %s;", AVRO_STREAM_TOPIC, KAFKA_STREAM_TOPIC)
     );
 
     // When/Then:
@@ -280,9 +338,9 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenCreateAsSelectExistingStreamWithoutWritePermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_2, AclOperation.WRITE);
+    givenTopicAccessDenied(AVRO_TOPIC, AclOperation.WRITE);
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+        "CREATE STREAM %s AS SELECT * FROM %s;", AVRO_STREAM_TOPIC, KAFKA_STREAM_TOPIC)
     );
 
     // When:
@@ -293,7 +351,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2
+        "Authorization denied to Write on topic(s): [%s]", AVRO_TOPIC
     )));
   }
 
@@ -302,7 +360,7 @@ public class KsqlAuthorizationValidatorImplTest {
     // Given:
     final Statement statement = givenStatement(String.format(
         "CREATE STREAM newStream WITH (kafka_topic='%s') AS SELECT * FROM %s;",
-        TOPIC_2, STREAM_TOPIC_1)
+        AVRO_TOPIC, KAFKA_STREAM_TOPIC)
     );
 
     // When/Then:
@@ -312,7 +370,7 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldPrintTopicWithReadPermissionsAllowed() {
     // Given:
-    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_1));
+    final Statement statement = givenStatement(String.format("Print '%s';", KAFKA_TOPIC));
 
     // When/Then
     authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
@@ -321,8 +379,8 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenPrintTopicWithoutReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
-    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_1));
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
+    final Statement statement = givenStatement(String.format("Print '%s';", KAFKA_TOPIC));
 
     // When:
     final Exception e = assertThrows(
@@ -332,7 +390,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
     )));
   }
 
@@ -340,7 +398,7 @@ public class KsqlAuthorizationValidatorImplTest {
   public void shouldCreateSourceWithReadPermissionsAllowed() {
     // Given:
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_1)
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", KAFKA_TOPIC)
     );
 
     // When/Then:
@@ -350,9 +408,9 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenCreateSourceWithoutReadPermissionsDenied() {
     // Given:
-    givenAccessDenied(TOPIC_1, AclOperation.READ);
+    givenTopicAccessDenied(KAFKA_TOPIC, AclOperation.READ);
     final Statement statement = givenStatement(String.format(
-        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_1)
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", KAFKA_TOPIC)
     );
 
     // When:
@@ -363,25 +421,21 @@ public class KsqlAuthorizationValidatorImplTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1
+        "Authorization denied to Read on topic(s): [%s]", KAFKA_TOPIC
     )));
   }
 
-  private void givenAccessDenied(final String topicName, final AclOperation operation) {
+  private void givenTopicAccessDenied(final String topicName, final AclOperation operation) {
     doThrow(new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName)))
-        .when(accessValidator).checkAccess(securityContext, topicName, operation);
+        .when(accessValidator).checkTopicAccess(securityContext, topicName, operation);
   }
 
-  private void givenStreamWithTopic(
-      final String streamName,
-      final String topicName
-  ) {
-    final KsqlTopic sourceTopic = new KsqlTopic(
-        topicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-    );
+  private void givenSubjectAccessDenied(final String subjectName, final AclOperation operation) {
+    doThrow(new KsqlSchemaAuthorizationException(operation, subjectName))
+        .when(accessValidator).checkSubjectAccess(securityContext, subjectName, operation);
+  }
 
+  private void givenStreamWithTopic(final String streamName, final KsqlTopic sourceTopic) {
     final KsqlStream<?> streamSource = new KsqlStream<>(
         "",
         SourceName.of(streamName.toUpperCase()),

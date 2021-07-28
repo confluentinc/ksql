@@ -59,6 +59,8 @@ public class KsqlAuthorizationValidatorFactoryTest {
   private ServiceContext serviceContext;
   @Mock
   private AdminClient adminClient;
+  @Mock
+  private KsqlAuthorizationProvider authorizationProvider;
 
   private Node node;
 
@@ -72,30 +74,72 @@ public class KsqlAuthorizationValidatorFactoryTest {
   }
 
   @Test
-  public void shouldReturnAuthorizationValidator() {
-    // Given:
-    givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
-
-    // When:
-    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
-        ksqlConfig,
-        serviceContext
-    );
-
-    // Then
-    assertThat("validator should be present", validator.isPresent());
-    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
-  }
-
-  @Test
-  public void shouldReturnEmptyValidator() {
+  public void shouldReturnProvidedAuthorizationValidatorWhenAuthorizationProviderIsNonEmpty() {
     // Given:
     givenKafkaAuthorizer("", Collections.emptySet());
 
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.of(authorizationProvider)
+    );
+
+    // Then
+    assertThat("validator should be present", validator.isPresent());
+    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
+        is(instanceOf(KsqlProvidedAccessValidator.class)));
+  }
+
+  @Test
+  public void shouldReturnBackendAuthorizationValidatorWhenKafkaAuthorizerIsSet() {
+    // Given:
+    givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext,
+        Optional.empty()
+    );
+
+    // Then
+    assertThat("validator should be present", validator.isPresent());
+    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
+        is(instanceOf(KsqlBackendAccessValidator.class)));
+  }
+  
+  @Test
+  public void shouldChooseProvidedAuthorizationValidatorOverKafkaBackendValidator() {
+    // Given:
+    givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext,
+        Optional.of(authorizationProvider)
+    );
+
+    // Then
+    assertThat("validator should be present", validator.isPresent());
+    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
+        is(instanceOf(KsqlProvidedAccessValidator.class)));
+  }
+
+  @Test
+  public void shouldReturnEmptyAuthorizationValidatorWhenNoAuthorizationProviderIsFound() {
+    // Given:
+    givenKafkaAuthorizer("", Collections.emptySet());
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext,
+        Optional.empty()
     );
 
     // Then
@@ -103,15 +147,17 @@ public class KsqlAuthorizationValidatorFactoryTest {
   }
 
   @Test
-  public void shouldReturnEmptyValidatorIfNotEnabled() {
+  public void shouldReturnEmptyAuthorizationValidatorKafkaAuthorizerIsSetButNotEnabled() {
     // Given:
+    givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
     when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
 
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.empty()
     );
 
     // Then:
@@ -130,7 +176,8 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.empty()
     );
 
     // Then:
@@ -142,7 +189,28 @@ public class KsqlAuthorizationValidatorFactoryTest {
   }
 
   @Test
-  public void shouldReturnAuthorizationValidatorWithCacheExpiryTimeIsPositive() {
+  public void shouldReturnProvidedAuthorizationValidatorWhenCacheIsEnabled() {
+    // Given:
+    givenKafkaAuthorizer("", Collections.emptySet());
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS)).thenReturn(1L);
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext,
+        Optional.of(authorizationProvider)
+    );
+
+    // Then:
+    assertThat("validator should be present", validator.isPresent());
+    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
+        is(instanceOf(KsqlCacheAccessValidator.class)));
+    verifyNoMoreInteractions(adminClient);
+  }
+
+  @Test
+  public void shouldReturnAuthorizationValidatorWhenCacheIsEnabled() {
     // Given:
     when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
@@ -152,7 +220,8 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.empty()
     );
 
     // Then:
@@ -171,7 +240,8 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.empty()
     );
 
     // Then
@@ -188,7 +258,8 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.empty()
     );
 
     // Then
@@ -211,7 +282,8 @@ public class KsqlAuthorizationValidatorFactoryTest {
     // When:
     final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
-        serviceContext
+        serviceContext,
+        Optional.empty()
     );
 
     // Then

@@ -38,6 +38,14 @@ public final class QueryLoggerMessage {
     return query;
   }
 
+  public String toString() {
+    if (queryGuid == null) {
+      return String.format("%s: %s", message, query);
+    }
+
+    return String.format("%s (%s): %s", message, queryGuid.getQueryGuid(), query);
+  }
+
   public QueryGuid getQueryIdentifier() {
     return queryGuid;
   }

@@ -1,0 +1,775 @@
+{
+  "comments": [
+    "Tests covering Scalable Push queries"
+  ],
+  "tests": [
+    {
+      "name": "only key column",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT K FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":["11"]}},
+          {"row":{"columns":["12"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "only value column",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT ID FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[100]}},
+          {"row":{"columns":[101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "only literal",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT 1 AS I FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[1]}},
+          {"row":{"columns":[1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "explicit ROWTIME",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT ROWTIME, K, ID FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[12345, "11", 100]}},
+          {"row":{"columns":[12365, "11", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream - STRING key",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":["11", 100]}},
+          {"row":{"columns":["11", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream - INT key",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream - BIGINT key",
+      "statements": [
+        "CREATE STREAM I (K BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` BIGINT, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream - DOUBLE key",
+      "statements": [
+        "CREATE STREAM I (K DOUBLE KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.0, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11.0, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` DOUBLE, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11.0, 100]}},
+          {"row":{"columns":[11.0, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - STRING key",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE AGGREGATE AS SELECT K, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":["11", 12000, 13000, 1]}},
+          {"row":{"columns":["11", 12000, 13000, 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - INT key",
+      "statements": [
+        "CREATE STREAM INPUT (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE AGGREGATE AS SELECT K, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - BIGINT key",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE AGGREGATE AS SELECT K, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - DOUBLE key",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE AGGREGATE AS SELECT K, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K;",
+        "SELECT * FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11.1, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11.1, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11.1, 12000, 13000, 1]}},
+          {"row":{"columns":[11.1, 12000, 13000, 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "imported windowed stream - BIGINT KEY",
+      "statements": [
+        "CREATE STREAM I (K BIGINT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', WINDOW_TYPE='Session', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 34555, "key": 11, "value": {"id": 100}, "window": {"start": 12345, "end": 34555, "type": "session"}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 12345, 34555, 100]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed table - access window bounds in select",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE AGGREGATE AS SELECT K, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY K;",
+        "SELECT TIMESTAMPTOSTRING(WINDOWSTART, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WSTART, TIMESTAMPTOSTRING(WINDOWEND, 'yyyy-MM-dd HH:mm:ss Z', 'UTC') AS WEND, COUNT FROM AGGREGATE EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1580223282123, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 1580223282456, "key": "11", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`WSTART` STRING, `WEND` STRING, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":["2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1]}},
+          {"row":{"columns":["2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 2]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "key and rowtime in projection",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT rowtime, k FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 1, "value": {}, "timestamp": 13251}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWTIME` BIGINT, `K` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[10345, 0]}},
+          {"row":{"columns":[13251, 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "zero limit",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 0;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "out-of-order columns",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT ID, K FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER, `K` STRING", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[100, "11"]}},
+          {"row":{"columns":[101, "11"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "streams without key columns",
+      "statements": [
+        "CREATE STREAM I (K STRING, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT K, ID FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "should be ignored", "value": {"k": "a", "id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "should be ignored", "value": {"k": "b", "id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":["a", 100]}},
+          {"row":{"columns":["b", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream - non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed stream with nulls",
+      "notes": "messages with a null value are deemed invalid and ignored",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1, "key": null, "value": {"id": 110}, "comment": "This is ignored at the moment which is inconsistent with conventional push"},
+        {"topic": "test_topic", "timestamp": 2, "key": 10, "value": null},
+        {"topic": "test_topic", "timestamp": 4, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 3, "key": 11, "value": {"id": null}},
+        {"topic": "test_topic", "timestamp": 5, "key": 11, "value": {"id": 111}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, null]}},
+          {"row":{"columns":[11, 111]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "NULL Arithmetic Behavior - INTEGER addition",
+      "statements": [
+        "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT 1 + NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - MAP addition",
+      "statements": [
+        "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT MAP(1 := 'cat') + NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - ARRAY addition",
+      "statements": [
+        "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT Array[1,2,3] + NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - DECIMAL division",
+      "statements": [
+        "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT 5.0 / NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (5.0 / null). Arithmetic on types DECIMAL(2, 1) and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "NULL Arithmetic Behavior - NULL NULL multiplication",
+      "statements": [
+        "CREATE STREAM I (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT NULL * NULL FROM INPUT EMIT CHANGES;"
+      ],
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Error processing expression: (null * null). Arithmetic on types null and null are not supported.",
+        "status": 400
+      }
+    },
+    {
+      "name": "FILTER - key equals",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE K = 11 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 103}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 103]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "FILTER - key comparison",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE K > 11 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[12, 101]}},
+          {"row":{"columns":[13, 102]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "FILTER - value comparison",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE ID <= 102 EMIT CHANGES LIMIT 4;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 103}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[9, 99]}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[12, 101]}},
+          {"row":{"columns":[13, 102]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "FILTER - multi column comparison",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE K <= 12 AND ID > 100 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 103}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
+          {"row":{"columns":[12, 101]}},
+          {"row":{"columns":[11, 103]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    }
+  ]
+}

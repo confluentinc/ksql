@@ -40,6 +40,10 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
+!!! note
+    Currently, the join expression must be a single column equal comparison.
+    Non-equi joins, or joins on multiple columns are not supported. 
+
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
 units, see [Time Units](/reference/sql/time/#time-units).
@@ -70,7 +74,8 @@ based on its timestamp.
 If a record arrives after the window's grace period has passed, the record is discarded and
 isn't processed.
 
->Note: Only stream-stream joins are windowed.
+!!! note
+    Only stream-stream joins are windowed.
 
 Windows are tracked per record key. In join operations, ksqlDB uses a
 windowing *state store* to store all of the records received so far

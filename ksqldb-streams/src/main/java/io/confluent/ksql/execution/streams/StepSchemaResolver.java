@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -112,6 +113,7 @@ public final class StepSchemaResolver {
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public StepSchemaResolver(
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry) {

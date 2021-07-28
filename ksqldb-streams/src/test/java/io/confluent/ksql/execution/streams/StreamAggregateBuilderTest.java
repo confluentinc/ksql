@@ -95,7 +95,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "deprecation"})
 @RunWith(MockitoJUnitRunner.class)
 public class StreamAggregateBuilderTest {
 
@@ -456,7 +456,7 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).grace(gracePeriodClause.toDuration()));
+    inOrder.verify(groupedStream).windowedBy(TimeWindows.ofSizeAndGrace(WINDOW, gracePeriodClause.toDuration()));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
@@ -486,8 +486,7 @@ public class StreamAggregateBuilderTest {
         windowedWithWindowBounds
     );
 
-    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).advanceBy(HOP)
-        .grace(gracePeriodClause.toDuration()));
+    inOrder.verify(groupedStream).windowedBy(TimeWindows.ofSizeAndGrace(WINDOW, gracePeriodClause.toDuration()).advanceBy(HOP));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
@@ -516,8 +515,7 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(SessionWindows.with(WINDOW)
-        .grace(gracePeriodClause.toDuration())
+    inOrder.verify(groupedStream).windowedBy(SessionWindows.ofInactivityGapAndGrace(WINDOW, gracePeriodClause.toDuration())
     );
     inOrder.verify(sessionWindowedStream).aggregate(
         initializer,

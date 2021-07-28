@@ -91,6 +91,7 @@ public class RestQueryTranslationTest {
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -133,7 +134,8 @@ public class RestQueryTranslationTest {
     REST_APP.dropSourcesExcept();
     TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
 
-    if (STARTING_THREADS.get() == null) {
+    final ThreadSnapshot thread = STARTING_THREADS.get();
+    if (thread == null) {
       // Only set once one full run completed to ensure all persistent threads created:
       STARTING_THREADS.set(ThreadTestUtil.threadSnapshot(filterBuilder()
           .excludeTerminated()
@@ -143,7 +145,7 @@ public class RestQueryTranslationTest {
           .nameMatches(name -> !name.startsWith("pull-query-executor"))
           .build()));
     } else {
-      STARTING_THREADS.get().assertSameThreads();
+      thread.assertSameThreads();
     }
   }
 

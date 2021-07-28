@@ -79,6 +79,7 @@ public class TransientQueryMetadataTest {
   public void setUp()  {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
+    when(sourceNames.toArray()).thenReturn(new SourceName[0]);
 
     query = new TransientQueryMetadata(
         SQL,

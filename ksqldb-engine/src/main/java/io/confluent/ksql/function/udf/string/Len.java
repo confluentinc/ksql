@@ -18,11 +18,12 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import java.nio.ByteBuffer;
 
 @UdfDescription(
     name = "len",
     category = FunctionCategory.STRING,
-    description = "Returns the length of the input string.")
+    description = "Returns the length of the input string or byte array.")
 public class Len {
 
   @Udf
@@ -32,5 +33,14 @@ public class Len {
       return null;
     }
     return input.length();
+  }
+
+  @Udf
+  public Integer len(
+      @UdfParameter(description = "The input byte array") final ByteBuffer input) {
+    if (input == null) {
+      return null;
+    }
+    return input.capacity();
   }
 }

@@ -26,6 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
@@ -56,6 +57,7 @@ public final class PostConditionsNode {
   }
 
   @SuppressWarnings("unused") // Invoked via reflection
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sources is ImmutableList")
   public List<SourceNode> getSources() {
     return sources;
   }
@@ -104,7 +106,7 @@ public final class PostConditionsNode {
   public static final class PostTopicsNode {
 
     private final Optional<String> blackList;
-    private final List<PostTopicNode> topics;
+    private final ImmutableList<PostTopicNode> topics;
 
     public PostTopicsNode() {
       this(Optional.empty(), Optional.empty());
@@ -115,7 +117,7 @@ public final class PostConditionsNode {
         @JsonProperty("topics") final Optional<List<PostTopicNode>> topics
     ) {
       this.blackList = Objects.requireNonNull(blackList, "blackList");
-      this.topics = topics.orElseGet(ImmutableList::of);
+      this.topics = topics.isPresent() ? ImmutableList.copyOf(topics.get()) : ImmutableList.of();
 
       // Fail early
       buildBlackList();
@@ -125,6 +127,7 @@ public final class PostConditionsNode {
       return blackList;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableList")
     public List<PostTopicNode> getTopics() {
       return topics;
     }

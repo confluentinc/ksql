@@ -17,6 +17,7 @@ package io.confluent.ksql.physical.scalablepush.locator;
 
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
@@ -38,10 +40,16 @@ public class AllHostsLocator implements PushLocator {
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
   private final URL localhost;
 
-  public AllHostsLocator(final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final URL localhost) {
+  public AllHostsLocator(
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final URL localhost
+  ) {
     this.allPersistentQueries = allPersistentQueries;
-    this.localhost = localhost;
+    try {
+      this.localhost = new URL(localhost.toString());
+    } catch (final MalformedURLException fatalError) {
+      throw new IllegalStateException("Could not deep copy URL: " + localhost);
+    }
   }
 
 
@@ -52,6 +60,7 @@ public class AllHostsLocator implements PushLocator {
     }
 
     return currentQueries.stream()
+        .filter(persistentQueryMetadata -> persistentQueryMetadata.getState() == State.RUNNING)
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)

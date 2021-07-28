@@ -16,6 +16,8 @@
 package io.confluent.ksql.tools.migrations.util;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -42,6 +44,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -118,13 +121,13 @@ public final class CommandParser {
   */
   public static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
-    StringBuffer current = new StringBuffer();
+    StringBuilder current = new StringBuilder();
     int index = 0;
     while (index < sql.length()) {
       if (sql.charAt(index) == SINGLE_QUOTE) {
         final int closingToken = sql.indexOf(SINGLE_QUOTE, index + 1);
         validateToken(String.valueOf(SINGLE_QUOTE), closingToken);
-        current.append(sql.substring(index, closingToken + 1));
+        current.append(sql, index, closingToken + 1);
         index = closingToken + 1;
       } else if (index < sql.length() - 1 && sql.startsWith(SHORT_COMMENT_OPENER, index)) {
         index = sql.indexOf(SHORT_COMMENT_CLOSER, index + 1) + 1;
@@ -135,7 +138,7 @@ public final class CommandParser {
       } else if (sql.charAt(index) == SEMICOLON) {
         current.append(';');
         commands.add(current.toString());
-        current = new StringBuffer();
+        current = new StringBuilder();
         index++;
       } else {
         current.append(sql.charAt(index));
@@ -144,8 +147,9 @@ public final class CommandParser {
     }
 
     if (!current.toString().trim().isEmpty()) {
-      throw new MigrationException("Unmatched command at end of file; missing semicolon: '"
-          + current.toString() + "'");
+      throw new MigrationException(String.format(
+          "Unmatched command at end of file; missing semicolon: '%s'", current
+      ));
     }
 
     return commands;
@@ -268,7 +272,7 @@ public final class CommandParser {
         preserveCase(createConnector.getName()),
         createConnector.getType() == Type.SOURCE,
         createConnector.getConfig().entrySet().stream()
-            .collect(Collectors.toMap(e -> e.getKey(), e -> toFieldType(e.getValue())))
+            .collect(Collectors.toMap(Entry::getKey, e -> toFieldType(e.getValue())))
     );
   }
 
@@ -432,8 +436,8 @@ public final class CommandParser {
    */
   public static class SqlInsertValues extends SqlCommand {
     private final String sourceName;
-    private final List<String> columns;
-    private final List<Expression> values;
+    private final ImmutableList<String> columns;
+    private final ImmutableList<Expression> values;
 
     SqlInsertValues(
         final String command,
@@ -443,18 +447,20 @@ public final class CommandParser {
     ) {
       super(command);
       this.sourceName = sourceName;
-      this.values = values;
-      this.columns = columns;
+      this.values = ImmutableList.copyOf(values);
+      this.columns = ImmutableList.copyOf(columns);
     }
 
     public String getSourceName() {
       return sourceName;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is ImmutableList")
     public List<Expression> getValues() {
       return values;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is ImmutableList")
     public List<String> getColumns() {
       return columns;
     }
@@ -475,7 +481,7 @@ public final class CommandParser {
   public static class SqlCreateConnectorStatement extends SqlCommand {
     final String name;
     final boolean isSource;
-    final Map<String, Object> properties;
+    final ImmutableMap<String, Object> properties;
 
     SqlCreateConnectorStatement(
         final String command,
@@ -486,7 +492,7 @@ public final class CommandParser {
       super(command);
       this.name = Objects.requireNonNull(name);
       this.isSource = isSource;
-      this.properties = Objects.requireNonNull(properties);
+      this.properties = ImmutableMap.copyOf(Objects.requireNonNull(properties));
     }
 
     public String getName() {
@@ -497,6 +503,7 @@ public final class CommandParser {
       return isSource;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "properties is ImmutableMap")
     public Map<String, Object> getProperties() {
       return properties;
     }

@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.Host;
@@ -32,6 +33,7 @@ import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,7 +89,7 @@ public final class KsLocator implements Locator {
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.storeName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
-    this.applicationId = requireNonNull(applicationId, "applicationId");;
+    this.applicationId = requireNonNull(applicationId, "applicationId");
   }
 
   @Override
@@ -291,7 +293,7 @@ public final class KsLocator implements Locator {
       final int partition
   ) {
     // If the lookup is for a forwarded request, only filter localhost
-    List<KsqlHostInfo> allHosts = null;
+    final List<KsqlHostInfo> allHosts;
     if (routingOptions.getIsSkipForwardRequest()) {
       LOG.debug("Before filtering: Local host {} ", localHost);
       allHosts = ImmutableList.of(new KsqlHostInfo(localHost.getHost(), localHost.getPort()));
@@ -383,7 +385,11 @@ public final class KsLocator implements Locator {
 
     @Override
     public URI location() {
-      return location;
+      try {
+        return new URI(location.toString());
+      } catch (final URISyntaxException fatalError) {
+        throw new IllegalStateException("Could not deep copy URI: " + location);
+      }
     }
 
     @Override
@@ -426,13 +432,13 @@ public final class KsLocator implements Locator {
   public static final class PartitionLocation implements KsqlPartitionLocation {
     private final Optional<Set<KsqlKey>> keys;
     private final int partition;
-    private final List<KsqlNode> nodes;
+    private final ImmutableList<KsqlNode> nodes;
 
     public PartitionLocation(final Optional<Set<KsqlKey>> keys, final int partition,
                              final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;
-      this.nodes = nodes;
+      this.nodes = ImmutableList.copyOf(nodes);
     }
 
     public Optional<Set<KsqlKey>> getKeys() {
@@ -448,6 +454,7 @@ public final class KsLocator implements Locator {
       );
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "nodes is ImmutableList")
     public List<KsqlNode> getNodes() {
       return nodes;
     }

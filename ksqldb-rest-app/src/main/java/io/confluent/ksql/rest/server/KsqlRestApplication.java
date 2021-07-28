@@ -90,6 +90,7 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -312,7 +313,8 @@ public final class KsqlRestApplication implements Executable {
     this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
     final StatementParser statementParser = new StatementParser(ksqlEngine);
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
-        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext,
+            securityExtension.getAuthorizationProvider());
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
         ErrorMessages.class
@@ -477,7 +479,16 @@ public final class KsqlRestApplication implements Executable {
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(new PersistentQueryCleanupImpl(
+        configWithApplicationServer
+        .getKsqlStreamConfigProps()
+        .getOrDefault(
+          StreamsConfig.STATE_DIR_CONFIG,
+          StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+        .toString(),
+        serviceContext)
+    );
+
     commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
@@ -749,7 +760,8 @@ public final class KsqlRestApplication implements Executable {
         restConfig);
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
-        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
+        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext,
+            securityExtension.getAuthorizationProvider());
 
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,

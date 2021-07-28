@@ -62,6 +62,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -608,7 +609,7 @@ public class RestApiTest {
           }
           String[] parts = line.split("\n");
           messages.addAll(
-              Arrays.asList(parts).stream()
+              Arrays.stream(parts)
                   .filter(part -> !(part.equals(",") || part.equals("]")))
                   .collect(Collectors.toList()));
         });
@@ -651,7 +652,7 @@ public class RestApiTest {
           }
           String[] parts = str.split("\n");
           messages.addAll(
-              Arrays.asList(parts).stream()
+              Arrays.stream(parts)
                   .filter(part -> !(part.equals(",") || part.equals("]")))
                   .collect(Collectors.toList()));
         });
@@ -787,11 +788,9 @@ public class RestApiTest {
         Collections.emptyMap(),
         null
     );
-    final Supplier<Integer> call = () -> {
-      return rawRestRequest(
-          HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
-      ).statusCode();
-    };
+    final Supplier<Integer> call = () -> rawRestRequest(
+        HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
+    ).statusCode();
 
     // When:
     assertThatEventually(call, is(METHOD_NOT_ALLOWED.code()));
@@ -872,7 +871,7 @@ public class RestApiTest {
 
     // Then:
     final List<String> query = ((Queries) makeKsqlRequest("SHOW QUERIES;").get(0))
-        .getQueries().stream().map(q -> q.getQueryString())
+        .getQueries().stream().map(RunningQuery::getQueryString)
         .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
         .collect(Collectors.toList());
     assertThat(query.size(), is(1));

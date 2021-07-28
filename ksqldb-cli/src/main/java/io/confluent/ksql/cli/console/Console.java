@@ -111,6 +111,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -315,7 +316,7 @@ public class Console implements Closeable {
   }
 
   public Map<String, CliSpecificCommand> getCliSpecificCommands() {
-    return cliSpecificCommands;
+    return new HashMap<>(cliSpecificCommands);
   }
 
   public String nextNonCliCommand() {

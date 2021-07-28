@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -95,6 +96,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
     return isRunning.get();
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public BlockingRowQueue getRowQueue() {
     return rowQueue;
   }

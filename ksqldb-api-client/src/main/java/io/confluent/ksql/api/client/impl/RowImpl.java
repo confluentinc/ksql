@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
@@ -27,35 +30,37 @@ import java.util.Objects;
 
 public class RowImpl implements Row {
 
-  private final List<String> columnNames;
-  private final List<ColumnType> columnTypes;
+  private final ImmutableList<String> columnNames;
+  private final ImmutableList<ColumnType> columnTypes;
   private final KsqlArray values;
-  private final Map<String, Integer> columnNameToIndex;
+  private final ImmutableMap<String, Integer> columnNameToIndex;
 
   public RowImpl(
       final List<String> columnNames,
       final List<ColumnType> columnTypes,
       final JsonArray values,
       final Map<String, Integer> columnNameToIndex) {
-    this.columnNames = Objects.requireNonNull(columnNames);
-    this.columnTypes = Objects.requireNonNull(columnTypes);
+    this.columnNames = ImmutableList.copyOf(Objects.requireNonNull(columnNames));
+    this.columnTypes = ImmutableList.copyOf(Objects.requireNonNull(columnTypes));
     this.values = new KsqlArray(Objects.requireNonNull(values).getList());
-    this.columnNameToIndex = Objects.requireNonNull(columnNameToIndex);
+    this.columnNameToIndex = ImmutableMap.copyOf(Objects.requireNonNull(columnNameToIndex));
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnNames is ImmutableList")
   public List<String> columnNames() {
     return columnNames;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<ColumnType> columnTypes() {
     return columnTypes;
   }
 
   @Override
   public KsqlArray values() {
-    return values;
+    return values.copy();
   }
 
   @Override
@@ -141,6 +146,16 @@ public class RowImpl implements Row {
   @Override
   public BigDecimal getDecimal(final String columnName) {
     return getDecimal(indexFromName(columnName));
+  }
+
+  @Override
+  public byte[] getBytes(final int columnIndex) {
+    return values.getBytes(columnIndex - 1);
+  }
+
+  @Override
+  public byte[] getBytes(final String columnName) {
+    return getBytes(indexFromName(columnName));
   }
 
   @Override

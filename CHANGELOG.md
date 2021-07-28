@@ -30,6 +30,7 @@
 - reject mismatched decimals from avro topics ([#7544](https://github.com/confluentinc/ksql/pull/7544)) ([85ba0f1](https://github.com/confluentinc/ksql/commit/85ba0f1d4800eda58fe89f89bb6ddbb61a570aff))
 - Update Maven wrapper and document its use to fix version resolution ([#7620](https://github.com/confluentinc/ksql/pull/7620)) ([535fc09](https://github.com/confluentinc/ksql/commit/535fc0921f038bd55b5b80d79b7a1df126a3adf9)), closes [confluentinc/maven#1](https://github.com/confluentinc/maven/issues/1)
 - Use Java's Base64 instead of Jersey's. ([#7534](https://github.com/confluentinc/ksql/pull/7534)) ([0ea0ae3](https://github.com/confluentinc/ksql/commit/0ea0ae341ad2288355085e1805a9539cb683e112))
+- Fix: ksqlDB engine does not infer the Struct type correctly from protobuf schema ([#7642](https://github.com/confluentinc/ksql/issues/7642))
 
 ## [0.18.0](https://github.com/confluentinc/ksql/releases/tag/v0.18.0-ksqldb) (2021-05-26)
 

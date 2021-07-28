@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -195,11 +196,13 @@ public final class LiteralTerms {
     private final BigDecimal value;
     private final SqlType sqlType;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public DecimalTermImpl(final BigDecimal value, final SqlType sqlType) {
       this.value = value;
       this.sqlType = sqlType;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @Override
     public Object getValue(final TermEvaluationContext context) {
       return value;

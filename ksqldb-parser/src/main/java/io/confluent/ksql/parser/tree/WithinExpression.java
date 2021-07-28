@@ -77,7 +77,7 @@ public class WithinExpression extends AstNode {
     this.after = after;
     this.beforeTimeUnit = requireNonNull(beforeTimeUnit, "beforeTimeUnit");
     this.afterTimeUnit = requireNonNull(afterTimeUnit, "afterTimeUnit");
-    this.gracePeriod = requireNonNull(gracePeriod, "gracePeriod");;
+    this.gracePeriod = requireNonNull(gracePeriod, "gracePeriod");
     this.joinWindows = createJoinWindows();
   }
 
@@ -108,12 +108,10 @@ public class WithinExpression extends AstNode {
           .append(")");
     }
 
-    if (gracePeriod.isPresent()) {
-      builder.append(" GRACE PERIOD ")
-          .append(gracePeriod.get().getValue())
-          .append(' ')
-          .append(gracePeriod.get().getTimeUnit());
-    }
+    gracePeriod.ifPresent(windowTimeClause -> builder.append(" GRACE PERIOD ")
+        .append(windowTimeClause.getValue())
+        .append(' ')
+        .append(windowTimeClause.getTimeUnit()));
 
     return builder.toString();
   }
@@ -138,6 +136,7 @@ public class WithinExpression extends AstNode {
            && Objects.equals(gracePeriod, withinExpression.gracePeriod);
   }
 
+  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
   private JoinWindows createJoinWindows() {
     final JoinWindows joinWindow = JoinWindows
         .of(Duration.ofMillis(beforeTimeUnit.toMillis(before)))

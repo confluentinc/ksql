@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
@@ -104,6 +105,7 @@ public class LocalCommands implements Closeable {
     }
   }
 
+  @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
   public static LocalCommands open(
       final KsqlEngine ksqlEngine,
       final File directory

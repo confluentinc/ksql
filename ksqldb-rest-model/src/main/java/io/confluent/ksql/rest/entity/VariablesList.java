@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 
@@ -82,9 +82,10 @@ public class VariablesList extends KsqlEntity {
       @JsonProperty("variables") final List<Variable> variables
   ) {
     super(statementText);
-    this.variables = variables == null ? Collections.emptyList() : ImmutableList.copyOf(variables);
+    this.variables = variables == null ? ImmutableList.of() : ImmutableList.copyOf(variables);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "variables is ImmutableList")
   public List<Variable> getVariables() {
     return variables;
   }

@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -219,31 +220,35 @@ public final class QuerySchemas {
       this.keySchemas = ImmutableSet.copyOf(requireNonNull(keySchemas, "keySchemas"));
       this.valueSchemas = ImmutableSet.copyOf(requireNonNull(valueSchemas, "valuesSchemas"));
 
-      keyFormats = keySchemas.stream()
+      keyFormats = ImmutableSet.copyOf(keySchemas.stream()
           .map(SchemaInfo::keyFormat)
           .filter(Optional::isPresent)
           .map(Optional::get)
-          .collect(Collectors.toSet());
+          .collect(Collectors.toSet()));
 
-      valueFormats = valueSchemas.stream()
+      valueFormats = ImmutableSet.copyOf(valueSchemas.stream()
           .map(SchemaInfo::valueFormat)
           .filter(Optional::isPresent)
           .map(Optional::get)
-          .collect(Collectors.toSet());
+          .collect(Collectors.toSet()));
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keySchemas is ImmutableSet")
     public Set<SchemaInfo> getKeySchemas() {
       return keySchemas;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "valueSchemas is ImmutableSet")
     public Set<SchemaInfo> getValueSchemas() {
       return valueSchemas;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "keyFormats is ImmutableSet")
     public Set<KeyFormat> getKeyFormats() {
       return keyFormats;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "valueFormats is ImmutableSet")
     public Set<ValueFormat> getValueFormats() {
       return valueFormats;
     }

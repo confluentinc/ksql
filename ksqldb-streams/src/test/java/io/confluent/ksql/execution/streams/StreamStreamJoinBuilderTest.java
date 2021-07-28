@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -61,6 +61,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+// Can be fixed after GRACE is mandatory
+@SuppressWarnings("deprecation")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinBuilderTest {
 
@@ -105,9 +107,11 @@ public class StreamStreamJoinBuilderTest {
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
   private static final Duration GRACE = Duration.ofMillis(3000);
+  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
   private static final JoinWindows WINDOWS_NO_GRACE = JoinWindows
       .of(BEFORE)
       .after(AFTER);
+  @SuppressWarnings("deprecation") // can be fixed after GRACE clause is made mandatory
   private static final JoinWindows WINDOWS_WITH_GRACE = JoinWindows
       .of(BEFORE)
       .after(AFTER)

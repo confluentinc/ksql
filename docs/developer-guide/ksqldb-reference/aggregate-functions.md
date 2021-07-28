@@ -265,17 +265,11 @@ Rows that have `col1` set to null are ignored.
 
 Example
 
-```
-CREATE STREAM input (id int key, value int);
-// insert the following values: (1, 1), (1, 2), (1,3), (1,2), (1,1)
-+------------------------------------+------------------------------------+
-|ID                                  |KSQL_COL_0                          |
-+------------------------------------+------------------------------------+
-|1                                   |[1]                                 |
-|1                                   |[2, 1]                              |
-|1                                   |[3, 2, 1]                           |
-|1                                   |[3, 2, 2]                           |
-|1                                   |[3, 2, 2]                           |
+```sql
+SELECT orderzip_code, TOPK(order_total, 5) 
+  FROM orders WINDOW TUMBLING (SIZE 1 HOUR)
+  GROUP BY order_zipcode
+  EMIT CHANGES;
 ```
 
 ## `TOPKDISTINCT`
@@ -293,15 +287,9 @@ Rows that have `col1` set to null are ignored.
 
 Example
 
-```
-CREATE STREAM input (id int key, value int);
-// insert the following values: (1, 1), (1, 2), (1,3), (1,2), (1,1)
-+------------------------------------+------------------------------------+
-|ID                                  |KSQL_COL_0                          |
-+------------------------------------+------------------------------------+
-|1                                   |[1]                                 |
-|1                                   |[2, 1]                              |
-|1                                   |[3, 2, 1]                           |
-|1                                   |[3, 2, 1]                           |
-|1                                   |[3, 2, 1]                           |
+```sql
+SELECT pageid, TOPKDISTINCT(viewtime, 5)
+  FROM pageviews_users
+  GROUP BY pageid
+  EMIT CHANGES;
 ```

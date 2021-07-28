@@ -39,7 +39,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 class KsqlDelimitedSerializer implements Serializer<List<?>> {
 
-  private static Encoder BASE64_ENCODER = Base64.getMimeEncoder();
+  private static Encoder BASE64_ENCODER = Base64.getEncoder();
 
   private final PersistenceSchema schema;
   private final CSVFormat csvFormat;

@@ -374,6 +374,41 @@ statements.
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
 
+
+## `ksql.properties.overrides.denylist`
+
+**Per query:** no
+
+Specifies the server properties that ksqlDB clients and users can't override.
+
+!!! important
+    Validation of a dynamic property assignment doesn't happen until a DDL or
+    query statement executes, so an attempt to set a property that's on the
+    deny list doesn't cause an immediate error.
+
+    For example, the following commands show an attempt to set the
+    `ksql.streams.num.stream.threads` property, which is on the deny list.
+    The override error doesn't appear until the `show streams` command
+    executes. The `unset` command removes the error.
+
+    ```
+    ksql> set 'ksql.streams.num.stream.threads'='4';
+    Successfully changed local property 'ksql.streams.num.stream.threads' from '4' to '4'.
+
+    ksql> show streams;
+    Cannot override property 'ksql.streams.num.stream.threads'
+
+    ksql> unset 'ksql.streams.num.stream.threads';
+    Successfully unset local property 'ksql.streams.num.stream.threads' (value was '4').
+
+    ksql> show streams;
+
+      Stream Name         | Kafka Topic                 | Format 
+    ------------------------------------------------------------
+      KSQL_PROCESSING_LOG | default_ksql_processing_log | JSON   
+    ------------------------------------------------------------
+    ```
+
 ## `ksql.schema.registry.url`
 
 **Per query:** yes

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
@@ -85,6 +86,7 @@ public class KsqlRequest {
     return coerceTypes(requestProperties);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sessionVariables is ImmutableMap")
   public Map<String, Object> getSessionVariables() {
     return sessionVariables;
   }

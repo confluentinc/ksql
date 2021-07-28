@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
@@ -146,6 +147,7 @@ public class PushPhysicalPlanTest {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public synchronized void onError(final Throwable t) {
       this.error = t;
     }
@@ -159,6 +161,7 @@ public class PushPhysicalPlanTest {
       return completed;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public synchronized Throwable getError() {
       return error;
     }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -30,10 +31,12 @@ public final class TermEvaluationContext {
   private final GenericRow row;
   private final Deque<Map<String, Object>> variableMappingsStack = new LinkedList<>();
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public TermEvaluationContext(final GenericRow row) {
     this.row = row;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public GenericRow getRow() {
     return row;
   }

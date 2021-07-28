@@ -650,9 +650,10 @@ Since: -
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
+CONCAT(bytes1, bytes2, ..., bytes-n)
 ```
 
-Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+Concatenate two or more string or bytes expressions. Any inputs which evaluate to NULL are replaced with an empty string or bytes in the output.
 
 ### `CONCAT_WS`
 
@@ -662,7 +663,7 @@ Since: 0.10.0
 CONCAT_WS(separator, expr1, expr2, ...)
 ```
 
-Concatenates two or more string expressions, inserting a separator string between each.
+Concatenates two or more string or bytes expressions, inserting a separator string or bytes between each.
 
 If the separator is NULL, this function returns NULL.
 Any expressions which evaluate to NULL are skipped.
@@ -729,6 +730,17 @@ multiple elements, like those containing wildcards, aren't supported.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
 
+### `FROM_BYTES`
+
+Since: - 0.21
+
+```sql
+FROM_BYTES(bytes, encoding)
+```
+
+Converts a BYTES column to a STRING in the specified encoding type.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
+
 ### `INITCAP`
 
 Since: 0.6.0
@@ -783,10 +795,11 @@ Convert a string to lowercase.
 Since: -
 
 ```sql
-LEN(col1)
+LEN(string)
+LEN(bytes)
 ```
 
-The length of a string.
+The length of a string or the number of bytes in a BYTES value.
 
 ### `LPAD`
 
@@ -1036,15 +1049,27 @@ SUBSTRING(col1, 2, 5)
 
 ```sql
 SUBSTRING(str, pos, [len])
+SUBSTRING(bytes, pos, [len])
 ```
 
-Returns a substring of `str` that starts at
-`pos` (first character is at position 1) and
+Returns the portion of `str` or `bytes` that starts at
+`pos` (first character or byte is at position 1) and
 has length `len`, or continues to the end of
-the string.
+the string or bytes.
 
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
+
+### `TO_BYTES`
+
+Since: - 0.21
+
+```sql
+TO_BYTES(string, encoding)
+```
+
+Converts a STRING column in the specified encoding type to a BYTES column.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `TRIM`
 

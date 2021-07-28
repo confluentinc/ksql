@@ -68,6 +68,8 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
       final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
       final QueryId queryId) {
     metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
+    kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+
     LOG.debug("mapping {}", metadata);
   }
 

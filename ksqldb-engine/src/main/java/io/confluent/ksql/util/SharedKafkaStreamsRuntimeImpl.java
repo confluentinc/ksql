@@ -157,13 +157,14 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
-    if (kafkaStreams.state() == KafkaStreams.State.RUNNING
-            || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
+    if (kafkaStreams.state().isRunningOrRebalancing()) {
           try {
               kafkaStreams.removeNamedTopology(queryId.toString());
           } catch (IllegalArgumentException e) {
               //don't block
           }
+    } else {
+      throw new IllegalStateException("Streams in not running but is in state" + kafkaStreams.state());
     }
   }
 
@@ -176,7 +177,12 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   public void start(final QueryId queryId) {
     if (metadata.containsKey(queryId.toString()) && !metadata.get(queryId.toString()).everStarted) {
-      kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        System.err.println(metadata.get(queryId.toString()).getTopology().describe());
+        kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+      } else {
+        throw new IllegalArgumentException("not done removing query: " + queryId);
+      }
     } else {
       throw new IllegalArgumentException("query not added to runtime");
     }

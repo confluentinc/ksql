@@ -19,7 +19,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -46,7 +48,7 @@ public class ForeignKeyJoinParamsFactoryTest {
   public void shouldBuildCorrectKeyedSchema() {
     // When:
     final ForeignKeyJoinParams<String> joinParams =
-        ForeignKeyJoinParamsFactory.create(null, LEFT_SCHEMA, RIGHT_SCHEMA, null);
+        ForeignKeyJoinParamsFactory.create(mock(ExpressionEvaluator.class), LEFT_SCHEMA, RIGHT_SCHEMA, null);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()

@@ -155,7 +155,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
     // When:
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
-    final ExpressionEvaluator e = mock(ExpressionEvaluator.class);
     // Then:
     verify(leftKTable).leftJoin(
         same(rightKTable),

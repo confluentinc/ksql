@@ -23,17 +23,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.Processor;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.ProcessorSupplier;
+import org.apache.kafka.streams.processor.api.Processor;
+import org.apache.kafka.streams.processor.api.ProcessorContext;
+import org.apache.kafka.streams.processor.api.Record;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -42,7 +39,7 @@ public class ScalablePushRegistryTest {
 
   private static final List<?> KEY = ImmutableList.of(1, "foo");
   private static final List<?> VALUE = ImmutableList.of(4.9, 10);
-  private static LogicalSchema SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
       .keyColumn(ColumnName.of("k2"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v1"), SqlTypes.DOUBLE)
@@ -51,13 +48,13 @@ public class ScalablePushRegistryTest {
   private static final long TIMESTAMP = 123;
 
   @Mock
-  private KStream<?, GenericRow> stream;
-  @Mock
   private PushLocator locator;
   @Mock
   private ProcessingQueue processingQueue;
   @Mock
-  private ProcessorContext processorContext;
+  private ProcessorContext<Void, Void> processorContext;
+  @Mock
+  private Record<Object, GenericRow> record;
   @Mock
   private GenericKey genericKey;
   @Mock
@@ -76,18 +73,20 @@ public class ScalablePushRegistryTest {
   public void shouldRegisterAndGetQueueOffer_nonWindowed() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    when(record.key()).thenReturn(genericKey);
+    when(record.value()).thenReturn(genericRow);
+    when(record.timestamp()).thenReturn(TIMESTAMP);
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
-    when(processorContext.timestamp()).thenReturn(TIMESTAMP);
 
     // When:
     registry.register(processingQueue);
     assertThat(registry.numRegistered(), is(1));
 
     // Then:
-    final Processor<Object, GenericRow> processor = registry.get();
+    final Processor<Object, GenericRow, Void, Void> processor = registry.get();
     processor.init(processorContext);
-    processor.process(genericKey, genericRow);
+    processor.process(record);
     verify(processingQueue).offer(
         Row.of(SCHEMA, GenericKey.fromList(KEY), GenericRow.fromList(VALUE), TIMESTAMP));
     registry.unregister(processingQueue);
@@ -98,20 +97,23 @@ public class ScalablePushRegistryTest {
   public void shouldRegisterAndGetQueueOffer_windowed() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true);
+    when(record.key()).thenReturn(windowed);
+    when(record.value()).thenReturn(genericRow);
+    when(record.timestamp()).thenReturn(TIMESTAMP);
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
-    when(processorContext.timestamp()).thenReturn(TIMESTAMP);
     when(windowed.window()).thenReturn(window);
     when(windowed.key()).thenReturn(genericKey);
+
 
     // When:
     registry.register(processingQueue);
     assertThat(registry.numRegistered(), is(1));
 
     // Then:
-    final Processor<Object, GenericRow> processor = registry.get();
+    final Processor<Object, GenericRow, Void, Void> processor = registry.get();
     processor.init(processorContext);
-    processor.process(windowed, genericRow);
+    processor.process(record);
     verify(processingQueue).offer(
         WindowedRow.of(SCHEMA, new Windowed<>(GenericKey.fromList(KEY), window),
             GenericRow.fromList(VALUE), TIMESTAMP));
@@ -123,18 +125,20 @@ public class ScalablePushRegistryTest {
   public void shouldCatchException() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    when(record.key()).thenReturn(genericKey);
+    when(record.value()).thenReturn(genericRow);
+    when(record.timestamp()).thenReturn(TIMESTAMP);
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
-    when(processorContext.timestamp()).thenReturn(TIMESTAMP);
     when(processingQueue.offer(any())).thenThrow(new RuntimeException("Error!"));
 
     // When:
     registry.register(processingQueue);
 
     // Then:
-    final Processor<Object, GenericRow> processor = registry.get();
+    final Processor<Object, GenericRow, Void, Void> processor = registry.get();
     processor.init(processorContext);
-    processor.process(genericKey, genericRow);
+    processor.process(record);
   }
 
   @Test

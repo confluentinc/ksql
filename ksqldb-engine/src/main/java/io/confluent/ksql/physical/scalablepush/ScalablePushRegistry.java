@@ -36,9 +36,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.Processor;
-import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.ProcessorSupplier;
+import org.apache.kafka.streams.processor.api.Processor;
+import org.apache.kafka.streams.processor.api.ProcessorContext;
+import org.apache.kafka.streams.processor.api.ProcessorSupplier;
+import org.apache.kafka.streams.processor.api.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * of the topology. These rows are then fed to any registered ProcessingQueues where they are
  * eventually passed on to scalable push queries.
  */
-public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRow> {
+public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRow, Void, Void> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScalablePushRegistry.class);
 
@@ -115,13 +116,17 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   }
 
   @SuppressWarnings("unchecked")
-  private void handleRow(
-      final Object key, final GenericRow value, final long timestamp) {
+  private void handleRow(final Record<Object, GenericRow> record) {
+    final Object key = record.key();
+    final GenericRow value = record.value();
+
     // We don't currently handle null in either field
     if ((key == null && !logicalSchema.key().isEmpty()) || value == null) {
       return;
     }
     for (ProcessingQueue queue : processingQueues.values()) {
+      final long timestamp = record.timestamp();
+
       try {
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
@@ -147,28 +152,22 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   }
 
   @Override
-  public Processor<Object, GenericRow> get() {
+  public Processor<Object, GenericRow, Void, Void> get() {
     return new PeekProcessor();
   }
 
-  private final class PeekProcessor implements Processor<Object, GenericRow> {
+  private final class PeekProcessor implements Processor<Object, GenericRow, Void, Void> {
 
-    private ProcessorContext context;
+    private PeekProcessor() {}
 
-    private PeekProcessor() {
-    }
+    public void init(final ProcessorContext context) {}
 
-    public void init(final ProcessorContext context) {
-      this.context = context;
-    }
-
-    public void process(final Object key, final GenericRow value) {
-      handleRow(key, value, this.context.timestamp());
+    public void process(final Record<Object, GenericRow> record) {
+      handleRow(record);
     }
 
     @Override
-    public void close() {
-    }
+    public void close() {}
   }
 
   public static Optional<ScalablePushRegistry> create(

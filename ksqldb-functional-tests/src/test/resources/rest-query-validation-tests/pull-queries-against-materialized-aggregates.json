@@ -841,7 +841,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
            {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":["10", 1582501512000, 1582501513000, 1]}}
+          {"row":{"columns":["10", 1582501512000, 1582501513000, 2]}}
         ]}
       ]
     },

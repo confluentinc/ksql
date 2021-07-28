@@ -29,10 +29,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import kafka.cluster.EndPoint;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
@@ -40,7 +42,16 @@ import kafka.utils.TestUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.clients.admin.ListOffsetsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.SystemTime;
 import org.slf4j.Logger;
@@ -259,6 +270,68 @@ class KafkaEmbedded {
           remaining,
           is(empty())
       );
+    }
+  }
+
+
+  /**
+   * Gets the mapping of TopicPartitions to current consumed offset for a given consumer group.
+   * @param consumerGroup The consumer group to read the offset for
+   * @return The mapping of TopicPartitions to current consumed offsets
+   */
+  public Map<TopicPartition, Long> getConsumerGroupOffset(final String consumerGroup) {
+    try (AdminClient adminClient = adminClient()) {
+      final ListConsumerGroupOffsetsResult result =
+          adminClient.listConsumerGroupOffsets(consumerGroup);
+      final Map<TopicPartition, OffsetAndMetadata> metadataMap =
+          result.partitionsToOffsetAndMetadata().get();
+      return metadataMap.entrySet().stream()
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().offset()));
+    } catch (final Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * The end offsets for a given collection of TopicPartitions
+   * @param topicPartitions The collection of TopicPartitions to get end offsets for
+   * @param isolationLevel The isolation level to use when reading end offsets.
+   * @return The map of TopicPartition to end offset
+   */
+  public Map<TopicPartition, Long> getEndOffsets(
+      final Collection<TopicPartition> topicPartitions,
+      final IsolationLevel isolationLevel) {
+    final Map<TopicPartition, OffsetSpec> topicPartitionsWithSpec = topicPartitions.stream()
+        .collect(Collectors.toMap(tp -> tp, tp -> OffsetSpec.latest()));
+    try (AdminClient adminClient = adminClient()) {
+      final ListOffsetsResult listOffsetsResult = adminClient.listOffsets(
+          topicPartitionsWithSpec, new ListOffsetsOptions(isolationLevel));
+      final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
+          listOffsetsResult.all().get();
+      return partitionResultMap
+          .entrySet()
+          .stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().offset()));
+    } catch (final Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Gets the partition count for a given collection of topics.
+   * @param topics The collection of topics to lookup
+   * @return The mapping of topic to partition count
+   */
+  public Map<String, Integer> getPartitionCount(final Collection<String> topics) {
+    try (AdminClient adminClient = adminClient()) {
+      final DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(topics);
+      final Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
+      return topicDescriptionMap
+          .entrySet()
+          .stream()
+          .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().partitions().size()));
+    } catch (final Exception e) {
+      throw new RuntimeException(e);
     }
   }
 

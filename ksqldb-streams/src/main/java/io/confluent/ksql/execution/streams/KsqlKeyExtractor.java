@@ -63,9 +63,9 @@ public final class KsqlKeyExtractor<KRightT> implements Function<GenericRow, KRi
       return false;
     }
     final KsqlKeyExtractor that = (KsqlKeyExtractor) o;
-    return expressionEvaluator.equals(that.expressionEvaluator)
-           && processingLogger == that.processingLogger
-           && errorMessage.get().equals(that.errorMessage.get());
+    return Objects.equals(expressionEvaluator, that.expressionEvaluator)
+           && Objects.equals(processingLogger, that.processingLogger)
+           && Objects.equals(errorMessage, that.errorMessage);
   }
 
   @Override

@@ -419,7 +419,7 @@ public class KsqlRestoreCommandTopic {
         final KafkaTopicClient topicClient = new KafkaTopicClientImpl(() -> admin);
         topicClient.deleteInternalTopics(applicationId);
 
-        new StateDirectory(streamsConfig, Time.SYSTEM, true).clean();
+        new StateDirectory(streamsConfig, Time.SYSTEM, true, false).clean();
         System.out.println(
             String.format(
                 "Cleaned up internal state store and internal topics for query %s",

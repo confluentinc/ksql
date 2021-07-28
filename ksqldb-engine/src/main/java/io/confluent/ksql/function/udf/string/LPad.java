@@ -64,7 +64,7 @@ public class LPad {
       return null;
     }
     if (padding == null
-        || BytesUtils.getByteArray(padding).length == 0
+        || padding.capacity() == 0
         || targetLen == null
         || targetLen < 0) {
       return null;
@@ -80,9 +80,9 @@ public class LPad {
     final byte[] paddingArray = BytesUtils.getByteArray(padding);
 
     for (int i = 0; i < targetLen; i++) {
-      final int buffer = targetLen - start.length;
-      if (i >= buffer) {
-        padded[i] = start[i - buffer];
+      final int padUpTo = targetLen - start.length;
+      if (i >= padUpTo) {
+        padded[i] = start[i - padUpTo];
       } else {
         final int paddingIndex = i % paddingArray.length;
         padded[i] = paddingArray[paddingIndex];

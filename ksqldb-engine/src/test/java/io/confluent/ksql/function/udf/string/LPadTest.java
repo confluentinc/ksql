@@ -18,6 +18,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.util.BytesUtils;
 import java.nio.ByteBuffer;
 import org.junit.Test;
 
@@ -32,8 +33,20 @@ public class LPadTest {
 
   @Test
   public void shouldPadInputBytes() {
-    final ByteBuffer result = udf.lpad(input(), 7, padding());
+    final ByteBuffer result = udf.lpad(BYTES_123, 7, BYTES_45);
     assertThat(result, is(ByteBuffer.wrap(new byte[]{4,5,4,5,1,2,3})));
+  }
+
+  @Test
+  public void shouldAppendPartialPaddingString() {
+    final String result = udf.lpad("foo", 4, "Bar");
+    assertThat(result, is("Bfoo"));
+  }
+
+  @Test
+  public void shouldAppendPartialPaddingBytes() {
+    final ByteBuffer result = udf.lpad(BYTES_123, 4, BYTES_45);
+    assertThat(BytesUtils.getByteArray(result), is(new byte[]{4,1,2,3}));
   }
 
   @Test
@@ -44,7 +57,7 @@ public class LPadTest {
 
   @Test
   public void shouldReturnNullForNullInputBytes() {
-    final ByteBuffer result = udf.lpad(null, 4, padding());
+    final ByteBuffer result = udf.lpad(null, 4, BYTES_45);
     assertThat(result, is(nullValue()));
   }
 
@@ -56,7 +69,7 @@ public class LPadTest {
 
   @Test
   public void shouldReturnNullForNullPaddingBytes() {
-    final ByteBuffer result = udf.lpad(input(), 4, null);
+    final ByteBuffer result = udf.lpad(BYTES_123, 4, null);
     assertThat(result, is(nullValue()));
   }
 
@@ -68,7 +81,7 @@ public class LPadTest {
 
   @Test
   public void shouldReturnNullForEmptyPaddingBytes() {
-    final ByteBuffer result = udf.lpad(input(), 4, empty());
+    final ByteBuffer result = udf.lpad(BYTES_123, 4, EMPTY_BYTES);
     assertThat(result, is(nullValue()));
   }
 
@@ -80,7 +93,7 @@ public class LPadTest {
 
   @Test
   public void shouldPadEmptyInputBytes() {
-    final ByteBuffer result = udf.lpad(empty(), 4, padding());
+    final ByteBuffer result = udf.lpad(EMPTY_BYTES, 4, BYTES_45);
     assertThat(result, is(ByteBuffer.wrap(new byte[]{4,5,4,5})));
   }
 
@@ -92,7 +105,7 @@ public class LPadTest {
 
   @Test
   public void shouldTruncateInputIfTargetLengthTooSmallBytes() {
-    final ByteBuffer result = udf.lpad(input(), 2, padding());
+    final ByteBuffer result = udf.lpad(BYTES_123, 2, BYTES_45);
     assertThat(result, is(ByteBuffer.wrap(new byte[]{1,2})));
   }
 
@@ -104,7 +117,7 @@ public class LPadTest {
 
   @Test
   public void shouldReturnNullForNegativeLengthBytes() {
-    final ByteBuffer result = udf.lpad(input(), -1, padding());
+    final ByteBuffer result = udf.lpad(BYTES_123, -1, BYTES_45);
     assertThat(result, is(nullValue()));
   }
 
@@ -116,7 +129,7 @@ public class LPadTest {
 
   @Test
   public void shouldReturnNullForNullLengthBytes() {
-    final ByteBuffer result = udf.lpad(input(), null, padding());
+    final ByteBuffer result = udf.lpad(BYTES_123, null, BYTES_45);
     assertThat(result, is(nullValue()));
   }
 
@@ -128,20 +141,12 @@ public class LPadTest {
 
   @Test
   public void shouldReturnEmptyByteBufferForZeroLength() {
-    final ByteBuffer result = udf.lpad(input(), 0, padding());
-    assertThat(result, is(empty()));
+    final ByteBuffer result = udf.lpad(BYTES_123, 0, BYTES_45);
+    assertThat(result, is(EMPTY_BYTES));
   }
 
-  private ByteBuffer input(){
-    return ByteBuffer.wrap(new byte[]{1,2,3});
-  }
-
-  private ByteBuffer padding() {
-    return ByteBuffer.wrap(new byte[]{4,5});
-  }
-
-  private ByteBuffer empty(){
-    return ByteBuffer.wrap(new byte[]{});
-  }
+  private final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
+  private final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
+  private final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 
 }

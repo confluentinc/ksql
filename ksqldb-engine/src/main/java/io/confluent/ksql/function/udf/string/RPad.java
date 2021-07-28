@@ -63,7 +63,7 @@ public class RPad {
       return null;
     }
     if (padding == null
-        || BytesUtils.getByteArray(padding).length == 0
+        || padding.capacity() == 0
         || targetLen == null
         || targetLen < 0) {
       return null;
@@ -78,14 +78,11 @@ public class RPad {
     final byte[] padded = new byte[targetLen];
     final byte[] paddingArray = BytesUtils.getByteArray(padding);
 
-    for (int i = 0; i < targetLen; i++) {
-      if (i < start.length) {
-        padded[i] = start[i];
-      } else {
-        final int paddingIndex = (i - start.length) % paddingArray.length;
-        padded[i] = paddingArray[paddingIndex];
-      }
+    System.arraycopy(start, 0, padded, 0, start.length);
 
+    for (int i = start.length; i < targetLen; i++) {
+      final int paddingIndex = (i - start.length) % paddingArray.length;
+      padded[i] = paddingArray[paddingIndex];
     }
     return ByteBuffer.wrap(padded);
   }

@@ -33,7 +33,7 @@ public class RPadTest {
 
   @Test
   public void shouldPadInputBytes() {
-    final ByteBuffer result = udf.rpad(input(), 7, padding());
+    final ByteBuffer result = udf.rpad(BYTES_123, 7, BYTES_45);
     assertThat(BytesUtils.getByteArray(result), is(new byte[]{1,2,3,4,5,4,5}));
   }
 
@@ -44,7 +44,7 @@ public class RPadTest {
   }
 
   @Test public void shouldAppendPartialPaddingBytes() {
-    final ByteBuffer result = udf.rpad(input(), 4, padding());
+    final ByteBuffer result = udf.rpad(BYTES_123, 4, BYTES_45);
     assertThat(BytesUtils.getByteArray(result), is(new byte[]{1,2,3,4}));
   }
 
@@ -56,7 +56,7 @@ public class RPadTest {
 
   @Test
   public void shouldReturnNullForNullInputBytes() {
-    final ByteBuffer result = udf.rpad(null, 4, padding());
+    final ByteBuffer result = udf.rpad(null, 4, BYTES_45);
     assertThat(result, is(nullValue()));
   }
 
@@ -68,7 +68,7 @@ public class RPadTest {
 
   @Test
   public void shouldReturnNullForNullPaddingBytes() {
-    final ByteBuffer result = udf.rpad(input(), 4, null);
+    final ByteBuffer result = udf.rpad(BYTES_123, 4, null);
     assertThat(result, is(nullValue()));
   }
 
@@ -80,7 +80,7 @@ public class RPadTest {
 
   @Test
   public void shouldReturnNullForEmptyPaddingBytes() {
-    final ByteBuffer result = udf.rpad(input(), 4, empty());
+    final ByteBuffer result = udf.rpad(BYTES_123, 4, EMPTY_BYTES);
     assertThat(result, is(nullValue()));
   }
 
@@ -92,7 +92,7 @@ public class RPadTest {
 
   @Test
   public void shouldPadEmptyInputBytes() {
-    final ByteBuffer result = udf.rpad(empty(), 4, padding());
+    final ByteBuffer result = udf.rpad(EMPTY_BYTES, 4, BYTES_45);
     assertThat(result, is(ByteBuffer.wrap(new byte[]{4,5,4,5})));
   }
 
@@ -104,7 +104,7 @@ public class RPadTest {
 
   @Test
   public void shouldTruncateInputIfTargetLengthTooSmallBytes() {
-    final ByteBuffer result = udf.rpad(input(), 2, padding());
+    final ByteBuffer result = udf.rpad(BYTES_123, 2, BYTES_45);
     assertThat(result, is(ByteBuffer.wrap(new byte[]{1,2})));
   }
 
@@ -116,7 +116,7 @@ public class RPadTest {
 
   @Test
   public void shouldReturnNullForNegativeLengthBytes() {
-    final ByteBuffer result = udf.rpad(input(), -1, padding());
+    final ByteBuffer result = udf.rpad(BYTES_123, -1, BYTES_45);
     assertThat(result, is(nullValue()));
   }
 
@@ -128,8 +128,8 @@ public class RPadTest {
 
   @Test
   public void shouldReturnEmptyByteBufferForZeroLength() {
-    final ByteBuffer result = udf.rpad(input(), 0, padding());
-    assertThat(result, is(empty()));
+    final ByteBuffer result = udf.rpad(BYTES_123, 0, BYTES_45);
+    assertThat(result, is(EMPTY_BYTES));
   }
 
   @Test
@@ -140,20 +140,12 @@ public class RPadTest {
 
   @Test
   public void shouldReturnNullForNullLengthBytes() {
-    final ByteBuffer result = udf.rpad(input(), null, padding());
+    final ByteBuffer result = udf.rpad(BYTES_123, null, BYTES_45);
     assertThat(result, is(nullValue()));
   }
 
-  private ByteBuffer input(){
-    return ByteBuffer.wrap(new byte[]{1,2,3});
-  }
-
-  private ByteBuffer padding() {
-    return ByteBuffer.wrap(new byte[]{4,5});
-  }
-
-  private ByteBuffer empty(){
-    return ByteBuffer.wrap(new byte[]{});
-  }
+  private final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
+  private final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
+  private final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 
 }

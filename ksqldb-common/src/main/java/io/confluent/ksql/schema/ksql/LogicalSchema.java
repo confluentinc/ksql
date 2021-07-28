@@ -137,11 +137,11 @@ public final class LogicalSchema {
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed, final int pseudoColumnVersion) {
-    return rebuild(windowed, pseudoColumnVersion);
+    return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
   }
 
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuild(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    return rebuildWithPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**
@@ -249,7 +249,14 @@ public final class LogicalSchema {
     return byNamespace;
   }
 
-  private LogicalSchema rebuild(final boolean windowedKey, final int pseudoColumnVersion) {
+  /**
+   * Rebuilds schema with pseudocolumns and key columns included
+   * @param windowedKey indicates if the schema to be rebuilt includes a windowed key
+   * @param pseudoColumnVersion indicates which set of pseudocolumns should be used
+   * @return the LogicalSchema created, with the corresponding pseudo and key columns included
+   */
+  private LogicalSchema rebuildWithPseudoAndKeyColsInValue(
+      final boolean windowedKey, final int pseudoColumnVersion) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
@@ -296,6 +303,10 @@ public final class LogicalSchema {
     return new LogicalSchema(builder.build());
   }
 
+  /**
+   * Rebuilds schema without pseudocolumns or key columns
+   * @return the LogicalSchema created, with the corresponding pseudo and key columns excluded
+   */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue() {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 

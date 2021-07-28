@@ -487,7 +487,7 @@ public final class SourceBuilder {
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
     private final Function<K, Collection<?>> keyGenerator;
-    private int pseudoColumnVersion;
+    private final int pseudoColumnVersion;
 
     AddKeyAndPseudoColumns(
         final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {

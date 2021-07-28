@@ -21,6 +21,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,16 +56,17 @@ public final class SystemColumns {
     return VERSIONED_PSEUDO_COLUMNS.get(pseudoColumnVersion);
   }
 
-  //todo: remove duplication, collect pseudo columns
-  private static final Set<ColumnName> VERSION_ONE_NAMES = ImmutableSet.of(
-      ROWTIME_NAME,
-      ROWPARTITION_NAME,
-      ROWOFFSET_NAME
-      );
+  private static final Set<ColumnName> VERSION_ZERO_NAMES;
+  private static final Set<ColumnName> VERSION_ONE_NAMES;
 
-  private static final Set<ColumnName> VERSION_ZERO_NAMES = ImmutableSet.of(
-      ROWTIME_NAME
-  );
+  static {
+    VERSION_ZERO_NAMES = new HashSet<>();
+    VERSION_ZERO_NAMES.add(ROWTIME_NAME);
+
+    VERSION_ONE_NAMES = new HashSet<>(VERSION_ZERO_NAMES);
+    VERSION_ONE_NAMES.add(ROWPARTITION_NAME);
+    VERSION_ONE_NAMES.add(ROWOFFSET_NAME);
+  }
 
   private static final Map<Integer, Set<ColumnName>> VERSIONED_PSEUDO_COLUMNS = ImmutableMap.of(
       0, VERSION_ZERO_NAMES,

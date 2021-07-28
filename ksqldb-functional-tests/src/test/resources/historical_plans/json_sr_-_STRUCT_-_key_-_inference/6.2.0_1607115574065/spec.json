@@ -80,6 +80,7 @@
       "name" : "input_topic",
       "keySchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "F1" : {
             "connect.index" : 0,
@@ -94,6 +95,7 @@
       },
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "COL1" : {
             "connect.index" : 0,
@@ -147,6 +149,7 @@
           "partitions" : 1,
           "keySchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "F1" : {
                 "connect.index" : 0,
@@ -161,6 +164,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "COL1" : {
                 "connect.index" : 0,
@@ -188,6 +192,7 @@
               "type" : "null"
             }, {
               "type" : "object",
+              "additionalProperties": false,
               "properties" : {
                 "F1" : {
                   "connect.index" : 0,
@@ -202,6 +207,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "FOO" : {
                 "connect.index" : 0,

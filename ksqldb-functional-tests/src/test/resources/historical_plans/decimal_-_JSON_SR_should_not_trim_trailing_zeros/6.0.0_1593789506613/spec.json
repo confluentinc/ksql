@@ -54,6 +54,7 @@
       "name" : "test",
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "DEC" : {
             "connect.index" : 0,
@@ -115,6 +116,7 @@
           "partitions" : 4,
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "DEC" : {
                 "connect.index" : 0,
@@ -144,6 +146,7 @@
           "partitions" : 4,
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "DEC" : {
                 "connect.index" : 0,

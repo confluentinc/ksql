@@ -42,6 +42,7 @@
       "name" : "input",
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "V0" : {
             "connect.index" : 0,
@@ -96,6 +97,7 @@
           "partitions" : 4,
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "V0" : {
                 "connect.index" : 0,
@@ -118,6 +120,7 @@
           "partitions" : 4,
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "V0" : {
                 "connect.index" : 0,

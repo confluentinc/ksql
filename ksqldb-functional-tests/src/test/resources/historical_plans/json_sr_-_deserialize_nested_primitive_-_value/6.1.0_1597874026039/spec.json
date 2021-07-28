@@ -55,6 +55,7 @@
       "name" : "input_topic",
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "FOO" : {
             "connect.index" : 0,
@@ -107,6 +108,7 @@
           "partitions" : 4,
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "FOO" : {
                 "connect.index" : 0,
@@ -130,6 +132,7 @@
           "partitions" : 4,
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "FOO" : {
                 "connect.index" : 0,

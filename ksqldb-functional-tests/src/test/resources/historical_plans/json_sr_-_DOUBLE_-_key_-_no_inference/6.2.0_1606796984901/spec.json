@@ -68,6 +68,7 @@
       },
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "FOO" : {
             "connect.index" : 0,
@@ -129,6 +130,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "FOO" : {
                 "connect.index" : 0,
@@ -161,6 +163,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "FOO" : {
                 "connect.index" : 0,

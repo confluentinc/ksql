@@ -93,6 +93,7 @@
       },
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "FOO" : {
             "connect.index" : 0,
@@ -121,6 +122,7 @@
       },
       "valueSchema" : {
         "type" : "object",
+        "additionalProperties": false,
         "properties" : {
           "VAL" : {
             "connect.index" : 0,
@@ -191,6 +193,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "S1_ROWTIME" : {
                 "connect.index" : 1,
@@ -241,6 +244,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "VAL" : {
                 "connect.index" : 0,
@@ -269,6 +273,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "FOO" : {
                 "connect.index" : 0,
@@ -300,6 +305,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "S2_ROWTIME" : {
                 "connect.index" : 1,
@@ -348,6 +354,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "S1_ROWTIME" : {
                 "connect.index" : 1,
@@ -398,6 +405,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "VAL" : {
                 "connect.index" : 0,
@@ -428,6 +436,7 @@
           },
           "valueSchema" : {
             "type" : "object",
+            "additionalProperties": false,
             "properties" : {
               "S2_ROWTIME" : {
                 "connect.index" : 1,

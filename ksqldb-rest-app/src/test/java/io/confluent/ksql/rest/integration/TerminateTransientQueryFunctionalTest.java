@@ -26,16 +26,18 @@ import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -52,11 +54,7 @@ public class TerminateTransientQueryFunctionalTest {
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
-  private static final KsqlHostInfoEntity host0 = new KsqlHostInfoEntity("localhost", 8088);
-  private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("localhost", 8089);
-
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
@@ -76,109 +74,86 @@ public class TerminateTransientQueryFunctionalTest {
       .around(TEST_HARNESS)
       .around(REST_APP_0)
       .around(REST_APP_1);
-
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
-
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
+    RestIntegrationTestUtil.makeKsqlRequest(
+        REST_APP_0,
+        "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
+    );
+  }
+
+  @Before
+  public void backgroundPushQuery() {
+    ExecutorService service = Executors.newFixedThreadPool(2);
+    Runnable backgroundTask = () -> RestIntegrationTestUtil.makeQueryRequest(
+        REST_APP_0,
+        "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
+        Optional.of(BasicCredentials.of("user", "pwd"))
+    );
+    service.execute(backgroundTask);
+
+    boolean repeat = true;
+    while (repeat){
+      repeat = !checkForTransientQuery();
+    }
   }
 
   @Test
   public void shouldTerminatePushQueryOnSingleNode() {
     // Given:
-    ExecutorService service = Executors.newFixedThreadPool(2);
-    Runnable backgroundTask = new Runnable() {
-      @Override
-      public void run() {
-        RestIntegrationTestUtil.makeQueryRequest(
-            REST_APP_0,
-            "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
-            Optional.of(BasicCredentials.of("user", "pwd"))
-        );
-      }
-    };
-    service.execute(backgroundTask);
-
-    int numQueries = 0;
-    while(numQueries != 1) {
-      final List<KsqlEntity> results = showQueries();
-      final Queries result = (Queries) results.get(0);
-      numQueries = result.getQueries().size();
-    }
-
-    final List<KsqlEntity> results = showQueries();
-    final Queries result = (Queries) results.get(0);
-    final QueryId queryId = result.getQueries().get(0).getId();
+    final String transientQueryId = getTransientQueryIds().get(0);
 
     // When:
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
-        "terminate " + queryId.toString() + ";"
+        "terminate " + transientQueryId + ";"
     );
-
-    final List<KsqlEntity> finalResults = showQueries();
-    final Queries finalResult = (Queries) finalResults.get(0);
-    numQueries = finalResult.getQueries().size();
+    boolean failure = checkForTransientQuery();
 
     // Then:
     assertThat(
-        "Should terminate push query using query id",
-        numQueries,
-        is(0)
+        "Should terminate push query on same node using query id",
+        !failure
     );
   }
 
   @Test
-  public void shouldTerminatePushQueryOnAnotherNode() throws InterruptedException {
+  public void shouldTerminatePushQueryOnAnotherNode() {
     // Given:
-    ExecutorService service = Executors.newFixedThreadPool(2);
-    Runnable backgroundTask = new Runnable() {
-      @Override
-      public void run() {
-        System.out.println("FOOOO");
-        RestIntegrationTestUtil.makeQueryRequest(
-            REST_APP_1,
-            "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
-            Optional.of(BasicCredentials.of("user", "pwd"))
-        );
+    final String transientQueryId = getTransientQueryIds().get(0);
 
-      }
-    };
-    service.submit(backgroundTask);
-
-    int numQueries = 0;
-    while(numQueries != 1) {
-      final List<KsqlEntity> results = showQueries();
-      final Queries result = (Queries) results.get(0);
-      numQueries = result.getQueries().size();
-      Thread.sleep(100);
-    }
-
-    final List<KsqlEntity> results = showQueries();
-    final Queries result = (Queries) results.get(0);
-    final QueryId queryId = result.getQueries().get(0).getId();
-
+    // When:
     RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_0,
-        "terminate " + queryId.toString() + ";"
+        REST_APP_1,
+        "terminate " + transientQueryId + ";"
     );
+    boolean failure = checkForTransientQuery();
 
-    final List<KsqlEntity> finalResults = showQueries();
-    final Queries finalResult = (Queries) finalResults.get(0);
-    numQueries = finalResult.getQueries().size();
-
+    // Then:
     assertThat(
         "Should terminate push query on another node using query id",
-        numQueries,
-        is(0)
+        !failure
     );
   }
 
-  public  List<KsqlEntity> showQueries (){
-    return RestIntegrationTestUtil.makeKsqlRequest(
-        REST_APP_1,
+  public List<RunningQuery> showQueries (){
+    return ((Queries) RestIntegrationTestUtil.makeKsqlRequest(
+        REST_APP_0,
         "show queries;"
-    );
+    ).get(0)).getQueries();
+  }
+
+  public boolean checkForTransientQuery (){
+    return showQueries().stream()
+        .anyMatch(q -> q.getId().toString().contains("transient"));
+  }
+
+  public List<String> getTransientQueryIds () {
+    return showQueries().stream()
+        .filter(q -> q.getId().toString().contains("transient"))
+        .map(q -> q.getId().toString())
+        .collect(Collectors.toList());
   }
 }

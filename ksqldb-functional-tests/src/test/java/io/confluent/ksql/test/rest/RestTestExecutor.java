@@ -647,7 +647,7 @@ public class RestTestExecutor implements Closeable {
             kafkaCluster.getConsumerGroupOffset(queryApplicationId);
         Map<TopicPartition, Long> endOffsets = kafkaCluster.getEndOffsets(topicPartitions,
             // Since we're doing At Least Once, we can do read uncommitted.
-            IsolationLevel.READ_UNCOMMITTED);
+            IsolationLevel.READ_COMMITTED);
 
         for (final TopicPartition tp : topicPartitions) {
             if (!currentOffsets.containsKey(tp) && endOffsets.get(tp) > 0) {

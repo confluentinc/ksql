@@ -65,7 +65,8 @@ public final class ThreadTestUtil {
       final Map<Thread, StackTraceElement[]> currentThreads
   ) {
     final Set<Thread> system = currentThreads.keySet().stream()
-        .filter(thread -> thread.getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME))
+        .filter(thread -> thread.getThreadGroup() != null
+            && thread.getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME))
         .collect(Collectors.toSet());
     final Map<Thread, StackTraceElement[]> difference = new HashMap<>(currentThreads);
     difference.keySet().removeAll(previousThreads);

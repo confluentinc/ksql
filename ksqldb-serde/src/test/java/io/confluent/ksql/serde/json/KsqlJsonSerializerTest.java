@@ -659,13 +659,13 @@ public class KsqlJsonSerializerTest {
   @SuppressWarnings("unchecked")
   @Test
   public void jsonSchemaShouldSetAdditionalPropertiesToFalse() throws Exception {
-    // Given:
-    final Serializer serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
-
-    // When:
-    serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
-
     if (useSchemas) {
+      // Given:
+      final Serializer serializer = givenSerializerForSchema(ORDER_SCHEMA, Struct.class);
+
+      // When:
+      serializer.serialize(SOME_TOPIC, new Struct(ORDER_SCHEMA));
+
       final String schemaJson =
           srClient.getLatestSchemaMetadata(SOME_TOPIC + "-value").getSchema();
       final JsonNode schema = new ObjectMapper().readTree(schemaJson);

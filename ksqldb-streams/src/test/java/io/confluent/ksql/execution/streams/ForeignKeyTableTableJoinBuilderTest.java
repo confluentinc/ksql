@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static org.easymock.EasyMock.anyObject;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,9 +38,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;

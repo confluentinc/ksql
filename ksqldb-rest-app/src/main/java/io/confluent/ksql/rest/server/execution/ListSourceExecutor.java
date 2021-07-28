@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
+import io.confluent.ksql.rest.entity.RawQueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
@@ -438,6 +439,7 @@ public final class ListSourceExecutor {
             q.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(q.getState(), 1)),
+            new RawQueryStatusCount(Collections.singletonMap(q.getState(), 1)),
             KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
   }
 

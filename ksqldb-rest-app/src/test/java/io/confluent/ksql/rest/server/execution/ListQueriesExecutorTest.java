@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.RawQueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -108,6 +109,7 @@ public class ListQueriesExecutorTest {
   private QueryDescriptionList remoteQueryDescriptionList;
   
   private QueryStatusCount queryStatusCount;
+  private RawQueryStatusCount rawQueryStatusCount;
 
   @Before
   public void setup() throws MalformedURLException {
@@ -117,6 +119,7 @@ public class ListQueriesExecutorTest {
     when(sessionProperties.getLocalUrl()).thenReturn(new URL("https://address"));
 
     queryStatusCount = new QueryStatusCount();
+    rawQueryStatusCount = new RawQueryStatusCount();
 
     when(ksqlClient.makeKsqlRequest(any(), any(), any())).thenReturn(response);
     when(response.isErroneous()).thenReturn(false);
@@ -145,6 +148,7 @@ public class ListQueriesExecutorTest {
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getAllLiveQueries()).thenReturn(ImmutableList.of(metadata));
     queryStatusCount.updateStatusCount(RUNNING_QUERY_STATE, 1);
+    rawQueryStatusCount.updateRawStatusCount(RUNNING_QUERY_STATE, 1);
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
@@ -154,7 +158,7 @@ public class ListQueriesExecutorTest {
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
-    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
+    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount, rawQueryStatusCount)));
   }
 
   @Test
@@ -171,7 +175,8 @@ public class ListQueriesExecutorTest {
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
+        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(ERROR_QUERY_STATE, 1)),
+            new RawQueryStatusCount(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
 
 
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
@@ -180,6 +185,8 @@ public class ListQueriesExecutorTest {
 
     queryStatusCount.updateStatusCount(RUNNING_QUERY_STATE, 1);
     queryStatusCount.updateStatusCount(ERROR_QUERY_STATE, 1);
+    rawQueryStatusCount.updateRawStatusCount(RUNNING_QUERY_STATE, 1);
+    rawQueryStatusCount.updateRawStatusCount(ERROR_QUERY_STATE, 1);
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
@@ -190,7 +197,7 @@ public class ListQueriesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then
-    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(localMetadata, queryStatusCount)));
+    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(localMetadata, queryStatusCount, rawQueryStatusCount)));
   }
 
   @Test
@@ -207,12 +214,14 @@ public class ListQueriesExecutorTest {
     
     final List<RunningQuery> remoteRunningQueries = Collections.singletonList(persistentQueryMetadataToRunningQuery(
         remoteMetadata,
-        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(RUNNING_QUERY_STATE, 1))));
+        QueryStatusCount.fromStreamsStateCounts(Collections.singletonMap(RUNNING_QUERY_STATE, 1)),
+        new RawQueryStatusCount(Collections.singletonMap(ERROR_QUERY_STATE, 1))));
     when(remoteQueries.getQueries()).thenReturn(remoteRunningQueries);
     when(ksqlEntityList.get(anyInt())).thenReturn(remoteQueries);
     when(response.getResponse()).thenReturn(ksqlEntityList);
 
     queryStatusCount.updateStatusCount(RUNNING_QUERY_STATE, 1);
+    rawQueryStatusCount.updateRawStatusCount(RUNNING_QUERY_STATE, 1);
 
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
@@ -225,8 +234,10 @@ public class ListQueriesExecutorTest {
     // Then
     assertThat(queries.getQueries(),
         containsInAnyOrder(
-            persistentQueryMetadataToRunningQuery(localMetadata, queryStatusCount),
-            persistentQueryMetadataToRunningQuery(remoteMetadata, queryStatusCount)));
+            persistentQueryMetadataToRunningQuery(localMetadata, queryStatusCount,
+                rawQueryStatusCount),
+            persistentQueryMetadataToRunningQuery(remoteMetadata, queryStatusCount,
+                rawQueryStatusCount)));
   }
 
   @Test
@@ -254,7 +265,7 @@ public class ListQueriesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then
-    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
+    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount, rawQueryStatusCount)));
   }
 
   @Test
@@ -282,7 +293,7 @@ public class ListQueriesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then
-    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
+    assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount, rawQueryStatusCount)));
   }
 
   @Test
@@ -512,7 +523,8 @@ public class ListQueriesExecutorTest {
 
   public static RunningQuery persistentQueryMetadataToRunningQuery(
       final PersistentQueryMetadata md,
-      final QueryStatusCount queryStatusCount
+      final QueryStatusCount queryStatusCount,
+      final RawQueryStatusCount rawQueryStatusCount
   ) {
     return new RunningQuery(
         md.getStatementString(),
@@ -520,12 +532,14 @@ public class ListQueriesExecutorTest {
         ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
         md.getQueryId(),
         queryStatusCount,
+        rawQueryStatusCount,
         md.getQueryType());
   }
 
   public static RunningQuery transientQueryMetadataToRunningQuery(
       final TransientQueryMetadata md,
-      final QueryStatusCount queryStatusCount
+      final QueryStatusCount queryStatusCount,
+      final RawQueryStatusCount rawQueryStatusCount
   ) {
     return new RunningQuery(
         md.getStatementString(),
@@ -533,6 +547,7 @@ public class ListQueriesExecutorTest {
         ImmutableSet.of(),
         md.getQueryId(),
         queryStatusCount,
+        rawQueryStatusCount,
         md.getQueryType());
   }
 }

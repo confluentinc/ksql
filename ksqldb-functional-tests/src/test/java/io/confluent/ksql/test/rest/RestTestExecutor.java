@@ -39,6 +39,8 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
@@ -76,6 +78,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.reactivestreams.Subscription;
@@ -154,8 +157,10 @@ public class RestTestExecutor implements Closeable {
             testCase.getExpectedResponses()
                 .subList(statements.admin.size(), testCase.getExpectedResponses().size())
         );
+        // For things like scalable push queries, we want to wait until the given persistent queries
+        // are running before we actually issue a query or produce input.
         if (waitForQueryHeaderToProduceInput) {
-          waitForRunningPushQueries(statements.queries);
+          waitForRunningPersistentQueries();
         }
       }
 
@@ -327,7 +332,7 @@ public class RestTestExecutor implements Closeable {
             Optional<List<StreamedRow>> rows =
                 sendQueryStatement(testCase, stmt, afterHeader.get());
             return rows;
-          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
+          } else if (afterHeader.isPresent()) {
             throw new AssertionError(
                 "Can only have one query when using waitForQueryHeader");
           }
@@ -608,41 +613,32 @@ public class RestTestExecutor implements Closeable {
     LOG.info("Timed out waiting for correct response");
   }
 
-private void waitForRunningPushQueries(
-      final List<String> queries
+  private void waitForRunningPersistentQueries(
   ) {
-    for (int i = 0; i != queries.size(); ++i) {
-      final String queryStatement = queries.get(i);
-      waitForRunningPush(queryStatement);
-    }
-  }
-
-  private void waitForRunningPush(
-      final String querySql
-  ) {
-    // Make sure push queries are ready to run if they're counting on running before data is
-    // produced.  This is most relevant for scalable push queries since their underlying
-    // persistent queries must be ready. If they're not, we'll get an error.
-
-    if (!(querySql.contains("EMIT CHANGES"))) {
-      // Not a scalable push query, so not needed
-      return;
-    }
-
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
     while (System.currentTimeMillis() < threshold) {
-      final RestResponse<StreamPublisher<StreamedRow>> resp
-          = restClient.makeQueryRequestStreamed(querySql, null);
+      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest("SHOW QUERIES;");
       if (resp.isErroneous()) {
         final KsqlErrorMessage errorMessage = resp.getErrorMessage();
-        LOG.info("Server responded with an error code to a scalable push query. "
-            + "This could be because the persistent query hasn't started yet"
+        LOG.info("Server responded with an error code to show queries."
             + System.lineSeparator() + errorMessage);
         threadYield();
       } else {
-        resp.getResponse().close();
-        threadYield();
-        return;
+        boolean notReady = false;
+        final Queries queries = (Queries) ((KsqlEntityList) resp.get()).get(0);
+        for (final RunningQuery runningQuery : queries.getQueries()) {
+          if (runningQuery.getRawStatusCount().getStatuses().keySet().stream()
+              .anyMatch(state -> state != State.RUNNING)) {
+            LOG.info("Query " + runningQuery.getQuerySingleLine() + " not yet running everywhere");
+            notReady = true;
+          }
+        }
+        if (notReady) {
+          threadYield();
+        } else {
+          threadYield();
+          return;
+        }
       }
     }
     LOG.info("Timed out waiting for non error");

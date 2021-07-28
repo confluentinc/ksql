@@ -16,7 +16,6 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

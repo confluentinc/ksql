@@ -34,7 +34,9 @@ import java.util.function.Supplier;
 
 public final class InternalKsqlClientFactory {
 
-  private InternalKsqlClientFactory() {}
+  private InternalKsqlClientFactory() {
+
+  }
 
   public static KsqlClient createInternalClient(
       final Map<String, String> clientProps,

@@ -16,10 +16,8 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.properties.PropertiesUtil;
-
 import java.util.Map;
 import java.util.Objects;
-
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;

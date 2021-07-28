@@ -45,7 +45,9 @@ import java.util.stream.Collectors;
 
 public final class FunctionArgumentsUtil {
 
-  private FunctionArgumentsUtil() {}
+  private FunctionArgumentsUtil() {
+
+  }
 
   public static final class FunctionTypeInfo {
     private final ImmutableList<ArgumentInfo> argumentInfos;

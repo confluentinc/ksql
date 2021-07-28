@@ -64,7 +64,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +117,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   ) {
     this.cleanupService = new QueryCleanupService();
     this.orphanedTransientQueryCleaner =
-      new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
+        new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.primaryContext = EngineContext.create(

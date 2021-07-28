@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.codegen.helpers;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
-
 import java.util.List;
 
 /**

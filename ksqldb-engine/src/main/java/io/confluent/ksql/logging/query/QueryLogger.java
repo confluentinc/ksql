@@ -31,7 +31,9 @@ public final class QueryLogger {
   private static final Logger logger = LogManager.getLogger(QueryLogger.class);
   private static final RewriteAppender rewriteAppender = new RewriteAppender();
 
-  private QueryLogger() {}
+  private QueryLogger() {
+
+  }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   public static void initialize() {

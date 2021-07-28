@@ -23,11 +23,12 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
-
 import java.math.BigDecimal;
 
 public final class ImplicitlyCastResolver {
-  private ImplicitlyCastResolver() {}
+  private ImplicitlyCastResolver() {
+
+  }
 
   public static Expression resolve(final Expression expression, final SqlType sqlType) {
     if (sqlType instanceof SqlDecimal) {

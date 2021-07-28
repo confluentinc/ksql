@@ -26,6 +26,7 @@ import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter;
+import io.confluent.ksql.execution.streams.RoutingFilter.Host;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator;
@@ -317,7 +318,7 @@ public final class KsLocator implements Locator {
     // If the request is forwarded internally from another ksql server, only the max lag filter
     // is applied.
     final ImmutableList<KsqlNode> filteredHosts = allHosts.stream()
-        .filter(routingFilter::filter)
+        .map(routingFilter::filter)
         .map(this::asNode)
         .collect(ImmutableList.toImmutableList());
 
@@ -332,10 +333,11 @@ public final class KsLocator implements Locator {
   }
 
   @VisibleForTesting
-  KsqlNode asNode(final KsqlHostInfo host) {
+  KsqlNode asNode(final RoutingFilter.Host host) {
     return new Node(
-        isLocalHost(host),
-        buildLocation(host)
+        isLocalHost(host.getSourceInfo()),
+        buildLocation(host.getSourceInfo()),
+        host
     );
   }
 
@@ -368,10 +370,12 @@ public final class KsLocator implements Locator {
 
     private final boolean local;
     private final URI location;
+    private final Host host;
 
-    private Node(final boolean local, final URI location) {
+    private Node(final boolean local, final URI location, final Host hostInfo) {
       this.local = local;
       this.location = requireNonNull(location, "location");
+      this.host = requireNonNull(hostInfo, "hostInfo");
     }
 
     @Override
@@ -389,10 +393,16 @@ public final class KsLocator implements Locator {
     }
 
     @Override
+    public Host getHost() {
+      return host;
+    }
+
+    @Override
     public String toString() {
       return "Node{"
           + "local = " + local
           + ", location = " + location
+          + ", Host = " + host
           + "}";
     }
 
@@ -435,6 +445,15 @@ public final class KsLocator implements Locator {
       return keys;
     }
 
+    @Override
+    public KsqlPartitionLocation removeFilteredHosts() {
+      return new PartitionLocation(
+          keys,
+          partition,
+          nodes.stream().filter(node -> node.getHost().isSelected()).collect(Collectors.toList())
+      );
+    }
+
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "nodes is ImmutableList")
     public List<KsqlNode> getNodes() {
       return nodes;
@@ -450,6 +469,30 @@ public final class KsLocator implements Locator {
           + " , partition: " + partition
           + " , nodes: " + nodes
           + " } ";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      final PartitionLocation that = (PartitionLocation) o;
+      return partition == that.partition
+          && Objects.equals(keys, that.keys)
+          // order does not matter when comparing nodes list, but we don't
+          // want to allocate a new set each time `equals` is called, so we
+          // just do the O(n^2) containsAll check. n is usually very small
+          && nodes.size() == that.nodes.size()
+          && nodes.containsAll(that.nodes);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(keys, partition, nodes);
     }
   }
 

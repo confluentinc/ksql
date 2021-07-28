@@ -26,6 +26,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -79,7 +80,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -480,8 +480,9 @@ public class PullQueryRoutingFunctionalTest {
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);
     Assert.assertEquals(40001, errorMessage.getErrorCode());
-    Assert.assertTrue(
-        errorMessage.getMessage().contains("All nodes are dead or exceed max allowed lag."));
+    assertThat(errorMessage.getMessage(), containsString("Partition 0 failed to find valid host."));
+    assertThat(errorMessage.getMessage(), containsString("was not selected because Host is not alive as of "));
+    assertThat(errorMessage.getMessage(), containsString("was not selected because Host excluded because lag 5 exceeds maximum allowed lag 3"));
   }
 
   private static KsqlErrorMessage makePullQueryRequestWithError(

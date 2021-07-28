@@ -61,11 +61,11 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     if (joinType == JoinType.OUTER) {
       throw new IllegalArgumentException("OUTER join not supported.");
     }
-    this.leftJoinColumnName = leftJoinColumnName;
+    this.leftJoinColumnName = requireNonNull(leftJoinColumnName, "leftJoinColumnName");
     this.formats = requireNonNull(formats, "formats");
     this.leftSource = requireNonNull(leftSource, "leftSource");
     this.rightSource = requireNonNull(rightSource, "rightSource");
-    this.leftJoinExpression = leftJoinExpression;
+    this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
     if (!leftJoinColumnName.isPresent() && !leftJoinExpression.isPresent()) {
       throw new IllegalArgumentException(
           "Either leftJoinColumnName or leftJoinExpression must be provided."

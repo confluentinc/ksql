@@ -833,8 +833,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
     private ForeignJoinKey(final Optional<ColumnName> foreignKeyColumn,
                            final Optional<Expression> foreignKeyExpression,
                            final Collection<? extends ColumnReferenceExp> viableKeyColumns) {
-      this.foreignKeyColumn = foreignKeyColumn;
-      this.foreignKeyExpression = foreignKeyExpression;
+      this.foreignKeyColumn = requireNonNull(foreignKeyColumn, "foreignKeyColumn");
+      this.foreignKeyExpression =
+          requireNonNull(foreignKeyExpression, "foreignKeyExpression");
       this.leftSourceKeyColumns = ImmutableList
           .copyOf(requireNonNull(viableKeyColumns, "viableKeyColumns"));
     }

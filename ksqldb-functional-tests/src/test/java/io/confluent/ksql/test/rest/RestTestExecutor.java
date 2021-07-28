@@ -657,9 +657,10 @@ public class RestTestExecutor implements Closeable {
             }
         }
 
-        for (TopicPartition tp : currentOffsets.keySet()) {
-          long currentOffset = currentOffsets.get(tp);
-          long endOffset = endOffsets.get(tp);
+        for (final Map.Entry<TopicPartition, Long> entry : currentOffsets.entrySet()) {
+          final TopicPartition tp = entry.getKey();
+          final long currentOffset = entry.getValue();
+          final long endOffset = endOffsets.get(tp);
           if (currentOffset < endOffset) {
             LOG.info("Offsets are not caught up current: " + currentOffsets + " end: "
                 + endOffsets);

@@ -88,7 +88,8 @@ public class RestQueryTranslationTest {
           StreamsConfig.EXACTLY_ONCE_V2 // To stabilize tests
       )
       // Setting to anything lower will cause the tests to fail because we won't correctly commit
-      // transaction marker offsets.
+      // transaction marker offsets. This was previously set to 0 to presumably avoid flakiness,
+      // so we should keep an eye out for this.
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 2000)
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")

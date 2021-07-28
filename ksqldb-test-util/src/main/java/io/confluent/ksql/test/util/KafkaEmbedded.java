@@ -239,7 +239,6 @@ class KafkaEmbedded {
 
       final Supplier<Collection<String>> remaining = () -> {
         final Set<String> names = getTopicNames(adminClient);
-        System.out.println("NAMES ARE " + names);
         names.retainAll(required);
         return names;
       };

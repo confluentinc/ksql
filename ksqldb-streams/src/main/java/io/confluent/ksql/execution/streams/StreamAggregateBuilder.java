@@ -53,6 +53,8 @@ import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
+// Can be fixed after GRACE is mandatory
+@SuppressWarnings("deprecation")
 public final class StreamAggregateBuilder {
   private StreamAggregateBuilder() {
   }

@@ -61,6 +61,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+// Can be fixed after GRACE is mandatory
+@SuppressWarnings("deprecation")
 @RunWith(MockitoJUnitRunner.class)
 public class StreamStreamJoinBuilderTest {
 

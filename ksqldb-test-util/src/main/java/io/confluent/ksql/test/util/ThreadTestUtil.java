@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 
 import java.lang.Thread.State;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -100,7 +101,7 @@ public final class ThreadTestUtil {
     }
 
     public Map<Thread, StackTraceElement[]> getThreads() {
-      return threads;
+      return Collections.unmodifiableMap(threads);
     }
 
     public String detailsOfNewThreads(final ThreadSnapshot previous) {

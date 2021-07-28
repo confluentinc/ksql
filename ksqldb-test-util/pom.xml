@@ -109,18 +109,4 @@
     </dependency>
 
   </dependencies>
-
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>com.github.spotbugs</groupId>
-          <artifactId>spotbugs-maven-plugin</artifactId>
-          <configuration>
-            <skip>true</skip>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
 </project>

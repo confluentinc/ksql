@@ -44,12 +44,9 @@ public class ForeignKeyJoinParamsFactoryTest {
 
   @Test
   public void shouldBuildCorrectKeyedSchema() {
-    // Given:
-    final ColumnName leftJoinColumnName = ColumnName.of("L_FOREIGN_KEY");
-
     // When:
     final ForeignKeyJoinParams<String> joinParams =
-        ForeignKeyJoinParamsFactory.create(Optional.of(leftJoinColumnName), Optional.empty(), LEFT_SCHEMA, RIGHT_SCHEMA, null);
+        ForeignKeyJoinParamsFactory.create(null, LEFT_SCHEMA, RIGHT_SCHEMA, null);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
@@ -61,23 +58,6 @@ public class ForeignKeyJoinParamsFactoryTest {
         .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("R_K"), SqlTypes.INTEGER)
         .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowIfJoinColumnNotFound() {
-    // Given:
-    final ColumnName leftJoinColumnName = ColumnName.of("L_UNKNOWN");
-
-    final Exception e = assertThrows(
-        IllegalStateException.class,
-        () -> ForeignKeyJoinParamsFactory.create(Optional.of(leftJoinColumnName), Optional.empty(), LEFT_SCHEMA, RIGHT_SCHEMA, null)
-    );
-
-    // Then:
-    assertThat(
-        e.getMessage(),
-        containsString("Could not find join column in left input table.")
     );
   }
 }

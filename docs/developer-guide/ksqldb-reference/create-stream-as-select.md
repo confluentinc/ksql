@@ -113,8 +113,8 @@ The WITH clause for the SELECT result supports the following properties:
       - Avro field names are not case sensitive in ksqlDB. This matches the ksqlDB
         column name behavior.
 
-Example
--------
+Examples
+--------
 
 ```sql
 -- Create a view that filters an existing stream:
@@ -123,7 +123,8 @@ CREATE STREAM filtered AS
      a, 
      few,
      columns 
-   FROM source_stream;
+   FROM source_stream
+   EMIT CHANGES;
 
 -- Create a view that enriches a stream with a table lookup:
 CREATE STREAM enriched AS
@@ -133,6 +134,7 @@ CREATE STREAM enriched AS
       u.classification,
       u.level
    FROM clickstream cs
-      JOIN users u ON u.id = cs.userId;
+      JOIN users u ON u.id = cs.userId
+   EMIT CHANGES;
 ```
 

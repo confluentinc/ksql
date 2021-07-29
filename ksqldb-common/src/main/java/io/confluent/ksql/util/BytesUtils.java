@@ -114,7 +114,7 @@ public final class BytesUtils {
 
   public static List<byte[]> split(final byte[] b, final byte[] delim) {
     if (b.length == 0) {
-      return Arrays.asList(b);
+      return Arrays.asList(Arrays.copyOf(b, b.length));
     } else if (delim.length == 0) {
       return splitAllBytes(b);
     }
@@ -133,11 +133,7 @@ public final class BytesUtils {
       offset = delimIdx + delim.length;
     }
 
-    if (offset == 0) {
-      return Arrays.asList(b);
-    } else {
-      list.add(Arrays.copyOfRange(b, offset, b.length));
-    }
+    list.add(Arrays.copyOfRange(b, offset, b.length));
 
     return list;
   }
@@ -145,9 +141,7 @@ public final class BytesUtils {
   private static List<byte[]> splitAllBytes(final byte[] b) {
     final List<byte[]> result = new ArrayList<>(b.length);
     for (int i = 0; i < b.length; i++) {
-      final byte[] newB = new byte[1];
-      newB[0] = b[i];
-      result.add(newB);
+      result.add(new byte[] { b[i] });
     }
 
     return result;

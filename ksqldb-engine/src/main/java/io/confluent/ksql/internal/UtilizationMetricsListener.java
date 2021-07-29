@@ -24,14 +24,18 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.File;
 import java.math.BigInteger;
-import java.time.Instant;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -39,32 +43,54 @@ import org.slf4j.LoggerFactory;
 
 public class UtilizationMetricsListener implements Runnable, QueryEventListener {
   private final ConcurrentHashMap<QueryId, KafkaStreams> kafkaStreams;
-  private final List<File> streamsDirectories;
   private final Logger logger = LoggerFactory.getLogger(UtilizationMetricsListener.class);
-  private final List<String> metrics;
-  private Instant lastSampleTime;
+  private final Set<TaskStorageMetric> metrics;
+  private final Metrics metricRegistry;
   private final File baseDir;
 
-  public UtilizationMetricsListener(final KsqlConfig config) {
+  public UtilizationMetricsListener(final KsqlConfig config, final Metrics metricRegistry) {
     this.kafkaStreams = new ConcurrentHashMap<>();
-    this.metrics = new ArrayList<>();
-    this.streamsDirectories = new ArrayList<>();
+    this.metrics = new HashSet<>();
     this.baseDir = new File(config.getKsqlStreamConfigProps()
       .getOrDefault(
         StreamsConfig.STATE_DIR_CONFIG,
         StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
       .toString());
+    this.metricRegistry = metricRegistry;
+
+    this.metricRegistry.addMetric(
+      metricRegistry.metricName("node-storage-usage", "ksql-utilization-metrics"),
+      (Gauge<Long>) (metricsConfig, now) -> baseDir.getFreeSpace()
+    );
   }
 
   // for testing
   public UtilizationMetricsListener(
       final ConcurrentHashMap<QueryId, KafkaStreams> kafkaStreams,
-      final List<File> streamsDirectories,
-      final File baseDir) {
+      final File baseDir,
+      final Metrics metrics) {
     this.kafkaStreams = kafkaStreams;
-    this.metrics = new ArrayList<>();
-    this.streamsDirectories = streamsDirectories;
+    this.metrics = new HashSet<>();
     this.baseDir = baseDir;
+    metricRegistry = metrics;
+
+    final MetricName nodeAvailable = metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
+    final MetricName nodeTotal = metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
+    final MetricName nodeUsed = metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
+
+
+    metricRegistry.addMetric(
+      nodeAvailable,
+      (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+    );
+    metricRegistry.addMetric(
+      nodeTotal,
+      (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+    );
+    metricRegistry.addMetric(
+      nodeUsed,
+      (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+    );
   }
 
   @Override
@@ -73,84 +99,105 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
       final MetaStore metaStore,
       final QueryMetadata queryMetadata) {
     kafkaStreams.put(queryMetadata.getQueryId(), queryMetadata.getKafkaStreams());
-    streamsDirectories.add(new File(baseDir, queryMetadata.getQueryApplicationId()));
   }
 
   @Override
   public void onDeregister(final QueryMetadata query) {
     kafkaStreams.remove(query.getQueryId());
-    streamsDirectories.remove(new File(baseDir, query.getQueryApplicationId()));
   }
 
   @Override
   public void run() {
     logger.info("Reporting Observability Metrics");
-    final Instant currentTime = Instant.now();
     logger.info("Reporting storage metrics");
-    final List<MetricsReporter.DataPoint> dataPoints = new ArrayList<>();
-    nodeDiskUsage(dataPoints, currentTime);
-    taskDiskUsage(dataPoints, currentTime);
-    // here is where we would call report() for telemetry reporter
-    lastSampleTime = currentTime;
+    taskDiskUsage();
   }
 
-  public void nodeDiskUsage(
-      final List<MetricsReporter.DataPoint> dataPoints,
-      final Instant sampleTime) {
-    long totalSpace = 0L;
-    long usedSpace = 0L;
-    for (File f : streamsDirectories) {
-      totalSpace += f.getTotalSpace();
-      usedSpace += f.getTotalSpace() - f.getFreeSpace();
-      logger.info("The disk free for {} is {}", f.getName(), f.getTotalSpace() - f.getFreeSpace());
-    }
-    final double percFree = percentage((double) usedSpace, (double) totalSpace);
+  public void taskDiskUsage() {
+    final Set<TaskStorageMetric> allMetricsSeen = new HashSet<>();
 
-    dataPoints.add(new MetricsReporter.DataPoint(sampleTime, "storage-usage", (double) usedSpace));
-    dataPoints.add(new MetricsReporter.DataPoint(sampleTime, "storage-total", (double) totalSpace));
-    dataPoints.add(new MetricsReporter.DataPoint(sampleTime, "storage-usage-perc", percFree));
-    logger.info("The disk usage for this node is {}", usedSpace);
-    logger.info("The % disk space free for this node is {}%", percFree);
-  }
-
-  public void taskDiskUsage(
-      final List<MetricsReporter.DataPoint> dataPoints,
-      final Instant sampleTime) {
     for (Map.Entry<QueryId, KafkaStreams> streams : kafkaStreams.entrySet()) {
       final List<Metric> fileSizePerTask = streams.getValue().metrics().values().stream()
           .filter(m -> m.metricName().name().equals("total-sst-files-size"))
           .collect(Collectors.toList());
-      double totalDiskUsage = 0.0;
+
+      long queryDiskUsage = 0L;
+      final Set<TaskStorageMetric> updatedTaskLevelMetrics = new HashSet<>();
       for (Metric m : fileSizePerTask) {
-        logger.info("Recording task level storage usage for {}", streams.getKey());
         final BigInteger usage = (BigInteger) m.metricValue();
-        dataPoints.add(new MetricsReporter.DataPoint(
-            sampleTime,
+        final String taskId = m.metricName().tags().getOrDefault("task-id", "");
+        final TaskStorageMetric newMetric = new TaskStorageMetric(
+          metricRegistry.metricName(
             "task-storage-usage",
-            usage.doubleValue(),
-            ImmutableMap.of(
-            "task-id", m.metricName().tags().getOrDefault("task-id", ""),
-            "query-id", streams.getKey().toString()
-          ))
-        );
-        logger.info(
-            "Storage usage for task {} is {}",
-            m.metricName().tags().getOrDefault("task-id", ""),
-            usage
-        );
-        totalDiskUsage += usage.doubleValue();
+            "ksql-utilization-metrics",
+            ImmutableMap.of("task-id", taskId, "query-id", streams.getKey().toString())
+          ));
+
+        if (!updatedTaskLevelMetrics.add(newMetric)) {
+          newMetric.updateValue((long) newMetric.value + usage.longValue());
+        }
+        queryDiskUsage += usage.longValue();
       }
-      logger.info("Total storage usage for query {} is {}",streams.getKey(), totalDiskUsage);
-      dataPoints.add(new MetricsReporter.DataPoint(
-          sampleTime,
+
+      final TaskStorageMetric queryStorageMetric = new TaskStorageMetric(
+        metricRegistry.metricName(
           "query-storage-usage",
-          totalDiskUsage,
-          ImmutableMap.of("query-id", streams.getKey().toString()))
-      );
+          "ksql-utilization-metrics",
+          ImmutableMap.of("query-id", streams.getKey().toString())
+        ));
+
+      if (!updatedTaskLevelMetrics.add(queryStorageMetric)) {
+        queryStorageMetric.updateValue((long) queryStorageMetric.value + queryDiskUsage);
+      }
+      updatedTaskLevelMetrics.removeAll(metrics);
+
+      // create gauges for all the task level metrics we haven't seen before, add them to our master list
+      for (TaskStorageMetric entry : updatedTaskLevelMetrics) {
+        metricRegistry.addMetric(entry.metricName, (Gauge<Object>) (config, now) -> entry.getValue());
+        metrics.add(entry);
+      }
+
+      logger.info("Total storage usage for query {} is {}", streams.getKey(), queryDiskUsage);
+
+      allMetricsSeen.addAll(updatedTaskLevelMetrics);
+    }
+
+    final Set<TaskStorageMetric> toRemove = metrics;
+    toRemove.removeAll(allMetricsSeen);
+
+    for (TaskStorageMetric entry : toRemove) {
+      metricRegistry.removeMetric(entry.metricName);
     }
   }
 
-  private double percentage(final double b, final double w) {
-    return Math.round((b / w) * 100);
+  private class TaskStorageMetric {
+    final MetricName metricName;
+    Object value;
+
+    private TaskStorageMetric(final MetricName metricName) {
+      this.metricName = metricName;
+    }
+
+    private void updateValue(final Object value) {
+      this.value = value;
+    }
+
+    public Object getValue() {
+      return this.value;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final TaskStorageMetric storageMetric = (TaskStorageMetric) o;
+      return Objects.equals(metricName, storageMetric.metricName);
+    }
+
   }
+
 }

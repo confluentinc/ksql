@@ -6,7 +6,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,12 +22,18 @@ import java.io.File;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -34,6 +42,12 @@ public class UtilizationMetricsListenerTest {
   List<File> directories;
   ConcurrentHashMap<QueryId, KafkaStreams> streams;
   private UtilizationMetricsListener listener;
+
+  private static final MetricName NODE_METRIC_NAME = new MetricName(
+    "node-storage-usage",
+    "ksql-utilization-metrics",
+    "d1",
+    ImmutableMap.of("query-id", "q1"));
 
   @Mock
   private QueryMetadata query;
@@ -51,6 +65,8 @@ public class UtilizationMetricsListenerTest {
   private KafkaMetric sst_2;
   @Mock
   private File file;
+  @Mock
+  private Metrics metricsRegistry;
   @Captor
   private ArgumentCaptor<List<MetricsReporter.DataPoint>> dataPointCaptor;
 
@@ -60,83 +76,66 @@ public class UtilizationMetricsListenerTest {
     when(query.getQueryId()).thenReturn(queryId);
     when(query.getKafkaStreams()).thenReturn(s1);
 
-    directories = new ArrayList<>();
+    when(metricsRegistry.metricName(any(), any(), any(), anyMap()))
+      .thenReturn(NODE_METRIC_NAME);
+
     streams = new ConcurrentHashMap<>();
-    streams.put(new QueryId("blah"), s1);
-    listener = new UtilizationMetricsListener(streams, directories, new File("tmp/cat/"));
+    //streams.put(new QueryId("blah"), s1);
+    listener = new UtilizationMetricsListener(streams, new File("tmp/cat/"), metricsRegistry);
   }
 
   @Test
-  public void shouldAddStateStoreOnCreation() {
+  public void shouldAddKafkaStreamsOnCreation() {
     // When:
     listener.onCreate(serviceContext, metaStore, query);
 
     // Then:
-    assertTrue(directories.contains(new File("tmp/cat/app-id")));
+    assertEquals(1, streams.size());
   }
 
   @Test
-  public void shouldRemoveStateStoreOnTermination() {
+  public void shouldRemoveKafkaStreamsOnTermination() {
     // When:
     listener.onCreate(serviceContext, metaStore, query);
     listener.onDeregister(query);
 
     // Then:
-    assertTrue(directories.isEmpty());
+    assertTrue(streams.isEmpty());
   }
 
   @Test
-  public void shouldReportNodeLevelStorageUsage() {
-    // Given:
-    directories.add(file);
-    when(file.getFreeSpace()).thenReturn(30L);
-    when(file.getTotalSpace()).thenReturn(100L);
-    when(file.getName()).thenReturn("/tmp/cat/new_query");
-
+  public void shouldAddNodeLevelMetricOnCreation() {
     // When:
-    ArrayList<MetricsReporter.DataPoint> dataPoints = new ArrayList<>();
-    listener.nodeDiskUsage(dataPoints, Instant.EPOCH);
+    listener.onCreate(serviceContext, metaStore, query);
 
     // Then
-    assertEquals("Should record storage usage", dataPoints.get(0), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-usage", 70.0));
-    assertEquals("Should record storage total", dataPoints.get(1), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-total", 100.0));
-    assertEquals("Should record storage percentage", dataPoints.get(2), new MetricsReporter.DataPoint(Instant.EPOCH, "storage-usage-perc", 70.0));
-    assertEquals(dataPoints.size(),3);
-
+    verify(metricsRegistry).metricName(
+      "node-storage-available",
+      "ksql-utilization-metrics");
+    verify(metricsRegistry).metricName(
+      "node-storage-total",
+      "ksql-utilization-metrics");
+    verify(metricsRegistry).metricName(
+      "node-storage-used",
+      "ksql-utilization-metrics");
+    verify(metricsRegistry).addMetric(
+      eq(metricsRegistry.metricName(
+      "node-storage-available",
+      "ksql-utilization-metrics")),
+      isA(Gauge.class)
+    );
+    verify(metricsRegistry).addMetric(
+      eq(metricsRegistry.metricName(
+        "node-storage-total",
+        "ksql-utilization-metrics")),
+      isA(Gauge.class)
+    );
+    verify(metricsRegistry).addMetric(
+      eq(metricsRegistry.metricName(
+        "node-storage-used",
+        "ksql-utilization-metrics")),
+      isA(Gauge.class)
+    );
   }
 
-  @Test
-  public void shouldReportTaskLevelStorageUsage() {
-    // Given:
-    directories.add(file);
-    final MetricName metricName_1 = new MetricName("total-sst-files-size", "", "", ImmutableMap.of("task-id", "t1"));
-    final MetricName metricName_2 = new MetricName("total-sst-files-size", "", "", ImmutableMap.of("task-id", "t2"));
-    doReturn(ImmutableMap.of(metricName_1, sst_1, metricName_2, sst_2)).when(s1).metrics();
-    when(sst_1.metricValue()).thenReturn(BigInteger.valueOf(20L));
-    when(sst_1.metricName()).thenReturn(metricName_1);
-    when(sst_2.metricValue()).thenReturn(BigInteger.valueOf(10L));
-    when(sst_2.metricName()).thenReturn(metricName_2);
-
-    // When:
-    ArrayList<MetricsReporter.DataPoint> dataPoints = new ArrayList<>();
-    listener.taskDiskUsage(dataPoints, Instant.EPOCH);
-
-    // Then:
-    assertEquals(dataPoints.get(0), new MetricsReporter.DataPoint(
-      Instant.EPOCH,
-      "task-storage-usage",
-      20.0,
-      ImmutableMap.of("task-id", "t1", "query-id", "blah")));
-    assertEquals(dataPoints.get(1), new MetricsReporter.DataPoint(
-      Instant.EPOCH,
-      "task-storage-usage",
-      10.0,
-      ImmutableMap.of("task-id", "t2", "query-id", "blah")));
-    assertEquals(dataPoints.get(2), new MetricsReporter.DataPoint(
-      Instant.EPOCH,
-      "query-storage-usage",
-      30.0,
-      ImmutableMap.of("query-id", "blah")));
-    assertEquals(dataPoints.size(),3);
-  }
 }

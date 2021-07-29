@@ -47,13 +47,13 @@ public final class SystemColumns {
 
   public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = ROWTIME_PSEUDOCOLUMN_VERSION;
   public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER =
-      ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
+      ROWTIME_PSEUDOCOLUMN_VERSION;
 
   public static Set<ColumnName> getPseudoColumnsFromVersion(final int pseudoColumnVersion) {
-    if (!VERSIONED_PSEUDO_COLUMNS.containsKey(pseudoColumnVersion)) {
+    if (!PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
       throw new KsqlException("Provided pseudoColumnVersion has no corresponding columns defined");
     }
-    return VERSIONED_PSEUDO_COLUMNS.get(pseudoColumnVersion);
+    return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
   }
 
   private static final Set<ColumnName> VERSION_ZERO_NAMES;
@@ -68,7 +68,8 @@ public final class SystemColumns {
     VERSION_ONE_NAMES.add(ROWOFFSET_NAME);
   }
 
-  private static final Map<Integer, Set<ColumnName>> VERSIONED_PSEUDO_COLUMNS = ImmutableMap.of(
+  private static final Map<Integer, Set<ColumnName>> PSEUDO_COLUMN_NAMES_BY_VERSION =
+      ImmutableMap.of(
       0, VERSION_ZERO_NAMES,
       1, VERSION_ONE_NAMES
       );
@@ -77,10 +78,6 @@ public final class SystemColumns {
       WINDOWSTART_NAME,
       WINDOWEND_NAME
   );
-
-  private static final Set<ColumnName> SYSTEM_COLUMN_NAMES_CURRENT =
-      buildColumns(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
-
 
   private static final Map<Integer, Set<ColumnName>> SYSTEM_COLUMN_NAMES_BY_VERSION = 
       ImmutableMap.of(
@@ -112,11 +109,15 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> systemColumnNames() {
-    return SYSTEM_COLUMN_NAMES_CURRENT;
+    return systemColumnNames(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
     return SYSTEM_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
+  }
+
+  void test(){
+
   }
 
   private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -84,25 +84,10 @@ public class TerminateTransientQueryFunctionalTest {
     );
   }
 
-  @Before
-  public void backgroundPushQuery() {
-    ExecutorService service = Executors.newFixedThreadPool(2);
-    Runnable backgroundTask = () -> RestIntegrationTestUtil.makeQueryRequest(
-        REST_APP_0,
-        "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
-        Optional.of(BasicCredentials.of("user", "pwd"))
-    );
-    service.execute(backgroundTask);
-
-    boolean repeat = true;
-    while (repeat){
-      repeat = !checkForTransientQuery();
-    }
-  }
-
   @Test
-  public void shouldTerminatePushQueryOnSingleNode() {
+  public void shouldTerminatePushQueryOnSameNode() {
     // Given:
+    givenPushQuery();
     final String transientQueryId = getTransientQueryIds().get(0);
 
     // When:
@@ -122,6 +107,7 @@ public class TerminateTransientQueryFunctionalTest {
   @Test
   public void shouldTerminatePushQueryOnAnotherNode() {
     // Given:
+    givenPushQuery();
     final String transientQueryId = getTransientQueryIds().get(0);
 
     // When:
@@ -155,5 +141,20 @@ public class TerminateTransientQueryFunctionalTest {
         .filter(q -> q.getId().toString().contains("transient"))
         .map(q -> q.getId().toString())
         .collect(Collectors.toList());
+  }
+
+  public void givenPushQuery() {
+    ExecutorService service = Executors.newFixedThreadPool(2);
+    Runnable backgroundTask = () -> RestIntegrationTestUtil.makeQueryRequest(
+        REST_APP_0,
+        "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
+        Optional.of(BasicCredentials.of("user", "pwd"))
+    );
+    service.execute(backgroundTask);
+
+    boolean repeat = true;
+    while (repeat){
+      repeat = !checkForTransientQuery();
+    }
   }
 }

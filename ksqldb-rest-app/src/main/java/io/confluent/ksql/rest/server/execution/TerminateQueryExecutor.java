@@ -44,10 +44,8 @@ public final class TerminateQueryExecutor {
       final DistributingExecutor distributingExecutor,
       final KsqlSecurityContext securityContext
   ) {
-
     final TerminateQuery terminateQuery = statement.getStatement();
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
-
     final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
         statement,
         sessionProperties,
@@ -61,30 +59,22 @@ public final class TerminateQueryExecutor {
     } else {
       // Check are we running this push query locally, if yes then terminate, otherwise
       // propagate terminate query to other nodes
-
       if (executionContext.getQuery(queryId.get()).isPresent()) {
         executionContext.getQuery(queryId.get()).get().close();
         return Optional.of(
             new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), true)
         );
       } else {
-        final List<Boolean> wasTerminatedList = remoteHostExecutor.fetchAllRemoteResults().getLeft()
+        final boolean wasTerminatedLocally = remoteHostExecutor.fetchAllRemoteResults().getLeft()
             .values()
             .stream()
             .map(TerminateQueryEntity.class::cast)
             .map(TerminateQueryEntity::getWasTerminatedLocally)
-            .collect(Collectors.toList());
-
-        for (Boolean w : wasTerminatedList) {
-          if (w) {
-            return Optional.of(
-                new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), w)
-            );
-          }
-        }
-        return Optional.of(
-            new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), false)
-        );
+            .anyMatch(b -> b.equals(true));
+        return Optional.of(new TerminateQueryEntity(
+            statement.getStatementText(),
+            queryId.get().toString(),
+            wasTerminatedLocally));
       }
     }
     return Optional.empty();

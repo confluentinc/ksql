@@ -175,7 +175,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return (List<QueryMetadata>) primaryContext.getQueryRegistry().getAllLiveQueries();
+    return primaryContext.getQueryRegistry().getAllLiveQueries();
   }
 
   public boolean hasActiveQueries() {

@@ -24,28 +24,26 @@ import java.util.Objects;
 public class TerminateQueryEntity extends KsqlEntity {
 
   private final String queryId;
-  private final Boolean wasTerminatedLocally;
+  private final boolean wasTerminatedLocally;
 
   @JsonCreator
   public TerminateQueryEntity(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("queryId") final String queryId,
-      @JsonProperty("wasTerminatedLocally") final Boolean wasTerminatedLocally
+      @JsonProperty("wasTerminatedLocally") final boolean wasTerminatedLocally
   ) {
     super(statementText);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.wasTerminatedLocally =
-        Objects.requireNonNull(wasTerminatedLocally, "wasTerminatedLocally");
-
+        wasTerminatedLocally;
   }
 
   public String getQueryId() {
     return queryId;
   }
-  public Boolean getWasTerminatedLocally() {
+  public boolean getWasTerminatedLocally() {
     return wasTerminatedLocally;
   }
-
 
   @Override
   public String toString() {
@@ -53,5 +51,22 @@ public class TerminateQueryEntity extends KsqlEntity {
         + "queryId='" + queryId + '\''
         + "wasTerminatedLocally='" + wasTerminatedLocally + '\''
         + '}';
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof TerminateQueryEntity)) {
+      return false;
+    }
+    final TerminateQueryEntity that = (TerminateQueryEntity) o;
+    return Objects.equals(getQueryId(), that.getQueryId());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getQueryId());
   }
 }

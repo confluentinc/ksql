@@ -141,7 +141,6 @@ public class InsertValuesExecutor {
       final ServiceContext serviceContext,
       final DistributingExecutor distributingExecutor,
       final KsqlSecurityContext securityContext
-
   ) {
     final InsertValues insertValues = statement.getStatement();
     final MetaStore metaStore = executionContext.getMetaStore();

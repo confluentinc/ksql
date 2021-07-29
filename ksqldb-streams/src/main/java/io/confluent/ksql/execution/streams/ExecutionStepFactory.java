@@ -345,10 +345,10 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
         leftJoinColumnName,
+        leftJoinExpression,
         formats,
         left,
-        right,
-        leftJoinExpression
+        right
     );
   }
 

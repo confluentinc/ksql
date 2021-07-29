@@ -909,7 +909,7 @@ public class LogicalPlanner {
         ExpressionTreeRewriter.rewriteWith(aliasRewritter::process, foreignKeyExpression);
 
 
-    return JoinKey.foreignKeyColumn(aliasedForeignKeyExpression, leftSourceKeys);
+    return JoinKey.foreignKey(aliasedForeignKeyExpression, leftSourceKeys);
   }
 
   private static void verifyJoinConditionTypes(

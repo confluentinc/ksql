@@ -31,6 +31,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -40,6 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -105,7 +107,24 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        listener
+        new QueryMetadata.Listener() {
+          @Override
+          public void onError(final QueryMetadata queryMetadata, final QueryError error) {
+            listener.onError(queryMetadata, error);
+            scalablePushRegistry.get().onError();
+          }
+
+          @Override
+          public void onStateChange(final QueryMetadata queryMetadata, final State before,
+              final State after) {
+
+          }
+
+          @Override
+          public void onClose(final QueryMetadata queryMetadata) {
+
+          }
+        }
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");

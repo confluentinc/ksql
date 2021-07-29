@@ -55,6 +55,27 @@
       "outputs": [
         {"topic": "JSONIFIED", "value": "{\"messageID\": \"ID:plato-46377-1596636746117-4:4:1:1:1\",\"text\": {\"widget\": 10}}"}
       ]
+    },
+    {
+      "name": "replace bytes",
+      "format": ["JSON", "PROTOBUF"],
+      "properties": {
+        "ksql.functions.substring.legacy.args": false
+      },
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, source BYTES, toReplace BYTES, replaceWith BYTES) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REPLACE(source, toReplace, replaceWith) AS REPLACE, REPLACE(source, null, replaceWith) AS REPLACE_NULL, REPLACE(source, toReplace, null) AS REPLACE_W_NULL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "dHlyYW5ub3NhdXJ1cw==", "toReplace": "dHlyYW5ubw==", "replaceWith": "Y29yZ2k="}},
+        {"topic": "test_topic", "value": {"source": null, "toReplace": "dHlyYW5ubw==", "replaceWith": "Y29yZ2k="}},
+        {"topic": "test_topic", "value": {"source": "dGVycmllcmRhY3R5bA==", "toReplace": "dHlyYW5ubw==", "replaceWith": "Y29yZ2k="}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"REPLACE":"Y29yZ2lzYXVydXM=", "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
+        {"topic": "OUTPUT", "value": {"REPLACE":null, "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
+        {"topic": "OUTPUT", "value": {"REPLACE":"dGVycmllcmRhY3R5bA==", ",REPLACE_NULL":null, "REPLACE_W_NULL":null}}
+      ]
     }
   ]
 }

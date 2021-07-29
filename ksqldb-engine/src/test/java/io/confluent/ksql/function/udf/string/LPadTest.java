@@ -24,6 +24,9 @@ import org.junit.Test;
 
 public class LPadTest {
   private final LPad udf = new LPad();
+  private static final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
+  private static final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
+  private static final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 
   @Test
   public void shouldPadInputString() {
@@ -144,9 +147,5 @@ public class LPadTest {
     final ByteBuffer result = udf.lpad(BYTES_123, 0, BYTES_45);
     assertThat(result, is(EMPTY_BYTES));
   }
-
-  private final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
-  private final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
-  private final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 
 }

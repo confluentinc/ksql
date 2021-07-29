@@ -24,6 +24,9 @@ import org.junit.Test;
 
 public class RPadTest {
   private final RPad udf = new RPad();
+  private static final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
+  private static final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
+  private static final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 
   @Test
   public void shouldPadInputString() {
@@ -43,7 +46,8 @@ public class RPadTest {
     assertThat(result, is("fooB"));
   }
 
-  @Test public void shouldAppendPartialPaddingBytes() {
+  @Test
+  public void shouldAppendPartialPaddingBytes() {
     final ByteBuffer result = udf.rpad(BYTES_123, 4, BYTES_45);
     assertThat(BytesUtils.getByteArray(result), is(new byte[]{1,2,3,4}));
   }
@@ -143,9 +147,5 @@ public class RPadTest {
     final ByteBuffer result = udf.rpad(BYTES_123, null, BYTES_45);
     assertThat(result, is(nullValue()));
   }
-
-  private final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
-  private final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
-  private final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 
 }

@@ -67,7 +67,6 @@
         {"topic": "OUTPUT", "key": "r8", "value": {"RESULT": null}},
         {"topic": "OUTPUT", "key": "r9", "value": {"RESULT": null}},
         {"topic": "OUTPUT", "key": "r10", "value": {"RESULT": null}}
-
       ]
     }
   ]

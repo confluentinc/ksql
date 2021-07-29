@@ -111,7 +111,7 @@ public interface QueryRegistry {
    * @param queryId The ID of the query to get
    * @return The query with ID queryID, if such a query is registered.
    */
-  Optional<QueryMetadata> getQuery(final QueryId queryId);
+  Optional<QueryMetadata> getQuery(QueryId queryId);
 
   /**
    * Get all persistent queries

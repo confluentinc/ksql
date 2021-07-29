@@ -87,7 +87,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach(new BiConsumer<QueryId, QueryMetadata>() {
       @Override
-      public void accept(QueryId queryId, QueryMetadata queryMetadata) {
+      public void accept(final QueryId queryId, final QueryMetadata queryMetadata) {
         if (queryMetadata instanceof PersistentQueryMetadata) {
           final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
               (PersistentQueryMetadataImpl) queryMetadata,
@@ -192,7 +192,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public Optional<QueryMetadata> getQuery(QueryId queryId) {
+  public Optional<QueryMetadata> getQuery(final QueryId queryId) {
     return Optional.ofNullable(allLiveQueries.get(queryId));
   }
 

@@ -41,6 +41,7 @@ public class TerminateQueryEntity extends KsqlEntity {
   public String getQueryId() {
     return queryId;
   }
+
   public boolean getWasTerminatedLocally() {
     return wasTerminatedLocally;
   }

@@ -1008,16 +1008,16 @@ Since: 0.6.0
 SPLIT(col1, delimiter)
 ```
 
-Splits a string into an array of substrings based
+Splits a string into an array of substrings, or
+bytes into an array of subarrays, based
 on a delimiter. If the delimiter is not found,
-then the original string is returned as the only
+the original string or byte array is returned as the only
 element in the array. If the delimiter is empty,
-then all characters in the string are split.
-If either, string or delimiter, are NULL, then a
-NULL value is returned.
+every character in the string or byte in the array is split.
+Returns NULL if either parameter is NULL.
 
 If the delimiter is found at the beginning or end
-of the string, or there are contiguous delimiters,
+of the string or bytes, or there are contiguous delimiters,
 then an empty space is added to the array.
 
 ### `SPLIT_TO_MAP`

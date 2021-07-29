@@ -18,8 +18,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -108,6 +110,77 @@ public final class BytesUtils {
 
   public static byte[] getByteArray(final ByteBuffer buffer, final int start, final int end) {
     return Arrays.copyOfRange(getByteArray(buffer), start, end);
+  }
+
+  public static List<byte[]> split(final byte[] b, final byte[] delim) {
+    if (b.length == 0) {
+      return Arrays.asList(Arrays.copyOf(b, b.length));
+    } else if (delim.length == 0) {
+      return splitAllBytes(b);
+    }
+
+    int offset = 0;
+    int delimIdx;
+
+    final List<byte[]> list = new ArrayList<>();
+    while ((delimIdx = indexOf(b, delim, offset)) != -1) {
+      final int newSplitLength = delimIdx - offset;
+      final byte[] newSplitArray = new byte[newSplitLength];
+
+      System.arraycopy(b, offset, newSplitArray, 0, newSplitLength);
+      list.add(newSplitArray);
+
+      offset = delimIdx + delim.length;
+    }
+
+    list.add(Arrays.copyOfRange(b, offset, b.length));
+
+    return list;
+  }
+
+  private static List<byte[]> splitAllBytes(final byte[] b) {
+    final List<byte[]> result = new ArrayList<>(b.length);
+    for (int i = 0; i < b.length; i++) {
+      result.add(new byte[] { b[i] });
+    }
+
+    return result;
+  }
+
+  public static int indexOf(final byte[] array, final byte[] target, final int fromIndex) {
+    for (int i = fromIndex; i < array.length; i++) {
+      if (array[i] == target[0]) {
+        if (arrayEquals(array, i, target, 0, target.length)) {
+          return i;
+        }
+      }
+    }
+
+    return -1;
+  }
+
+  @SuppressWarnings("ParameterName")
+  private static boolean arrayEquals(
+      final byte[] a,
+      final int aFromIndex,
+      final byte[] b,
+      final int bFromIndex,
+      final int length) {
+    if ((aFromIndex + length) > a.length) {
+      return false;
+    }
+
+    if ((bFromIndex + length) > b.length) {
+      return false;
+    }
+
+    for (int i = aFromIndex, j = bFromIndex; i < length && j < b.length; i++, j++) {
+      if (a[i] != b[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private static String hexEncoding(final byte[] value) {

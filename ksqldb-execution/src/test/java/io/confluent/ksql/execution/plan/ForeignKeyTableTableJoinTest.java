@@ -72,7 +72,7 @@ public class ForeignKeyTableTableJoinTest {
   public void shouldNotAllowOuterJoin() {
     final IllegalArgumentException error = assertThrows(
         IllegalArgumentException.class,
-        () -> new ForeignKeyTableTableJoin<>(props1, OUTER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
+        () -> new ForeignKeyTableTableJoin<>(props1, OUTER, JOIN_COLUMN_NAME, Optional.empty(), formats1, left1, right1)
     );
 
     assertThat(error.getMessage(), is("OUTER join not supported."));
@@ -82,7 +82,7 @@ public class ForeignKeyTableTableJoinTest {
   public void shouldNotAllowEmptyColumnNameAndEmptyExpression() {
     final IllegalArgumentException error = assertThrows(
         IllegalArgumentException.class,
-        () -> new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, Optional.empty())
+        () -> new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), Optional.empty(), formats1, left1, right1)
     );
 
     assertThat(error.getMessage(), is("Either leftJoinColumnName or leftJoinExpression must be provided."));
@@ -92,7 +92,7 @@ public class ForeignKeyTableTableJoinTest {
   public void shouldNotAllowColumnNameAndExpression() {
     final IllegalArgumentException error = assertThrows(
         IllegalArgumentException.class,
-        () -> new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, JOIN_EXPRESSION)
+        () -> new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, JOIN_EXPRESSION, formats1, left1, right1)
     );
 
     assertThat(error.getMessage(), is("Either leftJoinColumnName or leftJoinExpression must be empty."));
@@ -103,26 +103,26 @@ public class ForeignKeyTableTableJoinTest {
   public void shouldImplementEqualsColumName() {
     new EqualsTester()
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty()),
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, Optional.empty(), formats1, left1, right1),
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, Optional.empty(), formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, Optional.empty(), formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, Optional.empty(), formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats1, left1, right1, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, Optional.empty(), formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left1, right1, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, Optional.empty(), formats2, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left2, right1, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, Optional.empty(), formats1, left2, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right2, Optional.empty())
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, Optional.empty(), formats1, left1, right2)
         )
         .testEquals();
   }
@@ -132,26 +132,26 @@ public class ForeignKeyTableTableJoinTest {
   public void shouldImplementEqualsExpression() {
     new EqualsTester()
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION),
-            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION)
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), JOIN_EXPRESSION, formats1, left1, right1),
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), JOIN_EXPRESSION, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props2, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION)
+            new ForeignKeyTableTableJoin<>(props2, INNER, Optional.empty(), JOIN_EXPRESSION, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, LEFT, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION)
+            new ForeignKeyTableTableJoin<>(props1, LEFT, Optional.empty(), JOIN_EXPRESSION, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats2, left1, right1, JOIN_EXPRESSION)
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), JOIN_EXPRESSION_2, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left2, right1, JOIN_EXPRESSION)
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), JOIN_EXPRESSION, formats2, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right2, JOIN_EXPRESSION)
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), JOIN_EXPRESSION, formats1, left2, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION_2)
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), JOIN_EXPRESSION, formats1, left1, right2)
         )
         .testEquals();
   }

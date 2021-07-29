@@ -322,9 +322,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public <KRightT> SchemaKTable<K> foreignKeyInnerJoin(
       final SchemaKTable<KRightT> schemaKTable,
       final Optional<ColumnName> leftJoinColumnName,
+      final Optional<Expression> leftJoinExpression,
       final Stacker contextStacker,
-      final FormatInfo valueFormatInfo,
-      final Optional<Expression> leftJoinExpression
+      final FormatInfo valueFormatInfo
   ) {
     final ForeignKeyTableTableJoin<K, KRightT> step =
         ExecutionStepFactory.foreignKeyTableTableJoin(
@@ -349,9 +349,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public <KRightT> SchemaKTable<K> foreignKeyLeftJoin(
       final SchemaKTable<KRightT> schemaKTable,
       final Optional<ColumnName> leftJoinColumnName,
+      final Optional<Expression> leftJoinExpression,
       final Stacker contextStacker,
-      final FormatInfo valueFormatInfo,
-      final Optional<Expression> leftJoinExpression
+      final FormatInfo valueFormatInfo
   ) {
     final ForeignKeyTableTableJoin<K, KRightT> step =
         ExecutionStepFactory.foreignKeyTableTableJoin(

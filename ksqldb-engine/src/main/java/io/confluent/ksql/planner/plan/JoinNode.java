@@ -534,9 +534,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
             return leftTable.foreignKeyLeftJoin(
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
+                ((ForeignJoinKey) joinKey).getForeignKeyExpression(),
                 contextStacker,
-                valueFormatInfo,
-                ((ForeignJoinKey) joinKey).getForeignKeyExpression()
+                valueFormatInfo
             );
           } else {
             return leftTable.leftJoin(
@@ -550,9 +550,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
             return leftTable.foreignKeyInnerJoin(
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
+                ((ForeignJoinKey) joinKey).getForeignKeyExpression(),
                 contextStacker,
-                valueFormatInfo,
-                ((ForeignJoinKey) joinKey).getForeignKeyExpression()
+                valueFormatInfo
             );
           } else {
             return leftTable.innerJoin(
@@ -644,7 +644,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
       return SyntheticJoinKey.of();
     }
 
-    static JoinKey foreignKeyColumn(
+    static JoinKey foreignKey(
         final Expression foreignKeyExpression,
         final Collection<QualifiedColumnReferenceExp> viableKeyColumns
     ) {
@@ -811,15 +811,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
     private final Optional<ColumnName> foreignKeyColumn;
     private final Optional<Expression> foreignKeyExpression;
     private final ImmutableList<? extends ColumnReferenceExp> leftSourceKeyColumns;
-
-    static JoinKey of(final ColumnName foreignKeyColumn,
-                      final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {
-      return new ForeignJoinKey(
-          Optional.of(foreignKeyColumn),
-          Optional.empty(),
-          leftSourceKeyColumns
-      );
-    }
 
     static JoinKey of(final Expression foreignKeyExpression,
                       final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {

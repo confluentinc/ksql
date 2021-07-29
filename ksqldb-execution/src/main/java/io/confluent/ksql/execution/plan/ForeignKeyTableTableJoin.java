@@ -47,14 +47,14 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       final JoinType joinType,
       @JsonProperty(value = "leftJoinColumnName")
       final Optional<ColumnName> leftJoinColumnName,
+      @JsonProperty(value = "leftJoinExpression")
+      final Optional<Expression> leftJoinExpression,
       @JsonProperty(value = "formats", required = true)
       final Formats formats,
       @JsonProperty(value = "leftSource", required = true)
       final ExecutionStep<KTableHolder<KLeftT>> leftSource,
       @JsonProperty(value = "rightSource", required = true)
-      final ExecutionStep<KTableHolder<KRightT>> rightSource,
-      @JsonProperty(value = "leftJoinExpression")
-      final Optional<Expression> leftJoinExpression
+      final ExecutionStep<KTableHolder<KRightT>> rightSource
   ) {
     this.properties = requireNonNull(props, "props");
     this.joinType = requireNonNull(joinType, "joinType");

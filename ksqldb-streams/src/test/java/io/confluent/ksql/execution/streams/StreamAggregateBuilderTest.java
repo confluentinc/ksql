@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -437,6 +438,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildTumblingWindowedAggregateCorrectly() {
     // Given:
     givenTumblingWindowedAggregate();
@@ -466,7 +468,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildHoppingWindowedAggregateCorrectly() {
     // Given:
     givenHoppingWindowedAggregate();
@@ -496,7 +498,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildSessionWindowedAggregateCorrectly() {
     // Given:
     givenSessionWindowedAggregate();

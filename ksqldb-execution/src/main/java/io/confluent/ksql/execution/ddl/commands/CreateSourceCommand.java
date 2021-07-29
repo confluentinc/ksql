@@ -88,6 +88,9 @@ public abstract class CreateSourceCommand implements DdlCommand {
   }
 
   private static void validate(final LogicalSchema schema, final boolean windowed) {
+    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
+      throw new IllegalArgumentException("Schema contains system columns in value schema");
+    }
 
     if (windowed && schema.key().isEmpty()) {
       throw new KsqlException("Windowed sources require a key column.");

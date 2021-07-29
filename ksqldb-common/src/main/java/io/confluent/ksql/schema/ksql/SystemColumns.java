@@ -109,7 +109,7 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> systemColumnNames() {
-    return systemColumnNames(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {

@@ -540,7 +540,7 @@ public class KsqlRestConfig extends AbstractConfig {
         ).define(
             DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG,
             Type.LONG,
-            5000L,
+            15000L,
             Importance.LOW,
             DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC
         ).define(

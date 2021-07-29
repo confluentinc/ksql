@@ -158,16 +158,22 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   private final class PeekProcessor implements Processor<Object, GenericRow, Void, Void> {
 
-    private PeekProcessor() {}
+    private PeekProcessor() {
 
-    public void init(final ProcessorContext context) {}
+    }
+
+    public void init(final ProcessorContext context) {
+
+    }
 
     public void process(final Record<Object, GenericRow> record) {
       handleRow(record);
     }
 
     @Override
-    public void close() {}
+    public void close() {
+
+    }
   }
 
   public static Optional<ScalablePushRegistry> create(

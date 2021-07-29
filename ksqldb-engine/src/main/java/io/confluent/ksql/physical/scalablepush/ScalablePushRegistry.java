@@ -156,6 +156,10 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     return new PeekProcessor();
   }
 
+  public void onError() {
+
+  }
+
   private final class PeekProcessor implements Processor<Object, GenericRow, Void, Void> {
 
     private PeekProcessor() {

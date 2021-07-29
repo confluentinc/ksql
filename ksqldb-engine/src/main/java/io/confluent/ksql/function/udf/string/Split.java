@@ -21,7 +21,11 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -30,12 +34,13 @@ import java.util.regex.Pattern;
     name = Split.NAME,
     category = FunctionCategory.STRING,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Splits a string into an array of substrings based on a delimiter. "
-        + "If the delimiter is found at the beginning of the string, end of the string, or there "
-        + "are contiguous delimiters in the string, then empty strings are added to the array. "
-        + "If the delimiter is not found, then the original string is returned as the only "
-        + "element in the array. If the delimiter is empty, then all characters in the string are "
-        + "split."
+    description = "Splits a string or bytes into an array of substrings or bytes based on a "
+        + "delimiter. If the delimiter is found at the beginning of the string/bytes, end of the "
+        + "string/bytes, or there are contiguous delimiters in the string/bytes, then empty "
+        + "strings/bytes are added to the array. If the delimiter is not found, then the original "
+        + "string or bytes is returned as the only element in the array. "
+        + "If the delimiter is empty, then all characters or bytes in the string or bytes "
+        + "are split."
 )
 public class Split {
   static final String NAME = "split";
@@ -70,5 +75,57 @@ public class Split {
       throw new KsqlFunctionException(
           String.format("Invalid delimiter '%s' in the split() function.", delimiter), e);
     }
+  }
+
+  @Udf(description = "Splits a byte array into an array of bytes values based on a delimiter.")
+  public List<ByteBuffer> split(
+      @UdfParameter(
+          description = "The byte array to be split. If NULL, then function returns NULL.")
+      final ByteBuffer bytes,
+      @UdfParameter(
+          description = "The delimiter to split the byte array by. If NULL, then function"
+              + " returns NULL.")
+      final ByteBuffer delimiter) {
+    if (bytes == null || delimiter == null) {
+      return null;
+    }
+
+    final byte[] input = BytesUtils.getByteArray(bytes);
+    final byte[] delim = BytesUtils.getByteArray(delimiter);
+
+    if (input.length == 0) {
+      return Arrays.asList(bytes);
+    } else if (delim.length == 0) {
+      return splitAllBytes(input);
+    }
+
+    final List<ByteBuffer> list = new ArrayList<>();
+
+    int offset = 0;
+    int delimIdx;
+
+    while ((delimIdx = BytesUtils.indexOf(input, delim, offset)) != -1) {
+      list.add(ByteBuffer.wrap(Arrays.copyOfRange(input, offset, delimIdx)));
+      offset = delimIdx + delim.length;
+    }
+
+    if (offset == 0) {
+      return Arrays.asList(bytes);
+    } else {
+      list.add(ByteBuffer.wrap(Arrays.copyOfRange(input, offset, input.length)));
+    }
+
+    return list;
+  }
+
+  private List<ByteBuffer> splitAllBytes(final byte[] bytes) {
+    final List<ByteBuffer> result = new ArrayList<>(bytes.length);
+    for (int i = 0; i < bytes.length; i++) {
+      final byte[] b = new byte[1];
+      b[0] = bytes[i];
+      result.add(ByteBuffer.wrap(b));
+    }
+
+    return result;
   }
 }

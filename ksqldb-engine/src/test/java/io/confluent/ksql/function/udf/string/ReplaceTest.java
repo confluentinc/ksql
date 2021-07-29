@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.function.udf.string;
 
+import java.nio.ByteBuffer;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.nullValue;
 
 public class ReplaceTest {
   private Replace udf;
@@ -32,9 +34,16 @@ public class ReplaceTest {
 
   @Test
   public void shouldHandleNull() {
-    assertThat(udf.replace(null, "foo", "bar"), isEmptyOrNullString());
-    assertThat(udf.replace("foo", null, "bar"), isEmptyOrNullString());
-    assertThat(udf.replace("foo", "bar", null), isEmptyOrNullString());
+    assertThat(udf.replace(null, "foo", "bar"), is(nullValue()));
+    assertThat(udf.replace("foo", null, "bar"), is(nullValue()));
+    assertThat(udf.replace("foo", "bar", null), is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleNullBytes() {
+    assertThat(udf.replace(null, BYTES_12, BYTES_45), is(nullValue()));
+    assertThat(udf.replace(BYTES_123, null, BYTES_45), is(nullValue()));
+    assertThat(udf.replace(BYTES_123, BYTES_12, null), is(nullValue()));
   }
 
   @Test
@@ -44,4 +53,20 @@ public class ReplaceTest {
     assertThat(udf.replace("foobar", "o", ""), is("fbar"));
     assertThat(udf.replace("abc", "", "n"), is("nanbncn"));
   }
+
+  @Test
+  public void shouldReplaceBytes() {
+    assertThat(udf.replace(BYTES_123, BYTES_1, BYTES_45), is(ByteBuffer.wrap(new byte[]{4,5,2,3})));
+    assertThat(udf.replace(BYTES_123, BYTES_45, BYTES_12), is(BYTES_123));
+    assertThat(udf.replace(BYTES_123, BYTES_12, BYTES_45), is(ByteBuffer.wrap(new byte[]{4,5,3})));
+    assertThat(udf.replace(BYTES_123, BYTES_12, EMPTY_BYTES), is(ByteBuffer.wrap(new byte[]{3})));
+    assertThat(udf.replace(BYTES_45, EMPTY_BYTES, BYTES_1), is(ByteBuffer.wrap(new byte[]{1,4,1,5,1})));
+  }
+
+
+  final ByteBuffer BYTES_123 = ByteBuffer.wrap(new byte[]{1,2,3});
+  final ByteBuffer BYTES_1 = ByteBuffer.wrap(new byte[]{1});
+  final ByteBuffer BYTES_12 = ByteBuffer.wrap(new byte[]{1,2});
+  final ByteBuffer BYTES_45 = ByteBuffer.wrap(new byte[]{4,5});
+  final ByteBuffer EMPTY_BYTES = ByteBuffer.wrap(new byte[]{});
 }

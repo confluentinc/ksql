@@ -198,10 +198,10 @@ public class KsqlRestConfig extends AbstractConfig {
           + "JSON; this helps proactively determine if the connection has been terminated in "
           + "order to avoid keeping the created streams job alive longer than necessary";
 
-  static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG =
+  public static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG =
       KSQL_CONFIG_PREFIX + "server.command.response.timeout.ms";
 
-  private static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
+  protected static final String DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_DOC =
             "How long to wait for a distributed command to be executed by the local node before "
               + "returning a response";
 

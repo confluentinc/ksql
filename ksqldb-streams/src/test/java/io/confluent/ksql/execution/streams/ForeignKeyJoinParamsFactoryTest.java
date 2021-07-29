@@ -19,10 +19,13 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Optional;
 import org.junit.Test;
 
 public class ForeignKeyJoinParamsFactoryTest {
@@ -43,12 +46,9 @@ public class ForeignKeyJoinParamsFactoryTest {
 
   @Test
   public void shouldBuildCorrectKeyedSchema() {
-    // Given:
-    final ColumnName leftJoinColumnName = ColumnName.of("L_FOREIGN_KEY");
-
     // When:
     final ForeignKeyJoinParams<String> joinParams =
-        ForeignKeyJoinParamsFactory.create(leftJoinColumnName, LEFT_SCHEMA, RIGHT_SCHEMA);
+        ForeignKeyJoinParamsFactory.create(mock(ExpressionEvaluator.class), LEFT_SCHEMA, RIGHT_SCHEMA, null);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
@@ -60,23 +60,6 @@ public class ForeignKeyJoinParamsFactoryTest {
         .valueColumn(ColumnName.of("R_ORANGE"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("R_K"), SqlTypes.INTEGER)
         .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowIfJoinColumnNotFound() {
-    // Given:
-    final ColumnName leftJoinColumnName = ColumnName.of("L_UNKNOWN");
-
-    final Exception e = assertThrows(
-        IllegalStateException.class,
-        () -> ForeignKeyJoinParamsFactory.create(leftJoinColumnName, LEFT_SCHEMA, RIGHT_SCHEMA)
-    );
-
-    // Then:
-    assertThat(
-        e.getMessage(),
-        containsString("Could not find join column in left input table.")
     );
   }
 }

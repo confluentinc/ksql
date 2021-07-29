@@ -334,10 +334,11 @@ public final class ExecutionStepFactory {
       foreignKeyTableTableJoin(
           final QueryContext.Stacker stacker,
           final JoinType joinType,
-          final ColumnName leftJoinColumnName,
+          final Optional<ColumnName> leftJoinColumnName,
           final Formats formats,
           final ExecutionStep<KTableHolder<KLeftT>> left,
-          final ExecutionStep<KTableHolder<KRightT>> right
+          final ExecutionStep<KTableHolder<KRightT>> right,
+          final Optional<Expression> leftJoinExpression
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new ForeignKeyTableTableJoin<>(
@@ -346,7 +347,8 @@ public final class ExecutionStepFactory {
         leftJoinColumnName,
         formats,
         left,
-        right
+        right,
+        leftJoinExpression
     );
   }
 

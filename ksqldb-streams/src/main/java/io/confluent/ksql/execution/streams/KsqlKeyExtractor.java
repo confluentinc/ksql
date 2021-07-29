@@ -15,30 +15,43 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class KsqlKeyExtractor<KRightT> implements Function<GenericRow, KRightT> {
 
-  private final int leftJoinColumnIndex;
+  private final ExpressionEvaluator expressionEvaluator;
+  private final ProcessingLogger  processingLogger;
+  private final Supplier<String> errorMessage;
 
-  KsqlKeyExtractor(final int leftJoinColumnIndex) {
-    checkArgument(
-        leftJoinColumnIndex >= 0,
-        "leftJoinColumnIndex negative: " + leftJoinColumnIndex
+  KsqlKeyExtractor(final ExpressionEvaluator expressionEvaluator,
+                   final ProcessingLogger processingLogger) {
+    this.expressionEvaluator = requireNonNull(expressionEvaluator);
+    this.processingLogger = processingLogger;
+    errorMessage = () -> String.format(
+        "Error calculating left join expression: `%s`.",
+        expressionEvaluator.getExpression()
     );
-
-    this.leftJoinColumnIndex = leftJoinColumnIndex;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public KRightT apply(final GenericRow left) {
-    return (KRightT) GenericKey.genericKey(left.get(leftJoinColumnIndex));
+    return (KRightT) GenericKey.genericKey(
+        expressionEvaluator.evaluate(
+            left,
+            null,
+            processingLogger,
+            errorMessage
+        )
+    );
   }
 
   @Override
@@ -50,18 +63,22 @@ public final class KsqlKeyExtractor<KRightT> implements Function<GenericRow, KRi
       return false;
     }
     final KsqlKeyExtractor that = (KsqlKeyExtractor) o;
-    return leftJoinColumnIndex == that.leftJoinColumnIndex;
+    return Objects.equals(expressionEvaluator, that.expressionEvaluator)
+           && Objects.equals(processingLogger, that.processingLogger)
+           && Objects.equals(errorMessage, that.errorMessage);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(leftJoinColumnIndex);
+    return Objects.hash(expressionEvaluator, processingLogger, errorMessage);
   }
 
   @Override
   public String toString() {
     return "KsqlKeyExtractor{"
-        + "leftJoinColumnIndex=" + leftJoinColumnIndex
+        + "expressionEvaluator=" + expressionEvaluator
+        + "processingLogger=" + processingLogger
+        + "errorMessage=" + errorMessage
         + '}';
   }
 }

@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import java.util.Optional;
 
 public final class ForeignKeyJoinParamsFactory {
 
@@ -27,15 +26,16 @@ public final class ForeignKeyJoinParamsFactory {
   }
 
   public static <KRightT> ForeignKeyJoinParams<KRightT> create(
-      final ColumnName leftJoinColumnName,
+      final ExpressionEvaluator expressionEvaluator,
       final LogicalSchema leftSchema,
-      final LogicalSchema rightSchema
+      final LogicalSchema rightSchema,
+      final ProcessingLogger processingLogger
   ) {
     if (rightSchema.key().size() != 1) {
       throw new IllegalStateException("rightSchema must have single column key");
     }
     return new ForeignKeyJoinParams<>(
-        createKeyExtractor(leftSchema, leftJoinColumnName),
+        new KsqlKeyExtractor<>(expressionEvaluator, processingLogger),
         new KsqlValueJoiner(leftSchema.value().size(), rightSchema.value().size(), 0),
         createSchema(leftSchema, rightSchema)
     );
@@ -51,17 +51,5 @@ public final class ForeignKeyJoinParamsFactory {
         .valueColumns(rightSchema.value());
 
     return builder.build();
-  }
-
-  private static <KRightT> KsqlKeyExtractor<KRightT> createKeyExtractor(
-      final LogicalSchema leftSchema,
-      final ColumnName leftJoinColumnName) {
-
-    final Optional<Column> leftJoinColumn = leftSchema.findValueColumn(leftJoinColumnName);
-    if (!leftJoinColumn.isPresent()) {
-      throw new IllegalStateException("Could not find join column in left input table.");
-    }
-
-    return new KsqlKeyExtractor<>(leftJoinColumn.get().index());
   }
 }

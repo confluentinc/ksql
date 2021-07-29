@@ -16,10 +16,19 @@ package io.confluent.ksql.execution.plan;
 
 import static io.confluent.ksql.execution.plan.JoinType.INNER;
 import static io.confluent.ksql.execution.plan.JoinType.LEFT;
+import static io.confluent.ksql.execution.plan.JoinType.OUTER;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,8 +38,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ForeignKeyTableTableJoinTest {
 
-  private static final ColumnName JOIN_COLUMN_NAME = ColumnName.of("Bob");
-  private static final ColumnName JOIN_COLUMN_NAME_2 = ColumnName.of("Vic");
+  private static final Optional<ColumnName> JOIN_COLUMN_NAME = Optional.of(ColumnName.of("Bob"));
+  private static final Optional<ColumnName> JOIN_COLUMN_NAME_2 = Optional.of(ColumnName.of("Vic"));
+  private static final Optional<Expression> JOIN_EXPRESSION = Optional.of(
+      new Cast(
+        new UnqualifiedColumnReferenceExp(Optional.empty(), ColumnName.of("Bob")),
+        new Type(SqlPrimitiveType.of("INT"))
+      ));
+  private static final Optional<Expression> JOIN_EXPRESSION_2 = Optional.of(
+      new Cast(
+        new UnqualifiedColumnReferenceExp(Optional.empty(), ColumnName.of("Vic")),
+      new Type(SqlPrimitiveType.of("VARCHAR"))
+      ));
 
   @Mock
   private ExecutionStepPropertiesV1 props1;
@@ -49,31 +68,91 @@ public class ForeignKeyTableTableJoinTest {
   @Mock
   private Formats formats2;
 
+  @Test
+  public void shouldNotAllowOuterJoin() {
+    final IllegalArgumentException error = assertThrows(
+        IllegalArgumentException.class,
+        () -> new ForeignKeyTableTableJoin<>(props1, OUTER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
+    );
+
+    assertThat(error.getMessage(), is("OUTER join not supported."));
+  }
+
+  @Test
+  public void shouldNotAllowEmptyColumnNameAndEmptyExpression() {
+    final IllegalArgumentException error = assertThrows(
+        IllegalArgumentException.class,
+        () -> new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, Optional.empty())
+    );
+
+    assertThat(error.getMessage(), is("Either leftJoinColumnName or leftJoinExpression must be provided."));
+  }
+
+  @Test
+  public void shouldNotAllowColumnNameAndExpression() {
+    final IllegalArgumentException error = assertThrows(
+        IllegalArgumentException.class,
+        () -> new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, JOIN_EXPRESSION)
+    );
+
+    assertThat(error.getMessage(), is("Either leftJoinColumnName or leftJoinExpression must be empty."));
+  }
+
   @SuppressWarnings("UnstableApiUsage")
   @Test
-  public void shouldImplementEquals() {
+  public void shouldImplementEqualsColumName() {
     new EqualsTester()
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1),
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty()),
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, formats1, left1, right1)
+            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, formats1, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, formats1, left1, right1, Optional.empty())
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats1, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats1, left1, right1, Optional.empty())
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left1, right1, Optional.empty())
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left2, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left2, right1, Optional.empty())
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right2)
-        ).testEquals();
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right2, Optional.empty())
+        )
+        .testEquals();
+  }
+
+  @SuppressWarnings("UnstableApiUsage")
+  @Test
+  public void shouldImplementEqualsExpression() {
+    new EqualsTester()
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION),
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props2, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, LEFT, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats2, left1, right1, JOIN_EXPRESSION)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left2, right1, JOIN_EXPRESSION)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right2, JOIN_EXPRESSION)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, Optional.empty(), formats1, left1, right1, JOIN_EXPRESSION_2)
+        )
+        .testEquals();
   }
 }

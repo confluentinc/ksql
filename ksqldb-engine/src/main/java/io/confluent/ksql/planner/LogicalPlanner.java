@@ -28,6 +28,7 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -39,6 +40,7 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.udf.AsValue;
@@ -597,11 +599,11 @@ public class LogicalPlanner {
       );
     }
 
-    final Optional<ColumnReferenceExp> fkColumnName =
+    final Optional<Expression> fkExpression =
         verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
-    final JoinKey joinKey = fkColumnName
-        .map(columnReferenceExp -> buildForeignJoinKey(root, fkColumnName.get()))
+    final JoinKey joinKey = fkExpression
+        .map(columnReferenceExp -> buildForeignJoinKey(root, fkExpression.get()))
         .orElseGet(() -> buildJoinKey(root));
 
     final PlanNode left = prepareSourceForJoin(
@@ -609,14 +611,14 @@ public class LogicalPlanner {
         preRepartitionLeft,
         prefix + "Left",
         root.getInfo().getLeftJoinExpression(),
-        fkColumnName.isPresent()
+        fkExpression.isPresent()
     );
     final PlanNode right = prepareSourceForJoin(
         root.getRight(),
         preRepartitionRight,
         prefix + "Right",
         root.getInfo().getRightJoinExpression(),
-        fkColumnName.isPresent()
+        fkExpression.isPresent()
     );
 
     return new JoinNode(
@@ -634,7 +636,7 @@ public class LogicalPlanner {
   /**
    * @return the foreign key column if this is a foreign key join
    */
-  private Optional<ColumnReferenceExp> verifyJoin(
+  private Optional<Expression> verifyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
@@ -721,7 +723,7 @@ public class LogicalPlanner {
     }
   }
 
-  private Optional<ColumnReferenceExp> verifyForeignKeyJoin(
+  private Optional<Expression> verifyForeignKeyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
@@ -755,25 +757,34 @@ public class LogicalPlanner {
       ));
     }
 
-    if (!(leftExpression instanceof ColumnReferenceExp)) {
-      throw new KsqlException(String.format(
-          "Invalid join condition:"
-              + " foreign-key table-table joins with expressions are not supported yet."
-              + " Got %s = %s.",
-          joinInfo.getFlippedLeftJoinExpression(),
-          joinInfo.getFlippedRightJoinExpression()
-      ));
-    }
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(
+        leftNode.getSchema(),
+        ksqlConfig,
+        metaStore
+    );
 
-    // we need to extend this to support expressions later on
-    final ColumnReferenceExp fkColumnReference = (ColumnReferenceExp) leftExpression;
+    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> unqualifiedRewritter =
+        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
+          @Override
+          public Optional<Expression> visitQualifiedColumnReference(
+              final QualifiedColumnReferenceExp node,
+              final Context<Void> ctx
+          ) {
+            return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
+          }
+        };
 
-    final SqlType fkColumnType =
-        leftNode.getSchema().findColumn(fkColumnReference.getColumnName()).get().type();
+    final Expression leftExpressionUnqualified =
+        ExpressionTreeRewriter.rewriteWith(unqualifiedRewritter::process, leftExpression);
+    final ExpressionEvaluator expressionEvaluator = codeGenRunner.buildCodeGenFromParseTree(
+        leftExpressionUnqualified,
+        "Left Join Expression"
+    );
+    final SqlType fkType = expressionEvaluator.getExpressionType();
     final SqlType rightKeyType = Iterables.getOnlyElement(rightNode.getSchema().key()).type();
 
     verifyJoinConditionTypes(
-        fkColumnType,
+        fkType,
         rightKeyType,
         leftExpression,
         rightExpression,
@@ -786,7 +797,7 @@ public class LogicalPlanner {
       );
     }
 
-    return Optional.of(fkColumnReference);
+    return Optional.of(leftExpression);
   }
 
   private static boolean joinOnNonKeyAttribute(
@@ -872,7 +883,8 @@ public class LogicalPlanner {
     throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
   }
 
-  private JoinKey buildForeignJoinKey(final Join join, final ColumnReferenceExp columnRef) {
+  private JoinKey buildForeignJoinKey(final Join join,
+                                      final Expression foreignKeyExpression) {
     final AliasedDataSource leftSource = join.getInfo().getLeftSource();
     final SourceName alias = leftSource.getAlias();
     final List<QualifiedColumnReferenceExp> leftSourceKeys =
@@ -880,13 +892,24 @@ public class LogicalPlanner {
             .map(c -> new QualifiedColumnReferenceExp(alias, c.name()))
             .collect(Collectors.toList());
 
-    final ColumnName foreignKeyColumnName = columnRef.maybeQualifier().isPresent()
-        ? ColumnNames.generatedJoinColumnAlias(
-            columnRef.maybeQualifier().get(),
-            columnRef.getColumnName())
-        : columnRef.getColumnName();
+    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> aliasRewritter =
+        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
+          @Override
+          public Optional<Expression> visitQualifiedColumnReference(
+              final QualifiedColumnReferenceExp node,
+              final Context<Void> ctx
+          ) {
+            return Optional.of(new UnqualifiedColumnReferenceExp(
+                ColumnNames.generatedJoinColumnAlias(node.getQualifier(), node.getColumnName())
+            ));
+          }
+        };
 
-    return JoinKey.foreignKeyColumn(foreignKeyColumnName, leftSourceKeys);
+    final Expression aliasedForeignKeyExpression =
+        ExpressionTreeRewriter.rewriteWith(aliasRewritter::process, foreignKeyExpression);
+
+
+    return JoinKey.foreignKeyColumn(aliasedForeignKeyExpression, leftSourceKeys);
   }
 
   private static void verifyJoinConditionTypes(

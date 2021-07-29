@@ -25,10 +25,10 @@ import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @UdfDescription(
     name = Split.NAME,
@@ -90,42 +90,12 @@ public class Split {
       return null;
     }
 
-    final byte[] input = BytesUtils.getByteArray(bytes);
-    final byte[] delim = BytesUtils.getByteArray(delimiter);
+    final byte[] byteArray = BytesUtils.getByteArray(bytes);
+    final byte[] byteDelimiter = BytesUtils.getByteArray(delimiter);
 
-    if (input.length == 0) {
-      return Arrays.asList(bytes);
-    } else if (delim.length == 0) {
-      return splitAllBytes(input);
-    }
-
-    final List<ByteBuffer> list = new ArrayList<>();
-
-    int offset = 0;
-    int delimIdx;
-
-    while ((delimIdx = BytesUtils.indexOf(input, delim, offset)) != -1) {
-      list.add(ByteBuffer.wrap(Arrays.copyOfRange(input, offset, delimIdx)));
-      offset = delimIdx + delim.length;
-    }
-
-    if (offset == 0) {
-      return Arrays.asList(bytes);
-    } else {
-      list.add(ByteBuffer.wrap(Arrays.copyOfRange(input, offset, input.length)));
-    }
-
-    return list;
-  }
-
-  private List<ByteBuffer> splitAllBytes(final byte[] bytes) {
-    final List<ByteBuffer> result = new ArrayList<>(bytes.length);
-    for (int i = 0; i < bytes.length; i++) {
-      final byte[] b = new byte[1];
-      b[0] = bytes[i];
-      result.add(ByteBuffer.wrap(b));
-    }
-
-    return result;
+    return BytesUtils.split(byteArray, byteDelimiter)
+        .stream()
+        .map(ByteBuffer::wrap)
+        .collect(Collectors.toList());
   }
 }

@@ -18,8 +18,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -108,6 +110,47 @@ public final class BytesUtils {
 
   public static byte[] getByteArray(final ByteBuffer buffer, final int start, final int end) {
     return Arrays.copyOfRange(getByteArray(buffer), start, end);
+  }
+
+  public static List<byte[]> split(final byte[] b, final byte[] delim) {
+    if (b.length == 0) {
+      return Arrays.asList(b);
+    } else if (delim.length == 0) {
+      return splitAllBytes(b);
+    }
+
+    int offset = 0;
+    int delimIdx;
+
+    final List<byte[]> list = new ArrayList<>();
+    while ((delimIdx = indexOf(b, delim, offset)) != -1) {
+      final int newSplitLength = delimIdx - offset;
+      final byte[] newSplitArray = new byte[newSplitLength];
+
+      System.arraycopy(b, offset, newSplitArray, 0, newSplitLength);
+      list.add(newSplitArray);
+
+      offset = delimIdx + delim.length;
+    }
+
+    if (offset == 0) {
+      return Arrays.asList(b);
+    } else {
+      list.add(Arrays.copyOfRange(b, offset, b.length));
+    }
+
+    return list;
+  }
+
+  private static List<byte[]> splitAllBytes(final byte[] b) {
+    final List<byte[]> result = new ArrayList<>(b.length);
+    for (int i = 0; i < b.length; i++) {
+      final byte[] newB = new byte[1];
+      newB[0] = b[i];
+      result.add(newB);
+    }
+
+    return result;
   }
 
   public static int indexOf(final byte[] array, final byte[] target, final int fromIndex) {

@@ -810,7 +810,7 @@ LPAD(input, length, padding)
 Pads the input string or bytes, starting from the left, with the specified padding of the same type until the target length is reached. 
 If the input is longer than the specified target length, it is truncated.
 
-If the padding string or bytes is empty or NULL, or the target length is negative, NULL is returned.
+If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -990,7 +990,7 @@ RPAD(input, length, padding)
 Pads the input string or bytes, starting from the end, with the specified padding of the same type until the target length is reached. 
 If the input is longer than the specified target length, it is truncated. 
 
-If the padding string or bytes is empty or NULL, or the target length is negative, NULL is returned.
+If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql

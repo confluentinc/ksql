@@ -16,174 +16,243 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.engine.QueryEventListener;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryMetadata;
+
 import java.io.File;
 import java.math.BigInteger;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
-import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.Gauge;
+import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.common.metrics.MetricsContext;
+import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UtilizationMetricsListener implements Runnable, QueryEventListener {
-  private final ConcurrentHashMap<QueryId, KafkaStreams> kafkaStreams;
-  private final Logger logger = LoggerFactory.getLogger(UtilizationMetricsListener.class);
-  private final Set<TaskStorageMetric> metrics;
+public class UtilizationMetricsListener implements MetricsReporter {
+  private final ConcurrentHashMap<String, Long> queryStorageMetrics;
+  private final Map<String, List<String>> metrics;
   private final Metrics metricRegistry;
   private final File baseDir;
+  private final Collection<TaskStorageMetric> registeredMetrics;
 
   public UtilizationMetricsListener(final KsqlConfig config, final Metrics metricRegistry) {
-    this.kafkaStreams = new ConcurrentHashMap<>();
-    this.metrics = new HashSet<>();
+    this.queryStorageMetrics = new ConcurrentHashMap<>();
+    this.metrics = new HashMap<>();
     this.baseDir = new File(config.getKsqlStreamConfigProps()
       .getOrDefault(
         StreamsConfig.STATE_DIR_CONFIG,
         StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
       .toString());
     this.metricRegistry = metricRegistry;
+    this.registeredMetrics = new ArrayList<>();
+
+    final MetricName nodeAvailable = this.metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
+    final MetricName nodeTotal = this.metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
+    final MetricName nodeUsed = this.metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
+
 
     this.metricRegistry.addMetric(
-      metricRegistry.metricName("node-storage-usage", "ksql-utilization-metrics"),
-      (Gauge<Long>) (metricsConfig, now) -> baseDir.getFreeSpace()
+      nodeAvailable,
+      (Gauge<Long>) (metricConfig, now) -> baseDir.getFreeSpace()
+    );
+    this.metricRegistry.addMetric(
+      nodeTotal,
+      (Gauge<Long>) (metricConfig, now) -> baseDir.getFreeSpace()
+    );
+    this.metricRegistry.addMetric(
+      nodeUsed,
+      (Gauge<Long>) (metricConfig, now) -> baseDir.getFreeSpace()
     );
   }
 
   // for testing
   public UtilizationMetricsListener(
-      final ConcurrentHashMap<QueryId, KafkaStreams> kafkaStreams,
+      final ConcurrentHashMap<String, Long> kafkaStreams,
       final File baseDir,
-      final Metrics metrics) {
-    this.kafkaStreams = kafkaStreams;
-    this.metrics = new HashSet<>();
+      final Metrics metricRegistry,
+      final Map<String, List<String>> taskMetrics) {
+    this.queryStorageMetrics = kafkaStreams;
+    this.metrics = taskMetrics;
     this.baseDir = baseDir;
-    metricRegistry = metrics;
+    this.metricRegistry = metricRegistry;
+    this.registeredMetrics = new ArrayList<>();
 
-    final MetricName nodeAvailable = metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
-    final MetricName nodeTotal = metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
-    final MetricName nodeUsed = metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
+    final MetricName nodeAvailable = this.metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
+    final MetricName nodeTotal = this.metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
+    final MetricName nodeUsed = this.metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
 
 
-    metricRegistry.addMetric(
+    this.metricRegistry.addMetric(
       nodeAvailable,
       (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
     );
-    metricRegistry.addMetric(
+    this.metricRegistry.addMetric(
       nodeTotal,
       (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
     );
-    metricRegistry.addMetric(
+    this.metricRegistry.addMetric(
       nodeUsed,
       (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
     );
   }
 
   @Override
-  public void onCreate(
-      final ServiceContext serviceContext,
-      final MetaStore metaStore,
-      final QueryMetadata queryMetadata) {
-    kafkaStreams.put(queryMetadata.getQueryId(), queryMetadata.getKafkaStreams());
+  public void init(List<KafkaMetric> list) {
+
   }
 
   @Override
-  public void onDeregister(final QueryMetadata query) {
-    kafkaStreams.remove(query.getQueryId());
-  }
+  public void metricChange(final KafkaMetric metric) {
+    if (!metric.metricName().name().equals("total-sst-files-size")) {
+      return;
+    }
+    final String taskId = metric.metricName().tags().getOrDefault("task-id", "");
 
-  @Override
-  public void run() {
-    logger.info("Reporting Observability Metrics");
-    logger.info("Reporting storage metrics");
-    taskDiskUsage();
-  }
-
-  public void taskDiskUsage() {
-    final Set<TaskStorageMetric> allMetricsSeen = new HashSet<>();
-
-    for (Map.Entry<QueryId, KafkaStreams> streams : kafkaStreams.entrySet()) {
-      final List<Metric> fileSizePerTask = streams.getValue().metrics().values().stream()
-          .filter(m -> m.metricName().name().equals("total-sst-files-size"))
-          .collect(Collectors.toList());
-
-      long queryDiskUsage = 0L;
-      final Set<TaskStorageMetric> updatedTaskLevelMetrics = new HashSet<>();
-      for (Metric m : fileSizePerTask) {
-        final BigInteger usage = (BigInteger) m.metricValue();
-        final String taskId = m.metricName().tags().getOrDefault("task-id", "");
-        final TaskStorageMetric newMetric = new TaskStorageMetric(
-          metricRegistry.metricName(
-            "task-storage-usage",
-            "ksql-utilization-metrics",
-            ImmutableMap.of("task-id", taskId, "query-id", streams.getKey().toString())
-          ));
-
-        if (!updatedTaskLevelMetrics.add(newMetric)) {
-          newMetric.updateValue((long) newMetric.value + usage.longValue());
-        }
-        queryDiskUsage += usage.longValue();
-      }
-
-      final TaskStorageMetric queryStorageMetric = new TaskStorageMetric(
+    final String queryId = "";
+    // if we haven't seen a task for this query yet
+    if (!metrics.containsKey(queryId)) {
+      metricRegistry.addMetric(
         metricRegistry.metricName(
           "query-storage-usage",
           "ksql-utilization-metrics",
-          ImmutableMap.of("query-id", streams.getKey().toString())
-        ));
-
-      if (!updatedTaskLevelMetrics.add(queryStorageMetric)) {
-        queryStorageMetric.updateValue((long) queryStorageMetric.value + queryDiskUsage);
-      }
-      updatedTaskLevelMetrics.removeAll(metrics);
-
-      // create gauges for all the task level metrics we haven't seen before, add them to our master list
-      for (TaskStorageMetric entry : updatedTaskLevelMetrics) {
-        metricRegistry.addMetric(entry.metricName, (Gauge<Object>) (config, now) -> entry.getValue());
-        metrics.add(entry);
-      }
-
-      logger.info("Total storage usage for query {} is {}", streams.getKey(), queryDiskUsage);
-
-      allMetricsSeen.addAll(updatedTaskLevelMetrics);
+          ImmutableMap.of("query-id", queryId)),
+        (Gauge<Object>) (config, now) -> queryStorageMetrics.get(queryId)
+      );
+      metrics.put(queryId, new ArrayList<>());
     }
+    // We've seen metric for this query before
+    if (metrics.get(queryId).contains(taskId)) {
+      // we have this task metric already, just need to update it
+      resetMetric(metric);
+      for (TaskStorageMetric storageMetric : registeredMetrics) {
+        if (storageMetric.getTaskId().equals(taskId)) {
+          storageMetric.add(metric);
+        }
+      }
+    } else {
+      // create a new task level metric to track state stores
+      final TaskStorageMetric newMetric = new TaskStorageMetric(
+        metricRegistry.metricName(
+          "task-storage-usage",
+          "ksql-utilization-metrics",
+          ImmutableMap.of("task-id", taskId, "query-id", "query-id")
+        ));
+      newMetric.add(metric);
+      registeredMetrics.add(newMetric);
+      // create gauge for task / query
+      metricRegistry.addMetric(newMetric.metricName, (Gauge<BigInteger>) (config, now) -> newMetric.getValue());
 
-    final Set<TaskStorageMetric> toRemove = metrics;
-    toRemove.removeAll(allMetricsSeen);
-
-    for (TaskStorageMetric entry : toRemove) {
-      metricRegistry.removeMetric(entry.metricName);
+      // add to list of seen metrics
+      metrics.get(queryId).add(taskId);
     }
   }
 
-  private class TaskStorageMetric {
-    final MetricName metricName;
-    Object value;
+  @Override
+  public void metricRemoval(final KafkaMetric metric) {
+    final MetricName metricName = metric.metricName();
+    if (!metricName.name().equals("total-sst-files-size")) {
+      return;
+    }
 
-    private TaskStorageMetric(final MetricName metricName) {
+    registeredMetrics.forEach(r -> r.remove(metricName));
+    // will maybe delete task / query gauges here
+    cleanMetrics();
+  }
+
+  @Override
+  public void close() {
+
+  }
+
+  @Override
+  public Set<String> reconfigurableConfigs() {
+    return null;
+  }
+
+  @Override
+  public void validateReconfiguration(Map<String, ?> configs) throws ConfigException {
+
+  }
+
+  @Override
+  public void reconfigure(Map<String, ?> configs) {
+
+  }
+
+  @Override
+  public void contextChange(MetricsContext metricsContext) {
+
+  }
+
+  public void cleanMetrics() {
+    for (TaskStorageMetric m : registeredMetrics) {
+      // if don't have any store metrics for this task
+      if (m.metrics.size() == 0) {
+        // we can get rid fo task level metric
+        metricRegistry.removeMetric(m.metricName);
+        registeredMetrics.remove(m);
+        final List<String> taskMetrics = metrics.get("queryId");
+        taskMetrics.remove("task-id");
+        // if there are no task level metrics for this query
+        if (taskMetrics.size() == 0){
+          // we don't have more task metrics for the query, remove query gauge
+          metricRegistry.removeMetric(metricRegistry.metricName(
+            "query-storage-usage",
+            "ksql-utilization-metrics",
+            ImmutableMap.of("query-id", "query-id")));
+        }
+      }
+    }
+  }
+
+  public void resetMetric(final KafkaMetric metric) {
+    registeredMetrics.forEach(r -> r.remove(metric.metricName()));
+  }
+
+  @Override
+  public void configure(Map<String, ?> map) {
+
+  }
+
+  public static class TaskStorageMetric {
+    final MetricName metricName;
+    private final Map<MetricName, KafkaMetric> metrics = new ConcurrentHashMap<>();
+
+    TaskStorageMetric(final MetricName metricName) {
       this.metricName = metricName;
     }
 
-    private void updateValue(final Object value) {
-      this.value = value;
+    private void add(final KafkaMetric metric) {
+      metrics.put(metric.metricName(), metric);
     }
 
-    public Object getValue() {
-      return this.value;
+    private void remove(final MetricName name) {
+      metrics.remove(name);
+    }
+
+    public BigInteger getValue() {
+      BigInteger newValue = BigInteger.ZERO;
+      for (KafkaMetric metric : metrics.values()) {
+        final BigInteger value = (BigInteger) metric.metricValue();
+        newValue = newValue.add(value);
+      }
+      return newValue;
+    }
+
+    public String getTaskId() {
+      return metricName.tags().getOrDefault("task-id", "");
     }
 
     @Override

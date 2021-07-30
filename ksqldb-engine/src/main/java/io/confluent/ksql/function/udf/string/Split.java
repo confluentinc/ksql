@@ -23,7 +23,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;

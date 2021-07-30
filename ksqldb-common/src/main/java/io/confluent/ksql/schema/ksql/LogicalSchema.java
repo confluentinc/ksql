@@ -141,7 +141,7 @@ public final class LogicalSchema {
   }
 
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuildWithPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    return withPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**
@@ -284,8 +284,8 @@ public final class LogicalSchema {
     }
 
     if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
-      builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
       builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
+      builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
     }
 
     for (final Column c : key) {
@@ -331,6 +331,31 @@ public final class LogicalSchema {
     }
 
     return new LogicalSchema(builder.build());
+  }
+
+  private ImmutableList.Builder<Column> builderWithoutKeyAndPseudoColumns() {
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+
+    final List<Column> key = byNamespace.get(Namespace.KEY);
+    final List<Column> value = byNamespace.get(VALUE);
+
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+
+    builder.addAll(key);
+
+    int valueIndex = 0;
+    for (final Column c : value) {
+      if (SystemColumns.isSystemColumn(c.name())) {
+        continue;
+      }
+
+      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+        continue;
+      }
+
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
+    return builder;
   }
 
   private static Predicate<Column> withName(final ColumnName name) {

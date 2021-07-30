@@ -514,7 +514,7 @@ public final class SourceBuilder {
           final Collection<?> keyColumns = keyGenerator.apply(key);
 
           final int numPseudoColumns = SystemColumns
-              .getPseudoColumnsFromVersion(pseudoColumnVersion).size();
+              .pseudoColumnNames(pseudoColumnVersion).size();
 
           row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size());
 
@@ -524,10 +524,10 @@ public final class SourceBuilder {
           }
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
-            final long offset = processorContext.offset();
             final int partition = processorContext.partition();
-            row.append(offset);
+            final long offset = processorContext.offset();
             row.append(partition);
+            row.append(offset);
           }
 
           row.appendAll(keyColumns);

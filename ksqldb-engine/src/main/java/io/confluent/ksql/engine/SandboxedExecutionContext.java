@@ -41,7 +41,6 @@ import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

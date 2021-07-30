@@ -23,7 +23,6 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
@@ -119,14 +117,14 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
 
   public void start(final QueryId queryId) {
     if (metadata.containsKey(queryId.toString()) && !metadata.get(queryId.toString()).everStarted) {
-      //don't start streams
+      kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
     } else {
       throw new IllegalArgumentException("query not added to runtime");
     }
   }
 
   public List<QueryError> getQueryErrors() {
-    return Collections.EMPTY_LIST;
+    return Collections.emptyList();
   }
 
   public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
@@ -153,5 +151,8 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
 
   public Set<QueryId> getQueries() {
     return ImmutableSet.copyOf(sources.keySet());
+  }
+
+  public void addQueryError(QueryError e) {
   }
 }

@@ -39,7 +39,6 @@ import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -283,12 +282,6 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public void close(final boolean closePersistent) {
-    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      sharedKafkaStreamsRuntime.close();
-    }
-    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : validationSet) {
-      sharedKafkaStreamsRuntime.close();
-    }
     for (final QueryMetadata queryMetadata : getAllLiveQueries()) {
       // only persistent queries can be stopped - transient queries must be closed (destroyed)
       if (closePersistent || queryMetadata instanceof TransientQueryMetadata) {
@@ -299,6 +292,12 @@ public class QueryRegistryImpl implements QueryRegistry {
         ((PersistentQueryMetadata) queryMetadata).stop();
         unregisterQuery(queryMetadata);
       }
+    }
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+      sharedKafkaStreamsRuntime.close();
+    }
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : validationSet) {
+      sharedKafkaStreamsRuntime.close();
     }
   }
 

@@ -85,6 +85,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   public boolean everStarted = false;
   private QueryErrorClassifier classifier;
   private Map<String, Object> streamsProperties;
+  private boolean corruptionCommandTopic = false;
 
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -261,11 +262,13 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
     //Not done but query for bin packed queries
-    return;
   }
 
   @Override
   public KafkaStreams.State getState() {
+    if (corruptionCommandTopic) {
+      return KafkaStreams.State.ERROR;
+    }
     return sharedKafkaStreamsRuntime.state();
   }
 
@@ -337,6 +340,18 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public List<QueryError> getQueryErrors() {
     return sharedKafkaStreamsRuntime.getQueryErrors();
+  }
+
+  @Override
+  public void setCorruptionQueryError() {
+    final QueryError corruptionQueryError = new QueryError(
+        System.currentTimeMillis(),
+        "Query not started due to corruption in the command topic.",
+        QueryError.Type.USER
+    );
+    listener.onError(this, corruptionQueryError);
+    sharedKafkaStreamsRuntime.addQueryError(corruptionQueryError);
+    corruptionCommandTopic = true;
   }
 
   @Override

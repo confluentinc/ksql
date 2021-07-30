@@ -71,4 +71,6 @@ public interface SharedKafkaStreamsRuntime {
   Set<SourceName> getSources();
 
   Set<QueryId> getQueries();
+
+  void addQueryError(QueryError e);
 }

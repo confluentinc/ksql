@@ -24,7 +24,6 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
-
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -32,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
@@ -78,7 +76,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
           final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
           final QueryId queryId) {
     this.errorClassifier = errorClassifier;
-    if(metadata.containsKey(queryId.toString())) {
+    if (metadata.containsKey(queryId.toString())) {
       kafkaStreams.removeNamedTopology(queryId.toString());
     }
     metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
@@ -158,11 +156,11 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
     if (kafkaStreams.state().isRunningOrRebalancing()) {
-          try {
-              kafkaStreams.removeNamedTopology(queryId.toString());
-          } catch (IllegalArgumentException e) {
-              //don't block
-          }
+      try {
+          kafkaStreams.removeNamedTopology(queryId.toString());
+      } catch (IllegalArgumentException e) {
+          //don't block
+      }
     } else {
       throw new IllegalStateException("Streams in not running but is in state" + kafkaStreams.state());
     }
@@ -216,5 +214,9 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   public Set<QueryId> getQueries() {
     return ImmutableSet.copyOf(sources.keySet());
+  }
+
+  public void addQueryError(QueryError e) {
+    queryErrors.add(e);
   }
 }

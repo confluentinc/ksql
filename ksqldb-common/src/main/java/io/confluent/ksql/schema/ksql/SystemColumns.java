@@ -48,30 +48,12 @@ public final class SystemColumns {
   public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER =
       ROWTIME_PSEUDOCOLUMN_VERSION;
 
-  private static final Set<ColumnName> VERSION_ZERO_NAMES;
-  private static final Set<ColumnName> VERSION_ONE_NAMES;
-
-  static {
-    VERSION_ZERO_NAMES = new HashSet<>();
-    VERSION_ZERO_NAMES.add(ROWTIME_NAME);
-
-    VERSION_ONE_NAMES = new HashSet<>(VERSION_ZERO_NAMES);
-    VERSION_ONE_NAMES.add(ROWOFFSET_NAME);
-    VERSION_ONE_NAMES.add(ROWPARTITION_NAME);
-  }
-
-  private static final Map<Integer, Set<ColumnName>> PSEUDO_COLUMN_NAMES_BY_VERSION =
-      ImmutableMap.of(
-      0, VERSION_ZERO_NAMES,
-      1, VERSION_ONE_NAMES
-      );
-
   private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
       WINDOWSTART_NAME,
       WINDOWEND_NAME
   );
 
-  private static final Map<Integer, Set<ColumnName>> SYSTEM_COLUMN_NAMES_BY_VERSION = 
+  private static final Map<Integer, Set<ColumnName>> SYSTEM_COLUMN_NAMES_BY_VERSION =
       ImmutableMap.of(
       0, buildColumns(0),
       1, buildColumns(1)
@@ -93,10 +75,10 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
-    if (!PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
+    if (!PseudoColumns.PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
       throw new KsqlException("Provided pseudoColumnVersion has no corresponding columns defined");
     }
-    return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
+    return PseudoColumns.PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
   }
 
   public static Set<ColumnName> pseudoColumnNames() {
@@ -122,16 +104,25 @@ public final class SystemColumns {
         .build();
   }
 
-  public static void myTest() {
-    PseudoColumns.test();
-  }
-
   static class PseudoColumns {
 
-    public static final int MY_VERSION_NUMBER = 1;
-    public static void test() {
-      System.out.println("hi");
+    private static final Set<ColumnName> VERSION_ZERO_NAMES;
+    private static final Set<ColumnName> VERSION_ONE_NAMES;
+
+    static {
+      VERSION_ZERO_NAMES = new HashSet<>();
+      VERSION_ZERO_NAMES.add(ROWTIME_NAME);
+
+      VERSION_ONE_NAMES = new HashSet<>(VERSION_ZERO_NAMES);
+      VERSION_ONE_NAMES.add(ROWOFFSET_NAME);
+      VERSION_ONE_NAMES.add(ROWPARTITION_NAME);
     }
+
+    private static final Map<Integer, Set<ColumnName>> PSEUDO_COLUMN_NAMES_BY_VERSION =
+        ImmutableMap.of(
+            0, VERSION_ZERO_NAMES,
+            1, VERSION_ONE_NAMES
+        );
 
   }
 }

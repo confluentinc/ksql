@@ -26,10 +26,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 public final class BytesUtils {
-  private static final Base64.Encoder BASE64_ENCODER = Base64.getMimeEncoder();
-  private static final Base64.Decoder BASE64_DECODER = Base64.getMimeDecoder();
-
-  enum Encoding {
+  public enum Encoding {
     HEX,
     UTF8,
     ASCII,
@@ -68,21 +65,19 @@ public final class BytesUtils {
       Encoding.BASE64, v -> base64Decoding(v)
   );
 
-  public static String encode(final byte[] value, final String encoding) {
-    final Function<byte[], String> encoder = ENCODERS.get(Encoding.from(encoding));
+  public static String encode(final byte[] value, final Encoding encoding) {
+    final Function<byte[], String> encoder = ENCODERS.get(encoding);
     if (encoder == null) {
-      throw new IllegalStateException(String.format("Unknown encoding type '%s'. "
-          + "Supported formats are 'hex', 'utf8', 'ascii', and 'base64'.", encoding));
+      throw new IllegalStateException(String.format("Unsupported encoding type '%s'. ", encoding));
     }
 
     return encoder.apply(value);
   }
 
-  public static byte[] decode(final String value, final String encoding) {
-    final Function<String, byte[]> decoder = DECODERS.get(Encoding.from(encoding));
+  public static byte[] decode(final String value, final Encoding encoding) {
+    final Function<String, byte[]> decoder = DECODERS.get(encoding);
     if (decoder == null) {
-      throw new IllegalStateException(String.format("Unknown encoding type '%s'. "
-          + "Supported formats are 'hex', 'utf8', 'ascii', and 'base64'.", encoding));
+      throw new IllegalStateException(String.format("Unsupported encoding type '%s'. ", encoding));
     }
 
     return decoder.apply(value);
@@ -208,10 +203,11 @@ public final class BytesUtils {
   }
 
   private static String base64Encoding(final byte[] value) {
-    return BASE64_ENCODER.encodeToString(value);
+    // Use getEncoder() because it does not add \r\n to the base64 string
+    return Base64.getEncoder().encodeToString(value);
   }
 
   private static byte[] base64Decoding(final String value) {
-    return BASE64_DECODER.decode(value);
+    return Base64.getDecoder().decode(value);
   }
 }

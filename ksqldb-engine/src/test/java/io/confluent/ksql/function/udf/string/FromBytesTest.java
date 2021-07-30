@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -63,6 +64,18 @@ public class FromBytesTest {
             is("IQ=="));
         assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{}), "base64"),
             is(""));
+    }
+
+    @Test
+    public void shouldNotAddNewLinesToBase64EncodedBytes() {
+        final byte[] b = new byte[200];
+        Arrays.fill(b, (byte) 33);
+
+        assertThat(udf.fromBytes(ByteBuffer.wrap(b), "base64"),
+            is("ISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEh"
+                + "ISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISE"
+                + "hISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISE"
+                + "hISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhISE="));
     }
 
     @Test

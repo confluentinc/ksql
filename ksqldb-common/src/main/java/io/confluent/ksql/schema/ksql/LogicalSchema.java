@@ -260,24 +260,9 @@ public final class LogicalSchema {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
-    final List<Column> value = byNamespace.get(VALUE);
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
-    builder.addAll(key);
-
-    int valueIndex = 0;
-    for (final Column c : value) {
-      if (SystemColumns.isSystemColumn(c.name())) {
-        continue;
-      }
-
-      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
-        continue;
-      }
-
-      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
-    }
+    int valueIndex = addNonPseudoAndKeyColsToBuilder(builder);
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
@@ -308,42 +293,28 @@ public final class LogicalSchema {
    * @return the LogicalSchema created, with the corresponding pseudo and key columns excluded
    */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue() {
-    final Map<Namespace, List<Column>> byNamespace = byNamespace();
-
-    final List<Column> key = byNamespace.get(Namespace.KEY);
-    final List<Column> value = byNamespace.get(VALUE);
-
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
-    builder.addAll(key);
-
-    int valueIndex = 0;
-    for (final Column c : value) {
-      if (SystemColumns.isSystemColumn(c.name())) {
-        continue;
-      }
-
-      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
-        continue;
-      }
-
-      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
-    }
-
+    addNonPseudoAndKeyColsToBuilder(builder);
     return new LogicalSchema(builder.build());
   }
 
-  private ImmutableList.Builder<Column> builderWithoutKeyAndPseudoColumns() {
+  /**
+   * Adds columns, except for key and pseudocolumns, to a provided builder and returns the number
+   * of added columns
+   * @param builder the builder to be passed in. Columns that don't qualify as key or pseudocolumns
+   *                will be added
+   * @return the number of columns added. This also functions as a "column index", to pass into
+   * builder.add()
+   */
+  private int addNonPseudoAndKeyColsToBuilder(ImmutableList.Builder<Column> builder) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
     final List<Column> value = byNamespace.get(VALUE);
 
-    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
     builder.addAll(key);
 
-    int valueIndex = 0;
+    int addedColumns = 0;
     for (final Column c : value) {
       if (SystemColumns.isSystemColumn(c.name())) {
         continue;
@@ -353,9 +324,9 @@ public final class LogicalSchema {
         continue;
       }
 
-      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+      builder.add(Column.of(c.name(), c.type(), VALUE, addedColumns++));
     }
-    return builder;
+    return addedColumns;
   }
 
   private static Predicate<Column> withName(final ColumnName name) {

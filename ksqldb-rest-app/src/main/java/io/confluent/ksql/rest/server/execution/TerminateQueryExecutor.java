@@ -50,7 +50,7 @@ public final class TerminateQueryExecutor {
 
     if (executionContext.getPersistentQuery(queryId.get()).isPresent()) {
       // do default behaviour for terminating persistent queries
-      distributingExecutor.execute(statement, executionContext, securityContext);
+      return distributingExecutor.execute(statement, executionContext, securityContext);
     } else {
       // Check are we running this push query locally, if yes then terminate, otherwise
       // propagate terminate query to other nodes
@@ -72,7 +72,7 @@ public final class TerminateQueryExecutor {
             wasTerminatedLocally));
       }
     }
-    return Optional.empty();
+//    return Optional.empty();
   }
 }
 

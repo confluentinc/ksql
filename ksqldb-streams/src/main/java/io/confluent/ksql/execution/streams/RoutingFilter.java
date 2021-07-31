@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.streams.state.HostInfo;
 
 /**
@@ -31,7 +35,63 @@ public interface RoutingFilter {
    * @param hostInfo The host to be considered for this filter
    * @return If the host should be included for consideration.
    */
-  boolean filter(KsqlHostInfo hostInfo);
+  Host filter(KsqlHostInfo hostInfo);
+
+  @Immutable
+  class Host {
+    private final KsqlHostInfo sourceInfo;
+    private final boolean selected;
+    private final String reasonNotSelected;
+
+    private Host(
+        final KsqlHostInfo sourceInfo,
+        final boolean selected,
+        final String reasonNotSelected
+    ) {
+      this.sourceInfo = Objects.requireNonNull(sourceInfo, "sourceInfo");
+      this.selected = selected;
+      this.reasonNotSelected = Objects.requireNonNull(reasonNotSelected, "reasonNotSelected");
+    }
+
+    public static Host include(final KsqlHostInfo host) {
+      return new Host(host, true, "");
+    }
+
+    public static Host exclude(final KsqlHostInfo host, final String reason) {
+      return new Host(host, false, reason);
+    }
+
+    public KsqlHostInfo getSourceInfo() {
+      return sourceInfo;
+    }
+
+    public boolean isSelected() {
+      return selected;
+    }
+
+    public String getReasonNotSelected() {
+      return reasonNotSelected;
+    }
+
+    public Host combine(final Host other) {
+      if (!sourceInfo.equals(other.sourceInfo)) {
+        throw new IllegalStateException("Should not combine non-matching hosts");
+      }
+
+      return new Host(
+          sourceInfo,
+          selected && other.selected,
+          Stream.of(reasonNotSelected, other.reasonNotSelected)
+              .filter(s -> !s.isEmpty()).collect(Collectors.joining(","))
+      );
+    }
+
+    @Override
+    public String toString() {
+      return sourceInfo + " was "
+          + (selected ? "selected" : "not selected because " + reasonNotSelected);
+    }
+  }
 
   /**
    * A factory for RoutingFilters.

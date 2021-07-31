@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.codegen;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.ARRAYCOL;
+import static io.confluent.ksql.execution.testutil.TestExpressions.BYTESCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL0;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -978,6 +979,22 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, containsString("(COL10.compareTo(COL13) > 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForBytesBytesGT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN,
+        BYTESCOL,
+        BYTESCOL
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL14.compareTo(COL14) > 0)"));
   }
 
   @Test

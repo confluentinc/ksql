@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-
 import java.util.List;
 
 public interface PersistentQueryCleanup {

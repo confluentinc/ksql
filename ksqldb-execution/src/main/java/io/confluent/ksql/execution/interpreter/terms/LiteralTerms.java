@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -28,7 +29,9 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class LiteralTerms {
 
-  private LiteralTerms() { }
+  private LiteralTerms() {
+
+  }
 
   public static Term of(final Boolean value) {
     return new BooleanTermImpl(value);
@@ -195,11 +198,13 @@ public final class LiteralTerms {
     private final BigDecimal value;
     private final SqlType sqlType;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public DecimalTermImpl(final BigDecimal value, final SqlType sqlType) {
       this.value = value;
       this.sqlType = sqlType;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @Override
     public Object getValue(final TermEvaluationContext context) {
       return value;
@@ -272,10 +277,12 @@ public final class LiteralTerms {
 
     private final ByteBuffer value;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public BytesTermImpl(final ByteBuffer bytes) {
       this.value = bytes;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     @Override
     public Object getValue(final TermEvaluationContext context) {
       return value;

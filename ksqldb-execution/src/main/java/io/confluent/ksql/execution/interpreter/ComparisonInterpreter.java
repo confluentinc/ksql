@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.interpreter;
 
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToBigDecimalFunction;
+import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToBytesFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToDateFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToDoubleFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToIntegerFunction;
@@ -36,6 +37,7 @@ import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.Optional;
 
@@ -44,7 +46,9 @@ import java.util.Optional;
  */
 public final class ComparisonInterpreter {
 
-  private ComparisonInterpreter() { }
+  private ComparisonInterpreter() {
+
+  }
 
   /**
    * Does a comparison between the two terms
@@ -95,7 +99,9 @@ public final class ComparisonInterpreter {
     };
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static Optional<ComparisonFunction> doCompareTo(final Term left, final Term right) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final SqlBaseType leftType = left.getSqlType().baseType();
     final SqlBaseType rightType = right.getSqlType().baseType();
     if (either(leftType, rightType, SqlBaseType.DECIMAL)) {
@@ -118,6 +124,12 @@ public final class ComparisonInterpreter {
       return Optional.of((o1, o2) -> castLeft.cast(o1).compareTo(castRight.cast(o2)));
     } else if (leftType == SqlBaseType.STRING) {
       return Optional.of((o1, o2) -> o1.toString().compareTo(o2.toString()));
+    } else if (leftType == SqlBaseType.BYTES && rightType == SqlBaseType.BYTES) {
+      final ComparableCastFunction<ByteBuffer> castLeft = castToBytesFunction(
+          left.getSqlType());
+      final ComparableCastFunction<ByteBuffer> castRight = castToBytesFunction(
+          right.getSqlType());
+      return Optional.of((o1, o2) -> castLeft.cast(o1).compareTo(castRight.cast(o2)));
     } else if (either(leftType, rightType, SqlBaseType.DOUBLE)) {
       final ComparableCastFunction<Double> castLeft = castToDoubleFunction(left.getSqlType());
       final ComparableCastFunction<Double> castRight = castToDoubleFunction(right.getSqlType());

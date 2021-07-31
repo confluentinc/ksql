@@ -38,6 +38,7 @@ public final class TestExpressions {
       .valueColumn(ColumnName.of("COL11"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("COL12"), SqlTypes.TIME)
       .valueColumn(ColumnName.of("COL13"), SqlTypes.DATE)
+      .valueColumn(ColumnName.of("COL14"), SqlTypes.BYTES)
       .build();
 
   public static final UnqualifiedColumnReferenceExp COL0 = columnRef("COL0");
@@ -53,6 +54,7 @@ public final class TestExpressions {
   public static final UnqualifiedColumnReferenceExp COL11 = columnRef("COL11");
   public static final UnqualifiedColumnReferenceExp TIMECOL = columnRef("COL12");
   public static final UnqualifiedColumnReferenceExp DATECOL = columnRef("COL13");
+  public static final UnqualifiedColumnReferenceExp BYTESCOL = columnRef("COL14");
 
   private static UnqualifiedColumnReferenceExp columnRef(final String name) {
     return new UnqualifiedColumnReferenceExp(ColumnName.of(name));

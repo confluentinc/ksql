@@ -16,12 +16,19 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -40,8 +47,35 @@ public final class ForeignKeyTableTableJoinBuilder {
     final LogicalSchema leftSchema = left.getSchema();
     final LogicalSchema rightSchema = right.getSchema();
 
+    final ProcessingLogger logger = buildContext.getProcessingLogger(
+        join.getProperties().getQueryContext()
+    );
+
+    final ExpressionEvaluator expressionEvaluator;
+    final CodeGenRunner codeGenRunner = new CodeGenRunner(
+        leftSchema,
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
+    );
+
+    final Optional<ColumnName> leftColumnName = join.getLeftJoinColumnName();
+    final Optional<Expression> leftJoinExpression = join.getLeftJoinExpression();
+    if (leftColumnName.isPresent()) {
+      expressionEvaluator = codeGenRunner.buildCodeGenFromParseTree(
+          new UnqualifiedColumnReferenceExp(leftColumnName.get()),
+          "Left Join Expression"
+      );
+    } else if (leftJoinExpression.isPresent()) {
+      expressionEvaluator = codeGenRunner.buildCodeGenFromParseTree(
+          leftJoinExpression.get(),
+          "Left Join Expression"
+      );
+    } else {
+      throw new IllegalStateException("Both leftColumnName and leftJoinExpression are empty.");
+    }
+
     final ForeignKeyJoinParams<KRightT> joinParams = ForeignKeyJoinParamsFactory
-        .create(join.getLeftJoinColumnName(), leftSchema, rightSchema);
+        .create(expressionEvaluator, leftSchema, rightSchema, logger);
 
     final Formats formats = join.getFormats();
 

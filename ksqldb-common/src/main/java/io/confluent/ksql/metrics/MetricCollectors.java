@@ -18,6 +18,7 @@ package io.confluent.ksql.metrics;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.base.Functions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -237,6 +238,7 @@ public final class MetricCollectors {
         .sum();
   }
 
+  @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "should be mutable")
   public static Metrics getMetrics() {
     return metrics;
   }

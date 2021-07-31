@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -77,6 +78,7 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     return schema;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "selectExpressions is ImmutableList")
   public List<SelectExpression> getSelectExpressions() {
     return selectExpressions;
   }

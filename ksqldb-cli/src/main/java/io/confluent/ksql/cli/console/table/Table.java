@@ -18,6 +18,8 @@ package io.confluent.ksql.cli.console.table;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.cli.console.Console;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -28,10 +30,10 @@ import org.apache.commons.lang3.StringUtils;
 
 public final class Table {
 
-  private final List<String> columnHeaders;
-  private final List<List<String>> rowValues;
-  private final List<String> header;
-  private final List<String> footer;
+  private final ImmutableList<String> columnHeaders;
+  private final ImmutableList<List<String>> rowValues;
+  private final ImmutableList<String> header;
+  private final ImmutableList<String> footer;
 
   private Table(
       final List<String> columnHeaders,
@@ -39,18 +41,22 @@ public final class Table {
       final List<String> header,
       final List<String> footer
   ) {
-    this.columnHeaders = requireNonNull(columnHeaders, "columnHeaders");
-    this.rowValues = requireNonNull(rowValues, "rowValues");
-    this.header = requireNonNull(header, "header");
-    this.footer = requireNonNull(footer, "footer");
+    this.columnHeaders = ImmutableList.copyOf(
+        requireNonNull(columnHeaders, "columnHeaders")
+    );
+    this.rowValues = ImmutableList.copyOf(requireNonNull(rowValues, "rowValues"));
+    this.header = ImmutableList.copyOf(requireNonNull(header, "header"));
+    this.footer = ImmutableList.copyOf(requireNonNull(footer, "footer"));
   }
 
   @VisibleForTesting
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnHeaders is ImmutableList")
   public List<String> headers() {
     return columnHeaders;
   }
 
   @VisibleForTesting
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "rowValues is ImmutableList")
   public List<List<String>> rows() {
     return rowValues;
   }

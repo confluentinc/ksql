@@ -78,6 +78,7 @@ for stream processing applications on top of {{ site.aktm }}.
     </ul>
     <small><a href="https://ksqldb.io/news-and-community.html" class="card-more">More →</a></small>
   </div>
+
 </div>
 
 ## Watch
@@ -101,9 +102,20 @@ for stream processing applications on top of {{ site.aktm }}.
       <li><a href="https://www.youtube.com/watch?v=2fUOi9wJPhk&ab_channel=RobinMoffatt">Building a streaming data pipeline</a></li>
     </ul>
   </div>
+
 </div>
 
 <div class="cards">
+
+  <div class="card getting-started">
+    <strong>Courses</strong>
+    <ul class="card-items">
+      <li><a href="https://developer.confluent.io/learn-kafka/ksqldb/intro/">ksqlDB 101</a></li>
+      <li><a href="https://developer.confluent.io/learn-kafka/inside-ksqldb/streaming-architecture/">Inside ksqlDB</a></li>
+    </ul>
+    <small><a href="https://developer.confluent.io/" class="card-more">More →</a></small>
+  </div>
+
   <div class="card getting-started how-to-videos">
     <strong>How to</strong>
     <ul class="card-items">

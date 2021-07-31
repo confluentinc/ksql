@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
@@ -37,7 +39,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   private final Materialization mat;
   private final DataSourceNode logicalNode;
 
-  private List<KsqlPartitionLocation> partitionLocations;
+  private ImmutableList<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
@@ -116,6 +118,10 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "partitionLocations is ImmutableList"
+  )
   public List<KsqlPartitionLocation> getPartitionLocations() {
     return partitionLocations;
   }
@@ -123,7 +129,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   @Override
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
-    partitionLocations = locations;
+    partitionLocations = ImmutableList.copyOf(locations);
   }
 
   @Override

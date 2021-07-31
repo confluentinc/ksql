@@ -66,7 +66,9 @@ public final class WindowStoreCacheBypass {
     }
   }
 
-  private WindowStoreCacheBypass() {}
+  private WindowStoreCacheBypass() {
+
+  }
 
   interface WindowStoreCacheBypassFetcher {
 

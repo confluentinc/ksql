@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -26,7 +27,7 @@ public class CreateMapTerm implements Term {
   private final SqlType resultType;
 
   public CreateMapTerm(final Map<Term, Term> mapTerms, final SqlType resultType) {
-    this.mapTerms = mapTerms;
+    this.mapTerms = ImmutableMap.copyOf(mapTerms);
     this.resultType = resultType;
   }
 

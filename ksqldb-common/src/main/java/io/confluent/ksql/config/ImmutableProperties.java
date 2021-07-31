@@ -16,6 +16,7 @@
 package io.confluent.ksql.config;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Set;
 import org.apache.kafka.streams.StreamsConfig;
@@ -38,6 +39,7 @@ public final class ImmutableProperties {
   private ImmutableProperties() {
   }
 
+  @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "immutable by definition")
   public static Set<String> getImmutableProperties() {
     return IMMUTABLE_PROPERTIES;
   }

@@ -47,7 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
-
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -420,7 +419,7 @@ public class KsqlRestoreCommandTopic {
         final KafkaTopicClient topicClient = new KafkaTopicClientImpl(() -> admin);
         topicClient.deleteInternalTopics(applicationId);
 
-        new StateDirectory(streamsConfig, Time.SYSTEM, true).clean();
+        new StateDirectory(streamsConfig, Time.SYSTEM, true, false).clean();
         System.out.println(
             String.format(
                 "Cleaned up internal state store and internal topics for query %s",

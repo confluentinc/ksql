@@ -19,6 +19,7 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 @UdfDescription(
     name = "concat",
     category = FunctionCategory.STRING,
-    description = "Concatenate an arbitrary number of string fields together")
+    description = "Concatenate an arbitrary number of string or bytes fields together")
 public class Concat {
 
   @Udf
@@ -39,6 +40,30 @@ public class Concat {
     return Arrays.stream(inputs)
         .filter(Objects::nonNull)
         .collect(Collectors.joining());
+  }
+
+  @Udf
+  public ByteBuffer concat(@UdfParameter(
+      description = "The bytes fields to concatenate") final ByteBuffer... inputs) {
+    if (inputs == null) {
+      return null;
+    }
+
+    int capacity = 0;
+
+    for (final ByteBuffer bytes : inputs) {
+      if (Objects.nonNull(bytes)) {
+        capacity += bytes.capacity();
+      }
+    }
+
+    final ByteBuffer concatenated = ByteBuffer.allocate(capacity);
+    Arrays.stream(inputs)
+        .filter(Objects::nonNull)
+        .forEachOrdered(bytes -> concatenated.put(bytes));
+
+    concatenated.rewind();
+    return concatenated;
   }
 
 }

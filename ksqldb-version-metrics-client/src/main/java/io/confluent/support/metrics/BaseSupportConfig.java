@@ -15,6 +15,7 @@
 
 package io.confluent.support.metrics;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -111,6 +112,7 @@ public abstract class BaseSupportConfig {
       "[a-zA-Z0-9]{18}"
   );
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public Properties getProperties() {
     return properties;
   }

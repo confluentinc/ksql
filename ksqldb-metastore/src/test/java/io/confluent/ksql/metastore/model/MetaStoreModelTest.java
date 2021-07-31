@@ -23,6 +23,7 @@ import static org.junit.Assume.assumeThat;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -84,6 +85,7 @@ public class MetaStoreModelTest {
     return ClassFinder.getClasses(StructuredDataSource.class.getPackage().getName());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public MetaStoreModelTest(final Class<?> modelClass) {
     this.modelClass = modelClass;
   }

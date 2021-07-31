@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.interpreter;
 
+import static io.confluent.ksql.execution.testutil.TestExpressions.BYTESCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -41,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -89,6 +91,7 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -130,7 +133,7 @@ public class InterpretedExpressionTest {
   private GenericRow ROW = new GenericRow().appendAll(ImmutableList.of(
       15, "A", "b", 4.5, ImmutableList.of(2.5), ImmutableMap.of(123, 6.7), ADDRESS, 35,
       new BigDecimal("3.4"), new BigDecimal("8.9"), new Timestamp(1234), true,
-      new Time(1234), new Date(864000000)
+      new Time(1234), new Date(864000000), ByteBuffer.wrap(new byte[] {123})
   ));
 
   @Mock
@@ -168,9 +171,9 @@ public class InterpretedExpressionTest {
     );
   }
 
-  private GenericRow make(int rowNum, Object val) {
+  private GenericRow make(final int rowNum, final Object val) {
     int i = 0;
-    GenericRow row = new GenericRow();
+    final GenericRow row = new GenericRow();
     for (Object o : ROW.values()) {
       if (i == rowNum) {
         row.append(val);
@@ -368,6 +371,29 @@ public class InterpretedExpressionTest {
     assertThat(interpreter6.evaluate(make(13, new Date(86400000))), is(false));
     assertThat(interpreter7.evaluate(make(13, new Date(864000000))), is(true));
     assertThat(interpreter8.evaluate(make(13, new Date(864000000))), is(false));
+  }
+
+  @Test
+  public void shouldEvaluateComparisons_bytes() {
+    // Given:
+    final Expression expression1 = new ComparisonExpression(
+        ComparisonExpression.Type.GREATER_THAN,
+        BYTESCOL,
+        new BytesLiteral(ByteBuffer.wrap(new byte[] {123}))
+    );
+    final Expression expression2 = new ComparisonExpression(
+        ComparisonExpression.Type.LESS_THAN,
+        BYTESCOL,
+        new BytesLiteral(ByteBuffer.wrap(new byte[] {123}))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+
+    // Then:
+    assertThat(interpreter1.evaluate(make(14, ByteBuffer.wrap(new byte[] {123}))), is(false));
+    assertThat(interpreter2.evaluate(make(14, ByteBuffer.wrap(new byte[] {110}))), is(true));
   }
 
   @Test
@@ -833,6 +859,21 @@ public class InterpretedExpressionTest {
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(ImmutableMap.of(1, 2, 3, 4)));
     assertThat(interpreter2.evaluate(ROW), is(ImmutableMap.of("2.5", 2L, "3.5", 4L)));
+  }
+
+  @Test
+  public void shouldEvaluateCastToBytes() {
+    // Given:
+    final Expression cast1 = new Cast(
+        new BytesLiteral(ByteBuffer.wrap(new byte[] {123})),
+        new Type(SqlPrimitiveType.of("BYTES"))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(cast1);
+
+    // Then:
+    assertThat(interpreter1.evaluate(ROW), is(ByteBuffer.wrap(new byte[] {123})));
   }
 
   @Test

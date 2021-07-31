@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
@@ -38,19 +39,24 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class ForeignKeyTableTableJoinBuilderTest {
 
@@ -66,6 +72,14 @@ public class ForeignKeyTableTableJoinBuilderTest {
       .valueColumn(L_KEY, SqlTypes.STRING) // Copy of key in value
       .build();
 
+  private static final String LEFT_KEY = "leftKey";
+  private static final String FOREIGN_KEY = "foreignKey";
+  private static final GenericRow LEFT_ROW = GenericRow.genericRow(
+      1,
+      FOREIGN_KEY,
+      LEFT_KEY
+  );
+
   private static final LogicalSchema LEFT_SCHEMA_MULTI_KEY = LogicalSchema.builder()
       .keyColumn(L_KEY, SqlTypes.STRING)
       .keyColumn(L_KEY_2, SqlTypes.STRING)
@@ -74,6 +88,14 @@ public class ForeignKeyTableTableJoinBuilderTest {
       .valueColumn(L_KEY, SqlTypes.STRING) // Copy of key in value
       .valueColumn(L_KEY_2, SqlTypes.STRING) // Copy of key in value
       .build();
+
+  private static final String LEFT_KEY_2 = "leftKey2";
+  private static final GenericRow LEFT_ROW_MULTI = GenericRow.genericRow(
+      FOREIGN_KEY,
+      1,
+      LEFT_KEY,
+      LEFT_KEY_2
+  );
 
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
       .keyColumn(R_KEY, SqlTypes.STRING)
@@ -128,8 +150,12 @@ public class ForeignKeyTableTableJoinBuilderTest {
     when(formats.getKeyFeatures()).thenReturn(mock(SerdeFeatures.class));
     when(formats.getValueFeatures()).thenReturn(mock(SerdeFeatures.class));
 
+    final RuntimeBuildContext context = mock(RuntimeBuildContext.class);
+    when((context.getFunctionRegistry())).thenReturn(mock(FunctionRegistry.class));
+    when((context.getKsqlConfig())).thenReturn(mock(KsqlConfig.class));
+
     planBuilder = new KSPlanBuilder(
-        mock(RuntimeBuildContext.class),
+        context,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -137,6 +163,7 @@ public class ForeignKeyTableTableJoinBuilderTest {
   }
 
   @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldDoLeftJoinOnNonKey() {
     // Given:
     givenLeftJoin(left, JOIN_COLUMN);
@@ -145,13 +172,17 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
+    final ArgumentCaptor<KsqlKeyExtractor> ksqlKeyExtractor
+        = ArgumentCaptor.forClass(KsqlKeyExtractor.class);
     verify(leftKTable).leftJoin(
         same(rightKTable),
-        eq(new KsqlKeyExtractor<>(1)),
+        ksqlKeyExtractor.capture(),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
         any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    final GenericKey extractedKey = GenericKey.genericKey(FOREIGN_KEY);
+    assertThat(ksqlKeyExtractor.getValue().apply(LEFT_ROW), is(extractedKey));
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
@@ -165,6 +196,7 @@ public class ForeignKeyTableTableJoinBuilderTest {
   // the query), ie, if key-format or partition-count do not match -- it's an open question
   // if it would be a good idea to do this though
   @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldDoLeftJoinOnKey() {
     // Given:
     givenLeftJoin(left, L_KEY);
@@ -173,18 +205,23 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
+    final ArgumentCaptor<KsqlKeyExtractor> ksqlKeyExtractor
+        = ArgumentCaptor.forClass(KsqlKeyExtractor.class);
     verify(leftKTable).leftJoin(
         same(rightKTable),
-        eq(new KsqlKeyExtractor<>(2)),
+        ksqlKeyExtractor.capture(),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
         any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    final GenericKey extractedKey = GenericKey.genericKey(LEFT_KEY);
+    assertThat(ksqlKeyExtractor.getValue().apply(LEFT_ROW), is(extractedKey));
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldDoLeftJoinOnSubKey() {
     // Given:
     givenLeftJoin(leftMultiKey, L_KEY_2);
@@ -193,18 +230,23 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
+    final ArgumentCaptor<KsqlKeyExtractor> ksqlKeyExtractor
+        = ArgumentCaptor.forClass(KsqlKeyExtractor.class);
     verify(leftKTableMultiKey).leftJoin(
         same(rightKTable),
-        eq(new KsqlKeyExtractor<>(3)),
+        ksqlKeyExtractor.capture(),
         eq(new KsqlValueJoiner(LEFT_SCHEMA_MULTI_KEY.value().size(), RIGHT_SCHEMA.value().size(), 0)),
         any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    final GenericKey extractedKey = GenericKey.genericKey(LEFT_KEY_2);
+    assertThat(ksqlKeyExtractor.getValue().apply(LEFT_ROW_MULTI), is(extractedKey));
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldDoInnerJoinOnNonKey() {
     // Given:
     givenInnerJoin(left, JOIN_COLUMN);
@@ -213,13 +255,17 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
+    final ArgumentCaptor<KsqlKeyExtractor> ksqlKeyExtractor
+        = ArgumentCaptor.forClass(KsqlKeyExtractor.class);
     verify(leftKTable).join(
         same(rightKTable),
-        eq(new KsqlKeyExtractor<>(1)),
+        ksqlKeyExtractor.capture(),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
         any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    final GenericKey extractedKey = GenericKey.genericKey(FOREIGN_KEY);
+    assertThat(ksqlKeyExtractor.getValue().apply(LEFT_ROW), is(extractedKey));
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
@@ -233,6 +279,7 @@ public class ForeignKeyTableTableJoinBuilderTest {
   // the query), ie, if key-format or partition-count do not match -- it's an open question
   // if it would be a good idea to do this though
   @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldDoInnerJoinOnKey() {
     // Given:
     givenInnerJoin(left, L_KEY);
@@ -241,18 +288,23 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
+    final ArgumentCaptor<KsqlKeyExtractor> ksqlKeyExtractor
+        = ArgumentCaptor.forClass(KsqlKeyExtractor.class);
     verify(leftKTable).join(
         same(rightKTable),
-        eq(new KsqlKeyExtractor<>(2)),
+        ksqlKeyExtractor.capture(),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
         any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    final GenericKey extractedKey = GenericKey.genericKey(LEFT_KEY);
+    assertThat(ksqlKeyExtractor.getValue().apply(LEFT_ROW), is(extractedKey));
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void shouldDoInnerJoinOnSubKey() {
     // Given:
     givenInnerJoin(leftMultiKey, L_KEY_2);
@@ -261,13 +313,17 @@ public class ForeignKeyTableTableJoinBuilderTest {
     final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
+    final ArgumentCaptor<KsqlKeyExtractor> ksqlKeyExtractor
+        = ArgumentCaptor.forClass(KsqlKeyExtractor.class);
     verify(leftKTableMultiKey).join(
         same(rightKTable),
-        eq(new KsqlKeyExtractor<>(3)),
+        ksqlKeyExtractor.capture(),
         eq(new KsqlValueJoiner(LEFT_SCHEMA_MULTI_KEY.value().size(), RIGHT_SCHEMA.value().size(), 0)),
         any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    final GenericKey extractedKey = GenericKey.genericKey(LEFT_KEY_2);
+    assertThat(ksqlKeyExtractor.getValue().apply(LEFT_ROW_MULTI), is(extractedKey));
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
@@ -316,7 +372,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     join = new ForeignKeyTableTableJoin<>(
         new ExecutionStepPropertiesV1(ctx),
         JoinType.LEFT,
-        leftJoinColumnName,
+        Optional.of(leftJoinColumnName),
+        Optional.empty(),
         formats,
         left,
         right
@@ -328,7 +385,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     join = new ForeignKeyTableTableJoin<>(
         new ExecutionStepPropertiesV1(ctx),
         JoinType.INNER,
-        leftJoinColumnName,
+        Optional.of(leftJoinColumnName),
+        Optional.empty(),
         formats,
         left,
         right

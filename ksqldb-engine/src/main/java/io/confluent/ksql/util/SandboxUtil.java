@@ -17,7 +17,9 @@ package io.confluent.ksql.util;
 
 public final class SandboxUtil {
 
-  private SandboxUtil() { }
+  private SandboxUtil() {
+
+  }
 
   /**
    * @param object the object to check

@@ -69,6 +69,6 @@ public class KsqlHostInfo {
   @Override
   @JsonValue
   public String toString() {
-    return "KsqlHostInfo{host='" + this.host + '\'' + ", port=" + this.port + '}';
+    return this.host + ":" + port;
   }
 }

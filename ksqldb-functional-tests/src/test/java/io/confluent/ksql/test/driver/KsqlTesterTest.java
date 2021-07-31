@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.driver;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
@@ -148,7 +149,7 @@ public class KsqlTesterTest {
   @SuppressWarnings("unused")
   public KsqlTesterTest(final String testCase, final Path file, final List<TestStatement> statements) {
     this.file = Objects.requireNonNull(file, "file");
-    this.statements = statements;
+    this.statements = ImmutableList.copyOf(statements);
   }
 
   @Before

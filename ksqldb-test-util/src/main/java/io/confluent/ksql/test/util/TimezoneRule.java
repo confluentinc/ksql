@@ -24,7 +24,8 @@ public final class TimezoneRule implements TestRule {
   private final TimeZone tz;
 
   public TimezoneRule(final TimeZone tz) {
-    this.tz = tz;
+    //  make a deep copy to satisfy spotbugs
+    this.tz = TimeZone.getTimeZone(tz.getID());
   }
 
   @Override

@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -54,6 +55,7 @@ public final class MaterializationInfo {
     return schema;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "transforms is ImmutableList")
   public List<TransformInfo> getTransforms() {
     return transforms;
   }

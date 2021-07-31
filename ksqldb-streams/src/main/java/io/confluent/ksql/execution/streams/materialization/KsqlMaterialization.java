@@ -213,7 +213,7 @@ class KsqlMaterialization implements Materialization {
   }
 
   /*
-  Today, we are unconditionally adding the extra fields to windowed rows.
+   Today, we are unconditionally adding the extra fields to windowed rows.
    We should decide if we need these additional fields for the
    Windowed Rows case and remove them if possible.
    */
@@ -224,9 +224,9 @@ class KsqlMaterialization implements Materialization {
     final List<?> keyFields = key.values();
 
     value.ensureAdditionalCapacity(
-            1 // ROWTIME
-                    + keyFields.size() //all the keys
-                    + row.window().map(w -> 2).orElse(0) //windows
+        1 // ROWTIME
+        + keyFields.size() //all the keys
+        + row.window().map(w -> 2).orElse(0) //windows
     );
 
     value.append(row.rowTime());

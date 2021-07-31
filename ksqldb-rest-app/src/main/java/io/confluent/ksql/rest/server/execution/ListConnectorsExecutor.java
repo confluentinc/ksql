@@ -40,7 +40,9 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 
 public final class ListConnectorsExecutor {
 
-  private ListConnectorsExecutor() { }
+  private ListConnectorsExecutor() {
+
+  }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   public static Optional<KsqlEntity> execute(

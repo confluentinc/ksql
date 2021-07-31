@@ -27,7 +27,9 @@ import java.util.Optional;
 
 public final class PropertyExecutor {
 
-  private PropertyExecutor() { }
+  private PropertyExecutor() {
+
+  }
 
   public static Optional<KsqlEntity> set(
       final ConfiguredStatement<SetProperty> statement,

@@ -428,7 +428,7 @@ public class ExpressionTypeManager {
         final String structMessage = (arrayMapType instanceof SqlStruct)
             ? String.format(
                 " Use the dereference operator for STRUCTS: %s",
-            new DereferenceExpression(
+                new DereferenceExpression(
                 Optional.empty(),
                 node.getBase(),
                 ExpressionFormatter.formatExpression(node.getIndex())))

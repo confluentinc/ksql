@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -72,7 +71,7 @@ public abstract class KsqlEntity {
   }
 
   public List<KsqlWarning> getWarnings() {
-    return warnings;
+    return Collections.unmodifiableList(warnings);
   }
   
   public void updateWarnings(final List<KsqlWarning> warnings) {

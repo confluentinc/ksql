@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.serde.avro.AvroFormat;
@@ -55,6 +56,7 @@ public class SchemaTranslationTest {
   private final TestCase testCase;
 
   @SuppressWarnings("unused")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public SchemaTranslationTest(final String name, final TestCase testCase) {
     this.testCase = testCase;
   }

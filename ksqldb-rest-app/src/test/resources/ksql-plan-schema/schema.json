@@ -1074,10 +1074,13 @@
         },
         "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
+        },
+        "leftJoinExpression" : {
+          "type" : "string"
         }
       },
       "title" : "fkTableTableJoinV1",
-      "required" : [ "@type", "properties", "joinType", "leftJoinColumnName", "formats", "leftSource", "rightSource" ]
+      "required" : [ "@type", "properties", "joinType", "formats", "leftSource", "rightSource" ]
     },
     "RefinementInfo" : {
       "type" : "object",

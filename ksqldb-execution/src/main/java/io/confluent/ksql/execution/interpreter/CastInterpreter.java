@@ -33,6 +33,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Date;
@@ -41,7 +42,9 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class CastInterpreter {
-  private CastInterpreter() { }
+  private CastInterpreter() {
+
+  }
 
   public static CastTerm cast(
       final Term term,
@@ -82,6 +85,8 @@ public final class CastInterpreter {
       return castToArrayFunction(from, to, config);
     } else if (toBaseType == SqlBaseType.MAP) {
       return castToMapFunction(from, to, config);
+    } else if (toBaseType == SqlBaseType.BYTES) {
+      return castToBytesFunction(from);
     } else {
       throw new KsqlException("Unsupported cast from " + from + " to " + to);
     }
@@ -188,6 +193,8 @@ public final class CastInterpreter {
       return object -> ((BigDecimal) object).toPlainString();
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
       return object -> SqlTimeTypes.formatTimestamp(((Timestamp) object));
+    } else if (from.baseType() == SqlBaseType.BYTES) {
+      throw new KsqlException(getErrorMessage(SqlTypes.BYTES, SqlTypes.STRING));
     }
     return object -> config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
         ? Objects.toString(object, null)
@@ -242,6 +249,15 @@ public final class CastInterpreter {
       return object -> SqlTimeTypes.timestampToDate((Timestamp) object);
     }
     throw new KsqlException(getErrorMessage(from, SqlTypes.DATE));
+  }
+
+  public static ComparableCastFunction<ByteBuffer> castToBytesFunction(
+      final SqlType from
+  ) {
+    if (from.baseType() == SqlBaseType.BYTES) {
+      return object -> (ByteBuffer) object;
+    }
+    throw new KsqlException(getErrorMessage(from, SqlTypes.BYTES));
   }
 
   public static CastFunction castToArrayFunction(

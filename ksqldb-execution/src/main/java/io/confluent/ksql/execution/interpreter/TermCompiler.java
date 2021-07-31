@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
@@ -126,6 +127,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
   private final KsqlConfig ksqlConfig;
   private final ExpressionTypeManager expressionTypeManager;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public TermCompiler(
       final FunctionRegistry functionRegistry,
       final LogicalSchema schema,

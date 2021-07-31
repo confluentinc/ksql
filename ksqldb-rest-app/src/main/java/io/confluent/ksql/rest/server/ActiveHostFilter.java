@@ -36,8 +36,10 @@ public class ActiveHostFilter implements RoutingFilter {
    * @return true if the host is alive, false otherwise.
    */
   @Override
-  public boolean filter(final KsqlHostInfo host) {
-
-    return host.host().equals(activeHost.host()) && host.port() == activeHost.port();
+  public Host filter(final KsqlHostInfo host) {
+    if (host.host().equals(activeHost.host()) && host.port() == activeHost.port()) {
+      return Host.include(host);
+    }
+    return Host.exclude(host, "Host is not the active host for this partition.");
   }
 }

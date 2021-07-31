@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import java.util.Set;
 
@@ -47,18 +48,22 @@ public class ActiveStandbyEntity {
     this.standByPartitions = ImmutableSet.copyOf(requireNonNull(standByPartitions));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "activeStores is ImmutableSet")
   public Set<String> getActiveStores() {
     return activeStores;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "standByStores is ImmutableSet")
   public Set<String> getStandByStores() {
     return standByStores;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "activePartitions is ImmutableSet")
   public Set<TopicPartitionEntity> getActivePartitions() {
     return activePartitions;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "standByPartitions is ImmutableSet")
   public Set<TopicPartitionEntity> getStandByPartitions() {
     return standByPartitions;
   }

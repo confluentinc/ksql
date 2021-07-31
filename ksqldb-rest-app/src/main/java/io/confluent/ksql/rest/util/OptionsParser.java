@@ -22,7 +22,8 @@ import java.io.IOException;
 
 public final class OptionsParser {
 
-  private OptionsParser(){
+  private OptionsParser() {
+
   }
 
   public static <T> T parse(final String[] args, final Class<T> optionsClass) throws IOException {

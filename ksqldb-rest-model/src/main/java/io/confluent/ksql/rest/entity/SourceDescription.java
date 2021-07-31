@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
 import java.util.List;
 import java.util.Objects;
@@ -100,8 +101,8 @@ public class SourceDescription {
         Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
     this.sourceConstraints =
         ImmutableList.copyOf(Objects.requireNonNull(sourceConstraints, "sourceConstraints"));
-    this.clusterErrorStats = clusterErrors;
-    this.clusterStatistics = clusterStats;
+    this.clusterErrorStats = ImmutableList.copyOf(clusterErrors);
+    this.clusterStatistics = ImmutableList.copyOf(clusterStats);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -170,6 +171,7 @@ public class SourceDescription {
     return name;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "fields is ImmutableList")
   public List<FieldInfo> getFields() {
     return fields;
   }
@@ -194,10 +196,12 @@ public class SourceDescription {
     return topic;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "writeQueries is ImmutableList")
   public List<RunningQuery> getWriteQueries() {
     return writeQueries;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "readQueries is ImmutableList")
   public List<RunningQuery> getReadQueries() {
     return readQueries;
   }
@@ -224,18 +228,25 @@ public class SourceDescription {
     return "";
   }
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "queryOffsetSummaries is ImmutableList"
+  )
   public List<QueryOffsetSummary> getQueryOffsetSummaries() {
     return queryOffsetSummaries;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sourceConstraints is ImmutableList")
   public List<String> getSourceConstraints() {
     return sourceConstraints;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "clusterStatistics is ImmutableList")
   public List<QueryHostStat> getClusterStatistics() {
     return clusterStatistics;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "clusterErrorStats is ImmutableList")
   public List<QueryHostStat> getClusterErrorStats() {
     return clusterErrorStats;
   }

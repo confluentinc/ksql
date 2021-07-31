@@ -21,9 +21,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
 public class ForeignKeyTableTableJoin<KLeftT, KRightT>
@@ -31,7 +33,8 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
 
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
-  private final ColumnName leftJoinColumnName;
+  private final Optional<ColumnName> leftJoinColumnName;
+  private final Optional<Expression> leftJoinExpression;
   private final Formats formats;
   private final ExecutionStep<KTableHolder<KLeftT>> leftSource;
   private final ExecutionStep<KTableHolder<KRightT>> rightSource;
@@ -42,8 +45,10 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "joinType", required = true)
       final JoinType joinType,
-      @JsonProperty(value = "leftJoinColumnName", required = true)
-      final ColumnName leftJoinColumnName,
+      @JsonProperty(value = "leftJoinColumnName")
+      final Optional<ColumnName> leftJoinColumnName,
+      @JsonProperty(value = "leftJoinExpression")
+      final Optional<Expression> leftJoinExpression,
       @JsonProperty(value = "formats", required = true)
       final Formats formats,
       @JsonProperty(value = "leftSource", required = true)
@@ -60,6 +65,17 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     this.formats = requireNonNull(formats, "formats");
     this.leftSource = requireNonNull(leftSource, "leftSource");
     this.rightSource = requireNonNull(rightSource, "rightSource");
+    this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
+    if (!leftJoinColumnName.isPresent() && !leftJoinExpression.isPresent()) {
+      throw new IllegalArgumentException(
+          "Either leftJoinColumnName or leftJoinExpression must be provided."
+      );
+    }
+    if (leftJoinColumnName.isPresent() && leftJoinExpression.isPresent()) {
+      throw new IllegalArgumentException(
+          "Either leftJoinColumnName or leftJoinExpression must be empty."
+      );
+    }
   }
 
   @Override
@@ -85,8 +101,12 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     return joinType;
   }
 
-  public ColumnName getLeftJoinColumnName() {
+  public Optional<ColumnName> getLeftJoinColumnName() {
     return leftJoinColumnName;
+  }
+
+  public Optional<Expression> getLeftJoinExpression() {
+    return leftJoinExpression;
   }
 
   public Formats getFormats() {
@@ -117,11 +137,21 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
         && Objects.equals(leftJoinColumnName, that.leftJoinColumnName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(leftSource, that.leftSource)
-        && Objects.equals(rightSource, that.rightSource);
+        && Objects.equals(rightSource, that.rightSource)
+        && Objects.equals(leftJoinExpression, that.leftJoinExpression);
+
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, joinType, leftJoinColumnName, formats, leftSource, rightSource);
+    return Objects.hash(
+        properties,
+        joinType,
+        leftJoinColumnName,
+        formats,
+        leftSource,
+        rightSource,
+        leftJoinExpression
+    );
   }
 }

@@ -26,7 +26,9 @@ import java.util.Set;
 
 public final class ScalablePushQueryExecutionUtil {
 
-  private ScalablePushQueryExecutionUtil() { }
+  private ScalablePushQueryExecutionUtil() {
+
+  }
 
   static PersistentQueryMetadata findQuery(
       final EngineContext engineContext, final ImmutableAnalysis analysis) {

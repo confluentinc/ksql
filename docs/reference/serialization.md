@@ -148,7 +148,8 @@ This data format supports all SQL
 
 `TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
 `TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
-`DATA` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+`DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+`BYTES` typed data is serialized as a Base64-encoded string value.
 
 ### JSON
 
@@ -296,6 +297,19 @@ a timestamp at `1970-01-03` is serialized as
 ```
 
 ksqlDb deserializes a number as a `DATE` if it corresponds to a `DATE` typed field in
+the stream.
+
+#### Bytes Serialization
+Bytes are serialized as a Base64-encoded string value. For example, the byte array `[61, 62, 63]` is
+serialized as
+
+```json
+{
+  "value": "YWJj"
+}
+```
+
+ksqlDb deserializes a string as `BYTES` if it corresponds to a `BYTES` typed field in
 the stream.
 
 #### Field Name Case Sensitivity

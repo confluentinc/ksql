@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -42,6 +43,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValue<List<?>, GenericRow
   private final QueryStreamResponseWriter queryStreamResponseWriter;
   private int tokens;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QuerySubscriber(final Context context, final HttpServerResponse response,
       final QueryStreamResponseWriter queryStreamResponseWriter) {
     super(context);

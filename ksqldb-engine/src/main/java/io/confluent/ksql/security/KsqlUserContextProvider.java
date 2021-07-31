@@ -17,7 +17,6 @@ package io.confluent.ksql.security;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
-
 import java.security.Principal;
 import java.util.function.Supplier;
 

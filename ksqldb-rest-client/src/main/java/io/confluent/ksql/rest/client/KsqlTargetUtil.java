@@ -37,7 +37,9 @@ import java.util.stream.Collectors;
 
 public final class KsqlTargetUtil {
 
-  private KsqlTargetUtil() { }
+  private KsqlTargetUtil() {
+
+  }
 
   public static StreamedRow toRowFromDelimited(final Buffer buff) {
     try {

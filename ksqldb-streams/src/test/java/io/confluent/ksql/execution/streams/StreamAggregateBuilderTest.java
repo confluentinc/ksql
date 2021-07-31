@@ -30,6 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -95,7 +96,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "deprecation"})
 @RunWith(MockitoJUnitRunner.class)
 public class StreamAggregateBuilderTest {
 
@@ -437,6 +438,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildTumblingWindowedAggregateCorrectly() {
     // Given:
     givenTumblingWindowedAggregate();
@@ -456,7 +458,7 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).grace(gracePeriodClause.toDuration()));
+    inOrder.verify(groupedStream).windowedBy(TimeWindows.ofSizeAndGrace(WINDOW, gracePeriodClause.toDuration()));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
@@ -466,7 +468,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildHoppingWindowedAggregateCorrectly() {
     // Given:
     givenHoppingWindowedAggregate();
@@ -486,8 +488,7 @@ public class StreamAggregateBuilderTest {
         windowedWithWindowBounds
     );
 
-    inOrder.verify(groupedStream).windowedBy(TimeWindows.of(WINDOW).advanceBy(HOP)
-        .grace(gracePeriodClause.toDuration()));
+    inOrder.verify(groupedStream).windowedBy(TimeWindows.ofSizeAndGrace(WINDOW, gracePeriodClause.toDuration()).advanceBy(HOP));
     inOrder.verify(timeWindowedStream).aggregate(initializer, aggregator, timeWindowMaterialized);
     inOrder.verify(windowed).transformValues(any(), any(Named.class));
     inOrder.verify(windowedWithResults).transformValues(any(), any(Named.class));
@@ -497,7 +498,7 @@ public class StreamAggregateBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildSessionWindowedAggregateCorrectly() {
     // Given:
     givenSessionWindowedAggregate();
@@ -516,8 +517,7 @@ public class StreamAggregateBuilderTest {
         windowedWithResults,
         windowedWithWindowBounds
     );
-    inOrder.verify(groupedStream).windowedBy(SessionWindows.with(WINDOW)
-        .grace(gracePeriodClause.toDuration())
+    inOrder.verify(groupedStream).windowedBy(SessionWindows.ofInactivityGapAndGrace(WINDOW, gracePeriodClause.toDuration())
     );
     inOrder.verify(sessionWindowedStream).aggregate(
         initializer,

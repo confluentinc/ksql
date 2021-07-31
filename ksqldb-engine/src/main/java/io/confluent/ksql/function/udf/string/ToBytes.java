@@ -20,7 +20,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
-
 import java.nio.ByteBuffer;
 
 @UdfDescription(
@@ -36,6 +35,7 @@ public class ToBytes {
   public ByteBuffer toBytes(
       @UdfParameter(description = "The string to convert.") final String value,
       @UdfParameter(description = "The type of encoding.") final String encoding) {
-    return (value == null) ? null : ByteBuffer.wrap(BytesUtils.decode(value, encoding));
+    return (value == null) ? null : ByteBuffer.wrap(BytesUtils.decode(value,
+        BytesUtils.Encoding.from(encoding)));
   }
 }

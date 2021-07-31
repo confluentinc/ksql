@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.common.operators;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -41,7 +42,6 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   private final QueryProjectNode logicalNode;
 
   private AbstractPhysicalOperator child;
-  private TableRow row;
   private KsqlTransformer<Object, GenericRow> transformer;
 
   public ProjectOperator(
@@ -84,7 +84,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   @Override
   public Object next() {
-    row = (TableRow)child.next();
+    final TableRow row = (TableRow) child.next();
     if (row == null) {
       return null;
     }
@@ -117,6 +117,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public void addChild(final AbstractPhysicalOperator child) {
     if (this.child != null) {
       throw new UnsupportedOperationException("The project operator already has a child.");
@@ -126,6 +127,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public AbstractPhysicalOperator getChild() {
     return child;
   }

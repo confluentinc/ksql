@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -96,6 +97,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private final LogicalSchema schema;
   private final String defaultKeyFormat;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public JoinNode(
       final PlanNodeId id,
       final JoinType joinType,
@@ -532,6 +534,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
             return leftTable.foreignKeyLeftJoin(
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
+                ((ForeignJoinKey) joinKey).getForeignKeyExpression(),
                 contextStacker,
                 valueFormatInfo
             );
@@ -547,6 +550,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
             return leftTable.foreignKeyInnerJoin(
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
+                ((ForeignJoinKey) joinKey).getForeignKeyExpression(),
                 contextStacker,
                 valueFormatInfo
             );
@@ -640,11 +644,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
       return SyntheticJoinKey.of();
     }
 
-    static JoinKey foreignKeyColumn(
-        final ColumnName foreignKeyColumn,
+    static JoinKey foreignKey(
+        final Expression foreignKeyExpression,
         final Collection<QualifiedColumnReferenceExp> viableKeyColumns
     ) {
-      return ForeignJoinKey.of(foreignKeyColumn, viableKeyColumns);
+      return ForeignJoinKey.of(foreignKeyExpression, viableKeyColumns);
     }
 
     /**
@@ -804,17 +808,25 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   private static final class ForeignJoinKey implements JoinKey {
-    private final ColumnName foreignKeyColumn;
+    private final Optional<ColumnName> foreignKeyColumn;
+    private final Optional<Expression> foreignKeyExpression;
     private final ImmutableList<? extends ColumnReferenceExp> leftSourceKeyColumns;
 
-    static JoinKey of(final ColumnName foreignKeyColumn,
+    static JoinKey of(final Expression foreignKeyExpression,
                       final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {
-      return new ForeignJoinKey(foreignKeyColumn, leftSourceKeyColumns);
+      return new ForeignJoinKey(
+          Optional.empty(),
+          Optional.of(foreignKeyExpression),
+          leftSourceKeyColumns
+      );
     }
 
-    private ForeignJoinKey(final ColumnName foreignKeyColumn,
+    private ForeignJoinKey(final Optional<ColumnName> foreignKeyColumn,
+                           final Optional<Expression> foreignKeyExpression,
                            final Collection<? extends ColumnReferenceExp> viableKeyColumns) {
       this.foreignKeyColumn = requireNonNull(foreignKeyColumn, "foreignKeyColumn");
+      this.foreignKeyExpression =
+          requireNonNull(foreignKeyExpression, "foreignKeyExpression");
       this.leftSourceKeyColumns = ImmutableList
           .copyOf(requireNonNull(viableKeyColumns, "viableKeyColumns"));
     }
@@ -851,11 +863,15 @@ public class JoinNode extends PlanNode implements JoiningNode {
           .map(e -> ExpressionTreeRewriter.rewriteWith(plugin, e))
           .collect(Collectors.toList());
 
-      return new ForeignJoinKey(foreignKeyColumn, rewrittenViable);
+      return new ForeignJoinKey(Optional.empty(), foreignKeyExpression, rewrittenViable);
     }
 
-    public ColumnName getForeignKeyColumn() {
+    public Optional<ColumnName> getForeignKeyColumn() {
       return foreignKeyColumn;
+    }
+
+    public Optional<Expression> getForeignKeyExpression() {
+      return foreignKeyExpression;
     }
   }
 }

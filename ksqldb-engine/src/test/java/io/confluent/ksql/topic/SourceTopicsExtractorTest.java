@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
@@ -40,11 +39,11 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.apache.kafka.clients.admin.TopicDescription;
+import java.util.stream.Collectors;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,17 +59,23 @@ public class SourceTopicsExtractorTest {
       .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
+  private static final KsqlTopic TOPIC_1 = new KsqlTopic(
+      "topic1",
+      KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+      ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
+  );
+
+  private static final KsqlTopic TOPIC_2 = new KsqlTopic(
+      "topic2",
+      KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+      ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
+  );
+
   private static final String STREAM_TOPIC_1 = "s1";
   private static final String STREAM_TOPIC_2 = "s2";
 
   @Mock
   private ServiceContext serviceContext;
-  @Mock
-  private KafkaTopicClient kafkaTopicClient;
-  @Mock
-  private TopicDescription TOPIC_1;
-  @Mock
-  private TopicDescription TOPIC_2;
 
   private SourceTopicsExtractor extractor;
   private KsqlEngine ksqlEngine;
@@ -82,10 +87,7 @@ public class SourceTopicsExtractorTest {
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
     extractor = new SourceTopicsExtractor(metaStore);
 
-    givenTopic("topic1", TOPIC_1);
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
-
-    givenTopic("topic2", TOPIC_2);
     givenStreamWithTopic(STREAM_TOPIC_2, TOPIC_2);
   }
 
@@ -107,7 +109,7 @@ public class SourceTopicsExtractorTest {
     extractor.process(statement, null);
 
     // Then:
-    assertThat(extractor.getPrimaryKafkaTopicName(), is(TOPIC_1.name()));
+    assertThat(extractor.getPrimarySourceTopic(), is(TOPIC_1));
   }
 
   @Test
@@ -121,7 +123,7 @@ public class SourceTopicsExtractorTest {
     extractor.process(statement, null);
 
     // Then:
-    assertThat(extractor.getPrimaryKafkaTopicName(), is(TOPIC_1.name()));
+    assertThat(extractor.getPrimarySourceTopic(), is(TOPIC_1));
   }
 
   @Test
@@ -135,7 +137,7 @@ public class SourceTopicsExtractorTest {
     extractor.process(statement, null);
 
     // Then:
-    assertThat(extractor.getSourceTopics(), contains(TOPIC_1.name(), TOPIC_2.name()));
+    assertThat(extractor.getSourceTopics(), contains(TOPIC_2, TOPIC_1));
   }
 
   @Test
@@ -156,14 +158,8 @@ public class SourceTopicsExtractorTest {
 
   private void givenStreamWithTopic(
       final String streamName,
-      final TopicDescription topicDescription
+      final KsqlTopic sourceTopic
   ) {
-    final KsqlTopic sourceTopic = new KsqlTopic(
-        topicDescription.name(),
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-    );
-
     final KsqlStream<?> streamSource = new KsqlStream<>(
         "",
         SourceName.of(streamName.toUpperCase()),
@@ -174,9 +170,5 @@ public class SourceTopicsExtractorTest {
     );
 
     metaStore.putSource(streamSource, false);
-  }
-
-  private static void givenTopic(final String topicName, final TopicDescription topicDescription) {
-    when(topicDescription.name()).thenReturn(topicName);
   }
 }

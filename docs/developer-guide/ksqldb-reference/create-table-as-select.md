@@ -129,7 +129,8 @@ CREATE TABLE derived AS
     b,
     d
   FROM source
-  WHERE A is not null;
+  WHERE A is not null
+  EMIT CHANGES;
 ```
 
 ```sql
@@ -141,7 +142,8 @@ CREATE TABLE weeklyMusicCharts AS
    FROM playStream p
       JOIN songs s ON p.song_id = s.id
    WINDOW TUMBLING (7 DAYS)
-   GROUP BY s.songName;
+   GROUP BY s.songName
+   EMIT CHANGES;
 ```
 
 ```sql

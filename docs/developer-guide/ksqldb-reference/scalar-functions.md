@@ -52,7 +52,7 @@ Converts one type to another. The following casts are supported:
 
 | from | to | notes |
 |------|----|-------|
-| any  | `STRING` | Converts the type to its string representation. |
+| any except `BYTES` | `STRING` | Converts the type to its string representation. |
 | `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
 | `VARCHAR` | `TIME` | Converts time strings to `TIME`. Conversion fails if text is not in `HH:mm:ss` format.     |
@@ -650,9 +650,10 @@ Since: -
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
+CONCAT(bytes1, bytes2, ..., bytes-n)
 ```
 
-Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+Concatenate two or more string or bytes expressions. Any inputs which evaluate to NULL are replaced with an empty string or bytes in the output.
 
 ### `CONCAT_WS`
 
@@ -662,7 +663,7 @@ Since: 0.10.0
 CONCAT_WS(separator, expr1, expr2, ...)
 ```
 
-Concatenates two or more string expressions, inserting a separator string between each.
+Concatenates two or more string or bytes expressions, inserting a separator string or bytes between each.
 
 If the separator is NULL, this function returns NULL.
 Any expressions which evaluate to NULL are skipped.
@@ -794,10 +795,11 @@ Convert a string to lowercase.
 Since: -
 
 ```sql
-LEN(col1)
+LEN(string)
+LEN(bytes)
 ```
 
-The length of a string.
+The length of a string or the number of bytes in a BYTES value.
 
 ### `LPAD`
 
@@ -807,10 +809,10 @@ Since: 0.10.0
 LPAD(input, length, padding)
 ```
 
-Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
-If the input string is longer than the specified target length, it is truncated.
+Pads the input string or bytes, starting from the left, with the specified padding of the same type until the target length is reached. 
+If the input is longer than the specified target length, it is truncated.
 
-If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -987,9 +989,10 @@ Since: 0.10.0
 RPAD(input, length, padding)
 ```
 
-Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+Pads the input string or bytes, starting from the end, with the specified padding of the same type until the target length is reached. 
+If the input is longer than the specified target length, it is truncated. 
 
-If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -1006,16 +1009,16 @@ Since: 0.6.0
 SPLIT(col1, delimiter)
 ```
 
-Splits a string into an array of substrings based
+Splits a string into an array of substrings, or
+bytes into an array of subarrays, based
 on a delimiter. If the delimiter is not found,
-then the original string is returned as the only
+the original string or byte array is returned as the only
 element in the array. If the delimiter is empty,
-then all characters in the string are split.
-If either, string or delimiter, are NULL, then a
-NULL value is returned.
+every character in the string or byte in the array is split.
+Returns NULL if either parameter is NULL.
 
 If the delimiter is found at the beginning or end
-of the string, or there are contiguous delimiters,
+of the string or bytes, or there are contiguous delimiters,
 then an empty space is added to the array.
 
 ### `SPLIT_TO_MAP`

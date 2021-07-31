@@ -18,7 +18,7 @@ package io.confluent.ksql.test.util;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -86,6 +86,7 @@ public final class TestMethods {
       private final String methodName;
       private final Class<?>[] paramTypes;
 
+      @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
       public MethodRef(final Class<?> clazz, final String methodName, final Class<?>[] paramTypes) {
         this.clazz = clazz;
         this.methodName = methodName;

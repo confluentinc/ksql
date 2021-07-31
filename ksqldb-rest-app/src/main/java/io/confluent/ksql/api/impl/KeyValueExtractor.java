@@ -26,7 +26,6 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.JsonUtil;
 import io.vertx.core.json.JsonObject;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;

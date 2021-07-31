@@ -1,0 +1,64 @@
+{
+  "tests": [
+    {
+      "name": "try to get a lucky success by matching r_id to all left pseudocolumns (remember to change r_id type to int when trying to match w partition)",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, left_table.rowoffset, right_table.rowpartition FROM left_table JOIN right_table ON l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value":{}, "timestamp": 0},
+        {"topic": "left_topic", "key": 0, "value": {},"timestamp": 0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {}, "timestamp": 0}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support inner join with left value-column expression: join on rowoffset",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON left_table.rowtime= r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 55, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 55}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 55, "NAME": "zero", "F1": "blah"}, "timestamp": 55}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    },
+    {
+      "name": "Should support inner join with left value-column expression",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, r_id, name, f1 FROM left_table JOIN right_table ON foreign_key = r_id;"
+      ],
+      "inputs": [
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 4}, "timestamp": 0},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "FOREIGN_KEY": 0}, "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, R_ID BIGINT, NAME STRING, F1 STRING"}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "Should fail on right non-key attribute for inner-join",
+      "statements": [
+        "CREATE STREAM left_stream (id1 BIGINT) WITH (kafka_topic='left_topic', format='JSON', partitions=80);",
+        "CREATE STREAM output AS SELECT id1, ROWOFFSET as ro, ROWPARTITION as rp FROM left_stream EMIT CHANGES;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "value": {"id1": 0}},
+        {"topic": "left_topic", "value": {"id1": 1}},
+        {"topic": "left_topic", "value": {"id1": 2}},
+        {"topic": "left_topic", "value": {"id1": 3}},
+        {"topic": "left_topic", "value": {"id1": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID1":  0, "RO": 0, "RP":  0}},
+        {"topic": "OUTPUT", "value": {"ID1":  1, "RO": 1, "RP":  0}},
+        {"topic": "OUTPUT", "value": {"ID1":  2, "RO": 2, "RP":  0}},
+        {"topic": "OUTPUT", "value": {"ID1":  3, "RO": 3, "RP":  0}},
+        {"topic": "OUTPUT", "value": {"ID1":  4, "RO": 4, "RP":  0}}
+      ]
+    }
+  ]
+}

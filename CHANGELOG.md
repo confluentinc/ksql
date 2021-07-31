@@ -1,6 +1,7 @@
 # Change Log
 
 ## [0.19.0](https://github.com/confluentinc/ksql/releases/tag/v0.19.0-ksqldb) (2021-06-08)
+TEST
 
 ### Features
 

@@ -43,9 +43,6 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
@@ -118,21 +115,17 @@ public enum CustomExecutors {
     return this::execute;
   }
 
-  public Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionCtx,
-      final ServiceContext serviceCtx,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceCtx
   ) {
     return executor.execute(
         statement,
         sessionProperties,
         executionCtx,
-        serviceCtx,
-        distributingExecutor,
-        securityContext
+        serviceCtx
         );
   }
 
@@ -143,19 +136,15 @@ public enum CustomExecutors {
         statement,
         sessionProperties,
         executionContext,
-        serviceContext,
-        distributingExecutor,
-        securityContext
+        serviceContext
     ) -> {
       executor.execute(
           statement,
           sessionProperties,
           executionContext,
-          serviceContext,
-          distributingExecutor,
-          securityContext
+          serviceContext
       );
-      return Optional.empty();
+      return StatementExecutorResponse.handled(Optional.empty());
     };
   }
 }

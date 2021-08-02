@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,8 +27,6 @@ import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import java.util.Collection;
@@ -50,10 +47,6 @@ public class ListTopicsExecutorTest {
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
   @Mock
   private AdminClient adminClient;
-  @Mock
-  private DistributingExecutor distributingExecutor;
-  @Mock
-  private KsqlSecurityContext ksqlSecurityContext;
 
   private ServiceContext serviceContext;
 
@@ -81,10 +74,8 @@ public class ListTopicsExecutorTest {
             engine.configure("LIST TOPICS;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            serviceContext,
-            null,
-            null
-        ).orElseThrow(IllegalStateException::new);
+            serviceContext
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
@@ -106,10 +97,8 @@ public class ListTopicsExecutorTest {
             engine.configure("LIST ALL TOPICS;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            serviceContext,
-            distributingExecutor,
-            ksqlSecurityContext
-        ).orElseThrow(IllegalStateException::new);
+            serviceContext
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
@@ -131,10 +120,8 @@ public class ListTopicsExecutorTest {
             engine.configure("LIST TOPICS;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            serviceContext,
-            distributingExecutor,
-            ksqlSecurityContext
-        ).orElseThrow(IllegalStateException::new);
+            serviceContext
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
@@ -162,10 +149,8 @@ public class ListTopicsExecutorTest {
             engine.configure("LIST TOPICS EXTENDED;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            serviceContext,
-            distributingExecutor,
-            ksqlSecurityContext
-        ).orElseThrow(IllegalStateException::new);
+            serviceContext
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(

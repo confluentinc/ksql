@@ -29,8 +29,6 @@ import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
@@ -52,13 +50,11 @@ public final class ListQueriesExecutor {
   private ListQueriesExecutor() {
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
         statement,
@@ -71,7 +67,7 @@ public final class ListQueriesExecutor {
         : executeSimple(statement, executionContext, remoteHostExecutor);
   }
 
-  private static Optional<KsqlEntity> executeSimple(
+  private static StatementExecutorResponse executeSimple(
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext,
       final RemoteHostExecutor remoteHostExecutor
@@ -80,9 +76,9 @@ public final class ListQueriesExecutor {
         getLocalSimple(executionContext),
         remoteHostExecutor.fetchAllRemoteResults()
     );
-    return Optional.of(new Queries(
+    return StatementExecutorResponse.handled(Optional.of(new Queries(
         statement.getStatementText(),
-        runningQueries.values()));
+        runningQueries.values())));
   }
 
   private static Map<QueryId, RunningQuery> getLocalSimple(
@@ -158,7 +154,7 @@ public final class ListQueriesExecutor {
     return allResults;
   }
 
-  private static Optional<KsqlEntity> executeExtended(
+  private static StatementExecutorResponse executeExtended(
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -169,9 +165,9 @@ public final class ListQueriesExecutor {
         remoteHostExecutor.fetchAllRemoteResults()
     );
 
-    return Optional.of(new QueryDescriptionList(
+    return StatementExecutorResponse.handled(Optional.of(new QueryDescriptionList(
         statement.getStatementText(),
-        queryDescriptions.values()));
+        queryDescriptions.values())));
   }
 
   private static Map<QueryId, QueryDescription> getLocalExtended(

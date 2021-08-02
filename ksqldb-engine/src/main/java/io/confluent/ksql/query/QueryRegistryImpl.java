@@ -46,7 +46,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -85,23 +84,20 @@ public class QueryRegistryImpl implements QueryRegistry {
     allLiveQueries = new ConcurrentHashMap<>();
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
-    original.allLiveQueries.forEach(new BiConsumer<QueryId, QueryMetadata>() {
-      @Override
-      public void accept(final QueryId queryId, final QueryMetadata queryMetadata) {
-        if (queryMetadata instanceof PersistentQueryMetadata) {
-          final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
-              (PersistentQueryMetadataImpl) queryMetadata,
-              new ListenerImpl()
-          );
-          persistentQueries.put(sandboxed.getQueryId(), sandboxed);
-          allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
-        } else {
-          final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
-              (TransientQueryMetadata) queryMetadata,
-              new ListenerImpl()
-          );
-          allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
-        }
+    original.allLiveQueries.forEach((queryId, queryMetadata) -> {
+      if (queryMetadata instanceof PersistentQueryMetadata) {
+        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
+            (PersistentQueryMetadataImpl) queryMetadata,
+            new ListenerImpl()
+        );
+        persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+        allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
+      } else {
+        final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
+            (TransientQueryMetadata) queryMetadata,
+            new ListenerImpl()
+        );
+        allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
       }
     });
     createAsQueries.putAll(original.createAsQueries);
@@ -324,7 +320,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       }
     }
 
-    allLiveQueries.remove(query.getQueryId(), query);
+    allLiveQueries.remove(query.getQueryId());
     notifyDeregister(query);
   }
 

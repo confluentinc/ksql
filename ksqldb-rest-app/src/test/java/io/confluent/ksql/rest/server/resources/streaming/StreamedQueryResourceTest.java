@@ -320,9 +320,7 @@ public class StreamedQueryResourceTest {
             query,
             mock(SessionProperties.class),
             mockKsqlEngine,
-            serviceContext,
-            distributingExecutor,
-            securityContext
+            serviceContext
         )
     );
 

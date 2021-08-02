@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.server.validation;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -34,7 +32,7 @@ public interface StatementValidator<T extends Statement> {
   /**
    * A statement validator that does nothing.
    */
-  StatementValidator<Statement> NO_VALIDATION = (stmt, props, ectx, sctx,dst, scCtx) -> { };
+  StatementValidator<Statement> NO_VALIDATION = (stmt, props, ectx, sctx) -> { };
 
   /**
    * Validates the statement against the given parameters, and throws an exception
@@ -47,7 +45,5 @@ public interface StatementValidator<T extends Statement> {
       ConfiguredStatement<T> statement,
       SessionProperties sessionProperties,
       KsqlExecutionContext executionContext,
-      ServiceContext serviceContext,
-      DistributingExecutor distributingExecutor,
-      KsqlSecurityContext securityContext) throws KsqlException;
+      ServiceContext serviceContext) throws KsqlException;
 }

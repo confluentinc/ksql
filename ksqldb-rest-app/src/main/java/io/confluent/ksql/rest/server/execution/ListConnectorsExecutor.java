@@ -21,11 +21,8 @@ import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -47,21 +44,19 @@ public final class ListConnectorsExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final ConnectClient connectClient = serviceContext.getConnectClient();
     final ConnectResponse<List<String>> connectors = serviceContext.getConnectClient().connectors();
     if (connectors.error().isPresent()) {
-      return Optional.of(new ErrorEntity(
+      return StatementExecutorResponse.handled(Optional.of(new ErrorEntity(
           configuredStatement.getStatementText(),
           connectors.error().get()
-      ));
+      )));
     }
 
     final List<SimpleConnectorInfo> infos = new ArrayList<>();
@@ -88,12 +83,12 @@ public final class ListConnectorsExecutor {
       }
     }
 
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         new ConnectorList(
             configuredStatement.getStatementText(),
             warnings,
             infos)
-    );
+    ));
   }
 
   private static boolean inScope(final ConnectorType type, final Scope scope) {

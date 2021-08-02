@@ -88,7 +88,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
             KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any()).getEntity()).thenReturn(Optional.of(entity));
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
     doNothing().when(sync).waitFor(any(), any());
 
@@ -117,9 +117,7 @@ public class RequestHandlerTest {
             ksqlConfig))),
             eq(sessionProperties),
             eq(ksqlEngine),
-            eq(serviceContext),
-            null,
-            null
+            eq(serviceContext)
         );
   }
 
@@ -261,9 +259,7 @@ public class RequestHandlerTest {
         argThat(is(configured(preparedStatement(instanceOf(statementClass))))),
         any(),
         eq(ksqlEngine),
-        eq(serviceContext),
-        null,
-        null
+        eq(serviceContext)
     ))
         .thenAnswer(inv -> Optional.ofNullable(returnedEntities[scn.getAndIncrement()]));
     return customExecutor;

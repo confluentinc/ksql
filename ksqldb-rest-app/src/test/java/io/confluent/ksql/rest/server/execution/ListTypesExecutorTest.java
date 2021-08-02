@@ -77,10 +77,8 @@ public class ListTypesExecutorTest {
             SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())),
         mock(SessionProperties.class),
         context,
-        null,
-        distributingExecutor,
-        ksqlSecurityContext
-    );
+        null
+    ).getEntity();
 
     // Then:
     assertThat("expected a response", entity.isPresent());

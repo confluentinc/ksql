@@ -24,12 +24,9 @@ import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -59,13 +56,11 @@ public final class DescribeConnectorExecutor {
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  public Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<DescribeConnector> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final String connectorName = configuredStatement
         .getStatement()
@@ -75,22 +70,22 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           new ErrorEntity(
               configuredStatement.getStatementText(),
               statusResponse.error().get())
-      );
+      ));
     }
 
     final ConnectResponse<ConnectorInfo> infoResponse = serviceContext
         .getConnectClient()
         .describe(connectorName);
     if (infoResponse.error().isPresent()) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           new ErrorEntity(
               configuredStatement.getStatementText(),
               infoResponse.error().get())
-      );
+      ));
     }
 
     final ConnectorStateInfo status = statusResponse.datum().get();
@@ -151,6 +146,6 @@ public final class DescribeConnectorExecutor {
         warnings
     );
 
-    return Optional.of(description);
+    return StatementExecutorResponse.handled(Optional.of(description));
   }
 }

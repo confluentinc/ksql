@@ -52,9 +52,7 @@ public class PropertyExecutorTest {
         engine.configure("SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';"),
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
+        engine.getServiceContext()
     );
 
     // Then:
@@ -78,9 +76,7 @@ public class PropertyExecutorTest {
         engine.configure("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"),
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
+        engine.getServiceContext()
     );
 
     // Then:

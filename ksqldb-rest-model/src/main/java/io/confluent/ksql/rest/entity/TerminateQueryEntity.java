@@ -24,33 +24,33 @@ import java.util.Objects;
 public class TerminateQueryEntity extends KsqlEntity {
 
   private final String queryId;
-  private final boolean wasTerminatedLocally;
+  private final boolean wasTerminated;
 
   @JsonCreator
   public TerminateQueryEntity(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("queryId") final String queryId,
-      @JsonProperty("wasTerminatedLocally") final boolean wasTerminatedLocally
+      @JsonProperty("wasTerminated") final boolean wasTerminated
   ) {
     super(statementText);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.wasTerminatedLocally =
-        wasTerminatedLocally;
+    this.wasTerminated =
+        wasTerminated;
   }
 
   public String getQueryId() {
     return queryId;
   }
 
-  public boolean getWasTerminatedLocally() {
-    return wasTerminatedLocally;
+  public boolean getWasTerminated() {
+    return wasTerminated;
   }
 
   @Override
   public String toString() {
     return "TerminateQueryEntity{"
         + "queryId='" + queryId + '\''
-        + "wasTerminatedLocally='" + wasTerminatedLocally + '\''
+        + "wasTerminatedLocally='" + wasTerminated + '\''
         + '}';
   }
 

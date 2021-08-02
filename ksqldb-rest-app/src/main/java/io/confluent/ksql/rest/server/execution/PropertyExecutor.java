@@ -20,9 +20,6 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Optional;
@@ -33,28 +30,24 @@ public final class PropertyExecutor {
 
   }
 
-  public static Optional<KsqlEntity> set(
+  public static StatementExecutorResponse set(
       final ConfiguredStatement<SetProperty> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     PropertyOverrider.set(statement, sessionProperties.getMutableScopedProperties());
-    return Optional.empty();
+    return StatementExecutorResponse.handled(Optional.empty());
   }
 
-  public static Optional<KsqlEntity> unset(
+  public static StatementExecutorResponse unset(
       final ConfiguredStatement<UnsetProperty> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     PropertyOverrider.unset(statement, sessionProperties.getMutableScopedProperties());
-    return Optional.empty();
+    return StatementExecutorResponse.handled(Optional.empty());
   }
 
 }

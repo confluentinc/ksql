@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,8 +35,7 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
+
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -43,6 +44,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -82,10 +84,7 @@ public class TerminateQueryExecutorTest {
   private ServiceContext serviceContext;
   @Mock
   private SimpleKsqlClient ksqlClient;
-  @Mock
-  private DistributingExecutor distributingExecutor;
-  @Mock
-  private KsqlSecurityContext ksqlSecurityContext;
+
 
   @Before
   public void setup() throws MalformedURLException {
@@ -113,17 +112,15 @@ public class TerminateQueryExecutorTest {
         terminatePersistent,
         mock(SessionProperties.class),
         engine,
-        this.engine.getServiceContext(),
-        distributingExecutor,
-        ksqlSecurityContext
-    );
+        this.engine.getServiceContext()
+    ).getEntity();
 
     // Then:
     assertThat(ksqlEntity, is(Optional.empty()));
   }
 
   @Test
-  public void shouldTerminateTransientQueryLocally() {
+  public void shouldTerminateTransientQuery() {
     // Given:
     final ConfiguredStatement<?> terminateTransient= engine.configure("TERMINATE TRANSIENT_QUERY;");
     final TransientQueryMetadata transientQueryMetadata = givenTransientQuery("TRANSIENT_QUERY", RUNNING_QUERY_STATE);
@@ -138,36 +135,33 @@ public class TerminateQueryExecutorTest {
         terminateTransient,
         mock(SessionProperties.class),
         engine,
-        this.engine.getServiceContext(),
-        distributingExecutor,
-        ksqlSecurityContext
-    );
+        this.engine.getServiceContext()
+    ).getEntity();
 
     // Then:
     assertThat(ksqlEntity, is(Optional.of(new TerminateQueryEntity(terminateTransient.getStatementText(), transientQueryId.toString(), true))));
   }
 
   @Test
-  public void shouldFailToTerminateTransientQueryLocally() {
+  public void shouldFailToTerminateTransientQuery() {
     // Given:
     when(sessionProperties.getInternalRequest()).thenReturn(false);
-
     final ConfiguredStatement<?> terminateTransient= engine.configure("TERMINATE TRANSIENT_QUERY;");
-    final TransientQueryMetadata transientQueryMetadata = givenTransientQuery("TRANSIENT_QUERY", RUNNING_QUERY_STATE);
-    final QueryId transientQueryId= transientQueryMetadata.getQueryId();
 
     // When:
-    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
-        terminateTransient,
-        mock(SessionProperties.class),
-        engine.getEngine(),
-        this.engine.getServiceContext(),
-        distributingExecutor,
-        ksqlSecurityContext
-    );
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> CustomExecutors.TERMINATE_QUERY.execute(
+            terminateTransient,
+            mock(SessionProperties.class),
+            engine.getEngine(),
+            this.engine.getServiceContext()
+        ).getEntity());
+
 
     // Then:
-    assertThat(ksqlEntity, is(Optional.of(new TerminateQueryEntity(terminateTransient.getStatementText(), transientQueryId.toString(), false))));
+    assertThat(e.getMessage(), containsString(
+        "Failed to terminate query with query ID: 'TRANSIENT_QUERY'"));
   }
 
   public static PersistentQueryMetadata givenPersistentQuery(

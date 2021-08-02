@@ -44,10 +44,8 @@ public class ListFunctionsExecutorTest {
         engine.configure("LIST FUNCTIONS;"),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
-    ).orElseThrow(IllegalStateException::new);
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     final Collection<SimpleFunctionInfo> functions = functionList.getFunctions();

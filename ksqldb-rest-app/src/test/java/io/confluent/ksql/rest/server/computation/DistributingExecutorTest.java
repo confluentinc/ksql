@@ -224,6 +224,7 @@ public class DistributingExecutorTest {
             executionContext,
             securityContext
         )
+            .getEntity()
             .orElseThrow(null);
 
     // Then:

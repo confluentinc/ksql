@@ -19,25 +19,21 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.TerminateQueryEntity;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 
 public final class TerminateQueryExecutor {
 
   private TerminateQueryExecutor() { }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<TerminateQuery> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final TerminateQuery terminateQuery = statement.getStatement();
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
@@ -50,29 +46,28 @@ public final class TerminateQueryExecutor {
 
     if (executionContext.getPersistentQuery(queryId.get()).isPresent()) {
       // do default behaviour for terminating persistent queries
-      return distributingExecutor.execute(statement, executionContext, securityContext);
+      return StatementExecutorResponse.notHandled();
     } else {
       // Check are we running this push query locally, if yes then terminate, otherwise
       // propagate terminate query to other nodes
       if (executionContext.getQuery(queryId.get()).isPresent()) {
         executionContext.getQuery(queryId.get()).get().close();
-        return Optional.of(
-            new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), true)
-        );
       } else {
-        final boolean wasTerminatedLocally = remoteHostExecutor.fetchAllRemoteResults().getLeft()
+        final boolean wasTerminatedRemotely = remoteHostExecutor.fetchAllRemoteResults().getLeft()
             .values()
             .stream()
             .map(TerminateQueryEntity.class::cast)
-            .map(TerminateQueryEntity::getWasTerminatedLocally)
+            .map(TerminateQueryEntity::getWasTerminated)
             .anyMatch(b -> b.equals(true));
-        return Optional.of(new TerminateQueryEntity(
-            statement.getStatementText(),
-            queryId.get().toString(),
-            wasTerminatedLocally));
+        if (!wasTerminatedRemotely) {
+          throw new KsqlException(String.format(
+              "Failed to terminate query with query ID: '%s'",
+              queryId.get()));
+        }
       }
+      return StatementExecutorResponse.handled(Optional.of(
+          new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), true)
+      ));
     }
-//    return Optional.empty();
   }
 }
-

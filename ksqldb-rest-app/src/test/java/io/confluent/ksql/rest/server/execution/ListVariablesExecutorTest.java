@@ -52,10 +52,8 @@ public class ListVariablesExecutorTest {
         configuredStatement,
         sessionProperties,
         null,
-        null,
-        null,
         null
-    );
+    ).getEntity();
   }
 
   @Test

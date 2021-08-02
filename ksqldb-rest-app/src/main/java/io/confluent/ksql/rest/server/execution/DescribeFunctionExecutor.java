@@ -31,10 +31,7 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.IdentifierUtil;
@@ -51,32 +48,30 @@ public final class DescribeFunctionExecutor {
 
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<DescribeFunction> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final DescribeFunction describeFunction = statement.getStatement();
     final FunctionName functionName = FunctionName.of(describeFunction.getFunctionName());
 
     if (executionContext.getMetaStore().isAggregate(functionName)) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           describeAggregateFunction(executionContext, functionName,
-              statement.getStatementText()));
+              statement.getStatementText())));
     }
 
     if (executionContext.getMetaStore().isTableFunction(functionName)) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           describeTableFunction(executionContext, functionName,
-              statement.getStatementText()));
+              statement.getStatementText())));
     }
 
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         describeNonAggregateFunction(executionContext, functionName,
-            statement.getStatementText()));
+            statement.getStatementText())));
   }
 
   private static FunctionDescriptionList describeAggregateFunction(

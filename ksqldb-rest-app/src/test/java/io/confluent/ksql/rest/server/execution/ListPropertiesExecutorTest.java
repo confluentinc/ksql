@@ -70,10 +70,8 @@ public class ListPropertiesExecutorTest {
         engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
-    ).orElseThrow(IllegalStateException::new);
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -90,10 +88,8 @@ public class ListPropertiesExecutorTest {
             .withConfigOverrides(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
-    ).orElseThrow(IllegalStateException::new);
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -109,10 +105,8 @@ public class ListPropertiesExecutorTest {
         engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
-    ).orElseThrow(IllegalStateException::new);
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -129,10 +123,8 @@ public class ListPropertiesExecutorTest {
                 "ksql.streams.topic.min.insync.replicas", "2"))),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
-    ).orElseThrow(IllegalStateException::new);
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -161,10 +153,8 @@ public class ListPropertiesExecutorTest {
                 "ksql.connect.worker.config", connectPropsFile))),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext(),
-        null,
-        null
-    ).orElseThrow(IllegalStateException::new);
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(

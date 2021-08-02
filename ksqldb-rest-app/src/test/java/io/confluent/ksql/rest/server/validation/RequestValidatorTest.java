@@ -131,7 +131,7 @@ public class RequestValidatorTest {
 
     // When
     final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
-    validator.validate(serviceContext, statements, sessionProperties, "sql", null, null);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then
     verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
@@ -147,7 +147,7 @@ public class RequestValidatorTest {
 
     // When
     final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
-    validator.validate(serviceContext, statements, sessionProperties, "sql", null, null);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then
     verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
@@ -165,16 +165,14 @@ public class RequestValidatorTest {
         givenParsed(SOME_STREAM_SQL);
 
     // When:
-    validator.validate(serviceContext, statements, sessionProperties, "sql", null, null);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then:
     verify(statementValidator, times(1)).validate(
         argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
         eq(sessionProperties),
         eq(executionContext),
-        any(),
-        null,
-        null
+        any()
     );
   }
 
@@ -185,7 +183,7 @@ public class RequestValidatorTest {
         givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
 
     // When:
-    validator.validate(serviceContext, statements, sessionProperties, "sql", null, null);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then:
     verify(distributedStatementValidator).create(
@@ -202,7 +200,7 @@ public class RequestValidatorTest {
         ImmutableMap.of(CreateStream.class, statementValidator)
     );
     doThrow(new KsqlException("Fail"))
-        .when(statementValidator).validate(any(), any(), any(), any(), null, null);
+        .when(statementValidator).validate(any(), any(), any(), any());
 
     final List<ParsedStatement> statements =
         givenParsed(SOME_STREAM_SQL);
@@ -210,7 +208,7 @@ public class RequestValidatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> validator.validate(serviceContext, statements, sessionProperties, "sql", null, null)
+        () -> validator.validate(serviceContext, statements, sessionProperties, "sql")
     );
 
     // Then:
@@ -227,7 +225,7 @@ public class RequestValidatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlStatementException.class,
-        () -> validator.validate(serviceContext, statements, sessionProperties, "sql", null, null)
+        () -> validator.validate(serviceContext, statements, sessionProperties, "sql")
     );
 
     // Then:
@@ -250,7 +248,7 @@ public class RequestValidatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> validator.validate(serviceContext, statements, sessionProperties, "sql", null, null)
+        () -> validator.validate(serviceContext, statements, sessionProperties, "sql")
     );
 
     // Then:
@@ -276,7 +274,7 @@ public class RequestValidatorTest {
 
     // Expect Nothing:
     // When:
-    validator.validate(serviceContext, statements, sessionProperties, "sql", null, null);
+    validator.validate(serviceContext, statements, sessionProperties, "sql");
   }
 
   @Test
@@ -288,7 +286,7 @@ public class RequestValidatorTest {
     // When:
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> validator.validate(serviceContext, ImmutableList.of(), sessionProperties, "sql", null, null)
+        () -> validator.validate(serviceContext, ImmutableList.of(), sessionProperties, "sql")
     );
 
     // Then:
@@ -305,7 +303,7 @@ public class RequestValidatorTest {
     // When:
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> validator.validate(serviceContext, ImmutableList.of(), sessionProperties, "sql", null, null)
+        () -> validator.validate(serviceContext, ImmutableList.of(), sessionProperties, "sql")
     );
 
     // Then:
@@ -321,7 +319,7 @@ public class RequestValidatorTest {
         SandboxedServiceContext.create(TestServiceContext.create());
 
     // When:
-    validator.validate(otherServiceContext, statements, sessionProperties, "sql", null, null);
+    validator.validate(otherServiceContext, statements, sessionProperties, "sql");
 
     // Then:
     verify(distributedStatementValidator).create(

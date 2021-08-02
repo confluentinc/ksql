@@ -21,10 +21,7 @@ import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
@@ -37,13 +34,11 @@ public final class ListFunctionsExecutor {
 
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListFunctions> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final FunctionRegistry functionRegistry = executionContext.getMetaStore();
 
@@ -71,7 +66,8 @@ public final class ListFunctionsExecutor {
         ))
         .forEach(all::add);
 
-    return Optional.of(new FunctionNameList(statement.getStatementText(), all));
+    return StatementExecutorResponse.handled(
+        Optional.of(new FunctionNameList(statement.getStatementText(), all)));
   }
 
 }

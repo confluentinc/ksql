@@ -18,11 +18,8 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.VariablesList;
 import io.confluent.ksql.rest.entity.VariablesList.Variable;
-import io.confluent.ksql.rest.server.computation.DistributingExecutor;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
@@ -33,19 +30,18 @@ public final class ListVariablesExecutor {
   private ListVariablesExecutor() {
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<ListVariables> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext
+      final ServiceContext serviceContext
   ) {
     final List<Variable> sessionVariables = sessionProperties.getSessionVariables().entrySet()
         .stream()
         .map(e -> new Variable(e.getKey(), e.getValue()))
         .collect(Collectors.toList());
 
-    return Optional.of(new VariablesList(statement.getStatementText(), sessionVariables));
+    return StatementExecutorResponse.handled(Optional.of(
+        new VariablesList(statement.getStatementText(), sessionVariables)));
   }
 }

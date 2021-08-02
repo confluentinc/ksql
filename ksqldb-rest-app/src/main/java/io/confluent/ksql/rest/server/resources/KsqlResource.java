@@ -288,9 +288,7 @@ public class KsqlResource implements KsqlConfigurable {
               requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
               request.getSessionVariables()
           ),
-          request.getKsql(),
-          handler.getDistributor(),
-          securityContext
+          request.getKsql()
       );
 
       // log validated statements for query anonymization

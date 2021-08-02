@@ -76,9 +76,7 @@ public enum CustomValidators {
       (statement,
           sessionProperties,
           executionContext,
-          serviceContext,
-          distributingExecutor,
-          securityContext) -> {
+          serviceContext) -> {
         throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
       }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
@@ -140,15 +138,11 @@ public enum CustomValidators {
       final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final DistributingExecutor distributingExecutor,
-      final KsqlSecurityContext securityContext) throws KsqlException {
+      final ServiceContext serviceContext) throws KsqlException {
     validator.validate(
         statement,
         sessionProperties,
         executionContext,
-        serviceContext,
-        distributingExecutor,
-        securityContext);
+        serviceContext);
   }
 }

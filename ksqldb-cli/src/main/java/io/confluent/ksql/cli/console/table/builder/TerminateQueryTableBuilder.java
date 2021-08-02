@@ -18,6 +18,9 @@ package io.confluent.ksql.cli.console.table.builder;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 
+/**
+ * This builder is only used to terminate transient queries.
+ */
 public class TerminateQueryTableBuilder implements TableBuilder<TerminateQueryEntity> {
 
   @Override

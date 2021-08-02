@@ -157,12 +157,13 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     metadata.remove(queryId.toString());
     if (kafkaStreams.state().isRunningOrRebalancing()) {
       try {
-          kafkaStreams.removeNamedTopology(queryId.toString());
+        kafkaStreams.removeNamedTopology(queryId.toString());
       } catch (IllegalArgumentException e) {
-          //don't block
+        //don't block
       }
     } else {
-      throw new IllegalStateException("Streams in not running but is in state" + kafkaStreams.state());
+      throw new IllegalStateException("Streams in not running but is in state"
+          + kafkaStreams.state());
     }
     kafkaStreams.cleanUpNamedTopology(queryId.toString());
   }
@@ -218,7 +219,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     return ImmutableSet.copyOf(sources.keySet());
   }
 
-  public void addQueryError(QueryError e) {
+  public void addQueryError(final QueryError e) {
     queryErrors.add(e);
   }
 }

@@ -153,6 +153,6 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
     return ImmutableSet.copyOf(sources.keySet());
   }
 
-  public void addQueryError(QueryError e) {
+  public void addQueryError(final QueryError e) {
   }
 }

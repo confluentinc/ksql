@@ -164,6 +164,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     } else {
       throw new IllegalStateException("Streams in not running but is in state" + kafkaStreams.state());
     }
+    kafkaStreams.cleanUpNamedTopology(queryId.toString());
   }
 
   public synchronized void close() {
@@ -171,6 +172,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
       metadata.remove(query);
     }
     kafkaStreams.close(Duration.ZERO);
+    kafkaStreams.cleanUp();
   }
 
   public void start(final QueryId queryId) {

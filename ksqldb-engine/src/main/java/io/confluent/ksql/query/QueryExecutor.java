@@ -306,14 +306,12 @@ final class QueryExecutor {
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
-            queryId.toString()
-    );
+    final StreamsBuilder streamsBuilder = new StreamsBuilder();
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
-            applicationId,
-            queryId,
-            namedTopologyStreamsBuilder
+        applicationId,
+        queryId,
+        streamsBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
@@ -327,8 +325,8 @@ final class QueryExecutor {
             streamsProperties,
             ksqlConfig
     );
-    final NamedTopology topology = namedTopologyStreamsBuilder
-            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
+    final Topology topology = streamsBuilder
+            .build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->

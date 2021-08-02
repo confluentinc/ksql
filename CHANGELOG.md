@@ -10,7 +10,6 @@
 * add PARSE_DATE and FORMAT_DATE functions ([#7733](https://github.com/confluentinc/ksql/pull/7733)) ([5a64ed7](https://github.com/confluentinc/ksql/commit/5a64ed7e762a06b9a2969def7c493b84451c0ac1))
 * add PARSE_TIME and FORMAT_TIME functions ([#7722](https://github.com/confluentinc/ksql/pull/7722)) ([9a381a8](https://github.com/confluentinc/ksql/commit/9a381a8ec8efc3e49632068d65de6e8b235d0527))
 * add TIMEADD and TIMESUB functions ([#7727](https://github.com/confluentinc/ksql/pull/7727)) ([75806a0](https://github.com/confluentinc/ksql/commit/75806a0233d838b3980a9b367cab42d7ab3b62d3))
-* implement serde for DATE ([#7718](https://github.com/confluentinc/ksql/pull/7718)) ([a94f1f2](https://github.com/confluentinc/ksql/commit/a94f1f234607fb594fe4b617c83bba1b97a812d2))
 * pull query bandwidth based throttling ([#7738](https://github.com/confluentinc/ksql/pull/7738)) ([8f01ad9](https://github.com/confluentinc/ksql/commit/8f01ad986c6d9e61be3da9b011941fef45ab2ec7))
 * serde for TIME type ([#7664](https://github.com/confluentinc/ksql/pull/7664)) ([7537d87](https://github.com/confluentinc/ksql/commit/7537d87a77f37afc557d061fd2b816dfcdbfb12a))
 * Support GRACE PERIOD syntax on WITHIN clause with simple window ([#7662](https://github.com/confluentinc/ksql/pull/7662)) ([907f6b1](https://github.com/confluentinc/ksql/commit/907f6b1d2f39a5a17f15cff49cdb2decfeef8013))

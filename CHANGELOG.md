@@ -30,7 +30,7 @@
 * enable time unit functions for interpreter ([#7709](https://github.com/confluentinc/ksql/pull/7709)) ([a26a297](https://github.com/confluentinc/ksql/commit/a26a297af55ad46c3f46efae78f470a33d0df251))
 * fixed nondeterminism in UdfIndex ([#7719](https://github.com/confluentinc/ksql/pull/7719)) ([cd1a988](https://github.com/confluentinc/ksql/commit/cd1a9880aa39e0fb9b4e84d9f713235c8569b104))
 * Fixes slow streams shut down bug which made tests flaky ([#7717](https://github.com/confluentinc/ksql/pull/7717)) ([9b9b196](https://github.com/confluentinc/ksql/commit/9b9b1964a4123862af5c577229e26800feb933f5))
-* longer IT timeouts ([#7670](https://github.com/confluentinc/ksql/pull/7670)) ([47dd216](https://github.com/confluentinc/ksql/commit/47dd2169fd826bbffb2758be6489e7810b9e8553))
+* longer integration timeouts to avoid timing-dependent flakiness ([#7670](https://github.com/confluentinc/ksql/pull/7670)) ([47dd216](https://github.com/confluentinc/ksql/commit/47dd2169fd826bbffb2758be6489e7810b9e8553))
 * make current java clients compatible with pre-0.15 servers ([#7667](https://github.com/confluentinc/ksql/pull/7667)) ([8f2d799](https://github.com/confluentinc/ksql/commit/8f2d79944050af0402a208a9cd939eaf92d37851))
 * remove time/date component when casting timestamp to date/time ([#7724](https://github.com/confluentinc/ksql/pull/7724)) ([87cd3c7](https://github.com/confluentinc/ksql/commit/87cd3c727c7a27b717d89f51459a133cfa2d7cad))
 * return an error message on http2 /query-stream endpoint ([#7750](https://github.com/confluentinc/ksql/pull/7750)) ([3a4348b](https://github.com/confluentinc/ksql/commit/3a4348b9f394c9ac0dd3a3eeb64bd2e6b4663f69))

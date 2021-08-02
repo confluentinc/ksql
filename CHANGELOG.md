@@ -10,7 +10,6 @@
 * add PARSE_DATE and FORMAT_DATE functions ([#7733](https://github.com/confluentinc/ksql/pull/7733)) ([5a64ed7](https://github.com/confluentinc/ksql/commit/5a64ed7e762a06b9a2969def7c493b84451c0ac1))
 * add PARSE_TIME and FORMAT_TIME functions ([#7722](https://github.com/confluentinc/ksql/pull/7722)) ([9a381a8](https://github.com/confluentinc/ksql/commit/9a381a8ec8efc3e49632068d65de6e8b235d0527))
 * add TIMEADD and TIMESUB functions ([#7727](https://github.com/confluentinc/ksql/pull/7727)) ([75806a0](https://github.com/confluentinc/ksql/commit/75806a0233d838b3980a9b367cab42d7ab3b62d3))
-* call KStreams API grace() when GRACE PERIOD is used in joins ([#7678](https://github.com/confluentinc/ksql/pull/7678)) ([9bf9abf](https://github.com/confluentinc/ksql/commit/9bf9abf0d8093d2b53859abd5fe54a0d280a3cc7))
 * define how DATE data is formatted ([#7700](https://github.com/confluentinc/ksql/pull/7700)) ([4175ad5](https://github.com/confluentinc/ksql/commit/4175ad5f46d9ee15a0469cfcffb2a217c41b3c1e))
 * define how TIME data is formatted ([#7674](https://github.com/confluentinc/ksql/pull/7674)) ([7718955](https://github.com/confluentinc/ksql/commit/771895510f9dbeadf4504dbaa562490da124dd63))
 * enable date/time for the query interpreter ([#7740](https://github.com/confluentinc/ksql/pull/7740)) ([79d14fb](https://github.com/confluentinc/ksql/commit/79d14fb60d7d784b3e099bcd59f102012c6a0d63))
@@ -26,6 +25,7 @@
 
 * block out of order migrations in migrations tool ([#7693](https://github.com/confluentinc/ksql/pull/7693)) ([1d617d3](https://github.com/confluentinc/ksql/commit/1d617d38d2928b8ec39d48df8060d4f43649382d))
 * enable KAFKA-10847 bugfix when GRACE PERIOD is used on Joins ([#7739](https://github.com/confluentinc/ksql/pull/7739)) ([c1f5da6](https://github.com/confluentinc/ksql/commit/c1f5da627541b0500a4c4c6ebc439bcce899b426))
+([#7678](https://github.com/confluentinc/ksql/pull/7678)) ([9bf9abf](https://github.com/confluentinc/ksql/commit/9bf9abf0d8093d2b53859abd5fe54a0d280a3cc7))
 * enable schema inference for timestamp/time/date ([#7737](https://github.com/confluentinc/ksql/pull/7737)) ([35b1cad](https://github.com/confluentinc/ksql/commit/35b1cadc08faea68ca0b76e6c08ac664a5122c0b))
 * enable time unit functions for interpreter ([#7709](https://github.com/confluentinc/ksql/pull/7709)) ([a26a297](https://github.com/confluentinc/ksql/commit/a26a297af55ad46c3f46efae78f470a33d0df251))
 * fixed nondeterminism in UdfIndex ([#7719](https://github.com/confluentinc/ksql/pull/7719)) ([cd1a988](https://github.com/confluentinc/ksql/commit/cd1a9880aa39e0fb9b4e84d9f713235c8569b104))

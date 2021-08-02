@@ -40,6 +40,9 @@
 
 * Existing queries that relied on vague implicit casting will not be started after an upgrade, and new queries that rely on vague implicit casting will be rejected. For example, foo(INT, INT) will not be able to resolve against two underlying function signatures of foo(BIGINT, BIGINT) and foo(DOUBLE, DOUBLE). Calling a function whose only parameter is variadic with an explicit null will also result in the call being rejected as vague.
 
+It's worth noting that queries which relied on this vague implicit casting were never truly supported, as they would have been nondeterministic. UDFs most likely to be adversely effected are ones which have multiple numerical overloads with repeated logic. For example, if you had two UDFs foo(INT, INT) and foo(BIGINT, BIGINT), both which relied on logic which returns null if both input parameters are null, then the prior behavior would have been to nondeterministically route to one of the two functions, at which null would be returned either way (due to the duplicate logic). This change will break existing queries that relied on this nondeterministic routing.
+
+
 ## [0.19.0](https://github.com/confluentinc/ksql/releases/tag/v0.19.0-ksqldb) (2021-06-08)
 
 ### Features

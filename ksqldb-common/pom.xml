@@ -158,6 +158,11 @@
             </resource>
 
             <resource>
+                <directory>src/main/resources/ksqldb</directory>
+                <filtering>true</filtering>
+            </resource>
+
+            <resource>
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>

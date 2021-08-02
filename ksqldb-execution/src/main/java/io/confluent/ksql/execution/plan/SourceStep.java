@@ -78,9 +78,6 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
     return topicName;
   }
 
-  //Jsonignore here until KLIP-50 (add rowpartition and rowoffset pseudocolumns) is live.
-  //For now, we don't want to write pseudoColumnVersion to the command topic
-  @JsonIgnore
   public int getPseudoColumnVersion() {
     return pseudoColumnVersion;
   }

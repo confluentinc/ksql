@@ -74,9 +74,9 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.casTarget = casTarget;
 
-    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
-      throw new IllegalArgumentException("Schema contains system columns in value schema");
-    }
+//    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
+//      throw new IllegalArgumentException("Schema contains system columns in value schema");
+//    }
 
     final Set<ColumnName> keyNames = schema.key().stream()
         .map(Column::name)

@@ -10,7 +10,6 @@
 * add PARSE_DATE and FORMAT_DATE functions ([#7733](https://github.com/confluentinc/ksql/pull/7733)) ([5a64ed7](https://github.com/confluentinc/ksql/commit/5a64ed7e762a06b9a2969def7c493b84451c0ac1))
 * add PARSE_TIME and FORMAT_TIME functions ([#7722](https://github.com/confluentinc/ksql/pull/7722)) ([9a381a8](https://github.com/confluentinc/ksql/commit/9a381a8ec8efc3e49632068d65de6e8b235d0527))
 * add TIMEADD and TIMESUB functions ([#7727](https://github.com/confluentinc/ksql/pull/7727)) ([75806a0](https://github.com/confluentinc/ksql/commit/75806a0233d838b3980a9b367cab42d7ab3b62d3))
-* define how DATE data is formatted ([#7700](https://github.com/confluentinc/ksql/pull/7700)) ([4175ad5](https://github.com/confluentinc/ksql/commit/4175ad5f46d9ee15a0469cfcffb2a217c41b3c1e))
 * define how TIME data is formatted ([#7674](https://github.com/confluentinc/ksql/pull/7674)) ([7718955](https://github.com/confluentinc/ksql/commit/771895510f9dbeadf4504dbaa562490da124dd63))
 * enable date/time for the query interpreter ([#7740](https://github.com/confluentinc/ksql/pull/7740)) ([79d14fb](https://github.com/confluentinc/ksql/commit/79d14fb60d7d784b3e099bcd59f102012c6a0d63))
 * implement casting for DATE/TIME ([#7708](https://github.com/confluentinc/ksql/pull/7708)) ([18cc030](https://github.com/confluentinc/ksql/commit/18cc030f453adcaa525d79e6bb773e35827a2ba7))

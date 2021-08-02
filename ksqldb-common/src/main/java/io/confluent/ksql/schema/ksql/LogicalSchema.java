@@ -142,6 +142,16 @@ public final class LogicalSchema {
     return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
   }
 
+  /**
+   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
+   *
+   * <p>If the columns already exist in the value schema the function returns the same schema.
+   *
+   * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
+   * WINDOWEND} columns will added to the value schema to represent the window bounds.
+   **
+   * @return the new schema.
+   */
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
     return withPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
@@ -264,7 +274,10 @@ public final class LogicalSchema {
     final List<Column> key = byNamespace.get(Namespace.KEY);
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-    int valueIndex = addNonPseudoAndKeyColsToBuilder(builder);
+
+    addKeyColumnsToKeySchema(builder);
+
+    int valueIndex = addNonPseudoAndKeyColsToValueSchema(builder);
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
@@ -296,25 +309,23 @@ public final class LogicalSchema {
    */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue() {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-    addNonPseudoAndKeyColsToBuilder(builder);
+    addKeyColumnsToKeySchema(builder);
+    addNonPseudoAndKeyColsToValueSchema(builder);
     return new LogicalSchema(builder.build());
   }
 
   /**
-   * Adds columns, except for key and pseudocolumns, to a provided builder and returns the number
-   * of added columns
+   * Adds columns, except for key and pseudocolumns, to a provided builder's value schema
+   * and returns the number of added columns
    * @param builder the builder to be passed in. Columns that don't qualify as key or pseudocolumns
    *                will be added
    * @return the number of columns added. This also functions as a "column index", to pass into
    * builder.add()
    */
-  private int addNonPseudoAndKeyColsToBuilder(ImmutableList.Builder<Column> builder) {
+  private int addNonPseudoAndKeyColsToValueSchema(ImmutableList.Builder<Column> builder) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
-    final List<Column> key = byNamespace.get(Namespace.KEY);
     final List<Column> value = byNamespace.get(VALUE);
-
-    builder.addAll(key);
 
     int addedColumns = 0;
     for (final Column c : value) {
@@ -329,6 +340,17 @@ public final class LogicalSchema {
       builder.add(Column.of(c.name(), c.type(), VALUE, addedColumns++));
     }
     return addedColumns;
+  }
+
+  /**
+   * Adds key columns to key schema of a provided builder
+   * @param builder the builder to be passed in. This builder will have key columns added to it's
+   *                key schema.
+   */
+  private void addKeyColumnsToKeySchema(ImmutableList.Builder<Column> builder) {
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+    final List<Column> key = byNamespace.get(Namespace.KEY);
+    builder.addAll(key);
   }
 
   private static Predicate<Column> withName(final ColumnName name) {

@@ -29,6 +29,7 @@ import java.util.Set;
 public final class SystemColumns {
 
   public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
+
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
   public static final SqlType ROWTIME_TYPE = SqlTypes.BIGINT;
 
@@ -40,6 +41,7 @@ public final class SystemColumns {
 
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
+
   public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
   public static final int ROWTIME_PSEUDOCOLUMN_VERSION = 0;
@@ -80,10 +82,7 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
-    if (!PseudoColumns.PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
-      throw new KsqlException("Provided pseudoColumnVersion has no corresponding columns defined");
-    }
-    return PseudoColumns.PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
+    return PseudoColumns.getPseudoColumnNamesByVersion(pseudoColumnVersion);
   }
 
   @SuppressFBWarnings(
@@ -102,12 +101,12 @@ public final class SystemColumns {
       value = "MS_EXPOSE_REP",
       justification = "SYSTEM_COLUMN_NAMES is ImmutableSet"
   )
-  public static Set<ColumnName> systemColumnNames() {
-    return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
-  }
-
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
     return SYSTEM_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
+  }
+
+  public static Set<ColumnName> systemColumnNames() {
+    return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {
@@ -117,7 +116,7 @@ public final class SystemColumns {
         .build();
   }
 
-  static class PseudoColumns {
+  private static class PseudoColumns {
 
     private static final Set<ColumnName> VERSION_ZERO_NAMES;
     private static final Set<ColumnName> VERSION_ONE_NAMES;
@@ -136,6 +135,13 @@ public final class SystemColumns {
             0, VERSION_ZERO_NAMES,
             1, VERSION_ONE_NAMES
         );
+
+    private static Set<ColumnName> getPseudoColumnNamesByVersion(final int pseudoColumnVersion) {
+      if (!PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
+        throw new KsqlException("Provided pseudoColumnVersion has no corresponding columns defined");
+      }
+      return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
+    }
 
   }
 }

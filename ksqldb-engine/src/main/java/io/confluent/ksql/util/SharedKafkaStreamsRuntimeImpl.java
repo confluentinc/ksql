@@ -173,7 +173,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
       metadata.remove(query);
     }
     kafkaStreams.close(Duration.ZERO);
-    kafkaStreams.cleanUp();
+//    kafkaStreams.cleanUp(); close is deadlocking on this version of streams but when that is fixed uncomment
   }
 
   public void start(final QueryId queryId) {

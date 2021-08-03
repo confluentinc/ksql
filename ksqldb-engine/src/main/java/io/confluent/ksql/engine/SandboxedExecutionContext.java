@@ -41,7 +41,6 @@ import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -143,7 +142,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         serviceContext,
         ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
-    result.getQuery().ifPresent(query -> query.getKafkaStreams().close(Duration.ZERO));
+    result.getQuery().ifPresent(query -> query.getKafkaStreams().close());
     return result;
   }
 

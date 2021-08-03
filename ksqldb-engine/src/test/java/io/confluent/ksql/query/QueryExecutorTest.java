@@ -56,7 +56,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueryMetadataImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 
 import java.util.ArrayList;
@@ -82,7 +81,6 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -167,7 +165,7 @@ public class QueryExecutorTest {
   @Mock
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
   @Mock
-  private NamedTopology topology;
+  private Topology topology;
   @Mock
   private TopologyDescription topoDesc;
   @Mock
@@ -304,6 +302,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
     assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
+    assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
@@ -343,7 +342,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
     assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-//    assertThat(queryMetadata.getTopology(), is(topology));
+    assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
@@ -415,8 +414,8 @@ public class QueryExecutorTest {
     final Map<String, Object> properties = capturedStreamsProperties();
     verify(ksMaterializationFactory).create(
         eq(STORE_NAME),
-        isA(KafkaStreams.class),
-        isA(Topology.class),
+        same(kafkaStreams),
+        same(topology),
         same(aggregationSchema),
         any(),
         eq(Optional.empty()),

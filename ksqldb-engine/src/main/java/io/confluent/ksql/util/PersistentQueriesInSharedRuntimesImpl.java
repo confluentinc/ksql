@@ -261,7 +261,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
-    //Not done but query for bin packed queries
+    //Not done here but in bin packed queries
   }
 
   @Override

@@ -306,8 +306,6 @@ final class QueryExecutor {
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final StreamsBuilder streamsBuilder = new StreamsBuilder();
-
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,

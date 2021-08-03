@@ -71,7 +71,6 @@ public class QueryStateMetricsReportingListenerTest {
     when(metrics.metricName(any(), any(), any(), anyMap()))
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2);
-    when(query.getQueryApplicationId()).thenReturn("app-id");
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
     listener = new QueryStateMetricsReportingListener(metrics, "");

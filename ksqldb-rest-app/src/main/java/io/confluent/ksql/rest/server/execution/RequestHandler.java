@@ -123,7 +123,7 @@ public class RequestHandler {
     );
 
 
-    StatementExecutorResponse response = executor.execute(
+    final StatementExecutorResponse response = executor.execute(
         configured,
         sessionProperties,
         ksqlEngine,

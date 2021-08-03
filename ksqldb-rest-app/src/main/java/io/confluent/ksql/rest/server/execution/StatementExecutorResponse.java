@@ -18,7 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import java.util.Optional;
 
-public class StatementExecutorResponse {
+public final class StatementExecutorResponse {
 
   private final boolean isHandled;
   private final Optional<KsqlEntity> entity;

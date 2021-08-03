@@ -19,37 +19,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,46 +42,17 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsMetadata;
-import org.apache.kafka.streams.state.HostInfo;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TerminateQueryExecutorTest {
 
-  private static final HostInfo REMOTE_HOST = new HostInfo("otherhost", 1234);
-  private static final HostInfo LOCAL_HOST = new HostInfo("HOST", 444);
-  private static final KsqlHostInfoEntity LOCAL_KSQL_HOST_INFO_ENTITY =
-      new KsqlHostInfoEntity(LOCAL_HOST.host(), LOCAL_HOST.port());
   private static final KafkaStreams.State RUNNING_QUERY_STATE = KafkaStreams.State.RUNNING;
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
-
-  @Mock
-  private SessionProperties sessionProperties;
-  @Mock
-  private RestResponse<KsqlEntityList> response;
-  @Mock
-  private ServiceContext serviceContext;
-  @Mock
-  private SimpleKsqlClient ksqlClient;
-
-
-  @Before
-  public void setup() throws MalformedURLException {
-    // set to true so the tests don't perform the scatter gather by default
-    when(sessionProperties.getInternalRequest()).thenReturn(true);
-    when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_KSQL_HOST_INFO_ENTITY.toKsqlHost());
-    when(sessionProperties.getLocalUrl()).thenReturn(new URL("https://address"));
-
-    when(ksqlClient.makeKsqlRequest(any(), any(), any())).thenReturn(response);
-    when(response.isErroneous()).thenReturn(false);
-    when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
-  }
 
   @Test
   public void shouldDefaultToDistributorForPersistentQuery() {
@@ -108,6 +64,43 @@ public class TerminateQueryExecutorTest {
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(persistentQueryId)).thenReturn(Optional.of(persistentQueryMetadata));
 
+    // When:
+    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
+        terminatePersistent,
+        mock(SessionProperties.class),
+        engine,
+        this.engine.getServiceContext()
+    ).getEntity();
+
+    // Then:
+    assertThat(ksqlEntity, is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldDefaultToDistributorForTerminateCluster() {
+    // Given:
+    final ConfiguredStatement<?> terminatePersistent = engine.configure("TERMINATE CLUSTER;");
+    final KsqlEngine engine = mock(KsqlEngine.class);
+
+    // When:
+    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
+        terminatePersistent,
+        mock(SessionProperties.class),
+        engine,
+        this.engine.getServiceContext()
+    ).getEntity();
+
+    // Then:
+    assertThat(ksqlEntity, is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldDefaultToDistributorForTerminateAll() {
+    // Given:
+    final ConfiguredStatement<?> terminatePersistent = engine.configure("TERMINATE ALL;");
+    final KsqlEngine engine = mock(KsqlEngine.class);
+
+    // When:
     final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
         terminatePersistent,
         mock(SessionProperties.class),
@@ -144,20 +137,15 @@ public class TerminateQueryExecutorTest {
 
   @Test
   public void shouldFailToTerminateTransientQuery() {
-    // Given:
-    when(sessionProperties.getInternalRequest()).thenReturn(false);
-    final ConfiguredStatement<?> terminateTransient= engine.configure("TERMINATE TRANSIENT_QUERY;");
-
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
         () -> CustomExecutors.TERMINATE_QUERY.execute(
-            terminateTransient,
+            engine.configure("TERMINATE TRANSIENT_QUERY;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             this.engine.getServiceContext()
         ).getEntity());
-
 
     // Then:
     assertThat(e.getMessage(), containsString(
@@ -178,14 +166,7 @@ public class TerminateQueryExecutorTest {
   ) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     mockQuery(id, state, metadata);
-    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PERSISTENT);
-    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-    when(sinkTopic.getKeyFormat()).thenReturn(
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
-    when(sinkTopic.getKafkaTopicName()).thenReturn(id);
-    when(metadata.getResultTopic()).thenReturn(sinkTopic);
-    when(metadata.getTaskMetadata()).thenReturn(tasksMetadata);
 
     return metadata;
   }
@@ -196,7 +177,6 @@ public class TerminateQueryExecutorTest {
   ) {
     final TransientQueryMetadata metadata = mock(TransientQueryMetadata.class);
     mockQuery(id, state, metadata);
-    when(metadata.getQueryType()).thenReturn(KsqlConstants.KsqlQueryType.PUSH);
 
     return metadata;
   }
@@ -207,20 +187,12 @@ public class TerminateQueryExecutorTest {
       final KafkaStreams.State state,
       final QueryMetadata metadata
   ) {
-    when(metadata.getStatementString()).thenReturn("sql");
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
-    when(metadata.getState()).thenReturn(state);
-    when(metadata.getTopologyDescription()).thenReturn("topology");
-    when(metadata.getExecutionPlan()).thenReturn("plan");
 
     final StreamsMetadata localStreamsMetadata = mock(StreamsMetadata.class);
-    when(localStreamsMetadata.hostInfo()).thenReturn(LOCAL_HOST);
     final StreamsMetadata remoteStreamsMetadata = mock(StreamsMetadata.class);
-    when(remoteStreamsMetadata.hostInfo()).thenReturn(REMOTE_HOST);
     final List<StreamsMetadata> streamsData = new ArrayList<>();
     streamsData.add(localStreamsMetadata);
     streamsData.add(remoteStreamsMetadata);
-    when(metadata.getAllMetadata()).thenReturn(streamsData);
   }
 }

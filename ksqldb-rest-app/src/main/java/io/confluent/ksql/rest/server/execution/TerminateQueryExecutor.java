@@ -27,7 +27,8 @@ import java.util.Optional;
 
 public final class TerminateQueryExecutor {
 
-  private TerminateQueryExecutor() { }
+  private TerminateQueryExecutor() {
+  }
 
   public static StatementExecutorResponse execute(
       final ConfiguredStatement<TerminateQuery> statement,
@@ -36,7 +37,11 @@ public final class TerminateQueryExecutor {
       final ServiceContext serviceContext
   ) {
     final TerminateQuery terminateQuery = statement.getStatement();
-    final Optional<QueryId> queryId = terminateQuery.getQueryId();
+    // do default behaviour for TERMINATE ALL
+    if (!terminateQuery.getQueryId().isPresent()) {
+      return StatementExecutorResponse.notHandled();
+    }
+    final QueryId queryId = terminateQuery.getQueryId().get();
     final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
         statement,
         sessionProperties,
@@ -44,14 +49,15 @@ public final class TerminateQueryExecutor {
         serviceContext.getKsqlClient()
     );
 
-    if (executionContext.getPersistentQuery(queryId.get()).isPresent()) {
+    if (executionContext.getPersistentQuery(queryId).isPresent()
+        || queryId.toString().equalsIgnoreCase("CLUSTER")) {
       // do default behaviour for terminating persistent queries
       return StatementExecutorResponse.notHandled();
     } else {
       // Check are we running this push query locally, if yes then terminate, otherwise
       // propagate terminate query to other nodes
-      if (executionContext.getQuery(queryId.get()).isPresent()) {
-        executionContext.getQuery(queryId.get()).get().close();
+      if (executionContext.getQuery(queryId).isPresent()) {
+        executionContext.getQuery(queryId).get().close();
       } else {
         final boolean wasTerminatedRemotely = remoteHostExecutor.fetchAllRemoteResults().getLeft()
             .values()
@@ -62,11 +68,11 @@ public final class TerminateQueryExecutor {
         if (!wasTerminatedRemotely) {
           throw new KsqlException(String.format(
               "Failed to terminate query with query ID: '%s'",
-              queryId.get()));
+              queryId));
         }
       }
       return StatementExecutorResponse.handled(Optional.of(
-          new TerminateQueryEntity(statement.getStatementText(), queryId.get().toString(), true)
+          new TerminateQueryEntity(statement.getStatementText(), queryId.toString(), true)
       ));
     }
   }

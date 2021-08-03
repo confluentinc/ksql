@@ -16,15 +16,11 @@
 package io.confluent.ksql.rest.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -37,7 +33,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -95,12 +90,11 @@ public class TerminateTransientQueryFunctionalTest {
         REST_APP_0,
         "terminate " + transientQueryId + ";"
     );
-    boolean failure = checkForTransientQuery();
 
     // Then:
     assertThat(
         "Should terminate push query on same node using query id",
-        !failure
+        !checkForTransientQuery()
     );
   }
 
@@ -115,12 +109,11 @@ public class TerminateTransientQueryFunctionalTest {
         REST_APP_1,
         "terminate " + transientQueryId + ";"
     );
-    boolean failure = checkForTransientQuery();
 
     // Then:
     assertThat(
         "Should terminate push query on another node using query id",
-        !failure
+        !checkForTransientQuery()
     );
   }
 

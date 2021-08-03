@@ -113,10 +113,10 @@ public final class ValidatedCommandFactory {
     final TerminateQuery terminateQuery = (TerminateQuery) statement.getStatement();
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
 
-    if (queryId.get().toString().toUpperCase().contains("TRANSIENT")) {
-      return Command.of(statement);
-    } else if (!queryId.isPresent()) {
+    if (!queryId.isPresent()) {
       context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      return Command.of(statement);
+    } else if (queryId.get().toString().toUpperCase().contains("TRANSIENT")) {
       return Command.of(statement);
     }
 

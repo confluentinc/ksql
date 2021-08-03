@@ -333,9 +333,7 @@ public final class TestExecutorUtil {
               insertValues,
               sessionProperties,
               engine,
-              engine.getServiceContext(),
-              null,
-              null
+              engine.getServiceContext()
           );
           continue;
         }

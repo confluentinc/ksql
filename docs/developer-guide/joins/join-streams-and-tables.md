@@ -159,7 +159,7 @@ record. The following assumptions apply:
 
 -   All records have the same key.
 -   All records are processed in timestamp order.
--   The join window is 10 seconds, and the grace period is 5 seconds.
+-   The join window is 15 seconds, and the grace period is 5 seconds.
 
 When new input is received, the join is triggered under the conditions
 listed in the table. Input records with a NULL key or a NULL value are
@@ -187,13 +187,13 @@ ignored and don't trigger the join.
 | 14        |             | d            | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         | [A, d], [B, d], [C, d]         |
 | 15        | D           |              | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] | [D, a], [D, b], [D, c], [D, d] |
 | ...       |             |              |                                |                                |                                |
-| 30        | E           |              |                                |                                |                                |
+| 40        | E           |              |                                |                                |                                |
 | ...       |             |              |                                |                                |                                |
-| 45        | F           |              |                                | [E,null]                       | [E,null]                       |
+| 60        | F           |              |                                | [E,null]                       | [E,null]                       |
 | ...       |             |              |                                |                                |                                |
-| 60        |             | f            |                                | [F,null]                       | [F,null]                       |
+| 80        |             | f            |                                | [F,null]                       | [F,null]                       |
 | ...       |             |              |                                |                                |                                |
-| 75        | G           |              |                                |                                | [null,f]                       |
+| 100       | G           |              |                                |                                | [null,f]                       |
 
 Stream-Table Joins
 ------------------

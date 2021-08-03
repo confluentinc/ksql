@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -47,7 +48,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class JLineReaderTest {
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  public TemporaryFolder tempFolder = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private Predicate<String> cliLinePredicate;

@@ -119,7 +119,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private final String previousJassConfig;
   private final Map<String, Object> customBrokerConfig;
   private final Map<String, Object> customClientConfig;
-  private final TemporaryFolder tmpFolder = new TemporaryFolder();
+  private final TemporaryFolder tmpFolder = KsqlTestFolder.temporaryFolder();
   private final List<AclBinding> addedAcls = new ArrayList<>();
   private final Map<AclKey, Set<AclOperation>> initialAcls;
 

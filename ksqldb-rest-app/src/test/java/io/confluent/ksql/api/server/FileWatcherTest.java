@@ -24,6 +24,7 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.api.server.FileWatcher.Callback;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -45,7 +46,7 @@ import org.mockito.verification.Timeout;
 public class FileWatcherTest {
 
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private Callback callback;

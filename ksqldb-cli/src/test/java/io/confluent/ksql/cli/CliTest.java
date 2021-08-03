@@ -76,6 +76,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -148,7 +149,7 @@ public class CliTest {
       .build();
 
   @Rule
-  public final TemporaryFolder TMP = new TemporaryFolder();
+  public final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain

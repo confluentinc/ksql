@@ -32,11 +32,20 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.test.utils.JsonParsingUtil;
+import io.confluent.ksql.util.BytesUtils;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @JsonDeserialize(using = RecordNode.Deserializer.class)
@@ -47,6 +56,9 @@ public final class RecordNode {
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+
+  private static final SchemaTranslator protobufSchemaTranslator =
+      (new ProtobufFormat()).getSchemaTranslator(ImmutableMap.of());
 
   private final String topicName;
   private final JsonNode key;
@@ -78,14 +90,21 @@ public final class RecordNode {
   }
 
   public Record build() {
+    return build(Optional.empty(), Optional.empty());
+  }
+
+  public Record build(
+      final Optional<ParsedSchema> keySchema,
+      final Optional<ParsedSchema> valueSchema
+  ) {
     final Object recordKey = buildJson(key);
     final Object recordValue = buildJson(value);
 
     return new Record(
         topicName,
-        recordKey,
+        keySchema.map(s -> coerceRecord(recordKey, s, true)).orElse(recordKey),
         key,
-        recordValue,
+        valueSchema.map(s -> coerceRecord(recordValue, s, false)).orElse(recordValue),
         value,
         timestamp,
         window.orElse(null)
@@ -119,6 +138,51 @@ public final class RecordNode {
       return objectMapper.readValue(objectMapper.writeValueAsString(contents), Object.class);
     } catch (final IOException e) {
       throw new InvalidFieldException("value", "failed to parse", e);
+    }
+  }
+
+  private Object coerceRecord(
+      final Object record,
+      final ParsedSchema schema,
+      final boolean isKey
+  ) {
+    if (!(record instanceof Map)) {
+      return record;
+    }
+
+    final Map<String, Object> recordMap = (Map<String, Object>) record;
+
+    final List<SimpleColumn> columns;
+    switch (schema.schemaType()) {
+      case ProtobufFormat.NAME:
+        columns = protobufSchemaTranslator.toColumns(schema, SerdeFeatures.of(), isKey);
+        break;
+      default:
+        return record;
+    }
+
+    columns.stream().forEach(c -> coerceColumn(recordMap, c));
+    return recordMap;
+  }
+
+  private void coerceColumn(final Map<String, Object> record, final SimpleColumn column) {
+    final String lowerCaseName = column.name().text().toLowerCase();
+    final String upperCaseName = column.name().text().toUpperCase();
+    final String name = (record.containsKey(lowerCaseName)) ? lowerCaseName : upperCaseName;
+
+    final Object value = record.get(name);
+    if (value == null) {
+      return;
+    }
+
+    switch (column.type().baseType()) {
+      case BYTES:
+        if (value instanceof String) {
+          record.put(name, BytesUtils.decode((String) value, BytesUtils.Encoding.BASE64));
+        }
+
+        break;
+      default:
     }
   }
 

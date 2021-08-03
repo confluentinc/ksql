@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.TerminateQueryEntity;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -50,7 +51,7 @@ public final class TerminateQueryExecutor {
     );
 
     if (executionContext.getPersistentQuery(queryId).isPresent()
-        || queryId.toString().equalsIgnoreCase("CLUSTER")) {
+        || statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
       // do default behaviour for terminating persistent queries
       return StatementExecutorResponse.notHandled();
     } else {

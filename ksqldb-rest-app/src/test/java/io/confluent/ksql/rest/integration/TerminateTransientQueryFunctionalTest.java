@@ -20,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -33,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -62,6 +62,8 @@ public class TerminateTransientQueryFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
       .build();
+  private static ExecutorService service;
+  private static Runnable backgroundTask;
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -77,6 +79,16 @@ public class TerminateTransientQueryFunctionalTest {
         REST_APP_0,
         "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
+    service = Executors.newFixedThreadPool(1);
+    backgroundTask = () -> RestIntegrationTestUtil.makeQueryRequest(
+        REST_APP_0,
+        "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
+        Optional.empty());
+  }
+
+  @AfterClass
+  public static void tearDownClass() {
+    service.shutdownNow();
   }
 
   @Test
@@ -137,12 +149,6 @@ public class TerminateTransientQueryFunctionalTest {
   }
 
   public void givenPushQuery() {
-    ExecutorService service = Executors.newFixedThreadPool(2);
-    Runnable backgroundTask = () -> RestIntegrationTestUtil.makeQueryRequest(
-        REST_APP_0,
-        "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
-        Optional.of(BasicCredentials.of("user", "pwd"))
-    );
     service.execute(backgroundTask);
 
     boolean repeat = true;

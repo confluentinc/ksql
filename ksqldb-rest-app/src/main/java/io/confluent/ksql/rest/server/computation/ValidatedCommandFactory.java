@@ -26,6 +26,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -116,7 +117,8 @@ public final class ValidatedCommandFactory {
     if (!queryId.isPresent()) {
       context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
       return Command.of(statement);
-    } else if (queryId.get().toString().toUpperCase().contains("TRANSIENT")) {
+    } else if (queryId.get().toString().toUpperCase()
+        .contains(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)) {
       return Command.of(statement);
     }
 

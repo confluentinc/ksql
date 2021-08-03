@@ -25,6 +25,7 @@ import io.confluent.ksql.test.model.TopicNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -86,12 +87,26 @@ public final class TestCaseBuilder {
       final Optional<Matcher<Throwable>> ee = test.expectedException()
           .map(ExpectedExceptionNode::build);
 
-      final List<Topic> topics = test.topics().stream()
+      final Map<String, Topic> topics = test.topics().stream()
           .map(TopicNode::build)
-          .collect(Collectors.toList());
+          .collect(Collectors.toMap(
+              t -> t.getName().toLowerCase(),
+              t -> t));
 
       final List<Record> inputRecords = test.inputs().stream()
-          .map(RecordNode::build)
+          .map(r -> {
+            final String topicName = r.topicName().toLowerCase();
+
+            // If a schema is found for the topic, then pass it to the RecordNode to
+            // parse columns which value type cannot be detected without a schema
+            if (topics.containsKey(topicName)) {
+              return r.build(
+                  topics.get(topicName).getKeySchema(),
+                  topics.get(topicName).getValueSchema());
+            }
+
+            return r.build();
+          })
           .collect(Collectors.toList());
 
       final List<Record> outputRecords = test.outputs().stream()
@@ -108,7 +123,7 @@ public final class TestCaseBuilder {
           testName,
           versionBounds,
           test.properties(),
-          topics,
+          topics.values(),
           inputRecords,
           outputRecords,
           statements,

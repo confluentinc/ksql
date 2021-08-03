@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.test.serde;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -201,7 +199,7 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
             throw new TestFrameworkException("DECIMAL type requires JSON number in test data");
           } else {
-            return spec.toString().getBytes(UTF_8);
+            return spec;
           }
         default:
           throw new RuntimeException(

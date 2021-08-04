@@ -20,7 +20,6 @@ import java.util.Objects;
 
 public final class ArrayUtil {
   private ArrayUtil() {
-
   }
 
   public static <T> int getNullIndex(final T[] array) {

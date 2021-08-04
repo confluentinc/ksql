@@ -39,6 +39,8 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.hamcrest.Matcher;
 
+// CHECKSTYLE_RULES.OFF: ArrayTypeStyle
+// suppress due to https://github.com/checkstyle/checkstyle/issues/10215
 final class FieldNode {
 
   static final FieldNode NULL = new FieldNode("explicitly set to NULL", Optional.empty());

@@ -25,6 +25,8 @@ import io.confluent.ksql.test.tools.conditions.PostConditions;
 import java.util.List;
 import org.hamcrest.Matcher;
 
+// CHECKSTYLE_RULES.OFF: ArrayTypeStyle
+// suppress due to https://github.com/checkstyle/checkstyle/issues/10215
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PostConditionsNode {
 

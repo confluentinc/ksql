@@ -54,7 +54,7 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    *
    * @param principal The {@link Principal} whose credentials will be used.
    * @throws KsqlException If an error occurs while creating the
-   * {@link org.apache.kafka.streams.KafkaClientSupplier}.
+   *                       {@link org.apache.kafka.streams.KafkaClientSupplier}.
    */
   KafkaClientSupplier getKafkaClientSupplier(Principal principal) throws KsqlException;
 
@@ -64,7 +64,8 @@ public interface KsqlSecurityExtension extends AutoCloseable {
    *
    * @param principal The {@link Principal} whose credentials will be used.
    * @throws KsqlException If an error occurs while creating the
-   * {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient} supplier.
+   *                       {@link io.confluent.kafka.schemaregistry.client.SchemaRegistryClient}
+   *                       supplier.
    */
   Supplier<SchemaRegistryClient> getSchemaRegistryClientSupplier(Principal principal)
       throws KsqlException;

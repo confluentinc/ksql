@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.rest.entity.CommandStatus;
-
 import java.time.Duration;
 import java.util.Objects;
 

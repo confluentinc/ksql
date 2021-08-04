@@ -35,6 +35,8 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 
+// CHECKSTYLE_RULES.OFF: ArrayTypeStyle
+// suppress due to https://github.com/checkstyle/checkstyle/issues/10215
 @SuppressWarnings("rawtypes")
 class SourceNode {
 

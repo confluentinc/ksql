@@ -33,6 +33,13 @@
       <artifactId>curator-test</artifactId>
       <version>${apache.curator.version}</version>
       <scope>compile</scope>
+      <exclusions>
+        <!-- Use a repackaged version of log4j with security patches instead-->
+        <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>

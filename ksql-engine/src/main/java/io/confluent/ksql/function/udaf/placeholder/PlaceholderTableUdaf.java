@@ -24,7 +24,7 @@ public final class PlaceholderTableUdaf implements TableUdaf<Long, Long> {
 
   public static final PlaceholderTableUdaf INSTANCE = new PlaceholderTableUdaf();
 
-  private PlaceholderTableUdaf(){
+  private PlaceholderTableUdaf() {
   }
 
   @Override

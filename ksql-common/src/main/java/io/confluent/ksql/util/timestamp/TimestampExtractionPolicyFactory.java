@@ -19,7 +19,6 @@ import io.confluent.ksql.ddl.DdlConfig;
 import io.confluent.ksql.schema.ksql.KsqlSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;

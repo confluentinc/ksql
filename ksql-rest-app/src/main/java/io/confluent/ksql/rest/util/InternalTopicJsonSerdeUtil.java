@@ -25,7 +25,8 @@ import org.apache.kafka.common.serialization.Serializer;
 
 public final class InternalTopicJsonSerdeUtil {
 
-  private InternalTopicJsonSerdeUtil(){}
+  private InternalTopicJsonSerdeUtil() {
+  }
 
   public static <T> Serializer<T> getJsonSerializer(final boolean isKey) {
     final Serializer<T> result = new KafkaJsonSerializer<>();

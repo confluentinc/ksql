@@ -73,9 +73,9 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   private volatile boolean everStarted = false;
   protected volatile boolean closed = false;
+  private volatile KafkaStreams kafkaStreams;
   // These fields don't need synchronization because they are initialized in initialize() before
   // the object is made available to other threads.
-  private KafkaStreams kafkaStreams;
   private boolean initialized = false;
   private boolean corruptionCommandTopic = false;
 

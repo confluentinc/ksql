@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.internal.JmxDataPointsReporter;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -108,6 +109,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.utilization.PersistentQuerySaturationMetrics;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
@@ -142,6 +144,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
@@ -700,6 +703,11 @@ public final class KsqlRestApplication implements Executable {
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
 
+    final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1,
+        new ThreadFactoryBuilder()
+            .setNameFormat("ksql-csu-metrics-reporter-%d")
+            .build()
+    );
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
@@ -708,6 +716,19 @@ public final class KsqlRestApplication implements Executable {
         specificQueryIdGenerator,
         new KsqlConfig(restConfig.getKsqlConfigProperties()),
         Collections.emptyList()
+    );
+
+    final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
+        ksqlEngine,
+        new JmxDataPointsReporter(new Metrics(), "ksqldb-utilization", Duration.ofMinutes(1)),
+        Duration.ofMinutes(5),
+        Duration.ofSeconds(30)
+    );
+    executorService.scheduleAtFixedRate(
+        saturation,
+        0,
+        Duration.ofMinutes(1).toMillis(),
+        TimeUnit.MILLISECONDS
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();

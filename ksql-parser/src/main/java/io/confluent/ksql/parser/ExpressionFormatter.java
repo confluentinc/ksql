@@ -72,7 +72,6 @@ import io.confluent.ksql.parser.tree.Window;
 import io.confluent.ksql.parser.tree.WindowFrame;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ParserUtil;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

@@ -17,7 +17,6 @@ package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

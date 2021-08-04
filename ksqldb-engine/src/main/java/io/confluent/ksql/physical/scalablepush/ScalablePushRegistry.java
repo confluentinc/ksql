@@ -157,7 +157,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   }
 
   public void onError() {
-
+// enter the same callbacks, implement the same interface
   }
 
   private final class PeekProcessor implements Processor<Object, GenericRow, Void, Void> {

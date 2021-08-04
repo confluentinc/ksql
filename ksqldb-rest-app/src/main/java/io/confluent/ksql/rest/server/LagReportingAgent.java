@@ -82,7 +82,6 @@ public final class LagReportingAgent implements HostStatusListener {
 
   /**
    * Builder for creating an instance of LagReportingAgent.
-   * @return
    */
   public static LagReportingAgent.Builder builder() {
     return new LagReportingAgent.Builder();

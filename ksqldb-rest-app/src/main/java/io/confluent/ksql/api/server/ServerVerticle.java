@@ -336,7 +336,7 @@ public class ServerVerticle extends AbstractVerticle {
    * If the request was received on the internal listener.
    *
    * @return If an internal listener is in use and this is an internal request, or
-   * {@code Optional.empty} if an internal listener is not enabled.
+   *         {@code Optional.empty} if an internal listener is not enabled.
    */
   private static Optional<Boolean> isInternalRequest(final RoutingContext routingContext) {
     return Optional.ofNullable(routingContext.get(CONTEXT_DATA_IS_INTERNAL));

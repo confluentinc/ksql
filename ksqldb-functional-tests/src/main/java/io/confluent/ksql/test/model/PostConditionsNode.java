@@ -34,6 +34,8 @@ import java.util.regex.Pattern;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 
+// CHECKSTYLE_RULES.OFF: ArrayTypeStyle
+// suppress due to https://github.com/checkstyle/checkstyle/issues/10215
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class PostConditionsNode {
 

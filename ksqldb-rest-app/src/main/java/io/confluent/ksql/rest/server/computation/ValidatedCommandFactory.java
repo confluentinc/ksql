@@ -117,8 +117,8 @@ public final class ValidatedCommandFactory {
     if (!queryId.isPresent()) {
       context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
       return Command.of(statement);
-    } else if (queryId.get().toString().toUpperCase()
-        .contains(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)) {
+    } else if (queryId.get().toString().toLowerCase()
+        .contains(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT)) {
       return Command.of(statement);
     }
 

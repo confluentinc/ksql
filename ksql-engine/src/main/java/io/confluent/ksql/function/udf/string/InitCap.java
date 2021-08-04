@@ -19,7 +19,6 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

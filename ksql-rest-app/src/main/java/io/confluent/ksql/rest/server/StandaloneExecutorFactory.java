@@ -45,7 +45,7 @@ public final class StandaloneExecutorFactory {
 
   static final String CONFIG_TOPIC_SUFFIX = "configs";
 
-  private StandaloneExecutorFactory(){
+  private StandaloneExecutorFactory() {
   }
 
   public static StandaloneExecutor create(

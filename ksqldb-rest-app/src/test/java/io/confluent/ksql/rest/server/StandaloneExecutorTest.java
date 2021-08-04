@@ -527,7 +527,8 @@ public class StandaloneExecutorTest {
   public void shouldRunCtStatement() {
     // Given:
     final PreparedStatement<CreateTable> ct = PreparedStatement.of("CT",
-        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS,
+            CreateTable.Type.NORMAL));
 
     givenQueryFileParsesTo(ct);
 

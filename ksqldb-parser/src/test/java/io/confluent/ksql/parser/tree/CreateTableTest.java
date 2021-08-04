@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.CreateTable.Type.NORMAL;
+import static io.confluent.ksql.parser.tree.CreateTable.Type.SOURCE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -60,25 +62,28 @@ public class CreateTableTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateTable(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateTable(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, NORMAL),
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, NORMAL),
+            new CreateTable(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, NORMAL),
+            new CreateTable(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, NORMAL)
         )
         .addEqualityGroup(
-            new CreateTable(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateTable(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS, NORMAL)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, TableElements.of(), false, true, SOME_PROPS)
+            new CreateTable(SOME_NAME, TableElements.of(), false, true, SOME_PROPS, NORMAL)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS, NORMAL)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS, SOURCE)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS, NORMAL)
+        )
+        .addEqualityGroup(
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, OTHER_PROPS, SOURCE)
         )
         .testEquals();
   }
@@ -107,7 +112,7 @@ public class CreateTableTest {
     // When:
     final ParseFailedException e = assertThrows(
         ParseFailedException.class,
-        () -> new CreateTable(SOME_NAME, invalidElements, false, false, SOME_PROPS)
+        () -> new CreateTable(SOME_NAME, invalidElements, false, false, SOME_PROPS, NORMAL)
     );
 
     // Then:

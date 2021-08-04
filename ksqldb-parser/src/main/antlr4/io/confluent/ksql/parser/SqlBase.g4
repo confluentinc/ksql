@@ -72,7 +72,7 @@ statement
                 (WITH tableProperties)?                                     #createStream
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
     | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName

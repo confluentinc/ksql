@@ -28,6 +28,7 @@ import java.util.Optional;
 @JsonIgnoreProperties({"keyField"}) // Removed at version 0.10
 @Immutable
 public class CreateTableCommand extends CreateSourceCommand {
+  private final Optional<String> type;
 
   public CreateTableCommand(
       @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
@@ -36,7 +37,8 @@ public class CreateTableCommand extends CreateSourceCommand {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo,
-      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace
+      @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace,
+      @JsonProperty(value = "type", defaultValue = "NORMAL") final Optional<String> type
   ) {
     super(
         sourceName,
@@ -51,6 +53,12 @@ public class CreateTableCommand extends CreateSourceCommand {
     if (schema.key().isEmpty()) {
       throw new UnsupportedOperationException("Tables require key columns");
     }
+
+    this.type = type;
+  }
+
+  public Optional<String> getType() {
+    return type;
   }
 
   @Override

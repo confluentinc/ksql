@@ -281,13 +281,18 @@ public class AstBuilder {
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
+      final CreateTable.Type type = context.SOURCE() != null
+          ? CreateTable.Type.SOURCE
+          : CreateTable.Type.NORMAL;
+
       return new CreateTable(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          type
       );
     }
 
@@ -1438,7 +1443,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          CreateTable.Type.NORMAL
       );
 
       return new AssertTable(getLocation(context), createTable);

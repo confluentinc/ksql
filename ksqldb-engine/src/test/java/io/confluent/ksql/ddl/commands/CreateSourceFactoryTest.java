@@ -293,7 +293,7 @@ public class CreateSourceFactoryTest {
         TableElements.of(
             tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
             tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties);
+        false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final CreateTableCommand result = createSourceFactory
@@ -379,7 +379,8 @@ public class CreateSourceFactoryTest {
     givenProperty(CommonCreateConfigs.WRAP_SINGLE_VALUE, new BooleanLiteral("false"));
 
     final CreateTable statement =
-        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, false, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE,
+            false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory
@@ -400,7 +401,8 @@ public class CreateSourceFactoryTest {
     ));
 
     final CreateTable statement =
-        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, false, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE,
+            false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory
@@ -415,7 +417,8 @@ public class CreateSourceFactoryTest {
   public void shouldCreateTableCommandWithSingleValueWrappingFromDefaultConfig() {
     // Given:
     final CreateTable statement =
-        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, false, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE,
+            false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory
@@ -446,7 +449,8 @@ public class CreateSourceFactoryTest {
   public void shouldThrowOnNoElementsInCreateTable() {
     // Given:
     final CreateTable statement
-        = new CreateTable(SOME_NAME, TableElements.of(), false, true, withProperties);
+        = new CreateTable(SOME_NAME, TableElements.of(),
+        false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final Exception e = assertThrows(
@@ -475,7 +479,8 @@ public class CreateSourceFactoryTest {
   public void shouldNotThrowWhenThereAreElementsInCreateTable() {
     // Given:
     final CreateTable statement =
-        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE, false, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS_1_VALUE,
+            false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     createSourceFactory.createTableCommand(statement, ksqlConfig);
@@ -609,7 +614,8 @@ public class CreateSourceFactoryTest {
         new StringLiteral(quote(ELEMENT2.getName().text()))
     );
     final CreateTable statement =
-        new CreateTable(SOME_NAME, TABLE_ELEMENTS, false, true, withProperties);
+        new CreateTable(SOME_NAME, TABLE_ELEMENTS,
+            false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final CreateTableCommand cmd = createSourceFactory.createTableCommand(
@@ -731,7 +737,7 @@ public class CreateSourceFactoryTest {
     // Given:
     givenCommandFactoriesWithMocks();
     final CreateTable statement = new CreateTable(SOME_NAME, TABLE_ELEMENTS, false, true,
-        withProperties);
+        withProperties, CreateTable.Type.NORMAL);
 
     when(valueSerdeFactory.create(
         FormatInfo.of(JSON.name()),
@@ -1010,7 +1016,8 @@ public class CreateSourceFactoryTest {
     final TableElements noKey = TableElements.of(ELEMENT1);
 
     final CreateTable statement =
-        new CreateTable(SOME_NAME, noKey, false, true, withProperties);
+        new CreateTable(SOME_NAME, noKey,
+            false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final Exception e = assertThrows(
@@ -1060,7 +1067,7 @@ public class CreateSourceFactoryTest {
         TableElements.of(
             tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
             tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties);
+        false, true, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final CreateTableCommand result = createSourceFactory
@@ -1077,7 +1084,7 @@ public class CreateSourceFactoryTest {
         TableElements.of(
             tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
             tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, false, withProperties);
+        false, false, withProperties, CreateTable.Type.NORMAL);
 
     // When:
     final Exception e = assertThrows(

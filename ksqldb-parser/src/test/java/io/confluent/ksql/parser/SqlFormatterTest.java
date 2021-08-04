@@ -279,6 +279,30 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatCreateSourceTableStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateTable createTable = new CreateTable(
+        TEST,
+        ELEMENTS_WITH_PRIMARY_KEY,
+        false,
+        false,
+        props,
+        CreateTable.Type.SOURCE);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE SOURCE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
   public void shouldFormatCreateOrReplaceTableStatement() {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties.from(
@@ -291,7 +315,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         true,
         false,
-        props);
+        props,
+        CreateTable.Type.NORMAL);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -316,7 +341,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
         false,
-        props);
+        props,
+        CreateTable.Type.NORMAL);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -335,7 +361,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        CreateTable.Type.NORMAL);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -353,7 +380,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        CreateTable.Type.NORMAL);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);

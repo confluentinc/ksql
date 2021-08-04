@@ -659,7 +659,8 @@ public class StatementRewriterTest {
         TableElements.of(tableElement1, tableElement2),
         false,
         false,
-        sourceProperties
+        sourceProperties,
+        CreateTable.Type.SOURCE
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
     when(mockRewriter.apply(tableElement2, context)).thenReturn(rewrittenTableElement2);
@@ -677,7 +678,8 @@ public class StatementRewriterTest {
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
                 false,
                 false,
-                sourceProperties
+                sourceProperties,
+                CreateTable.Type.SOURCE
             )
         )
     );

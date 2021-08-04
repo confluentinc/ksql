@@ -8,6 +8,9 @@ node/
 node_modules/
 logs/
 
+# Test directories
+junit*/
+
 # IntelliJ data
 *.iml
 *.iws

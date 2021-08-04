@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -55,7 +56,7 @@ public class CommandTopicFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @Rule
-  public TemporaryFolder backupLocation = new TemporaryFolder();
+  public TemporaryFolder backupLocation = KsqlTestFolder.temporaryFolder();
 
   private TestKsqlRestApp REST_APP_1;
   private TestKsqlRestApp REST_APP_2;

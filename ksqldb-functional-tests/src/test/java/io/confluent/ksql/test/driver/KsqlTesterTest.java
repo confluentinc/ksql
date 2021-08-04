@@ -62,6 +62,7 @@ import io.confluent.ksql.test.parser.SqlTestLoader;
 import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -108,7 +109,7 @@ public class KsqlTesterTest {
       .build();
 
   @Rule
-  public final TemporaryFolder tmpFolder = TemporaryFolder.builder().build();
+  public final TemporaryFolder tmpFolder = KsqlTestFolder.temporaryFolder();
 
   // parameterized
   private final Path file;

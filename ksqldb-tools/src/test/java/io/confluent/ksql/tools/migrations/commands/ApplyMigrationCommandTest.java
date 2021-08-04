@@ -36,6 +36,7 @@ import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.SourceDescription;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
@@ -99,7 +100,7 @@ public class ApplyMigrationCommandTest {
       + "INSERT INTO FOO VALUES ('${str}');";
 
   @Rule
-  public TemporaryFolder folder = new TemporaryFolder();
+  public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private MigrationConfig config;

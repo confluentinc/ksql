@@ -37,6 +37,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -59,6 +60,8 @@ public final class RecordNode {
 
   private static final SchemaTranslator protobufSchemaTranslator =
       (new ProtobufFormat()).getSchemaTranslator(ImmutableMap.of());
+  private static final SchemaTranslator avroSchemaTranslator =
+      (new AvroFormat()).getSchemaTranslator(ImmutableMap.of());
 
   private final String topicName;
   private final JsonNode key;
@@ -90,21 +93,24 @@ public final class RecordNode {
   }
 
   public Record build() {
-    return build(Optional.empty(), Optional.empty());
+    return build(Optional.empty(), Optional.empty(), SerdeFeatures.of(), SerdeFeatures.of());
   }
 
   public Record build(
       final Optional<ParsedSchema> keySchema,
-      final Optional<ParsedSchema> valueSchema
+      final Optional<ParsedSchema> valueSchema,
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valueFeatures
   ) {
     final Object recordKey = buildJson(key);
     final Object recordValue = buildJson(value);
 
     return new Record(
         topicName,
-        keySchema.map(s -> coerceRecord(recordKey, s, true)).orElse(recordKey),
+        keySchema.map(s -> coerceRecord(recordKey, s, true, keyFeatures)).orElse(recordKey),
         key,
-        valueSchema.map(s -> coerceRecord(recordValue, s, false)).orElse(recordValue),
+        valueSchema.map(s -> coerceRecord(recordValue, s, false, valueFeatures))
+            .orElse(recordValue),
         value,
         timestamp,
         window.orElse(null)
@@ -144,7 +150,8 @@ public final class RecordNode {
   private Object coerceRecord(
       final Object record,
       final ParsedSchema schema,
-      final boolean isKey
+      final boolean isKey,
+      final SerdeFeatures features
   ) {
     if (!(record instanceof Map)) {
       return record;
@@ -155,7 +162,10 @@ public final class RecordNode {
     final List<SimpleColumn> columns;
     switch (schema.schemaType()) {
       case ProtobufFormat.NAME:
-        columns = protobufSchemaTranslator.toColumns(schema, SerdeFeatures.of(), isKey);
+        columns = protobufSchemaTranslator.toColumns(schema, features, isKey);
+        break;
+      case AvroFormat.NAME:
+        columns = avroSchemaTranslator.toColumns(schema, features, isKey);
         break;
       default:
         return record;

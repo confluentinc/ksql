@@ -181,6 +181,10 @@
         "orReplace" : {
           "type" : "boolean",
           "default" : false
+        },
+        "type" : {
+          "type" : "string",
+          "default" : "NORMAL"
         }
       },
       "title" : "createTableV1",

@@ -202,7 +202,9 @@ public class SqlFormatterTest {
         ITEM_INFO_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false,
+        false
     );
 
     metaStore.putSource(ksqlTableOrders, false);
@@ -213,7 +215,9 @@ public class SqlFormatterTest {
         TABLE_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false,
+        false
     );
 
     metaStore.putSource(ksqlTableTable, false);

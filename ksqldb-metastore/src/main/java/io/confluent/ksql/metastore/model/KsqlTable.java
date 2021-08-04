@@ -24,6 +24,7 @@ import java.util.Optional;
 
 @Immutable
 public class KsqlTable<K> extends StructuredDataSource<K> {
+  private final boolean materialized;
 
   public KsqlTable(
       final String sqlExpression,
@@ -31,7 +32,9 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final LogicalSchema schema,
       final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
-      final KsqlTopic ksqlTopic
+      final KsqlTopic ksqlTopic,
+      final boolean readOnly,
+      final boolean materialized
   ) {
     super(
         sqlExpression,
@@ -40,8 +43,15 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         timestampExtractionPolicy,
         DataSourceType.KTABLE,
         isKsqlSink,
-        ksqlTopic
+        ksqlTopic,
+        readOnly
     );
+
+    this.materialized = materialized;
+  }
+
+  public boolean isMaterialized() {
+    return materialized;
   }
 
   @Override
@@ -52,7 +62,9 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         schema,
         getTimestampColumn(),
         isCasTarget(),
-        getKsqlTopic()
+        getKsqlTopic(),
+        isReadOnly(),
+        isMaterialized()
     );
   }
 }

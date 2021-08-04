@@ -180,7 +180,9 @@ public class KsqlParserTest {
         ORDERS_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false,
+        false
     );
 
     metaStore.putSource(ksqlTableOrders, false);

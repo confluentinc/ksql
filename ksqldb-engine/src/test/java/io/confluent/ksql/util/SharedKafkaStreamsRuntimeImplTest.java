@@ -1,16 +1,26 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryErrorClassifier;
+import io.confluent.ksql.query.QueryId;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -25,20 +35,101 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
 
+    @Mock
+    private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
+
+    @Mock
+    private PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimes;
+
+    @Mock
+    private QueryErrorClassifier queryErrorClassifier;
+
+    @Mock
+    private QueryId queryId;
+
+    @Mock
+    private QueryId queryId2;
+
+    @Mock
+    private NamedTopology namedTopology;
+
     private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
 
     @Before
     public void setUp() throws Exception {
-        when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
+        when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             5,
             streamProps
         );
+        when(queryId.toString()).thenReturn("query 1");
+        sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.emptySet());
+        sharedKafkaStreamsRuntimeImpl.register(
+            queryErrorClassifier,
+            Collections.emptyMap(),
+            persistentQueriesInSharedRuntimes,
+            queryId);
+        when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
+        when(persistentQueriesInSharedRuntimes.getTopology()).thenReturn(namedTopology);
     }
 
     @Test
-    public void shouldAddQuery() {
-//        sharedKafkaStreamsRuntime.addQuery();
+    public void shouldStartQuery() {
+        //When:
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+
+        //Then:
+        assertThat("Query was not added", sharedKafkaStreamsRuntimeImpl.getQueries().contains(queryId));
+    }
+
+    @Test
+    public void shouldNotAddQuery() {
+        //When:
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+            () -> sharedKafkaStreamsRuntimeImpl.register(
+                queryErrorClassifier,
+                Collections.emptyMap(),
+                persistentQueriesInSharedRuntimes,
+                queryId2));
+        //Then
+        assertThat(e.getMessage(), containsString(": was not reserved on this runtime"));
+    }
+
+    @Test
+    public void shouldStopQuery() {
+        //Given:
+        sharedKafkaStreamsRuntimeImpl.start(queryId);
+        when(kafkaStreamsNamedTopologyWrapper.state()).thenReturn(KafkaStreams.State.RUNNING);
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.stop(queryId);
+
+        //Then:
+        assertThat("Query was not stopped", !sharedKafkaStreamsRuntimeImpl.getQueries().contains(queryId));
+    }
+
+    @Test
+    public void shouldCloseRuntime() {
+        //When:
+        sharedKafkaStreamsRuntimeImpl.close();
+
+        //Then:
+        verify(kafkaStreamsNamedTopologyWrapper).close(any());
+    }
+
+    @Test
+    public void shouldRestartRuntime() {
+        //Given:
+        KafkaStreams kafkaStreams = sharedKafkaStreamsRuntimeImpl.getKafkaStreams();
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.restart();
+
+        //Then:
+        verify(kafkaStreamsNamedTopologyWrapper).close();
+        verify(kafkaStreamsNamedTopologyWrapper2).start();
+        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(namedTopology);
+        assertThat("Runtime was restarted", !kafkaStreams.equals(sharedKafkaStreamsRuntimeImpl.getKafkaStreams()));
     }
 }

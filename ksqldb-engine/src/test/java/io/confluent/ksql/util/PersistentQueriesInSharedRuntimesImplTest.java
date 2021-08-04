@@ -109,7 +109,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
 
         // Then:
         final InOrder inOrder = inOrder(sharedKafkaStreamsRuntimeImpl);
-        inOrder.verify(sharedKafkaStreamsRuntimeImpl).close(QUERY_ID);
+        inOrder.verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID);
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -128,6 +128,6 @@ public class PersistentQueriesInSharedRuntimesImplTest {
         query.stop();
 
         // Then:
-        verify(sharedKafkaStreamsRuntimeImpl).close(QUERY_ID);
+        verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID);
     }
 }

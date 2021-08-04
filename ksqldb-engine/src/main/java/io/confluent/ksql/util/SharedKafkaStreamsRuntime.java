@@ -34,7 +34,7 @@ public interface SharedKafkaStreamsRuntime {
 
   void markSources(QueryId queryId, Set<SourceName> sourceNames);
 
-  void addQuery(
+  void register(
       QueryErrorClassifier errorClassifier,
       Map<String, Object> streamsProperties,
       PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
@@ -52,11 +52,11 @@ public interface SharedKafkaStreamsRuntime {
 
   Set<StreamsTaskMetadata> getTaskMetadata();
 
-  void restart(QueryId queryId);
+  void restart();
 
   boolean isError(QueryId queryId);
 
-  void close(QueryId queryId);
+  void stop(QueryId queryId);
 
   void close();
 

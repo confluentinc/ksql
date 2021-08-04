@@ -130,7 +130,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
-    this.listener = requireNonNull(listener, "listen");
+    this.listener = requireNonNull(listener, "listener");
     this.materializationProvider = materializationProviderBuilder
             .flatMap(builder -> builder.apply(
                     this.sharedKafkaStreamsRuntime.getKafkaStreams(),
@@ -220,7 +220,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public void stop() {
-    sharedKafkaStreamsRuntime.close(queryId);
+    sharedKafkaStreamsRuntime.stop(queryId);
   }
 
   @Override
@@ -361,14 +361,14 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public void close() {
-    sharedKafkaStreamsRuntime.close(queryId);
+    sharedKafkaStreamsRuntime.stop(queryId);
     listener.onClose(this);
   }
 
   @Override
   public void start() {
     if (!everStarted) {
-      sharedKafkaStreamsRuntime.addQuery(
+      sharedKafkaStreamsRuntime.register(
           classifier,
           streamsProperties,
           this,

@@ -60,7 +60,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
     sources.put(queryId, sourceNames);
   }
 
-  public void addQuery(
+  public void register(
       final QueryErrorClassifier errorClassifier,
       final Map<String, Object> streamsProperties,
       final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
@@ -97,14 +97,14 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
         .collect(Collectors.toSet());
   }
 
-  public void restart(final QueryId queryId) {
+  public void restart() {
   }
 
   public boolean isError(final QueryId queryId) {
     return false;
   }
 
-  public void close(final QueryId queryId) {
+  public void stop(final QueryId queryId) {
 
   }
 

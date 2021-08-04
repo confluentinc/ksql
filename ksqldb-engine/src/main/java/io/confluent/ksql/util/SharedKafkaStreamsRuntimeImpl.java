@@ -70,15 +70,15 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     sources.put(queryId, sourceNames);
   }
 
-  public void addQuery(
+  public void register(
           final QueryErrorClassifier errorClassifier,
           final Map<String, Object> streamsProperties,
           final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
           final QueryId queryId) {
-    this.errorClassifier = errorClassifier;
-    if (metadata.containsKey(queryId.toString())) {
-      kafkaStreams.removeNamedTopology(queryId.toString());
+    if (!sources.containsKey(queryId)) {
+      throw new IllegalArgumentException(queryId.toString() + ": was not reserved on this runtime");
     }
+    this.errorClassifier = errorClassifier;
     metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
     LOG.debug("mapping {}", metadata);
   }
@@ -137,7 +137,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
                        .collect(Collectors.toSet());
   }
 
-  public void restart(final QueryId queryId) {
+  public void restart() {
     final KafkaStreamsNamedTopologyWrapper newKafkaStreams = kafkaStreamsBuilder
             .build(streamsProperties);
     newKafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
@@ -153,25 +153,21 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     return !queryErrors.toImmutableList().isEmpty();
   }
 
-  public void close(final QueryId queryId) {
-    metadata.remove(queryId.toString());
-    if (kafkaStreams.state().isRunningOrRebalancing()) {
-      try {
+  public void stop(final QueryId queryId) {
+    if(metadata.containsKey(queryId.toString()) && sources.containsKey(queryId)) {
+      sources.remove(queryId);
+      metadata.remove(queryId.toString());
+      if (kafkaStreams.state().isRunningOrRebalancing()) {
         kafkaStreams.removeNamedTopology(queryId.toString());
-      } catch (IllegalArgumentException e) {
-        //don't block
+      } else {
+        throw new IllegalStateException("Streams in not running but is in state"
+            + kafkaStreams.state());
       }
-    } else {
-      throw new IllegalStateException("Streams in not running but is in state"
-          + kafkaStreams.state());
+      kafkaStreams.cleanUpNamedTopology(queryId.toString());
     }
-    kafkaStreams.cleanUpNamedTopology(queryId.toString());
   }
 
   public synchronized void close() {
-    for (String query: metadata.keySet()) {
-      metadata.remove(query);
-    }
     kafkaStreams.close(Duration.ZERO);
 //    kafkaStreams.cleanUp(); close is deadlocking on this version of streams but when that is fixed uncomment
   }
@@ -179,13 +175,12 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
   public void start(final QueryId queryId) {
     if (metadata.containsKey(queryId.toString()) && !metadata.get(queryId.toString()).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        System.err.println(metadata.get(queryId.toString()).getTopology().describe());
         kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);
       }
     } else {
-      throw new IllegalArgumentException("query not added to runtime");
+      throw new IllegalArgumentException("query: " + queryId + " not added to runtime");
     }
   }
 

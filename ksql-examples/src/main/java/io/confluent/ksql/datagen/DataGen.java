@@ -18,7 +18,6 @@ package io.confluent.ksql.datagen;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;

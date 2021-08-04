@@ -16,10 +16,8 @@
 package io.confluent.ksql.serde.tls;
 
 import io.confluent.ksql.GenericRow;
-
 import java.util.Map;
 import java.util.function.Supplier;
-
 import org.apache.kafka.common.serialization.Serializer;
 
 public class ThreadLocalSerializer implements Serializer<GenericRow> {

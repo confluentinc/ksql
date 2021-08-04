@@ -22,7 +22,8 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 public class MetadataTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
   @JsonCreator
-  public MetadataTimestampExtractionPolicy(){}
+  public MetadataTimestampExtractionPolicy() {
+  }
 
   @Override
   public TimestampExtractor create(final int columnIndex) {

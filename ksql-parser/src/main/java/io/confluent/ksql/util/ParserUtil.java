@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.parser.SqlBaseLexer;
-
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;

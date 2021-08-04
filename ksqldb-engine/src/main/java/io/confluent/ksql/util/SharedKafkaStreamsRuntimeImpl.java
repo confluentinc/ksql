@@ -137,24 +137,12 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
                        .collect(Collectors.toSet());
   }
 
-  public void restart() {
-    final KafkaStreamsNamedTopologyWrapper newKafkaStreams = kafkaStreamsBuilder
-            .build(streamsProperties);
-    newKafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
-    kafkaStreams.close();
-    newKafkaStreams.start();
-    for (PersistentQueriesInSharedRuntimesImpl query: metadata.values()) {
-      newKafkaStreams.addNamedTopology(query.getTopology());
-    }
-    kafkaStreams = newKafkaStreams;
-  }
-
   public boolean isError(final QueryId queryId) {
     return !queryErrors.toImmutableList().isEmpty();
   }
 
   public void stop(final QueryId queryId) {
-    if(metadata.containsKey(queryId.toString()) && sources.containsKey(queryId)) {
+    if (metadata.containsKey(queryId.toString()) && sources.containsKey(queryId)) {
       sources.remove(queryId);
       metadata.remove(queryId.toString());
       if (kafkaStreams.state().isRunningOrRebalancing()) {
@@ -169,7 +157,8 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   public synchronized void close() {
     kafkaStreams.close(Duration.ZERO);
-//    kafkaStreams.cleanUp(); close is deadlocking on this version of streams but when that is fixed uncomment
+    //kafkaStreams.cleanUp();
+    //close is deadlocking on this version of streams but when that is fixed uncomment
   }
 
   public void start(final QueryId queryId) {

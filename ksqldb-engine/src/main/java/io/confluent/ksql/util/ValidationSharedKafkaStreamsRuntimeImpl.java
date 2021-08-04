@@ -97,9 +97,6 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
         .collect(Collectors.toSet());
   }
 
-  public void restart() {
-  }
-
   public boolean isError(final QueryId queryId) {
     return false;
   }

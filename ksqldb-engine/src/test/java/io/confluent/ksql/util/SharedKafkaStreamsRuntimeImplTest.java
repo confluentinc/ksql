@@ -117,19 +117,4 @@ public class SharedKafkaStreamsRuntimeImplTest {
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close(any());
     }
-
-    @Test
-    public void shouldRestartRuntime() {
-        //Given:
-        KafkaStreams kafkaStreams = sharedKafkaStreamsRuntimeImpl.getKafkaStreams();
-
-        //When:
-        sharedKafkaStreamsRuntimeImpl.restart();
-
-        //Then:
-        verify(kafkaStreamsNamedTopologyWrapper).close();
-        verify(kafkaStreamsNamedTopologyWrapper2).start();
-        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(namedTopology);
-        assertThat("Runtime was restarted", !kafkaStreams.equals(sharedKafkaStreamsRuntimeImpl.getKafkaStreams()));
-    }
 }

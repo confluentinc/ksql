@@ -52,8 +52,6 @@ public interface SharedKafkaStreamsRuntime {
 
   Set<StreamsTaskMetadata> getTaskMetadata();
 
-  void restart();
-
   boolean isError(QueryId queryId);
 
   void stop(QueryId queryId);

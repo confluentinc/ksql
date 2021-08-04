@@ -30,7 +30,6 @@ import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

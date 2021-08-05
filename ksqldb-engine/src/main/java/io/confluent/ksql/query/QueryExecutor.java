@@ -437,24 +437,25 @@ final class QueryExecutor {
             .orElse(userErrorClassifiers);
 
     return new PersistentQueriesInSharedRuntimesImpl(
-            persistentQueryType,
-            statementText,
-            querySchema,
-            sources,
-            planSummary,
-            applicationId,
-            topology,
-            sharedKafkaStreamsRuntime,
-            runtimeBuildContext.getSchemas(),
-            config.getOverrides(),
-            queryId,
-            materializationProviderBuilder,
-            physicalPlan,
-            getUncaughtExceptionProcessingLogger(queryId),
-            sinkDataSource,
-            listener,
-            classifier,
-            streamsProperties
+        persistentQueryType,
+        statementText,
+        querySchema,
+        sources,
+        planSummary,
+        applicationId,
+        topology,
+        sharedKafkaStreamsRuntime,
+        runtimeBuildContext.getSchemas(),
+        config.getOverrides(),
+        queryId,
+        materializationProviderBuilder,
+        physicalPlan,
+        getUncaughtExceptionProcessingLogger(queryId),
+        sinkDataSource,
+        listener,
+        classifier,
+        streamsProperties,
+        scalablePushRegistry
     );
 
   }

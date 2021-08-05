@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
@@ -117,6 +118,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streams must be exposed")
   public KafkaStreams getKafkaStreams() {
     return kafkaStreams;
   }
@@ -186,6 +188,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     }
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is immutable")
   public Map<String, Object> getStreamProperties() {
     return streamsProperties;
   }

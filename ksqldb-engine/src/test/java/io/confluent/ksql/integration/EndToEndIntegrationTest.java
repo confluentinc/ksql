@@ -44,6 +44,8 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,6 +72,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +82,7 @@ import org.slf4j.LoggerFactory;
  * are what we expect. This tests a broad set of KSQL functionality and is a good catch-all.
  */
 @SuppressWarnings("ConstantConditions")
+@RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class EndToEndIntegrationTest {
 
@@ -97,6 +102,17 @@ public class EndToEndIntegrationTest {
   private static final PageViewDataProvider PAGE_VIEW_DATA_PROVIDER = new PageViewDataProvider();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean> data() {
+    return Arrays.asList(
+        true, false
+    );
+  }
+
+  @Parameterized.Parameter
+  public boolean sharedRuntimes;
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
@@ -124,6 +140,9 @@ public class EndToEndIntegrationTest {
       .withAdditionalConfig(
           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
           "http://foo:8080")
+      .withAdditionalConfig(
+          KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
+          sharedRuntimes)
       .build();
 
   @Rule

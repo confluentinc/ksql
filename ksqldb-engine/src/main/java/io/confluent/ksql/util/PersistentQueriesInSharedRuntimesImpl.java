@@ -21,6 +21,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -64,7 +66,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
-  private final Map<String, Object> overriddenProperties;
+  private final ImmutableMap<String, Object> overriddenProperties;
   private final Set<SourceName> sourceNames;
   private final QueryId queryId;
   private final DataSource sinkDataSource;
@@ -82,6 +84,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
   private final Optional<MaterializationProvider> materializationProvider;
+  private final Optional<ScalablePushRegistry> scalablePushRegistry;
   public boolean everStarted = false;
   private QueryErrorClassifier classifier;
   private Map<String, Object> streamsProperties;
@@ -91,25 +94,26 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   public PersistentQueriesInSharedRuntimesImpl(
-        final KsqlConstants.PersistentQueryType persistentQueryType,
-        final String statementString,
-        final PhysicalSchema schema,
-        final Set<SourceName> sourceNames,
-        final String executionPlan,
-        final String queryApplicationId,
-        final NamedTopology topology,
-        final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
-        final QuerySchemas schemas,
-        final Map<String, Object> overriddenProperties,
-        final QueryId queryId,
-        final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-                materializationProviderBuilder,
-        final ExecutionStep<?> physicalPlan,
-        final ProcessingLogger processingLogger,
-        final DataSource sinkDataSource,
-        final Listener listener,
-        final QueryErrorClassifier classifier,
-        final Map<String, Object> streamsProperties) {
+      final KsqlConstants.PersistentQueryType persistentQueryType,
+      final String statementString,
+      final PhysicalSchema schema,
+      final Set<SourceName> sourceNames,
+      final String executionPlan,
+      final String queryApplicationId,
+      final NamedTopology topology,
+      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
+      final QuerySchemas schemas,
+      final Map<String, Object> overriddenProperties,
+      final QueryId queryId,
+      final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+          materializationProviderBuilder,
+      final ExecutionStep<?> physicalPlan,
+      final ProcessingLogger processingLogger,
+      final DataSource sinkDataSource,
+      final Listener listener,
+      final QueryErrorClassifier classifier,
+      final Map<String, Object> streamsProperties,
+      final Optional<ScalablePushRegistry> scalablePushRegistry) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -138,6 +142,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
             ));
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
+    this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
 
@@ -164,6 +169,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = original.materializationProvider;
+    this.scalablePushRegistry = original.scalablePushRegistry;
   }
 
   @Override
@@ -221,6 +227,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public void stop() {
     sharedKafkaStreamsRuntime.stop(queryId);
+    scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
   @Override
@@ -236,7 +243,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
-    return Optional.empty();
+    return scalablePushRegistry;
   }
 
   @Override
@@ -249,6 +256,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     return sharedKafkaStreamsRuntime.getTaskMetadata();
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "overriddenProperties is immutable")
   @Override
   public Map<String, Object> getOverriddenProperties() {
     return overriddenProperties;
@@ -282,6 +290,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     return queryApplicationId;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topology is for reference")
   @Override
   public NamedTopology getTopology() {
     return topology;
@@ -314,7 +323,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public Set<SourceName> getSourceNames() {
-    return sourceNames;
+    return ImmutableSet.copyOf(sourceNames);
   }
 
   @Override
@@ -362,6 +371,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public void close() {
     sharedKafkaStreamsRuntime.stop(queryId);
+    scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
   }
 
@@ -382,4 +392,5 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   Listener getListener() {
     return listener;
   }
+
 }

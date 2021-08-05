@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -72,6 +73,8 @@ public class PersistentQueriesInSharedRuntimesImplTest {
     private QueryErrorClassifier classifier;
     @Mock
     private Map<String, Object> streamsProperties;
+    @Mock
+    private Optional<ScalablePushRegistry> scalablePushRegistry;
 
     private PersistentQueryMetadata query;
 
@@ -95,8 +98,8 @@ public class PersistentQueriesInSharedRuntimesImplTest {
             sinkDataSource,
             listener,
             classifier,
-            streamsProperties
-        );
+            streamsProperties,
+            scalablePushRegistry);
 
         query.initialize();
     }

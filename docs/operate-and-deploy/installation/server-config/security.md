@@ -399,7 +399,7 @@ ssl.key.password=yyyy
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 
-listeners=http://0.0.0.0:8088
+listeners=http://0.0.0.0:8088,https://node-1.internal.example.com:8099
 ksql.internal.listener=https://node-1.internal.example.com:8099
 
 # This enables mutual auth checking for the internal listener
@@ -428,7 +428,7 @@ ssl.key.password=yyyy
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 
-listeners=http://0.0.0.0:8088
+listeners=http://0.0.0.0:8088,https://node-1.internal.example.com:8099
 ksql.internal.listener=https://node-1.internal.example.com:8099
 
 ksql.internal.ssl.client.authentication=REQUIRED
@@ -476,7 +476,7 @@ ksql.ssl.keystore.alias.internal=internal_node1
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 
-listeners=https://external.example.com:8088
+listeners=https://external.example.com:8088,https://node-1.internal.example.com:8099
 ksql.internal.listener=https://node-1.internal.example.com:8099
 
 # Enable mutual auth checking for the internal listener

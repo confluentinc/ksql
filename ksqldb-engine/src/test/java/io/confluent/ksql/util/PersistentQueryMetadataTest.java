@@ -93,8 +93,6 @@ public class PersistentQueryMetadataTest {
   @Mock
   private Listener listener;
   @Mock
-  private Optional<ScalablePushRegistry> optionalScalablePushRegistry;
-  @Mock
   private ScalablePushRegistry scalablePushRegistry;
 
   private PersistentQueryMetadata query;

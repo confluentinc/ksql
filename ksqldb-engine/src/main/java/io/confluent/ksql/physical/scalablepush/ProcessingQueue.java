@@ -119,6 +119,7 @@ public class ProcessingQueue {
   public synchronized void onStateChange() {
     hasStateChange = true;
   }
+
   public synchronized boolean getHasStateChange() {
     return hasStateChange;
   }

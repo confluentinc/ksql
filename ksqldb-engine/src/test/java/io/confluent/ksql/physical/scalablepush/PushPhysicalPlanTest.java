@@ -124,6 +124,68 @@ public class PushPhysicalPlanTest {
     assertThat(pushPhysicalPlan.isClosed(), is(true));
   }
 
+  @Test
+  public void shouldStopOnHasError() throws InterruptedException {
+    final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
+        scalablePushRegistry, pushDataSourceOperator, context);
+    doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
+    when(pushDataSourceOperator.hasError()).thenReturn(true);
+
+    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
+    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    publisher.subscribe(subscriber);
+
+    context.owner().setPeriodic(50, timerId -> {
+      if (runnableCaptor.getValue() == null) {
+        return;
+      }
+      when(root.next()).thenReturn(ROW1, ROW2, null);
+
+      runnableCaptor.getValue().run();
+      runnableCaptor.getValue().run();
+
+      context.owner().cancelTimer(timerId);
+    });
+//
+    while (subscriber.getError() == null) {
+      Thread.sleep(100);
+    }
+
+    assertThat(subscriber.getError().getMessage(), containsString("Persistent query has error"));
+    assertThat(pushPhysicalPlan.isClosed(), is(true));
+  }
+
+  @Test
+  public void shouldStopOnHasStateChange() throws InterruptedException {
+    final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
+        scalablePushRegistry, pushDataSourceOperator, context);
+    doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
+    when(pushDataSourceOperator.hasStateChange()).thenReturn(true);
+
+    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
+    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    publisher.subscribe(subscriber);
+
+    context.owner().setPeriodic(50, timerId -> {
+      if (runnableCaptor.getValue() == null) {
+        return;
+      }
+      when(root.next()).thenReturn(ROW1, ROW2, null);
+
+      runnableCaptor.getValue().run();
+      runnableCaptor.getValue().run();
+
+      context.owner().cancelTimer(timerId);
+    });
+//
+    while (subscriber.getError() == null) {
+      Thread.sleep(100);
+    }
+
+    assertThat(subscriber.getError().getMessage(), containsString("Persistent query has rebalanced"));
+    assertThat(pushPhysicalPlan.isClosed(), is(true));
+  }
+
   public static class TestSubscriber<T> implements Subscriber<T> {
 
     private Subscription sub;

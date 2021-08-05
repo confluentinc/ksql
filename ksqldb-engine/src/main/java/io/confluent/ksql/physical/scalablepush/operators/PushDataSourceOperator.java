@@ -29,4 +29,8 @@ public interface PushDataSourceOperator {
 
   // If rows have been dropped.
   boolean droppedRows();
+
+  boolean hasError();
+
+  boolean hasStateChange();
 }

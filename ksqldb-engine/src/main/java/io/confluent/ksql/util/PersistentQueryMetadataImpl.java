@@ -118,6 +118,9 @@ public class PersistentQueryMetadataImpl
           public void onStateChange(final QueryMetadata queryMetadata, final State before,
               final State after) {
 
+            if (before.equals(State.RUNNING) && after.equals(State.REBALANCING)) {
+              scalablePushRegistry.get().onStateChange();
+            }
           }
 
           @Override

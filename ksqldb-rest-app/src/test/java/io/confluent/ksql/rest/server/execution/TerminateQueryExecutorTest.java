@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -145,7 +144,7 @@ public class TerminateQueryExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             this.engine.getServiceContext()
-        ).getEntity());
+        ));
 
     // Then:
     assertThat(e.getMessage(), containsString(
@@ -166,8 +165,6 @@ public class TerminateQueryExecutorTest {
   ) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     mockQuery(id, state, metadata);
-    final KsqlTopic sinkTopic = mock(KsqlTopic.class);
-
     return metadata;
   }
 

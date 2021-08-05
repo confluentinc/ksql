@@ -691,6 +691,27 @@ public class SourceBuilderTest {
     }
 
   @Test
+  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToStream() {
+    // Given:
+    givenWindowedSourceStream(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(windowedStreamSource);
+
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        equalTo(
+            GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
+
+  @Test
   public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToTable() {
     // Given:
     givenWindowedSourceTable();
@@ -708,6 +729,26 @@ public class SourceBuilderTest {
     // Then:
     assertThat(withTimestamp,
         is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
+
+  @Test
+  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToTable() {
+    // Given:
+    givenWindowedSourceTable(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(windowedTableSource);
+
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test

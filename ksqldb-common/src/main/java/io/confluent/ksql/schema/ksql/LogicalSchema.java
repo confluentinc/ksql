@@ -157,12 +157,21 @@ public final class LogicalSchema {
   }
 
   /**
+   * Remove pseudo and key columns, according to the pseudocolumn version from the value schema.
+   * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
+   * @return the new schema with the columns removed
+   */
+  public LogicalSchema withoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
+    return rebuildWithoutPseudoAndKeyColsInValue(pseudoColumnVersion);
+  }
+
+  /**
    * Remove pseudo and key columns from the value schema.
    *
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
-    return rebuildWithoutPseudoAndKeyColsInValue();
+    return withoutPseudoAndKeyColsInValue(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**
@@ -277,7 +286,7 @@ public final class LogicalSchema {
 
     addKeyColumnsToKeySchema(builder);
 
-    int valueIndex = addNonPseudoAndKeyColsToValueSchema(builder);
+    int valueIndex = addNonPseudoAndKeyColsToValueSchema(builder, pseudoColumnVersion);
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
@@ -307,10 +316,10 @@ public final class LogicalSchema {
    * Rebuilds schema without pseudocolumns or key columns
    * @return the LogicalSchema created, with the corresponding pseudo and key columns excluded
    */
-  private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue() {
+  private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     addKeyColumnsToKeySchema(builder);
-    addNonPseudoAndKeyColsToValueSchema(builder);
+    addNonPseudoAndKeyColsToValueSchema(builder, pseudoColumnVersion);
     return new LogicalSchema(builder.build());
   }
 
@@ -322,14 +331,15 @@ public final class LogicalSchema {
    * @return the number of columns added. This also functions as a "column index", to pass into
    * builder.add()
    */
-  private int addNonPseudoAndKeyColsToValueSchema(ImmutableList.Builder<Column> builder) {
+  private int addNonPseudoAndKeyColsToValueSchema(
+      final ImmutableList.Builder<Column> builder, final int pseudoColumnVersion) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> value = byNamespace.get(VALUE);
 
     int addedColumns = 0;
     for (final Column c : value) {
-      if (SystemColumns.isSystemColumn(c.name())) {
+      if (SystemColumns.isSystemColumn(c.name(), pseudoColumnVersion)) {
         continue;
       }
 

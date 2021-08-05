@@ -77,8 +77,11 @@ public final class SystemColumns {
     return WINDOW_BOUNDS_COLUMN_NAMES;
   }
 
+  public static boolean isPseudoColumn(final ColumnName columnName, final int pseudoColumnVersion) {
+    return pseudoColumnNames(pseudoColumnVersion).contains(columnName);
+  }
   public static boolean isPseudoColumn(final ColumnName columnName) {
-    return pseudoColumnNames().contains(columnName);
+    return isPseudoColumn(columnName, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
@@ -93,8 +96,12 @@ public final class SystemColumns {
     return pseudoColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
+  public static boolean isSystemColumn(final ColumnName columnName, final int pseudoColumnVersion) {
+    return systemColumnNames(pseudoColumnVersion).contains(columnName);
+  }
+
   public static boolean isSystemColumn(final ColumnName columnName) {
-    return systemColumnNames().contains(columnName);
+    return isSystemColumn(columnName, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   @SuppressFBWarnings(

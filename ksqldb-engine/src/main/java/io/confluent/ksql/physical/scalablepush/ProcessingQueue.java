@@ -108,11 +108,18 @@ public class ProcessingQueue {
     return droppedRows;
   }
 
-  public synchronized boolean hasError() {
+  public synchronized void onError() {
+    hasError = true;
+  }
+
+  public synchronized boolean getHasError() {
     return hasError;
   }
 
-  public synchronized boolean hasStateChange() {
+  public synchronized void onStateChange() {
+    hasStateChange = true;
+  }
+  public synchronized boolean getHasStateChange() {
     return hasStateChange;
   }
 

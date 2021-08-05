@@ -70,7 +70,7 @@ public class ProcessingQueueTest {
     final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"));
 
     // Then:
-    assertThat(queue.hasError(),is(false));
+    assertThat(queue.getHasError(),is(false));
   }
 
   @Test
@@ -79,6 +79,6 @@ public class ProcessingQueueTest {
     final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"));
 
     // Then:
-    assertThat(queue.hasStateChange(),is(false));
+    assertThat(queue.getHasStateChange(),is(false));
   }
 }

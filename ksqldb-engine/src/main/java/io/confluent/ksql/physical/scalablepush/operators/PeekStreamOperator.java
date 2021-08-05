@@ -96,11 +96,11 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
 
   @Override
   public boolean hasError() {
-    return processingQueue.hasError();
+    return processingQueue.getHasError();
   }
 
   @Override
   public boolean hasStateChange() {
-    return processingQueue.hasStateChange();
+    return processingQueue.getHasStateChange();
   }
 }

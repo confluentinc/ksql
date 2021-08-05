@@ -194,26 +194,28 @@ public class ScalablePushRegistryTest {
   }
 
   @Test
-  public void shouldCallHasErrorOnQueue() {
+  public void shouldCallOnErrorOnQueue() {
     // Given
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
     when(processingQueues.values()).thenReturn(Arrays.asList(processingQueue));
+
     // When
     registry.onError();
 
     // Then:
-    verify(processingQueue).hasError();
+    verify(processingQueue).onError();
   }
 
   @Test
-  public void shouldCallHasStateChangeOnQueue() {
+  public void shouldCallOnStateChangeOnQueue() {
     // Given
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
     when(processingQueues.values()).thenReturn(Arrays.asList(processingQueue));
+
     // When
-    registry.onError();
+    registry.onStateChange();
 
     // Then:
-    verify(processingQueue).hasStateChange();
+    verify(processingQueue).onStateChange();
   }
 }

@@ -95,12 +95,13 @@ public class QueryRegistryImpl implements QueryRegistry {
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach((queryId, queryMetadata) -> {
-      if (queryMetadata instanceof PersistentQueryMetadata) {
+      if (queryMetadata instanceof PersistentQueryMetadataImpl) {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
             (PersistentQueryMetadataImpl) queryMetadata,
             new ListenerImpl()
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+        allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
       } else if (queryMetadata instanceof PersistentQueriesInSharedRuntimesImpl) {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueriesInSharedRuntimesImpl.of(
                 (PersistentQueriesInSharedRuntimesImpl) queryMetadata,

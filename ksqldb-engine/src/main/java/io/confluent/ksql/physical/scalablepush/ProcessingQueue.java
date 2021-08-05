@@ -37,6 +37,8 @@ public class ProcessingQueue {
   private final int queueSizeLimit;
   private boolean closed = false;
   private boolean droppedRows = false;
+  private boolean hasError = false;
+  private boolean hasStateChange = false;
   private Runnable newRowCallback = () -> { };
 
   public ProcessingQueue(final QueryId queryId) {
@@ -104,6 +106,14 @@ public class ProcessingQueue {
    */
   public synchronized boolean hasDroppedRows() {
     return droppedRows;
+  }
+
+  public synchronized boolean hasError() {
+    return hasError;
+  }
+
+  public synchronized boolean hasStateChange() {
+    return hasStateChange;
   }
 
   public QueryId getQueryId() {

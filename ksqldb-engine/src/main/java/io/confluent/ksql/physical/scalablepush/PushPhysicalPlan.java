@@ -87,6 +87,14 @@ public class PushPhysicalPlan {
         closeInternal();
         publisher.reportDroppedRows();
         break;
+      } else if (dataSourceOperator.hasError()) {
+        closeInternal();
+        publisher.reportHasError();
+        break;
+      } else if (dataSourceOperator.hasStateChange()) {
+        closeInternal();
+        publisher.reportHasStateChange();
+        break;
       } else {
         publisher.accept(row);
       }
@@ -150,6 +158,14 @@ public class PushPhysicalPlan {
 
     public void reportDroppedRows() {
       sendError(new RuntimeException("Dropped rows"));
+    }
+
+    public void reportHasError() {
+      sendError(new RuntimeException("Persistent query has error"));
+    }
+
+    public void reportHasStateChange() {
+      sendError(new RuntimeException("Persistent query has rebalanced"));
     }
   }
 }

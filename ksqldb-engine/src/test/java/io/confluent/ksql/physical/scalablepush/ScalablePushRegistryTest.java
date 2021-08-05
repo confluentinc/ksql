@@ -19,9 +19,11 @@ import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -51,6 +53,8 @@ public class ScalablePushRegistryTest {
   private PushLocator locator;
   @Mock
   private ProcessingQueue processingQueue;
+  @Mock
+  private ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues;
   @Mock
   private ProcessorContext<Void, Void> processorContext;
   @Mock
@@ -187,5 +191,29 @@ public class ScalablePushRegistryTest {
 
     // Then
     assertThat(registry.isPresent(), is(false));
+  }
+
+  @Test
+  public void shouldCallHasErrorOnQueue() {
+    // Given
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    when(processingQueues.values()).thenReturn(Arrays.asList(processingQueue));
+    // When
+    registry.onError();
+
+    // Then:
+    verify(processingQueue).hasError();
+  }
+
+  @Test
+  public void shouldCallHasStateChangeOnQueue() {
+    // Given
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    when(processingQueues.values()).thenReturn(Arrays.asList(processingQueue));
+    // When
+    registry.onError();
+
+    // Then:
+    verify(processingQueue).hasStateChange();
   }
 }

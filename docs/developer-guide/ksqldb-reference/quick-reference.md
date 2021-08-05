@@ -603,7 +603,7 @@ SPOOL <file_name|OFF>
 ```
 
 ## TERMINATE
-End a persistent query. For more information, see [SPOOL](../../ksqldb-reference/terminate).
+End a query. For more information, see [TERMINATE](../../ksqldb-reference/terminate).
 
 ```sql
 TERMINATE query_id;

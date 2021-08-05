@@ -83,6 +83,14 @@ public interface KsqlExecutionContext {
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
 
   /**
+   * Retrieve the details of a query.
+   *
+   * @param queryId the id of the query to retrieve.
+   * @return the query's details or else {@code Optional.empty()} if no found.
+   */
+  Optional<QueryMetadata> getQuery(QueryId queryId);
+
+  /**
    * Retrieves the list of all running persistent queries.
    *
    * @return the list of all persistent queries

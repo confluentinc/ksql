@@ -77,6 +77,7 @@ public class RequestHandlerTest {
   @Mock private KsqlEntity entity;
   @Mock private CommandQueueSync sync;
   @Mock private SessionProperties sessionProperties;
+  @Mock private StatementExecutorResponse response;
 
   private MetaStore metaStore;
   private RequestHandler handler;
@@ -88,7 +89,8 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
             KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any())).thenReturn(response);
+    when(response.getEntity()).thenReturn(Optional.of(entity));
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
     doNothing().when(sync).waitFor(any(), any());
 
@@ -170,7 +172,7 @@ public class RequestHandlerTest {
 
     // Then
     assertThat(entities, contains(entity));
-    verify(distributor, times(1))
+    verify(distributor, times(2))
         .execute(argThat(is(configured(
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
@@ -196,7 +198,7 @@ public class RequestHandlerTest {
 
     // Then
     assertThat(entities, contains(entity));
-    verify(distributor, times(1))
+    verify(distributor, times(2))
         .execute(
             argThat(is(configured(
                 preparedStatement(instanceOf(CreateStream.class)),
@@ -261,7 +263,7 @@ public class RequestHandlerTest {
         eq(ksqlEngine),
         eq(serviceContext)
     ))
-        .thenAnswer(inv -> Optional.ofNullable(returnedEntities[scn.getAndIncrement()]));
+        .thenAnswer(inv -> StatementExecutorResponse.handled(Optional.ofNullable(returnedEntities[scn.getAndIncrement()])));
     return customExecutor;
   }
 

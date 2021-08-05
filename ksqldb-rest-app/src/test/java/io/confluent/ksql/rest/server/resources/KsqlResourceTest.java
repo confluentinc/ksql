@@ -309,6 +309,10 @@ public class KsqlResourceTest {
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
+  @Mock
+  private KsqlExecutionContext executionContext;
+  @Mock
+  private Optional<PersistentQueryMetadata> persistentQuery;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;

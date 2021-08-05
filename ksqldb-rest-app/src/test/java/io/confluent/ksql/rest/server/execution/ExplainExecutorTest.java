@@ -65,6 +65,7 @@ public class ExplainExecutorTest {
   @Mock
   private SessionProperties sessionProperties;
 
+
   @Before
   public void setup() {
     when(sessionProperties.getKsqlHostInfo()).thenReturn(LOCAL_HOST);
@@ -85,7 +86,7 @@ public class ExplainExecutorTest {
         sessionProperties,
         engine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -107,7 +108,7 @@ public class ExplainExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
@@ -129,7 +130,7 @@ public class ExplainExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
@@ -150,7 +151,7 @@ public class ExplainExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));

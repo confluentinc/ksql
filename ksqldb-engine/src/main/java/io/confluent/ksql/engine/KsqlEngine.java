@@ -160,6 +160,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
+  public Optional<QueryMetadata> getQuery(final QueryId queryId) {
+    return primaryContext.getQueryRegistry().getQuery(queryId);
+  }
+
+  @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(primaryContext.getQueryRegistry().getPersistentQueries().values());
   }

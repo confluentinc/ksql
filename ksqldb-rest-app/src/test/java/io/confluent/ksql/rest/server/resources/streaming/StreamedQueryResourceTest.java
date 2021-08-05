@@ -86,6 +86,7 @@ import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
@@ -221,6 +222,8 @@ public class StreamedQueryResourceTest {
   private QueryMetadata.Listener listener;
   @Mock
   private Context context;
+  @Mock
+  private DistributingExecutor distributingExecutor;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;

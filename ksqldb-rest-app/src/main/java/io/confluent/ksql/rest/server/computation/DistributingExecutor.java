@@ -24,7 +24,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -101,7 +101,7 @@ public class DistributingExecutor {
    * If a new transactional producer is initialized while the current transaction is incomplete,
    * the old producer will be fenced off and unable to continue with its transaction.
    */
-  public Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
       final KsqlSecurityContext securityContext
@@ -119,7 +119,7 @@ public class DistributingExecutor {
     if (injected.getStatement() instanceof InsertInto) {
       throwIfInsertOnReadOnlyTopic(
           executionContext.getMetaStore(),
-          (InsertInto)injected.getStatement()
+          (InsertInto) injected.getStatement()
       );
     }
 
@@ -155,12 +155,12 @@ public class DistributingExecutor {
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
-      return Optional.of(new CommandStatusEntity(
+      return StatementExecutorResponse.handled(Optional.of(new CommandStatusEntity(
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
-      ));
+      )));
     } catch (final ProducerFencedException
         | OutOfOrderSequenceException
         | AuthorizationException e

@@ -72,7 +72,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -90,7 +90,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -107,7 +107,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -125,7 +125,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(
@@ -155,7 +155,7 @@ public class ListPropertiesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(

@@ -38,7 +38,7 @@ public final class ConnectExecutor {
   private ConnectExecutor() {
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<CreateConnector> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -50,7 +50,7 @@ public final class ConnectExecutor {
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
         statement, createConnector, client);
     if (connectorsResponse.isPresent()) {
-      return connectorsResponse;
+      return StatementExecutorResponse.handled(connectorsResponse);
     }
 
     final ConnectResponse<ConnectorInfo> response = client.create(
@@ -61,24 +61,24 @@ public final class ConnectExecutor {
                 l -> l != null ? l.getValue().toString() : null)));
 
     if (response.datum().isPresent()) {
-      return Optional.of(
+      return StatementExecutorResponse.handled(Optional.of(
           new CreateConnectorEntity(
               statement.getStatementText(),
               response.datum().get()
           )
-      );
+      ));
     }
 
     if (createConnector.ifNotExists()) {
       final Optional<KsqlEntity> connectors = handleIfNotExists(statement, createConnector, client);
 
       if (connectors.isPresent()) {
-        return connectors;
+        return StatementExecutorResponse.handled(connectors);
       }
     }
 
-    return response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err));
+    return StatementExecutorResponse.handled(response.error()
+        .map(err -> new ErrorEntity(statement.getStatementText(), err)));
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(

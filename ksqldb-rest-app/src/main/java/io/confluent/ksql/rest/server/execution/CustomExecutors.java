@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -40,10 +39,10 @@ import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
@@ -84,7 +83,8 @@ public enum CustomExecutors {
   INSERT_VALUES(InsertValues.class, insertValuesExecutor()),
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
   DROP_CONNECTOR(DropConnector.class, DropConnectorExecutor::execute),
-  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute)
+  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute),
+  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryExecutor::execute)
   ;
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
@@ -115,21 +115,36 @@ public enum CustomExecutors {
     return this::execute;
   }
 
-  public Optional<KsqlEntity> execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionCtx,
       final ServiceContext serviceCtx
   ) {
-    return executor.execute(statement, sessionProperties, executionCtx, serviceCtx);
+    return executor.execute(
+        statement,
+        sessionProperties,
+        executionCtx,
+        serviceCtx
+        );
   }
 
   private static StatementExecutor insertValuesExecutor() {
     final InsertValuesExecutor executor = new InsertValuesExecutor();
 
-    return (statement, sessionProperties, executionContext, serviceContext) -> {
-      executor.execute(statement, sessionProperties, executionContext, serviceContext);
-      return Optional.empty();
+    return (
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext
+    ) -> {
+      executor.execute(
+          statement,
+          sessionProperties,
+          executionContext,
+          serviceContext
+      );
+      return StatementExecutorResponse.handled(Optional.empty());
     };
   }
 }

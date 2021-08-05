@@ -122,12 +122,17 @@ public class RequestHandler {
         (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, securityContext)
     );
 
-    return executor.execute(
+
+    final StatementExecutorResponse response = executor.execute(
         configured,
         sessionProperties,
         ksqlEngine,
-        securityContext.getServiceContext()
-    );
-  }
+        securityContext.getServiceContext());
 
+    if (response.isHandled()) {
+      return response.getEntity();
+    } else {
+      return distributor.execute(configured, ksqlEngine, securityContext).getEntity();
+    }
+  }
 }

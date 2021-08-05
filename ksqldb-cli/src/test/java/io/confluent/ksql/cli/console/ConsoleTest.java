@@ -82,6 +82,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TerminateQueryEntity;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
@@ -779,6 +780,19 @@ public class ConsoleTest {
   public void shouldPrintDropConnector() {
     // Given:
     final KsqlEntity entity = new DropConnectorEntity("statementText", "connectorName");
+
+    // When:
+    console.printKsqlEntityList(ImmutableList.of(entity));
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintTerminateQuery() {
+    // Given:
+    final KsqlEntity entity = new TerminateQueryEntity("statementText", "queryId", true);
 
     // When:
     console.printKsqlEntityList(ImmutableList.of(entity));

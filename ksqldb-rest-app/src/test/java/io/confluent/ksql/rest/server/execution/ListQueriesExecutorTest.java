@@ -131,7 +131,7 @@ public class ListQueriesExecutorTest {
         mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueries(), is(empty()));
   }
@@ -152,7 +152,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
   }
@@ -187,7 +187,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(localMetadata, queryStatusCount)));
@@ -220,7 +220,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
     
     // Then
     assertThat(queries.getQueries(),
@@ -251,7 +251,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
@@ -279,7 +279,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueries(), containsInAnyOrder(persistentQueryMetadataToRunningQuery(metadata, queryStatusCount)));
@@ -300,7 +300,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         this.engine.getServiceContext()
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
@@ -341,7 +341,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     final QueryDescription mergedQueryDescription = QueryDescriptionFactory.forQueryMetadata(localMetadata, mergedMap);
@@ -378,7 +378,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(),
@@ -412,7 +412,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(),
@@ -443,7 +443,7 @@ public class ListQueriesExecutorTest {
         sessionProperties,
         engine,
         serviceContext
-    ).orElseThrow(IllegalStateException::new);
+    ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then
     assertThat(queries.getQueryDescriptions(),

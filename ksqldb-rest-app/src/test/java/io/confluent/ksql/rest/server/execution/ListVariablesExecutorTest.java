@@ -53,7 +53,7 @@ public class ListVariablesExecutorTest {
         sessionProperties,
         null,
         null
-    );
+    ).getEntity();
   }
 
   @Test

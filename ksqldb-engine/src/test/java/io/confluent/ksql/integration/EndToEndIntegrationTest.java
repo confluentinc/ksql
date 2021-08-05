@@ -151,11 +151,12 @@ public class EndToEndIntegrationTest {
   private final List<QueryMetadata> toClose = new ArrayList<>();
 
   @Before
-  public void before() {
+  public void before() throws Exception {
     ConfigurableUdf.PASSED_CONFIG = null;
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
     toClose.clear();
+    TEST_HARNESS.before();
 
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC, USERS_TOPIC);
 

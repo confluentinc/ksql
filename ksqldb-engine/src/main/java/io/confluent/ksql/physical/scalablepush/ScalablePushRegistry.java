@@ -16,24 +16,56 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericKeySerDe;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.api.Processor;
@@ -57,6 +89,11 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private final boolean isTable;
   private final boolean windowed;
   private final boolean newNodeContinuityEnforced;
+  private final Map<String, Object> consumerProperties;
+  private final KsqlTopic ksqlTopic;
+  private final ServiceContext serviceContext;
+  private final KsqlConfig ksqlConfig;
+  private final ExecutorService executorService;
   // All mutable field accesses are protected with synchronized.  The exception is when
   // processingQueues is accessed to processed rows, in which case we want a weakly consistent
   // view of the map, so we just iterate over the ConcurrentHashMap directly.
@@ -65,18 +102,31 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private boolean closed = false;
   private volatile boolean hasReceivedData = false;
 
+  private final AtomicReference<List<TopicPartition>> topicPartitions = new AtomicReference<>(null);
+  private final AtomicReference<Map<TopicPartition, OffsetAndMetadata>> latestOffsets = new AtomicReference<>(null);
+
   public ScalablePushRegistry(
       final PushLocator pushLocator,
       final LogicalSchema logicalSchema,
       final boolean isTable,
       final boolean windowed,
-      final boolean newNodeContinuityEnforced
+      final boolean newNodeContinuityEnforced,
+      final Map<String, Object> consumerProperties,
+      final KsqlTopic ksqlTopic,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig
   ) {
     this.pushLocator = pushLocator;
     this.logicalSchema = logicalSchema;
     this.isTable = isTable;
     this.windowed = windowed;
     this.newNodeContinuityEnforced = newNodeContinuityEnforced;
+    this.consumerProperties = consumerProperties;
+    this.ksqlTopic = ksqlTopic;
+    this.serviceContext = serviceContext;
+    this.ksqlConfig = ksqlConfig;
+    this.executorService = Executors.newSingleThreadExecutor();
+    executorService.submit(this::runLatest);
   }
 
   public synchronized void close() {
@@ -98,6 +148,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       throw new IllegalStateException("New node missed data");
     }
     processingQueues.put(processingQueue.getQueryId(), processingQueue);
+    runCatchup();
   }
 
   public synchronized void unregister(final ProcessingQueue processingQueue) {
@@ -105,6 +156,148 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       throw new IllegalStateException("Shouldn't unregister after closing");
     }
     processingQueues.remove(processingQueue.getQueryId());
+  }
+
+  private void runLatest() {
+    try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer()) {
+      while (!consumer.listTopics().containsKey(ksqlTopic.getKafkaTopicName())) {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      consumer.subscribe(ImmutableList.of(ksqlTopic.getKafkaTopicName()), new ConsumerRebalanceListener() {
+        @Override
+        public void onPartitionsRevoked(Collection<TopicPartition> collection) {
+          topicPartitions.set(null);
+        }
+
+        @Override
+        public void onPartitionsAssigned(Collection<TopicPartition> collection) {
+          topicPartitions.set(ImmutableList.copyOf(collection));
+        }
+      });
+
+
+      while (true) {
+        final ConsumerRecords<GenericKey, GenericRow> records = consumer.poll(Duration.ofMillis(100));
+        if (records.isEmpty()) {
+          continue;
+        }
+        for (ConsumerRecord<GenericKey, GenericRow> rec : records) {
+          System.out.println("Got record " + rec);
+          System.out.println("KEY " + rec.key());
+          System.out.println("VALUE " + rec.value());
+          handleRow(rec.key(), rec.value(), rec.timestamp(), rec.partition(), rec.offset());
+        }
+        consumer.commitSync();
+        Map<TopicPartition, OffsetAndMetadata> offsets = consumer.committed(new HashSet<>(topicPartitions.get()));
+        latestOffsets.set(offsets);
+      }
+    }
+  }
+
+  private void runCatchup() {
+    try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer()) {
+      while (!consumer.listTopics().containsKey(ksqlTopic.getKafkaTopicName())) {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      while (true) {
+
+        List<TopicPartition> tps = topicPartitions.get();
+        while (tps == null) {
+          try {
+            Thread.sleep(100);
+          } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          tps = topicPartitions.get();
+        }
+
+        consumer.assign(tps);
+        for (TopicPartition tp : tps) {
+          consumer.seek(tp, 1);
+        }
+        while (true) {
+          final ConsumerRecords<GenericKey, GenericRow> records = consumer.poll(Duration.ofMillis(100));
+          if (records.isEmpty()) {
+            continue;
+          }
+          for (ConsumerRecord<GenericKey, GenericRow> rec : records) {
+            System.out.println("Got catchup record " + rec);
+            System.out.println("catchup KEY " + rec.key());
+            System.out.println("catchup VALUE " + rec.value());
+            handleRow(rec.key(), rec.value(), rec.timestamp(), rec.partition(), rec.offset());
+          }
+
+          consumer.commitSync();
+          Map<TopicPartition, OffsetAndMetadata> offsets = consumer.committed(new HashSet<>(topicPartitions.get()));
+          if (caughtUp(latestOffsets.get(), offsets)) {
+            System.out.println("CAUGHT UP!!");
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  private boolean caughtUp(Map<TopicPartition, OffsetAndMetadata> latestOffsets, Map<TopicPartition, OffsetAndMetadata> offsets) {
+    if (!latestOffsets.keySet().equals(offsets.keySet())) {
+      return false;
+    } else {
+      for (TopicPartition tp : latestOffsets.keySet()) {
+        OffsetAndMetadata latestOam = latestOffsets.get(tp);
+        OffsetAndMetadata oam = offsets.get(tp);
+        if (latestOam == null || oam == null) {
+          return false;
+        }
+        long latestOffset = latestOam.offset();
+        long offset = oam.offset();
+        if (offset < latestOffset) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private KafkaConsumer<GenericKey, GenericRow> createConsumer() {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        logicalSchema,
+        ksqlTopic.getKeyFormat().getFeatures(),
+        ksqlTopic.getValueFormat().getFeatures()
+    );
+    final KeySerdeFactory keySerdeFactory = new GenericKeySerDe();
+    final Serde<GenericKey> keySerde = keySerdeFactory.create(
+        ksqlTopic.getKeyFormat().getFormatInfo(),
+        physicalSchema.keySchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
+    );
+
+    final ValueSerdeFactory valueSerdeFactory = new GenericRowSerDe();
+    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+        ksqlTopic.getValueFormat().getFormatInfo(),
+        physicalSchema.valueSchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
+    );
+    return new KafkaConsumer<>(
+        consumerConfig(),
+        keySerde.deserializer(),
+        valueSerde.deserializer()
+    );
   }
 
   public PushLocator getLocator() {
@@ -126,18 +319,14 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   }
 
   @SuppressWarnings("unchecked")
-  private void handleRow(final Record<Object, GenericRow> record) {
+  private void handleRow(
+      final Object key, final GenericRow value, final long timestamp, final int partition, final long offset) {
     hasReceivedData = true;
-    final Object key = record.key();
-    final GenericRow value = record.value();
-
     // We don't currently handle null in either field
     if ((key == null && !logicalSchema.key().isEmpty()) || value == null) {
       return;
     }
     for (ProcessingQueue queue : processingQueues.values()) {
-      final long timestamp = record.timestamp();
-
       try {
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
@@ -184,7 +373,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     }
 
     public void process(final Record<Object, GenericRow> record) {
-      handleRow(record);
+//      handleRow(record);
     }
 
     @Override
@@ -199,7 +388,11 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       final boolean isTable,
       final boolean windowed,
       final Map<String, Object> streamsProperties,
-      final boolean newNodeContinuityEnforced
+      final boolean newNodeContinuityEnforced,
+      final Map<String, Object> consumerProperties,
+      final KsqlTopic ksqlTopic,
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig
   ) {
     final Object appServer = streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     if (appServer == null) {
@@ -219,7 +412,22 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     }
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
-    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, isTable, windowed,
-        newNodeContinuityEnforced));
+    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, isTable, windowed, newNodeContinuityEnforced, consumerProperties, ksqlTopic, serviceContext, ksqlConfig));
+  }
+
+  /**
+   * Common consumer properties that tests will need.
+   *
+   * @return base set of consumer properties.
+   */
+  public Map<String, Object> consumerConfig() {
+    final Map<String, Object> config = new HashMap<>(consumerProperties);
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    // Try to keep consumer groups stable:
+    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);
+    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 20_000);
+    config.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 3_000);
+    return config;
   }
 }

@@ -25,6 +25,7 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -223,7 +224,9 @@ final class QueryExecutor {
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final boolean windowed,
       final Map<String, Object> streamsProperties,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final KsqlTopic ksqlTopic,
+      final ServiceContext serviceContext
   ) {
     if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED)) {
       return Optional.empty();
@@ -239,8 +242,10 @@ final class QueryExecutor {
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
         allPersistentQueries, isTable, windowed, streamsProperties,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY));
-    registry.ifPresent(r -> stream.process(registry.get()));
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY),
+        ksqlConfig.originals(),
+        ksqlTopic, serviceContext, ksqlConfig);
+//    registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }
 
@@ -304,7 +309,8 @@ final class QueryExecutor {
             allPersistentQueries,
             keyFormat.isWindowed(),
             streamsProperties,
-            ksqlConfig
+            ksqlConfig,
+        sinkDataSource.get().getKsqlTopic(), serviceContext
     );
     final Topology topology = streamsBuilder
             .build(PropertiesUtil.asProperties(streamsProperties));
@@ -421,7 +427,8 @@ final class QueryExecutor {
             allPersistentQueries,
             keyFormat.isWindowed(),
             streamsProperties,
-            ksqlConfig
+            ksqlConfig,
+        sinkDataSource.get().getKsqlTopic(), serviceContext
     );
     final NamedTopology topology = namedTopologyStreamsBuilder
             .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));

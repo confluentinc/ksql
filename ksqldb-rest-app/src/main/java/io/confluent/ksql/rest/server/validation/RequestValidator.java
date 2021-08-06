@@ -36,7 +36,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

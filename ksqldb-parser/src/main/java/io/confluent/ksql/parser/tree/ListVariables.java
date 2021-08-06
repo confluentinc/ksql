@@ -19,7 +19,6 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
-
 import java.util.Objects;
 import java.util.Optional;
 

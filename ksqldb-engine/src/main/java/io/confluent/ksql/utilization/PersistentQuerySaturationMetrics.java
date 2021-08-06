@@ -233,7 +233,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
             threadName,
             k -> {
               LOGGER.debug("Adding saturation for new thread: {}", k);
-              return new ThreadSaturation(startTime, window, sampleMargin);
+              return new ThreadSaturation(threadName, startTime, window, sampleMargin);
             }
         );
         LOGGER.debug("Record thread {} sample {} {}", threadName, totalBlocked, startTime);
@@ -265,16 +265,19 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   }
 
   private static final class ThreadSaturation {
+    private final String threadName;
     private final List<BlockedTimeSample> samples = new LinkedList<>();
     private final Instant startTime;
     private final Duration window;
     private final Duration sampleMargin;
 
     private ThreadSaturation(
+        final String threadName,
         final long startTime,
         final Duration window,
         final Duration sampleMargin
     ) {
+      this.threadName = Objects.requireNonNull(threadName, "threadName");
       this.startTime = Instant.ofEpochMilli(startTime);
       this.window = Objects.requireNonNull(window, "window");
       this.sampleMargin = Objects.requireNonNull(sampleMargin, "sampleMargin");
@@ -288,18 +291,23 @@ public class PersistentQuerySaturationMetrics implements Runnable {
       final Instant windowStart = now.minus(window);
       final Instant earliest = now.minus(window.plus(sampleMargin));
       final Instant latest = now.minus(window.minus(sampleMargin));
+      LOGGER.debug("{}: record and measure with now {},  window {} ({} : {})", threadName, now, windowStart, earliest, latest);
       samples.add(current);
       samples.removeIf(s -> s.timestamp.isBefore(earliest));
       if (!inRange(samples.get(0).timestamp, earliest, latest) && !startTime.isAfter(windowStart)) {
         return Optional.empty();
       }
+      BlockedTimeSample startSample = samples.get(0);
+      LOGGER.debug("{}: start sample {}", threadName, startSample);
       double blocked =
-          Math.max(current.totalBlockedTime - samples.get(0).totalBlockedTime, 0);
+          Math.max(current.totalBlockedTime - startSample.totalBlockedTime, 0);
       Instant observedStart = samples.get(0).timestamp;
       if (startTime.isAfter(windowStart)) {
+        LOGGER.debug("{}: start time {} is after window start", threadName, startTime);
         blocked += Duration.between(windowStart, startTime).toNanos();
         observedStart = windowStart;
       }
+
       final Duration duration = Duration.between(observedStart, current.timestamp);
       final double durationNs = duration.toNanos();
       return Optional.of((durationNs - Math.min(blocked, durationNs)) / durationNs);
@@ -313,6 +321,14 @@ public class PersistentQuerySaturationMetrics implements Runnable {
     private BlockedTimeSample(final Instant timestamp, final double totalBlockedTime) {
       this.timestamp = timestamp;
       this.totalBlockedTime = totalBlockedTime;
+    }
+
+    @Override
+    public String toString() {
+      return "BlockedTimeSample{" +
+          "timestamp=" + timestamp +
+          ", totalBlockedTime=" + totalBlockedTime +
+          '}';
     }
   }
 }

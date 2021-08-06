@@ -157,7 +157,8 @@ public final class LogicalSchema {
   }
 
   /**
-   * Remove pseudo and key columns, according to the pseudocolumn version from the value schema.
+   * Remove pseudo and key columns from the value schema, according to the pseudocolumn version from
+   * the value schema.
    * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
    * @return the new schema with the columns removed
    */

@@ -248,6 +248,8 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(K0, INTEGER)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
         .build();
 
     // Then:
@@ -255,18 +257,6 @@ public class LogicalSchemaTest {
         schema.findColumn(ROWTIME_NAME).map(Column::namespace),
         is(Optional.of(Namespace.VALUE))
     );
-  }
-
-  @Test
-  public void shouldPreferValueOverRowPartitionAndOffsetColumns() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(K0, INTEGER)
-        .valueColumn(ROWOFFSET_NAME, BIGINT)
-        .valueColumn(ROWPARTITION_NAME, INTEGER)
-        .build();
-
-    // Then:
     assertThat(
         schema.findColumn(ROWOFFSET_NAME).map(Column::namespace),
         is(Optional.of(Namespace.VALUE))

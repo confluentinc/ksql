@@ -27,7 +27,6 @@ import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

@@ -32,6 +32,8 @@ public interface TableRow {
 
   GenericRow value();
 
+  String token();
+
   TableRow withValue(
       GenericRow newValue,
       LogicalSchema newSchema

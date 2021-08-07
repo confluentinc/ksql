@@ -367,22 +367,23 @@ public class EndToEndIntegrationTest {
       final TransientQueryMetadata queryMetadata,
       final int expectedRows
   ) throws Exception {
-    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
-
-    assertThatEventually(
-        expectedRows + " rows were not available after 30 seconds",
-        () -> rowQueue.size() >= expectedRows,
-        is(true),
-        30,
-        TimeUnit.SECONDS
-    );
-
-    final List<KeyValue<List<?>, GenericRow>> rows = new ArrayList<>();
-    rowQueue.drainTo(rows);
-
-    return rows.stream()
-        .map(KeyValue::value)
-        .collect(Collectors.toList());
+//    final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
+//
+//    assertThatEventually(
+//        expectedRows + " rows were not available after 30 seconds",
+//        () -> rowQueue.size() >= expectedRows,
+//        is(true),
+//        30,
+//        TimeUnit.SECONDS
+//    );
+//
+//    final List<KeyValue<List<?>, GenericRow>> rows = new ArrayList<>();
+//    rowQueue.drainTo(rows);
+//
+//    return rows.stream()
+//        .map(KeyValue::value)
+//        .collect(Collectors.toList());
+    return null;
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {

@@ -268,25 +268,25 @@ public class PullQueryPublisherTest {
     verify(subscriber).onError(e);
   }
 
-  @Test
-  public void shouldBuildStreamingRows() {
-    // Given:
-    givenSubscribed();
-
-    // When:
-    subscription.request(1);
-    subscription.request(1);
-    subscription.request(1);
-
-    // Then:
-    verify(subscriber, times(2)).onNext(any());
-    verify(subscriber).onNext(ImmutableList.of(
-        StreamedRow.pushRow(GenericRow.fromList(ROW1))
-    ));
-    verify(subscriber).onNext(ImmutableList.of(
-        StreamedRow.pushRow(GenericRow.fromList(ROW2))
-    ));
-  }
+//  @Test
+//  public void shouldBuildStreamingRows() {
+//    // Given:
+//    givenSubscribed();
+//
+//    // When:
+//    subscription.request(1);
+//    subscription.request(1);
+//    subscription.request(1);
+//
+//    // Then:
+//    verify(subscriber, times(2)).onNext(any());
+//    verify(subscriber).onNext(ImmutableList.of(
+//        StreamedRow.pushRow(GenericRow.fromList(ROW1))
+//    ));
+//    verify(subscriber).onNext(ImmutableList.of(
+//        StreamedRow.pushRow(GenericRow.fromList(ROW2))
+//    ));
+//  }
 
   private void givenSubscribed() {
     publisher.subscribe(subscriber);

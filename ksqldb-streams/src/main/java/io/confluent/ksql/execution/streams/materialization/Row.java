@@ -32,7 +32,18 @@ public final class Row implements TableRow {
   private final GenericKey key;
   private final GenericRow value;
   private final long rowTime;
+  private final String token;
   private final Validator validator;
+
+  public static Row of(
+      final LogicalSchema schema,
+      final GenericKey key,
+      final GenericRow value,
+      final long rowTime,
+      final String token
+  ) {
+    return new Row(schema, key, value, rowTime, token, TableRowValidation::validate);
+  }
 
   public static Row of(
       final LogicalSchema schema,
@@ -40,7 +51,7 @@ public final class Row implements TableRow {
       final GenericRow value,
       final long rowTime
   ) {
-    return new Row(schema, key, value, rowTime, TableRowValidation::validate);
+    return new Row(schema, key, value, rowTime, "", TableRowValidation::validate);
   }
 
   @VisibleForTesting
@@ -49,12 +60,14 @@ public final class Row implements TableRow {
       final GenericKey key,
       final GenericRow value,
       final long rowTime,
+      final String token,
       final Validator validator
   ) {
     this.schema = requireNonNull(schema, "schema");
     this.key = requireNonNull(key, "key");
     this.value = requireNonNull(value, "value");
     this.rowTime = rowTime;
+    this.token = token;
     this.validator = requireNonNull(validator, "validator");
 
     validator.validate(schema, key, value);
@@ -87,6 +100,11 @@ public final class Row implements TableRow {
   }
 
   @Override
+  public String token() {
+    return token;
+  }
+
+  @Override
   public Row withValue(
       final GenericRow newValue,
       final LogicalSchema newSchema
@@ -96,6 +114,7 @@ public final class Row implements TableRow {
         key,
         newValue,
         rowTime,
+        token,
         validator
     );
   }

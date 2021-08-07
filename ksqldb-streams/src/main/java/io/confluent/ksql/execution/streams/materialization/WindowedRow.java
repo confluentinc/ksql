@@ -95,6 +95,11 @@ public final class WindowedRow implements TableRow {
   }
 
   @Override
+  public String token() {
+    return "";
+  }
+
+  @Override
   public WindowedRow withValue(
       final GenericRow newValue,
       final LogicalSchema newSchema

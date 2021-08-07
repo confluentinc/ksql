@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.physical.scalablepush;
 
+import java.util.Optional;
+
 /**
  * Routing options given to scalable push queries.
  */
@@ -26,4 +28,6 @@ public interface PushRoutingOptions {
   // When a rebalance occurs and we connect to a new node, we don't want to miss anything, so we
   // set this flag indicating we should error if this expectation isn't met.
   boolean getExpectingStartOfRegistryData();
+
+  Optional<String> getToken();
 }

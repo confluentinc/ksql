@@ -102,6 +102,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -778,7 +779,7 @@ public class StreamedQueryResourceTest {
             SOME_SCHEMA,
             Collections.emptySet(),
             "",
-            new TestRowQueue(rowQueue),
+            null,
             queryId,
             "appId",
             mock(Topology.class),
@@ -1061,10 +1062,10 @@ public class StreamedQueryResourceTest {
 
   private static class TestRowQueue implements BlockingRowQueue {
 
-    private final SynchronousQueue<KeyValue<List<?>, GenericRow>> rowQueue;
+    private final SynchronousQueue<KeyValueMetadata<List<?>, GenericRow>> rowQueue;
 
     TestRowQueue(
-        final SynchronousQueue<KeyValue<List<?>, GenericRow>> rowQueue
+        final SynchronousQueue<KeyValueMetadata<List<?>, GenericRow>> rowQueue
     ) {
       this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     }
@@ -1080,18 +1081,18 @@ public class StreamedQueryResourceTest {
     }
 
     @Override
-    public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
+    public KeyValueMetadata<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
         throws InterruptedException {
       return rowQueue.poll(timeout, unit);
     }
 
     @Override
-    public KeyValue<List<?>, GenericRow> poll() {
+    public KeyValueMetadata<List<?>, GenericRow> poll() {
       return rowQueue.poll();
     }
 
     @Override
-    public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+    public void drainTo(final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
       rowQueue.drainTo(collection);
     }
 

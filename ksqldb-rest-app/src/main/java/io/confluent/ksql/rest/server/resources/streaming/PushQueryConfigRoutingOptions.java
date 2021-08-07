@@ -19,6 +19,7 @@ import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
 
@@ -46,5 +47,14 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START);
     }
     return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT;
+  }
+
+  @Override
+  public Optional<String> getToken() {
+    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_TOKEN)) {
+      return Optional.of((String) requestProperties.get(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_TOKEN));
+    }
+    return Optional.empty();
   }
 }

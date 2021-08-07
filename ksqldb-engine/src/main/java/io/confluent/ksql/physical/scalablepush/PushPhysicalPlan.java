@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
@@ -70,7 +71,7 @@ public class PushPhysicalPlan {
     this.context = context;
   }
 
-  public BufferedPublisher<List<?>> execute() {
+  public BufferedPublisher<TableRow> execute() {
     final Publisher publisher = new Publisher(context);
     context.runOnContext(v -> open(publisher));
     return publisher;
@@ -81,8 +82,8 @@ public class PushPhysicalPlan {
   }
 
   private void maybeNext(final Publisher publisher) {
-    List<?> row;
-    while (!isErrored(publisher) && (row = (List<?>) next(publisher)) != null) {
+    TableRow row;
+    while (!isErrored(publisher) && (row = (TableRow) next(publisher)) != null) {
       publisher.accept(row);
     }
     if (publisher.isFailed()) {
@@ -166,7 +167,7 @@ public class PushPhysicalPlan {
     return context;
   }
 
-  public static class Publisher extends BufferedPublisher<List<?>> {
+  public static class Publisher extends BufferedPublisher<TableRow> {
 
     public Publisher(final Context ctx) {
       super(ctx, CAPACITY);

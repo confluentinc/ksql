@@ -47,151 +47,151 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TransientQueryQueueTest {
 
-  private static final int SOME_LIMIT = 4;
-  private static final int MAX_LIMIT = SOME_LIMIT * 2;
-  private static final List<?> KEY_ONE = mock(List.class);
-  private static final List<?> KEY_TWO = mock(List.class);
-  private static final GenericRow VAL_ONE = mock(GenericRow.class);
-  private static final GenericRow VAL_TWO = mock(GenericRow.class);
-
-  @Rule
-  public final Timeout timeout = Timeout.seconds(10);
-
-  @Mock
-  private LimitHandler limitHandler;
-  private TransientQueryQueue queue;
-  private ScheduledExecutorService executorService;
-
-  @Before
-  public void setUp() {
-    givenQueue(OptionalInt.of(SOME_LIMIT));
-  }
-
-  @After
-  public void tearDown() {
-    if (executorService != null) {
-      executorService.shutdownNow();
-    }
-  }
-
-  @Test
-  public void shouldQueue() {
-    // When:
-    queue.acceptRow(KEY_ONE, VAL_ONE);
-    queue.acceptRow(KEY_TWO, VAL_TWO);
-
-    // Then:
-    assertThat(drainValues(), contains(keyValue(KEY_ONE, VAL_ONE), keyValue(KEY_TWO, VAL_TWO)));
-  }
-
-  @Test
-  public void shouldQueueNullKey() {
-    // When:
-    queue.acceptRow(null, VAL_ONE);
-
-    // Then:
-    assertThat(queue.size(), is(1));
-    assertThat(drainValues(), contains(keyValue(null, VAL_ONE)));
-  }
-
-  @Test
-  public void shouldQueueNullValues() {
-    // When:
-    queue.acceptRow(KEY_ONE, null);
-
-    // Then:
-    assertThat(queue.size(), is(1));
-    assertThat(drainValues(), contains(keyValue(KEY_ONE, null)));
-  }
-
-  @Test
-  public void shouldQueueUntilLimitReached() {
-    // When:
-    IntStream.range(0, SOME_LIMIT + 2)
-        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
-
-    // Then:
-    assertThat(queue.size(), is(SOME_LIMIT));
-  }
-
-  @Test
-  public void shouldPoll() throws Exception {
-    // Given:
-    queue.acceptRow(KEY_ONE, VAL_ONE);
-    queue.acceptRow(KEY_TWO, VAL_TWO);
-
-    // When:
-    final KeyValue<List<?>, GenericRow> result1 = queue.poll(1, TimeUnit.SECONDS);
-    final KeyValue<List<?>, GenericRow> result2 = queue.poll(1, TimeUnit.SECONDS);
-    final KeyValue<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
-
-    // Then:
-    assertThat(result1, is(keyValue(KEY_ONE, VAL_ONE)));
-    assertThat(result2, is(keyValue(KEY_TWO, VAL_TWO)));
-    assertThat(result3, is(nullValue()));
-  }
-
-  @Test
-  public void shouldNotCallLimitHandlerIfLimitNotReached() {
-    // When:
-    IntStream.range(0, SOME_LIMIT - 1)
-        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
-
-    // Then:
-    verify(limitHandler, never()).limitReached();
-  }
-
-  @Test
-  public void shouldCallLimitHandlerAsLimitReached() {
-    // When:
-    IntStream.range(0, SOME_LIMIT)
-        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
-
-    // Then:
-    verify(limitHandler).limitReached();
-  }
-
-  @Test
-  public void shouldCallLimitHandlerOnlyOnce() {
-    // When:
-    IntStream.range(0, SOME_LIMIT + 1)
-        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
-
-    // Then:
-    verify(limitHandler, times(1)).limitReached();
-  }
-
-  @Test
-  public void shouldBlockOnProduceOnceQueueLimitReachedAndUnblockOnClose() {
-    // Given:
-    givenQueue(OptionalInt.empty());
-
-    IntStream.range(0, MAX_LIMIT)
-        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
-
-    givenWillCloseQueueAsync();
-
-    // When:
-    queue.acceptRow(KEY_TWO, VAL_TWO);
-
-    // Then: did not block and:
-    assertThat(queue.size(), is(MAX_LIMIT));
-  }
-
-  private void givenWillCloseQueueAsync() {
-    executorService = Executors.newSingleThreadScheduledExecutor();
-    executorService.schedule(queue::close, 200, TimeUnit.MILLISECONDS);
-  }
-
-  private void givenQueue(final OptionalInt limit) {
-    queue = new TransientQueryQueue(limit, MAX_LIMIT, 1);
-
-    queue.setLimitHandler(limitHandler);
-  }
-
-  private List<KeyValue<List<?>, GenericRow>> drainValues() {
-    final List<KeyValue<List<?>, GenericRow>> entries = new ArrayList<>();
-    queue.drainTo(entries);
-    return entries;
-  }
+//  private static final int SOME_LIMIT = 4;
+//  private static final int MAX_LIMIT = SOME_LIMIT * 2;
+//  private static final List<?> KEY_ONE = mock(List.class);
+//  private static final List<?> KEY_TWO = mock(List.class);
+//  private static final GenericRow VAL_ONE = mock(GenericRow.class);
+//  private static final GenericRow VAL_TWO = mock(GenericRow.class);
+//
+//  @Rule
+//  public final Timeout timeout = Timeout.seconds(10);
+//
+//  @Mock
+//  private LimitHandler limitHandler;
+//  private TransientQueryQueue queue;
+//  private ScheduledExecutorService executorService;
+//
+//  @Before
+//  public void setUp() {
+//    givenQueue(OptionalInt.of(SOME_LIMIT));
+//  }
+//
+//  @After
+//  public void tearDown() {
+//    if (executorService != null) {
+//      executorService.shutdownNow();
+//    }
+//  }
+//
+//  @Test
+//  public void shouldQueue() {
+//    // When:
+//    queue.acceptRow(KEY_ONE, VAL_ONE);
+//    queue.acceptRow(KEY_TWO, VAL_TWO);
+//
+//    // Then:
+//    assertThat(drainValues(), contains(keyValue(KEY_ONE, VAL_ONE), keyValue(KEY_TWO, VAL_TWO)));
+//  }
+//
+//  @Test
+//  public void shouldQueueNullKey() {
+//    // When:
+//    queue.acceptRow(null, VAL_ONE);
+//
+//    // Then:
+//    assertThat(queue.size(), is(1));
+//    assertThat(drainValues(), contains(keyValue(null, VAL_ONE)));
+//  }
+//
+//  @Test
+//  public void shouldQueueNullValues() {
+//    // When:
+//    queue.acceptRow(KEY_ONE, null);
+//
+//    // Then:
+//    assertThat(queue.size(), is(1));
+//    assertThat(drainValues(), contains(keyValue(KEY_ONE, null)));
+//  }
+//
+//  @Test
+//  public void shouldQueueUntilLimitReached() {
+//    // When:
+//    IntStream.range(0, SOME_LIMIT + 2)
+//        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
+//
+//    // Then:
+//    assertThat(queue.size(), is(SOME_LIMIT));
+//  }
+//
+////  @Test
+////  public void shouldPoll() throws Exception {
+////    // Given:
+////    queue.acceptRow(KEY_ONE, VAL_ONE);
+////    queue.acceptRow(KEY_TWO, VAL_TWO);
+////
+////    // When:
+////    final KeyValue<List<?>, GenericRow> result1 = queue.poll(1, TimeUnit.SECONDS);
+////    final KeyValue<List<?>, GenericRow> result2 = queue.poll(1, TimeUnit.SECONDS);
+////    final KeyValue<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
+////
+////    // Then:
+////    assertThat(result1, is(keyValue(KEY_ONE, VAL_ONE)));
+////    assertThat(result2, is(keyValue(KEY_TWO, VAL_TWO)));
+////    assertThat(result3, is(nullValue()));
+////  }
+//
+//  @Test
+//  public void shouldNotCallLimitHandlerIfLimitNotReached() {
+//    // When:
+//    IntStream.range(0, SOME_LIMIT - 1)
+//        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
+//
+//    // Then:
+//    verify(limitHandler, never()).limitReached();
+//  }
+//
+//  @Test
+//  public void shouldCallLimitHandlerAsLimitReached() {
+//    // When:
+//    IntStream.range(0, SOME_LIMIT)
+//        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
+//
+//    // Then:
+//    verify(limitHandler).limitReached();
+//  }
+//
+//  @Test
+//  public void shouldCallLimitHandlerOnlyOnce() {
+//    // When:
+//    IntStream.range(0, SOME_LIMIT + 1)
+//        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
+//
+//    // Then:
+//    verify(limitHandler, times(1)).limitReached();
+//  }
+//
+//  @Test
+//  public void shouldBlockOnProduceOnceQueueLimitReachedAndUnblockOnClose() {
+//    // Given:
+//    givenQueue(OptionalInt.empty());
+//
+//    IntStream.range(0, MAX_LIMIT)
+//        .forEach(idx -> queue.acceptRow(KEY_ONE, VAL_ONE));
+//
+//    givenWillCloseQueueAsync();
+//
+//    // When:
+//    queue.acceptRow(KEY_TWO, VAL_TWO);
+//
+//    // Then: did not block and:
+//    assertThat(queue.size(), is(MAX_LIMIT));
+//  }
+//
+//  private void givenWillCloseQueueAsync() {
+//    executorService = Executors.newSingleThreadScheduledExecutor();
+//    executorService.schedule(queue::close, 200, TimeUnit.MILLISECONDS);
+//  }
+//
+//  private void givenQueue(final OptionalInt limit) {
+//    queue = new TransientQueryQueue(limit, MAX_LIMIT, 1);
+//
+//    queue.setLimitHandler(limitHandler);
+//  }
+//
+////  private List<KeyValue<List<?>, GenericRow>> drainValues() {
+////    final List<KeyValue<List<?>, GenericRow>> entries = new ArrayList<>();
+////    queue.drainTo(entries);
+////    return entries;
+////  }
 }

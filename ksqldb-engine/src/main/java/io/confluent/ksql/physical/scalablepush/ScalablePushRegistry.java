@@ -40,8 +40,11 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,15 +56,20 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -94,6 +102,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final ExecutorService executorService;
+  private final ExecutorService executorServiceCatchup;
   // All mutable field accesses are protected with synchronized.  The exception is when
   // processingQueues is accessed to processed rows, in which case we want a weakly consistent
   // view of the map, so we just iterate over the ConcurrentHashMap directly.
@@ -104,6 +113,9 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   private final AtomicReference<List<TopicPartition>> topicPartitions = new AtomicReference<>(null);
   private final AtomicReference<Map<TopicPartition, OffsetAndMetadata>> latestOffsets = new AtomicReference<>(null);
+  private final AtomicReference<Integer> partitions = new AtomicReference<>(null);
+  private final AtomicInteger blockers = new AtomicInteger(0);
+  private final AtomicBoolean waiting = new AtomicBoolean(false);
 
   public ScalablePushRegistry(
       final PushLocator pushLocator,
@@ -126,6 +138,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     this.serviceContext = serviceContext;
     this.ksqlConfig = ksqlConfig;
     this.executorService = Executors.newSingleThreadExecutor();
+    this.executorServiceCatchup = Executors.newScheduledThreadPool(4);
     executorService.submit(this::runLatest);
   }
 
@@ -139,7 +152,8 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   public synchronized void register(
       final ProcessingQueue processingQueue,
-      final boolean expectingStartOfRegistryData
+      final boolean expectingStartOfRegistryData,
+      final Optional<String> token
   ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
@@ -148,7 +162,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       throw new IllegalStateException("New node missed data");
     }
     processingQueues.put(processingQueue.getQueryId(), processingQueue);
-    runCatchup();
+    executorServiceCatchup.submit(() -> runCatchup(token));
   }
 
   public synchronized void unregister(final ProcessingQueue processingQueue) {
@@ -160,13 +174,16 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   private void runLatest() {
     try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer()) {
-      while (!consumer.listTopics().containsKey(ksqlTopic.getKafkaTopicName())) {
+      Map<String, List<PartitionInfo>> partitionInfo = consumer.listTopics();
+      while (!partitionInfo.containsKey(ksqlTopic.getKafkaTopicName())) {
         try {
           Thread.sleep(100);
+          partitionInfo = consumer.listTopics();
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
+      partitions.set(partitionInfo.get(ksqlTopic.getKafkaTopicName()).size());
       consumer.subscribe(ImmutableList.of(ksqlTopic.getKafkaTopicName()), new ConsumerRebalanceListener() {
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> collection) {
@@ -180,25 +197,47 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       });
 
 
+      Map<TopicPartition, Long> currentPositions = new HashMap<>();
       while (true) {
         final ConsumerRecords<GenericKey, GenericRow> records = consumer.poll(Duration.ofMillis(100));
         if (records.isEmpty()) {
+          checkShouldWait();
           continue;
         }
         for (ConsumerRecord<GenericKey, GenericRow> rec : records) {
           System.out.println("Got record " + rec);
           System.out.println("KEY " + rec.key());
           System.out.println("VALUE " + rec.value());
-          handleRow(rec.key(), rec.value(), rec.timestamp(), rec.partition(), rec.offset());
+          currentPositions.put(new TopicPartition(rec.topic(), rec.partition()), rec.offset());
+          handleRow(rec.key(), rec.value(), rec.timestamp(), getToken(currentPositions, rec.topic(), partitions.get()));
         }
         consumer.commitSync();
         Map<TopicPartition, OffsetAndMetadata> offsets = consumer.committed(new HashSet<>(topicPartitions.get()));
         latestOffsets.set(offsets);
+
+        checkShouldWait();
       }
     }
   }
 
-  private void runCatchup() {
+  private void checkShouldWait() {
+    synchronized (blockers) {
+      while (blockers.get() > 0) {
+        try {
+          System.out.println("WAITING TO BE WOKEN UP");
+          waiting.set(true);
+          blockers.wait();
+          System.out.println("WAKING UP");
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+      waiting.set(false);
+    }
+  }
+
+  private void runCatchup(Optional<String> token) {
+
     try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer()) {
       while (!consumer.listTopics().containsKey(ksqlTopic.getKafkaTopicName())) {
         try {
@@ -208,7 +247,6 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
         }
       }
       while (true) {
-
         List<TopicPartition> tps = topicPartitions.get();
         while (tps == null) {
           try {
@@ -220,30 +258,70 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
         }
 
         consumer.assign(tps);
+
+        Map<Integer, Long> startingOffsets = parseToken(token);
         for (TopicPartition tp : tps) {
-          consumer.seek(tp, 1);
+          consumer.seek(tp, startingOffsets.containsKey(tp.partition()) ? startingOffsets.get(tp.partition()): 0);
         }
+        Map<TopicPartition, Long> currentPositions = new HashMap<>();
+        AtomicBoolean blocked = new AtomicBoolean(false);
         while (true) {
           final ConsumerRecords<GenericKey, GenericRow> records = consumer.poll(Duration.ofMillis(100));
           if (records.isEmpty()) {
+            if (checkCaughtUp(consumer, blocked)) {
+              return;
+            }
             continue;
           }
           for (ConsumerRecord<GenericKey, GenericRow> rec : records) {
             System.out.println("Got catchup record " + rec);
             System.out.println("catchup KEY " + rec.key());
             System.out.println("catchup VALUE " + rec.value());
-            handleRow(rec.key(), rec.value(), rec.timestamp(), rec.partition(), rec.offset());
+            currentPositions.put(new TopicPartition(rec.topic(), rec.partition()), rec.offset());
+            if (handleRow(rec.key(), rec.value(), rec.timestamp(), getToken(currentPositions, rec.topic(), partitions.get()))) {
+              try {
+                System.out.println("Sleeping for a bit");
+                Thread.sleep(1000);
+              } catch (InterruptedException e) {
+                e.printStackTrace();
+              }
+            }
           }
 
           consumer.commitSync();
-          Map<TopicPartition, OffsetAndMetadata> offsets = consumer.committed(new HashSet<>(topicPartitions.get()));
-          if (caughtUp(latestOffsets.get(), offsets)) {
-            System.out.println("CAUGHT UP!!");
+
+//          lastToken = getToken(offsets);
+
+          if (checkCaughtUp(consumer, blocked)) {
             return;
-          }
+          };
         }
       }
     }
+  }
+
+  private boolean checkCaughtUp(KafkaConsumer<GenericKey, GenericRow> consumer, AtomicBoolean blocked) {
+    Map<TopicPartition, OffsetAndMetadata> offsets = consumer.committed(new HashSet<>(topicPartitions.get()));
+    if (caughtUp(latestOffsets.get(), offsets)) {
+      System.out.println("CAUGHT UP!!");
+
+      synchronized (blockers) {
+        if (waiting.get() && caughtUp(latestOffsets.get(), offsets)) {
+          System.out.println("TRANSFER");
+          if (blocked.get()) {
+            System.out.println("DECREMENTING BLOCKERS to " + blockers.get());
+            blockers.decrementAndGet();
+            blockers.notify();
+          }
+          return true;
+        } else {
+          System.out.println("INCREMENTING BLOCKERS to " + blockers.get());
+          blocked.set(true);
+          blockers.incrementAndGet();
+        }
+      }
+    }
+    return false;
   }
 
   private boolean caughtUp(Map<TopicPartition, OffsetAndMetadata> latestOffsets, Map<TopicPartition, OffsetAndMetadata> offsets) {
@@ -263,6 +341,28 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
         }
       }
       return true;
+    }
+  }
+
+  private String getToken(Map<TopicPartition, Long> offsets, String topic, int numPartitions) {
+    List<String> offsetList = new ArrayList<>();
+    for (int i = 0; i < numPartitions; i++) {
+      TopicPartition tp = new TopicPartition(topic, i);
+      offsetList.add(Long.toString(offsets.containsKey(tp) ? offsets.get(tp) : 0));
+    }
+    return String.join(",", offsetList);
+  }
+
+  private Map<Integer, Long> parseToken(Optional<String> token) {
+    if (token.isPresent()) {
+      int i = 0;
+      Map<Integer, Long> offsets = new HashMap<>();
+      for (String str : token.get().split(",")) {
+        offsets.put(i++, Long.parseLong(str));
+      }
+      return offsets;
+    } else {
+      return Collections.emptyMap();
     }
   }
 
@@ -319,12 +419,12 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   }
 
   @SuppressWarnings("unchecked")
-  private void handleRow(
-      final Object key, final GenericRow value, final long timestamp, final int partition, final long offset) {
-    hasReceivedData = true;
+  private boolean handleRow(
+      final Object key, final GenericRow value, final long timestamp, final String token) {
+      hasReceivedData = true;
     // We don't currently handle null in either field
     if ((key == null && !logicalSchema.key().isEmpty()) || value == null) {
-      return;
+      return false;
     }
     for (ProcessingQueue queue : processingQueues.values()) {
       try {
@@ -335,7 +435,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
           final GenericKey keyCopy = GenericKey.fromList(
               key != null ? ((GenericKey) key).values() : Collections.emptyList());
           final GenericRow valueCopy = GenericRow.fromList(value.values());
-          row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp);
+          row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp, token);
         } else {
           final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
           final Windowed<GenericKey> keyCopy =
@@ -344,11 +444,12 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
           final GenericRow valueCopy = GenericRow.fromList(value.values());
           row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
         }
-        queue.offer(row);
+        return queue.offer(row);
       } catch (final Throwable t) {
         LOG.error("Error while offering row", t);
       }
     }
+    return false;
   }
 
   public synchronized void onError() {

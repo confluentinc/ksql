@@ -76,31 +76,31 @@ public class StreamedRowTest {
     testRoundTrip(row, expectedJson);
   }
 
-  @Test
-  public void shouldRoundTripTableRow() throws Exception {
-    final StreamedRow row = StreamedRow.pushRow(
-        genericRow("v0", new BigDecimal("1.2"), 4)
-    );
-
-    final String expectedJson = "{\"row\":{"
-        + "\"columns\":[\"v0\",1.2,4]"
-        + "}}";
-
-    testRoundTrip(row, expectedJson);
-  }
-
-  @Test
-  public void shouldRoundTripStreamRow() throws Exception {
-    final StreamedRow row = StreamedRow.pushRow(
-        genericRow("v0", new BigDecimal("1.2"), 4)
-    );
-
-    final String expectedJson = "{\"row\":{"
-        + "\"columns\":[\"v0\",1.2,4]"
-        + "}}";
-
-    testRoundTrip(row, expectedJson);
-  }
+//  @Test
+//  public void shouldRoundTripTableRow() throws Exception {
+//    final StreamedRow row = StreamedRow.pushRow(
+//        genericRow("v0", new BigDecimal("1.2"), 4)
+//    );
+//
+//    final String expectedJson = "{\"row\":{"
+//        + "\"columns\":[\"v0\",1.2,4]"
+//        + "}}";
+//
+//    testRoundTrip(row, expectedJson);
+//  }
+//
+//  @Test
+//  public void shouldRoundTripStreamRow() throws Exception {
+//    final StreamedRow row = StreamedRow.pushRow(
+//        genericRow("v0", new BigDecimal("1.2"), 4)
+//    );
+//
+//    final String expectedJson = "{\"row\":{"
+//        + "\"columns\":[\"v0\",1.2,4]"
+//        + "}}";
+//
+//    testRoundTrip(row, expectedJson);
+//  }
 
   @Test
   public void shouldRoundTripPullRow() throws Exception {

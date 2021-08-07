@@ -653,7 +653,7 @@ final class EngineExecutor {
         ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis),
         pushRoutingOptions.getExpectingStartOfRegistryData()
     );
-    return builder.buildPushPhysicalPlan(logicalPlan, context);
+    return builder.buildPushPhysicalPlan(logicalPlan, context, pushRoutingOptions.getToken());
   }
 
   private PullPhysicalPlan buildPullPhysicalPlan(

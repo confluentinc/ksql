@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Writes the query response stream in JSON format.
@@ -59,7 +60,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final GenericRow row) {
+  public QueryStreamResponseWriter writeRow(final GenericRow row, Optional<String> token) {
     writeBuffer(ServerUtils.serializeObject(row.values()));
     return this;
   }

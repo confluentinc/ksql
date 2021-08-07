@@ -63,6 +63,12 @@ public class KsqlRequestConfig extends AbstractConfig {
       "Indicates whether a connecting node expects to be at the start of the registry data. After a"
           + "rebalance, this ensures we don't miss any data.";
 
+  public static final String KSQL_REQUEST_QUERY_PUSH_TOKEN =
+      "request.ksql.query.push.token";
+  public static final String KSQL_REQUEST_QUERY_PUSH_TOKEN_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PUSH_TOKEN_DOC =
+      "Controls whether a ksql host forwards a push query request to another host";
+
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -101,6 +107,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PUSH_TOKEN,
+            Type.STRING,
+            KSQL_REQUEST_QUERY_PUSH_TOKEN_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PUSH_TOKEN_DOC
         );
     return configDef;
   }

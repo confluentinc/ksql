@@ -20,6 +20,7 @@ import static io.confluent.ksql.util.KeyValue.keyValue;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.OptionalInt;
@@ -34,7 +35,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
   public static final int BLOCKING_QUEUE_CAPACITY = 500;
 
-  private final BlockingQueue<KeyValue<List<?>, GenericRow>> rowQueue;
+  private final BlockingQueue<KeyValueMetadata<List<?>, GenericRow>> rowQueue;
   private final int offerTimeoutMs;
   private LimitQueueCallback callback;
   private volatile boolean closed = false;
@@ -85,18 +86,18 @@ public class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
+  public KeyValueMetadata<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
       throws InterruptedException {
     return rowQueue.poll(timeout, unit);
   }
 
   @Override
-  public KeyValue<List<?>, GenericRow> poll() {
+  public KeyValueMetadata<List<?>, GenericRow> poll() {
     return rowQueue.poll();
   }
 
   @Override
-  public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+  public void drainTo(final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
     rowQueue.drainTo(collection);
   }
 
@@ -122,9 +123,10 @@ public class TransientQueryQueue implements BlockingRowQueue {
       }
 
       final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row, "");
 
       while (!closed) {
-        if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+        if (rowQueue.offer(keyValueMetadata, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
           callback.onQueued();
           break;
         }
@@ -142,16 +144,17 @@ public class TransientQueryQueue implements BlockingRowQueue {
    * @return If the row was accepted or discarded for an acceptable reason, false if it was rejected
    *     because the queue was full.
    */
-  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value) {
+  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value, final String token) {
     try {
       if (!callback.shouldQueue()) {
         return true;
       }
 
       final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row, token);
 
       if (!closed) {
-        if (!rowQueue.offer(row, 0, TimeUnit.MILLISECONDS)) {
+        if (!rowQueue.offer(keyValueMetadata, 0, TimeUnit.MILLISECONDS)) {
           return false;
         }
         callback.onQueued();

@@ -25,6 +25,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.QueryResponseRow;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
@@ -56,8 +57,8 @@ public final class KsqlTargetUtil {
       // Not a {@link KsqlErrorMessage}
     }
     try {
-      final List<?> row = deserialize(buff, List.class);
-      return StreamedRow.pushRow(GenericRow.fromList(row));
+      final QueryResponseRow row = deserialize(buff, QueryResponseRow.class);
+      return StreamedRow.pushRow(GenericRow.fromList(row.row), row.token);
     } catch (KsqlRestClientException e) {
       // Not a {@link List}
     }

@@ -42,7 +42,7 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.Collection;
 import java.util.List;
@@ -190,13 +190,13 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     @Override
     Collection<StreamedRow> poll() {
-      final List<KeyValue<List<?>, GenericRow>> rows = Lists.newLinkedList();
+      final List<KeyValueMetadata<List<?>, GenericRow>> rows = Lists.newLinkedList();
       result.getPullQueryQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;
       } else {
         return rows.stream()
-            .map(kv -> StreamedRow.pushRow(kv.value()))
+            .map(kv -> StreamedRow.pushRow(kv.getKeyValue().value(), Optional.empty()))
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

@@ -17,9 +17,11 @@ package io.confluent.ksql.physical.common.operators;
 
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
+import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
@@ -93,7 +95,10 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
         row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
 
     if (logicalNode.getIsSelectStar()) {
-      return createRowForSelectStar(intermediate);
+      return Row.of(logicalNode.getSchema(),
+          GenericKey.genericKey(),
+          GenericRow.fromList(createRowForSelectStar(intermediate)),
+          row.rowTime(), row.token());
     }
 
     final GenericRow mapped = transformer.transform(
@@ -103,7 +108,10 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     );
     validateProjection(mapped, logicalNode.getSchema());
 
-    return mapped.values();
+    return Row.of(logicalNode.getSchema(),
+        GenericKey.genericKey(),
+        GenericRow.fromList(mapped.values()),
+        row.rowTime(), row.token());
   }
 
   @Override

@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
@@ -243,7 +244,7 @@ public class PushRouting implements AutoCloseable {
       LOG.debug("Query {} id {} executed locally at host {} at timestamp {}.",
           statement.getStatementText(), pushPhysicalPlan.getQueryId(), node.location(),
           System.currentTimeMillis());
-      final AtomicReference<BufferedPublisher<List<?>>> publisherRef
+      final AtomicReference<BufferedPublisher<TableRow>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
           .thenApply(v -> pushPhysicalPlan.execute())
@@ -259,7 +260,7 @@ public class PushRouting implements AutoCloseable {
           .exceptionally(t -> {
             LOG.error("Error executing query {} locally at node {}",
                 statement.getStatementText(), node.location(), t.getCause());
-            final BufferedPublisher<List<?>> publisher = publisherRef.get();
+            final BufferedPublisher<TableRow> publisher = publisherRef.get();
             pushPhysicalPlan.close();
             if (publisher != null) {
               publisher.close();
@@ -498,8 +499,8 @@ public class PushRouting implements AutoCloseable {
       }
       if (row.getRow().isPresent()) {
         if (!transientQueryQueue.acceptRowNonBlocking(null,
-            GenericRow.fromList(row.getRow().get().getColumns()))) {
-          callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
+            GenericRow.fromList(row.getRow().get().getColumns()), "")) {
+           callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
           close();
           return;
         }
@@ -539,7 +540,7 @@ public class PushRouting implements AutoCloseable {
   /**
    * Subscriber for handling local data.
    */
-  private static class LocalQueryStreamSubscriber extends BaseSubscriber<List<?>> {
+  private static class LocalQueryStreamSubscriber extends BaseSubscriber<TableRow> {
 
     private final TransientQueryQueue transientQueryQueue;
     private final CompletableFuture<Void> callback;
@@ -567,11 +568,11 @@ public class PushRouting implements AutoCloseable {
     }
 
     @Override
-    protected synchronized void handleValue(final List<?> row) {
+    protected synchronized void handleValue(final TableRow row) {
       if (closed) {
         return;
       }
-      if (!transientQueryQueue.acceptRowNonBlocking(null, GenericRow.fromList(row))) {
+      if (!transientQueryQueue.acceptRowNonBlocking(null, row.value(), row.token())) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();
         return;

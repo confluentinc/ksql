@@ -37,6 +37,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -74,7 +75,8 @@ public class PushPhysicalPlanBuilder {
    */
   public PushPhysicalPlan buildPushPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
-      final Context context
+      final Context context,
+      final Optional<String> token
   ) {
     PushDataSourceOperator dataSourceOperator = null;
 
@@ -97,7 +99,7 @@ public class PushPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
-            (DataSourceNode) currentLogicalNode);
+            (DataSourceNode) currentLogicalNode, token);
         dataSourceOperator = (PushDataSourceOperator) currentPhysicalOp;
       } else {
         throw new KsqlException(String.format(
@@ -158,13 +160,14 @@ public class PushPhysicalPlanBuilder {
   }
 
   private AbstractPhysicalOperator translateDataSourceNode(
-      final DataSourceNode logicalNode
+      final DataSourceNode logicalNode,
+      final Optional<String> token
   ) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
     return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId,
-        expectingStartOfRegistryData);
+        expectingStartOfRegistryData, token);
   }
 
   private QueryId uniqueQueryId() {

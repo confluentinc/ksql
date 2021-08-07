@@ -19,7 +19,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 final class PullLogicalPlanUtil {
 
-  private PullLogicalPlanUtil(){
+  private PullLogicalPlanUtil() {
 
   }
 

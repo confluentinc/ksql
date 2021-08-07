@@ -38,7 +38,7 @@ public interface Term {
 
   /**
    * The compile time {@link SqlType} of this term.
-   * @return
+   * @return The SqlType
    */
   SqlType getSqlType();
 }

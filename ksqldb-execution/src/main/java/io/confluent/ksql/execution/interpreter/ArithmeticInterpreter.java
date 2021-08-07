@@ -70,7 +70,7 @@ public final class ArithmeticInterpreter {
    * @param right The right term
    * @param resultType The type of the resulting operation
    * @param ksqlConfig The ksqlconfig
-   * @return
+   * @return The resulting Term
    */
   public static Term doBinaryArithmetic(
       final Operator operator,

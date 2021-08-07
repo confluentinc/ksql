@@ -301,7 +301,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   public void close(final boolean closeQueries) {
     primaryContext.getAllLiveQueries()
-      .forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
+        .forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
 
     try {
       cleanupService.stopAsync().awaitTerminated(30, TimeUnit.SECONDS);

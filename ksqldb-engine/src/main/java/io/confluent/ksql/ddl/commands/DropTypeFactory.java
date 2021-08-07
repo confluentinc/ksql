@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Objects;
 
 public class DropTypeFactory {

@@ -42,7 +42,6 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.AmbiguousColumnException;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;

@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
-
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;

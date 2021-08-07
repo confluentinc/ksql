@@ -129,12 +129,17 @@ public final class SystemColumns {
     private static final Set<ColumnName> VERSION_ONE_NAMES;
 
     static {
-      VERSION_ZERO_NAMES = new HashSet<>();
-      VERSION_ZERO_NAMES.add(ROWTIME_NAME);
+      ImmutableSet.Builder<ColumnName> versionZeroBuilder = ImmutableSet.builder();
+      VERSION_ZERO_NAMES = versionZeroBuilder
+          .add(ROWTIME_NAME)
+          .build();
 
-      VERSION_ONE_NAMES = new HashSet<>(VERSION_ZERO_NAMES);
-      VERSION_ONE_NAMES.add(ROWOFFSET_NAME);
-      VERSION_ONE_NAMES.add(ROWPARTITION_NAME);
+      ImmutableSet.Builder<ColumnName> versionOneBuilder = ImmutableSet.builder();
+      VERSION_ONE_NAMES = versionOneBuilder
+          .addAll(VERSION_ZERO_NAMES)
+          .add(ROWPARTITION_NAME)
+          .add(ROWOFFSET_NAME)
+          .build();
     }
 
     private static final Map<Integer, Set<ColumnName>> PSEUDO_COLUMN_NAMES_BY_VERSION =

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -77,7 +78,8 @@ public final class SystemColumns {
     return WINDOW_BOUNDS_COLUMN_NAMES;
   }
 
-  public static boolean isPseudoColumn(final ColumnName columnName, final int pseudoColumnVersion) {
+  @VisibleForTesting
+  static boolean isPseudoColumn(final ColumnName columnName, final int pseudoColumnVersion) {
     return pseudoColumnNames(pseudoColumnVersion).contains(columnName);
   }
   public static boolean isPseudoColumn(final ColumnName columnName) {

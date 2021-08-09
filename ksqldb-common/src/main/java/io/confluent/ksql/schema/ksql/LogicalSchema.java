@@ -162,7 +162,7 @@ public final class LogicalSchema {
    * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
    * @return the new schema with the columns removed
    */
-  public LogicalSchema withoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
+  LogicalSchema withoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     return rebuildWithoutPseudoAndKeyColsInValue(pseudoColumnVersion);
   }
 

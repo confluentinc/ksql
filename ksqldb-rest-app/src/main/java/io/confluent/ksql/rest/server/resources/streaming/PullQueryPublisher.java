@@ -54,6 +54,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final ServiceContext serviceContext;
   private final ListeningScheduledExecutorService exec;
   private final ConfiguredStatement<Query> query;
+  private final ImmutableAnalysis analysis;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final long startTimeNanos;
   private final RoutingFilterFactory routingFilterFactory;
@@ -70,6 +71,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
@@ -82,6 +84,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
+    this.analysis = requireNonNull(analysis, "analysis");
     this.pullQueryMetrics = pullQueryMetrics;
     this.startTimeNanos = startTimeNanos;
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
@@ -110,9 +113,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryResult result = null;
     try {
-      final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutput(query.getStatement(), query.getStatementText());
-
       result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,

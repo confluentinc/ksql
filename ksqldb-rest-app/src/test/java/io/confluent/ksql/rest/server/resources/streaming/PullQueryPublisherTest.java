@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static com.google.common.util.concurrent.RateLimiter.create;
+
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -90,6 +92,8 @@ public class PullQueryPublisherTest {
   @Mock
   private ConfiguredStatement<Query> statement;
   @Mock
+  private ImmutableAnalysis analysis;
+  @Mock
   private Subscriber<Collection<StreamedRow>> subscriber;
   @Mock
   private ListeningScheduledExecutorService exec;
@@ -129,6 +133,7 @@ public class PullQueryPublisherTest {
         serviceContext,
         exec,
         statement,
+        analysis,
         Optional.empty(),
         TIME_NANOS,
         routingFilterFactory,

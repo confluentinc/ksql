@@ -242,11 +242,6 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getFrom();
   }
 
-  @Override
-  public DataSource getDataSource() {
-    return getFrom().getDataSource();
-  }
-
   private <T extends Expression> Optional<T> rewriteOptional(final Optional<T> expression) {
     return expression.map(this::rewrite);
   }

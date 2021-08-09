@@ -387,7 +387,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         || statement instanceof Query;
   }
 
-  public ImmutableAnalysis analyzeQueryWithNoOutput(final Query query, final String queryText) {
+  /**
+   * For analyzing queries that you know won't have an output topic, such as pull queries.
+   */
+  public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
+      final Query query,
+      final String queryText) {
+
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "");
     final Analysis analysis;
     try {

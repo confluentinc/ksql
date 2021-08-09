@@ -53,6 +53,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
+  private final ImmutableAnalysis analysis;
   private final Optional<LocalCommands> localCommands;
   private final ListeningScheduledExecutorService exec;
   private final PushRouting pushRouting;
@@ -64,12 +65,14 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
+    this.analysis = requireNonNull(analysis, "analysis");
     this.localCommands = requireNonNull(localCommands, "localCommands");
     this.pushRouting = null;
     this.isScalablePush = false;
@@ -81,6 +84,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context
   ) {
@@ -88,6 +92,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
+    this.analysis = requireNonNull(analysis, "analysis");
     this.localCommands = Optional.empty();
     this.pushRouting = requireNonNull(pushRouting, "pushRouting");
     this.isScalablePush = true;
@@ -99,9 +104,10 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final Optional<LocalCommands> localCommands
   ) {
-    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands);
+    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, analysis, localCommands);
   }
 
   public static PushQueryPublisher createScalablePublisher(
@@ -109,10 +115,19 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context
   ) {
-    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, pushRouting, context);
+    return new PushQueryPublisher(
+        ksqlEngine,
+        serviceContext,
+        exec,
+        query,
+        analysis,
+        pushRouting,
+        context
+    );
   }
 
   @Override
@@ -127,8 +142,6 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
               query.getSessionConfig().getConfig(false),
               query.getSessionConfig().getOverrides());
 
-      final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutput(query.getStatement(), query.getStatementText());
       queryMetadata = ksqlEngine
           .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
               plannerOptions, context);

@@ -323,7 +323,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutput(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
 
       // First thing, set the metrics callback so that it gets called, even if we hit an error
       final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
@@ -379,7 +379,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutput(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
       QueryLogger.info("Transient query created", statement.getStatementText());
       return handleScalablePushQuery(
           analysis,

@@ -75,6 +75,4 @@ public interface ImmutableAnalysis {
   AliasedDataSource getFrom();
 
   boolean getOrReplace();
-
-  DataSource getDataSource();
 }

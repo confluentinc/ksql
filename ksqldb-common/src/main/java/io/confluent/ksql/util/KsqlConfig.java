@@ -283,7 +283,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC =
       "Enables whether scalable push queries are enabled. Scalable push queries require no window "
           + "functions, aggregations, or joins, but may include projections and filters.";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
       = "ksql.query.push.scalable.interpreter.enabled";

@@ -185,10 +185,28 @@ public final class SourceBuilder {
     );
 
     final String stateStoreName = tableChangeLogOpName(source.getProperties());
+
+
+    final PhysicalSchema physicalSchema2 = getPhysicalSchemaWithPseudoCols(source);
+
+    final Serde<GenericRow> valueSerde2 = getValueSerdeWithDifferentQueryContext(
+        buildContext, source, physicalSchema2);
+
+    final QueryContext queryContext = QueryContext.Stacker.of(
+        source.getProperties().getQueryContext())
+        .push("asdf").getQueryContext();
+
+    final Serde<GenericKey> keySerde2 = buildContext.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        physicalSchema2,
+        queryContext
+    );
+
+
     final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactory.create(
-            keySerde,
-            valueSerde,
+            keySerde2,
+            valueSerde2,
             stateStoreName
         );
 
@@ -286,9 +304,34 @@ public final class SourceBuilder {
     );
   }
 
+  private static Serde<GenericRow> getValueSerdeWithDifferentQueryContext(
+      final RuntimeBuildContext buildContext,
+      final SourceStep<?> streamSource,
+      final PhysicalSchema physicalSchema) {
+
+    final QueryContext queryContext = QueryContext.Stacker.of(
+        streamSource.getProperties().getQueryContext())
+        .push("asdf").getQueryContext();
+
+    return buildContext.buildValueSerde(
+        streamSource.getFormats().getValueFormat(),
+        physicalSchema,
+        queryContext
+    );
+  }
+
   private static PhysicalSchema getPhysicalSchema(final SourceStep<?> streamSource) {
     return PhysicalSchema.from(
         streamSource.getSourceSchema(),
+        streamSource.getFormats().getKeyFeatures(),
+        streamSource.getFormats().getValueFeatures()
+    );
+  }
+
+  private static PhysicalSchema getPhysicalSchemaWithPseudoCols(final SourceStep<?> streamSource) {
+    return PhysicalSchema.from(
+        streamSource.getSourceSchema().withPseudoAndKeyColsInValue(
+            false, streamSource.getPseudoColumnVersion()),
         streamSource.getFormats().getKeyFeatures(),
         streamSource.getFormats().getValueFeatures()
     );
@@ -335,11 +378,15 @@ public final class SourceBuilder {
               materialized
           );
     } else {
-      final KTable<K, GenericRow> source = buildContext
+      KTable<K, GenericRow> source = buildContext
           .getStreamsBuilder()
           .table(streamSource.getTopicName(), consumed);
 
       final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
+
+      source = source.transformValues(
+          new AddKeyAndPseudoColumns<>(keyGenerator, streamSource.getPseudoColumnVersion()));
+
       if (forceMaterialization) {
         // add this identity mapValues call to prevent the source-changelog
         // optimization in kafka streams - we don't want this optimization to
@@ -353,13 +400,11 @@ public final class SourceBuilder {
         // re-partitioned topic will be used for any subsequent state stores, in lieu
         // of the original source topic, thus avoiding the issues above.
         // See https://github.com/confluentinc/ksql/issues/6650
-        table = source.mapValues(row -> row);
+        table = source.mapValues(row -> row); //see if this works without reassignment
       }
     }
 
-    return table
-        .transformValues(new AddKeyAndPseudoColumns<>(
-            keyGenerator, streamSource.getPseudoColumnVersion()));
+    return table;
   }
 
   private static StaticTopicSerde.Callback getRegisterCallback(

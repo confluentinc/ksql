@@ -77,7 +77,15 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
           final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
           final QueryId queryId) {
     if (!sources.containsKey(queryId)) {
-      throw new IllegalArgumentException(queryId.toString() + ": was not reserved on this runtime");
+      if (sources
+          .values()
+          .stream()
+          .flatMap(Collection::stream)
+          .anyMatch(t -> persistentQueriesInSharedRuntimesImpl.getSourceNames().contains(t))) {
+        throw new IllegalArgumentException(queryId.toString() + ": was not reserved on this runtime");
+      } else {
+        sources.put(queryId, persistentQueriesInSharedRuntimesImpl.getSourceNames());
+      }
     }
     this.errorClassifier = errorClassifier;
     metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);

@@ -660,7 +660,7 @@ public class StatementRewriterTest {
         false,
         false,
         sourceProperties,
-        CreateTable.Type.NORMAL
+        false
     );
     when(mockRewriter.apply(tableElement1, context)).thenReturn(rewrittenTableElement1);
     when(mockRewriter.apply(tableElement2, context)).thenReturn(rewrittenTableElement2);
@@ -679,7 +679,7 @@ public class StatementRewriterTest {
                 false,
                 false,
                 sourceProperties,
-                CreateTable.Type.NORMAL
+                false
             )
         )
     );

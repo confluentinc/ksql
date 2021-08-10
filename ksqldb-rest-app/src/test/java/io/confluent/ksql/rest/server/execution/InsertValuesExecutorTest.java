@@ -1122,7 +1122,6 @@ public class InsertValuesExecutorTest {
           Optional.empty(),
           false,
           topic,
-          false,
           false
       );
     } else {

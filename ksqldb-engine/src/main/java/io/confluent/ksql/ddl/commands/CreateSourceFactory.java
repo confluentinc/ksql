@@ -144,7 +144,7 @@ public final class CreateSourceFactory {
         Formats.from(outputNode.getKsqlTopic()),
         outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
         Optional.of(outputNode.getOrReplace()),
-        Optional.of(CreateTable.Type.NORMAL.name())
+        Optional.of(false)
     );
   }
 
@@ -192,7 +192,7 @@ public final class CreateSourceFactory {
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
         Optional.of(statement.isOrReplace()),
-        Optional.of(statement.getType().name())
+        Optional.of(statement.isSource())
     );
   }
 

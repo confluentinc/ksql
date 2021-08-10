@@ -212,7 +212,6 @@ public class StructuredDataSourceTest {
         Optional.empty(),
         true,
         topic,
-        false,
         false
     );
 

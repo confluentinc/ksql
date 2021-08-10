@@ -2641,7 +2641,6 @@ public class KsqlResourceTest {
             Optional.empty(),
             false,
             ksqlTopic,
-            false,
             false
         );
         break;

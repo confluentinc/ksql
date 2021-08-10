@@ -28,7 +28,7 @@ import java.util.Optional;
 @JsonIgnoreProperties({"keyField"}) // Removed at version 0.10
 @Immutable
 public class CreateTableCommand extends CreateSourceCommand {
-  private final Optional<String> type;
+  private final Optional<Boolean> isSource;
 
   public CreateTableCommand(
       @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
@@ -38,7 +38,7 @@ public class CreateTableCommand extends CreateSourceCommand {
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo") final Optional<WindowInfo> windowInfo,
       @JsonProperty(value = "orReplace", defaultValue = "false") final Optional<Boolean> orReplace,
-      @JsonProperty(value = "type", defaultValue = "NORMAL") final Optional<String> type
+      @JsonProperty(value = "isSource", defaultValue = "false") final Optional<Boolean> isSource
   ) {
     super(
         sourceName,
@@ -54,11 +54,14 @@ public class CreateTableCommand extends CreateSourceCommand {
       throw new UnsupportedOperationException("Tables require key columns");
     }
 
-    this.type = type;
+    this.isSource = isSource;
   }
 
-  public Optional<String> getType() {
-    return type;
+  // This can be in CreateSourceCommand, but it fails deserializing the JSON property when
+  // loading a CreateStreamCommand because it is not supported there yet. We should move this
+  // source variable and method to the CreateSourceCommand after supporting source streams.
+  public Boolean isSource() {
+    return isSource.orElse(false);
   }
 
   @Override

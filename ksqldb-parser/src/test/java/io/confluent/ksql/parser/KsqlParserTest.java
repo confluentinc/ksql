@@ -377,7 +377,7 @@ public class KsqlParserTest {
             "value_format='json', partitions=1, replicas=-1);", metaStore).getStatement();
 
     // Then:
-    assertThat(stmt.getType(), is(CreateTable.Type.SOURCE));
+    assertThat(stmt.isSource(), is(true));
   }
 
   @Test

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import com.google.common.base.Enums;
 import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -33,7 +32,6 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
@@ -121,10 +119,6 @@ public class DdlCommandExec {
                 sourceName, sourceType.toLowerCase()));
       }
 
-      final CreateTable.Type tableType = createTable.getType()
-          .map(typeStr -> Enums.getIfPresent(CreateTable.Type.class, typeStr).orNull())
-          .orElse(CreateTable.Type.NORMAL);
-
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
           sql,
           createTable.getSourceName(),
@@ -132,8 +126,7 @@ public class DdlCommandExec {
           createTable.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createTable),
-          tableType == CreateTable.Type.SOURCE,
-          tableType == CreateTable.Type.SOURCE
+          createTable.isSource()
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
       metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);

@@ -162,7 +162,6 @@ public class TemporaryEngine extends ExternalResource {
                 Optional.empty(),
                 false,
                 topic,
-                false,
                 false
             );
         break;

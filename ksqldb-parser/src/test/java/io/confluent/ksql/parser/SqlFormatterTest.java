@@ -203,7 +203,6 @@ public class SqlFormatterTest {
         Optional.empty(),
         false,
         ksqlTopicItems,
-        false,
         false
     );
 
@@ -216,7 +215,6 @@ public class SqlFormatterTest {
         Optional.empty(),
         false,
         ksqlTopicItems,
-        false,
         false
     );
 
@@ -296,7 +294,7 @@ public class SqlFormatterTest {
         false,
         false,
         props,
-        CreateTable.Type.SOURCE);
+        true);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -320,7 +318,7 @@ public class SqlFormatterTest {
         true,
         false,
         props,
-        CreateTable.Type.NORMAL);
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -346,7 +344,7 @@ public class SqlFormatterTest {
         false,
         false,
         props,
-        CreateTable.Type.NORMAL);
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -366,7 +364,7 @@ public class SqlFormatterTest {
         false,
         false,
         SOME_WITH_PROPS,
-        CreateTable.Type.NORMAL);
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -385,7 +383,7 @@ public class SqlFormatterTest {
         false,
         false,
         SOME_WITH_PROPS,
-        CreateTable.Type.NORMAL);
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);

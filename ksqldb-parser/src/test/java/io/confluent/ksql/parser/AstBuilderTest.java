@@ -614,7 +614,7 @@ public class AstBuilderTest {
     final CreateTable result = (CreateTable) builder.buildStatement(stmt);
 
     // Then:
-    assertThat(result.getType(), is(CreateTable.Type.SOURCE));
+    assertThat(result.isSource(), is(true));
   }
 
   @Test
@@ -627,7 +627,7 @@ public class AstBuilderTest {
     final CreateTable result = (CreateTable) builder.buildStatement(stmt);
 
     // Then:
-    assertThat(result.getType(), is(CreateTable.Type.NORMAL));
+    assertThat(result.isSource(), is(false));
   }
 
   @Test

@@ -260,7 +260,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitCreateTable(final CreateTable node, final Integer indent) {
       formatCreate(node,
-          node.getType() == CreateTable.Type.SOURCE
+          node.isSource()
               ? "SOURCE TABLE"
               : "TABLE"
       );

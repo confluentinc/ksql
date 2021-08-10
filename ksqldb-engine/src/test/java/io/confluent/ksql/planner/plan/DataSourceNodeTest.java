@@ -245,7 +245,6 @@ public class DataSourceNodeTest {
             KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
             ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
         ),
-        false,
         false
     );
 

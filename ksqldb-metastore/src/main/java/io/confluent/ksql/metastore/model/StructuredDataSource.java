@@ -47,7 +47,7 @@ abstract class StructuredDataSource<K> implements DataSource {
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
   private final boolean casTarget;
-  private final boolean readOnly;
+  private final boolean isSource;
 
   private static final ImmutableList<Property<?>> PROPERTIES = ImmutableList.of(
       new Property<>("name", DataSource::getName),
@@ -66,7 +66,7 @@ abstract class StructuredDataSource<K> implements DataSource {
       final DataSourceType dataSourceType,
       final boolean casTarget,
       final KsqlTopic ksqlTopic,
-      final boolean readOnly
+      final boolean isSource
   ) {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
@@ -75,7 +75,7 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.casTarget = casTarget;
-    this.readOnly = readOnly;
+    this.isSource = isSource;
 
     if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
@@ -130,8 +130,8 @@ abstract class StructuredDataSource<K> implements DataSource {
   }
 
   @Override
-  public boolean isReadOnly() {
-    return readOnly;
+  public boolean isSource() {
+    return isSource;
   }
 
   @Override

@@ -117,7 +117,6 @@ public final class MetaStoreFixture {
         Optional.empty(),
         false,
         ksqlTopic2,
-        false,
         false
     );
 
@@ -194,7 +193,6 @@ public final class MetaStoreFixture {
         Optional.empty(),
         false,
         ksqlTopic3,
-        false,
         false
     );
 
@@ -299,7 +297,6 @@ public final class MetaStoreFixture {
         Optional.empty(),
         false,
         ksqlTopic5,
-        false,
         false
     );
     metaStore.putSource(ksqlTable5, false);

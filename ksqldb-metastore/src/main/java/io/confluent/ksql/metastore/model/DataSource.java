@@ -107,5 +107,5 @@ public interface DataSource {
   /**
    * @return returns true if this source is read-only
    */
-  boolean isReadOnly();
+  boolean isSource();
 }

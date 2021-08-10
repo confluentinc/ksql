@@ -27,22 +27,15 @@ import java.util.Optional;
 
 @Immutable
 public class CreateTable extends CreateSource implements ExecutableDdlStatement {
-  public enum Type {
-    SOURCE,
-    NORMAL
-  }
-
-  private final Type type;
-
   public CreateTable(
       final SourceName name,
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
       final CreateSourceProperties properties,
-      final Type type
+      final boolean isSource
   ) {
-    this(Optional.empty(), name, elements, orReplace, notExists, properties, type);
+    this(Optional.empty(), name, elements, orReplace, notExists, properties, isSource);
   }
 
   public CreateTable(
@@ -52,16 +45,11 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final boolean orReplace,
       final boolean notExists,
       final CreateSourceProperties properties,
-      final Type type
+      final boolean isSource
   ) {
-    super(location, name, elements, orReplace, notExists, properties);
-    this.type = type;
+    super(location, name, elements, orReplace, notExists, properties, isSource);
 
     throwOnNonPrimaryKeys(elements);
-  }
-
-  public Type getType() {
-    return type;
   }
 
   @Override
@@ -76,7 +64,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         isOrReplace(),
         isNotExists(),
         properties,
-        type);
+        isSource());
   }
 
   @Override
@@ -103,7 +91,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         .add("orReplace", isOrReplace())
         .add("notExists", isNotExists())
         .add("properties", getProperties())
-        .add("type", type)
+        .add("isSource", isSource())
         .toString();
   }
 

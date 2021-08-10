@@ -198,7 +198,7 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties, CreateTable.Type.NORMAL);
+        false, true, withProperties, false);
 
     // When:
     final DdlCommand result = commandFactories
@@ -216,7 +216,7 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties, CreateTable.Type.SOURCE);
+        false, true, withProperties, true);
 
     // When:
     final DdlCommand result = commandFactories
@@ -234,7 +234,7 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties, CreateTable.Type.NORMAL);
+        false, true, withProperties, false);
 
     // When:
     commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
@@ -373,7 +373,7 @@ public class CommandFactoriesTest {
 
     final DdlStatement statement =
         new CreateTable(SOME_NAME, ELEMENTS_WITH_PK,
-            false, true, withProperties, CreateTable.Type.NORMAL);
+            false, true, withProperties, false);
 
     // When:
     final DdlCommand cmd = commandFactories

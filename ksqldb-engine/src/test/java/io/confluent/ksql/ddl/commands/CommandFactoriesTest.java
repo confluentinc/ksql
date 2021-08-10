@@ -210,6 +210,24 @@ public class CommandFactoriesTest {
   }
 
   @Test
+  public void shouldCreateCommandForCreateSourceTable() {
+    // Given:
+    final CreateTable statement = new CreateTable(SOME_NAME,
+        TableElements.of(
+            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, true, withProperties, CreateTable.Type.SOURCE);
+
+    // When:
+    final DdlCommand result = commandFactories
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
+
+    // Then:
+    assertThat(result, is(createTableCommand));
+    verify(createSourceFactory).createTableCommand(statement, ksqlConfig);
+  }
+
+  @Test
   public void shouldCreateCommandForCreateTableWithOverriddenProperties() {
     // Given:
     final CreateTable statement = new CreateTable(SOME_NAME,

@@ -260,12 +260,12 @@ public class DdlCommandExecTest {
   }
 
   @Test
-  public void shouldAddNormalTableOnEmptyType() {
+  public void shouldAddNormalTableWhenNoTypeIsSpecified() {
     // Given:
     final CreateTableCommand cmd = buildCreateTable(
         SourceName.of("t1"),
         false,
-        ""
+        null
     );
 
     // When:
@@ -614,7 +614,7 @@ public class DdlCommandExecTest {
         ),
         Optional.empty(),
         Optional.of(allowReplace),
-        Optional.of(type)
+        Optional.ofNullable(type)
     );
   }
 }

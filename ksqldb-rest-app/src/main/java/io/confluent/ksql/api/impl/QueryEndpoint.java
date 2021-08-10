@@ -18,6 +18,7 @@ package io.confluent.ksql.api.impl;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -133,19 +134,36 @@ public class QueryEndpoint {
         sql, properties, sessionVariables);
 
     if (statement.getStatement().isPullQuery()) {
-      return createPullQueryPublisher(
-          context, serviceContext, statement, pullQueryMetrics, workerExecutor,
-          metricsCallbackHolder);
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+      return createTablePullQueryPublisher(
+          analysis,
+          context,
+          serviceContext,
+          statement,
+          pullQueryMetrics,
+          workerExecutor,
+          metricsCallbackHolder
+      );
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
-      return createScalablePushQueryPublisher(context, serviceContext, statement, workerExecutor,
-          requestProperties);
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+      return createScalablePushQueryPublisher(
+          analysis,
+          context,
+          serviceContext,
+          statement,
+          workerExecutor,
+          requestProperties
+      );
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
   }
 
   private QueryPublisher createScalablePushQueryPublisher(
+      final ImmutableAnalysis analysis,
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
@@ -162,7 +180,7 @@ public class QueryEndpoint {
         statement.getSessionConfig().getOverrides());
 
     final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions,
+        .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
             plannerOptions, context);
 
 
@@ -188,7 +206,7 @@ public class QueryEndpoint {
     }
 
     final TransientQueryMetadata queryMetadata = ksqlEngine
-        .executeQuery(serviceContext, statement, true);
+        .executeTransientQuery(serviceContext, statement, true);
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
@@ -197,7 +215,8 @@ public class QueryEndpoint {
     return publisher;
   }
 
-  private QueryPublisher createPullQueryPublisher(
+  private QueryPublisher createTablePullQueryPublisher(
+      final ImmutableAnalysis analysis,
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
@@ -246,7 +265,8 @@ public class QueryEndpoint {
     pullBandRateLimiter.allow();
 
     try {
-      final PullQueryResult result = ksqlEngine.executePullQuery(
+      final PullQueryResult result = ksqlEngine.executeTablePullQuery(
+          analysis,
           serviceContext,
           statement,
           routing,

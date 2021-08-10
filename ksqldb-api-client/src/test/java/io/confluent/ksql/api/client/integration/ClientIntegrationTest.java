@@ -72,11 +72,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -97,7 +94,6 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -174,7 +170,8 @@ public class ClientIntegrationTest {
   private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
-  private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
+  private static final String PULL_QUERY_ON_TABLE =
+      "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
   private static final String PUSH_QUERY_WITH_LIMIT =
       "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
@@ -370,24 +367,29 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldStreamPullQueryAsync() throws Exception {
+  public void shouldStreamPullQueryOnTableAsync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(PULL_QUERY_COLUMN_TYPES));
     assertThat(streamedQueryResult.queryID(), is(nullValue()));
 
-    shouldReceivePullQueryRow(streamedQueryResult);
+    shouldReceiveRows(
+        streamedQueryResult,
+        1,
+        ClientIntegrationTest::verifyPullQueryRows,
+        true
+    );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
-  public void shouldStreamPullQuerySync() throws Exception {
+  public void shouldStreamPullQueryOnTableSync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
@@ -483,7 +485,7 @@ public class ClientIntegrationTest {
   @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY);
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
@@ -1354,15 +1356,6 @@ public class ClientIntegrationTest {
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
     assertThat(obj.toString(), is(obj.toJsonString()));
-  }
-
-  private static void shouldReceivePullQueryRow(final Publisher<Row> publisher) {
-    shouldReceiveRows(
-        publisher,
-        1,
-        ClientIntegrationTest::verifyPullQueryRows,
-        true
-    );
   }
 
   private static void verifyPullQueryRows(final List<Row> rows) {

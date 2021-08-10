@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests ensuring ROWPARTITON and ROWOFFSET work as user column names before KLIP-50 is integrated"
+    "Tests covering ROWPARTITION and ROWOFFSET pseudocolumns"
   ],
   "tests": [
     {
@@ -80,13 +80,42 @@
       }
     },
     {
+      "name": "verify ROWPARTITION is not queryable with feature disabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": false
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT ROWPARTITION FROM input EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "SELECT column 'ROWPARTITION' cannot be resolved."
+      }
+    },
+    {
+      "name": "verify ROWOFFSET is not queryable with feature disabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": false
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT ROWOFFSET FROM input EMIT CHANGES;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "SELECT column 'ROWOFFSET' cannot be resolved."
+      }
+    },
+    {
+      "comments": "Should be removed after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "create ROWOFFSET and ROWPARTITION sink user columns as STRINGs- ROWOFFSET/ROWPARTITION enabled",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
         "CREATE STREAM input (id INT KEY, val STRING, other_val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT id, val AS ROWPARTITION, other_val AS ROWOFFSET FROM input;"
+        "CREATE STREAM OUTPUT AS SELECT id, val AS ROWPARTITION, other_val AS ROWOFFSET FROM input;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -94,13 +123,14 @@
       }
     },
     {
+      "comments": "Should be removed after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "test ROWOFFSET and ROWPARTITION sink user columns with pseudocolumn data types- ROWOFFSET/ROWPARTITION enabled",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
         "CREATE STREAM input (id INT KEY, val INTEGER, other_val BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT id, val AS ROWPARTITION, other_val AS ROWOFFSET FROM input;"
+        "CREATE STREAM OUTPUT AS SELECT id, val AS ROWPARTITION, other_val AS ROWOFFSET FROM input;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -108,6 +138,7 @@
       }
     },
     {
+      "comments": "Should be removed after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "create ROWOFFSET and ROWPARTITION source user columns as STRINGs- ROWOFFSET/ROWPARTITION enabled",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
@@ -118,6 +149,622 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "'ROWPARTITION' is a reserved column name. You cannot use it as a name for a column."
+      }
+    },
+    {
+      "comments": "Should be removed after rowpartition.rowoffset.enabled feature flag is removed",
+      "name": "test ROWOFFSET and ROWPARTITION source user columns with pseudocolumn data types- ROWOFFSET/ROWPARTITION enabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, ROWPARTITION INTEGER, ROWOFFSET BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'ROWPARTITION' is a reserved column name. You cannot use it as a name for a column."
+      }
+    },
+    {
+      "name": "INSERT INTO ROWPARTITION should fail",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (id, val, rowpartition) VALUES (1, 2, 3);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to insert values into 'INPUT'. Inserting into column `ROWPARTITION` is not allowed."
+      }
+    },
+    {
+      "name": "INSERT INTO ROWOFFSET should fail",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (id, val, rowoffset) VALUES (1, 2, 3);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to insert values into 'INPUT'. Inserting into column `ROWOFFSET` is not allowed."
+      }
+    },
+    {
+      "name": "Select ROWPARTITION and ROWOFFSET columns with aliases",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT id, ROWPARTITION AS rp, ROWOFFSET AS ro, ROWTIME AS rt FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"RP": 0, "RO": 0, "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"RP": 0, "RO": 1, "RT": 6}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"RP": 0, "RO": 2, "RT": 7}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, RP INT, RO BIGINT, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Select ROWPARTITION/ROWOFFSET from CSAS",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM a (id INT KEY, foo STRING) WITH (kafka_topic='a', value_format='JSON');",
+        "CREATE STREAM b AS SELECT * from a;",
+        "CREATE STREAM c AS SELECT *, ROWPARTITION as rp, ROWOFFSET as ro from b;"
+      ],
+      "inputs": [
+        {"topic":  "a", "key": 1, "value": {"foo": "foo"}, "timestamp": 5},
+        {"topic":  "a", "key": 2, "value": {"foo": "bar"}, "timestamp": 5},
+        {"topic":  "a", "key": 3, "value": {"foo": "baz"}, "timestamp": 5}
+      ],
+      "outputs": [
+        {"topic":  "C", "key": 1, "value": {"foo": "foo", "RP": 0, "RO": 0}, "timestamp": 5},
+        {"topic":  "C", "key": 2, "value": {"foo": "bar", "RP": 0, "RO": 1}, "timestamp": 5},
+        {"topic":  "C", "key": 3, "value": {"foo": "baz", "RP": 0, "RO": 2}, "timestamp": 5}
+      ],
+      "post": {
+        "sources": [
+          {"name": "C", "type": "stream", "schema": "id INT KEY, foo STRING, RP INT, RO BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Select ROWPARTITION/ROWOFFSET from CT",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE TABLE input (id INT PRIMARY KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT id, ROWPARTITION AS rp, ROWOFFSET AS ro FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"RP": 0, "RO": 0}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"RP": 0, "RO": 1}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"RP": 0, "RO": 2}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ID INT KEY, RP INT, RO BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Select ROWPARTITION/ROWOFFSET from CTAS",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE TABLE input (id INT PRIMARY KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE queryable AS SELECT id, foo FROM input;",
+        "CREATE TABLE output AS SELECT id, ROWPARTITION AS rp, ROWOFFSET AS ro FROM queryable;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"RP": 0, "RO": 0}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"RP": 0, "RO": 1}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"RP": 0, "RO": 2}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ID INT KEY, RP INT, RO BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "join on ROWPARTITION - INCOMPLETE",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM a (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM b (id INT KEY, foo STRING) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "CREATE STREAM output AS SELECT a.ROWPARTITION AS rpa, a.ROWOFFSET AS roa, b.ROWPARTITION as rpb, b.ROWOFFSET as rob FROM a JOIN b ON a.ROWPARTITION = b.ROWPARTITION;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7},
+        {"topic":  "test_topic_2", "key": 4, "value": {"foo": "d"}, "timestamp":  8},
+        {"topic":  "test_topic_2", "key": 5, "value": {"foo": "e"}, "timestamp":  9},
+        {"topic":  "test_topic_2", "key": 6, "value": {"foo": "f"}, "timestamp":  10}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"RP": 0, "RO": 0, "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"RP": 0, "RO": 1, "RT": 6}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"RP": 0, "RO": 2, "RT": 7}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, RP INT, RO BIGINT, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "join on ROWOFFSET - INCOMPLETE",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM a (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM b (id INT KEY, bar STRING) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "CREATE STREAM output AS SELECT foo, bar, a.ROWOFFSET AS roa, b.ROWOFFSET as rob FROM a JOIN b  WITHIN 5 SECONDS ON a.ROWOFFSET = b.ROWOFFSET;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7},
+        {"topic":  "test_topic_2", "key": 4, "value": {"bar": "d"}, "timestamp":  8},
+        {"topic":  "test_topic_2", "key": 5, "value": {"bar": "e"}, "timestamp":  9},
+        {"topic":  "test_topic_2", "key": 6, "value": {"bar": "f"}, "timestamp":  10}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 0, "value": {"foo": "a", "bar": "d","roa": 0, "rob": 0}, "timestamp": 8},
+        {"topic":  "OUTPUT", "key": 0, "value": {"foo":  "b", "bar": "e", "roa": 1, "rob": 1}, "timestamp": 9},
+        {"topic":  "OUTPUT", "key": 0, "value": {"foo":  "c", "bar": "f","roa": 2, "rob": 2}, "timestamp": 10}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "FOO STRING, BAR STRING, ROA BIGINT, ROB BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "CAST ROWPARTITION and ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT id, CAST(ROWPARTITION AS BIGINT) AS rp, CAST(ROWOFFSET AS DOUBLE) AS ro FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"RP": 0, "RO": 0.0}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"RP": 0, "RO": 1.0}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"RP": 0, "RO": 2.0}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, RP BIGINT, RO DOUBLE"}
+        ]
+      }
+    },
+    {
+      "name": "ROWPARTITION and ROWOFFSET in mathematical expression",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT id, ROWPARTITION + 3 AS rp, ROWOFFSET * 3 AS ro FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp":  7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"RP": 3, "RO": 0}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"RP": 3, "RO": 3}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"RP": 3, "RO": 6}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, RP INT, RO BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "PARTITION BY ROWOFFSET - buggy?",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM output AS select * FROM input PARTITION BY ROWOFFSET;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"val":  5}},
+        {"topic": "input", "key": 9, "value": {"val":  6}},
+        {"topic": "input", "key": 8, "value": {"val":  7}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 10, "VAL":  5}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID": 9, "VAL":  6}},
+        {"topic": "OUTPUT", "key": 2, "value": {"ID": 8, "VAL":  7}}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWOFFSET BIGINT KEY, val INT, id INT"}
+        ]
+      }
+    },
+    {
+      "name": "PARTITION BY ROWPARTITION - buggy?",
+      "comments": "Not the most useful PARTITION BY!",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM output AS select * FROM input PARTITION BY ROWPARTITION;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": 10, "value": {"val":  5}},
+        {"topic": "input", "key": 9, "value": {"val":  6}},
+        {"topic": "input", "key": 8, "value": {"val":  7}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 10, "VAL":  5}},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 9, "VAL":  6}},
+        {"topic": "OUTPUT", "key": 0, "value": {"ID": 8, "VAL":  7}}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWPARTITION INT KEY, val INT, id INT"}
+        ]
+      }
+    },
+    {
+      "name": "Try to select ROWPARTITION in persistent query without aliases",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT id, ROWPARTITION FROM input;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Reserved column name in select: `ROWPARTITION`. Please remove or alias the column."
+      }
+    },
+    {
+      "name": "Try to select ROWOFFSET in persistent query without aliases",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT id, ROWOFFSET FROM input;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Reserved column name in select: `ROWOFFSET`. Please remove or alias the column."
+      }
+    },
+    {
+      "name": "Filter using ROWPARTITION",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT *, ROWTIME AS rt FROM input WHERE ROWPARTITION = 0;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp": 7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"FOO":  "a", "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"FOO":  "b", "RT": 6}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"FOO":  "c", "RT": 7}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, FOO STRING, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Filter using ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT *, ROWTIME AS rt FROM input WHERE ROWOFFSET % 3 = 0;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp": 7},
+        {"topic":  "test_topic", "key": 4, "value": {"foo": "d"}, "timestamp": 8}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"FOO":  "a", "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 4, "value": {"FOO":  "d", "RT": 8}, "timestamp": 8}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, FOO STRING, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Filter and select using ROWPARTITION",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT *, ROWPARTITION AS rp, ROWOFFSET AS ro, ROWTIME AS rt FROM input WHERE ROWPARTITION = 0;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp": 7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"FOO":  "a", "RP": 0, "RO": 0, "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"FOO":  "b", "RP": 0, "RO": 1, "RT": 6}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"FOO":  "c", "RP": 0, "RO": 2, "RT": 7}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, FOO STRING, RP INT, RO BIGINT, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "Filter and select using ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT *, ROWTIME AS rt, ROWPARTITION AS rp, ROWOFFSET AS ro FROM input WHERE ROWOFFSET % 3 = 0;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"foo": "a"}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"foo": "b"}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"foo": "c"}, "timestamp": 7},
+        {"topic":  "test_topic", "key": 4, "value": {"foo": "d"}, "timestamp": 8}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"FOO":  "a", "RP": 0, "RO": 0, "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 4, "value": {"FOO":  "d", "RP": 0, "RO": 3, "RT": 8}, "timestamp": 8}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, FOO STRING, RT BIGINT, RP INT, RO BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "GREATEST UDF with ROWPARTITION",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT *, ROWPARTITION AS rp, ROWOFFSET AS ro, GREATEST(val, ROWPARTITION) AS big, ROWTIME AS rt FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"val": -1}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"val": 1}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"val": 0}, "timestamp": 7}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"VAL": -1,  "RP": 0, "RO": 0, "BIG": 0, "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"VAL": 1,  "RP": 0, "RO": 1, "BIG": 1, "RT": 6}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"VAL": 0,  "RP": 0, "RO": 2, "BIG": 0, "RT": 7}, "timestamp": 7}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, VAL INT, RP INT, RO BIGINT, BIG INT, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "GREATEST UDF with ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT *, ROWPARTITION AS rp, ROWOFFSET AS ro, GREATEST(val, ROWOFFSET) AS big, ROWTIME AS rt FROM input;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"val": 1}, "timestamp": 5},
+        {"topic":  "test_topic", "key": 2, "value": {"val": -1}, "timestamp": 6},
+        {"topic":  "test_topic", "key": 3, "value": {"val": 0}, "timestamp": 7},
+        {"topic":  "test_topic", "key": 4, "value": {"val": 4}, "timestamp": 8}
+
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"VAL": 1,  "RP": 0, "RO": 0, "BIG": 1, "RT": 5}, "timestamp": 5},
+        {"topic":  "OUTPUT", "key": 2, "value": {"VAL": -1,  "RP": 0, "RO": 1, "BIG": 1, "RT": 6}, "timestamp": 6},
+        {"topic":  "OUTPUT", "key": 3, "value": {"VAL": 0,  "RP": 0, "RO": 2, "BIG": 2, "RT": 7}, "timestamp": 7},
+        {"topic":  "OUTPUT", "key": 4, "value": {"VAL": 4,  "RP": 0, "RO": 3, "BIG": 4, "RT": 8}, "timestamp": 8}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, VAL BIGINT, RP INT, RO BIGINT, BIG BIGINT, RT BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "AVG UDAF with ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE TABLE input (i INT PRIMARY KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE output AS SELECT i, avg(ROWOFFSET) AS roa FROM input GROUP BY i;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": 1, "value": {"val": -1}},
+        {"topic":  "test_topic", "key": 2, "value": {"val": -1}},
+        {"topic":  "test_topic", "key": 3, "value": {"val": -1}},
+        {"topic":  "test_topic", "key": 4, "value": {"val": -1}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": 1, "value": {"ROA": 0.0}},
+        {"topic":  "OUTPUT", "key": 2, "value": {"ROA": 1.0}},
+        {"topic":  "OUTPUT", "key": 3, "value": {"ROA": 2.0}},
+        {"topic":  "OUTPUT", "key": 4, "value": {"ROA": 3.0}}
+      ]
+    },
+    {
+      "comments": "should be removed with feature flag, as this is duplicated in the partition-by QTTs",
+      "name": "only key column - select star - with join on keys",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.X PARTITION BY L.B;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 11},
+        {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12},
+        {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 1, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
+        ]
+      }
+    },
+    {
+      "comments": "should be removed with feature flag, as this is duplicated in the partition-by QTTs",
+      "name": "only key column - select star - with join on value columns",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.Y PARTITION BY A;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 11},
+        {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12},
+        {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 1, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
+        ]
+      }
+    },
+    {
+      "name": "GROUP BY ROWPARTITION",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(B) AS bc, ROWPARTITION AS rp FROM L GROUP BY ROWPARTITION;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 1, "value": {"B": 100}, "timestamp": 11},
+        {"topic": "LEFT", "key": 2, "value": {"B": 100}, "timestamp": 11},
+        {"topic": "LEFT", "key": 3, "value": {"B": 100}, "timestamp": 11}
+      ],
+      "comments": "the schema is wrong here, this may be an issue with the QTT framework not having great support for partition? In manual testing, RP would be part of the output",
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"BC": 1}, "timestamp": 11},
+        {"topic": "OUTPUT", "key": 0, "value": {"BC": 2}, "timestamp": 11},
+        {"topic": "OUTPUT", "key": 0, "value": {"BC": 3}, "timestamp": 11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "rp INT KEY, bc BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "GROUP BY ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(B) as bc, ROWOFFSET AS ro FROM L GROUP BY ROWOFFSET;"
+      ],
+      "inputs": [
+        {"topic": "LEFT", "key": 1, "value": {"B": 1}, "timestamp": 11},
+        {"topic": "LEFT", "key": 1, "value": {"B": 5}, "timestamp": 11},
+        {"topic": "LEFT", "key": 1, "value": {"B": 10}, "timestamp": 11}
+      ],
+      "comments": "the schema is wrong here, this may be an issue with the QTT framework not having great support for partition? In manual testing, RP would be part of the output",
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"BC": 1}, "timestamp": 11},
+        {"topic": "OUTPUT", "key": 1, "value": {"BC": 1}, "timestamp": 11},
+        {"topic": "OUTPUT", "key": 2, "value": {"BC": 1}, "timestamp": 11}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "ro BIGINT KEY, bc BIGINT"}
+        ]
       }
     }
   ]

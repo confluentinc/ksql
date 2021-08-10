@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
@@ -41,10 +42,13 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -329,11 +333,33 @@ public final class SourceBuilder {
   }
 
   private static PhysicalSchema getPhysicalSchemaWithPseudoCols(final SourceStep<?> streamSource) {
+
+    //build a nonwindowed keyformat with the source
+    FormatInfo f = streamSource.getFormats().getKeyFormat();
+    SerdeFeatures s = streamSource.getFormats().getKeyFeatures();
+    KeyFormat k = KeyFormat.nonWindowed(f, s);
+    Formats format = of(k, streamSource.getFormats().getValueFormat());
+
+
     return PhysicalSchema.from(
         streamSource.getSourceSchema().withPseudoAndKeyColsInValue(
             false, streamSource.getPseudoColumnVersion()),
-        streamSource.getFormats().getKeyFeatures(),
-        streamSource.getFormats().getValueFeatures()
+        format.getKeyFeatures(),
+        format.getValueFeatures()
+    );
+  }
+
+  public static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
+    // Do not use NONE format for internal topics:
+    if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
+      throw new IllegalArgumentException(NoneFormat.NAME + " can not be used for internal topics");
+    }
+
+    return Formats.of(
+        keyFormat.getFormatInfo(),
+        valueFormat,
+        keyFormat.getFeatures(),
+        SerdeFeatures.of()
     );
   }
 

@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.OutputRefinement;

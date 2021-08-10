@@ -146,6 +146,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
           .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
               plannerOptions, context);
     } else {
+      // note: since transient queries share so much code with persistent queries, it will
+      // wind up doing the analysis again internally, so we don't pass in the one we already did
       queryMetadata = ksqlEngine
           .executeTransientQuery(serviceContext, query, true);
 

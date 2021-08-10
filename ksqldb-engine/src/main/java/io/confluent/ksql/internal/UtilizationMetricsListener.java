@@ -16,18 +16,19 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.metrics.MetricCollectors;
 
 import java.io.File;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
@@ -37,80 +38,75 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class UtilizationMetricsListener implements MetricsReporter {
-  private final ConcurrentHashMap<String, Long> queryStorageMetrics;
-  private final Map<String, List<String>> metrics;
+  private final Map<String, List<TaskStorageMetric>> metricsSeen;
   private final Metrics metricRegistry;
-  private final File baseDir;
-  private final Collection<TaskStorageMetric> registeredMetrics;
+  private static final Object lock = new Object();
+  private static List<MetricName> registeredNodeMetrics = null;
 
-  public UtilizationMetricsListener(final KsqlConfig config, final Metrics metricRegistry) {
-    this.queryStorageMetrics = new ConcurrentHashMap<>();
-    this.metrics = new HashMap<>();
-    this.baseDir = new File(config.getKsqlStreamConfigProps()
-      .getOrDefault(
-        StreamsConfig.STATE_DIR_CONFIG,
-        StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
-      .toString());
+
+  public UtilizationMetricsListener() {
+    this(MetricCollectors.getMetrics());
+  }
+
+  public UtilizationMetricsListener(final Metrics metricRegistry) {
+    this.metricsSeen = new HashMap<>();
     this.metricRegistry = metricRegistry;
-    this.registeredMetrics = new ArrayList<>();
-
-    final MetricName nodeAvailable = this.metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
-    final MetricName nodeTotal = this.metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
-    final MetricName nodeUsed = this.metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
-
-
-    this.metricRegistry.addMetric(
-      nodeAvailable,
-      (Gauge<Long>) (metricConfig, now) -> baseDir.getFreeSpace()
-    );
-    this.metricRegistry.addMetric(
-      nodeTotal,
-      (Gauge<Long>) (metricConfig, now) -> baseDir.getFreeSpace()
-    );
-    this.metricRegistry.addMetric(
-      nodeUsed,
-      (Gauge<Long>) (metricConfig, now) -> baseDir.getFreeSpace()
-    );
   }
 
   // for testing
   public UtilizationMetricsListener(
-      final ConcurrentHashMap<String, Long> kafkaStreams,
-      final File baseDir,
       final Metrics metricRegistry,
-      final Map<String, List<String>> taskMetrics) {
-    this.queryStorageMetrics = kafkaStreams;
-    this.metrics = taskMetrics;
-    this.baseDir = baseDir;
+      final Map<String, List<TaskStorageMetric>> taskMetrics) {
+    this.metricsSeen = taskMetrics;
     this.metricRegistry = metricRegistry;
-    this.registeredMetrics = new ArrayList<>();
-
-    final MetricName nodeAvailable = this.metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
-    final MetricName nodeTotal = this.metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
-    final MetricName nodeUsed = this.metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
-
-
-    this.metricRegistry.addMetric(
-      nodeAvailable,
-      (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
-    );
-    this.metricRegistry.addMetric(
-      nodeTotal,
-      (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
-    );
-    this.metricRegistry.addMetric(
-      nodeUsed,
-      (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
-    );
   }
 
   @Override
   public void init(List<KafkaMetric> list) {
 
+  }
+
+
+  @Override
+  public void configure(Map<String, ?> map) {
+    String dir;
+    if (map.containsKey(StreamsConfig.STATE_DIR_CONFIG)) {
+      dir = map.get(StreamsConfig.STATE_DIR_CONFIG).toString();
+    } else {
+      dir =  StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG).toString();
+    }
+    configureShared(new File(dir), this.metricRegistry);
+  }
+
+  private static void configureShared(final File baseDir, final Metrics metricRegistry) {
+    synchronized (lock) {
+      if (registeredNodeMetrics != null) {
+        return;
+      }
+      registeredNodeMetrics = new ArrayList<>();
+
+      final MetricName nodeAvailable = metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
+      final MetricName nodeTotal = metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
+      final MetricName nodeUsed = metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
+      registeredNodeMetrics.add(nodeAvailable);
+      registeredNodeMetrics.add(nodeTotal);
+      registeredNodeMetrics.add(nodeUsed);
+
+      metricRegistry.addMetric(
+        nodeAvailable,
+        (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+      );
+      metricRegistry.addMetric(
+        nodeTotal,
+        (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+      );
+      metricRegistry.addMetric(
+        nodeUsed,
+        (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+      );
+    }
   }
 
   @Override
@@ -119,43 +115,39 @@ public class UtilizationMetricsListener implements MetricsReporter {
       return;
     }
     final String taskId = metric.metricName().tags().getOrDefault("task-id", "");
-
-    final String queryId = "";
+    final String queryIdTag = metric.metricName().tags().getOrDefault("thread-id", "");
+    Pattern pattern = Pattern.compile("(?<=query_)(.*?)(?=-)");
+    Matcher matcher = pattern.matcher(queryIdTag);
+    final String queryId = matcher.find() ? matcher.group(1) : "";
     // if we haven't seen a task for this query yet
-    if (!metrics.containsKey(queryId)) {
+    if (!metricsSeen.containsKey(queryId)) {
       metricRegistry.addMetric(
         metricRegistry.metricName(
           "query-storage-usage",
           "ksql-utilization-metrics",
           ImmutableMap.of("query-id", queryId)),
-        (Gauge<Object>) (config, now) -> queryStorageMetrics.get(queryId)
+        (Gauge<BigInteger>) (config, now) -> computeQueryMetric(queryId)
       );
-      metrics.put(queryId, new ArrayList<>());
+      metricsSeen.put(queryId, new ArrayList<>());
     }
-    // We've seen metric for this query before
-    if (metrics.get(queryId).contains(taskId)) {
-      // we have this task metric already, just need to update it
-      resetMetric(metric);
-      for (TaskStorageMetric storageMetric : registeredMetrics) {
-        if (storageMetric.getTaskId().equals(taskId)) {
-          storageMetric.add(metric);
-        }
-      }
+    final TaskStorageMetric newMetric = new TaskStorageMetric(
+      metricRegistry.metricName(
+        "task-storage-usage",
+        "ksql-utilization-metrics",
+        ImmutableMap.of("task-id", taskId, "query-id", queryId)
+      ));
+    // We've seen a metric for this query's task before
+    if (metricsSeen.get(queryId).contains(newMetric)) {
+      // we have this task metric already, just need to update its value
+      resetAndUpdateMetric(metric, taskId, queryId);
     } else {
-      // create a new task level metric to track state stores
-      final TaskStorageMetric newMetric = new TaskStorageMetric(
-        metricRegistry.metricName(
-          "task-storage-usage",
-          "ksql-utilization-metrics",
-          ImmutableMap.of("task-id", taskId, "query-id", "query-id")
-        ));
+      // create a new task level metric to track state store storage usage
       newMetric.add(metric);
-      registeredMetrics.add(newMetric);
-      // create gauge for task / query
+      // create gauge for task level storage usage
       metricRegistry.addMetric(newMetric.metricName, (Gauge<BigInteger>) (config, now) -> newMetric.getValue());
 
-      // add to list of seen metrics
-      metrics.get(queryId).add(taskId);
+      // add to list of seen task metrics for this query
+      metricsSeen.get(queryId).add(newMetric);
     }
   }
 
@@ -166,9 +158,28 @@ public class UtilizationMetricsListener implements MetricsReporter {
       return;
     }
 
-    registeredMetrics.forEach(r -> r.remove(metricName));
-    // will maybe delete task / query gauges here
-    cleanMetrics();
+    final String queryId = metric.metricName().tags().getOrDefault("app-id", "");
+    final List<TaskStorageMetric> taskMetrics = metricsSeen.get(queryId);
+    // will delete task / query gauges if we don't have any more metrics for them
+    for (TaskStorageMetric m : taskMetrics) {
+      // if don't have any store metrics for this task
+      m.remove(metric);
+      if (m.metrics.size() == 0) {
+        // we can get rid of task level metric, there are no sst-metrics anymore
+        metricRegistry.removeMetric(m.metricName);
+        metricsSeen.get(queryId).remove(m);
+        // if there are no task level metrics for this query
+        if (taskMetrics.size() == 0){
+          // we don't have more task metrics for the query, remove query gauge
+          metricRegistry.removeMetric(metricRegistry.metricName(
+            "query-storage-usage",
+            "ksql-utilization-metrics",
+            ImmutableMap.of("query-id", queryId))
+          );
+          metricsSeen.remove(queryId);
+        }
+      }
+    }
   }
 
   @Override
@@ -196,34 +207,22 @@ public class UtilizationMetricsListener implements MetricsReporter {
 
   }
 
-  public void cleanMetrics() {
-    for (TaskStorageMetric m : registeredMetrics) {
-      // if don't have any store metrics for this task
-      if (m.metrics.size() == 0) {
-        // we can get rid fo task level metric
-        metricRegistry.removeMetric(m.metricName);
-        registeredMetrics.remove(m);
-        final List<String> taskMetrics = metrics.get("queryId");
-        taskMetrics.remove("task-id");
-        // if there are no task level metrics for this query
-        if (taskMetrics.size() == 0){
-          // we don't have more task metrics for the query, remove query gauge
-          metricRegistry.removeMetric(metricRegistry.metricName(
-            "query-storage-usage",
-            "ksql-utilization-metrics",
-            ImmutableMap.of("query-id", "query-id")));
-        }
+  public void resetAndUpdateMetric(final KafkaMetric metric, final String taskId, final String queryId) {
+    final List<TaskStorageMetric> taskMetrics = metricsSeen.get(queryId);
+    taskMetrics.forEach(r -> r.remove(metric));
+    for (TaskStorageMetric storageMetric : taskMetrics) {
+      if (storageMetric.getTaskId().equals(taskId)) {
+        storageMetric.add(metric);
       }
     }
   }
 
-  public void resetMetric(final KafkaMetric metric) {
-    registeredMetrics.forEach(r -> r.remove(metric.metricName()));
-  }
-
-  @Override
-  public void configure(Map<String, ?> map) {
-
+  final BigInteger computeQueryMetric(final String queryId) {
+    BigInteger queryMetricSum = BigInteger.ZERO;
+    for (TaskStorageMetric m : metricsSeen.get(queryId)) {
+      queryMetricSum = queryMetricSum.add(m.getValue());
+    }
+    return queryMetricSum;
   }
 
   public static class TaskStorageMetric {
@@ -238,8 +237,8 @@ public class UtilizationMetricsListener implements MetricsReporter {
       metrics.put(metric.metricName(), metric);
     }
 
-    private void remove(final MetricName name) {
-      metrics.remove(name);
+    private void remove(final KafkaMetric metric) {
+      metrics.remove(metric.metricName());
     }
 
     public BigInteger getValue() {
@@ -266,7 +265,6 @@ public class UtilizationMetricsListener implements MetricsReporter {
       final TaskStorageMetric storageMetric = (TaskStorageMetric) o;
       return Objects.equals(metricName, storageMetric.metricName);
     }
-
   }
 
 }

@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationF
 import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
 import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.internal.UtilizationMetricsListener;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -381,6 +382,11 @@ final class QueryExecutor {
         newStreamsProperties,
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         RocksDBMetricsCollector.class.getName()
+    );
+    updateListProperty(
+      newStreamsProperties,
+      StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+      UtilizationMetricsListener.class.getName()
     );
     return newStreamsProperties;
   }

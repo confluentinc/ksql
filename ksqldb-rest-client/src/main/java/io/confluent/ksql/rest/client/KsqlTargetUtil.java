@@ -42,6 +42,7 @@ public final class KsqlTargetUtil {
   }
 
   public static StreamedRow toRowFromDelimited(final Buffer buff) {
+    System.out.println("Parsing buff " + buff);
     try {
       final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
       return StreamedRow.header(new QueryId(Strings.nullToEmpty(metadata.queryId)),
@@ -51,9 +52,11 @@ public final class KsqlTargetUtil {
     }
     try {
       final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
+      System.out.println("Got error " + error);
       return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
     } catch (KsqlRestClientException e) {
       // Not a {@link KsqlErrorMessage}
+      System.out.println("NOT A KsqlErrorMessage");
     }
     try {
       final List<?> row = deserialize(buff, List.class);

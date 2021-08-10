@@ -62,6 +62,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
       = new ConcurrentHashMap<>();
   private boolean closed = false;
+  private volatile boolean hasReceivedData = false;
 
   public ScalablePushRegistry(
       final PushLocator pushLocator,
@@ -83,9 +84,15 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     closed = true;
   }
 
-  public synchronized void register(final ProcessingQueue processingQueue) {
+  public synchronized void register(
+      final ProcessingQueue processingQueue,
+      boolean isDynamicallyAddedNode
+  ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
+    }
+    if (hasReceivedData && isDynamicallyAddedNode) {
+      throw new IllegalStateException("New node missed data");
     }
     processingQueues.put(processingQueue.getQueryId(), processingQueue);
   }
@@ -117,6 +124,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   @SuppressWarnings("unchecked")
   private void handleRow(final Record<Object, GenericRow> record) {
+    hasReceivedData = true;
     final Object key = record.key();
     final GenericRow value = record.value();
 

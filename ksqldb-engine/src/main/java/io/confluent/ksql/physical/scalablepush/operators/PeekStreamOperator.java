@@ -32,20 +32,24 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
+  private final boolean isNewlyAddedNode;
 
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
-      final QueryId queryId
+      final QueryId queryId,
+      final boolean isNewlyAddedNode
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
+    this.isNewlyAddedNode = isNewlyAddedNode;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue);
+    System.out.println("Registering " + processingQueue);
+    scalablePushRegistry.register(processingQueue, isNewlyAddedNode);
   }
 
   @Override

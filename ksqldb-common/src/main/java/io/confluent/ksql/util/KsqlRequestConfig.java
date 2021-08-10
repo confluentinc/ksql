@@ -56,6 +56,12 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC =
       "Controls whether a ksql host forwards a push query request to another host";
 
+  public static final String KSQL_REQUEST_QUERY_PUSH_NEW_NODE =
+      "request.ksql.query.push.new.node";
+  public static final boolean KSQL_REQUEST_QUERY_PUSH_NEW_NODE_DEFAULT = false;
+  private static final String KSQL_REQUEST_QUERY_PUSH_NEW_NODE_DOC =
+      "Indicates whether a node has been contacted as a new host";
+
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -88,6 +94,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PUSH_NEW_NODE,
+            Type.BOOLEAN,
+            KSQL_REQUEST_QUERY_PUSH_NEW_NODE_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PUSH_NEW_NODE_DOC
         );
     return configDef;
   }

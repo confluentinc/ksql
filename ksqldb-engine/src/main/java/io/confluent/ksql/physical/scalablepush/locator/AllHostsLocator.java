@@ -60,7 +60,6 @@ public class AllHostsLocator implements PushLocator {
     }
 
     return currentQueries.stream()
-        .filter(persistentQueryMetadata -> persistentQueryMetadata.getState() == State.RUNNING)
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)

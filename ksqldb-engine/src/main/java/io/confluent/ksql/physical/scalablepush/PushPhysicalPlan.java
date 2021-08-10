@@ -71,6 +71,7 @@ public class PushPhysicalPlan {
   }
 
   public BufferedPublisher<List<?>> execute() {
+    System.out.println("PushPhysicalPlan execute");
     final Publisher publisher = new Publisher(context);
     context.runOnContext(v -> open(publisher));
     return publisher;
@@ -81,9 +82,14 @@ public class PushPhysicalPlan {
   }
 
   private void maybeNext(final Publisher publisher) {
-    List<?> row;
-    while (!isErrored(publisher) && (row = (List<?>)next()) != null) {
-      publisher.accept(row);
+    try {
+      List<?> row;
+      while (!isErrored(publisher) && (row = (List<?>)next()) != null) {
+        publisher.accept(row);
+      }
+    } catch (final Throwable t) {
+      publisher.sendException(t);
+      return;
     }
     if (!closed) {
       if (timer >= 0) {
@@ -111,10 +117,15 @@ public class PushPhysicalPlan {
   }
 
   private void open(final Publisher publisher) {
+    System.out.println("PushPhysicalPlan open");
     VertxUtils.checkContext(context);
-    dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
-    root.open();
-    maybeNext(publisher);
+    try {
+      dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
+      root.open();
+      maybeNext(publisher);
+    } catch (Throwable t) {
+      publisher.sendException(t);
+    }
   }
 
   private Object next() {
@@ -149,6 +160,10 @@ public class PushPhysicalPlan {
     return scalablePushRegistry;
   }
 
+  public Context getContext() {
+    return context;
+  }
+
   public static class Publisher extends BufferedPublisher<List<?>> {
 
     public Publisher(final Context ctx) {
@@ -161,6 +176,10 @@ public class PushPhysicalPlan {
 
     public void reportHasError() {
       sendError(new RuntimeException("Persistent query has error"));
+    }
+
+    public void sendException(final Throwable e) {
+      sendError(e);
     }
   }
 }

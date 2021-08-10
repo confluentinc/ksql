@@ -53,14 +53,18 @@ public abstract class BasePublisher<T> implements Publisher<T> {
    */
   @Override
   public void subscribe(final Subscriber<? super T> subscriber) {
+    System.out.println("subscribe subscribe");
     if (isFailed()) {
+      System.out.println("About to throw exception");
       throw new IllegalStateException(
           "Cannot subscribe to failed publisher. Failure cause: " + failure);
     }
     Objects.requireNonNull(subscriber);
     if (VertxUtils.isEventLoopAndSameContext(ctx)) {
+      System.out.println("subscribe oncontext");
       doSubscribe(subscriber);
     } else {
+      System.out.println("subscribe not on context");
       ctx.runOnContext(v -> doSubscribe(subscriber));
     }
   }
@@ -81,12 +85,16 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   protected final void sendError(final Throwable e) {
     checkContext();
     try {
+      System.out.println("FAILURE IN PUB");
       if (subscriber != null) {
+        System.out.println("Sending error");
         subscriber.onError(e);
       } else {
+        System.out.println("DIDN'T send error");
         log.error("Failure in publisher", e);
       }
       failure = e;
+      System.out.println("Recorded error");
     } catch (Exception ex) {
       logError("Exception encountered in onError", ex);
     }
@@ -163,6 +171,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
       subscriber.onSubscribe(new Sub());
     } catch (final Throwable t) {
       sendError(new IllegalStateException("Exception encountered in onSubscribe", t));
+    }
+    if (isFailed()) {
+      System.out.println("doSubscribe: About to throw exception");
+      sendError(new IllegalStateException(
+          "Cannot subscribe to failed publisher. Failure cause: " + failure));
     }
     afterSubscribe();
   }

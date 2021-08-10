@@ -38,4 +38,13 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     }
     return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DEFAULT;
   }
+
+  @Override
+  public boolean isNewlyAddedNode() {
+    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE)) {
+      return (Boolean) requestProperties.get(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE);
+    }
+    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE_DEFAULT;
+  }
 }

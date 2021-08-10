@@ -80,7 +80,7 @@ public class ScalablePushRegistryTest {
     when(genericRow.values()).thenAnswer(a -> VALUE);
 
     // When:
-    registry.register(processingQueue);
+    registry.register(processingQueue, false);
     assertThat(registry.numRegistered(), is(1));
 
     // Then:
@@ -107,7 +107,7 @@ public class ScalablePushRegistryTest {
 
 
     // When:
-    registry.register(processingQueue);
+    registry.register(processingQueue, false);
     assertThat(registry.numRegistered(), is(1));
 
     // Then:
@@ -133,7 +133,7 @@ public class ScalablePushRegistryTest {
     when(processingQueue.offer(any())).thenThrow(new RuntimeException("Error!"));
 
     // When:
-    registry.register(processingQueue);
+    registry.register(processingQueue, false);
 
     // Then:
     final Processor<Object, GenericRow, Void, Void> processor = registry.get();

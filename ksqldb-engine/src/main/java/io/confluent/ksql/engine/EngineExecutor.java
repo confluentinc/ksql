@@ -272,7 +272,8 @@ final class EngineExecutor {
       final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
           logicalPlan,
           analysis,
-          context
+          context,
+          pushRoutingOptions
       );
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -452,12 +453,14 @@ final class EngineExecutor {
   private PushPhysicalPlan buildScalablePushPhysicalPlan(
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
-      final Context context
+      final Context context,
+      final PushRoutingOptions pushRoutingOptions
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
-        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
+        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis),
+        pushRoutingOptions
     );
     return builder.buildPushPhysicalPlan(logicalPlan, context);
   }

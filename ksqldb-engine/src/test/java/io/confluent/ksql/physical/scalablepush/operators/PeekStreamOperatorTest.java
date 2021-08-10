@@ -41,14 +41,14 @@ public class PeekStreamOperatorTest {
   @Test
   public void shouldGetRowsFromOperator() {
     // Given:
-    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID);
+    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID, false);
     locator.setNewRowCallback(newRowCallback);
 
     // When:
     locator.open();
 
     // Then:
-    verify(registry, times(1)).register(processingQueueCaptor.capture());
+    verify(registry, times(1)).register(processingQueueCaptor.capture(), false);
     final ProcessingQueue processingQueue = processingQueueCaptor.getValue();
     processingQueue.offer(row1);
     processingQueue.offer(row2);

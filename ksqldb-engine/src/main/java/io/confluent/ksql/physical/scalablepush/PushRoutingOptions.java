@@ -22,4 +22,6 @@ public interface PushRoutingOptions {
 
   // If we should avoid skipping forwarding the request because it's already been forwarded.
   boolean getIsSkipForwardRequest();
+
+  boolean isNewlyAddedNode();
 }

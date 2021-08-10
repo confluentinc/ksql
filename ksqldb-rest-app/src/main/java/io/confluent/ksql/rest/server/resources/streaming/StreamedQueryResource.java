@@ -378,9 +378,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     } else if (ScalablePushUtil
         .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
+
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
-      QueryLogger.info("Transient query created", statement.getStatementText());
+
+      QueryLogger.info("Scalable push query created", statement.getStatementText());
       return handleScalablePushQuery(
           analysis,
           securityContext.getServiceContext(),
@@ -500,7 +502,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         connectionClosedFuture
     );
 
-    QueryLogger.info("Streaming query", statement.getStatementText());
+    QueryLogger.info("Streaming scalable push query", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);
   }
 

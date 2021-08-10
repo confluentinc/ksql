@@ -326,10 +326,12 @@ public class WSQueryEndpoint {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));
 
+    if (query.isPullQuery()) {
+
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
 
-    if (query.isPullQuery()) {
+
       pullQueryPublisher.start(
           ksqlEngine,
           info.securityContext.getServiceContext(),
@@ -347,6 +349,10 @@ public class WSQueryEndpoint {
       );
     } else if (ScalablePushUtil.isScalablePushQuery(
         statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
+
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+
       scalablePushQueryPublisher.start(
           ksqlEngine,
           info.securityContext.getServiceContext(),
@@ -363,7 +369,6 @@ public class WSQueryEndpoint {
           info.securityContext.getServiceContext(),
           exec,
           configured,
-          analysis,
           streamSubscriber,
           localCommands
       );
@@ -397,7 +402,6 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
-      final ImmutableAnalysis analysis,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final Optional<LocalCommands> localCommands
   ) {
@@ -406,7 +410,6 @@ public class WSQueryEndpoint {
         serviceContext,
         exec,
         query,
-        analysis,
         localCommands
     ).subscribe(streamSubscriber);
   }
@@ -483,7 +486,6 @@ public class WSQueryEndpoint {
         ServiceContext serviceContext,
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
-        ImmutableAnalysis analysis,
         WebSocketSubscriber<StreamedRow> subscriber,
         Optional<LocalCommands> localCommands);
 

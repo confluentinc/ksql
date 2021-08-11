@@ -40,11 +40,11 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   }
 
   @Override
-  public boolean isNewlyAddedNode() {
-    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE)) {
+  public boolean getExpectingStartOfRegistryData() {
+    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START)) {
       return (Boolean) requestProperties.get(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE);
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START);
     }
-    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE_DEFAULT;
+    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT;
   }
 }

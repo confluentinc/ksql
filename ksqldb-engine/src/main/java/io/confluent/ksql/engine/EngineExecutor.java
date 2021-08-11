@@ -460,7 +460,7 @@ final class EngineExecutor {
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis),
-        pushRoutingOptions
+        pushRoutingOptions.getExpectingStartOfRegistryData()
     );
     return builder.buildPushPhysicalPlan(logicalPlan, context);
   }

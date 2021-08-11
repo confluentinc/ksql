@@ -23,5 +23,7 @@ public interface PushRoutingOptions {
   // If we should avoid skipping forwarding the request because it's already been forwarded.
   boolean getIsSkipForwardRequest();
 
-  boolean isNewlyAddedNode();
+  // When a rebalance occurs and we connect to a new node, we don't want to miss anything, so we
+  // set this flag indicating we should error if this expectation isn't met.
+  boolean getExpectingStartOfRegistryData();
 }

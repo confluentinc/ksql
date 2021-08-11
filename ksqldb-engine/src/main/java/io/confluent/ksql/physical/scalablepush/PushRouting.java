@@ -46,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +54,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -64,18 +66,20 @@ public class PushRouting implements AutoCloseable {
 
   private static final long CLUSTER_CHECK_INTERVAL = 2000;
 
-  private LoadingCache<ScalablePushRegistry, Set<KsqlNode>> registryToNodes
-      = CacheBuilder.newBuilder()
-      .maximumSize(40)
-      .expireAfterWrite(2000, TimeUnit.MILLISECONDS)
-      .build(new CacheLoader<ScalablePushRegistry, Set<KsqlNode>>() {
-        @Override
-        public Set<KsqlNode> load(ScalablePushRegistry scalablePushRegistry) {
-          return loadCurrentHosts(scalablePushRegistry);
-        }
-      });
+  private final Function<ScalablePushRegistry, Set<KsqlNode>> registryToNodes;
+  private final long clusterCheckInterval;
 
   public PushRouting() {
+    this(createLoadingCache(), CLUSTER_CHECK_INTERVAL);
+  }
+
+  @VisibleForTesting
+  public PushRouting(
+      final Function<ScalablePushRegistry, Set<KsqlNode>> registryToNodes,
+      final long clusterCheckInterval
+      ) {
+    this.registryToNodes = registryToNodes;
+    this.clusterCheckInterval = clusterCheckInterval;
   }
 
   @Override
@@ -94,8 +98,7 @@ public class PushRouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue
   ) {
-    final Set<KsqlNode> hosts = registryToNodes.getUnchecked(
-        pushPhysicalPlan.getScalablePushRegistry())
+    final Set<KsqlNode> hosts = registryToNodes.apply(pushPhysicalPlan.getScalablePushRegistry())
         .stream()
         .filter(node -> !pushRoutingOptions.getIsSkipForwardRequest() || node.isLocal())
         .collect(Collectors.toSet());
@@ -142,6 +145,11 @@ public class PushRouting implements AutoCloseable {
       CompletableFuture<Void> callback = new CompletableFuture<>();
       callback.handle((v, t) -> {
         if (t == null) {
+          pushConnectionsHandle.get(node)
+              .ifPresent(result -> {
+                result.close();
+                result.updateStatus(RoutingResultStatus.COMPLETE);
+              });
           LOG.info("Host {} completed request.", node);
         } else {
           pushConnectionsHandle.completeExceptionally(t);
@@ -265,7 +273,7 @@ public class PushRouting implements AutoCloseable {
     final Map<String, Object> requestProperties = ImmutableMap.of(
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING, true,
         KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true,
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_NEW_NODE, dynamicallyAddedNode);
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START, dynamicallyAddedNode);
 
     final CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> future  = serviceContext
         .getKsqlClient()
@@ -316,8 +324,7 @@ public class PushRouting implements AutoCloseable {
     if (pushConnectionsHandle.isClosed()) {
       return;
     }
-    Set<KsqlNode> updatedHosts = registryToNodes.getUnchecked(
-        pushPhysicalPlan.getScalablePushRegistry());
+    Set<KsqlNode> updatedHosts = registryToNodes.apply(pushPhysicalPlan.getScalablePushRegistry());
     Set<KsqlNode> hosts = pushConnectionsHandle.getAllHosts();
     Set<KsqlNode> newHosts = Sets.difference(updatedHosts, hosts).stream()
         .filter(node -> !node.isLocal())
@@ -333,28 +340,44 @@ public class PushRouting implements AutoCloseable {
       for (final KsqlNode node : removedHosts) {
         RoutingResult result = pushConnectionsHandle.remove(node);
         result.close();
+        result.updateStatus(RoutingResultStatus.REMOVED);
       }
     }
     System.out.println("UPDATED HOSTS " + updatedHosts);
-    pushPhysicalPlan.getContext().owner().setTimer(CLUSTER_CHECK_INTERVAL, timerId ->
+    pushPhysicalPlan.getContext().owner().setTimer(clusterCheckInterval, timerId ->
         checkForNewHosts(serviceContext, pushPhysicalPlan, statement, outputSchema,
             transientQueryQueue, pushConnectionsHandle));
   }
 
-  private Set<KsqlNode> loadCurrentHosts(final ScalablePushRegistry scalablePushRegistry) {
+  private static Set<KsqlNode> loadCurrentHosts(final ScalablePushRegistry scalablePushRegistry) {
     return new HashSet<>(scalablePushRegistry
         .getLocator()
         .locate());
   }
 
+  private static Function<ScalablePushRegistry, Set<KsqlNode>> createLoadingCache() {
+    LoadingCache<ScalablePushRegistry, Set<KsqlNode>> cache = CacheBuilder.newBuilder()
+        .maximumSize(40)
+        .expireAfterWrite(2000, TimeUnit.MILLISECONDS)
+        .build(new CacheLoader<ScalablePushRegistry, Set<KsqlNode>>() {
+          @Override
+          public Set<KsqlNode> load(ScalablePushRegistry scalablePushRegistry) {
+            return loadCurrentHosts(scalablePushRegistry);
+          }
+        });
+    return cache::getUnchecked;
+  }
+
   public enum RoutingResultStatus {
     IN_PROGRESS,
-    SUCCESS
+    SUCCESS,
+    COMPLETE,
+    REMOVED
   }
 
   public static class RoutingResult {
-    private final RoutingResultStatus status;
     private final AutoCloseable closeable;
+    private volatile RoutingResultStatus status;
 
     public RoutingResult(final RoutingResultStatus status, final AutoCloseable closeable) {
       this.status = status;
@@ -371,6 +394,10 @@ public class PushRouting implements AutoCloseable {
 
     public RoutingResultStatus getStatus() {
       return status;
+    }
+
+    public void updateStatus(final RoutingResultStatus status) {
+      this.status = status;
     }
   }
 
@@ -532,8 +559,8 @@ public class PushRouting implements AutoCloseable {
       return results.remove(ksqlNode);
     }
 
-    public RoutingResult get(final KsqlNode ksqlNode) {
-      return results.get(ksqlNode);
+    public Optional<RoutingResult> get(final KsqlNode ksqlNode) {
+      return Optional.ofNullable(results.getOrDefault(ksqlNode, null));
     }
 
     public void close() {

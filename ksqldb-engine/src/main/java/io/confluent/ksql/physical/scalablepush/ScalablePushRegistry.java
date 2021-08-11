@@ -86,12 +86,12 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   public synchronized void register(
       final ProcessingQueue processingQueue,
-      boolean isDynamicallyAddedNode
+      boolean expectingStartOfRegistryData
   ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
     }
-    if (hasReceivedData && isDynamicallyAddedNode) {
+    if (hasReceivedData && expectingStartOfRegistryData) {
       throw new IllegalStateException("New node missed data");
     }
     processingQueues.put(processingQueue.getQueryId(), processingQueue);

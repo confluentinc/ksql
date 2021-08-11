@@ -91,7 +91,7 @@ public class PushPhysicalPlanBuilderTest {
   public void shouldBuildPhysicalPlan() {
     // Given:
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, null);
+        persistentQueryMetadata, false);
 
     // When:
     final PushPhysicalPlan pushPhysicalPlan =
@@ -111,7 +111,7 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(logicalPlanNode.getNode()).thenReturn(Optional.empty());
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, null);
+        persistentQueryMetadata, false);
 
     // When:
     final Exception e = assertThrows(
@@ -128,7 +128,7 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(logicalPlanNode.getNode()).thenReturn(Optional.of(mock(OutputNode.class)));
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, null);
+        persistentQueryMetadata, false);
 
     // When:
     final Exception e = assertThrows(
@@ -147,7 +147,7 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(ksqlBareOutputNode.getSource()).thenReturn(mock(PlanNode.class));
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, null);
+        persistentQueryMetadata, false);
 
     // When:
     final Exception e = assertThrows(
@@ -164,7 +164,7 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode, dataSourceNode));
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, null);
+        persistentQueryMetadata, false);
 
     // When:
     final Exception e = assertThrows(
@@ -182,7 +182,7 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(filterNode.getSources()).thenReturn(ImmutableList.of());
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, null);
+        persistentQueryMetadata, false);
 
     // When:
     final Exception e = assertThrows(

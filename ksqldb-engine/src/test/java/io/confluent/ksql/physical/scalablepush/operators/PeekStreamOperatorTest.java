@@ -3,6 +3,7 @@ package io.confluent.ksql.physical.scalablepush.operators;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -41,14 +42,15 @@ public class PeekStreamOperatorTest {
   @Test
   public void shouldGetRowsFromOperator() {
     // Given:
-    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID, false);
+    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID,
+        false);
     locator.setNewRowCallback(newRowCallback);
 
     // When:
     locator.open();
 
     // Then:
-    verify(registry, times(1)).register(processingQueueCaptor.capture(), false);
+    verify(registry, times(1)).register(processingQueueCaptor.capture(), eq(false));
     final ProcessingQueue processingQueue = processingQueueCaptor.getValue();
     processingQueue.offer(row1);
     processingQueue.offer(row2);

@@ -82,13 +82,11 @@ public class PushPhysicalPlan {
   }
 
   private void maybeNext(final Publisher publisher) {
-    try {
-      List<?> row;
-      while (!isErrored(publisher) && (row = (List<?>)next()) != null) {
-        publisher.accept(row);
-      }
-    } catch (final Throwable t) {
-      publisher.sendException(t);
+    List<?> row;
+    while (!isErrored(publisher) && (row = (List<?>) next(publisher)) != null) {
+      publisher.accept(row);
+    }
+    if (publisher.isFailed()) {
       return;
     }
     if (!closed) {
@@ -128,9 +126,14 @@ public class PushPhysicalPlan {
     }
   }
 
-  private Object next() {
+  private Object next(final Publisher publisher) {
     VertxUtils.checkContext(context);
-    return root.next();
+    try {
+      return root.next();
+    } catch (final Throwable t) {
+      publisher.sendException(t);
+      return null;
+    }
   }
 
   public void close() {
@@ -180,6 +183,10 @@ public class PushPhysicalPlan {
 
     public void sendException(final Throwable e) {
       sendError(e);
+    }
+
+    public boolean isFailed() {
+      return super.isFailed();
     }
   }
 }

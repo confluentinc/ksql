@@ -48,7 +48,6 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
 
   @Override
   public void open() {
-    System.out.println("Registering " + processingQueue);
     scalablePushRegistry.register(processingQueue, expectingStartOfRegistryData);
   }
 

@@ -62,7 +62,6 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
-    System.out.println("ALAN: Writing error message " + error);
     response.write(ServerUtils.serializeObject(error).appendString("\n"));
     return this;
   }

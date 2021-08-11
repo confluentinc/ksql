@@ -86,7 +86,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   public synchronized void register(
       final ProcessingQueue processingQueue,
-      boolean expectingStartOfRegistryData
+      final boolean expectingStartOfRegistryData
   ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");

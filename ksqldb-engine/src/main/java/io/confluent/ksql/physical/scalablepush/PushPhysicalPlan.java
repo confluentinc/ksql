@@ -71,7 +71,6 @@ public class PushPhysicalPlan {
   }
 
   public BufferedPublisher<List<?>> execute() {
-    System.out.println("PushPhysicalPlan execute");
     final Publisher publisher = new Publisher(context);
     context.runOnContext(v -> open(publisher));
     return publisher;
@@ -115,7 +114,6 @@ public class PushPhysicalPlan {
   }
 
   private void open(final Publisher publisher) {
-    System.out.println("PushPhysicalPlan open");
     VertxUtils.checkContext(context);
     try {
       dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));

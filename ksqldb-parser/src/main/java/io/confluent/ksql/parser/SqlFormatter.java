@@ -259,11 +259,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitCreateTable(final CreateTable node, final Integer indent) {
-      formatCreate(node,
-          node.isSource()
-              ? "SOURCE TABLE"
-              : "TABLE"
-      );
+      formatCreate(node, "TABLE");
       return null;
     }
 
@@ -609,6 +605,10 @@ public final class SqlFormatter {
 
       if (node.isOrReplace()) {
         builder.append("OR REPLACE ");
+      }
+
+      if (node.isSource()) {
+        builder.append("SOURCE ");
       }
 
       builder.append(type);

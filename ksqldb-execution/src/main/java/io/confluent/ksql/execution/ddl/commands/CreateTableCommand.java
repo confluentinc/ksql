@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
@@ -23,6 +24,7 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
+import java.util.Objects;
 import java.util.Optional;
 
 @JsonIgnoreProperties({"keyField"}) // Removed at version 0.10
@@ -60,8 +62,40 @@ public class CreateTableCommand extends CreateSourceCommand {
   // This can be in CreateSourceCommand, but it fails deserializing the JSON property when
   // loading a CreateStreamCommand because it is not supported there yet. We should move this
   // source variable and method to the CreateSourceCommand after supporting source streams.
-  public Boolean isSource() {
+  // Also, this getIsSource() is required so that serialized QTT historic plans do not fail
+  // that the 'isSource' field is not present.
+  public Optional<Boolean> getIsSource() {
+    return isSource;
+  }
+
+  @JsonIgnore
+  public boolean isSource() {
     return isSource.orElse(false);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateTableCommand that = (CreateTableCommand) o;
+    return super.equals(that)
+        && isSource() == that.isSource();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        getSourceName(),
+        getSchema(),
+        getTimestampColumn(),
+        getTopicName(),
+        getFormats(),
+        getWindowInfo(),
+        getIsSource());
   }
 
   @Override

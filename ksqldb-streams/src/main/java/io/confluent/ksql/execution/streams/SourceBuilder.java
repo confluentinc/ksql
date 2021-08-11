@@ -190,27 +190,25 @@ public final class SourceBuilder {
 
     final String stateStoreName = tableChangeLogOpName(source.getProperties());
 
+    final PhysicalSchema physicalSchemaWithPseudoCols = getPhysicalSchemaWithPseudoCols(source);
 
-    final PhysicalSchema physicalSchema2 = getPhysicalSchemaWithPseudoCols(source);
+    final Serde<GenericRow> valueSerdeWithPseudoCols = getValueSerdeWithDifferentQueryContext(
+        buildContext, source, physicalSchemaWithPseudoCols);
 
-    final Serde<GenericRow> valueSerde2 = getValueSerdeWithDifferentQueryContext(
-        buildContext, source, physicalSchema2);
-
-    final QueryContext queryContext = QueryContext.Stacker.of(
+    final QueryContext queryContextWithPseudoCols = QueryContext.Stacker.of(
         source.getProperties().getQueryContext())
         .push("asdf").getQueryContext();
 
-    final Serde<GenericKey> keySerde2 = buildContext.buildKeySerde(
+    final Serde<GenericKey> keySerdeWithPseudoCols = buildContext.buildKeySerde(
         source.getFormats().getKeyFormat(),
-        physicalSchema2,
-        queryContext
+        physicalSchemaWithPseudoCols,
+        queryContextWithPseudoCols
     );
-
 
     final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactory.create(
-            keySerde2,
-            valueSerde2,
+            keySerdeWithPseudoCols,
+            valueSerdeWithPseudoCols,
             stateStoreName
         );
 
@@ -262,10 +260,23 @@ public final class SourceBuilder {
     );
 
     final String stateStoreName = tableChangeLogOpName(source.getProperties());
+
+    final PhysicalSchema physicalSchemaWithPseudoCols = getPhysicalSchemaWithPseudoCols(source);
+
+    final Serde<GenericRow> valueSerdeWithPseudoCols = getValueSerde(
+        buildContext, source, physicalSchemaWithPseudoCols);
+
+    final Serde<Windowed<GenericKey>> keySerdeWithPseudoCols = buildContext.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        windowInfo,
+        physicalSchema,
+        source.getProperties().getQueryContext()
+    );
+
     final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
         materialized = materializedFactory.create(
-        keySerde,
-        valueSerde,
+        keySerdeWithPseudoCols,
+        valueSerdeWithPseudoCols,
         stateStoreName
     );
 
@@ -332,14 +343,16 @@ public final class SourceBuilder {
     );
   }
 
-  private static PhysicalSchema getPhysicalSchemaWithPseudoCols(final SourceStep<?> streamSource) {
+  private static PhysicalSchema getPhysicalSchemaWithPseudoCols(
+      final SourceStep<?> streamSource) {
 
-    //build a nonwindowed keyformat with the source
     FormatInfo f = streamSource.getFormats().getKeyFormat();
     SerdeFeatures s = streamSource.getFormats().getKeyFeatures();
-    KeyFormat k = KeyFormat.nonWindowed(f, s);
-    Formats format = of(k, streamSource.getFormats().getValueFormat());
+    KeyFormat k = streamSource instanceof WindowedTableSource
+        ? KeyFormat.windowed(f, s, ((WindowedTableSource) streamSource).getWindowInfo())
+        : KeyFormat.nonWindowed(f, s);
 
+    Formats format = of(k, streamSource.getFormats().getValueFormat());
 
     return PhysicalSchema.from(
         streamSource.getSourceSchema().withPseudoAndKeyColsInValue(

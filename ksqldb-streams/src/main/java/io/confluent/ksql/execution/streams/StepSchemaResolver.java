@@ -45,10 +45,12 @@ import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -84,8 +86,8 @@ public final class StepSchemaResolver {
       .put(StreamSelectKeyV1.class, StepSchemaResolver::handleStreamSelectKeyV1)
       .put(StreamSelectKey.class, StepSchemaResolver::handleStreamSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
-      .put(StreamSource.class, StepSchemaResolver::handleSource)
-      .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSource)
+      .put(StreamSource.class, StepSchemaResolver::handleSourceV1)
+      .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSourceV1)
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupByV1.class, StepSchemaResolver::handleTableGroupByV1)
@@ -94,7 +96,9 @@ public final class StepSchemaResolver {
       .put(TableSelectKey.class, StepSchemaResolver::handleTableSelectKey)
       .put(TableSuppress.class, StepSchemaResolver::sameSchema)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
+      .put(TableSourceV1.class, StepSchemaResolver::handleSourceV1)
       .put(TableSource.class, StepSchemaResolver::handleSource)
+      .put(WindowedTableSourceV1.class, StepSchemaResolver::handleWindowedSourceV1)
       .put(WindowedTableSource.class, StepSchemaResolver::handleWindowedSource)
       .build();
 
@@ -278,8 +282,16 @@ public final class StepSchemaResolver {
     );
   }
 
+  private LogicalSchema handleSourceV1(final LogicalSchema schema, final SourceStep<?> step) {
+    return buildSourceSchema(schema, false, step.getPseudoColumnVersion());
+  }
+
   private LogicalSchema handleSource(final LogicalSchema schema, final SourceStep<?> step) {
     return buildSourceSchema(schema, false, step.getPseudoColumnVersion());
+  }
+
+  private LogicalSchema handleWindowedSourceV1(final LogicalSchema schema, final SourceStep<?> step) {
+    return buildSourceSchema(schema, true, step.getPseudoColumnVersion());
   }
 
   private LogicalSchema handleWindowedSource(final LogicalSchema schema, final SourceStep<?> step) {

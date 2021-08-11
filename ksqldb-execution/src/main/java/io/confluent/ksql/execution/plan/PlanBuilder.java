@@ -57,7 +57,12 @@ public interface PlanBuilder {
 
   <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin, PlanInfo planInfo);
 
+  KTableHolder<GenericKey> visitTableSource(TableSourceV1 tableSourceV1, PlanInfo planInfo);
+
   KTableHolder<GenericKey> visitTableSource(TableSource tableSource, PlanInfo planInfo);
+
+  KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
+      WindowedTableSourceV1 windowedTableSourceV1, PlanInfo planInfo);
 
   KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
       WindowedTableSource windowedTableSource, PlanInfo planInfo);

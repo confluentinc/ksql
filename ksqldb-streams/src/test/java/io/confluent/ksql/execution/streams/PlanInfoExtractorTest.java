@@ -30,7 +30,7 @@ import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
-import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -57,7 +57,7 @@ public class PlanInfoExtractorTest {
   private Expression repartitionKey;
 
   private StreamSource streamSource;
-  private TableSource tableSource;
+  private TableSourceV1 tableSourceV1;
   private StreamSelectKey<GenericKey> streamSourceRepartitioned;
   private StreamTableJoin<GenericKey> streamAndTableJoined;
   private StreamTableJoin<GenericKey> streamRepartitionedAndTableJoined;
@@ -75,7 +75,7 @@ public class PlanInfoExtractorTest {
         schema,
         OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
-    tableSource = new TableSource(
+    tableSourceV1 = new TableSourceV1(
         new ExecutionStepPropertiesV1(queryContext),
         "t1",
         formats,
@@ -95,7 +95,7 @@ public class PlanInfoExtractorTest {
         joinKey,
         formats,
         streamSource,
-        tableSource
+        tableSourceV1
     );
     streamRepartitionedAndTableJoined = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
@@ -103,7 +103,7 @@ public class PlanInfoExtractorTest {
         joinKey,
         formats,
         streamSourceRepartitioned,
-        tableSource
+        tableSourceV1
     );
     streamAndTableJoinedRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
@@ -139,7 +139,7 @@ public class PlanInfoExtractorTest {
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
-    assertThat(planInfo.isRepartitionedInPlan(tableSource), is(false));
+    assertThat(planInfo.isRepartitionedInPlan(tableSourceV1), is(false));
   }
 
   @Test
@@ -149,7 +149,7 @@ public class PlanInfoExtractorTest {
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(true));
-    assertThat(planInfo.isRepartitionedInPlan(tableSource), is(false));
+    assertThat(planInfo.isRepartitionedInPlan(tableSourceV1), is(false));
   }
 
   @Test
@@ -159,6 +159,6 @@ public class PlanInfoExtractorTest {
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
-    assertThat(planInfo.isRepartitionedInPlan(tableSource), is(false));
+    assertThat(planInfo.isRepartitionedInPlan(tableSourceV1), is(false));
   }
 }

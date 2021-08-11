@@ -24,8 +24,9 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -136,7 +137,7 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
-    final WindowedTableSource step = ExecutionStepFactory.tableSourceWindowed(
+    final WindowedTableSourceV1 step = ExecutionStepFactory.tableSourceWindowedV1(
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
@@ -162,20 +163,37 @@ public final class SchemaKSourceFactory {
       throw new IllegalArgumentException("windowed");
     }
 
-    final TableSource step = ExecutionStepFactory.tableSource(
-        contextStacker,
-        dataSource.getSchema(),
-        dataSource.getKafkaTopicName(),
-        Formats.from(dataSource.getKsqlTopic()),
-        dataSource.getTimestampColumn()
-    );
+    if (!true) {
+      final TableSourceV1 step = ExecutionStepFactory.tableSourceV1(
+          contextStacker,
+          dataSource.getSchema(),
+          dataSource.getKafkaTopicName(),
+          Formats.from(dataSource.getKsqlTopic()),
+          dataSource.getTimestampColumn()
+      );
 
-    return schemaKTable(
-        buildContext,
-        resolveSchema(buildContext, step, dataSource),
-        dataSource.getKsqlTopic().getKeyFormat(),
-        step
-    );
+      return schemaKTable(
+          buildContext,
+          resolveSchema(buildContext, step, dataSource),
+          dataSource.getKsqlTopic().getKeyFormat(),
+          step
+      );
+    } else {
+      final TableSource step = ExecutionStepFactory.tableSource(
+          contextStacker,
+          dataSource.getSchema(),
+          dataSource.getKafkaTopicName(),
+          Formats.from(dataSource.getKsqlTopic()),
+          dataSource.getTimestampColumn()
+      );
+
+      return schemaKTable(
+          buildContext,
+          resolveSchema(buildContext, step, dataSource),
+          dataSource.getKsqlTopic().getKeyFormat(),
+          step
+      );
+    }
   }
 
   private static <K> SchemaKStream<K> schemaKStream(

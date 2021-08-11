@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Test;
@@ -27,7 +26,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
-public class WindowedTableSourceTest {
+public class TableSourceV1Test {
   @Mock
   private ExecutionStepPropertiesV1 properties1;
   @Mock
@@ -44,39 +43,38 @@ public class WindowedTableSourceTest {
   private LogicalSchema schema1;
   @Mock
   private LogicalSchema schema2;
-  @Mock
-  private WindowInfo window1;
-  @Mock
-  private WindowInfo window2;
 
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
-            new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
-            new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.empty()))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)),
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)),
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.empty()))
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties1, "topic2", formats1, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties1, "topic1", formats2, window1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp2), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new WindowedTableSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2, OptionalInt.of(1)))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(true), OptionalInt.of(0)))
+        .addEqualityGroup(
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(true), OptionalInt.of(1)))
         .testEquals();
   }
 }

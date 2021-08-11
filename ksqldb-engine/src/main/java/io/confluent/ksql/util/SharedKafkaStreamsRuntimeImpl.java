@@ -69,6 +69,12 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   public void markSources(final QueryId queryId, final Set<SourceName> sourceNames) {
     sources.put(queryId, sourceNames);
+    LOG.info(
+        "Marking source {} for query {} the mapping for this runtime is {}",
+        sourceNames,
+        queryId.toString(),
+        sourceNames
+    );
   }
 
   public void register(
@@ -82,14 +88,15 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
           .stream()
           .flatMap(Collection::stream)
           .anyMatch(t -> persistentQueriesInSharedRuntimesImpl.getSourceNames().contains(t))) {
-        throw new IllegalArgumentException(queryId.toString() + ": was not reserved on this runtime");
+        throw new IllegalArgumentException(
+            queryId.toString() + ": was not reserved on this runtime");
       } else {
         sources.put(queryId, persistentQueriesInSharedRuntimesImpl.getSourceNames());
       }
     }
     this.errorClassifier = errorClassifier;
     metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
-    LOG.debug("mapping {}", metadata);
+    LOG.info("mapping {}", metadata);
   }
 
   public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -152,6 +159,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
   }
 
   public void stop(final QueryId queryId) {
+    LOG.info("Attempting to stop Query: " + queryId.toString());
     if (metadata.containsKey(queryId.toString()) && sources.containsKey(queryId)) {
       sources.remove(queryId);
       metadata.remove(queryId.toString());

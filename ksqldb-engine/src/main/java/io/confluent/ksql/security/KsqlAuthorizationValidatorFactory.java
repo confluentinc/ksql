@@ -54,6 +54,12 @@ public final class KsqlAuthorizationValidatorFactory {
       final ServiceContext serviceContext,
       final Optional<KsqlAuthorizationProvider> externalAuthorizationProvider
   ) {
+    // Piggy-back on the KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR to disable the external validation too
+    final String featureFlag = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
+    if (featureFlag.equalsIgnoreCase(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
+      return Optional.empty();
+    }
+
     if (externalAuthorizationProvider.isPresent()) {
       return Optional.of(new KsqlProvidedAccessValidator(externalAuthorizationProvider.get()));
     } else if (isTopicAccessValidatorEnabled(ksqlConfig, serviceContext)) {
@@ -84,8 +90,6 @@ public final class KsqlAuthorizationValidatorFactory {
     final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
     if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON)) {
       return true;
-    } else if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
-      return false;
     }
 
     // If KSQL_ACCESS_VALIDATOR_AUTO, then check if Kafka has an authorizer enabled

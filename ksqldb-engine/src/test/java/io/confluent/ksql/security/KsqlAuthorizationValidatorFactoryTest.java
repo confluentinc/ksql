@@ -189,6 +189,23 @@ public class KsqlAuthorizationValidatorFactoryTest {
   }
 
   @Test
+  public void shouldNotReturnProvidedAuthorizationValidatorIfAccessValidatorFlagIsOff() {
+    // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+        .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext,
+        Optional.of(authorizationProvider)
+    );
+
+    // Then:
+    assertThat(validator, is(Optional.empty()));
+  }
+
+  @Test
   public void shouldReturnProvidedAuthorizationValidatorWhenCacheIsEnabled() {
     // Given:
     givenKafkaAuthorizer("", Collections.emptySet());

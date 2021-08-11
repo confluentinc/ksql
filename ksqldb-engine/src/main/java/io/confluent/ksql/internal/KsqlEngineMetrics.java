@@ -38,6 +38,7 @@ import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
+import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Min;
 import org.apache.kafka.common.metrics.stats.Value;
@@ -56,6 +57,7 @@ public class KsqlEngineMetrics implements Closeable {
   private final Sensor messagesIn;
   private final Sensor totalMessagesIn;
   private final Sensor totalBytesIn;
+  private final Sensor totalBytesInSum;
   private final Sensor messagesOut;
   private final Sensor numIdleQueries;
   private final Sensor messageConsumptionByQuery;
@@ -69,6 +71,8 @@ public class KsqlEngineMetrics implements Closeable {
 
   private final KsqlEngine ksqlEngine;
   private final Metrics metrics;
+
+  private double lastRecordedTotalBytesValue;
 
   public KsqlEngineMetrics(
       final String metricGroupPrefix,
@@ -115,6 +119,7 @@ public class KsqlEngineMetrics implements Closeable {
     this.messagesIn = configureMessagesIn();
     this.totalMessagesIn = configureTotalMessagesIn();
     this.totalBytesIn = configureTotalBytesIn();
+    this.totalBytesInSum = configureTotalBytesInSum();
     this.messagesOut = configureMessagesOut();
     this.numIdleQueries = configureIdleQueriesSensor();
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor();
@@ -122,6 +127,7 @@ public class KsqlEngineMetrics implements Closeable {
     Arrays.stream(State.values())
         .forEach(this::configureNumActiveQueriesForGivenState);
 
+    this.lastRecordedTotalBytesValue = 0;
     configureCustomMetrics();
   }
 
@@ -134,7 +140,7 @@ public class KsqlEngineMetrics implements Closeable {
   public void updateMetrics() {
     recordMessagesConsumed(MetricCollectors.currentConsumptionRate());
     recordTotalMessagesConsumed(MetricCollectors.totalMessageConsumption());
-    recordTotalBytesConsumed(MetricCollectors.totalBytesConsumption());
+    recordTotalBytesConsumedAndPerSecond(MetricCollectors.totalBytesConsumption());
     recordMessagesProduced(MetricCollectors.currentProductionRate());
     recordMessageConsumptionByQueryStats(MetricCollectors.currentConsumptionRateByQuery());
     recordErrorRate(MetricCollectors.currentErrorRate());
@@ -171,8 +177,10 @@ public class KsqlEngineMetrics implements Closeable {
     this.messagesIn.record(value);
   }
 
-  private void recordTotalBytesConsumed(final double value) {
+  private void recordTotalBytesConsumedAndPerSecond(final double value) {
     this.totalBytesIn.record(value);
+    this.totalBytesInSum.record(value - lastRecordedTotalBytesValue);
+    this.lastRecordedTotalBytesValue = value;
   }
 
   private void recordTotalMessagesConsumed(final double value) {
@@ -217,6 +225,12 @@ public class KsqlEngineMetrics implements Closeable {
     final String metricName = "bytes-consumed-total";
     final String description = "The total number of bytes consumed across all queries";
     return createSensor(KsqlMetric.of(metricName, description, Value::new));
+  }
+
+  private Sensor configureTotalBytesInSum() {
+    final String metricName = "bytes-consumed-total-sum";
+    final String description = "The sum of bytes consumed across all queries";
+    return createSensor(KsqlMetric.of(metricName, description, CumulativeSum::new));
   }
 
   private void configureNumActiveQueries() {

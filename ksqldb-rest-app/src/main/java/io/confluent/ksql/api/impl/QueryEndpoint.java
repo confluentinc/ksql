@@ -35,9 +35,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -228,23 +225,26 @@ public class QueryEndpoint {
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
     metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
       pullQueryMetrics.ifPresent(metrics -> {
+        final PullQueryResult r = resultForMetrics.get();
         metrics.recordStatusCode(statusCode);
         metrics.recordRequestSize(requestBytes);
-        final PullQueryResult r = resultForMetrics.get();
-        final PullSourceType sourceType = Optional.ofNullable(r).map(
-            PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
-        final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
-            PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-        final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
-            PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-        metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
-        metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
-        metrics.recordRowsReturned(
-            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-            sourceType, planType, routingNodeType);
-        metrics.recordRowsProcessed(
-            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-            sourceType, planType, routingNodeType);
+        if (r == null) {
+          metrics.recordResponseSizeForError(responseBytes);
+          metrics.recordLatencyForError(startTimeNanos);
+          metrics.recordZeroRowsReturnedForError();
+          metrics.recordZeroRowsProcessedForError();
+        } else {
+          metrics.recordResponseSize(responseBytes,
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordLatency(startTimeNanos,
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordRowsReturned(
+              r.getTotalRowsReturned(),
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordRowsProcessed(
+              r.getTotalRowsProcessed(),
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+        }
         pullBandRateLimiter.add(responseBytes);
       });
     });

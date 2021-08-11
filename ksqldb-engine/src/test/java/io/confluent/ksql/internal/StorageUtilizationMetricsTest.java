@@ -1,43 +1,32 @@
 package io.confluent.ksql.internal;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.QueryMetadata;
-import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.File;
-import java.math.BigInteger;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class UtilizationMetricsListenerTest {
+public class StorageUtilizationMetricsTest {
 
   ConcurrentHashMap<String, Long> streams;
-  private UtilizationMetricsListener listener;
+  private StorageUtilizationMetrics listener;
 
   @Mock
   private QueryMetadata query;
@@ -60,7 +49,7 @@ public class UtilizationMetricsListenerTest {
     when(query.getKafkaStreams()).thenReturn(s1);
 
     streams = new ConcurrentHashMap<>();
-    listener = new UtilizationMetricsListener(metricsRegistry, new HashMap<>());
+    listener = new StorageUtilizationMetrics(metricsRegistry, new HashMap<>());
   }
 
   /*@Test

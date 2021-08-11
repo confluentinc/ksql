@@ -11,9 +11,10 @@
 ## Motivation and background
 
 ksqlDB allows the creation of both pull queries (which are issued ad-hoc and run to completion like
-a typical database query) and push queries (which are long-running subscriptions that continuously).
+a typical database query) and push queries (which are long-running subscriptions that return
+results continuously as new input data arrives).
 ksqlDB also has a dual table/stream data model. You can issue push queries on tables and streams, 
-and you can issue pull queries on tables, but you cannot currently issue pull queries on tables.
+and you can issue pull queries on tables, but you cannot currently issue pull queries on streams.
 
 Previously, we believed it was unnecessary to implement pull queries on streams because for a
 stream, the "current state" is equivalent to the entire history of records. In other words, a
@@ -27,17 +28,26 @@ pull-type queries.
 
 ## What is in scope
 
-* Queries should be supported on STREAM objects without “EMIT CHANGES” at the end
-* Pull queries should start at the beginning of the stream
-* Pull queries should terminate at the (current) end of the stream
+* Queries should be supported on STREAM objects without “EMIT CHANGES” at the end.
+* Pull queries should start at the beginning of the stream.
+* Pull queries should terminate. Streams do not have an "end" by definition, so we need to define
+  when the query terminates. When you issue the query, ksqlDB will scan over all the
+  data that is in the history of the stream at that moment and then terminate without
+  waiting for more data.
 * Pull queries on streams will support the same range of query operations as they
   do on tables. In other words, you will be able to filter the stream using a WHERE clause.
 
 ## What is not in scope
 
-* Pull queries on streams will not currently support grouping/aggregations.
+* Pull queries on streams will not currently support grouping/aggregations or joins.
   This would be useful but is left as future work.
-  Note that aggregations are also not currently supported on table pull queries.
+  Note that neither aggregations nor joins are currently supported on table pull queries.
+* If old records have already been dropped from the stream due to retention
+  settings, they will not be included in the results.
+* The scan over the stream may or may not pick up some new records that arrive during the query
+  execution. The only guarantee is that the query will include all records that are already in
+  the stream at the start of the query. If desired, we can make the end point stricter in the
+  future.
 
 ## Value/Return
 
@@ -71,7 +81,6 @@ unit and integration tests to ensure the query produces the desired output.
 
 ## Documentation Updates
 
-* We will add a new block to the quickstart.
 * We will update the docs to remove references
   to the former restriction and document the new ability.
 * We should add a new example or amend some current examples

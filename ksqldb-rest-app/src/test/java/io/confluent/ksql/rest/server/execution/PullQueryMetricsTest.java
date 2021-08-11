@@ -33,6 +33,7 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Map;
+import java.util.Random;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -213,6 +214,38 @@ public class PullQueryMetricsTest {
     assertThat(detailedMin, is(3.0));
     assertThat(detailedMax, is(3.0));
     assertThat(detailedTotal, is(1.0));
+  }
+
+  @Test
+  public void shouldRecordLatencyPercentiles() {
+    // Given:
+    when(time.nanoseconds()).thenReturn(600000000L);
+    pullMetrics.recordLatency(100000000L, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+    pullMetrics.recordLatency(200000000L, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+    pullMetrics.recordLatency(300000000L, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+    pullMetrics.recordLatency(400000000L, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+    pullMetrics.recordLatency(500000000L, PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+        RoutingNodeType.SOURCE_NODE);
+
+    // When:
+    final double detailed50 = getMetricValue("-detailed-distribution-50",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+    final double detailed75 = getMetricValue("-detailed-distribution-75",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+    final double detailed90 = getMetricValue("-detailed-distribution-90",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+    final double detailed99 = getMetricValue("-detailed-distribution-99",
+        PullSourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, RoutingNodeType.SOURCE_NODE);
+
+    // Then:
+    assertThat(detailed50, closeTo(297857.85, 0.1));
+    assertThat(detailed75, closeTo(398398.39, 0.1));
+    assertThat(detailed90, closeTo(495555.55, 0.1));
+    assertThat(detailed99, closeTo(495555.55, 0.1));
   }
 
   @Test

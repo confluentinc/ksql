@@ -40,7 +40,8 @@ public class KsqlStream<K> extends StructuredDataSource<K> {
         timestampExtractionPolicy,
         DataSourceType.KSTREAM,
         isKsqlSink,
-        ksqlTopic
+        ksqlTopic,
+        false
     );
   }
 

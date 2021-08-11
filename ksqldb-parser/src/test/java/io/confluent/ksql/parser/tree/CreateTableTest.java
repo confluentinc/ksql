@@ -60,25 +60,28 @@ public class CreateTableTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateTable(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateTable(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateTable(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateTable(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateTable(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateTable(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, TableElements.of(), false, true, SOME_PROPS)
+            new CreateTable(SOME_NAME, TableElements.of(), false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS, true)
         )
         .addEqualityGroup(
-            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS)
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS, false)
+        )
+        .addEqualityGroup(
+            new CreateTable(SOME_NAME, SOME_ELEMENTS, false, false, OTHER_PROPS, true)
         )
         .testEquals();
   }
@@ -107,7 +110,7 @@ public class CreateTableTest {
     // When:
     final ParseFailedException e = assertThrows(
         ParseFailedException.class,
-        () -> new CreateTable(SOME_NAME, invalidElements, false, false, SOME_PROPS)
+        () -> new CreateTable(SOME_NAME, invalidElements, false, false, SOME_PROPS, false)
     );
 
     // Then:

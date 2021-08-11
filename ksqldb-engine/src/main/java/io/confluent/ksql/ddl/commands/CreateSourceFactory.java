@@ -134,6 +134,7 @@ public final class CreateSourceFactory {
     );
   }
 
+  // This method is called by CREATE_AS statements
   public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
     return new CreateTableCommand(
         outputNode.getSinkName().get(),
@@ -142,10 +143,12 @@ public final class CreateSourceFactory {
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
         outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-        Optional.of(outputNode.getOrReplace())
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
     );
   }
 
+  // This method is called by simple CREATE statements
   public CreateTableCommand createTableCommand(
       final CreateTable statement,
       final KsqlConfig ksqlConfig
@@ -188,7 +191,8 @@ public final class CreateSourceFactory {
         topicName,
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
-        Optional.of(statement.isOrReplace())
+        Optional.of(statement.isOrReplace()),
+        Optional.of(statement.isSource())
     );
   }
 

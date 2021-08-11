@@ -211,7 +211,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
 
     // When:
@@ -369,7 +370,8 @@ public class StructuredDataSourceTest {
           Optional.empty(),
           DataSourceType.KSTREAM,
           false,
-          topic
+          topic,
+          false
       );
     }
 

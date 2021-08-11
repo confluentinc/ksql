@@ -118,13 +118,15 @@ public class DdlCommandExec {
                     + "already exists.",
                 sourceName, sourceType.toLowerCase()));
       }
+
       final KsqlTable<?> ksqlTable = new KsqlTable<>(
           sql,
           createTable.getSourceName(),
           createTable.getSchema(),
           createTable.getTimestampColumn(),
           withQuery,
-          getKsqlTopic(createTable)
+          getKsqlTopic(createTable),
+          createTable.isSource()
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
       metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);

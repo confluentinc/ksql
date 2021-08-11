@@ -287,7 +287,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -1438,7 +1439,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertTable(getLocation(context), createTable);

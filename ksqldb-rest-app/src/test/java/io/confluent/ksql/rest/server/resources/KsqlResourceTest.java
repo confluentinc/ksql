@@ -2640,7 +2640,8 @@ public class KsqlResourceTest {
             schema,
             Optional.empty(),
             false,
-            ksqlTopic
+            ksqlTopic,
+            false
         );
         break;
       default:

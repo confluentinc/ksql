@@ -1121,7 +1121,8 @@ public class InsertValuesExecutorTest {
           schema,
           Optional.empty(),
           false,
-          topic
+          topic,
+          false
       );
     } else {
       dataSource = new KsqlStream<>(

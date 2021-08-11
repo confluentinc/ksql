@@ -27,15 +27,15 @@ import java.util.Optional;
 
 @Immutable
 public class CreateTable extends CreateSource implements ExecutableDdlStatement {
-
   public CreateTable(
       final SourceName name,
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
-    this(Optional.empty(), name, elements, orReplace, notExists, properties);
+    this(Optional.empty(), name, elements, orReplace, notExists, properties, isSource);
   }
 
   public CreateTable(
@@ -44,9 +44,10 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
-      final CreateSourceProperties properties
+      final CreateSourceProperties properties,
+      final boolean isSource
   ) {
-    super(location, name, elements, orReplace, notExists, properties);
+    super(location, name, elements, orReplace, notExists, properties, isSource);
 
     throwOnNonPrimaryKeys(elements);
   }
@@ -62,7 +63,8 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         elements,
         isOrReplace(),
         isNotExists(),
-        properties);
+        properties,
+        isSource());
   }
 
   @Override
@@ -89,6 +91,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         .add("orReplace", isOrReplace())
         .add("notExists", isNotExists())
         .add("properties", getProperties())
+        .add("isSource", isSource())
         .toString();
   }
 

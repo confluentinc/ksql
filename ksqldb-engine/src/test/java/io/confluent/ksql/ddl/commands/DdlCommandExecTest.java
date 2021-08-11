@@ -21,6 +21,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -258,11 +259,48 @@ public class DdlCommandExecTest {
   }
 
   @Test
+  public void shouldAddNormalTableWhenNoTypeIsSpecified() {
+    // Given:
+    final CreateTableCommand cmd = buildCreateTable(
+        SourceName.of("t1"),
+        false,
+        null
+    );
+
+    // When:
+    cmdExec.execute(SQL_TEXT, cmd, true, NO_QUERY_SOURCES);
+
+    // Then:
+    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("t1"));
+    assertThat(ksqlTable.isSource(), is(false));
+  }
+
+  @Test
+  public void shouldAddSourceTable() {
+    // Given:
+    final CreateTableCommand cmd = buildCreateTable(
+        SourceName.of("t1"),
+        false,
+        true
+    );
+
+    // When:
+    cmdExec.execute(SQL_TEXT, cmd, true, NO_QUERY_SOURCES);
+
+    // Then:
+    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("t1"));
+    assertThat(ksqlTable.isSource(), is(true));
+  }
+
+  @Test
   public void shouldThrowOnDropTableWhenConstraintExist() {
     // Given:
-    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"), false);
-    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"), false);
-    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"), false);
+    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"),
+        false, false);
+    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"),
+        false, false);
+    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"),
+        false, false);
     cmdExec.execute(SQL_TEXT, table1, true, Collections.emptySet());
     cmdExec.execute(SQL_TEXT, table2, true, Collections.singleton(SourceName.of("t1")));
     cmdExec.execute(SQL_TEXT, table3, true, Collections.singleton(SourceName.of("t1")));
@@ -470,7 +508,7 @@ public class DdlCommandExecTest {
     cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES);
 
     // When:
-    givenCreateTable(false);
+    givenCreateTable();
     final DdlCommandResult result =cmdExec.execute(SQL_TEXT, createTable,
         false, NO_QUERY_SOURCES);
 
@@ -546,21 +584,19 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.of(windowInfo),
+        Optional.of(false),
         Optional.of(false)
     );
   }
 
   private void givenCreateTable() {
-    createTable = buildCreateTable(TABLE_NAME, false);
-  }
-
-  private void givenCreateTable(final boolean allowReplace) {
-    createTable = buildCreateTable(TABLE_NAME, allowReplace);
+    createTable = buildCreateTable(TABLE_NAME, false, false);
   }
 
   private CreateTableCommand buildCreateTable(
       final SourceName sourceName,
-      final boolean allowReplace
+      final boolean allowReplace,
+      final Boolean isSource
   ) {
     return new CreateTableCommand(
         sourceName,
@@ -574,7 +610,8 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(allowReplace)
+        Optional.of(allowReplace),
+        Optional.ofNullable(isSource)
     );
   }
 }

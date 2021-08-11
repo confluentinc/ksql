@@ -46,7 +46,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
       final boolean notExists,
       final CreateSourceProperties properties
   ) {
-    super(location, name, elements, orReplace, notExists, properties);
+    super(location, name, elements, orReplace, notExists, properties, false);
 
     throwOnPrimaryKeys(elements);
   }

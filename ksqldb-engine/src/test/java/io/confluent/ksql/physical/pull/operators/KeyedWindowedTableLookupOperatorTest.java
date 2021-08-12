@@ -31,7 +31,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
+import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,13 +58,13 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private KeyConstraintKey KEY1;
+  private KeyConstraint KEY1;
   @Mock
-  private KeyConstraintKey KEY2;
+  private KeyConstraint KEY2;
   @Mock
-  private KeyConstraintKey KEY3;
+  private KeyConstraint KEY3;
   @Mock
-  private KeyConstraintKey KEY4;
+  private KeyConstraint KEY4;
   @Mock
   private GenericKey GKEY1;
   @Mock

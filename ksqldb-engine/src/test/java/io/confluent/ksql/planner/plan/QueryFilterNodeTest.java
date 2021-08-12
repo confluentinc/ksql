@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertThrows;
@@ -29,6 +30,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -38,6 +40,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -49,6 +52,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
+import java.sql.Time;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -78,6 +83,12 @@ public class QueryFilterNodeTest {
       .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
       .build();
 
+  private static final LogicalSchema STRING_SCHEMA = LogicalSchema.builder()
+    .keyColumn(K, SqlTypes.STRING)
+    .valueColumn(COL0, SqlTypes.STRING)
+    .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+    .valueColumn(K, SqlTypes.STRING)
+    .build();
 
   @Mock
   private PlanNode source;
@@ -148,7 +159,6 @@ public class QueryFilterNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString("Primary key columns can not be NULL: (K = null)"));
   }
-
 
   @Test
   public void shouldExtractKeyValueFromExpressionEquals() {
@@ -913,7 +923,6 @@ public class QueryFilterNodeTest {
         + "(WINDOWSTART = 1)"));
   }
 
-
   @Test
   public void shouldThrowMultiKeyExpressionsThatDontCoverAllKeys() {
     // Given:
@@ -956,7 +965,6 @@ public class QueryFilterNodeTest {
     // Then:
     expectTableScan(expression, false);
   }
-
 
   @Test
   public void shouldThrowIfComparisonOnNonKey() {
@@ -1006,46 +1014,31 @@ public class QueryFilterNodeTest {
     assertThat(e.getMessage(), containsString("Unsupported expression in WHERE clause: true."));
   }
 
-
   @Test
-  public void shouldThrowIfNonEqualComparison() {
+  public void shouldExtractKeyFromNonEqualComparison() {
     // Given:
     final Expression expression = new ComparisonExpression(
         Type.GREATER_THAN,
         new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
         new IntegerLiteral(1)
+    );
+
+    final QueryFilterNode filterNode = new QueryFilterNode(
+      NODE_ID,
+      source,
+      expression,
+      metaStore,
+      ksqlConfig,
+      false,
+      plannerOptions
     );
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> new QueryFilterNode(
-            NODE_ID,
-            source,
-            expression,
-            metaStore,
-            ksqlConfig,
-            false,
-            plannerOptions
-        ));
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(e.getMessage(), containsString("Bound on key columns '[`K` INTEGER KEY]' must currently be '='."));
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldExtractConstraintWithLiteralRange_tableScan() {
-    // Given:
-    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
-    final Expression expression = new ComparisonExpression(
-        Type.GREATER_THAN,
-        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
-        new IntegerLiteral(1)
-    );
-
-    // Then:
-    expectTableScan(expression, false);
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), is(instanceOf(NonKeyConstraint.class)));
   }
 
   @Test
@@ -1081,8 +1074,10 @@ public class QueryFilterNodeTest {
             plannerOptions
         ));
 
+
+
     // Then:
-    assertThat(e.getMessage(), containsString("An equality condition on the key column cannot be "
+    assertThat(e.getMessage(), containsString("A comparison condition on the key column cannot be "
         + "combined with other comparisons"));
   }
 
@@ -1177,7 +1172,7 @@ public class QueryFilterNodeTest {
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("An equality condition on the key column cannot be combined with other comparisons"));
+    assertThat(e.getMessage(), containsString("A comparison condition on the key column cannot be combined with other comparisons"));
   }
 
   @SuppressWarnings("unchecked")
@@ -1319,7 +1314,6 @@ public class QueryFilterNodeTest {
     assertThat(e.getMessage(), containsString("Window bounds must resolve to an INT, BIGINT, or "
         + "STRING containing a datetime."));
   }
-
 
   @Test
   public void shouldThrowOnEqOneWindowBoundAndGtAnother() {
@@ -1534,6 +1528,57 @@ public class QueryFilterNodeTest {
     assertThat(e.getMessage(), containsString("Cannot use WINDOWSTART/WINDOWEND on non-windowed source."));
   }
 
+  @Test
+  public void shouldRangeScanFromStringRangeComparison() {
+    // Given:
+    when(source.getSchema()).thenReturn(STRING_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+      Type.GREATER_THAN,
+      new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+      new StringLiteral("1")
+    );
+
+    // Then:
+    expectRangeScan(expression, false);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldTableScanFromIntRangeComparison() {
+    // Given:
+    final Expression expression = new ComparisonExpression(
+      Type.GREATER_THAN,
+      new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+      new IntegerLiteral(1)
+    );
+
+    // Then:
+    expectTableScan(expression, false);
+  }
+
+  @Test
+  public void shouldSupportMultiRangeExpressionsUsingTableScan() {
+    // Given:
+    when(source.getSchema()).thenReturn(MULTI_KEY_SCHEMA);
+    final Expression expression1 = new ComparisonExpression(
+      Type.GREATER_THAN,
+      new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+      new IntegerLiteral(1)
+    );
+    final Expression expression2 = new ComparisonExpression(
+      Type.GREATER_THAN,
+      new UnqualifiedColumnReferenceExp(ColumnName.of("K2")),
+      new IntegerLiteral(2)
+    );
+    final Expression expression  = new LogicalBinaryExpression(
+      LogicalBinaryExpression.Type.AND,
+      expression1,
+      expression2
+    );
+
+    expectTableScan(expression, false);
+  }
+
   @SuppressWarnings("unchecked")
   private void expectTableScan(final Expression expression, final boolean windowed) {
     // Given:
@@ -1554,5 +1599,28 @@ public class QueryFilterNodeTest {
     assertThat(filterNode.isWindowed(), is(windowed));
     assertThat(keys.size(), is(1));
     assertThat(keys.get(0), isA((Class) NonKeyConstraint.class));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void expectRangeScan(final Expression expression, final boolean windowed) {
+    // Given:
+    QueryFilterNode filterNode = new QueryFilterNode(
+      NODE_ID,
+      source,
+      expression,
+      metaStore,
+      ksqlConfig,
+      windowed,
+      plannerOptions
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(filterNode.isWindowed(), is(windowed));
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), isA((Class) KeyConstraint.class));
+    assertThat(((KeyConstraint) keys.get(0)).isRangeOperator(), is(true));
   }
 }

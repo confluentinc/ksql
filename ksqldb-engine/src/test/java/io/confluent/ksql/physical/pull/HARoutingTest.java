@@ -515,7 +515,8 @@ public class HARoutingTest {
     when(pullPhysicalPlan.getMaterialization().locator().locate(
         pullPhysicalPlan.getKeys(),
         routingOptions,
-        routingFilterFactory
+        routingFilterFactory,
+        false
     )).thenReturn(locationsList);
   }
 }

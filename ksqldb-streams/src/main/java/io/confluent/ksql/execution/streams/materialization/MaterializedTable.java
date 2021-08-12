@@ -40,4 +40,14 @@ public interface MaterializedTable {
    * @return the rows.
    */
   Iterator<Row> get(int partition);
+
+  /**
+   * RangeScan the table for rows
+   *
+   * @param partition partition to limit the get to
+   * @param from first key in the range
+   * @param to last key in range
+   * @return the rows.
+   */
+  Iterator<Row> get(int partition, GenericKey from, GenericKey to);
 }

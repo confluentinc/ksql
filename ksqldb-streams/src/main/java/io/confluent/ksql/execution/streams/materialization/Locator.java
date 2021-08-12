@@ -45,7 +45,8 @@ public interface Locator {
   List<KsqlPartitionLocation> locate(
       List<KsqlKey> keys,
       RoutingOptions routingOptions,
-      RoutingFilterFactory routingFilterFactory
+      RoutingFilterFactory routingFilterFactory,
+      boolean isRangeScan
   );
 
   interface KsqlNode {

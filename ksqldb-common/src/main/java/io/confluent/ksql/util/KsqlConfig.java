@@ -276,6 +276,12 @@ public class KsqlConfig extends AbstractConfig {
       "Config to enable pull queries on streams";
   public static final boolean KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PULL_RANGE_SCAN_ENABLED
+      = "ksql.query.pull.range.scan.enabled";
+  public static final String KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DOC =
+      "Config to enable range scans on table for pull queries";
+  public static final boolean KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DEFAULT = true;
+
   public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED
       = "ksql.query.pull.interpreter.enabled";
   public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC =
@@ -938,6 +944,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PULL_INTERPRETER_ENABLED,

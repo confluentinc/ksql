@@ -1043,9 +1043,7 @@
         "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Bound on key columns '[`ID` STRING KEY]' must currently be '='.",
-        "status": 400
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
       }
     },
     {
@@ -2452,9 +2450,7 @@
         "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Bound on key columns '[`ID` INTEGER KEY]' must currently be '='.",
-        "status": 400
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
       }
     },
     {
@@ -2554,9 +2550,7 @@
         "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "An equality condition on the key column cannot be combined with other comparisons such as an IN predicate",
-        "status": 400
+        "message": "A comparison condition on the key column cannot be combined with other comparisons such as an IN predicate"
       }
     },
     {

@@ -23,7 +23,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -82,6 +81,7 @@ public final class SystemColumns {
   static boolean isPseudoColumn(final ColumnName columnName, final int pseudoColumnVersion) {
     return pseudoColumnNames(pseudoColumnVersion).contains(columnName);
   }
+
   public static boolean isPseudoColumn(final ColumnName columnName) {
     return isPseudoColumn(columnName, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
@@ -127,12 +127,12 @@ public final class SystemColumns {
     private static final Set<ColumnName> VERSION_ONE_NAMES;
 
     static {
-      ImmutableSet.Builder<ColumnName> versionZeroBuilder = ImmutableSet.builder();
+      final ImmutableSet.Builder<ColumnName> versionZeroBuilder = ImmutableSet.builder();
       VERSION_ZERO_NAMES = versionZeroBuilder
           .add(ROWTIME_NAME)
           .build();
 
-      ImmutableSet.Builder<ColumnName> versionOneBuilder = ImmutableSet.builder();
+      final ImmutableSet.Builder<ColumnName> versionOneBuilder = ImmutableSet.builder();
       VERSION_ONE_NAMES = versionOneBuilder
           .addAll(VERSION_ZERO_NAMES)
           .add(ROWPARTITION_NAME)
@@ -148,7 +148,8 @@ public final class SystemColumns {
 
     private static Set<ColumnName> getPseudoColumnNamesByVersion(final int pseudoColumnVersion) {
       if (!PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
-        throw new KsqlException("Provided pseudoColumnVersion has no corresponding columns defined");
+        throw new KsqlException(
+            "Provided pseudoColumnVersion has no corresponding columns defined");
       }
       return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
     }

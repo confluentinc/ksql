@@ -149,7 +149,6 @@ public final class LogicalSchema {
    *
    * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
    * WINDOWEND} columns will added to the value schema to represent the window bounds.
-   **
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
@@ -328,9 +327,9 @@ public final class LogicalSchema {
    * and returns the number of added columns
    * @param builder the builder to be passed in. Columns that don't qualify as key or pseudocolumns
    *                will be added
-   * @return the number of columns added. This also functions as a "column index", to pass into
-   * builder.add()
-   */
+   * @return the number of columns added. This also functions as a "column index", to pass to
+   *                builder.add()
+   * */
   private int addNonPseudoAndKeyColsToValueSchema(
       final ImmutableList.Builder<Column> builder, final int pseudoColumnVersion) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
@@ -357,7 +356,7 @@ public final class LogicalSchema {
    * @param builder the builder to be passed in. This builder will have key columns added to its
    *                key schema.
    */
-  private void addKeyColumnsToKeySchema(ImmutableList.Builder<Column> builder) {
+  private void addKeyColumnsToKeySchema(final ImmutableList.Builder<Column> builder) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
     final List<Column> key = byNamespace.get(Namespace.KEY);
     builder.addAll(key);

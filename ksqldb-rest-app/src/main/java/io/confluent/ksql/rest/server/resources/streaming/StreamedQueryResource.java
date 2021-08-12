@@ -333,20 +333,34 @@ public class StreamedQueryResource implements KsqlConfigurable {
                 metrics.recordStatusCode(statusCode);
                 metrics.recordRequestSize(requestBytes);
                 final PullQueryResult r = resultForMetrics.get();
-                final PullSourceType sourceType = Optional.ofNullable(r).map(
-                    PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
-                final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
-                    PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-                final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
-                    PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-                metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
-                metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
-                metrics.recordRowsReturned(
-                    Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-                    sourceType, planType, routingNodeType);
-                metrics.recordRowsProcessed(
-                    Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-                    sourceType, planType, routingNodeType);
+                if (r == null) {
+                  metrics.recordResponseSizeForError(responseBytes);
+                  metrics.recordLatencyForError(startTimeNanos);
+                  metrics.recordZeroRowsReturnedForError();
+                  metrics.recordZeroRowsProcessedForError();
+                } else {
+                  final PullSourceType sourceType = r.getSourceType();
+                  final PullPhysicalPlanType planType = r.getPlanType();
+                  final RoutingNodeType routingNodeType = r.getRoutingNodeType();
+                  metrics.recordResponseSize(
+                      responseBytes,
+                      sourceType,
+                      planType,
+                      routingNodeType
+                  );
+                  metrics.recordLatency(
+                      startTimeNanos,
+                      sourceType,
+                      planType,
+                      routingNodeType
+                  );
+                  metrics.recordRowsReturned(
+                      r.getTotalRowsReturned(),
+                      sourceType, planType, routingNodeType);
+                  metrics.recordRowsProcessed(
+                      r.getTotalRowsProcessed(),
+                      sourceType, planType, routingNodeType);
+                }
                 pullBandRateLimiter.add(responseBytes);
               });
       metricsCallbackHolder.setCallback(metricsCallback);

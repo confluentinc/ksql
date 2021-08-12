@@ -34,6 +34,7 @@ import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 
 /**
  * Factory class used to create stream and table sources
@@ -163,8 +164,9 @@ public final class SchemaKSourceFactory {
       throw new IllegalArgumentException("windowed");
     }
 
-    if (!true) {
-      final TableSourceV1 step = ExecutionStepFactory.tableSourceV1(
+    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
+
+      final TableSource step = ExecutionStepFactory.tableSource(
           contextStacker,
           dataSource.getSchema(),
           dataSource.getKafkaTopicName(),
@@ -178,8 +180,10 @@ public final class SchemaKSourceFactory {
           dataSource.getKsqlTopic().getKeyFormat(),
           step
       );
+
     } else {
-      final TableSource step = ExecutionStepFactory.tableSource(
+
+      final TableSourceV1 step = ExecutionStepFactory.tableSourceV1(
           contextStacker,
           dataSource.getSchema(),
           dataSource.getKafkaTopicName(),

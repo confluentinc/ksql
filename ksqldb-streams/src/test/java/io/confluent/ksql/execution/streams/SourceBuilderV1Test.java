@@ -46,9 +46,9 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
-import io.confluent.ksql.execution.plan.TableSourceV1;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -197,8 +197,8 @@ public class SourceBuilderV1Test {
 
   private StreamSource streamSource;
   private WindowedStreamSource windowedStreamSource;
-  private TableSourceV1 tableSourceV1;
-  private WindowedTableSourceV1 windowedTableSourceV1;
+  private TableSource tableSource;
+  private WindowedTableSource windowedTableSource;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -321,7 +321,7 @@ public class SourceBuilderV1Test {
     givenUnwindowedSourceTable(true);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -342,7 +342,7 @@ public class SourceBuilderV1Test {
     when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -365,10 +365,10 @@ public class SourceBuilderV1Test {
   public void shouldApplyCorrectTransformationsToSourceTableWithDownstreamRepartition() {
     // Given:
     givenUnwindowedSourceTable(true);
-    final PlanInfo planInfo = givenDownstreamRepartition(tableSourceV1);
+    final PlanInfo planInfo = givenDownstreamRepartition(tableSource);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -392,7 +392,7 @@ public class SourceBuilderV1Test {
     when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
-    tableSourceV1.build(planBuilder, planInfo);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withValueSerde(serdeCaptor.capture());
@@ -407,7 +407,7 @@ public class SourceBuilderV1Test {
     givenUnwindowedSourceTable(true);
 
     // When
-    tableSourceV1.build(planBuilder, planInfo);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -419,7 +419,7 @@ public class SourceBuilderV1Test {
     givenWindowedSourceTable();
 
     // When
-    windowedTableSourceV1.build(planBuilder, planInfo);
+    windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -434,7 +434,7 @@ public class SourceBuilderV1Test {
     givenUnwindowedSourceTable(true);
 
     // When
-    tableSourceV1.build(planBuilder, planInfo);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
@@ -458,7 +458,7 @@ public class SourceBuilderV1Test {
     givenUnwindowedSourceTable(true);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getSchema(), is(SCHEMA));
@@ -511,8 +511,7 @@ public class SourceBuilderV1Test {
     givenWindowedSourceTable();
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSourceV1
-        .build(planBuilder, planInfo);
+    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA));
@@ -551,7 +550,7 @@ public class SourceBuilderV1Test {
     // Given:
     givenUnwindowedSourceTable(true);
     final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSourceV1);
+        getTransformerFromTableSource(tableSource);
 
     // When:
     final GenericRow withTimestamp = transformer.transform(KEY, row);
@@ -670,26 +669,26 @@ public class SourceBuilderV1Test {
     assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
   }
 
-    @Test
+  @Test
   public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToStream() {
-      // Given:
-      givenWindowedSourceStream();
-      final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-          getTransformerFromStreamSource(windowedStreamSource);
+    // Given:
+    givenWindowedSourceStream();
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(windowedStreamSource);
 
-      final Windowed<GenericKey> key = new Windowed<>(
-          KEY,
-          new TimeWindow(A_WINDOW_START, A_WINDOW_END)
-      );
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
+    );
 
-      // When:
-      final GenericRow withTimestamp = transformer.transform(key, row);
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
 
-      // Then:
-      assertThat(withTimestamp,
-          equalTo(
-              GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
-    }
+    // Then:
+    assertThat(withTimestamp,
+        equalTo(
+            GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
 
   @Test
   public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToStream() {
@@ -717,7 +716,7 @@ public class SourceBuilderV1Test {
     // Given:
     givenWindowedSourceTable();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSourceV1);
+        getTransformerFromTableSource(windowedTableSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -777,7 +776,7 @@ public class SourceBuilderV1Test {
     // Given:
     givenWindowedSourceTable();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSourceV1);
+        getTransformerFromTableSource(windowedTableSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -859,7 +858,7 @@ public class SourceBuilderV1Test {
     givenUnwindowedSourceTable(true);
 
     // When:
-    tableSourceV1.build(planBuilder, planInfo);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
@@ -944,7 +943,7 @@ public class SourceBuilderV1Test {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
-    windowedTableSourceV1 = new WindowedTableSourceV1(
+    windowedTableSource = new WindowedTableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
@@ -963,7 +962,7 @@ public class SourceBuilderV1Test {
       final Boolean forceChangelog, final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
-    tableSourceV1 = new TableSourceV1(
+    tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),

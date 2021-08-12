@@ -51,6 +51,8 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   private static final String PULL_QUERY_METRIC_GROUP = "pull-query";
   private static final String PULL_REQUESTS = "pull-query-requests";
+  private static final long MAX_LATENCY_BUCKET_VALUE_MICROS = TimeUnit.SECONDS.toMicros(10);
+  private static final int NUM_LATENCY_BUCKETS = 1000;
 
   private final List<Sensor> sensors;
   private final Sensor localRequestsSensor;
@@ -523,10 +525,9 @@ public class PullQueryExecutorMetrics implements Closeable {
     );
 
     sensor.add(new Percentiles(
-        100,
-        0,
-        1000,
-        BucketSizing.CONSTANT,
+        4 * NUM_LATENCY_BUCKETS,
+        MAX_LATENCY_BUCKET_VALUE_MICROS,
+        BucketSizing.LINEAR,
         new Percentile(metrics.metricName(
             metricNamePrefix + "-distribution-50",
             servicePrefix + PULL_QUERY_METRIC_GROUP,

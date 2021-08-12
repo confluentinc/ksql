@@ -56,6 +56,40 @@
       "outputs": [
         {"topic": "OUTPUT", "key": "k1", "value": "v1"}
       ]
+    },
+    {
+      "name": "drop and delete topic",
+      "statements": [
+        "CREATE STREAM abc (K STRING KEY, data VARCHAR) WITH (kafka_topic='abc', value_format='DELIMITED');",
+        "CREATE STREAM input (K STRING KEY, data VARCHAR) WITH (kafka_topic='input', value_format='DELIMITED');",
+        "CREATE STREAM output AS SELECT * FROM input;",
+        "DROP STREAM abc DELETE TOPIC;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "k1", "value": "v1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "k1", "value": "v1"}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": "abc",
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": {"format": "KAFKA"},
+              "valueFormat": {"format": "DELIMITED"},
+              "partitions":4
+            },
+            {
+              "name": "input",
+              "keyFormat": {"format": "KAFKA"},
+              "valueFormat": {"format": "DELIMITED"},
+              "partitions":4
+            }
+          ]
+        }
+      }
     }
   ]
 }

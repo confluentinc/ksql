@@ -213,7 +213,12 @@ public class TestExecutor implements Closeable {
 
       kafka.getAllTopics().stream()
           .map(Topic::getName)
-          .forEach(topicInfoCache::get);
+          .forEach(name -> {
+            try {
+              topicInfoCache.get(name);
+            } catch (Exception e) {
+            }
+          });
 
       final List<PostTopicNode> knownTopics = topicInfoCache.all().stream()
           .map(ti -> {

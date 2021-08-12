@@ -90,10 +90,6 @@ public final class SystemColumns {
     return PseudoColumns.getPseudoColumnNamesByVersion(pseudoColumnVersion);
   }
 
-  @SuppressFBWarnings(
-      value = "MS_EXPOSE_REP",
-      justification = "PSEUDO_COLUMN_NAMES is ImmutableSet"
-  )
   public static Set<ColumnName> pseudoColumnNames() {
     return pseudoColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }

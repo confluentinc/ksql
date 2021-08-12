@@ -157,8 +157,7 @@ public final class LogicalSchema {
   }
 
   /**
-   * Remove pseudo and key columns from the value schema, according to the pseudocolumn version from
-   * the value schema.
+   * Remove pseudo and key columns from the value schema, according to the pseudocolumn version
    * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
    * @return the new schema with the columns removed
    */
@@ -355,7 +354,7 @@ public final class LogicalSchema {
 
   /**
    * Adds key columns to key schema of a provided builder
-   * @param builder the builder to be passed in. This builder will have key columns added to it's
+   * @param builder the builder to be passed in. This builder will have key columns added to its
    *                key schema.
    */
   private void addKeyColumnsToKeySchema(ImmutableList.Builder<Column> builder) {

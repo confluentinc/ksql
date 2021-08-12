@@ -741,9 +741,9 @@ public class PullQueryExecutorMetrics implements Closeable {
         final PullPhysicalPlanType planType,
         final RoutingNodeType routingNodeType
     ) {
-      this.sourceType = sourceType;
-      this.planType = planType;
-      this.routingNodeType = routingNodeType;
+      this.sourceType = Objects.requireNonNull(sourceType, "sourceType");
+      this.planType = Objects.requireNonNull(planType, "planType");
+      this.routingNodeType = Objects.requireNonNull(routingNodeType, "routingNodeType");
     }
 
     @Override

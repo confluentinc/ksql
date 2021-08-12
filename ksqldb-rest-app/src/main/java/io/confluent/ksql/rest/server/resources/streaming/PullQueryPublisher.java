@@ -149,9 +149,12 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   private void recordMetrics(
       final PullQueryExecutorMetrics metrics, final PullQueryResult result) {
+
     final PullSourceType sourceType = result.getSourceType();
     final PullPhysicalPlanType planType = result.getPlanType();
     final RoutingNodeType routingNodeType = result.getRoutingNodeType();
+    // Note: we are not recording response size in this case because it is not
+    // accessible in the websocket endpoint.
     metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
     metrics.recordRowsReturned(result.getTotalRowsReturned(),
         sourceType, planType, routingNodeType);

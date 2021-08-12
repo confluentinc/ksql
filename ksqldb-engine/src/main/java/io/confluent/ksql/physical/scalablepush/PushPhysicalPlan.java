@@ -82,22 +82,8 @@ public class PushPhysicalPlan {
 
   private void maybeNext(final Publisher publisher) {
     List<?> row;
-    while ((row = (List<?>)next()) != null) {
-      if (dataSourceOperator.droppedRows()) {
-        closeInternal();
-        publisher.reportDroppedRows();
-        break;
-      } else if (dataSourceOperator.hasError()) {
-        closeInternal();
-        publisher.reportHasError();
-        break;
-      } else if (dataSourceOperator.hasStateChange()) {
-        closeInternal();
-        publisher.reportHasStateChange();
-        break;
-      } else {
-        publisher.accept(row);
-      }
+    while (!isErrored(publisher) && (row = (List<?>)next()) != null) {
+      publisher.accept(row);
     }
     if (!closed) {
       if (timer >= 0) {
@@ -109,6 +95,20 @@ public class PushPhysicalPlan {
     } else {
       publisher.close();
     }
+  }
+
+  private boolean isErrored(final Publisher publisher) {
+    if (dataSourceOperator.droppedRows()) {
+      System.out.println("dropped rows");
+      closeInternal();
+      publisher.reportDroppedRows();
+      return true;
+    } else if (dataSourceOperator.hasError()) {
+      closeInternal();
+      publisher.reportHasError();
+      return true;
+    }
+    return false;
   }
 
   private void open(final Publisher publisher) {
@@ -162,10 +162,6 @@ public class PushPhysicalPlan {
 
     public void reportHasError() {
       sendError(new RuntimeException("Persistent query has error"));
-    }
-
-    public void reportHasStateChange() {
-      sendError(new RuntimeException("Persistent query has rebalanced"));
     }
   }
 }

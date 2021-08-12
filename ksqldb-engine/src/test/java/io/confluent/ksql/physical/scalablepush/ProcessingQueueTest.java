@@ -72,13 +72,4 @@ public class ProcessingQueueTest {
     // Then:
     assertThat(queue.getHasError(),is(false));
   }
-
-  @Test
-  public void shouldDefaultToFalseForHasStateChange() {
-    // Given:
-    final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"));
-
-    // Then:
-    assertThat(queue.getHasStateChange(),is(false));
-  }
 }

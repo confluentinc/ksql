@@ -70,15 +70,4 @@ public class PeekStreamOperatorTest {
     // Then:
     assertThat(locator.hasError(),is(false));
   }
-
-  @Test
-  public void shouldDefaultToFalseForHasStateChangeOnQueue() {
-    // Given:
-    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID);
-    // When:
-    locator.open();
-
-    // Then:
-    assertThat(locator.hasStateChange(),is(false));
-  }
 }

@@ -31,6 +31,4 @@ public interface PushDataSourceOperator {
   boolean droppedRows();
 
   boolean hasError();
-
-  boolean hasStateChange();
 }

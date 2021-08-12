@@ -151,15 +151,9 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     }
   }
 
-  public void onError() {
+  public synchronized void onError() {
     for (ProcessingQueue queue : processingQueues.values()) {
       queue.onError();
-    }
-  }
-
-  public void onStateChange() {
-    for (ProcessingQueue queue : processingQueues.values()) {
-      queue.onStateChange();
     }
   }
 

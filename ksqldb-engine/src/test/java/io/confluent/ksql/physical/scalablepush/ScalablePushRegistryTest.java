@@ -19,7 +19,6 @@ import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -197,25 +196,12 @@ public class ScalablePushRegistryTest {
   public void shouldCallOnErrorOnQueue() {
     // Given
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
-    when(processingQueues.values()).thenReturn(Collections.singletonList(processingQueue));
+    registry.register(processingQueue);
 
     // When
     registry.onError();
 
     // Then:
     verify(processingQueue).onError();
-  }
-
-  @Test
-  public void shouldCallOnStateChangeOnQueue() {
-    // Given
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
-    when(processingQueues.values()).thenReturn(Arrays.asList(processingQueue));
-
-    // When
-    registry.onStateChange();
-
-    // Then:
-    verify(processingQueue).onStateChange();
   }
 }

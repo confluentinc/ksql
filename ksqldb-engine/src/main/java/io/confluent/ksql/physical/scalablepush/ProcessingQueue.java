@@ -116,14 +116,6 @@ public class ProcessingQueue {
     return hasError;
   }
 
-  public synchronized void onStateChange() {
-    hasStateChange = true;
-  }
-
-  public synchronized boolean getHasStateChange() {
-    return hasStateChange;
-  }
-
   public QueryId getQueryId() {
     return queryId;
   }

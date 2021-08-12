@@ -38,6 +38,8 @@ import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 
 public class StorageUtilizationMetrics implements MetricsReporter {
+  private static final String METRIC_GROUP = "ksqldb-utilization";
+
   private final Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private final Metrics metricRegistry;
   static AtomicBoolean registeredNodeMetrics = new AtomicBoolean(false);
@@ -51,17 +53,8 @@ public class StorageUtilizationMetrics implements MetricsReporter {
     this.metricRegistry = metricRegistry;
   }
 
-  // for testing
-  public StorageUtilizationMetrics(
-      final Metrics metricRegistry,
-      final Map<String, Map<String, TaskStorageMetric>> taskMetrics) {
-    this.metricsSeen = taskMetrics;
-    this.metricRegistry = metricRegistry;
-  }
-
   @Override
   public void init(final List<KafkaMetric> list) {
-
   }
 
   @Override
@@ -84,11 +77,11 @@ public class StorageUtilizationMetrics implements MetricsReporter {
       return;
     }
     final MetricName nodeAvailable =
-        metricRegistry.metricName("node-storage-available", "ksql-utilization-metrics");
+        metricRegistry.metricName("node-storage-available", METRIC_GROUP);
     final MetricName nodeTotal =
-        metricRegistry.metricName("node-storage-total", "ksql-utilization-metrics");
+        metricRegistry.metricName("node-storage-total", METRIC_GROUP);
     final MetricName nodeUsed =
-        metricRegistry.metricName("node-storage-used", "ksql-utilization-metrics");
+        metricRegistry.metricName("node-storage-used", METRIC_GROUP);
 
     metricRegistry.addMetric(
         nodeAvailable,
@@ -96,11 +89,11 @@ public class StorageUtilizationMetrics implements MetricsReporter {
     );
     metricRegistry.addMetric(
         nodeTotal,
-        (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+        (Gauge<Long>) (config, now) -> baseDir.getTotalSpace()
     );
     metricRegistry.addMetric(
         nodeUsed,
-        (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
+        (Gauge<Long>) (config, now) -> (baseDir.getTotalSpace() - baseDir.getFreeSpace())
     );
   }
 
@@ -118,7 +111,7 @@ public class StorageUtilizationMetrics implements MetricsReporter {
         metricRegistry.addMetric(
             metricRegistry.metricName(
             "query-storage-usage",
-            "ksql-utilization-metrics",
+              METRIC_GROUP,
             ImmutableMap.of("query-id", queryId)),
             (Gauge<BigInteger>) (config, now) -> computeQueryMetric(queryId)
         );
@@ -131,7 +124,7 @@ public class StorageUtilizationMetrics implements MetricsReporter {
         newMetric = new TaskStorageMetric(
           metricRegistry.metricName(
             "task-storage-usage",
-            "ksql-utilization-metrics",
+            METRIC_GROUP,
             ImmutableMap.of("task-id", taskId, "query-id", queryId)
           ));
         // add to list of seen task metrics for this query
@@ -170,7 +163,7 @@ public class StorageUtilizationMetrics implements MetricsReporter {
         // we've removed all the task metrics for this query, don't need the query metrics anymore
         metricRegistry.removeMetric(metricRegistry.metricName(
             "query-storage-usage",
-            "ksql-utilization-metrics",
+          METRIC_GROUP,
             ImmutableMap.of("query-id", queryId))
         );
       }
@@ -179,7 +172,6 @@ public class StorageUtilizationMetrics implements MetricsReporter {
 
   @Override
   public void close() {
-
   }
 
   @Override
@@ -212,9 +204,13 @@ public class StorageUtilizationMetrics implements MetricsReporter {
 
   private String getQueryId(final KafkaMetric metric) {
     final String queryIdTag = metric.metricName().tags().getOrDefault("thread-id", "");
-    final Pattern pattern = Pattern.compile("(?<=query_)(.*?)(?=-)");
+    final Pattern pattern = Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
     final Matcher matcher = pattern.matcher(queryIdTag);
     return matcher.find() ? matcher.group(1) : "";
+  }
+
+  static void reset() {
+    registeredNodeMetrics.getAndSet(false);
   }
 
   public static class TaskStorageMetric {

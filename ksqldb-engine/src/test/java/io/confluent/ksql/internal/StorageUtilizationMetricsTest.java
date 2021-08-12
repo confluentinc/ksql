@@ -1,173 +1,274 @@
 package io.confluent.ksql.internal;
 
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.QueryMetadata;
+import com.google.common.collect.ImmutableMap;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.MetricValueProvider;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.streams.KafkaStreams;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.HashMap;
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doReturn;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StorageUtilizationMetricsTest {
 
-  ConcurrentHashMap<String, Long> streams;
+  private static final String METRIC_NAME = "total-sst-files-size";
+  private static final String METRIC_GROUP = "streams-metric";
+  private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-blahblah";
+  private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
+
   private StorageUtilizationMetrics listener;
 
   @Mock
-  private QueryMetadata query;
-  @Mock
-  private QueryId queryId;
-  @Mock
-  private ServiceContext serviceContext;
-  @Mock
-  private MetaStore metaStore;
-  @Mock
-  private KafkaStreams s1;
-  @Mock
-  private KafkaMetric sst_1;
-  @Mock
-  private Metrics metricsRegistry;
+  private Metrics metrics;
+  @Captor
+  private ArgumentCaptor<MetricValueProvider<?>> metricValueProvider;
 
   @Before
   public void setUp() {
-    when(query.getQueryId()).thenReturn(queryId);
-    when(query.getKafkaStreams()).thenReturn(s1);
-
-    streams = new ConcurrentHashMap<>();
-    listener = new StorageUtilizationMetrics(metricsRegistry, new HashMap<>());
+    listener = new StorageUtilizationMetrics(metrics);
+    when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
+      a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
+    when(metrics.metricName(any(), any())).thenAnswer(
+      a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
+    listener.configure(ImmutableMap.of("state.dir", "/tmp/cat/"));
   }
 
-  /*@Test
-  public void shouldAddKafkaStreamsOnCreation() {
-    // When:
-    listener.onCreate(serviceContext, metaStore, query);
-
-    // Then:
-    assertEquals(1, streams.size());
+  @After
+  public void cleanup() {
+    StorageUtilizationMetrics.reset();
   }
 
   @Test
-  public void shouldRemoveKafkaStreamsOnTermination() {
-    // When:
-    listener.onCreate(serviceContext, metaStore, query);
-    listener.onDeregister(query);
-
-    // Then:
-    assertTrue(streams.isEmpty());
-  }
-
-  @Test
-  public void shouldAddNodeLevelMetricsOnCreation() {
-    // When:
-    listener.onCreate(serviceContext, metaStore, query);
-
-    // Then
-    verify(metricsRegistry).metricName(
-      "node-storage-available",
-      "ksql-utilization-metrics");
-    verify(metricsRegistry).metricName(
-      "node-storage-total",
-      "ksql-utilization-metrics");
-    verify(metricsRegistry).metricName(
-      "node-storage-used",
-      "ksql-utilization-metrics");
-    verify(metricsRegistry).addMetric(
-      eq(metricsRegistry.metricName(
-      "node-storage-available",
-      "ksql-utilization-metrics")),
-      isA(Gauge.class)
-    );
-    verify(metricsRegistry).addMetric(
-      eq(metricsRegistry.metricName(
-        "node-storage-total",
-        "ksql-utilization-metrics")),
-      isA(Gauge.class)
-    );
-    verify(metricsRegistry).addMetric(
-      eq(metricsRegistry.metricName(
-        "node-storage-used",
-        "ksql-utilization-metrics")),
-      isA(Gauge.class)
-    );
-  }
-
-  @Test
-  public void shouldRegisterTaskLevelMetrics() {
-
-  }
-
-  @Test
-  public void shouldRemoveObsoleteTaskMetrics() {
+  public void shouldAddNodeMetricsOnConfigure() {
     // Given:
-    final MetricName removableMetric = new MetricName("name", "group", "description", Collections.emptyMap());
-    final Set<UtilizationMetricsListener.TaskStorageMetric> temporaryMetrics = new HashSet<>();
-    temporaryMetrics.add(new UtilizationMetricsListener.TaskStorageMetric(removableMetric));
-    final UtilizationMetricsListener metricsListener =
-      new UtilizationMetricsListener(
-        streams,
-        new File("tmp/cat/"),
-        metricsRegistry,
-        temporaryMetrics
-      );
-    streams.put(new QueryId("q1"), s1);
-    when(s1.metrics()).thenReturn(Collections.emptyMap());
 
     // When:
-    metricsListener.taskDiskUsage();
+    final Gauge<?> storageAvailableGauge = verifyAndGetRegisteredMetric("node-storage-available", Collections.emptyMap());
+    final Object storageAvailableValue = storageAvailableGauge.value(null, 0);
+    final Gauge<?> storageTotalGauge = verifyAndGetRegisteredMetric("node-storage-total", Collections.emptyMap());
+    final Object storageTotalValue = storageTotalGauge.value(null, 0);
+    final Gauge<?> storageUsedGauge = verifyAndGetRegisteredMetric("node-storage-used", Collections.emptyMap());
+    final Object storageUsedValue = storageUsedGauge.value(null, 0);
 
     // Then:
-    verify(metricsRegistry).removeMetric(removableMetric);
+    assertThat(storageAvailableValue, equalTo(0L));
+    assertThat(storageTotalValue, equalTo(0L));
+    assertThat(storageUsedValue, equalTo(0L));
   }
 
   @Test
-  public void shouldUpdateTaskStorageValues() {
+  public void shouldOnlyAddNodeMetricsOnce() {
     // Given:
-    final MetricName sst_metric = new MetricName("total-sst-files-size", "", "", ImmutableMap.of("task-id", "t1"));
-    final UtilizationMetricsListener.TaskStorageMetric firstMetric =
-      new UtilizationMetricsListener.TaskStorageMetric(
-        new MetricName(
-          "query-storage-usage",
-          "ksql-utilization-metrics",
-          "",
-          ImmutableMap.of("task-id", "t1", "query-id", "q1")));
-    firstMetric.updateValue(50L);
-    final Set<UtilizationMetricsListener.TaskStorageMetric> temporaryMetrics = new HashSet<>();
-    temporaryMetrics.add(firstMetric);
-
-    streams.put(new QueryId("q1"), s1);
-    doReturn(ImmutableMap.of(sst_metric, sst_1)).when(s1).metrics();
-    when(sst_1.metricValue()).thenReturn(BigInteger.valueOf(50L));
-    when(sst_1.metricName()).thenReturn(sst_metric);
-
-    final UtilizationMetricsListener metricsListener =
-      new UtilizationMetricsListener(
-        streams,
-        new File("tmp/cat/"),
-        metricsRegistry,
-        temporaryMetrics
-      );
 
     // When:
-    metricsListener.taskDiskUsage();
+    listener.configure(ImmutableMap.of("state.dir", "/tmp/cat/"));
 
     // Then:
-    assertEquals(100L, firstMetric.value);
+    // did not throw error for duplicate metrics
+  }
 
-  }*/
+  @Test
+  public void shouldAddNewGauges() {
+    // Given:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+    );
 
+    // When:
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    final Object taskValue = taskGauge.value(null, 0);
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric("query-storage-usage", ImmutableMap.of("query-id", "CTAS_TEST_1"));
+    final Object queryValue = queryGauge.value(null, 0);
+
+    // Then:
+    assertThat(taskValue, equalTo(BigInteger.valueOf(2)));
+    assertThat(queryValue, equalTo(BigInteger.valueOf(2)));
+
+  }
+
+  @Test
+  public void shouldUpdateExistingGauges() {
+    // Given:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+    );
+
+    // When:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(15),
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+    );
+
+    // Then:
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    final Object taskValue = taskGauge.value(null, 0);
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric("query-storage-usage", ImmutableMap.of("query-id", "CTAS_TEST_1"));
+    final Object queryValue = queryGauge.value(null, 0);
+
+    assertThat(taskValue, equalTo(BigInteger.valueOf(15)));
+    assertThat(queryValue, equalTo(BigInteger.valueOf(15)));
+  }
+
+  @Test
+  public void shouldCombineTaskMetricsToQueryMetric() {
+    // When:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+    );
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(5),
+      ImmutableMap.of("task-id", "t2", "thread-id", THREAD_ID))
+    );
+
+    // Then:
+    final Gauge<?> taskGaugeOne = verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    final Object taskValueOne = taskGaugeOne.value(null, 0);
+    final Gauge<?> taskGaugeTwo = verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t2", "query-id", "CTAS_TEST_1"));
+    final Object taskValueTwo = taskGaugeTwo.value(null, 0);
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric("query-storage-usage", ImmutableMap.of("query-id", "CTAS_TEST_1"));
+    final Object queryValue = queryGauge.value(null, 0);
+
+    assertThat(taskValueOne, equalTo(BigInteger.valueOf(2)));
+    assertThat(taskValueTwo, equalTo(BigInteger.valueOf(5)));
+    assertThat(queryValue, equalTo(BigInteger.valueOf(7)));
+  }
+
+  @Test
+  public void shouldCombineStorageMetricsToTaskMetric() {
+    // When:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("store-id", "s1", "task-id", "t1", "thread-id", TRANSIENT_THREAD_ID))
+    );
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(5),
+      ImmutableMap.of("store-id", "s2", "task-id", "t1", "thread-id", TRANSIENT_THREAD_ID))
+    );
+
+    // Then:
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "blahblah_4"));
+    final Object taskValue = taskGauge.value(null, 0);
+    assertThat(taskValue, equalTo(BigInteger.valueOf(7)));
+  }
+
+  @Test
+  public void shouldRemoveTaskAndQueryGauges() {
+    // Given:
+    final KafkaMetric metric = mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID));
+    listener.metricChange(metric);
+
+    // When:
+    listener.metricRemoval(metric);
+
+    // Then:
+    verifyRemovedMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    verifyRemovedMetric("query-storage-usage", ImmutableMap.of("query-id", "CTAS_TEST_1"));
+
+  }
+
+  @Test
+  public void shouldRemoveObsoleteStateStoreMetrics() {
+    // Given:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("store-id", "s1", "task-id", "t1", "thread-id", THREAD_ID)));
+    final KafkaMetric metric = mockMetric(
+      METRIC_GROUP,
+      METRIC_NAME,
+      BigInteger.valueOf(6),
+      ImmutableMap.of("store-id", "s2", "task-id", "t1", "thread-id", THREAD_ID));
+    listener.metricChange(metric);
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    Object taskValue = taskGauge.value(null, 0);
+    assertThat(taskValue, equalTo(BigInteger.valueOf(8)));
+
+    // When:
+    listener.metricRemoval(metric);
+
+    // Then:
+    taskValue = taskGauge.value(null, 0);
+    assertThat(taskValue, equalTo(BigInteger.valueOf(2)));
+  }
+
+  @Test
+  public void shouldIgnoreNonSSTMetrics() {
+    // When:
+    listener.metricChange(mockMetric(
+      METRIC_GROUP,
+      "other-metric",
+      BigInteger.valueOf(2),
+      ImmutableMap.of("store-id", "s1", "task-id", "t1", "thread-id", THREAD_ID)));
+
+    // Then:
+    assertThrows(AssertionError.class, () -> verifyAndGetRegisteredMetric("task-storage-usage", ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1")));
+  }
+
+  private KafkaMetric mockMetric(
+    final String group, final String name, Object value, final Map<String, String> tags) {
+    final KafkaMetric metric = mock(KafkaMetric.class);
+    when(metric.metricName()).thenReturn(
+      new MetricName(name, group, "", tags));
+    when(metric.metricValue()).thenReturn(value);
+    return metric;
+  }
+
+  private Gauge<?> verifyAndGetRegisteredMetric(final String name, final Map<String, String> tags) {
+    verify(metrics).addMetric(
+      argThat(
+        n -> n.name().equals(name) && n.tags().equals(tags)
+      ),
+      metricValueProvider.capture()
+    );
+    return (Gauge<?>) metricValueProvider.getValue();
+  }
+
+  private void verifyRemovedMetric(final String name, final Map<String, String> tags) {
+    verify(metrics).removeMetric(
+      argThat(
+        n -> n.name().equals(name) && n.tags().equals(tags)
+      )
+    );
+  }
 }

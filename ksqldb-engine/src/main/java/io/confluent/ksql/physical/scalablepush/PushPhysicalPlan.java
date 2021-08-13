@@ -161,6 +161,7 @@ public class PushPhysicalPlan {
     return scalablePushRegistry;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public Context getContext() {
     return context;
   }

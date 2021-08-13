@@ -31,7 +31,7 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   }
 
   @Override
-  public boolean getIsSkipForwardRequest() {
+  public boolean getHasBeenForwarded() {
     if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING)) {
       return (Boolean) requestProperties.get(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING);

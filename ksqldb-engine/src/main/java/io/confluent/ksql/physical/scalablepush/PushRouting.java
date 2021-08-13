@@ -27,6 +27,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -64,13 +65,14 @@ public class PushRouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
 
-  private static final long CLUSTER_CHECK_INTERVAL = 2000;
+  private static final long CLUSTER_CHECK_INTERVAL_MS = 2000;
+  private static final long HOST_CACHE_EXPIRATION_MS = 1000;
 
   private final Function<ScalablePushRegistry, Set<KsqlNode>> registryToNodes;
   private final long clusterCheckInterval;
 
   public PushRouting() {
-    this(createLoadingCache(), CLUSTER_CHECK_INTERVAL);
+    this(createLoadingCache(), CLUSTER_CHECK_INTERVAL_MS);
   }
 
   @VisibleForTesting
@@ -100,7 +102,7 @@ public class PushRouting implements AutoCloseable {
   ) {
     final Set<KsqlNode> hosts = registryToNodes.apply(pushPhysicalPlan.getScalablePushRegistry())
         .stream()
-        .filter(node -> !pushRoutingOptions.getIsSkipForwardRequest() || node.isLocal())
+        .filter(node -> !pushRoutingOptions.getHasBeenForwarded() || node.isLocal())
         .collect(Collectors.toSet());
 
     if (hosts.isEmpty()) {
@@ -117,7 +119,7 @@ public class PushRouting implements AutoCloseable {
         serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
         transientQueryQueue, pushConnectionsHandle, false);
     // Only check for new nodes if this is the source node
-    if (!pushRoutingOptions.getIsSkipForwardRequest()) {
+    if (!pushRoutingOptions.getHasBeenForwarded()) {
       checkForNewHostsOnContext(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
           transientQueryQueue, pushConnectionsHandle);
     }
@@ -150,7 +152,7 @@ public class PushRouting implements AutoCloseable {
                 result.close();
                 result.updateStatus(RoutingResultStatus.COMPLETE);
               });
-          LOG.info("Host {} completed request.", node);
+          LOG.info("Host {} completed request {}.", node, pushPhysicalPlan.getQueryId());
         } else {
           pushConnectionsHandle.completeExceptionally(t);
         }
@@ -175,8 +177,9 @@ public class PushRouting implements AutoCloseable {
               .map(Entry::getKey)
               .findFirst()
               .orElse(null);
-          LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), node, System.currentTimeMillis(), t.getCause());
+          LOG.warn("Error routing query {} id {} to host {} at timestamp {} with exception {}",
+              statement.getStatementText(), pushPhysicalPlan.getQueryId(), node,
+              System.currentTimeMillis(), t.getCause());
 
           pushConnectionsHandle.completeExceptionally(
               new KsqlException(String.format(
@@ -199,8 +202,9 @@ public class PushRouting implements AutoCloseable {
       final boolean dynamicallyAddedNode
   ) {
     if (node.isLocal()) {
-      LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-          statement.getStatementText(), node.location(), System.currentTimeMillis());
+      LOG.debug("Query {} id {} executed locally at host {} at timestamp {}.",
+          statement.getStatementText(), pushPhysicalPlan.getQueryId(), node.location(),
+          System.currentTimeMillis());
       final AtomicReference<BufferedPublisher<List<?>>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
@@ -208,7 +212,7 @@ public class PushRouting implements AutoCloseable {
           .thenApply(publisher -> {
             publisherRef.set(publisher);
             publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
-                transientQueryQueue, callback));
+                transientQueryQueue, callback, node, pushPhysicalPlan.getQueryId()));
             return new RoutingResult(RoutingResultStatus.SUCCESS, () -> {
               pushPhysicalPlan.close();
               publisher.close();
@@ -238,7 +242,7 @@ public class PushRouting implements AutoCloseable {
       return publisherFuture.thenApply(publisher -> {
         publisherRef.set(publisher);
         publisher.subscribe(new RemoteStreamSubscriber(publisher.getContext(), transientQueryQueue,
-            callback));
+            callback, node, pushPhysicalPlan.getQueryId()));
         return new RoutingResult(RoutingResultStatus.SUCCESS, publisher::close);
       }).exceptionally(t -> {
         LOG.error("Error forwarding query {} to node {}",
@@ -324,12 +328,12 @@ public class PushRouting implements AutoCloseable {
         .collect(Collectors.toSet());
     final Set<KsqlNode> removedHosts = Sets.difference(hosts, updatedHosts);
     if (newHosts.size() > 0) {
-      LOG.info("Dynamically adding new hosts {}", newHosts);
+      LOG.info("Dynamically adding new hosts {} for {}", newHosts, pushPhysicalPlan.getQueryId());
       connectToHosts(serviceContext, pushPhysicalPlan, statement, newHosts, outputSchema,
           transientQueryQueue, pushConnectionsHandle, true);
     }
     if (removedHosts.size() > 0) {
-      LOG.info("Dynamically removing hosts {}", removedHosts);
+      LOG.info("Dynamically removing hosts {} for {}", removedHosts, pushPhysicalPlan.getQueryId());
       for (final KsqlNode node : removedHosts) {
         final RoutingResult result = pushConnectionsHandle.remove(node);
         result.close();
@@ -350,7 +354,7 @@ public class PushRouting implements AutoCloseable {
   private static Function<ScalablePushRegistry, Set<KsqlNode>> createLoadingCache() {
     final LoadingCache<ScalablePushRegistry, Set<KsqlNode>> cache = CacheBuilder.newBuilder()
         .maximumSize(40)
-        .expireAfterWrite(2000, TimeUnit.MILLISECONDS)
+        .expireAfterWrite(HOST_CACHE_EXPIRATION_MS, TimeUnit.MILLISECONDS)
         .build(new CacheLoader<ScalablePushRegistry, Set<KsqlNode>>() {
           @Override
           public Set<KsqlNode> load(final ScalablePushRegistry scalablePushRegistry) {
@@ -360,10 +364,18 @@ public class PushRouting implements AutoCloseable {
     return cache::getUnchecked;
   }
 
+  /**
+   * The status for a connection
+   */
   public enum RoutingResultStatus {
+    // The host connection is being set up but is not connected yet.
     IN_PROGRESS,
+    // The host connection was successful and in use
     SUCCESS,
+    // The host connection was closed and isn't active, but hasn't yet been removed from the map
+    // since they're part of the known set of hosts.
     COMPLETE,
+    // The connection has been removed since the host is no longer running the persistent query.
     REMOVED
   }
 
@@ -400,14 +412,20 @@ public class PushRouting implements AutoCloseable {
 
     private final TransientQueryQueue transientQueryQueue;
     private final CompletableFuture<Void> callback;
+    private final KsqlNode node;
+    private final QueryId queryId;
     private boolean closed;
 
     RemoteStreamSubscriber(final Context context,
         final TransientQueryQueue transientQueryQueue,
-        final CompletableFuture<Void> callback) {
+        final CompletableFuture<Void> callback,
+        final KsqlNode node,
+        final QueryId queryId) {
       super(context);
       this.transientQueryQueue = transientQueryQueue;
       this.callback = callback;
+      this.node = node;
+      this.queryId = queryId;
     }
 
     @Override
@@ -434,7 +452,7 @@ public class PushRouting implements AutoCloseable {
       }
       if (row.getErrorMessage().isPresent()) {
         final KsqlErrorMessage errorMessage = row.getErrorMessage().get();
-        LOG.error("Received error from remote node: {}", errorMessage);
+        LOG.error("Received error from remote node {} and id {}: {}", node, queryId, errorMessage);
         callback.completeExceptionally(new KsqlException("Remote server had an error: "
             + errorMessage.getErrorCode() + " - " + errorMessage.getMessage()));
         close();
@@ -450,7 +468,8 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected void handleError(final Throwable t) {
-      LOG.error("Received error from remote node: {}", t.getMessage(), t);
+      LOG.error("Received error from remote node {} for id {}: {}", node, queryId, t.getMessage(),
+          t);
       callback.completeExceptionally(t);
     }
 
@@ -469,16 +488,22 @@ public class PushRouting implements AutoCloseable {
 
     private final TransientQueryQueue transientQueryQueue;
     private final CompletableFuture<Void> callback;
+    private final KsqlNode localNode;
+    private final QueryId queryId;
     private boolean closed;
 
     LocalQueryStreamSubscriber(
         final Context context,
         final TransientQueryQueue transientQueryQueue,
-        final CompletableFuture<Void> callback
+        final CompletableFuture<Void> callback,
+        final KsqlNode localNode,
+        final QueryId queryId
     ) {
       super(context);
       this.transientQueryQueue = transientQueryQueue;
       this.callback = callback;
+      this.localNode = localNode;
+      this.queryId = queryId;
     }
 
     @Override
@@ -507,7 +532,8 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected void handleError(final Throwable t) {
-      LOG.error("Received error from local node: {}", t.getMessage(), t);
+      LOG.error("Received error from local node {} for id {}: {}", localNode, queryId,
+          t.getMessage(), t);
       callback.completeExceptionally(t);
     }
 

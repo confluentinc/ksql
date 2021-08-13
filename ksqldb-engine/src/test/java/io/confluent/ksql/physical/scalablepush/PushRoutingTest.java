@@ -103,7 +103,7 @@ public class PushRoutingTest {
     when(ksqlNodeLocal.isLocal()).thenReturn(true);
     when(ksqlNodeRemote.location()).thenReturn(URI.create("http://remote:8088"));
     when(ksqlNodeRemote.isLocal()).thenReturn(false);
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(false);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(false);
 
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty());
   }
@@ -351,7 +351,7 @@ public class PushRoutingTest {
   @Test
   public void shouldSucceed_justForwarded() throws ExecutionException, InterruptedException {
     // Given:
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
@@ -384,7 +384,7 @@ public class PushRoutingTest {
   @Test
   public void shouldFail_duringPlanExecute() throws ExecutionException, InterruptedException {
     // Given:
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
     when(pushPhysicalPlan.execute()).thenThrow(new RuntimeException("Error!"));
 
@@ -438,7 +438,7 @@ public class PushRoutingTest {
   public void shouldFail_hitRequestLimitLocal() throws ExecutionException, InterruptedException {
     // Given:
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty(), 1, 100);
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);

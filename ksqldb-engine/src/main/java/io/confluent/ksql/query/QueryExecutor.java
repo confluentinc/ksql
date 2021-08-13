@@ -341,7 +341,9 @@ final class QueryExecutor {
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
-    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(sources, queryId);
+    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
+        sources,
+        queryId);
 
     final String applicationId = sharedKafkaStreamsRuntime
             .getStreamProperties()

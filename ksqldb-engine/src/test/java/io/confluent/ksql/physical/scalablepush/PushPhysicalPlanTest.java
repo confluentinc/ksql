@@ -97,6 +97,7 @@ public class PushPhysicalPlanTest {
         scalablePushRegistry, pushDataSourceOperator, context);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false, true);
+//    when(pushDataSourceOperator.hasError()).thenReturn(false, false);
 
     final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
@@ -146,7 +147,7 @@ public class PushPhysicalPlanTest {
 
       context.owner().cancelTimer(timerId);
     });
-//
+
     while (subscriber.getError() == null) {
       Thread.sleep(100);
     }

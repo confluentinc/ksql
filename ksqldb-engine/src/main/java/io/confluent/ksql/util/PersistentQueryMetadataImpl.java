@@ -116,10 +116,14 @@ public class PersistentQueryMetadataImpl
 
           @Override
           public void onStateChange(final QueryMetadata queryMetadata, final State before,
-              final State after) { }
+              final State after) {
+            listener.onStateChange(queryMetadata, before, after);
+          }
 
           @Override
-          public void onClose(final QueryMetadata queryMetadata) { }
+          public void onClose(final QueryMetadata queryMetadata) {
+            listener.onClose(queryMetadata);
+          }
         }
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");

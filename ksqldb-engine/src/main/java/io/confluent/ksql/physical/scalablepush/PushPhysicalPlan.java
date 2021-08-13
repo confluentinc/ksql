@@ -99,7 +99,6 @@ public class PushPhysicalPlan {
 
   private boolean isErrored(final Publisher publisher) {
     if (dataSourceOperator.droppedRows()) {
-      System.out.println("dropped rows");
       closeInternal();
       publisher.reportDroppedRows();
       return true;

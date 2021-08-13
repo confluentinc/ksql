@@ -17,6 +17,8 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -157,6 +159,17 @@ final class EngineExecutor {
     );
   }
 
+  @VisibleForTesting
+  ImmutableAnalysis getAnalysis(final Query query) {
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
+        NO_OUTPUT_TOPIC_PREFIX);
+    final ImmutableAnalysis analysis = new RewrittenAnalysis(
+        queryAnalyzer.analyze(query, Optional.empty()),
+        new ColumnReferenceRewriter()::process
+    );
+    return analysis;
+  }
+
   /**
    * Evaluates a pull query by first analyzing it, then building the logical plan and finally
    * the physical plan. The execution is then done using the physical plan in a pipelined manner.
@@ -183,12 +196,7 @@ final class EngineExecutor {
     RoutingNodeType routingNodeType = null;
 
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
-          NO_OUTPUT_TOPIC_PREFIX);
-      final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new ColumnReferenceRewriter()::process
-      );
+      final ImmutableAnalysis analysis = getAnalysis(statement.getStatement());
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
       // query performance significantly.  Instead use QueryPlannerOptions which check overrides
       // deliberately.
@@ -227,7 +235,7 @@ final class EngineExecutor {
           Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
 
       final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
-      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
+      final String messageLower = Strings.nullToEmpty(e.getMessage()).toLowerCase(Locale.ROOT);
       final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
 
       // do not include the statement text in the default logs as it may contain sensitive
@@ -252,13 +260,11 @@ final class EngineExecutor {
       }
       LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
 
-      throw new KsqlStatementException(
-          e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
-              : e.getMessage(),
-          statement.getStatementText(),
-          e
-      );
+      if (e instanceof KsqlException) {
+        throw e;
+      } else {
+        throw new RuntimeException("Error executing pull query", e);
+      }
     }
   }
 
@@ -445,7 +451,8 @@ final class EngineExecutor {
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }
 
-  private LogicalPlanNode buildAndValidateLogicalPlan(
+  @VisibleForTesting
+  LogicalPlanNode buildAndValidateLogicalPlan(
       final ConfiguredStatement<?> statement,
       final ImmutableAnalysis analysis,
       final KsqlConfig config,
@@ -473,7 +480,8 @@ final class EngineExecutor {
     return builder.buildPushPhysicalPlan(logicalPlan, context);
   }
 
-  private PullPhysicalPlan buildPullPhysicalPlan(
+  @VisibleForTesting
+  PullPhysicalPlan buildPullPhysicalPlan(
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis
   ) {

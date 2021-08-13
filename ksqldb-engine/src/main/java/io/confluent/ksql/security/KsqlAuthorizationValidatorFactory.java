@@ -54,8 +54,7 @@ public final class KsqlAuthorizationValidatorFactory {
       final ServiceContext serviceContext,
       final Optional<KsqlAuthorizationProvider> externalAuthorizationProvider
   ) {
-    // Piggy-back on the KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR to disable the external validation too
-    final String featureFlag = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
+    final String featureFlag = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR);
     if (featureFlag.equalsIgnoreCase(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
       return Optional.empty();
     }
@@ -87,7 +86,7 @@ public final class KsqlAuthorizationValidatorFactory {
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext
   ) {
-    final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
+    final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR);
     if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON)) {
       return true;
     }

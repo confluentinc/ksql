@@ -97,7 +97,7 @@ Would give:
 Since: 0.7.0
 
 ```sql
-cube_explode(array[col1, ..., colN])
+CUBE_EXPLODE(array[col1, ..., colN])
 ```
 
 Array

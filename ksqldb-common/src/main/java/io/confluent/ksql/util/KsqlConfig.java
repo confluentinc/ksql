@@ -393,7 +393,7 @@ public class KsqlConfig extends AbstractConfig {
           + "if false, new lambda queries won't be processed but any existing lambda "
           + "queries are unaffected.";
 
-  public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.SharedRuntime.enabled";
+  public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
   public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
   public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
       "Feature flag for sharing streams runtimes. "

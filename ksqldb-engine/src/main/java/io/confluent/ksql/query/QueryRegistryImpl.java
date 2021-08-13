@@ -29,6 +29,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -38,6 +39,7 @@ import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,8 +66,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
   private final QueryExecutorFactory executorFactory;
-  private final ArrayList<SharedKafkaStreamsRuntime> streams;
-  private final ArrayList<SharedKafkaStreamsRuntime> validationSet;
+  private final ArrayList<SharedKafkaStreamsRuntimeImpl> streams;
   private final boolean sandbox;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
@@ -83,7 +84,6 @@ public class QueryRegistryImpl implements QueryRegistry {
     this.eventListeners = Objects.requireNonNull(eventListeners);
     this.executorFactory = Objects.requireNonNull(executorFactory);
     this.streams = new ArrayList<>();
-    this.validationSet = new ArrayList<>();
     this.sandbox = false;
   }
 
@@ -129,7 +129,6 @@ public class QueryRegistryImpl implements QueryRegistry {
         .map(Optional::get)
         .collect(Collectors.toList());
     this.streams = original.streams;
-    this.validationSet = original.validationSet;
     sandbox = true;
   }
 
@@ -155,7 +154,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           processingLogContext,
           serviceContext,
           metaStore,
-          validationSet,
+          streams,
           !sandbox);
 
     final TransientQueryMetadata query = executor.buildTransientQuery(
@@ -196,7 +195,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           processingLogContext,
           serviceContext,
           metaStore,
-          validationSet,
+          streams,
           false);
     } else {
       executor = executorFactory.create(
@@ -207,19 +206,39 @@ public class QueryRegistryImpl implements QueryRegistry {
           streams,
           true);
     }
-    final PersistentQueryMetadata query = executor.buildPersistentQuery(
-        createAsQuery
-            ? KsqlConstants.PersistentQueryType.CREATE_AS
-            : KsqlConstants.PersistentQueryType.INSERT,
-        statementText,
-        queryId,
-        sinkDataSource,
-        sources,
-        physicalPlan,
-        planSummary,
-        new ListenerImpl(),
-        () -> ImmutableList.copyOf(getPersistentQueries().values())
-    );
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+
+    final PersistentQueryMetadata query;
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      query = executor.buildPersistentQueryInSharedRuntime(
+          ksqlConfig,
+          createAsQuery
+              ? KsqlConstants.PersistentQueryType.CREATE_AS
+              : KsqlConstants.PersistentQueryType.INSERT,
+          statementText,
+          queryId,
+          sinkDataSource,
+          sources, physicalPlan,
+          planSummary,
+          new ListenerImpl(),
+          () -> ImmutableList.copyOf(getPersistentQueries().values())
+      );
+    } else {
+      query = executor.buildPersistentQueryInDedicatedRuntime(
+          ksqlConfig,
+          createAsQuery
+              ? KsqlConstants.PersistentQueryType.CREATE_AS
+              : KsqlConstants.PersistentQueryType.INSERT,
+          statementText,
+          queryId,
+          sinkDataSource,
+          sources, physicalPlan,
+          planSummary,
+          new ListenerImpl(),
+          () -> ImmutableList.copyOf(getPersistentQueries().values())
+      );
+    }
     registerQuery(serviceContext, metaStore, query, createAsQuery);
     return query;
   }
@@ -295,9 +314,6 @@ public class QueryRegistryImpl implements QueryRegistry {
       }
     }
     for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      sharedKafkaStreamsRuntime.close();
-    }
-    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : validationSet) {
       sharedKafkaStreamsRuntime.close();
     }
   }
@@ -397,7 +413,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,
         FunctionRegistry functionRegistry,
-        ArrayList<SharedKafkaStreamsRuntime> streams,
+        ArrayList<SharedKafkaStreamsRuntimeImpl> streams,
         boolean real);
   }
 

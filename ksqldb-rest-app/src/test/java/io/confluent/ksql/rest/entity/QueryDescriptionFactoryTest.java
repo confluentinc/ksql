@@ -119,7 +119,7 @@ public class QueryDescriptionFactoryTest {
   @Before
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
-    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
+    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any(), any())).thenReturn(queryStreams);
     when(queryStreams.metadataForLocalThreads()).thenReturn(Collections.emptySet());
 
     when(sinkTopic.getKeyFormat()).thenReturn(

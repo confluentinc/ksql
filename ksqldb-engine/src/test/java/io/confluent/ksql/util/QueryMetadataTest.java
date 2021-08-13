@@ -25,7 +25,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
@@ -93,7 +92,7 @@ public class QueryMetadataTest {
 
   @Before
   public void setup() {
-    when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
+    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 

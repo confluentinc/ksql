@@ -1702,7 +1702,7 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(statements.get(1));
 
     // When:
-    sandbox.execute(
+     sandbox.execute(
         sandboxServiceContext,
         ConfiguredStatement
             .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))

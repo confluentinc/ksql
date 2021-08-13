@@ -45,19 +45,19 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   private static final Logger LOG = LoggerFactory.getLogger(SharedKafkaStreamsRuntimeImpl.class);
 
-  private final KafkaStreamsBuilder kafkaStreamsBuilder;
+  public final KafkaStreamsBuilder kafkaStreamsBuilder;
   private QueryErrorClassifier errorClassifier ;
   private KafkaStreamsNamedTopologyWrapper kafkaStreams;
   private ImmutableMap<String, Object> streamsProperties;
   private final QueryMetadataImpl.TimeBoundedQueue queryErrors;
-  private final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
+  public final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
   public final Map<QueryId, Set<SourceName>> sources;
 
   public SharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                        final int maxQueryErrorsQueueSize,
                                        final Map<String, Object> streamsProperties) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
-    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
     queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);

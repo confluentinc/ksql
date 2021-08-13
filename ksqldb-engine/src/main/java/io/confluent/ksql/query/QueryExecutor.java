@@ -99,7 +99,7 @@ final class QueryExecutor {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
-  private final List<SharedKafkaStreamsRuntime> streams;
+  private final List<SharedKafkaStreamsRuntimeImpl> streams;
   private final boolean real;
 
   QueryExecutor(
@@ -107,7 +107,7 @@ final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final ArrayList<SharedKafkaStreamsRuntime> streams,
+      final ArrayList<SharedKafkaStreamsRuntimeImpl> streams,
       final boolean real
   ) {
     this(
@@ -138,7 +138,7 @@ final class QueryExecutor {
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
-      final ArrayList<SharedKafkaStreamsRuntime> streams,
+      final ArrayList<SharedKafkaStreamsRuntimeImpl> streams,
       final boolean real
   ) {
     this.config = Objects.requireNonNull(config, "config");
@@ -243,48 +243,7 @@ final class QueryExecutor {
     return registry;
   }
 
-  PersistentQueryMetadata buildPersistentQuery(
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementText,
-      final QueryId queryId,
-      final DataSource sinkDataSource,
-      final Set<SourceName> sources,
-      final ExecutionStep<?> physicalPlan,
-      final String planSummary,
-      final QueryMetadata.Listener listener,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
-  ) {
-    final KsqlConfig ksqlConfig = config.getConfig(true);
-
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      return buildSharedPersistentQuery(
-              ksqlConfig,
-              persistentQueryType,
-              statementText,
-              queryId,
-              sinkDataSource,
-              sources, physicalPlan,
-              planSummary,
-              listener,
-              allPersistentQueries
-      );
-    } else {
-      return buildNotSharedPersistentQuery(
-              ksqlConfig,
-              persistentQueryType,
-              statementText,
-              queryId,
-              sinkDataSource,
-              sources, physicalPlan,
-              planSummary,
-              listener,
-              allPersistentQueries
-      );
-    }
-
-  }
-
-  PersistentQueryMetadata buildNotSharedPersistentQuery(
+  PersistentQueryMetadata buildPersistentQueryInDedicatedRuntime(
           final KsqlConfig ksqlConfig,
           final KsqlConstants.PersistentQueryType persistentQueryType,
           final String statementText,
@@ -370,7 +329,7 @@ final class QueryExecutor {
 
   }
 
-  PersistentQueryMetadata buildSharedPersistentQuery(
+  PersistentQueryMetadata buildPersistentQueryInSharedRuntime(
       final KsqlConfig ksqlConfig,
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
@@ -382,7 +341,7 @@ final class QueryExecutor {
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
-    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources, queryId);
+    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(sources, queryId);
 
     final String applicationId = sharedKafkaStreamsRuntime
             .getStreamProperties()
@@ -460,14 +419,18 @@ final class QueryExecutor {
 
   }
 
-  private SharedKafkaStreamsRuntime getStream(
+  private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
           final Set<SourceName> sources,
           final QueryId queryID) {
-    for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntimeImpl : streams) {
+    for (final SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl : streams) {
       if (sharedKafkaStreamsRuntimeImpl.getSources().stream().noneMatch(sources::contains)
           || sharedKafkaStreamsRuntimeImpl.getQueries().contains(queryID)) {
         sharedKafkaStreamsRuntimeImpl.markSources(queryID, sources);
-        return sharedKafkaStreamsRuntimeImpl;
+        if (real) {
+          return sharedKafkaStreamsRuntimeImpl;
+        } else {
+          return new ValidationSharedKafkaStreamsRuntimeImpl(sharedKafkaStreamsRuntimeImpl);
+        }
       }
     }
     final SharedKafkaStreamsRuntime stream;
@@ -477,15 +440,15 @@ final class QueryExecutor {
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
       );
+      streams.add((SharedKafkaStreamsRuntimeImpl) stream);
     } else {
       stream = new ValidationSharedKafkaStreamsRuntimeImpl(
-      kafkaStreamsBuilder,
-      config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-      buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
+          kafkaStreamsBuilder,
+          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
     );
     }
     stream.markSources(queryID, sources);
-    streams.add(stream);
     return stream;
 
   }

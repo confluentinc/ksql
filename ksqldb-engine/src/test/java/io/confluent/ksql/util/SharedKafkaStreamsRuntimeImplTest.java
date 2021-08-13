@@ -1,12 +1,12 @@
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,7 +57,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
     @Before
     public void setUp() throws Exception {
-        when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
+        when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             5,
@@ -85,6 +85,10 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
     @Test
     public void shouldNotAddQuery() {
+        //Given:
+        sharedKafkaStreamsRuntimeImpl.markSources(queryId2, Collections.emptySet());
+        when(persistentQueriesInSharedRuntimes.getSourceNames())
+            .thenReturn(Collections.singleton(SourceName.of("foo")));
         //When:
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
             () -> sharedKafkaStreamsRuntimeImpl.register(

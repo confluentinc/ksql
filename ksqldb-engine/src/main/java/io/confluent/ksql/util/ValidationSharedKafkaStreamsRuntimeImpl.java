@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -43,15 +44,27 @@ import org.slf4j.LoggerFactory;
 public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime {
   private static final Logger LOG = LoggerFactory.getLogger(SharedKafkaStreamsRuntimeImpl.class);
 
-  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
-  private ImmutableMap<String, Object> streamsProperties;
+  private final KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  private final Map<String, Object> streamsProperties;
   private final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
   public final Map<QueryId, Set<SourceName>> sources;
+
+  public ValidationSharedKafkaStreamsRuntimeImpl(final SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntime) {
+    streamsProperties = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getStreamProperties());
+    streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG,
+        streamsProperties.get(StreamsConfig.APPLICATION_ID_CONFIG)+ "validation");
+    kafkaStreams = sharedKafkaStreamsRuntime.kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+    metadata = new ConcurrentHashMap(sharedKafkaStreamsRuntime.metadata);
+    sources = new ConcurrentHashMap(sharedKafkaStreamsRuntime.sources);
+    for(PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
+      kafkaStreams.addNamedTopology(queryMetadata.getTopology());
+    }
+  }
 
   public ValidationSharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                                  final int maxQueryErrorsQueueSize,
                                                  final Map<String, Object> streamsProperties) {
-    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new ConcurrentHashMap<>();
     sources = new ConcurrentHashMap<>();

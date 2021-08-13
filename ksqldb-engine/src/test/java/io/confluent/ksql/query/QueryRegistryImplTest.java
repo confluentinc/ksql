@@ -25,11 +25,15 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -37,17 +41,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
   @Mock
   private SessionConfig config;
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Mock
   private ProcessingLogContext logContext;
   @Mock
@@ -67,7 +77,21 @@ public class QueryRegistryImplTest {
   @Captor
   private ArgumentCaptor<QueryMetadata.Listener> queryListenerCaptor;
 
+  @Rule
+  public MockitoRule rule = MockitoJUnit.rule();
+
   private QueryRegistryImpl registry;
+
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean> data() {
+    return Arrays.asList(
+        true, false
+    );
+  }
+
+  @Parameterized.Parameter
+  public boolean sharedRuntimes;
 
   @Before
   public void setup() {
@@ -376,8 +400,13 @@ public class QueryRegistryImplTest {
       final String id
   ) {
     givenCreate(registry, id, "source", "sink1", true);
-    verify(executor).buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+    if (!sharedRuntimes) {
+      verify(executor).buildPersistentQueryInDedicatedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+    } else {
+      verify(executor).buildPersistentQueryInSharedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+    }
     return queryListenerCaptor.getValue();
   }
 
@@ -399,9 +428,17 @@ public class QueryRegistryImplTest {
     when(query.getPersistentQueryType()).thenReturn(createAs
         ? KsqlConstants.PersistentQueryType.CREATE_AS
         : KsqlConstants.PersistentQueryType.INSERT);
-    when(executor.buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), any())
-    ).thenReturn(query);
+    if (sharedRuntimes) {
+      when(executor.buildPersistentQueryInSharedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+      ).thenReturn(query);
+    } else {
+      when(executor.buildPersistentQueryInDedicatedRuntime(
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+      ).thenReturn(query);
+    }
+    when(config.getConfig(true)).thenReturn(ksqlConfig);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(sharedRuntimes);
     registry.createOrReplacePersistentQuery(
         config,
         serviceContext,

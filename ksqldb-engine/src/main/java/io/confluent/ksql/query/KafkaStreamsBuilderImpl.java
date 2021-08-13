@@ -31,7 +31,7 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
   }
 
   @Override
-  public KafkaStreams build(
+  public KafkaStreams buildNamedTopologyWrapper(
           final Topology topology,
           final Map<String, Object> conf
   ) {
@@ -43,7 +43,7 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
   }
 
   @Override
-  public KafkaStreamsNamedTopologyWrapper build(
+  public KafkaStreamsNamedTopologyWrapper buildNamedTopologyWrapper(
           final Map<String, Object> conf
   ) {
     return new KafkaStreamsNamedTopologyWrapper(

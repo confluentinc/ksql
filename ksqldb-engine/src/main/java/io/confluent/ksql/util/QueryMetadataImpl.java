@@ -170,7 +170,7 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   public void initialize() {
     // initialize the first KafkaStreams
-    resetKafkaStreams(kafkaStreamsBuilder.build(topology, streamsProperties));
+    resetKafkaStreams(kafkaStreamsBuilder.buildNamedTopologyWrapper(topology, streamsProperties));
     this.initialized = true;
   }
 

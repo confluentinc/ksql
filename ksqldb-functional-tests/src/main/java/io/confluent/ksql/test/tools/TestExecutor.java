@@ -217,6 +217,7 @@ public class TestExecutor implements Closeable {
             try {
               topicInfoCache.get(name);
             } catch (Exception e) {
+              e.printStackTrace(System.out);
             }
           });
 

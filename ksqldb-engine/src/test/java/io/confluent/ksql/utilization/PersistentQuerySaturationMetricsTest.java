@@ -21,7 +21,9 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -58,6 +60,7 @@ public class PersistentQuerySaturationMetricsTest {
   private static final String APP_ID2 = "pong";
   private static final QueryId QUERY_ID1 = new QueryId("hootie");
   private static final QueryId QUERY_ID2 = new QueryId("hoo");
+  private static final QueryId QUERY_ID3 = new QueryId("boom");
 
   @Mock
   private MetricsReporter reporter;
@@ -72,6 +75,8 @@ public class PersistentQuerySaturationMetricsTest {
   @Mock
   private PersistentQueryMetadata query2;
   @Mock
+  private PersistentQueryMetadata query3;
+  @Mock
   private KsqlEngine engine;
   @Captor
   private ArgumentCaptor<List<DataPoint>> reportedPoints;
@@ -83,13 +88,16 @@ public class PersistentQuerySaturationMetricsTest {
 
   @Before
   public void setup() {
-    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(query1, query2));
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(query1, query2, query3));
     when(query1.getQueryId()).thenReturn(QUERY_ID1);
     when(query1.getKafkaStreams()).thenReturn(kafkaStreams1);
     when(query1.getQueryApplicationId()).thenReturn(APP_ID1);
     when(query2.getQueryId()).thenReturn(QUERY_ID2);
     when(query2.getKafkaStreams()).thenReturn(kafkaStreams2);
     when(query2.getQueryApplicationId()).thenReturn(APP_ID2);
+    when(query3.getQueryId()).thenReturn(QUERY_ID3);
+    when(query3.getKafkaStreams()).thenReturn(kafkaStreams1);
+    when(query3.getQueryApplicationId()).thenReturn(APP_ID1);
     collector = new PersistentQuerySaturationMetrics(
         clock,
         engine,
@@ -252,7 +260,7 @@ public class PersistentQuerySaturationMetricsTest {
   }
 
   @Test
-  public void shouldCleanupQueryMetric() {
+  public void shouldCleanupQueryMetricWhenRuntimeRemoved() {
     // Given:
     final Instant start = Instant.now();
     when(clock.get()).thenReturn(start);
@@ -267,6 +275,54 @@ public class PersistentQuerySaturationMetricsTest {
 
     // Then:
     verify(reporter).cleanup("query-saturation", ImmutableMap.of("query-id", "hootie"));
+  }
+
+  @Test
+  public void shouldAddPointsForQueriesSharingRuntimes() {
+    // Given:
+    final Instant start = Instant.now();
+    when(clock.get()).thenReturn(start);
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(2));
+    collector.run();
+    when(clock.get()).thenReturn(start.plus(WINDOW));
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(3));
+
+    // When:
+    collector.run();
+
+    // Then:
+    final DataPoint point = verifyAndGetLatestDataPoint(
+        "query-saturation",
+        ImmutableMap.of("query-id", "boom")
+    );
+    assertThat((Double) point.getValue(), closeTo(.9, .01));
+  }
+
+  @Test
+  public void shouldCleanupPointsForQueriesFromSharedRuntimes() {
+    // Given:
+    final Instant start = Instant.now();
+    when(clock.get()).thenReturn(start);
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(2));
+    collector.run();
+    when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(query1, query2));
+    when(clock.get()).thenReturn(start.plus(WINDOW));
+    givenMetrics(kafkaStreams1)
+        .withThreadStartTime("t1", start.minus(WINDOW.multipliedBy(2)))
+        .withBlockedTime("t1", Duration.ofMinutes(3));
+
+    // When:
+    collector.run();
+
+    // Then:
+    verify(reporter).cleanup("query-saturation", ImmutableMap.of("query-id", "boom"));
+    verify(reporter, times(0)).cleanup("query-saturation", ImmutableMap.of("query-id", "hoo"));
   }
 
   private List<DataPoint> verifyAndGetDataPoints(final String name, final Map<String, String> tag) {

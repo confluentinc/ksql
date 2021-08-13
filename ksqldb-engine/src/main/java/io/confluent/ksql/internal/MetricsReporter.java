@@ -111,7 +111,7 @@ public interface MetricsReporter extends Closeable, Configurable {
   void report(List<DataPoint> dataPoints);
 
   /**
-   * Notifies te reporter that the metric with name and tags can be cleaned up
+   * Notifies the reporter that the metric with name and tags can be cleaned up
    */
   void cleanup(String name, Map<String, String> tags);
 }

@@ -94,7 +94,10 @@ public class PersistentQuerySaturationMetrics implements Runnable {
     try {
       final Collection<PersistentQueryMetadata> queries = engine.getPersistentQueries();
       final Optional<Double> saturation = queries.stream()
-          .map(q -> measure(now, q))
+          .collect(Collectors.groupingBy(PersistentQueryMetadata::getQueryApplicationId))
+          .entrySet()
+          .stream()
+          .map(e -> measure(now, e.getKey(), e.getValue()))
           .max(PersistentQuerySaturationMetrics::compareSaturation)
           .orElse(Optional.of(0.0));
       saturation.ifPresent(s -> report(now, s));
@@ -125,16 +128,26 @@ public class PersistentQuerySaturationMetrics implements Runnable {
     }
   }
 
-  private Optional<Double> measure(final Instant now, final PersistentQueryMetadata queryMetadata) {
+  private Optional<Double> measure(
+      final Instant now,
+      final String appId,
+      final List<PersistentQueryMetadata> queryMetadata
+  ) {
     final KafkaStreamsSaturation ksSaturation = perKafkaStreamsStats.computeIfAbsent(
-        queryMetadata.getQueryApplicationId(),
-        k -> new KafkaStreamsSaturation(queryMetadata.getQueryId(), window, sampleMargin)
+        appId,
+        k -> new KafkaStreamsSaturation(window, sampleMargin)
     );
-    final KafkaStreams kafkaStreams = queryMetadata.getKafkaStreams();
-    if (kafkaStreams == null) {
+    final Optional<KafkaStreams> kafkaStreams = queryMetadata.stream()
+        .filter(q -> q.getKafkaStreams() != null)
+        .map(PersistentQueryMetadata::getKafkaStreams)
+        .findFirst();
+    if (!kafkaStreams.isPresent()) {
       return Optional.of(0.0);
     }
-    return ksSaturation.measure(now, kafkaStreams, reporter);
+    final List<QueryId> queryIds = queryMetadata.stream()
+        .map(PersistentQueryMetadata::getQueryId)
+        .collect(Collectors.toList());
+    return ksSaturation.measure(now, queryIds, kafkaStreams.get(), reporter);
   }
 
   private void report(final Instant now, final double saturation) {
@@ -152,17 +165,15 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   }
 
   private static final class KafkaStreamsSaturation {
-    private final QueryId queryId;
+    private final Set<QueryId> queryIds = new HashSet<>();
     private final Map<String, ThreadSaturation> perThreadSaturation = new HashMap<>();
     private final Duration window;
     private final Duration sampleMargin;
 
     private KafkaStreamsSaturation(
-        final QueryId queryId,
         final Duration window,
         final Duration sampleMargin
     ) {
-      this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.window = Objects.requireNonNull(window, "window");
       this.sampleMargin = Objects.requireNonNull(sampleMargin, "sampleMargin");
     }
@@ -187,18 +198,27 @@ public class PersistentQuerySaturationMetrics implements Runnable {
     private void reportQuerySaturation(
         final Instant now,
         final double saturation,
-        final QueryId queryId,
         final MetricsReporter reporter
     ) {
-      LOGGER.info("Reporting query saturation {} for {}", saturation, queryId);
-      reporter.report(ImmutableList.of(
-          new DataPoint(
-              now,
-              QUERY_SATURATION,
-              saturation,
-              ImmutableMap.of(QUERY_ID, queryId.toString())
-          )
-      ));
+      for (final QueryId queryId : queryIds) {
+        LOGGER.info("Reporting query saturation {} for {}", saturation, queryId);
+        reporter.report(ImmutableList.of(
+            new DataPoint(
+                now,
+                QUERY_SATURATION,
+                saturation,
+                ImmutableMap.of(QUERY_ID, queryId.toString())
+            )
+        ));
+      }
+    }
+
+    private void updateQueryIds(final List<QueryId> newQueryIds, final MetricsReporter reporter) {
+      for (final QueryId queryId : Sets.difference(queryIds, new HashSet<>(newQueryIds))) {
+        reporter.cleanup(QUERY_SATURATION, ImmutableMap.of(QUERY_ID, queryId.toString()));
+      }
+      queryIds.clear();
+      queryIds.addAll(newQueryIds);
     }
 
     private Map<String, Map<String, Metric>> metricsByThread(final KafkaStreams kafkaStreams) {
@@ -212,9 +232,11 @@ public class PersistentQuerySaturationMetrics implements Runnable {
 
     private Optional<Double> measure(
         final Instant now,
+        final List<QueryId> queryIds,
         final KafkaStreams kafkaStreams,
         final MetricsReporter reporter
     ) {
+      updateQueryIds(queryIds, reporter);
       final Map<String, Map<String, Metric>> byThread = metricsByThread(kafkaStreams);
       Optional<Double> saturation = Optional.of(0.0);
       for (final Map.Entry<String, Map<String, Metric>> entry : byThread.entrySet()) {
@@ -247,7 +269,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
         measured.ifPresent(m -> reportThreadSaturation(now, m, threadName, reporter));
         saturation = compareSaturation(saturation, measured) > 0 ? saturation : measured;
       }
-      saturation.ifPresent(s -> reportQuerySaturation(now, s, queryId, reporter));
+      saturation.ifPresent(s -> reportQuerySaturation(now, s, reporter));
       for (final String threadName
           : Sets.difference(new HashSet<>(perThreadSaturation.keySet()), byThread.keySet())) {
         perThreadSaturation.remove(threadName);
@@ -260,7 +282,9 @@ public class PersistentQuerySaturationMetrics implements Runnable {
       for (final String threadName : perThreadSaturation.keySet()) {
         reporter.cleanup(QUERY_THREAD_SATURATION, ImmutableMap.of(THREAD_ID, threadName));
       }
-      reporter.cleanup(QUERY_SATURATION, ImmutableMap.of(QUERY_ID, queryId.toString()));
+      for (final QueryId queryId : queryIds) {
+        reporter.cleanup(QUERY_SATURATION, ImmutableMap.of(QUERY_ID, queryId.toString()));
+      }
     }
   }
 

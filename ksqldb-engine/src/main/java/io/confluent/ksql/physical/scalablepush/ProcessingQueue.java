@@ -38,7 +38,6 @@ public class ProcessingQueue {
   private boolean closed = false;
   private boolean droppedRows = false;
   private boolean hasError = false;
-  private boolean hasStateChange = false;
   private Runnable newRowCallback = () -> { };
 
   public ProcessingQueue(final QueryId queryId) {

@@ -96,8 +96,7 @@ public class PushPhysicalPlanTest {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
         scalablePushRegistry, pushDataSourceOperator, context);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
-    when(pushDataSourceOperator.droppedRows()).thenReturn(false, true);
-//    when(pushDataSourceOperator.hasError()).thenReturn(false, false);
+    when(pushDataSourceOperator.droppedRows()).thenReturn(false, false, true);
 
     final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
@@ -130,7 +129,7 @@ public class PushPhysicalPlanTest {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
         scalablePushRegistry, pushDataSourceOperator, context);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
-    when(pushDataSourceOperator.hasError()).thenReturn(true);
+    when(pushDataSourceOperator.hasError()).thenReturn(false, false, true);
 
     final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
@@ -153,6 +152,8 @@ public class PushPhysicalPlanTest {
     }
 
     assertThat(subscriber.getError().getMessage(), containsString("Persistent query has error"));
+    assertThat(subscriber.getValues().size(), is(1));
+    assertThat(subscriber.getValues().get(0), is(ROW1));
     assertThat(pushPhysicalPlan.isClosed(), is(true));
   }
 

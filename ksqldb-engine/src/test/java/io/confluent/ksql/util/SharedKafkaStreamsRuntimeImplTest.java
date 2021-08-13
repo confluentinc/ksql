@@ -64,7 +64,9 @@ public class SharedKafkaStreamsRuntimeImplTest {
             streamProps
         );
         when(queryId.toString()).thenReturn("query 1");
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.emptySet());
+        when(queryId2.toString()).thenReturn("query 2");
+
+        sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.singleton(SourceName.of("foo")));
         sharedKafkaStreamsRuntimeImpl.register(
             queryErrorClassifier,
             Collections.emptyMap(),
@@ -86,7 +88,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Test
     public void shouldNotAddQuery() {
         //Given:
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId2, Collections.emptySet());
         when(persistentQueriesInSharedRuntimes.getSourceNames())
             .thenReturn(Collections.singleton(SourceName.of("foo")));
         //When:

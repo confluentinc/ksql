@@ -169,7 +169,8 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
         throw new IllegalStateException("Streams in not running but is in state"
             + kafkaStreams.state());
       }
-      kafkaStreams.cleanUpNamedTopology(queryId.toString());
+      //kafkaStreams.cleanUpNamedTopology(queryId.toString());
+      // Once remove is blocking this can be uncommented for now it breaks
     }
   }
 

@@ -49,14 +49,17 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
   private final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
   public final Map<QueryId, Set<SourceName>> sources;
 
-  public ValidationSharedKafkaStreamsRuntimeImpl(final SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntime) {
+  public ValidationSharedKafkaStreamsRuntimeImpl(
+      final SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntime
+  ) {
     streamsProperties = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getStreamProperties());
     streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG,
-        streamsProperties.get(StreamsConfig.APPLICATION_ID_CONFIG)+ "validation");
-    kafkaStreams = sharedKafkaStreamsRuntime.kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+        streamsProperties.get(StreamsConfig.APPLICATION_ID_CONFIG) + "validation");
+    kafkaStreams = sharedKafkaStreamsRuntime.kafkaStreamsBuilder
+        .buildNamedTopologyWrapper(streamsProperties);
     metadata = new ConcurrentHashMap(sharedKafkaStreamsRuntime.metadata);
     sources = new ConcurrentHashMap(sharedKafkaStreamsRuntime.sources);
-    for(PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
+    for (PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
       kafkaStreams.addNamedTopology(queryMetadata.getTopology());
     }
   }

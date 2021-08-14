@@ -142,4 +142,5 @@ EXPLODE(col1)
 Array
 
 This function takes an Array and outputs one value for each of the elements
-of the array. The output values have the same type as the  array elements.                                                    
+of the array. The output values have the same type as the array elements.                                                    
+

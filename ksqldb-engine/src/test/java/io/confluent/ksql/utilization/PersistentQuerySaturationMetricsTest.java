@@ -155,7 +155,7 @@ public class PersistentQuerySaturationMetricsTest {
 
     // Then:
     final DataPoint point = verifyAndGetLatestDataPoint(
-        "query-saturation",
+        "node-query-saturation",
         ImmutableMap.of("query-id", "hootie")
     );
     assertThat((Double) point.getValue(), closeTo(.9, .01));
@@ -186,7 +186,7 @@ public class PersistentQuerySaturationMetricsTest {
 
     // Then:
     final DataPoint point = verifyAndGetLatestDataPoint(
-        "node-query-saturation",
+        "max-node-query-saturation",
         Collections.emptyMap()
     );
     assertThat((Double) point.getValue(), closeTo(.9, .01));
@@ -210,7 +210,7 @@ public class PersistentQuerySaturationMetricsTest {
     collector.run();
 
     // Then:
-    verifyNoDataPoints("node-query-saturation", Collections.emptyMap());
+    verifyNoDataPoints("max-node-query-saturation", Collections.emptyMap());
   }
 
   @Test
@@ -274,7 +274,7 @@ public class PersistentQuerySaturationMetricsTest {
     collector.run();
 
     // Then:
-    verify(reporter).cleanup("query-saturation", ImmutableMap.of("query-id", "hootie"));
+    verify(reporter).cleanup("node-query-saturation", ImmutableMap.of("query-id", "hootie"));
   }
 
   @Test
@@ -296,7 +296,7 @@ public class PersistentQuerySaturationMetricsTest {
 
     // Then:
     final DataPoint point = verifyAndGetLatestDataPoint(
-        "query-saturation",
+        "node-query-saturation",
         ImmutableMap.of("query-id", "boom")
     );
     assertThat((Double) point.getValue(), closeTo(.9, .01));
@@ -321,8 +321,8 @@ public class PersistentQuerySaturationMetricsTest {
     collector.run();
 
     // Then:
-    verify(reporter).cleanup("query-saturation", ImmutableMap.of("query-id", "boom"));
-    verify(reporter, times(0)).cleanup("query-saturation", ImmutableMap.of("query-id", "hoo"));
+    verify(reporter).cleanup("node-query-saturation", ImmutableMap.of("query-id", "boom"));
+    verify(reporter, times(0)).cleanup("node-query-saturation", ImmutableMap.of("query-id", "hoo"));
   }
 
   private List<DataPoint> verifyAndGetDataPoints(final String name, final Map<String, String> tag) {

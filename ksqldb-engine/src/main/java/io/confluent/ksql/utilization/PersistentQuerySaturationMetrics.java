@@ -47,8 +47,8 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   private static final Logger LOGGER
       = LoggerFactory.getLogger(PersistentQuerySaturationMetrics.class);
 
-  private static final String QUERY_SATURATION = "query-saturation";
-  private static final String NODE_QUERY_SATURATION = "node-query-saturation";
+  private static final String QUERY_SATURATION = "node-query-saturation";
+  private static final String NODE_QUERY_SATURATION = "max-node-query-saturation";
   private static final String QUERY_THREAD_SATURATION = "query-thread-saturation";
   private static final String STREAMS_TOTAL_BLOCKED_TIME = "blocked-time-total";
   private static final String STREAMS_THREAD_START_TIME = "thread-start-time";

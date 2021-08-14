@@ -192,7 +192,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
 
-  public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
+  public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
   public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
   public static final String KSQL_ACCESS_VALIDATOR_AUTO = "auto";
@@ -759,7 +759,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_EXTENSION_DOC
         ).define(
-            KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR,
+            KSQL_ENABLE_ACCESS_VALIDATOR,
             Type.STRING,
             KSQL_ACCESS_VALIDATOR_AUTO,
             ValidString.in(

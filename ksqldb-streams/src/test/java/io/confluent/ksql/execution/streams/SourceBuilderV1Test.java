@@ -16,10 +16,14 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
+import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -30,10 +34,13 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.util.KsqlException;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.plan.TableSourceV1;
+import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -46,9 +53,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
-import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -116,11 +121,17 @@ public class SourceBuilderV1Test {
 
   private static final GenericKey KEY = GenericKey.genericKey(A_KEY);
 
-  private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
-      .withPseudoAndKeyColsInValue(false);
+  private static final LogicalSchema SCHEMA_WITHOUT_NEW_PSEUDOCOLUMNS = SOURCE_SCHEMA
+      .withPseudoAndKeyColsInValue(false, LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
 
-  private static final LogicalSchema WINDOWED_SCHEMA = SOURCE_SCHEMA
-      .withPseudoAndKeyColsInValue(true);
+  private static final LogicalSchema WINDOWED_SCHEMA_WITHOUT_NEW_PSEUDOCOLUMNS = SOURCE_SCHEMA
+      .withPseudoAndKeyColsInValue(true, LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+
+  private static final LogicalSchema SCHEMA_WITH_NEW_PSEUDOCOLUMNS = SOURCE_SCHEMA
+      .withPseudoAndKeyColsInValue(false, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+  private static final LogicalSchema WINDOWED_SCHEMA_WITH_NEW_PSEUDOCOLUMNS = SOURCE_SCHEMA
+      .withPseudoAndKeyColsInValue(true, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
@@ -197,8 +208,8 @@ public class SourceBuilderV1Test {
 
   private StreamSource streamSource;
   private WindowedStreamSource windowedStreamSource;
-  private TableSource tableSource;
-  private WindowedTableSource windowedTableSource;
+  private TableSourceV1 tableSourceV1;
+  private WindowedTableSourceV1 windowedTableSourceV1;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -318,10 +329,10 @@ public class SourceBuilderV1Test {
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceTable() {
     // Given:
-    givenUnwindowedSourceTable(true);
+    givenUnwindowedSourceTableV1(true);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -338,11 +349,11 @@ public class SourceBuilderV1Test {
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceTableWithoutForcingChangelog() {
     // Given:
-    givenUnwindowedSourceTable(false);
+    givenUnwindowedSourceTableV1(false);
     when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -364,11 +375,11 @@ public class SourceBuilderV1Test {
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceTableWithDownstreamRepartition() {
     // Given:
-    givenUnwindowedSourceTable(true);
-    final PlanInfo planInfo = givenDownstreamRepartition(tableSource);
+    givenUnwindowedSourceTableV1(true);
+    final PlanInfo planInfo = givenDownstreamRepartition(tableSourceV1);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -388,11 +399,11 @@ public class SourceBuilderV1Test {
     when(buildContext.getKsqlConfig()).thenReturn(
         KSQL_CONFIG.cloneWithPropertyOverwrite(
             ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo")));
-    givenUnwindowedSourceTable(false);
+    givenUnwindowedSourceTableV1(false);
     when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
-    tableSource.build(planBuilder, planInfo);
+    tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withValueSerde(serdeCaptor.capture());
@@ -404,10 +415,10 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldUseOffsetResetEarliestForTable() {
     // Given:
-    givenUnwindowedSourceTable(true);
+    givenUnwindowedSourceTableV1(true);
 
     // When
-    tableSource.build(planBuilder, planInfo);
+    tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -416,10 +427,10 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldUseOffsetResetEarliestForWindowedTable() {
     // Given:
-    givenWindowedSourceTable();
+    givenWindowedSourceTableV1();
 
     // When
-    windowedTableSource.build(planBuilder, planInfo);
+    windowedTableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -431,10 +442,10 @@ public class SourceBuilderV1Test {
     when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(
         ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
     ));
-    givenUnwindowedSourceTable(true);
+    givenUnwindowedSourceTableV1(true);
 
     // When
-    tableSource.build(planBuilder, planInfo);
+    tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
@@ -449,19 +460,47 @@ public class SourceBuilderV1Test {
     final KStreamHolder<?> builtKstream = streamSource.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKstream.getSchema(), is(SCHEMA));
+    assertThat(builtKstream.getSchema(), is(SCHEMA_WITH_NEW_PSEUDOCOLUMNS));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaForLegacyUnwindowedSourceStream() {
+    // Given:
+    givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+
+    // When:
+    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder, planInfo);
+
+    // Then:
+    assertThat(builtKstream.getSchema(), is(SCHEMA_WITHOUT_NEW_PSEUDOCOLUMNS));
   }
 
   @Test
   public void shouldReturnCorrectSchemaForUnwindowedSourceTable() {
     // Given:
-    givenUnwindowedSourceTable(true);
+    givenUnwindowedSourceTableV1(true);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
+    final KTableHolder<GenericKey> builtKTable = tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKTable.getSchema(), is(SCHEMA));
+    assertThat(builtKTable.getSchema(), is(SCHEMA_WITHOUT_NEW_PSEUDOCOLUMNS));
+  }
+
+  @Test
+  public void shouldThrowWhenTryingToCreateUnwindowedTableWithNewPseudoColumnVersion() {
+    // Given:
+    givenUnwindowedSourceTableV1(true, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> tableSourceV1.build(planBuilder, planInfo)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Should not be using old execution step version with new queries"));
   }
 
   @Test
@@ -502,25 +541,54 @@ public class SourceBuilderV1Test {
     final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
-    assertThat(builtKstream.getSchema(), is(WINDOWED_SCHEMA));
+    assertThat(builtKstream.getSchema(), is(WINDOWED_SCHEMA_WITH_NEW_PSEUDOCOLUMNS));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaForLegacyWindowedSourceStream() {
+    // Given:
+    givenWindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+
+    // When:
+    final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder, planInfo);
+
+    // Then:
+    assertThat(builtKstream.getSchema(), is(WINDOWED_SCHEMA_WITHOUT_NEW_PSEUDOCOLUMNS));
   }
 
   @Test
   public void shouldReturnCorrectSchemaForWindowedSourceTable() {
     // Given:
-    givenWindowedSourceTable();
+    givenWindowedSourceTableV1(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder, planInfo);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> windowedTableSourceV1.build(planBuilder, planInfo)
+    );
 
     // Then:
-    assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA));
+    assertThat(e.getMessage(), containsString(
+        "Should not be using old execution step version with new queries"));
   }
 
   @Test
-  public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedStream() {
+  public void shouldReturnCorrectSchemaForLegacyWindowedSourceTable() {
     // Given:
-    givenUnwindowedSourceStream();
+    givenWindowedSourceTableV1();
+
+    // When:
+    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSourceV1
+        .build(planBuilder, planInfo);
+
+    // Then:
+    assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA_WITHOUT_NEW_PSEUDOCOLUMNS));
+  }
+
+  @Test
+  public void shouldAddRowTimeAndRowKeyColumnsToLegacyNonWindowedStream() {
+    // Given:
+    givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
     final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(streamSource);
 
@@ -534,7 +602,7 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldAddRowPartitionAndOffsetColumnsToNonWindowedStream() {
     // Given:
-    givenUnwindowedSourceStream(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    givenUnwindowedSourceStream();
     final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(streamSource);
 
@@ -546,11 +614,11 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedTable() {
+  public void shouldAddRowTimeAndRowKeyColumnsToLegacyNonWindowedTable() {
     // Given:
-    givenUnwindowedSourceTable(true);
+    givenUnwindowedSourceTableV1(true);
     final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+        getTransformerFromTableSource(tableSourceV1);
 
     // When:
     final GenericRow withTimestamp = transformer.transform(KEY, row);
@@ -560,17 +628,19 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldAddRowPartitionAndOffsetColumnsToNonWindowedTable() {
+  public void shouldHandleNullKeyLegacy() {
     // Given:
-    givenUnwindowedSourceTable(true, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
     final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+        getTransformerFromStreamSource(streamSource);
+
+    final GenericKey nullKey = null;
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(KEY, row);
+    final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
   }
 
   @Test
@@ -581,6 +651,23 @@ public class SourceBuilderV1Test {
         getTransformerFromStreamSource(streamSource);
 
     final GenericKey nullKey = null;
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(nullKey, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+  }
+
+  @Test
+  public void shouldHandleEmptyKeyLegacy() {
+    // Given:
+    givenUnwindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final GenericKey nullKey = GenericKey.genericKey((Object) null);
 
     // When:
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
@@ -602,7 +689,24 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+  }
+
+  @Test
+  public void shouldHandleMultiKeyFieldLegacy() {
+    // Given:
+    givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final GenericKey key = GenericKey.genericKey(1d, 2d);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, 1d, 2d)));
   }
 
   @Test
@@ -618,7 +722,24 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, 1d, 2d)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
+  }
+
+  @Test
+  public void shouldHandleMultiKeyFieldWithNullColLegacy() {
+    // Given:
+    givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final GenericKey key = GenericKey.genericKey(null, 2d);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, 2d)));
   }
 
   @Test
@@ -634,7 +755,24 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, 2d)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
+  }
+
+  @Test
+  public void shouldHandleMultiKeyFieldEmptyGenericKeyLegacy() {
+    // Given:
+    givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final GenericKey key = GenericKey.genericKey(null, null);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
   }
 
   @Test
@@ -645,6 +783,23 @@ public class SourceBuilderV1Test {
         getTransformerFromStreamSource(streamSource);
 
     final GenericKey key = GenericKey.genericKey(null, null);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
+  }
+
+  @Test
+  public void shouldHandleMultiKeyFieldEntirelyNullLegacy() {
+    // Given:
+    givenMultiColumnSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    final GenericKey key = null;
 
     // When:
     final GenericRow withTimestamp = transformer.transform(key, row);
@@ -666,11 +821,32 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
   }
 
   @Test
-  public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToStream() {
+  public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToLegacyStream() {
+    // Given:
+    givenWindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(windowedStreamSource);
+
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
+
+  @Test
+  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToStream() {
     // Given:
     givenWindowedSourceStream();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
@@ -685,38 +861,16 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp,
-        equalTo(
-            GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow(
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
-  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToStream() {
+  public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToLegacyTable() {
     // Given:
-    givenWindowedSourceStream(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    givenWindowedSourceTableV1();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromStreamSource(windowedStreamSource);
-
-    final Windowed<GenericKey> key = new Windowed<>(
-        KEY,
-        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
-    );
-
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp,
-        equalTo(
-            GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
-  }
-
-  @Test
-  public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToTable() {
-    // Given:
-    givenWindowedSourceTable();
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSource);
+        getTransformerFromTableSource(windowedTableSourceV1);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -732,29 +886,25 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToTable() {
+  public void shouldThrowOnTryToGetTransformerFromIncompatibleTableSource() {
     // Given:
-    givenWindowedSourceTable(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSource);
-
-    final Windowed<GenericKey> key = new Windowed<>(
-        KEY,
-        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
-    );
+    givenWindowedSourceTableV1(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> getTransformerFromTableSource(windowedTableSourceV1)
+    );
 
     // Then:
-    assertThat(withTimestamp,
-        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+    assertThat(e.getMessage(), containsString(
+        "Should not be using old execution step version with new queries"));
   }
 
   @Test
-  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToStream() {
+  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToStreamLegacy() {
     // Given:
-    givenWindowedSourceStream();
+    givenWindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
         getTransformerFromStreamSource(windowedStreamSource);
 
@@ -772,11 +922,32 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToTable() {
+  public void shouldAddPseudoColumnsAndSessionWindowedRowKeyColumnsToStream() {
     // Given:
-    givenWindowedSourceTable();
+    givenWindowedSourceStream();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSource);
+        getTransformerFromStreamSource(windowedStreamSource);
+
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new SessionWindow(A_WINDOW_START, A_WINDOW_END)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        equalTo(GenericRow.genericRow(
+            "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
+
+  @Test
+  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToTableLegacy() {
+    // Given:
+    givenWindowedSourceTableV1();
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(windowedTableSourceV1);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -855,10 +1026,10 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldBuildTableWithCorrectStoreName() {
     // Given:
-    givenUnwindowedSourceTable(true);
+    givenUnwindowedSourceTableV1(true);
 
     // When:
-    tableSource.build(planBuilder, planInfo);
+    tableSourceV1.build(planBuilder, planInfo);
 
     // Then:
     verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
@@ -902,7 +1073,7 @@ public class SourceBuilderV1Test {
     );
   }
   private void givenWindowedSourceStream() {
-    givenWindowedSourceStream(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenWindowedSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
   private void givenUnwindowedSourceStream(final int pseudoColumnVersion) {
@@ -919,7 +1090,7 @@ public class SourceBuilderV1Test {
   }
 
   private void givenUnwindowedSourceStream() {
-    givenUnwindowedSourceStream(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenUnwindowedSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
   private void givenMultiColumnSourceStream(final int pseudoColumnVersion) {
@@ -936,14 +1107,14 @@ public class SourceBuilderV1Test {
   }
 
   private void givenMultiColumnSourceStream() {
-    givenMultiColumnSourceStream(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenMultiColumnSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
-  private void givenWindowedSourceTable(final int pseudoColumnVersion) {
+  private void givenWindowedSourceTableV1(final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
-    windowedTableSource = new WindowedTableSource(
+    windowedTableSourceV1 = new WindowedTableSourceV1(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
@@ -954,15 +1125,15 @@ public class SourceBuilderV1Test {
     );
   }
 
-  private void givenWindowedSourceTable() {
-    givenWindowedSourceTable(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  private void givenWindowedSourceTableV1() {
+    givenWindowedSourceTableV1(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
-  private void givenUnwindowedSourceTable(
+  private void givenUnwindowedSourceTableV1(
       final Boolean forceChangelog, final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
-    tableSource = new TableSource(
+    tableSourceV1 = new TableSourceV1(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
@@ -973,8 +1144,8 @@ public class SourceBuilderV1Test {
     );
   }
 
-  private void givenUnwindowedSourceTable(final Boolean forceChangeLog) {
-    givenUnwindowedSourceTable(forceChangeLog, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  private void givenUnwindowedSourceTableV1(final Boolean forceChangeLog) {
+    givenUnwindowedSourceTableV1(forceChangeLog, LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {

@@ -28,8 +28,10 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
@@ -46,6 +48,7 @@ import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -165,6 +168,9 @@ public final class SourceBuilderV1 {
       final MaterializedFactory materializedFactory,
       final PlanInfo planInfo
   ) {
+
+    validateNotUsingOldExecutionStepWithNewQueries(source);
+
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
@@ -218,6 +224,9 @@ public final class SourceBuilderV1 {
       final MaterializedFactory materializedFactory,
       final PlanInfo planInfo
   ) {
+
+    validateNotUsingOldExecutionStepWithNewQueries(source);
+
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
@@ -561,4 +570,15 @@ public final class SourceBuilderV1 {
       );
     }
   }
+
+  private static void validateNotUsingOldExecutionStepWithNewQueries(final SourceStep<?> streamSource) {
+    final boolean oldTable =
+        streamSource instanceof TableSourceV1
+            || streamSource instanceof  WindowedTableSourceV1;
+
+    if (oldTable && streamSource.getPseudoColumnVersion() != 0) {
+      throw new KsqlException("Should not be using old execution step version with new queries");
+    }
+  }
+
 }

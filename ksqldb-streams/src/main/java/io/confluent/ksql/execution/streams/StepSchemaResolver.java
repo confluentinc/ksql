@@ -86,8 +86,8 @@ public final class StepSchemaResolver {
       .put(StreamSelectKeyV1.class, StepSchemaResolver::handleStreamSelectKeyV1)
       .put(StreamSelectKey.class, StepSchemaResolver::handleStreamSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
-      .put(StreamSource.class, StepSchemaResolver::handleSourceV1)
-      .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSourceV1)
+      .put(StreamSource.class, StepSchemaResolver::handleSource)
+      .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSource)
       .put(TableAggregate.class, StepSchemaResolver::handleTableAggregate)
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupByV1.class, StepSchemaResolver::handleTableGroupByV1)
@@ -96,9 +96,9 @@ public final class StepSchemaResolver {
       .put(TableSelectKey.class, StepSchemaResolver::handleTableSelectKey)
       .put(TableSuppress.class, StepSchemaResolver::sameSchema)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
-      .put(TableSourceV1.class, StepSchemaResolver::handleSourceV1)
+      .put(TableSourceV1.class, StepSchemaResolver::handleSource)
       .put(TableSource.class, StepSchemaResolver::handleSource)
-      .put(WindowedTableSourceV1.class, StepSchemaResolver::handleWindowedSourceV1)
+      .put(WindowedTableSourceV1.class, StepSchemaResolver::handleWindowedSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleWindowedSource)
       .build();
 
@@ -282,16 +282,8 @@ public final class StepSchemaResolver {
     );
   }
 
-  private LogicalSchema handleSourceV1(final LogicalSchema schema, final SourceStep<?> step) {
-    return buildSourceSchema(schema, false, step.getPseudoColumnVersion());
-  }
-
   private LogicalSchema handleSource(final LogicalSchema schema, final SourceStep<?> step) {
     return buildSourceSchema(schema, false, step.getPseudoColumnVersion());
-  }
-
-  private LogicalSchema handleWindowedSourceV1(final LogicalSchema schema, final SourceStep<?> step) {
-    return buildSourceSchema(schema, true, step.getPseudoColumnVersion());
   }
 
   private LogicalSchema handleWindowedSource(final LogicalSchema schema, final SourceStep<?> step) {

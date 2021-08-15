@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -162,6 +163,67 @@ public final class SourceBuilder {
     );
   }
 
+  private static Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
+      final String stateStoreName,
+      final TableSource source,
+      final RuntimeBuildContext buildContext,
+      final MaterializedFactory materializedFactory
+  ) {
+
+    final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
+
+    final QueryContext queryContext = QueryContext.Stacker.of(
+        source.getProperties().getQueryContext())
+        .push("Materialize").getQueryContext();
+
+    final Serde<GenericRow> valueSerde = getValueSerdeWithAdditionalQueryContext(
+        buildContext, source, physicalSchema, queryContext);
+
+    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
+          source.getFormats().getKeyFormat(),
+          physicalSchema,
+          queryContext
+      );
+
+      return materializedFactory.create(
+          keySerde,
+          valueSerde,
+          stateStoreName
+      );
+
+  }
+
+  private static Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
+  buildWindowedTableMaterialized(
+      final String stateStoreName,
+      final WindowedTableSource source,
+      final RuntimeBuildContext buildContext,
+      final MaterializedFactory materializedFactory
+  ) {
+
+    final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
+
+    final QueryContext queryContext = QueryContext.Stacker.of(
+        source.getProperties().getQueryContext())
+        .push("Materialize").getQueryContext();
+
+    final Serde<GenericRow> valueSerde = getValueSerdeWithAdditionalQueryContext(
+        buildContext, source, physicalSchema, queryContext);
+
+    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        source.getWindowInfo(),
+        physicalSchema,
+        queryContext
+    );
+
+    return materializedFactory.create(
+        keySerde,
+        valueSerde,
+        stateStoreName
+    );
+  }
+
   public static KTableHolder<GenericKey> buildTable(
       final RuntimeBuildContext buildContext,
       final TableSource source,
@@ -190,27 +252,8 @@ public final class SourceBuilder {
 
     final String stateStoreName = tableChangeLogOpName(source.getProperties());
 
-    final PhysicalSchema physicalSchemaToMaterialize = getPhysicalSchemaWithKeyAndPseudoCols(source);
-
-    final Serde<GenericRow> valueSerdeToMaterialize = getValueSerdeWithAdditionalQueryContext(
-        buildContext, source, physicalSchemaToMaterialize);
-
-    final QueryContext queryContextToMaterialize = QueryContext.Stacker.of(
-        source.getProperties().getQueryContext())
-        .push("asdf").getQueryContext();
-
-    final Serde<GenericKey> keySerdeToMaterialize = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        physicalSchemaToMaterialize,
-        queryContextToMaterialize
-    );
-
-    final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        materializedFactory.create(
-            keySerdeToMaterialize,
-            valueSerdeToMaterialize,
-            stateStoreName
-        );
+    final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
+        = buildTableMaterialized(stateStoreName, source, buildContext, materializedFactory);
 
     final KTable<GenericKey, GenericRow> ktable = buildKTable(
         source,
@@ -261,23 +304,12 @@ public final class SourceBuilder {
 
     final String stateStoreName = tableChangeLogOpName(source.getProperties());
 
-    final PhysicalSchema physicalSchemaToMaterialize = getPhysicalSchemaWithKeyAndPseudoCols(source);
-
-    final Serde<GenericRow> valueSchemaToMaterialize = getValueSerde(
-        buildContext, source, physicalSchemaToMaterialize);
-
-    final Serde<Windowed<GenericKey>> keySerdeToMaterialize = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        windowInfo,
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
-    final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
-        materialized = materializedFactory.create(
-        keySerdeToMaterialize,
-        valueSchemaToMaterialize,
-        stateStoreName
+    final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
+        = buildWindowedTableMaterialized(
+        stateStoreName,
+        source,
+        buildContext,
+        materializedFactory
     );
 
     final KTable<Windowed<GenericKey>, GenericRow> ktable = buildKTable(
@@ -322,11 +354,8 @@ public final class SourceBuilder {
   private static Serde<GenericRow> getValueSerdeWithAdditionalQueryContext(
       final RuntimeBuildContext buildContext,
       final SourceStep<?> streamSource,
-      final PhysicalSchema physicalSchema) {
-
-    final QueryContext queryContext = QueryContext.Stacker.of(
-        streamSource.getProperties().getQueryContext())
-        .push("asdf").getQueryContext();
+      final PhysicalSchema physicalSchema,
+      final QueryContext queryContext) {
 
     return buildContext.buildValueSerde(
         streamSource.getFormats().getValueFormat(),
@@ -346,27 +375,27 @@ public final class SourceBuilder {
   private static PhysicalSchema getPhysicalSchemaWithKeyAndPseudoCols(
       final SourceStep<?> streamSource) {
 
+    final boolean windowed = streamSource instanceof WindowedTableSource;
+
     final FormatInfo formatInfo = streamSource.getFormats().getKeyFormat();
     final SerdeFeatures serdeFeatures = streamSource.getFormats().getKeyFeatures();
-    final KeyFormat keyFormat = streamSource instanceof WindowedTableSource
-        ? KeyFormat.windowed(formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
+    final KeyFormat keyFormat = windowed
+        ? KeyFormat.windowed(
+            formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
         : KeyFormat.nonWindowed(formatInfo, serdeFeatures);
 
     final Formats formats = of(keyFormat, streamSource.getFormats().getValueFormat());
 
     return PhysicalSchema.from(
         streamSource.getSourceSchema().withPseudoAndKeyColsInValue(
-            false, streamSource.getPseudoColumnVersion()),
+            windowed, streamSource.getPseudoColumnVersion()),
         formats.getKeyFeatures(),
         formats.getValueFeatures()
     );
   }
 
-  public static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
-    // Do not use NONE format for internal topics:
-    if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
-      throw new IllegalArgumentException(NoneFormat.NAME + " can not be used for internal topics");
-    }
+  //todo: put this logic into TableSource and WindowedTableSource
+  private static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
 
     return Formats.of(
         keyFormat.getFormatInfo(),
@@ -416,6 +445,11 @@ public final class SourceBuilder {
               consumed.withValueSerde(StaticTopicSerde.wrap(changelogTopic, valueSerde, onFailure)),
               materialized
           );
+
+      return table
+          .transformValues(new AddKeyAndPseudoColumns<>(
+              keyGenerator, streamSource.getPseudoColumnVersion()));
+
     } else {
       final KTable<K, GenericRow> source = buildContext
           .getStreamsBuilder()
@@ -439,7 +473,7 @@ public final class SourceBuilder {
         // re-partitioned topic will be used for any subsequent state stores, in lieu
         // of the original source topic, thus avoiding the issues above.
         // See https://github.com/confluentinc/ksql/issues/6650
-        table = transformed.mapValues(row -> row); //see if this works without reassignment
+        table = transformed.mapValues(row -> row);
       }
     }
 

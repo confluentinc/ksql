@@ -22,7 +22,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -52,8 +51,6 @@ public class ScalablePushRegistryTest {
   private PushLocator locator;
   @Mock
   private ProcessingQueue processingQueue;
-  @Mock
-  private ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues;
   @Mock
   private ProcessorContext<Void, Void> processorContext;
   @Mock

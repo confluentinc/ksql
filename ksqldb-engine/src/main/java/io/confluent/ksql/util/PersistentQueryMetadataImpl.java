@@ -107,24 +107,7 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        new QueryMetadata.Listener() {
-          @Override
-          public void onError(final QueryMetadata queryMetadata, final QueryError error) {
-            listener.onError(queryMetadata, error);
-            scalablePushRegistry.get().onError();
-          }
-
-          @Override
-          public void onStateChange(final QueryMetadata queryMetadata, final State before,
-              final State after) {
-            listener.onStateChange(queryMetadata, before, after);
-          }
-
-          @Override
-          public void onClose(final QueryMetadata queryMetadata) {
-            listener.onClose(queryMetadata);
-          }
-        }
+        new ScalablePushQueryListener(listener, scalablePushRegistry)
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
@@ -244,5 +227,33 @@ public class PersistentQueryMetadataImpl
 
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
+  }
+
+  private static class ScalablePushQueryListener implements Listener {
+    private final Listener listener;
+    private final Optional<ScalablePushRegistry> scalablePushRegistry;
+
+    private ScalablePushQueryListener(Listener listener,
+        Optional<ScalablePushRegistry> scalablePushRegistry) {
+      this.listener = listener;
+      this.scalablePushRegistry =scalablePushRegistry;
+    }
+
+    @Override
+    public void onError(final QueryMetadata queryMetadata, final QueryError error) {
+      this.listener.onError(queryMetadata, error);
+      scalablePushRegistry.ifPresent(ScalablePushRegistry::onError);
+    }
+
+    @Override
+    public void onStateChange(final QueryMetadata queryMetadata, final State before,
+        final State after) {
+      this.listener.onStateChange(queryMetadata, before, after);
+    }
+
+    @Override
+    public void onClose(final QueryMetadata queryMetadata) {
+      this.listener.onClose(queryMetadata);
+    }
   }
 }

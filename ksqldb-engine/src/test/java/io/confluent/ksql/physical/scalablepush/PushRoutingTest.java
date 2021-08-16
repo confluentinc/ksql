@@ -501,7 +501,7 @@ public class PushRoutingTest {
     assertThat(handle.getError().getMessage(), containsString("Hit limit of request queue"));
   }
 
-  private class TestRemotePublisher extends BufferedPublisher<StreamedRow> {
+  private static class TestRemotePublisher extends BufferedPublisher<StreamedRow> {
 
     public TestRemotePublisher(Context ctx) {
       super(ctx);

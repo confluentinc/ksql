@@ -97,6 +97,7 @@
         <airline.version>2.6.0</airline.version>
         <antlr.version>4.7.1</antlr.version>
         <csv.version>1.4</csv.version>
+        <commons.compress.version>1.21</commons.compress.version>
         <lang3.version>3.3.1</lang3.version>
         <guava.version>30.1.1-jre</guava.version>
         <inject.version>1</inject.version>
@@ -291,6 +292,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
                 <version>${csv.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons.compress.version}</version>
             </dependency>
 
             <dependency>

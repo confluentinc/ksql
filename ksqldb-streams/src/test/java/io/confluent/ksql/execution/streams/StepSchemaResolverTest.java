@@ -51,8 +51,10 @@ import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
@@ -535,6 +537,26 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForTableSource() {
     // Given:
+    final TableSource step = new TableSource(
+        PROPERTIES,
+        "foo",
+        formats,
+        Optional.empty(),
+        SCHEMA,
+        Optional.of(true),
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(false)));
+  }
+
+  @Test
+  public void shouldResolveSchemaForTableSourceV1() {
+    // Given:
     final TableSourceV1 step = new TableSourceV1(
         PROPERTIES,
         "foo",
@@ -554,6 +576,26 @@ public class StepSchemaResolverTest {
 
   @Test
   public void shouldResolveSchemaForWindowedTableSource() {
+    // Given:
+    final WindowedTableSource step = new WindowedTableSource(
+        PROPERTIES,
+        "foo",
+        formats,
+        mock(WindowInfo.class),
+        Optional.empty(),
+        SCHEMA,
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+    );
+
+    // When:
+    final LogicalSchema result = resolver.resolve(step, SCHEMA);
+
+    // Then:
+    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
+  }
+
+  @Test
+  public void shouldResolveSchemaForWindowedTableSourceV1() {
     // Given:
     final WindowedTableSourceV1 step = new WindowedTableSourceV1(
         PROPERTIES,

@@ -18,6 +18,7 @@ package io.confluent.ksql.internal;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -32,8 +33,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.metrics.Gauge;
@@ -83,11 +82,13 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       return;
     }
     final MetricName nodeAvailable =
-        metricRegistry.metricName("node_storage_available_bytes", METRIC_GROUP);
+        metricRegistry.metricName("node_storage_free_bytes", METRIC_GROUP);
     final MetricName nodeTotal =
         metricRegistry.metricName("node_storage_total_bytes", METRIC_GROUP);
     final MetricName nodeUsed =
         metricRegistry.metricName("node_storage_used_bytes", METRIC_GROUP);
+    final MetricName nodePct =
+        metricRegistry.metricName("storage_utilization", METRIC_GROUP);
 
     metricRegistry.addMetric(
         nodeAvailable,
@@ -101,6 +102,12 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         nodeUsed,
         (Gauge<Long>) (config, now) -> (baseDir.getTotalSpace() - baseDir.getFreeSpace())
     );
+    metricRegistry.addMetric(
+        nodePct,
+        (Gauge<Double>) (config, now) -> 
+        (((double) baseDir.getTotalSpace() - (double) baseDir.getFreeSpace()) 
+            / (double) baseDir.getTotalSpace())
+    );
   }
 
   @Override
@@ -110,9 +117,9 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     }
 
     handleNewSstFilesSizeMetric(
-      metric,
-      metric.metricName().tags().getOrDefault("task-id", ""),
-      getQueryId(metric)
+        metric,
+        metric.metricName().tags().getOrDefault("task-id", ""),
+        getQueryId(metric)
     );
   }
 
@@ -155,9 +162,9 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   }
 
   private synchronized void handleNewSstFilesSizeMetric(
-    final KafkaMetric metric,
-    final String taskId,
-    final String queryId
+      final KafkaMetric metric,
+      final String taskId,
+      final String queryId
   ) {
     // if we haven't seen a task for this query yet
     if (!metricsSeen.containsKey(queryId)) {

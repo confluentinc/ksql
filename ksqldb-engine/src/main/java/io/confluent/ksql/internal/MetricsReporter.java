@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * This interface is used to report metrics as data points to a
@@ -108,5 +109,5 @@ public interface MetricsReporter extends Closeable, Configurable {
    *
    * @param dataPointSupplier supplier of the list of data points
    */
-  void report(List<DataPoint> dataPoints);
+  void report(Supplier<List<DataPoint>> dataPointSupplier);
 }

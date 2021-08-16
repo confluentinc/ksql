@@ -14,12 +14,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -45,12 +49,15 @@ public class StorageUtilizationMetricsReporterTest {
   private ArgumentCaptor<MetricValueProvider<?>> metricValueProvider;
 
   @Before
-  public void setUp() {
+  public void setUp() throws IOException {
     listener = new StorageUtilizationMetricsReporter(metrics);
     when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
     when(metrics.metricName(any(), any())).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
+    final File f = new File("/tmp/cat/");
+    f.getParentFile().mkdirs();
+    f.createNewFile();
     listener.configure(ImmutableMap.of("state.dir", "/tmp/cat/"));
   }
 
@@ -64,17 +71,20 @@ public class StorageUtilizationMetricsReporterTest {
     // Given:
 
     // When:
-    final Gauge<?> storageAvailableGauge = verifyAndGetRegisteredMetric("node_storage_available_bytes", Collections.emptyMap());
-    final Object storageAvailableValue = storageAvailableGauge.value(null, 0);
+    final Gauge<?> storageFreeGauge = verifyAndGetRegisteredMetric("node_storage_free_bytes", Collections.emptyMap());
+    final Object storageFreeValue = storageFreeGauge.value(null, 0);
     final Gauge<?> storageTotalGauge = verifyAndGetRegisteredMetric("node_storage_total_bytes", Collections.emptyMap());
     final Object storageTotalValue = storageTotalGauge.value(null, 0);
     final Gauge<?> storageUsedGauge = verifyAndGetRegisteredMetric("node_storage_used_bytes", Collections.emptyMap());
     final Object storageUsedValue = storageUsedGauge.value(null, 0);
+    final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", Collections.emptyMap());
+    final Object pctUsedValue = pctUsedGauge.value(null, 0);
 
     // Then:
-    assertThat(storageAvailableValue, equalTo(0L));
-    assertThat(storageTotalValue, equalTo(0L));
-    assertThat(storageUsedValue, equalTo(0L));
+    assertThat((long) storageFreeValue, greaterThan(0L));
+    assertThat((long) storageTotalValue, greaterThan(0L));
+    assertThat((long) storageUsedValue, greaterThan(0L));
+    assertThat((double) pctUsedValue, greaterThan(0.0));
   }
 
   @Test

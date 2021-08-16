@@ -229,14 +229,14 @@ public class PersistentQueryMetadataImpl
     return scalablePushRegistry;
   }
 
-  private static class ScalablePushQueryListener implements Listener {
+  private static final class ScalablePushQueryListener implements Listener {
     private final Listener listener;
     private final Optional<ScalablePushRegistry> scalablePushRegistry;
 
     private ScalablePushQueryListener(Listener listener,
-        Optional<ScalablePushRegistry> scalablePushRegistry) {
+        final Optional<ScalablePushRegistry> scalablePushRegistry) {
       this.listener = listener;
-      this.scalablePushRegistry =scalablePushRegistry;
+      this.scalablePushRegistry = scalablePushRegistry;
     }
 
     @Override

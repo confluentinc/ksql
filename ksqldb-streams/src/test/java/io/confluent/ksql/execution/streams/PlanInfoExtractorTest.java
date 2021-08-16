@@ -25,12 +25,12 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
-import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.PlanInfo;
+import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
-import io.confluent.ksql.execution.plan.TableSourceV1;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -57,7 +57,7 @@ public class PlanInfoExtractorTest {
   private Expression repartitionKey;
 
   private StreamSource streamSource;
-  private TableSourceV1 tableSourceV1;
+  private TableSource tableSource;
   private StreamSelectKey<GenericKey> streamSourceRepartitioned;
   private StreamTableJoin<GenericKey> streamAndTableJoined;
   private StreamTableJoin<GenericKey> streamRepartitionedAndTableJoined;
@@ -75,7 +75,7 @@ public class PlanInfoExtractorTest {
         schema,
         OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
-    tableSourceV1 = new TableSourceV1(
+    tableSource = new TableSource(
         new ExecutionStepPropertiesV1(queryContext),
         "t1",
         formats,
@@ -95,7 +95,7 @@ public class PlanInfoExtractorTest {
         joinKey,
         formats,
         streamSource,
-        tableSourceV1
+        tableSource
     );
     streamRepartitionedAndTableJoined = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
@@ -103,7 +103,7 @@ public class PlanInfoExtractorTest {
         joinKey,
         formats,
         streamSourceRepartitioned,
-        tableSourceV1
+        tableSource
     );
     streamAndTableJoinedRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
@@ -139,7 +139,7 @@ public class PlanInfoExtractorTest {
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
-    assertThat(planInfo.isRepartitionedInPlan(tableSourceV1), is(false));
+    assertThat(planInfo.isRepartitionedInPlan(tableSource), is(false));
   }
 
   @Test
@@ -149,7 +149,7 @@ public class PlanInfoExtractorTest {
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(true));
-    assertThat(planInfo.isRepartitionedInPlan(tableSourceV1), is(false));
+    assertThat(planInfo.isRepartitionedInPlan(tableSource), is(false));
   }
 
   @Test
@@ -159,6 +159,6 @@ public class PlanInfoExtractorTest {
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
-    assertThat(planInfo.isRepartitionedInPlan(tableSourceV1), is(false));
+    assertThat(planInfo.isRepartitionedInPlan(tableSource), is(false));
   }
 }

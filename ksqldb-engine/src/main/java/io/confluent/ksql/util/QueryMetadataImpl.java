@@ -196,6 +196,7 @@ public class QueryMetadataImpl implements QueryMetadata {
               Throwables.getStackTraceAsString(e),
               errorType
           );
+      listener.onError(this, queryError);
       queryErrors.add(queryError);
       LOG.error(
           "Unhandled exception caught in streams thread {}. ({})",
@@ -203,7 +204,6 @@ public class QueryMetadataImpl implements QueryMetadata {
           errorType,
           e
       );
-      listener.onError(this, queryError);
     }
     retryEvent.backOff();
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;

@@ -135,10 +135,16 @@ public class TransientQueryQueue implements BlockingRowQueue {
     }
   }
 
+  /**
+   * Accepts the rows without blocking.
+   * @param key The key
+   * @param value The value
+   * @return If the row was accepted or discarded for an acceptable reason, false if it was rejected
+   *     because the queue was full.
+   */
   public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value) {
     try {
       if (!callback.shouldQueue()) {
-        callback.onQueued();
         return true;
       }
 
@@ -154,8 +160,9 @@ public class TransientQueryQueue implements BlockingRowQueue {
     } catch (final InterruptedException e) {
       // Forced shutdown?
       Thread.currentThread().interrupt();
+      return false;
     }
-    return false;
+    return true;
   }
 
   public boolean isClosed() {

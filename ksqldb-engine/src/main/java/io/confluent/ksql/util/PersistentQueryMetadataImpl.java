@@ -107,7 +107,7 @@ public class PersistentQueryMetadataImpl
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
         retryBackoffMaxMs,
-        new ScalablePushQueryListener(listener, scalablePushRegistry)
+        new QueryListenerWrapper(listener, scalablePushRegistry)
     );
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
@@ -229,11 +229,11 @@ public class PersistentQueryMetadataImpl
     return scalablePushRegistry;
   }
 
-  private static final class ScalablePushQueryListener implements Listener {
+  private static final class QueryListenerWrapper implements Listener {
     private final Listener listener;
     private final Optional<ScalablePushRegistry> scalablePushRegistry;
 
-    private ScalablePushQueryListener(final Listener listener,
+    private QueryListenerWrapper(final Listener listener,
         final Optional<ScalablePushRegistry> scalablePushRegistry) {
       this.listener = listener;
       this.scalablePushRegistry = scalablePushRegistry;

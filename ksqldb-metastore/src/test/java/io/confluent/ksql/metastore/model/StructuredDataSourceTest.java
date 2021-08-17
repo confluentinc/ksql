@@ -119,7 +119,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
         "sql",
@@ -127,7 +128,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
 
     // When:
@@ -147,7 +149,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
         "sql",
@@ -155,7 +158,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.of(new TimestampColumn(ColumnName.of("foo"), Optional.empty())),
         true,
-        topic
+        topic,
+        false
     );
 
     // When:
@@ -175,7 +179,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlStream<String> streamB = new KsqlStream<>(
         "sql",
@@ -183,7 +188,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic2
+        topic2,
+        false
     );
 
     // When:
@@ -203,7 +209,8 @@ public class StructuredDataSourceTest {
         SOME_SCHEMA,
         Optional.empty(),
         true,
-        topic
+        topic,
+        false
     );
     final KsqlTable<String> streamB = new KsqlTable<>(
         "sql",

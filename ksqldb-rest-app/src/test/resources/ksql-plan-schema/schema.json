@@ -69,6 +69,10 @@
         "orReplace" : {
           "type" : "boolean",
           "default" : false
+        },
+        "isSource" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createStreamV1",
@@ -1070,6 +1074,9 @@
         "leftJoinColumnName" : {
           "type" : "string"
         },
+        "leftJoinExpression" : {
+          "type" : "string"
+        },
         "formats" : {
           "$ref" : "#/definitions/Formats"
         },
@@ -1078,9 +1085,6 @@
         },
         "rightSource" : {
           "$ref" : "#/definitions/ExecutionStep"
-        },
-        "leftJoinExpression" : {
-          "type" : "string"
         }
       },
       "title" : "fkTableTableJoinV1",

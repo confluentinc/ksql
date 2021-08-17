@@ -55,7 +55,13 @@ abstract class SourceBuilderBase {
     final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
 
     final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
-        = buildTableMaterialized(stateStoreName, source, buildContext, materializedFactory);
+        = buildTableMaterialized(
+        source,
+        buildContext,
+        materializedFactory,
+        keySerde,
+        valueSerde
+    );
 
     final KTable<GenericKey, GenericRow> ktable = buildKTable(
         source,
@@ -117,10 +123,11 @@ abstract class SourceBuilderBase {
 
     final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
         = buildWindowedTableMaterialized(
-        stateStoreName,
         source,
         buildContext,
-        materializedFactory
+        materializedFactory,
+        keySerde,
+        valueSerde
     );
 
     final KTable<Windowed<GenericKey>, GenericRow> ktable = buildWindowedKTable(
@@ -143,18 +150,20 @@ abstract class SourceBuilderBase {
   }
 
   abstract Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
-      final String stateStoreName,
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final Serde<GenericKey> keySerde,
+      final Serde<GenericRow> valueSerde
   );
 
   abstract Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
   buildWindowedTableMaterialized(
-      final String stateStoreName,
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final Serde<Windowed<GenericKey>> keySerde,
+      final Serde<GenericRow> valueSerde
   );
 
   abstract <K> KTable<K, GenericRow> buildKTable(

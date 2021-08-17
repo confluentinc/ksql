@@ -295,24 +295,6 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldApplyCreateSchemaRegistryCallbackIfSchemaRegistryIsEnabled() {
-    // Given:
-    when(buildContext.getKsqlConfig()).thenReturn(
-        KSQL_CONFIG.cloneWithPropertyOverwrite(
-            ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo")));
-    givenUnwindowedSourceTable();
-    when(consumed.withValueSerde(any())).thenReturn(consumed);
-
-    // When:
-    tableSource.build(planBuilder, planInfo);
-
-    // Then:
-    verify(consumed).withValueSerde(serdeCaptor.capture());
-    final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
-    assertThat(value.getOnFailure(), instanceOf(RegisterSchemaCallback.class));
-  }
-
-  @Test
   public void shouldUseOffsetResetEarliestForTable() {
     // Given:
     givenUnwindowedSourceTable();

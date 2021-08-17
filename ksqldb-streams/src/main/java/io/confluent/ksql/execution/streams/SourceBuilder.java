@@ -44,7 +44,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-public final class SourceBuilder extends SourceBuilderBase{
+final class SourceBuilder extends SourceBuilderBase{
 
   private final static SourceBuilder instance;
 
@@ -130,11 +130,14 @@ public final class SourceBuilder extends SourceBuilderBase{
 
   @Override
   Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
-      final String stateStoreName,
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final Serde<GenericKey> doNotUse,
+      final Serde<GenericRow> doNotUse2
   ) {
+
+    final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
 
     final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
 
@@ -156,17 +159,19 @@ public final class SourceBuilder extends SourceBuilderBase{
         valueSerde,
         stateStoreName
     );
-
   }
 
   @Override
   Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
   buildWindowedTableMaterialized(
-      final String stateStoreName,
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final Serde<Windowed<GenericKey>> doNotUse,
+      final Serde<GenericRow> doNotUse2
   ) {
+
+    final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
 
     final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
 
@@ -179,7 +184,7 @@ public final class SourceBuilder extends SourceBuilderBase{
 
     final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
         source.getFormats().getKeyFormat(),
-        ((WindowedTableSourceV1) source).getWindowInfo(),
+        ((WindowedTableSource) source).getWindowInfo(),
         physicalSchema,
         queryContext
     );

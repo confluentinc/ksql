@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -53,7 +54,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-public final class SourceBuilderV1 extends SourceBuilderBase{
+final class SourceBuilderV1 extends SourceBuilderBase{
 
   private final static SourceBuilderV1 instance;
 
@@ -162,54 +163,31 @@ public final class SourceBuilderV1 extends SourceBuilderBase{
 
   @Override
   public Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
-      final String stateStoreName,
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final Serde<GenericKey> keySerde,
+      final Serde<GenericRow> valueSerde
   ) {
-
-    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
-
-    final Serde<GenericRow> valueSerde = getValueSerde(
-        buildContext, source, physicalSchema);
-
-    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
     return materializedFactory.create(
         keySerde,
         valueSerde,
-        stateStoreName
+        SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
     );
-
   }
 
   @Override
   public Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> buildWindowedTableMaterialized(
-      final String stateStoreName,
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
-
-
-    final Serde<GenericRow> valueSerde = getValueSerde(
-        buildContext, source, physicalSchema);
-
-    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        ((WindowedTableSourceV1) source).getWindowInfo(),
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
+      final MaterializedFactory materializedFactory,
+      final Serde<Windowed<GenericKey>> keySerde,
+      final Serde<GenericRow> valueSerde
+      ) {
     return materializedFactory.create(
         keySerde,
         valueSerde,
-        stateStoreName
+        SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
     );
   }
 

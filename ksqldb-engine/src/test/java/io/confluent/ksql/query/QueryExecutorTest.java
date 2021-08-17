@@ -55,6 +55,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 
@@ -192,7 +193,7 @@ public class QueryExecutorTest {
 
   private QueryExecutor queryBuilder;
   private final Stacker stacker = new Stacker();
-  private ArrayList<SharedKafkaStreamsRuntimeImpl> sharedKafkaStreamsRuntimes;
+  private List<SharedKafkaStreamsRuntime> sharedKafkaStreamsRuntimes;
 
   @Before
   public void setup() {

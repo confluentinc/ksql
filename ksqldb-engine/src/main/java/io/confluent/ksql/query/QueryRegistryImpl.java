@@ -41,6 +41,7 @@ import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,7 +67,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
   private final QueryExecutorFactory executorFactory;
-  private final ArrayList<SharedKafkaStreamsRuntimeImpl> streams;
+  private final List<SharedKafkaStreamsRuntime> streams;
   private final boolean sandbox;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
@@ -128,7 +129,9 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
-    this.streams = original.streams;
+    this.streams = original.streams.stream()
+        .map(t -> new ValidationSharedKafkaStreamsRuntimeImpl((SharedKafkaStreamsRuntimeImpl) t))
+        .collect(Collectors.toList());
     sandbox = true;
   }
 
@@ -413,7 +416,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,
         FunctionRegistry functionRegistry,
-        ArrayList<SharedKafkaStreamsRuntimeImpl> streams,
+        List<SharedKafkaStreamsRuntime> streams,
         boolean real);
   }
 

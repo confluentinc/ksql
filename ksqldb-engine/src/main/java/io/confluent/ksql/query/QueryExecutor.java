@@ -63,7 +63,6 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -99,7 +98,7 @@ final class QueryExecutor {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
-  private final List<SharedKafkaStreamsRuntimeImpl> streams;
+  private final List<SharedKafkaStreamsRuntime> streams;
   private final boolean real;
 
   QueryExecutor(
@@ -107,7 +106,7 @@ final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final ArrayList<SharedKafkaStreamsRuntimeImpl> streams,
+      final List<SharedKafkaStreamsRuntime> streams,
       final boolean real
   ) {
     this(
@@ -138,7 +137,7 @@ final class QueryExecutor {
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
-      final ArrayList<SharedKafkaStreamsRuntimeImpl> streams,
+      final List<SharedKafkaStreamsRuntime> streams,
       final boolean real
   ) {
     this.config = Objects.requireNonNull(config, "config");
@@ -424,15 +423,11 @@ final class QueryExecutor {
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
           final Set<SourceName> sources,
           final QueryId queryID) {
-    for (final SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl : streams) {
-      if (sharedKafkaStreamsRuntimeImpl.getSources().stream().noneMatch(sources::contains)
-          || sharedKafkaStreamsRuntimeImpl.getQueries().contains(queryID)) {
-        sharedKafkaStreamsRuntimeImpl.markSources(queryID, sources);
-        if (real) {
-          return sharedKafkaStreamsRuntimeImpl;
-        } else {
-          return new ValidationSharedKafkaStreamsRuntimeImpl(sharedKafkaStreamsRuntimeImpl);
-        }
+    for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)
+          || sharedKafkaStreamsRuntime.getQueries().contains(queryID)) {
+        sharedKafkaStreamsRuntime.markSources(queryID, sources);
+        return sharedKafkaStreamsRuntime;
       }
     }
     final SharedKafkaStreamsRuntime stream;
@@ -442,14 +437,14 @@ final class QueryExecutor {
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
       );
-      streams.add((SharedKafkaStreamsRuntimeImpl) stream);
     } else {
       stream = new ValidationSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
-    );
+      );
     }
+    streams.add(stream);
     stream.markSources(queryID, sources);
     return stream;
 

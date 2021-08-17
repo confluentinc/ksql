@@ -63,4 +63,13 @@ public class ProcessingQueueTest {
     assertThat(queue.poll(), nullValue());
     assertThat(queue.hasDroppedRows(), is(true));
   }
+
+  @Test
+  public void shouldDefaultToFalseForHasError() {
+    // Given:
+    final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"));
+
+    // Then:
+    assertThat(queue.getHasError(),is(false));
+  }
 }

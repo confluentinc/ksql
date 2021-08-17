@@ -188,4 +188,17 @@ public class ScalablePushRegistryTest {
     // Then
     assertThat(registry.isPresent(), is(false));
   }
+
+  @Test
+  public void shouldCallOnErrorOnQueue() {
+    // Given
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    registry.register(processingQueue);
+
+    // When
+    registry.onError();
+
+    // Then:
+    verify(processingQueue).onError();
+  }
 }

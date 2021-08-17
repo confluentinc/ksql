@@ -93,4 +93,9 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   public boolean droppedRows() {
     return processingQueue.hasDroppedRows();
   }
+
+  @Override
+  public boolean hasError() {
+    return processingQueue.getHasError();
+  }
 }

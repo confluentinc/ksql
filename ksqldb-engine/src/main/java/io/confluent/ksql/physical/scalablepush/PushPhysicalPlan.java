@@ -82,14 +82,8 @@ public class PushPhysicalPlan {
 
   private void maybeNext(final Publisher publisher) {
     List<?> row;
-    while ((row = (List<?>)next()) != null) {
-      if (dataSourceOperator.droppedRows()) {
-        closeInternal();
-        publisher.reportDroppedRows();
-        break;
-      } else {
-        publisher.accept(row);
-      }
+    while (!isErrored(publisher) && (row = (List<?>)next()) != null) {
+      publisher.accept(row);
     }
     if (!closed) {
       if (timer >= 0) {
@@ -101,6 +95,19 @@ public class PushPhysicalPlan {
     } else {
       publisher.close();
     }
+  }
+
+  private boolean isErrored(final Publisher publisher) {
+    if (dataSourceOperator.droppedRows()) {
+      closeInternal();
+      publisher.reportDroppedRows();
+      return true;
+    } else if (dataSourceOperator.hasError()) {
+      closeInternal();
+      publisher.reportHasError();
+      return true;
+    }
+    return false;
   }
 
   private void open(final Publisher publisher) {
@@ -150,6 +157,10 @@ public class PushPhysicalPlan {
 
     public void reportDroppedRows() {
       sendError(new RuntimeException("Dropped rows"));
+    }
+
+    public void reportHasError() {
+      sendError(new RuntimeException("Persistent query has error"));
     }
   }
 }

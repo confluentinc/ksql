@@ -35,6 +35,8 @@ public class PeekStreamOperatorTest {
   private TableRow row2;
   @Mock
   private Runnable newRowCallback;
+  @Mock
+  private ProcessingQueue processingQueue;
 
   @Test
   public void shouldGetRowsFromOperator() {
@@ -56,5 +58,16 @@ public class PeekStreamOperatorTest {
     verify(newRowCallback, times(2)).run();
     locator.close();
     verify(registry, times(1)).unregister(processingQueue);
+  }
+
+  @Test
+  public void shouldDefaultToFalseForHasErrorOnQueue() {
+    // Given:
+    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID);
+    // When:
+    locator.open();
+
+    // Then:
+    assertThat(locator.hasError(),is(false));
   }
 }

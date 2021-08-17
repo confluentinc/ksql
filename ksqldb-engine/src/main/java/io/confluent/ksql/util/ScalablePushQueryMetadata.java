@@ -97,7 +97,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   @Override
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
-    // We don't do anything special here since the persistent query handles its own errors
+    onException(handler::handle);
   }
 
   @Override

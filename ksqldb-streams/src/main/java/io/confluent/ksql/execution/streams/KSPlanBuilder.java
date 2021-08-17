@@ -202,7 +202,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KStreamHolder<GenericKey> visitStreamSource(
       final StreamSource streamSource,
       final PlanInfo planInfo) {
-    return SourceBuilderV1.buildStream(
+    return SourceBuilderV1.instance().buildStream(
         buildContext,
         streamSource,
         streamsFactories.getConsumedFactory()
@@ -213,7 +213,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
       final WindowedStreamSource windowedStreamSource,
       final PlanInfo planInfo) {
-    return SourceBuilderV1.buildWindowedStream(
+    return SourceBuilderV1.instance().buildWindowedStream(
         buildContext,
         windowedStreamSource,
         streamsFactories.getConsumedFactory()
@@ -254,7 +254,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KTableHolder<GenericKey> visitTableSource(
       final TableSourceV1 tableSourceV1,
       final PlanInfo planInfo) {
-    return SourceBuilderV1.buildTable(
+    return SourceBuilderV1.instance().buildTable(
         buildContext,
         tableSourceV1,
         streamsFactories.getConsumedFactory(),
@@ -267,7 +267,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KTableHolder<GenericKey> visitTableSource(
       final TableSource tableSource,
       final PlanInfo planInfo) {
-    return SourceBuilder.buildTable(
+    return SourceBuilder.instance().buildTable(
         buildContext,
         tableSource,
         streamsFactories.getConsumedFactory(),
@@ -281,7 +281,7 @@ public final class KSPlanBuilder implements PlanBuilder {
       final WindowedTableSourceV1 windowedTableSourceV1,
       final PlanInfo planInfo
   ) {
-    return SourceBuilderV1.buildWindowedTable(
+    return SourceBuilderV1.instance().buildWindowedTable(
         buildContext,
         windowedTableSourceV1,
         streamsFactories.getConsumedFactory(),
@@ -295,7 +295,7 @@ public final class KSPlanBuilder implements PlanBuilder {
       final WindowedTableSource windowedTableSource,
       final PlanInfo planInfo
   ) {
-    return SourceBuilder.buildWindowedTable(
+    return SourceBuilder.instance().buildWindowedTable(
         buildContext,
         windowedTableSource,
         streamsFactories.getConsumedFactory(),

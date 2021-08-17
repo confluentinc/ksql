@@ -14,9 +14,17 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.windowedKeyGenerator;
+
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -45,12 +53,22 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-public final class SourceBuilderV1 extends SourceBuilderBase {
+public final class SourceBuilderV1 extends SourceBuilderBase{
+
+  private final static SourceBuilderV1 instance;
+
+  static {
+    instance = new SourceBuilderV1();
+  }
 
   private SourceBuilderV1() {
   }
 
-  public static KStreamHolder<GenericKey> buildStream(
+  public static SourceBuilderV1 instance() {
+    return instance;
+  }
+
+  public KStreamHolder<GenericKey> buildStream(
       final RuntimeBuildContext buildContext,
       final StreamSource source,
       final ConsumedFactory consumedFactory
@@ -88,7 +106,7 @@ public final class SourceBuilderV1 extends SourceBuilderBase {
     );
   }
 
-  static KStreamHolder<Windowed<GenericKey>> buildWindowedStream(
+  public KStreamHolder<Windowed<GenericKey>> buildWindowedStream(
       final RuntimeBuildContext buildContext,
       final WindowedStreamSource source,
       final ConsumedFactory consumedFactory
@@ -128,121 +146,7 @@ public final class SourceBuilderV1 extends SourceBuilderBase {
     );
   }
 
-  public static KTableHolder<GenericKey> buildTable(
-      final RuntimeBuildContext buildContext,
-      final TableSourceV1 source,
-      final ConsumedFactory consumedFactory,
-      final MaterializedFactory materializedFactory,
-      final PlanInfo planInfo
-  ) {
-
-    validateNotUsingOldExecutionStepWithNewQueries(source);
-
-    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
-
-    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
-
-    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
-    final Consumed<GenericKey, GenericRow> consumed = buildSourceConsumed(
-        source,
-        keySerde,
-        valueSerde,
-        AutoOffsetReset.EARLIEST,
-        buildContext,
-        consumedFactory
-    );
-
-    final String stateStoreName = tableChangeLogOpName(source.getProperties());
-    final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        materializedFactory.create(
-            keySerde,
-            valueSerde,
-            stateStoreName
-        );
-
-    final KTable<GenericKey, GenericRow> ktable = buildKTable(
-        source,
-        buildContext,
-        consumed,
-        GenericKey::values,
-        materialized,
-        valueSerde,
-        stateStoreName,
-        planInfo
-    );
-
-    return KTableHolder.materialized(
-        ktable,
-        buildSchema(source, false),
-        ExecutionKeyFactory.unwindowed(buildContext),
-        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
-    );
-  }
-
-  static KTableHolder<Windowed<GenericKey>> buildWindowedTable(
-      final RuntimeBuildContext buildContext,
-      final WindowedTableSourceV1 source,
-      final ConsumedFactory consumedFactory,
-      final MaterializedFactory materializedFactory,
-      final PlanInfo planInfo
-  ) {
-
-    validateNotUsingOldExecutionStepWithNewQueries(source);
-
-    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
-
-    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
-
-    final WindowInfo windowInfo = source.getWindowInfo();
-    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        windowInfo,
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
-    final Consumed<Windowed<GenericKey>, GenericRow> consumed = buildSourceConsumed(
-        source,
-        keySerde,
-        valueSerde,
-        AutoOffsetReset.EARLIEST,
-        buildContext,
-        consumedFactory
-    );
-
-    final String stateStoreName = tableChangeLogOpName(source.getProperties());
-    final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
-        materialized = materializedFactory.create(
-        keySerde,
-        valueSerde,
-        stateStoreName
-    );
-
-    final KTable<Windowed<GenericKey>, GenericRow> ktable = buildKTable(
-        source,
-        buildContext,
-        consumed,
-        windowedKeyGenerator(source.getSourceSchema()),
-        materialized,
-        valueSerde,
-        stateStoreName,
-        planInfo
-    );
-
-    return KTableHolder.materialized(
-        ktable,
-        buildSchema(source, true),
-        ExecutionKeyFactory.windowed(buildContext, windowInfo),
-        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
-    );
-  }
-
-  private static <K> KStream<K, GenericRow> buildKStream(
+  private <K> KStream<K, GenericRow> buildKStream(
       final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,
       final Consumed<K, GenericRow> consumed,
@@ -256,7 +160,61 @@ public final class SourceBuilderV1 extends SourceBuilderBase {
         .transformValues(new AddKeyAndPseudoColumns<>(keyGenerator, pseudoColumnVersion));
   }
 
-  private static <K> KTable<K, GenericRow> buildKTable(
+  @Override
+  public Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
+      final String stateStoreName,
+      final SourceStep<KTableHolder<GenericKey>> source,
+      final RuntimeBuildContext buildContext,
+      final MaterializedFactory materializedFactory
+  ) {
+
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
+
+    final Serde<GenericRow> valueSerde = getValueSerde(
+        buildContext, source, physicalSchema);
+
+    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        physicalSchema,
+        source.getProperties().getQueryContext()
+    );
+
+    return materializedFactory.create(
+        keySerde,
+        valueSerde,
+        stateStoreName
+    );
+
+  }
+
+  @Override
+  public Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> buildWindowedTableMaterialized(
+      final String stateStoreName,
+      final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
+      final RuntimeBuildContext buildContext,
+      final MaterializedFactory materializedFactory) {
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
+
+
+    final Serde<GenericRow> valueSerde = getValueSerde(
+        buildContext, source, physicalSchema);
+
+    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
+        source.getFormats().getKeyFormat(),
+        ((WindowedTableSourceV1) source).getWindowInfo(),
+        physicalSchema,
+        source.getProperties().getQueryContext()
+    );
+
+    return materializedFactory.create(
+        keySerde,
+        valueSerde,
+        stateStoreName
+    );
+  }
+
+  @Override
+  <K> KTable<K, GenericRow> buildKTable(
       final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,
       final Consumed<K, GenericRow> consumed,
@@ -266,6 +224,9 @@ public final class SourceBuilderV1 extends SourceBuilderBase {
       final String stateStoreName,
       final PlanInfo planInfo
   ) {
+
+    validateNotUsingOldExecutionStepWithNewQueries(streamSource);
+
     final boolean forceChangelog = streamSource instanceof TableSourceV1
         && ((TableSourceV1) streamSource).isForceChangelog();
 
@@ -308,6 +269,29 @@ public final class SourceBuilderV1 extends SourceBuilderBase {
     return table
         .transformValues(new AddKeyAndPseudoColumns<>(
             keyGenerator, streamSource.getPseudoColumnVersion()));
+  }
+
+  @Override
+  <K> KTable<K, GenericRow> buildWindowedKTable(
+      final SourceStep<?> streamSource,
+      final RuntimeBuildContext buildContext,
+      final Consumed<K, GenericRow> consumed,
+      final Function<K, Collection<?>> keyGenerator,
+      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName,
+      final PlanInfo planInfo
+  ) {
+    return buildKTable(
+        streamSource,
+        buildContext,
+        consumed,
+        keyGenerator,
+        materialized,
+        valueSerde,
+        stateStoreName,
+        planInfo
+    );
   }
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(

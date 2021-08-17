@@ -14,159 +14,124 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static java.util.Objects.requireNonNull;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.materialization.MaterializationInfo;
-import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
-import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
-import io.confluent.ksql.serde.WindowInfo;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 public final class SourceBuilder extends SourceBuilderBase{
 
+  private final static SourceBuilder instance;
+
+  static {
+    instance = new SourceBuilder();
+  }
+
   private SourceBuilder() {
   }
 
-  public static KTableHolder<GenericKey> buildTable(
-      final RuntimeBuildContext buildContext,
-      final TableSource source,
-      final ConsumedFactory consumedFactory,
-      final MaterializedFactory materializedFactory,
-      final PlanInfo planInfo
-  ) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
-
-    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
-
-    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
-    final Consumed<GenericKey, GenericRow> consumed = buildSourceConsumed(
-        source,
-        keySerde,
-        valueSerde,
-        AutoOffsetReset.EARLIEST,
-        buildContext,
-        consumedFactory
-    );
-
-    final String stateStoreName = tableChangeLogOpName(source.getProperties());
-
-    final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
-        = buildTableMaterialized(stateStoreName, source, buildContext, materializedFactory);
-
-    final KTable<GenericKey, GenericRow> ktable = buildKTable(
-        source,
-        buildContext,
-        consumed,
-        GenericKey::values,
-        materialized,
-        valueSerde,
-        stateStoreName,
-        planInfo
-    );
-
-    return KTableHolder.materialized(
-        ktable,
-        buildSchema(source, false),
-        ExecutionKeyFactory.unwindowed(buildContext),
-        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
-    );
+  public static SourceBuilder instance() {
+    return instance;
   }
 
-  static KTableHolder<Windowed<GenericKey>> buildWindowedTable(
+  @Override
+  <K> KTable<K, GenericRow> buildKTable(
+      final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,
-      final WindowedTableSource source,
-      final ConsumedFactory consumedFactory,
-      final MaterializedFactory materializedFactory,
-      final PlanInfo planInfo
-  ) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
-
-    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
-
-    final WindowInfo windowInfo = source.getWindowInfo();
-    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        windowInfo,
-        physicalSchema,
-        source.getProperties().getQueryContext()
-    );
-
-    final Consumed<Windowed<GenericKey>, GenericRow> consumed = buildSourceConsumed(
-        source,
-        keySerde,
-        valueSerde,
-        AutoOffsetReset.EARLIEST,
-        buildContext,
-        consumedFactory
-    );
-
-    final String stateStoreName = tableChangeLogOpName(source.getProperties());
-
-    final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
-        = buildWindowedTableMaterialized(
-        stateStoreName,
-        source,
-        buildContext,
-        materializedFactory
-    );
-
-    final KTable<Windowed<GenericKey>, GenericRow> ktable = buildKTable(
-        source,
-        buildContext,
-        consumed,
-        windowedKeyGenerator(source.getSourceSchema()),
-        materialized,
-        valueSerde,
-        stateStoreName,
-        planInfo
-    );
-
-    return KTableHolder.materialized(
-        ktable,
-        buildSchema(source, true),
-        ExecutionKeyFactory.windowed(buildContext, windowInfo),
-        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
-    );
-  }
-
-  private static Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
+      final Consumed<K, GenericRow> consumed,
+      final Function<K, Collection<?>> keyGenerator,
+      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      final Serde<GenericRow> valueSerde,
       final String stateStoreName,
-      final TableSource source,
+      final PlanInfo planInfo
+  ) {
+
+    final KTable<K, GenericRow> table;
+
+      final KTable<K, GenericRow> source = buildContext
+          .getStreamsBuilder()
+          .table(streamSource.getTopicName(), consumed);
+
+      final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
+
+      final KTable<K, GenericRow> transformed = source.transformValues(
+          new AddKeyAndPseudoColumns<>(keyGenerator, streamSource.getPseudoColumnVersion()));
+
+      if (forceMaterialization) {
+        // add this identity mapValues call to prevent the source-changelog
+        // optimization in kafka streams - we don't want this optimization to
+        // be enabled because we cannot require symmetric serialization between
+        // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
+        // and https://github.com/confluentinc/ksql/issues/5673 for more details)
+        table = transformed.mapValues(row -> row, materialized);
+      } else {
+        // if we know this table source is repartitioned later in the topology,
+        // we do not need to force a materialization at this source step since the
+        // re-partitioned topic will be used for any subsequent state stores, in lieu
+        // of the original source topic, thus avoiding the issues above.
+        // See https://github.com/confluentinc/ksql/issues/6650
+        table = transformed.mapValues(row -> row);
+      }
+
+    return table;
+  }
+
+  @Override
+  <K> KTable<K, GenericRow> buildWindowedKTable(SourceStep<?> streamSource,
+      final RuntimeBuildContext buildContext,
+      final Consumed<K, GenericRow> consumed,
+      final Function<K, Collection<?>> keyGenerator,
+      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName,
+      final PlanInfo planInfo
+  ) {
+    final String changelogTopic = changelogTopic(buildContext, stateStoreName);
+    final Callback onFailure = getRegisterCallback(
+        buildContext, streamSource.getFormats().getValueFormat());
+
+    final KTable<K, GenericRow> table = buildContext
+        .getStreamsBuilder()
+        .table(
+            streamSource.getTopicName(),
+            consumed.withValueSerde(StaticTopicSerde.wrap(changelogTopic, valueSerde, onFailure)),
+            materialized
+        );
+
+    return table
+        .transformValues(new AddKeyAndPseudoColumns<>(
+            keyGenerator, streamSource.getPseudoColumnVersion()));
+  }
+
+  @Override
+  Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
+      final String stateStoreName,
+      final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory
   ) {
@@ -194,10 +159,11 @@ public final class SourceBuilder extends SourceBuilderBase{
 
   }
 
-  private static Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
+  @Override
+  Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
   buildWindowedTableMaterialized(
       final String stateStoreName,
-      final WindowedTableSource source,
+      final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory
   ) {
@@ -213,7 +179,7 @@ public final class SourceBuilder extends SourceBuilderBase{
 
     final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
         source.getFormats().getKeyFormat(),
-        source.getWindowInfo(),
+        ((WindowedTableSourceV1) source).getWindowInfo(),
         physicalSchema,
         queryContext
     );
@@ -269,67 +235,6 @@ public final class SourceBuilder extends SourceBuilderBase{
         keyFormat.getFeatures(),
         SerdeFeatures.of()
     );
-  }
-
-  private static <K> KTable<K, GenericRow> buildKTable(
-      final SourceStep<?> streamSource,
-      final RuntimeBuildContext buildContext,
-      final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator,
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName,
-      final PlanInfo planInfo
-  ) {
-    final boolean forceChangelog = streamSource instanceof TableSource
-        && ((TableSource) streamSource).isForceChangelog();
-
-    final KTable<K, GenericRow> table;
-    if (!forceChangelog) {
-      final String changelogTopic = changelogTopic(buildContext, stateStoreName);
-      final Callback onFailure = getRegisterCallback(
-          buildContext, streamSource.getFormats().getValueFormat());
-
-      table = buildContext
-          .getStreamsBuilder()
-          .table(
-              streamSource.getTopicName(),
-              consumed.withValueSerde(StaticTopicSerde.wrap(changelogTopic, valueSerde, onFailure)),
-              materialized
-          );
-
-      return table
-          .transformValues(new AddKeyAndPseudoColumns<>(
-              keyGenerator, streamSource.getPseudoColumnVersion()));
-
-    } else {
-      final KTable<K, GenericRow> source = buildContext
-          .getStreamsBuilder()
-          .table(streamSource.getTopicName(), consumed);
-
-      final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
-
-      final KTable<K, GenericRow> transformed = source.transformValues(
-          new AddKeyAndPseudoColumns<>(keyGenerator, streamSource.getPseudoColumnVersion()));
-
-      if (forceMaterialization) {
-        // add this identity mapValues call to prevent the source-changelog
-        // optimization in kafka streams - we don't want this optimization to
-        // be enabled because we cannot require symmetric serialization between
-        // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
-        // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-        table = transformed.mapValues(row -> row, materialized);
-      } else {
-        // if we know this table source is repartitioned later in the topology,
-        // we do not need to force a materialization at this source step since the
-        // re-partitioned topic will be used for any subsequent state stores, in lieu
-        // of the original source topic, thus avoiding the issues above.
-        // See https://github.com/confluentinc/ksql/issues/6650
-        table = transformed.mapValues(row -> row);
-      }
-    }
-
-    return table;
   }
 
 }

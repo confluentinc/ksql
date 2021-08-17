@@ -285,6 +285,13 @@ public class KsqlConfig extends AbstractConfig {
           + "functions, aggregations, or joins, but may include projections and filters.";
   public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY
+      = "ksql.query.push.scalable.new.node.continuity";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC =
+      "Whether new node continuity is enforced for scalable push queries. This means that it's an "
+          + "error for an existing query to miss data processed on a newly added node";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DEFAULT = false;
+
   public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
       = "ksql.query.push.scalable.interpreter.enabled";
   public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC =
@@ -900,6 +907,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC
         )
         .define(
             KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED,

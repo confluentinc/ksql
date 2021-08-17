@@ -65,23 +65,26 @@ public class PushRouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
 
-  private static final long CLUSTER_CHECK_INTERVAL_MS = 2000;
+  private static final long CLUSTER_CHECK_INTERVAL_MS = 1000;
   private static final long HOST_CACHE_EXPIRATION_MS = 1000;
 
   private final Function<ScalablePushRegistry, Set<KsqlNode>> registryToNodes;
   private final long clusterCheckInterval;
+  private final boolean backgroundRetries;
 
   public PushRouting() {
-    this(createLoadingCache(), CLUSTER_CHECK_INTERVAL_MS);
+    this(createLoadingCache(), CLUSTER_CHECK_INTERVAL_MS, true);
   }
 
   @VisibleForTesting
   public PushRouting(
       final Function<ScalablePushRegistry, Set<KsqlNode>> registryToNodes,
-      final long clusterCheckInterval
+      final long clusterCheckInterval,
+      final boolean backgroundRetries
   ) {
     this.registryToNodes = registryToNodes;
     this.clusterCheckInterval = clusterCheckInterval;
+    this.backgroundRetries = backgroundRetries;
   }
 
   @Override
@@ -100,6 +103,35 @@ public class PushRouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue
   ) {
+    final Set<KsqlNode> hosts = getInitialHosts(pushPhysicalPlan, statement, pushRoutingOptions);
+
+    final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle();
+    // Returns a future with the handle once the initial connection is made
+    final CompletableFuture<PushConnectionsHandle> result = connectToHosts(
+        serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
+        transientQueryQueue, pushConnectionsHandle, false);
+    // Only check for new nodes if this is the source node
+    if (backgroundRetries && !pushRoutingOptions.getHasBeenForwarded()) {
+      checkForNewHostsOnContext(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
+          transientQueryQueue, pushConnectionsHandle);
+    }
+    return result;
+  }
+
+  public void preparePushQuery(
+      final PushPhysicalPlan pushPhysicalPlan,
+      final ConfiguredStatement<Query> statement,
+      final PushRoutingOptions pushRoutingOptions
+  ) {
+    // Ensure that we have the expected hosts and the below doesn't throw an exception.
+    getInitialHosts(pushPhysicalPlan, statement, pushRoutingOptions);
+  }
+
+  private Set<KsqlNode> getInitialHosts(
+      final PushPhysicalPlan pushPhysicalPlan,
+      final ConfiguredStatement<Query> statement,
+      final PushRoutingOptions pushRoutingOptions
+  ) {
     final Set<KsqlNode> hosts = registryToNodes.apply(pushPhysicalPlan.getScalablePushRegistry())
         .stream()
         .filter(node -> !pushRoutingOptions.getHasBeenForwarded() || node.isLocal())
@@ -112,18 +144,7 @@ public class PushRouting implements AutoCloseable {
           "Unable to execute push query. No nodes executing persistent queries %s",
           statement.getStatementText()));
     }
-
-    final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle();
-    // Returns a future with the handle once the initial connection is made
-    final CompletableFuture<PushConnectionsHandle> result = connectToHosts(
-        serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-        transientQueryQueue, pushConnectionsHandle, false);
-    // Only check for new nodes if this is the source node
-    if (!pushRoutingOptions.getHasBeenForwarded()) {
-      checkForNewHostsOnContext(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-          transientQueryQueue, pushConnectionsHandle);
-    }
-    return result;
+    return hosts;
   }
 
   /**
@@ -181,11 +202,16 @@ public class PushRouting implements AutoCloseable {
               statement.getStatementText(), pushPhysicalPlan.getQueryId(), node,
               System.currentTimeMillis(), t.getCause());
 
-          pushConnectionsHandle.completeExceptionally(
-              new KsqlException(String.format(
-                  "Unable to execute push query \"%s\". %s",
-                  statement.getStatementText(), t.getCause().getMessage())));
-
+          // We only fail the whole thing if this is not a new dynamically added node. We allow
+          // retries in that case and don't fail the original request.
+          pushConnectionsHandle.get(node)
+              .ifPresent(result -> result.updateStatus(RoutingResultStatus.FAILED));
+          if (!dynamicallyAddedNode) {
+            pushConnectionsHandle.completeExceptionally(
+                new KsqlException(String.format(
+                    "Unable to execute push query \"%s\". %s",
+                    statement.getStatementText(), t.getCause().getMessage())));
+          }
           return pushConnectionsHandle;
         });
   }
@@ -322,9 +348,13 @@ public class PushRouting implements AutoCloseable {
     }
     final Set<KsqlNode> updatedHosts = registryToNodes.apply(
         pushPhysicalPlan.getScalablePushRegistry());
-    final Set<KsqlNode> hosts = pushConnectionsHandle.getAllHosts();
+    final Set<KsqlNode> hosts = pushConnectionsHandle.getActiveHosts();
     final Set<KsqlNode> newHosts = Sets.difference(updatedHosts, hosts).stream()
         .filter(node -> !node.isLocal())
+        .filter(node ->
+            pushConnectionsHandle.get(node)
+              .map(routingResult -> routingResult.getStatus() != RoutingResultStatus.IN_PROGRESS)
+              .orElse(true))
         .collect(Collectors.toSet());
     final Set<KsqlNode> removedHosts = Sets.difference(hosts, updatedHosts);
     if (newHosts.size() > 0) {
@@ -376,7 +406,19 @@ public class PushRouting implements AutoCloseable {
     // since they're part of the known set of hosts.
     COMPLETE,
     // The connection has been removed since the host is no longer running the persistent query.
-    REMOVED
+    REMOVED,
+    // The request to the other host failed on the last try
+    FAILED;
+
+    static boolean isHostActive(final RoutingResultStatus status) {
+      switch (status) {
+        case IN_PROGRESS:
+        case SUCCESS:
+          return true;
+        default:
+          return false;
+      }
+    }
   }
 
   public static class RoutingResult {
@@ -471,6 +513,7 @@ public class PushRouting implements AutoCloseable {
       LOG.error("Received error from remote node {} for id {}: {}", node, queryId, t.getMessage(),
           t);
       callback.completeExceptionally(t);
+      close();
     }
 
     synchronized void close() {
@@ -584,6 +627,13 @@ public class PushRouting implements AutoCloseable {
 
     public Set<KsqlNode> getAllHosts() {
       return ImmutableSet.copyOf(results.keySet());
+    }
+
+    public Set<KsqlNode> getActiveHosts() {
+      return results.entrySet().stream()
+          .filter(e -> RoutingResultStatus.isHostActive(e.getValue().getStatus()))
+          .map(Entry::getKey)
+          .collect(ImmutableSet.toImmutableSet());
     }
 
     public boolean isClosed() {

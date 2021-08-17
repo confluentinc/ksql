@@ -168,7 +168,7 @@ public class PushRoutingTest {
     // Given:
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal));
-    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50);
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
@@ -221,7 +221,7 @@ public class PushRoutingTest {
     // Given:
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
-    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50);
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
@@ -270,7 +270,7 @@ public class PushRoutingTest {
     // Given:
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
-    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50);
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, false);
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
@@ -318,7 +318,7 @@ public class PushRoutingTest {
     // Given:
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
-    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50);
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     TestRemotePublisher remotePublisher = new TestRemotePublisher(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);

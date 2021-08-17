@@ -35,6 +35,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.PushQueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Collection;
@@ -139,10 +140,11 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
       final ImmutableAnalysis analysis =
           ksqlEngine.analyzeQueryWithNoOutputTopic(query.getStatement(), query.getStatementText());
-
-      queryMetadata = ksqlEngine
+      final ScalablePushQueryMetadata pushQueryMetadata = ksqlEngine
           .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
               plannerOptions, context);
+      pushQueryMetadata.prepare();
+      queryMetadata = pushQueryMetadata;
     } else {
       queryMetadata = ksqlEngine
           .executeTransientQuery(serviceContext, query, true);

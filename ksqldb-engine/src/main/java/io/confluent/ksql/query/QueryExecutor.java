@@ -48,6 +48,8 @@ import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -231,15 +233,46 @@ final class QueryExecutor {
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
+    return buildPersistentQuery(
+        persistentQueryType,
+        statementText,
+        queryId,
+        Optional.of(sinkDataSource),
+        sources,
+        physicalPlan,
+        planSummary,
+        listener,
+        allPersistentQueries,
+        sinkDataSource.getSchema(),
+        sinkDataSource.getKsqlTopic().getKeyFormat(),
+        sinkDataSource.getKsqlTopic().getValueFormat()
+    );
+  }
+
+  @SuppressWarnings("ParameterNumber")
+  PersistentQueryMetadata buildPersistentQuery(
+      final KsqlConstants.PersistentQueryType persistentQueryType,
+      final String statementText,
+      final QueryId queryId,
+      final Optional<DataSource> sinkDataSource,
+      final Set<SourceName> sources,
+      final ExecutionStep<?> physicalPlan,
+      final String planSummary,
+      final QueryMetadata.Listener listener,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final LogicalSchema schema,
+      final KeyFormat keyFormat,
+      final ValueFormat valueFormat
+  ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
-        sinkDataSource.getSchema(),
-        sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
-        sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
+        schema,
+        keyFormat.getFeatures(),
+        valueFormat.getFeatures()
     );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
@@ -248,7 +281,7 @@ final class QueryExecutor {
     // scalable push queries are enabled.
     final Optional<ScalablePushRegistry> scalablePushRegistry
         = applyScalablePushProcessor(querySchema.logicalSchema(), result, allPersistentQueries,
-        sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+        keyFormat.isWindowed(),
         streamsProperties, ksqlConfig);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
@@ -257,7 +290,7 @@ final class QueryExecutor {
             materializationProviderBuilderFactory.materializationProviderBuilder(
                 info,
                 querySchema,
-                sinkDataSource.getKsqlTopic().getKeyFormat(),
+                keyFormat,
                 streamsProperties,
                 applicationId
             ));

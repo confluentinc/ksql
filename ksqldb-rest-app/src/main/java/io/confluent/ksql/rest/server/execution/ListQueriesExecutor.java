@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
@@ -93,10 +94,13 @@ public final class ListQueriesExecutor {
               if (q instanceof PersistentQueryMetadata) {
 
                 final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
+                final SourceName sinkName = persistentQuery.getSinkName();
                 return new RunningQuery(
                     q.getStatementString(),
-                    ImmutableSet.of(persistentQuery.getSinkName().text()),
-                    ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
+                    ImmutableSet.of(sinkName.text()),
+                    sinkName == SourceName.EMPTY
+                        ? ImmutableSet.of()
+                        : ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
                     q.getQueryId(),
                     QueryStatusCount.fromStreamsStateCounts(
                         Collections.singletonMap(q.getState(), 1)),

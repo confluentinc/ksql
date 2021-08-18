@@ -53,7 +53,7 @@ public final class KsqlConstants {
   }
 
   public enum PersistentQueryType {
-    CREATE_AS, INSERT
+    CREATE_SOURCE, CREATE_AS, INSERT
   }
 
   public enum KsqlQueryStatus {

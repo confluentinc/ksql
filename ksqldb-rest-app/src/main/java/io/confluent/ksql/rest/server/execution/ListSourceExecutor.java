@@ -429,14 +429,20 @@ public final class ListSourceExecutor {
     return ksqlEngine.getPersistentQueries()
         .stream()
         .filter(predicate)
-        .map(q -> new RunningQuery(
+        .map(q -> {
+          final SourceName sinkName = q.getSinkName();
+
+          return new RunningQuery(
             q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().text()),
-            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+            ImmutableSet.of(sinkName.text()),
+            sinkName == SourceName.EMPTY
+                ? ImmutableSet.of()
+                : ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
             q.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(q.getState(), 1)),
-            KsqlConstants.KsqlQueryType.PERSISTENT)).collect(Collectors.toList());
+            KsqlConstants.KsqlQueryType.PERSISTENT);
+        }).collect(Collectors.toList());
   }
 
   private static Stream sourceSteam(final KsqlStream<?> dataSource) {

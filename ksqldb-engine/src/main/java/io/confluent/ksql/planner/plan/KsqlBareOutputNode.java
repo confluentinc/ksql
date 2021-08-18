@@ -29,6 +29,7 @@ import java.util.OptionalInt;
 public class KsqlBareOutputNode extends OutputNode {
 
   private final Optional<WindowInfo> windowInfo;
+  private final boolean isSource;
 
   public KsqlBareOutputNode(
       final PlanNodeId id,
@@ -36,10 +37,12 @@ public class KsqlBareOutputNode extends OutputNode {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<TimestampColumn> timestampColumn,
-      final Optional<WindowInfo> windowInfo
+      final Optional<WindowInfo> windowInfo,
+      final boolean isSource
   ) {
     super(id, source, schema, limit, timestampColumn);
     this.windowInfo = requireNonNull(windowInfo, "windowInfo");
+    this.isSource = isSource;
   }
 
   @Override
@@ -54,5 +57,9 @@ public class KsqlBareOutputNode extends OutputNode {
 
   public Optional<WindowInfo> getWindowInfo() {
     return windowInfo;
+  }
+
+  public boolean isSource() {
+    return isSource;
   }
 }

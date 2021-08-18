@@ -101,7 +101,7 @@ public class SandboxedPersistentQueryMetadataImplTest {
         SQL,
         physicalSchema,
         Collections.emptySet(),
-        sinkDataSource,
+        Optional.of(sinkDataSource),
         EXECUTION_PLAN,
         QUERY_ID,
         Optional.of(materializationProviderBuilder),

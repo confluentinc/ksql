@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
@@ -97,6 +98,11 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
   @Override
   protected R visitInsertInto(final InsertInto node, final C context) {
     process(node.getQuery(), context);
+    return null;
+  }
+
+  @Override
+  protected R visitCreateTable(final CreateTable node, final C context) {
     return null;
   }
 

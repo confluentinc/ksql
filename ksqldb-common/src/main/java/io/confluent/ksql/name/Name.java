@@ -38,9 +38,9 @@ public abstract class Name<T extends Name<?>> {
       throw new IllegalArgumentException("name is not trimmed: '" + name + "'");
     }
 
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("name is empty");
-    }
+    //if (name.isEmpty()) {
+    //  throw new IllegalArgumentException("name is empty");
+    //}
   }
 
   /**

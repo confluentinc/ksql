@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
@@ -41,7 +42,8 @@ public final class QueryIdUtil {
   public enum ReservedQueryIdsPrefixes {
     INSERT("INSERTQUERY_"),
     CTAS("CTAS_"),
-    CSAS("CSAS_");
+    CSAS("CSAS_"),
+    CST("CST_");
 
     private final String prefix;
     ReservedQueryIdsPrefixes(final String prefix) {
@@ -100,9 +102,17 @@ public final class QueryIdUtil {
     }
 
     if (!outputNode.getSinkName().isPresent()) {
-      final String prefix =
-          "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
-      return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
+      final KsqlBareOutputNode bareOutputNode = (KsqlBareOutputNode) outputNode;
+
+      if (bareOutputNode.isSource()) {
+        final String suffix = outputNode.getId().toString().toUpperCase()
+            + "_" + idGenerator.getNext().toUpperCase();
+        return new QueryId(ReservedQueryIdsPrefixes.CST + suffix);
+      } else {
+        final String prefix =
+            "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
+        return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
+      }
     }
 
     final KsqlStructuredDataOutputNode structured = (KsqlStructuredDataOutputNode) outputNode;

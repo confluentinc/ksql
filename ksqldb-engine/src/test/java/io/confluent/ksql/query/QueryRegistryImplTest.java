@@ -377,7 +377,8 @@ public class QueryRegistryImplTest {
   ) {
     givenCreate(registry, id, "source", "sink1", true);
     verify(executor).buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+        any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(),
+        any(), any(), any());
     return queryListenerCaptor.getValue();
   }
 
@@ -394,13 +395,13 @@ public class QueryRegistryImplTest {
     when(sinkSource.getName()).thenReturn(SourceName.of(sink));
     when(query.getQueryId()).thenReturn(queryId);
     when(query.getSinkName()).thenReturn(SourceName.of(sink));
-    when(query.getSink()).thenReturn(sinkSource);
+    when(query.getSink()).thenReturn(Optional.of(sinkSource));
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
     when(query.getPersistentQueryType()).thenReturn(createAs
         ? KsqlConstants.PersistentQueryType.CREATE_AS
         : KsqlConstants.PersistentQueryType.INSERT);
     when(executor.buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
     ).thenReturn(query);
     registry.createOrReplacePersistentQuery(
         config,
@@ -409,11 +410,13 @@ public class QueryRegistryImplTest {
         metaStore,
         "sql",
         queryId,
-        sinkSource,
+        Optional.of(sinkSource),
         ImmutableSet.of(SourceName.of(source)),
         mock(ExecutionStep.class),
         "plan-summary",
         createAs
+            ? KsqlConstants.PersistentQueryType.CREATE_AS
+            : KsqlConstants.PersistentQueryType.INSERT
     );
     return query;
   }

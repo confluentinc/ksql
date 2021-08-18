@@ -44,7 +44,7 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   ExecutionStep<?> getPhysicalPlan();
 
-  DataSource getSink();
+  Optional<DataSource> getSink();
 
   KsqlConstants.PersistentQueryType getPersistentQueryType();
 

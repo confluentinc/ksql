@@ -27,6 +27,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
@@ -144,7 +146,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         excludeTombstones,
         new ListenerImpl()
     );
-    registerQuery(serviceContext, metaStore, query, false);
+    registerTransientQuery(serviceContext, metaStore, query);
     return query;
   }
 
@@ -157,18 +159,38 @@ public class QueryRegistryImpl implements QueryRegistry {
       final MetaStore metaStore,
       final String statementText,
       final QueryId queryId,
-      final DataSource sinkDataSource,
+      final Optional<DataSource> sinkDataSource,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final boolean createAsQuery) {
+      final KsqlConstants.PersistentQueryType persistentQueryType) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor =
         executorFactory.create(config, processingLogContext, serviceContext, metaStore);
+
+    final LogicalSchema querySchema;
+    final KeyFormat keyFormat;
+    final ValueFormat valueFormat;
+
+    switch (persistentQueryType) {
+      case CREATE_SOURCE:
+        final DataSource dataSource = metaStore.getSource(Iterables.getOnlyElement(sources));
+
+        querySchema = dataSource.getSchema();
+        keyFormat = dataSource.getKsqlTopic().getKeyFormat();
+        valueFormat = dataSource.getKsqlTopic().getValueFormat();
+
+        break;
+      default:
+        querySchema = sinkDataSource.get().getSchema();
+        keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
+        valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
+
+        break;
+    }
+
     final PersistentQueryMetadata query = executor.buildPersistentQuery(
-        createAsQuery
-            ? KsqlConstants.PersistentQueryType.CREATE_AS
-            : KsqlConstants.PersistentQueryType.INSERT,
+        persistentQueryType,
         statementText,
         queryId,
         sinkDataSource,
@@ -176,9 +198,12 @@ public class QueryRegistryImpl implements QueryRegistry {
         physicalPlan,
         planSummary,
         new ListenerImpl(),
-        () -> ImmutableList.copyOf(getPersistentQueries().values())
+        () -> ImmutableList.copyOf(getPersistentQueries().values()),
+        querySchema,
+        keyFormat,
+        valueFormat
     );
-    registerQuery(serviceContext, metaStore, query, createAsQuery);
+    registerPersistentQuery(serviceContext, metaStore, query, persistentQueryType);
     return query;
   }
 
@@ -254,45 +279,61 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
   }
 
-  private void registerQuery(
+  private void registerPersistentQuery(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
-      final QueryMetadata query,
-      final boolean createAsQuery
+      final PersistentQueryMetadata persistentQuery,
+      final KsqlConstants.PersistentQueryType persistentQueryType
   ) {
-    if (query instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-      final QueryId queryId = persistentQuery.getQueryId();
+    final QueryId queryId = persistentQuery.getQueryId();
 
-      // don't use persistentQueries.put(queryId) here because oldQuery.close()
-      // will remove any query with oldQuery.getQueryId() from the map of persistent
-      // queries
-      final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
-      if (oldQuery != null) {
-        oldQuery.getPhysicalPlan()
-            .validateUpgrade(((PersistentQueryMetadata) query).getPhysicalPlan());
+    // don't use persistentQueries.put(queryId) here because oldQuery.close()
+    // will remove any query with oldQuery.getQueryId() from the map of persistent
+    // queries
+    final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+    if (oldQuery != null) {
+      oldQuery.getPhysicalPlan().validateUpgrade((persistentQuery).getPhysicalPlan());
 
-        // don't close the old query so that we don't delete the changelog
-        // topics and the state store, instead use QueryMetadata#stop
-        oldQuery.stop();
-        unregisterQuery(oldQuery);
-      }
+      // don't close the old query so that we don't delete the changelog
+      // topics and the state store, instead use QueryMetadata#stop
+      oldQuery.stop();
+      unregisterQuery(oldQuery);
+    }
 
-      // Initialize the query before it's exposed to other threads via the map/sets.
-      persistentQuery.initialize();
-      persistentQueries.put(queryId, persistentQuery);
-      if (createAsQuery) {
+    // Initialize the query before it's exposed to other threads via the map/sets.
+    persistentQuery.initialize();
+    persistentQueries.put(queryId, persistentQuery);
+    switch (persistentQueryType) {
+      case CREATE_SOURCE:
+        // CREATE_SOURCE has only one source which it refers to itself
+        if (persistentQuery.getDataSourceType() == DataSource.DataSourceType.KTABLE) {
+          createAsQueries.put(Iterables.getOnlyElement(persistentQuery.getSourceNames()), queryId);
+        }
+        break;
+      case CREATE_AS:
         createAsQueries.put(persistentQuery.getSinkName(), queryId);
-      } else {
-        // Only INSERT queries exist beside CREATE_AS
+        break;
+      case INSERT:
         sinkAndSources(persistentQuery).forEach(sourceName ->
             insertQueries.computeIfAbsent(sourceName,
                 x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
-      }
-    } else {
-      // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
-      query.initialize();
+        break;
+      default:
+        // do nothing
     }
+
+    allLiveQueries.put(persistentQuery.getQueryId(), persistentQuery);
+    notifyCreate(serviceContext, metaStore, persistentQuery);
+  }
+
+  private void registerTransientQuery(
+      final ServiceContext serviceContext,
+      final MetaStore metaStore,
+      final TransientQueryMetadata query
+  ) {
+    // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
+    query.initialize();
+
     allLiveQueries.put(query.getQueryId(), query);
     notifyCreate(serviceContext, metaStore, query);
   }

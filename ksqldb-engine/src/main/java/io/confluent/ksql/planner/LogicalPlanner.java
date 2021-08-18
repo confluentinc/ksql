@@ -245,7 +245,8 @@ public class LogicalPlanner {
           inputSchema,
           analysis.getLimitClause(),
           timestampColumn,
-          getWindowInfo()
+          getWindowInfo(),
+          analysis.isSource()
       );
     }
 

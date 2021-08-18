@@ -250,6 +250,11 @@ public class RewrittenAnalysis implements ImmutableAnalysis {
     return original.getOrReplace();
   }
 
+  @Override
+  public boolean isSource() {
+    return original.isSource();
+  }
+
   private <T extends Expression> List<T> rewriteList(final List<T> expressions) {
     return expressions.stream()
         .map(this::rewrite)

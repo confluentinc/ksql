@@ -22,20 +22,37 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.OutputRefinement;
+import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.Select;
+import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
@@ -62,9 +79,13 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -76,9 +97,11 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -144,8 +167,32 @@ final class EngineExecutor {
           sinkSource.getDataSourceType().getKsqlType().toLowerCase(), sinkSource.getName().text()));
     }
 
+    final KsqlConstants.PersistentQueryType persistentQueryType;
+    final Set<SourceName> withSourcesReferences;
+
+    if (plan.getDdlCommand().isPresent()) {
+      if (plan.getDdlCommand().get() instanceof CreateTableCommand
+          && ((CreateTableCommand) plan.getDdlCommand().get()).getIsSource()) {
+        persistentQueryType = KsqlConstants.PersistentQueryType.CREATE_SOURCE;
+
+        final SourceName sourceTableName = ((CreateTableCommand) plan.getDdlCommand().get())
+            .getSourceName();
+
+        // Remove the self source reference from CST (source table)
+        withSourcesReferences = queryPlan.getSources().stream()
+            .filter(src -> !src.equals(sourceTableName))
+            .collect(Collectors.toSet());
+      } else {
+        persistentQueryType = KsqlConstants.PersistentQueryType.CREATE_AS;
+        withSourcesReferences = queryPlan.getSources();
+      }
+    } else {
+      persistentQueryType = KsqlConstants.PersistentQueryType.INSERT;
+      withSourcesReferences = queryPlan.getSources();
+    }
+
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+        executeDdl(ddl, plan.getStatementText(), true, withSourcesReferences));
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
@@ -155,7 +202,7 @@ final class EngineExecutor {
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
         plan.getStatementText(),
-        plan.getDdlCommand().isPresent())
+        persistentQueryType)
     );
   }
 
@@ -321,7 +368,7 @@ final class EngineExecutor {
       final boolean excludeTombstones
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
-        Optional.empty(), Optional.empty());
+        Optional.empty(), Optional.empty(), engineContext.getMetaStore());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
     engineContext.createQueryValidator().validateQuery(
         config,
@@ -360,7 +407,81 @@ final class EngineExecutor {
             config
         );
 
-        return KsqlPlan.ddlPlanCurrent(statement.getStatementText(), ddlCommand);
+        // Build a query plan for a source table
+        if (statement.getStatement() instanceof CreateTable
+            && ((CreateTable) statement.getStatement()).isSource()) {
+
+          final CreateTable sourceTable = (CreateTable) statement.getStatement();
+
+          final List<SelectItem> selectItems = sourceTable.getElements().stream()
+              .filter(t -> t.getNamespace() == TableElement.Namespace.VALUE)
+              .map(t -> new SingleColumn(
+                  new UnqualifiedColumnReferenceExp(t.getName()), Optional.of(t.getName())))
+              .collect(Collectors.toList());
+
+          final Query sourceTableQuery = new Query(
+              Optional.empty(),
+              new Select(selectItems),
+              new AliasedRelation(new Table(sourceTable.getName()), sourceTable.getName()),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.of(RefinementInfo.of(OutputRefinement.CHANGES)),
+              false,
+              OptionalInt.empty());
+
+          final CreateTableCommand createTableCommand = (CreateTableCommand) ddlCommand;
+          final Formats formats = createTableCommand.getFormats();
+
+          final MutableMetaStore tempMetastore = new MetaStoreImpl(new InternalFunctionRegistry());
+          tempMetastore.putSource(new KsqlTable<>(
+              statement.getStatementText(),
+              sourceTable.getName(),
+              createTableCommand.getSchema(),
+              Optional.empty(),
+              false,
+              new KsqlTopic(
+                  createTableCommand.getTopicName(),
+                  KeyFormat.of(formats.getKeyFormat(), formats.getKeyFeatures(), Optional.empty()),
+                  ValueFormat.of(formats.getValueFormat(), formats.getValueFeatures())
+              ),
+              true
+          ), false);
+
+          final ExecutorPlans plans = planQuery(
+              statement,
+              sourceTableQuery,
+              Optional.empty(), // no sink
+              Optional.empty(), // no provided query id,
+              tempMetastore // temp metastore where not created source table reference exists
+          );
+
+          final KsqlBareOutputNode outputNode =
+              (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+
+          final QueryPlan queryPlan = new QueryPlan(
+              getSourceNames(outputNode),
+              SourceName.EMPTY,
+              plans.physicalPlan.getPhysicalPlan(),
+              plans.physicalPlan.getQueryId()
+          );
+
+          engineContext.createQueryValidator().validateQuery(
+              config,
+              plans.physicalPlan,
+              engineContext.getQueryRegistry().getAllLiveQueries()
+          );
+
+          return KsqlPlan.queryPlanCurrent(
+              statement.getStatementText(),
+              Optional.of(ddlCommand),
+              queryPlan
+          );
+        } else {
+          return KsqlPlan.ddlPlanCurrent(statement.getStatementText(), ddlCommand);
+        }
       }
 
       final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
@@ -368,7 +489,8 @@ final class EngineExecutor {
           statement,
           queryContainer.getQuery(),
           Optional.of(queryContainer.getSink()),
-          queryContainer.getQueryId()
+          queryContainer.getQueryId(),
+          engineContext.getMetaStore()
       );
 
       final KsqlStructuredDataOutputNode outputNode =
@@ -410,19 +532,22 @@ final class EngineExecutor {
       final ConfiguredStatement<?> statement,
       final Query query,
       final Optional<Sink> sink,
-      final Optional<String> withQueryId) {
+      final Optional<String> withQueryId,
+      final MetaStore metaStore) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
         query,
         sink,
-        engineContext.getMetaStore(),
+        metaStore,
         ksqlConfig
     );
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)
     );
+
+    // Need to build a query for source tables
     final QueryId queryId = QueryIdUtil.buildId(
         engineContext,
         engineContext.idGenerator(),
@@ -436,10 +561,11 @@ final class EngineExecutor {
       throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
     }
 
+    // Need to pass the function metastore here, not the engineContext metastore
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,
-        engineContext.getMetaStore(),
+        metaStore,
         queryId
     );
     return new ExecutorPlans(logicalPlan, physicalPlan);
@@ -616,7 +742,7 @@ final class EngineExecutor {
   private PersistentQueryMetadata executePersistentQuery(
       final QueryPlan queryPlan,
       final String statementText,
-      final boolean createAsQuery
+      final KsqlConstants.PersistentQueryType persistentQueryType
   ) {
     final QueryRegistry queryRegistry = engineContext.getQueryRegistry();
     return queryRegistry.createOrReplacePersistentQuery(
@@ -626,11 +752,11 @@ final class EngineExecutor {
         engineContext.getMetaStore(),
         statementText,
         queryPlan.getQueryId(),
-        engineContext.getMetaStore().getSource(queryPlan.getSink()),
+        Optional.ofNullable(engineContext.getMetaStore().getSource(queryPlan.getSink())),
         queryPlan.getSources(),
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
-        createAsQuery
+        persistentQueryType
     );
   }
 

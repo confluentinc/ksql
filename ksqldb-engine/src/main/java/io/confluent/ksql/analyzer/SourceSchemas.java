@@ -38,10 +38,6 @@ public final class SourceSchemas {
 
   SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
-
-    if (sourceSchemas.isEmpty()) {
-      throw new IllegalArgumentException("Must supply at least one schema");
-    }
   }
 
   /**

@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
@@ -250,6 +251,12 @@ class Analyzer {
       props.putAll(formatProperties);
 
       return FormatInfo.of(formatName, props);
+    }
+
+    @Override
+    protected AstNode visitCreateTable(final CreateTable node, final Void context) {
+      analysis.setIsSource(node.isSource());
+      return null;
     }
 
     @Override

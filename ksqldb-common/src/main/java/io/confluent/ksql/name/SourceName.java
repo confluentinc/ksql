@@ -23,6 +23,7 @@ import com.google.errorprone.annotations.Immutable;
  */
 @Immutable
 public final class SourceName extends Name<SourceName> {
+  public static final SourceName EMPTY = SourceName.of("");
 
   @JsonCreator
   public static SourceName of(final String name) {

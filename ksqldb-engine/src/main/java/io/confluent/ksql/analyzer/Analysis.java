@@ -73,6 +73,7 @@ public class Analysis implements ImmutableAnalysis {
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
   private boolean orReplace = false;
+  private boolean isSource = false;
 
   public Analysis(final Optional<RefinementInfo> refinementInfo) {
     this(refinementInfo, SourceSchemas::new);
@@ -227,6 +228,15 @@ public class Analysis implements ImmutableAnalysis {
 
   public void setOrReplace(final boolean orReplace) {
     this.orReplace = orReplace;
+  }
+
+  @Override
+  public boolean isSource() {
+    return isSource;
+  }
+
+  public void setIsSource(final boolean isSource) {
+    this.isSource = isSource;
   }
 
   void addDataSource(final SourceName alias, final DataSource dataSource) {

@@ -214,8 +214,6 @@ public class SourceBuilderUtils {
     }
   }
 
-  //todo: move buildMaterialized() in here, and overload with a version that accepts a schema too
-
   protected static class AddKeyAndPseudoColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 

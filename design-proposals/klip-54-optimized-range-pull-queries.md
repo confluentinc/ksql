@@ -9,17 +9,17 @@
            
 ## Motivation and background
 
-Currently, range queries on primary keys (e.g., WHERE colX < T) are implemented using a table scan followed by a filtering operation, which is inefficient. Recently, range scan capabilities were added to Kafka streams (#4064). Following that work, we should optimize the execution of range queries in ksqlDB by directly leveraging the dedicated range query interface to improve I/O efficiency and performance. 
+Currently, range queries on primary keys (e.g., WHERE colX < T) are implemented using a table scan followed by a filtering operation, which is inefficient. Recently, range scan capabilities were added to Kafka streams (KAFKA-4064). Following that work, we should optimize the execution of range queries in ksqlDB by directly leveraging the dedicated range query interface to improve I/O efficiency and performance. 
 
 ## What is in scope
 
-* Pull queries on tables with a WHERE clause including ">", ">=", "<", "<=" expressions should be executed using the range interface in the state store. 
+* Pull queries on tables with a WHERE clause including ">", ">=", "<", "<=" expressions should be executed using the range interface in the state store. There are restrictions on when this optimization can be applied. See the next section.
 
 ## What is not in scope
 
-* There exists a potential for optimizing pull queries with conjunctions or disjunctions of range expressions, e.g., by compacting multiple range expressions into fewer expressions, leading to fewer range calls on the state store and, thus, better I/O efficiency and improved performance. Such optimizations are not part of this KLIP.
+* Queries with conjunctions or disjunctions of range expressions will not be optimized with the techniques proposed in this KLIP, but instead we will fallback to table scans for such queries. In the future, we plan to optimize queries with multiple range expressions by compacting the various range expressions into fewer expressions, leading to fewer range calls on the state store. 
 * There exists a potential for several physical plan optimizations around range queries, such as omitting redundant filtering in selection operators. Such optimizations are not part of this KLIP. 
-* Currently, the scope of this KLIP is restricted to String type keys. The reason for this is that the default comparator in rocksdb is lexicographical, thus, the order of binary key types like Integers will not semantically be correct. For instance, negative integers represented in the two-complement binary format may appear greater than some positive integers. As of now, we restrict the range scan optimization to String key types. In the future, we plan to add support for binary keys via custom comparator (Rocksdb version 6.8 has added major performance improvements to the rocksdb Java comparators).  
+* Currently, the scope of this KLIP is restricted to String type keys. The reason for this is that the default comparator in rocksdb is lexicographical, thus, the order of binary key types like Integers will not semantically be correct. For instance, negative integers represented in the two-complement binary format may appear greater than some positive integers. As of now, we restrict the range scan optimization to String key types. In the future, we plan to add support for binary keys.  
 
 ## Value/Return
 
@@ -33,7 +33,7 @@ No new syntax is added.
 
 In order to efficiently support range queries on tables, several modifications have to be made with regard to how opportunities for range scans are detected, how the physical plan is generated and how materialization is implemented:
 1. Generate KeyConstrains for range expressions (instead of NoKeyConstraints)
-2. Introduce a new physical operator called RangeScanOperator to handle queries consisting of KeyConstraints of type "<", "<=", ">", ">="
+2. Enable the existing KeyedTableLookupOperator to handle KeyConstraints of type "<", "<=", ">", ">="
 3. Add support for range scans in ksqlDB materialization 
 
 ## Test plan

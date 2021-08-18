@@ -10,10 +10,13 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.physical.scalablepush.PushRouting.RoutingResult;
+import io.confluent.ksql.physical.scalablepush.PushRouting.RoutingResultStatus;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -25,7 +28,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.net.URI;
@@ -36,6 +38,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,13 +96,14 @@ public class PushRoutingTest {
     when(sessionConfig.getOverrides()).thenReturn(ImmutableMap.of());
     when(serviceContext.getKsqlClient()).thenReturn(simpleKsqlClient);
     when(pushPhysicalPlan.getScalablePushRegistry()).thenReturn(scalablePushRegistry);
+    when(pushPhysicalPlan.getContext()).thenReturn(context);
     when(scalablePushRegistry.getLocator()).thenReturn(locator);
     when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeLocal, ksqlNodeRemote));
     when(ksqlNodeLocal.location()).thenReturn(URI.create("http://localhost:8088"));
     when(ksqlNodeLocal.isLocal()).thenReturn(true);
     when(ksqlNodeRemote.location()).thenReturn(URI.create("http://remote:8088"));
     when(ksqlNodeRemote.isLocal()).thenReturn(false);
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(false);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(false);
 
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty());
   }
@@ -160,9 +164,194 @@ public class PushRoutingTest {
   }
 
   @Test
+  public void shouldSucceed_addRemoteNode() throws ExecutionException, InterruptedException {
+    // Given:
+    final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
+        ImmutableSet.of(ksqlNodeLocal));
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
+    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
+    when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
+    when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
+
+    // When:
+    CompletableFuture<PushConnectionsHandle> future =
+        routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
+            outputSchema, transientQueryQueue);
+    future.get();
+    context.runOnContext(v -> {
+      localPublisher.accept(LOCAL_ROW1);
+      localPublisher.accept(LOCAL_ROW2);
+    });
+
+    Set<List<?>> rows = new HashSet<>();
+    while (rows.size() < 2) {
+      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      if (kv == null) {
+        Thread.sleep(100);
+        continue;
+      }
+      rows.add(kv.value().values());
+    }
+
+    nodes.set(ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
+    context.runOnContext(v -> {
+      remotePublisher.accept(REMOTE_ROW1);
+      remotePublisher.accept(REMOTE_ROW2);
+    });
+
+    // Then:
+    while (rows.size() < 4) {
+      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      if (kv == null) {
+        Thread.sleep(100);
+        continue;
+      }
+      rows.add(kv.value().values());
+    }
+    assertThat(rows.contains(LOCAL_ROW1), is(true));
+    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
+    assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
+  }
+
+  @Test
+  public void shouldSucceed_removeRemoteNode() throws ExecutionException, InterruptedException {
+    // Given:
+    final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
+        ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
+    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
+    when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
+    when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
+
+    // When:
+    CompletableFuture<PushConnectionsHandle> future =
+        routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
+            outputSchema, transientQueryQueue);
+    final PushConnectionsHandle handle = future.get();
+    context.runOnContext(v -> {
+      localPublisher.accept(LOCAL_ROW1);
+      localPublisher.accept(LOCAL_ROW2);
+      remotePublisher.accept(REMOTE_ROW1);
+      remotePublisher.accept(REMOTE_ROW2);
+    });
+
+    Set<List<?>> rows = new HashSet<>();
+    while (rows.size() < 4) {
+      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      if (kv == null) {
+        Thread.sleep(100);
+        continue;
+      }
+      rows.add(kv.value().values());
+    }
+
+    final RoutingResult result = handle.get(ksqlNodeRemote).get();
+    nodes.set(ImmutableSet.of(ksqlNodeLocal));
+    while (handle.get(ksqlNodeRemote).isPresent()) {
+      Thread.sleep(100);
+      continue;
+    }
+
+    // Then:
+    assertThat(rows.contains(LOCAL_ROW1), is(true));
+    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
+    assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
+    assertThat(result.getStatus(), is(RoutingResultStatus.REMOVED));
+  }
+
+  @Test
+  public void shouldSucceed_remoteNodeComplete() throws ExecutionException, InterruptedException {
+    // Given:
+    final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
+        ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, false);
+    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
+    when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
+    when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
+
+    // When:
+    CompletableFuture<PushConnectionsHandle> future =
+        routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
+            outputSchema, transientQueryQueue);
+    final PushConnectionsHandle handle = future.get();
+    context.runOnContext(v -> {
+      localPublisher.accept(LOCAL_ROW1);
+      localPublisher.accept(LOCAL_ROW2);
+      remotePublisher.accept(REMOTE_ROW1);
+      remotePublisher.accept(REMOTE_ROW2);
+      remotePublisher.complete();
+    });
+
+    Set<List<?>> rows = new HashSet<>();
+    while (rows.size() < 4) {
+      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      if (kv == null) {
+        Thread.sleep(100);
+        continue;
+      }
+      rows.add(kv.value().values());
+    }
+    while (!handle.get(ksqlNodeRemote).isPresent()
+        || handle.get(ksqlNodeRemote).get().getStatus() != RoutingResultStatus.COMPLETE) {
+      Thread.sleep(100);
+      continue;
+    }
+
+    // Then:
+    assertThat(rows.contains(LOCAL_ROW1), is(true));
+    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
+    assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
+    assertThat(handle.get(ksqlNodeRemote).get().getStatus(), is(RoutingResultStatus.COMPLETE));
+  }
+
+  @Test
+  public void shouldFail_remoteNodeException() throws ExecutionException, InterruptedException {
+    // Given:
+    final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
+        ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
+    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    TestRemotePublisher remotePublisher = new TestRemotePublisher(context);
+    when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
+    when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
+
+    // When:
+    CompletableFuture<PushConnectionsHandle> future =
+        routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
+            outputSchema, transientQueryQueue);
+    final PushConnectionsHandle handle = future.get();
+    final AtomicReference<Throwable> exception = new AtomicReference<>(null);
+    handle.onException(exception::set);
+    context.runOnContext(v -> {
+      localPublisher.accept(LOCAL_ROW1);
+      localPublisher.accept(LOCAL_ROW2);
+      remotePublisher.error(new RuntimeException("Random error"));
+    });
+
+    while (exception.get() == null) {
+      Thread.sleep(100);
+      continue;
+    }
+
+    // Then:
+    assertThat(exception.get().getMessage(), containsString("Random error"));
+  }
+
+
+  @Test
   public void shouldSucceed_justForwarded() throws ExecutionException, InterruptedException {
     // Given:
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
@@ -195,7 +384,7 @@ public class PushRoutingTest {
   @Test
   public void shouldFail_duringPlanExecute() throws ExecutionException, InterruptedException {
     // Given:
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
     when(pushPhysicalPlan.execute()).thenThrow(new RuntimeException("Error!"));
 
@@ -249,7 +438,7 @@ public class PushRoutingTest {
   public void shouldFail_hitRequestLimitLocal() throws ExecutionException, InterruptedException {
     // Given:
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty(), 1, 100);
-    when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
+    when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
@@ -310,5 +499,16 @@ public class PushRoutingTest {
     }
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
     assertThat(handle.getError().getMessage(), containsString("Hit limit of request queue"));
+  }
+
+  private static class TestRemotePublisher extends BufferedPublisher<StreamedRow> {
+
+    public TestRemotePublisher(Context ctx) {
+      super(ctx);
+    }
+
+    public void error(final Throwable e) {
+      sendError(e);
+    }
   }
 }

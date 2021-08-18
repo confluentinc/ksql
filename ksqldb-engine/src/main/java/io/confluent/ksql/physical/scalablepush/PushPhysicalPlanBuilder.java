@@ -49,17 +49,20 @@ public class PushPhysicalPlanBuilder {
 
   private final ProcessingLogContext processingLogContext;
   private final PersistentQueryMetadata persistentQueryMetadata;
+  private final boolean expectingStartOfRegistryData;
   private final Stacker contextStacker;
   private final QueryId queryId;
 
   public PushPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
-      final PersistentQueryMetadata persistentQueryMetadata
+      final PersistentQueryMetadata persistentQueryMetadata,
+      final boolean expectingStartOfRegistryData
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
     this.persistentQueryMetadata = Objects.requireNonNull(
         persistentQueryMetadata, "persistentQueryMetadata");
+    this.expectingStartOfRegistryData = expectingStartOfRegistryData;
     this.contextStacker = new Stacker();
     queryId = uniqueQueryId();
   }
@@ -160,7 +163,8 @@ public class PushPhysicalPlanBuilder {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
-    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId);
+    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId,
+        expectingStartOfRegistryData);
   }
 
   private QueryId uniqueQueryId() {

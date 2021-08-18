@@ -508,6 +508,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, configured, pushRouting, routingOptions,
             plannerOptions, context);
+    query.prepare();
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

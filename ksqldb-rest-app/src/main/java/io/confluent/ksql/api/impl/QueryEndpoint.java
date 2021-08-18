@@ -179,6 +179,7 @@ public class QueryEndpoint {
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
             plannerOptions, context);
+    query.prepare();
 
 
     publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);

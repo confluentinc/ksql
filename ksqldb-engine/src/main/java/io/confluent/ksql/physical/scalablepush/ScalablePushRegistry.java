@@ -56,23 +56,27 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private final LogicalSchema logicalSchema;
   private final boolean isTable;
   private final boolean windowed;
+  private final boolean newNodeContinuityEnforced;
   // All mutable field accesses are protected with synchronized.  The exception is when
   // processingQueues is accessed to processed rows, in which case we want a weakly consistent
   // view of the map, so we just iterate over the ConcurrentHashMap directly.
   private final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
       = new ConcurrentHashMap<>();
   private boolean closed = false;
+  private volatile boolean hasReceivedData = false;
 
   public ScalablePushRegistry(
       final PushLocator pushLocator,
       final LogicalSchema logicalSchema,
       final boolean isTable,
-      final boolean windowed
+      final boolean windowed,
+      final boolean newNodeContinuityEnforced
   ) {
     this.pushLocator = pushLocator;
     this.logicalSchema = logicalSchema;
     this.isTable = isTable;
     this.windowed = windowed;
+    this.newNodeContinuityEnforced = newNodeContinuityEnforced;
   }
 
   public synchronized void close() {
@@ -83,9 +87,15 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     closed = true;
   }
 
-  public synchronized void register(final ProcessingQueue processingQueue) {
+  public synchronized void register(
+      final ProcessingQueue processingQueue,
+      final boolean expectingStartOfRegistryData
+  ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
+    }
+    if (hasReceivedData && newNodeContinuityEnforced && expectingStartOfRegistryData) {
+      throw new IllegalStateException("New node missed data");
     }
     processingQueues.put(processingQueue.getQueryId(), processingQueue);
   }
@@ -117,6 +127,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   @SuppressWarnings("unchecked")
   private void handleRow(final Record<Object, GenericRow> record) {
+    hasReceivedData = true;
     final Object key = record.key();
     final GenericRow value = record.value();
 
@@ -187,7 +198,8 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final boolean isTable,
       final boolean windowed,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> streamsProperties,
+      final boolean newNodeContinuityEnforced
   ) {
     final Object appServer = streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     if (appServer == null) {
@@ -207,6 +219,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     }
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
-    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, isTable, windowed));
+    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, isTable, windowed,
+        newNodeContinuityEnforced));
   }
 }

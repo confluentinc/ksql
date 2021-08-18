@@ -45,6 +45,7 @@ import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
+import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
@@ -272,7 +273,8 @@ final class EngineExecutor {
       final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
           logicalPlan,
           analysis,
-          context
+          context,
+          pushRoutingOptions
       );
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -285,12 +287,15 @@ final class EngineExecutor {
       final PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
               physicalPlan.getOutputSchema(), transientQueryQueue);
+      final PushQueryPreparer preparer = () ->
+          pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
           transientQueryQueue,
           resultType,
-          populator
+          populator,
+          preparer
       );
 
       return metadata;
@@ -452,12 +457,14 @@ final class EngineExecutor {
   private PushPhysicalPlan buildScalablePushPhysicalPlan(
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
-      final Context context
+      final Context context,
+      final PushRoutingOptions pushRoutingOptions
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
-        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
+        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis),
+        pushRoutingOptions.getExpectingStartOfRegistryData()
     );
     return builder.buildPushPhysicalPlan(logicalPlan, context);
   }

@@ -82,8 +82,11 @@ public class PushPhysicalPlan {
 
   private void maybeNext(final Publisher publisher) {
     List<?> row;
-    while (!isErrored(publisher) && (row = (List<?>)next()) != null) {
+    while (!isErrored(publisher) && (row = (List<?>) next(publisher)) != null) {
       publisher.accept(row);
+    }
+    if (publisher.isFailed()) {
+      return;
     }
     if (!closed) {
       if (timer >= 0) {
@@ -112,14 +115,23 @@ public class PushPhysicalPlan {
 
   private void open(final Publisher publisher) {
     VertxUtils.checkContext(context);
-    dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
-    root.open();
-    maybeNext(publisher);
+    try {
+      dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
+      root.open();
+      maybeNext(publisher);
+    } catch (Throwable t) {
+      publisher.sendException(t);
+    }
   }
 
-  private Object next() {
+  private Object next(final Publisher publisher) {
     VertxUtils.checkContext(context);
-    return root.next();
+    try {
+      return root.next();
+    } catch (final Throwable t) {
+      publisher.sendException(t);
+      return null;
+    }
   }
 
   public void close() {
@@ -149,6 +161,11 @@ public class PushPhysicalPlan {
     return scalablePushRegistry;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public Context getContext() {
+    return context;
+  }
+
   public static class Publisher extends BufferedPublisher<List<?>> {
 
     public Publisher(final Context ctx) {
@@ -161,6 +178,14 @@ public class PushPhysicalPlan {
 
     public void reportHasError() {
       sendError(new RuntimeException("Persistent query has error"));
+    }
+
+    public void sendException(final Throwable e) {
+      sendError(e);
+    }
+
+    public boolean isFailed() {
+      return super.isFailed();
     }
   }
 }

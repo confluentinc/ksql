@@ -31,11 +31,20 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   }
 
   @Override
-  public boolean getIsSkipForwardRequest() {
+  public boolean getHasBeenForwarded() {
     if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING)) {
       return (Boolean) requestProperties.get(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING);
     }
     return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DEFAULT;
+  }
+
+  @Override
+  public boolean getExpectingStartOfRegistryData() {
+    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START)) {
+      return (Boolean) requestProperties.get(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START);
+    }
+    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT;
   }
 }

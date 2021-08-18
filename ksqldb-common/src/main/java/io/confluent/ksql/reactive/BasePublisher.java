@@ -164,6 +164,10 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     } catch (final Throwable t) {
       sendError(new IllegalStateException("Exception encountered in onSubscribe", t));
     }
+    if (isFailed()) {
+      sendError(new IllegalStateException(
+          "Cannot subscribe to failed publisher. Failure cause: " + failure));
+    }
     afterSubscribe();
   }
 

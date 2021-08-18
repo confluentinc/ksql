@@ -72,7 +72,7 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldRegisterAndGetQueueOffer_nonWindowed() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false, false);
     when(record.key()).thenReturn(genericKey);
     when(record.value()).thenReturn(genericRow);
     when(record.timestamp()).thenReturn(TIMESTAMP);
@@ -80,7 +80,7 @@ public class ScalablePushRegistryTest {
     when(genericRow.values()).thenAnswer(a -> VALUE);
 
     // When:
-    registry.register(processingQueue);
+    registry.register(processingQueue, false);
     assertThat(registry.numRegistered(), is(1));
 
     // Then:
@@ -96,7 +96,7 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldRegisterAndGetQueueOffer_windowed() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true, false);
     when(record.key()).thenReturn(windowed);
     when(record.value()).thenReturn(genericRow);
     when(record.timestamp()).thenReturn(TIMESTAMP);
@@ -107,7 +107,7 @@ public class ScalablePushRegistryTest {
 
 
     // When:
-    registry.register(processingQueue);
+    registry.register(processingQueue, false);
     assertThat(registry.numRegistered(), is(1));
 
     // Then:
@@ -122,9 +122,27 @@ public class ScalablePushRegistryTest {
   }
 
   @Test
+  public void shouldEnforceNewNodeContinuity() {
+    // Given:
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true, true);
+    when(record.key()).thenReturn(windowed);
+    when(record.value()).thenReturn(genericRow);
+
+    // When:
+    final Processor<Object, GenericRow, Void, Void> processor = registry.get();
+    processor.init(processorContext);
+    processor.process(record);
+    final Exception e = assertThrows(IllegalStateException.class,
+        () -> registry.register(processingQueue, true));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("New node missed data"));
+  }
+
+  @Test
   public void shouldCatchException() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false, false);
     when(record.key()).thenReturn(genericKey);
     when(record.value()).thenReturn(genericRow);
     when(record.timestamp()).thenReturn(TIMESTAMP);
@@ -133,7 +151,7 @@ public class ScalablePushRegistryTest {
     when(processingQueue.offer(any())).thenThrow(new RuntimeException("Error!"));
 
     // When:
-    registry.register(processingQueue);
+    registry.register(processingQueue, false);
 
     // Then:
     final Processor<Object, GenericRow, Void, Void> processor = registry.get();
@@ -146,7 +164,8 @@ public class ScalablePushRegistryTest {
     // When:
     final Optional<ScalablePushRegistry> registry =
         ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
-            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:8088"));
+            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:8088"),
+            false);
 
     // Then:
     assertThat(registry.isPresent(), is(true));
@@ -158,7 +177,7 @@ public class ScalablePushRegistryTest {
     final Exception e = assertThrows(
         IllegalArgumentException.class,
         () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
-            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123))
+            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123), false)
     );
 
     // Then
@@ -171,7 +190,7 @@ public class ScalablePushRegistryTest {
     final Exception e = assertThrows(
         IllegalArgumentException.class,
         () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
-            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"))
+            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"), false)
     );
 
     // Then
@@ -183,7 +202,7 @@ public class ScalablePushRegistryTest {
     // When
     final Optional<ScalablePushRegistry> registry =
         ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
-            ImmutableMap.of());
+            ImmutableMap.of(), false);
 
     // Then
     assertThat(registry.isPresent(), is(false));
@@ -192,8 +211,8 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldCallOnErrorOnQueue() {
     // Given
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
-    registry.register(processingQueue);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false, false);
+    registry.register(processingQueue, false);
 
     // When
     registry.onError();

@@ -65,7 +65,8 @@ public class PeekStreamOperatorTest {
   @Test
   public void shouldDefaultToFalseForHasErrorOnQueue() {
     // Given:
-    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID);
+    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID,
+        false);
     // When:
     locator.open();
 

@@ -163,7 +163,6 @@ public class PushPhysicalPlanTest {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
         scalablePushRegistry, pushDataSourceOperator, context);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
-    when(pushDataSourceOperator.droppedRows()).thenReturn(false);
     doThrow(new RuntimeException("Error on open")).when(root).open();
 
     final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();

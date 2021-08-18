@@ -211,8 +211,8 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldCallOnErrorOnQueue() {
     // Given
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
-    registry.register(processingQueue);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false, false);
+    registry.register(processingQueue, false);
 
     // When
     registry.onError();

@@ -1,6 +1,7 @@
 package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -49,6 +50,7 @@ public class StorageUtilizationMetricsReporterTest {
   private ArgumentCaptor<MetricValueProvider<?>> metricValueProvider;
 
   @Before
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   public void setUp() throws IOException {
     listener = new StorageUtilizationMetricsReporter(metrics);
     when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
@@ -67,6 +69,7 @@ public class StorageUtilizationMetricsReporterTest {
   }
 
   @Test
+  @SuppressFBWarnings("BX_UNBOXING_IMMEDIATELY_REBOXED")
   public void shouldAddNodeMetricsOnConfigure() {
     // Given:
 
@@ -81,10 +84,10 @@ public class StorageUtilizationMetricsReporterTest {
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
 
     // Then:
-    assertThat((long) storageFreeValue, greaterThan(0L));
-    assertThat((long) storageTotalValue, greaterThan(0L));
-    assertThat((long) storageUsedValue, greaterThan(0L));
-    assertThat((double) pctUsedValue, greaterThan(0.0));
+    assertThat((Long) storageFreeValue, greaterThan(0L));
+    assertThat((Long) storageTotalValue, greaterThan(0L));
+    assertThat((Long) storageUsedValue, greaterThan(0L));
+    assertThat((Double) pctUsedValue, greaterThan(0.0));
   }
 
   @Test

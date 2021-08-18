@@ -17,6 +17,7 @@ package io.confluent.ksql.internal;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
@@ -53,6 +54,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     this(MetricCollectors.getMetrics());
   }
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   @VisibleForTesting
   public StorageUtilizationMetricsReporter(final Metrics metricRegistry) {
     this.metricsSeen = new HashMap<>();

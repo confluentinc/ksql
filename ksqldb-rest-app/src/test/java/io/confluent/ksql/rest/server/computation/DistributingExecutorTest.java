@@ -99,7 +99,8 @@ public class DistributingExecutorTest {
       CreateSourceProperties.from(ImmutableMap.of(
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
-      ))
+      )),
+      false
   );
   private static final ConfiguredStatement<Statement> CONFIGURED_STATEMENT =
       ConfiguredStatement.of(PreparedStatement.of("statement", STATEMENT),

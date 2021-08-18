@@ -67,7 +67,7 @@ statement
     | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable
-    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName

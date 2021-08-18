@@ -98,7 +98,8 @@ public class DdlCommandExec {
           createStream.getSchema(),
           createStream.getTimestampColumn(),
           withQuery,
-          getKsqlTopic(createStream)
+          getKsqlTopic(createStream),
+          createStream.getIsSource()
       );
 
       metaStore.putSource(ksqlStream, createStream.isOrReplace());
@@ -126,7 +127,7 @@ public class DdlCommandExec {
           createTable.getTimestampColumn(),
           withQuery,
           getKsqlTopic(createTable),
-          createTable.isSource()
+          createTable.getIsSource()
       );
       metaStore.putSource(ksqlTable, createTable.isOrReplace());
       metaStore.addSourceReferences(ksqlTable.getName(), withQuerySources);

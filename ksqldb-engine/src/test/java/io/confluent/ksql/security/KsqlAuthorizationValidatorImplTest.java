@@ -442,7 +442,8 @@ public class KsqlAuthorizationValidatorImplTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
 
     metaStore.putSource(streamSource, false);

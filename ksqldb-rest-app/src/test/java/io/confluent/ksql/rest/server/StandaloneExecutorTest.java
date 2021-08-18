@@ -147,7 +147,7 @@ public class StandaloneExecutorTest {
   );
 
   private static final CreateStream CREATE_STREAM = new CreateStream(
-      SOME_NAME, SOME_ELEMENTS, false, true, JSON_PROPS);
+      SOME_NAME, SOME_ELEMENTS, false, true, JSON_PROPS, false);
 
   private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
       SourceName.of("stream"),
@@ -197,7 +197,8 @@ public class StandaloneExecutorTest {
           SOME_ELEMENTS,
           false,
           true,
-          JSON_PROPS
+          JSON_PROPS,
+          false
       ));
 
   private final static ConfiguredStatement<?> CFG_0_WITH_SCHEMA = ConfiguredStatement
@@ -209,7 +210,8 @@ public class StandaloneExecutorTest {
           SOME_ELEMENTS,
           false,
           true,
-          JSON_PROPS
+          JSON_PROPS,
+          false
       ));
 
   private final static ConfiguredStatement<?> CFG_1_WITH_SCHEMA = ConfiguredStatement
@@ -511,7 +513,7 @@ public class StandaloneExecutorTest {
   public void shouldRunCsStatement() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(cs);
 
@@ -547,7 +549,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(setProp, cs);
 
@@ -569,7 +571,7 @@ public class StandaloneExecutorTest {
         new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(cs, setProp);
 
@@ -591,7 +593,7 @@ public class StandaloneExecutorTest {
         new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
 
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, JSON_PROPS, false));
 
     final ConfiguredStatement<?> configured = ConfiguredStatement
         .of(cs, SessionConfig.of(ksqlConfig, emptyMap()));
@@ -784,7 +786,7 @@ public class StandaloneExecutorTest {
   public void shouldThrowOnCreateStatementWithNoElements() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, TableElements.of(), false, false, JSON_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, false, JSON_PROPS, false));
 
     givenQueryFileParsesTo(cs);
 
@@ -802,7 +804,7 @@ public class StandaloneExecutorTest {
   public void shouldSupportSchemaInference() {
     // Given:
     final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
-        new CreateStream(SOME_NAME, TableElements.of(), false, false, AVRO_PROPS));
+        new CreateStream(SOME_NAME, TableElements.of(), false, false, AVRO_PROPS, false));
 
     givenQueryFileParsesTo(cs);
 

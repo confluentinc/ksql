@@ -92,6 +92,7 @@ public final class CreateSourceFactory {
     this.metaStore = requireNonNull(metaStore);
   }
 
+  // This method is called by CREATE_AS statements
   public CreateStreamCommand createStreamCommand(final KsqlStructuredDataOutputNode outputNode) {
     return new CreateStreamCommand(
         outputNode.getSinkName().get(),
@@ -100,10 +101,12 @@ public final class CreateSourceFactory {
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
         outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-        Optional.of(outputNode.getOrReplace())
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
     );
   }
 
+  // This method is called by simple CREATE statements
   public CreateStreamCommand createStreamCommand(
       final CreateStream statement,
       final KsqlConfig ksqlConfig
@@ -130,7 +133,8 @@ public final class CreateSourceFactory {
         topicName,
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
-        Optional.of(statement.isOrReplace())
+        Optional.of(statement.isOrReplace()),
+        Optional.of(statement.isSource())
     );
   }
 

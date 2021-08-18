@@ -60,25 +60,28 @@ public class CreateStreamTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateStream(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS),
-            new CreateStream(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateStream(Optional.of(SOME_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false),
+            new CreateStream(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS)
+            new CreateStream(SourceName.of("jim"), SOME_ELEMENTS, false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, TableElements.of(), false, true, SOME_PROPS)
+            new CreateStream(SOME_NAME, TableElements.of(), false, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, true, true, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, false, SOME_PROPS, false)
         )
         .addEqualityGroup(
-            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS)
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS, false)
+        )
+        .addEqualityGroup(
+            new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, OTHER_PROPS, true)
         )
         .testEquals();
   }
@@ -107,7 +110,7 @@ public class CreateStreamTest {
     // When:
     final ParseFailedException e = assertThrows(
         ParseFailedException.class,
-        () -> new CreateStream(SOME_NAME, invalidElements, false, false, SOME_PROPS)
+        () -> new CreateStream(SOME_NAME, invalidElements, false, false, SOME_PROPS, false)
     );
 
     // Then:

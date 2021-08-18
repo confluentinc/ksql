@@ -166,7 +166,8 @@ public class AnalyzerFunctionalTest {
         schema,
         Optional.empty(),
         false,
-        ksqlTopic
+        ksqlTopic,
+        false
     );
 
     newAvroMetaStore.putSource(ksqlStream, false);
@@ -383,7 +384,8 @@ public class AnalyzerFunctionalTest {
         schema,
         Optional.empty(),
         false,
-        topic
+        topic,
+        false
     );
 
     jsonMetaStore.putSource(stream, false);

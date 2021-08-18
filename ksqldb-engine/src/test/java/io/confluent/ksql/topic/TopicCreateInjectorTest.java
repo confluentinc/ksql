@@ -113,7 +113,8 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
     metaStore.putSource(source, false);
 
@@ -129,7 +130,8 @@ public class TopicCreateInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        joinTopic
+        joinTopic,
+        false
     );
     metaStore.putSource(joinSource, false);
 

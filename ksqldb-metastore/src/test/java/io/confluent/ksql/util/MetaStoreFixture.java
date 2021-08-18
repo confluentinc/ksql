@@ -75,7 +75,8 @@ public final class MetaStoreFixture {
         test1Schema,
         Optional.empty(),
         false, 
-        ksqlTopic0
+        ksqlTopic0,
+        false
     );
 
     metaStore.putSource(ksqlStream0, false);
@@ -92,7 +93,8 @@ public final class MetaStoreFixture {
         test1Schema,
         Optional.empty(),
         false,
-        ksqlTopic1
+        ksqlTopic1,
+        false
     );
 
     metaStore.putSource(ksqlStream1, false);
@@ -168,7 +170,8 @@ public final class MetaStoreFixture {
         ordersSchema,
         Optional.empty(),
         false,
-        ksqlTopicOrders
+        ksqlTopicOrders,
+        false
     );
 
     metaStore.putSource(ksqlStreamOrders, false);
@@ -229,7 +232,8 @@ public final class MetaStoreFixture {
         nestedArrayStructMapSchema,
         Optional.empty(),
         false,
-        nestedArrayStructMapTopic
+        nestedArrayStructMapTopic,
+        false
     );
 
     metaStore.putSource(nestedArrayStructMapOrders, false);
@@ -246,7 +250,8 @@ public final class MetaStoreFixture {
         test1Schema,
         Optional.empty(),
         false,
-        ksqlTopic4
+        ksqlTopic4,
+        false
     );
 
     metaStore.putSource(ksqlStream4, false);
@@ -270,7 +275,8 @@ public final class MetaStoreFixture {
         sensorReadingsSchema,
         Optional.empty(),
         false,
-        ksqlTopicSensorReadings
+        ksqlTopicSensorReadings,
+        false
     );
 
     metaStore.putSource(ksqlStreamSensorReadings, false);

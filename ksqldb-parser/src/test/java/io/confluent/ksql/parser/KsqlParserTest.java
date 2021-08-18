@@ -381,6 +381,17 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void testCreateSourceStream() {
+    // When:
+    final CreateStream stmt = (CreateStream) KsqlParserTestUtil.buildSingleAst(
+        "CREATE SOURCE STREAM foozball (id VARCHAR KEY) WITH (kafka_topic='foozball', " +
+            "value_format='json', partitions=1, replicas=-1);", metaStore).getStatement();
+
+    // Then:
+    assertThat(stmt.isSource(), is(true));
+  }
+
+  @Test
   public void testNegativeInWith() {
     // When:
     final CreateSource stmt = (CreateSource) KsqlParserTestUtil.buildSingleAst(

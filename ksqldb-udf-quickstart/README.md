@@ -7,8 +7,8 @@ First, run the following command to generate a new project from this archetype.
 ```bash
 $ mvn archetype:generate -X \
     -DarchetypeGroupId=io.confluent.ksql \
-    -DarchetypeArtifactId=ksql-udf-quickstart \
-    -DarchetypeVersion=5.2.0-SNAPSHOT \
+    -DarchetypeArtifactId=ksqldb-udf-quickstart \
+    -DarchetypeVersion=6.2.0-SNAPSHOT \
     -DgroupId=com.example.ksql.functions \
     -DartifactId=my-udf \
     -Dauthor=Bob \

@@ -11,10 +11,7 @@ keywords: ksqlDB, select, push query
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [[ LEFT | FULL | INNER ]
-    JOIN join_item
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [, GRACE PERIOD <grace_size> <timeunit>]]
-    ON join_criteria]*
+  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE where_condition ]
   [ GROUP BY grouping_expression ]
@@ -211,7 +208,7 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-#### WITHIN and GRACE PERIOD
+#### WITHIN
 
 !!! note
     Stream-Stream joins must have a WITHIN clause specified.
@@ -235,37 +232,6 @@ the order was placed, and shipped within 2 hours of the payment being received.
         INNER JOIN payments p WITHIN 1 HOURS ON p.id = o.id
         INNER JOIN shipments s WITHIN 2 HOURS ON s.id = o.id;
 ```
-
-The GRACE PERIOD, part of the WITHIN clause, allows the join to process late records for up
-to the specified grace period. Events that arrive after the grace period has passed are dropped
-and not joined with older records.
-
-The default grace period, if not used in the join, is 24 hours. This could cause a huge amount
-of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is recommended to
-
-reduce high disk usage.
-
-```sql
-   CREATE STREAM shipped_orders AS
-     SELECT
-        o.id as orderId
-        o.itemid as itemId,
-        s.id as shipmentId,
-        p.id as paymentId
-     FROM orders o
-        INNER JOIN payments p WITHIN 1 HOURS GRACE PERIOD 15 MINUTES ON p.id = o.id
-        INNER JOIN shipments s WITHIN 2 HOURS GRACE PERIOD 15 MINUTES ON s.id = o.id;
-```
-
-If you don't specify a grace period explicitly, the default grace period is 24 hours. This could
-cause a huge amount of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is
-recommended to reduce high disk usage.
-
-!!! important
-    If you specify a GRACE PERIOD for left/outer joins, the grace period defines when the left/outer
-    join result is emitted. If you don't specify a GRACE PERIOD for left/outer joins,
-    left/outer join results are emitted eagerly, which may cause "spurious" result records, so
-    we recommended that you specify a GRACE PERIOD.
 
 #### Out-of-order events
 

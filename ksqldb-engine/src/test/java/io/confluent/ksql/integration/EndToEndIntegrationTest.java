@@ -119,31 +119,7 @@ public class EndToEndIntegrationTest {
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
-  @Rule
-  public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
-      .withAdditionalConfig(
-          StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
-          DummyProducerInterceptor.class.getName()
-      )
-      .withAdditionalConfig(
-          StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-          DummyConsumerInterceptor.class.getName()
-      )
-      .withAdditionalConfig(
-          KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
-          "foo-bar"
-      )
-      .withAdditionalConfig(
-          KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
-          "expected-value"
-      )
-      .withAdditionalConfig(
-          KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-          "http://foo:8080")
-      .withAdditionalConfig(
-          KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
-          sharedRuntimes)
-      .build();
+  public TestKsqlContext ksqlContext;
 
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
@@ -152,6 +128,33 @@ public class EndToEndIntegrationTest {
 
   @Before
   public void before() throws Exception {
+    ksqlContext  = TEST_HARNESS.ksqlContextBuilder()
+        .withAdditionalConfig(
+            StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyProducerInterceptor.class.getName()
+        )
+        .withAdditionalConfig(
+            StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyConsumerInterceptor.class.getName()
+        )
+        .withAdditionalConfig(
+            KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
+            "foo-bar"
+        )
+        .withAdditionalConfig(
+            KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
+            "expected-value"
+        )
+        .withAdditionalConfig(
+            KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+            "http://foo:8080")
+        .withAdditionalConfig(
+            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
+            sharedRuntimes)
+        .build();
+
+    ksqlContext.before();
+
     ConfigurableUdf.PASSED_CONFIG = null;
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
@@ -188,6 +191,7 @@ public class EndToEndIntegrationTest {
   @After
   public void after() {
     toClose.forEach(QueryMetadata::close);
+    ksqlContext.after();
   }
 
   @Test

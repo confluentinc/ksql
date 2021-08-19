@@ -76,7 +76,7 @@ public class QueryRegistryImplTest {
   private MetaStore metaStore;
   @Captor
   private ArgumentCaptor<QueryMetadata.Listener> queryListenerCaptor;
-
+  @SuppressWarnings("Unused")
   @Rule
   public MockitoRule rule = MockitoJUnit.rule();
 
@@ -402,7 +402,7 @@ public class QueryRegistryImplTest {
     givenCreate(registry, id, "source", "sink1", true);
     if (!sharedRuntimes) {
       verify(executor).buildPersistentQueryInDedicatedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any());
     } else {
       verify(executor).buildPersistentQueryInSharedRuntime(
           any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
@@ -434,7 +434,7 @@ public class QueryRegistryImplTest {
       ).thenReturn(query);
     } else {
       when(executor.buildPersistentQueryInDedicatedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     }
     when(config.getConfig(true)).thenReturn(ksqlConfig);
@@ -463,7 +463,7 @@ public class QueryRegistryImplTest {
     final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
     when(query.getQueryId()).thenReturn(queryId);
     when(executor.buildTransientQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any())
     ).thenReturn(query);
     registry.createTransientQuery(
         config,

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
@@ -54,11 +55,15 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
   ) {
     streamsProperties = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getStreamProperties());
     streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG,
-        streamsProperties.get(StreamsConfig.APPLICATION_ID_CONFIG) + "validation");
+        streamsProperties.get(
+            StreamsConfig.APPLICATION_ID_CONFIG)
+            + "validation"
+            + UUID.randomUUID()
+    );
     kafkaStreams = sharedKafkaStreamsRuntime.kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
-    metadata = new ConcurrentHashMap(sharedKafkaStreamsRuntime.metadata);
-    sources = new ConcurrentHashMap(sharedKafkaStreamsRuntime.sources);
+    metadata = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.metadata);
+    sources = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.sources);
     for (PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
       kafkaStreams.addNamedTopology(queryMetadata.getTopology());
     }

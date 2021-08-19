@@ -96,7 +96,6 @@ final class QueryExecutor {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
   private final List<SharedKafkaStreamsRuntime> streams;
   private final boolean real;
@@ -116,7 +115,6 @@ final class QueryExecutor {
         functionRegistry,
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
-        new StreamsBuilder(),
         new MaterializationProviderBuilderFactory(
             config.getConfig(true),
             serviceContext,
@@ -135,7 +133,6 @@ final class QueryExecutor {
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
       final List<SharedKafkaStreamsRuntime> streams,
       final boolean real
@@ -148,16 +145,15 @@ final class QueryExecutor {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
-    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
     this.materializationProviderBuilderFactory = Objects.requireNonNull(
         materializationProviderBuilderFactory,
         "materializationProviderBuilderFactory"
     );
-
     this.streams = Objects.requireNonNull(streams, "streams");
     this.real = real;
   }
 
+  @SuppressWarnings("ParameterNumber")
   TransientQueryMetadata buildTransientQuery(
       final String statementText,
       final QueryId queryId,
@@ -168,7 +164,8 @@ final class QueryExecutor {
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones,
-      final QueryMetadata.Listener listener
+      final QueryMetadata.Listener listener,
+      final StreamsBuilder streamsBuilder
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -242,18 +239,19 @@ final class QueryExecutor {
     return registry;
   }
 
+  @SuppressWarnings("ParameterNumber")
   PersistentQueryMetadata buildPersistentQueryInDedicatedRuntime(
-          final KsqlConfig ksqlConfig,
-          final KsqlConstants.PersistentQueryType persistentQueryType,
-          final String statementText,
-          final QueryId queryId,
-          final DataSource sinkDataSource,
-          final Set<SourceName> sources,
-          final ExecutionStep<?> physicalPlan,
-          final String planSummary,
-          final QueryMetadata.Listener listener,
-          final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
-  ) {
+      final KsqlConfig ksqlConfig,
+      final KsqlConstants.PersistentQueryType persistentQueryType,
+      final String statementText,
+      final QueryId queryId,
+      final DataSource sinkDataSource,
+      final Set<SourceName> sources,
+      final ExecutionStep<?> physicalPlan,
+      final String planSummary,
+      final QueryMetadata.Listener listener,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final StreamsBuilder streamsBuilder) {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);

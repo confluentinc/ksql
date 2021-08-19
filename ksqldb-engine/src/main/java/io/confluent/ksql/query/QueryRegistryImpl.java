@@ -56,6 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.StreamsBuilder;
 
 public class QueryRegistryImpl implements QueryRegistry {
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
@@ -129,9 +130,13 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
-    this.streams = original.streams.stream()
-        .map(t -> new ValidationSharedKafkaStreamsRuntimeImpl((SharedKafkaStreamsRuntimeImpl) t))
-        .collect(Collectors.toList());
+    if (!original.sandbox) {
+      this.streams = original.streams.stream()
+          .map(t -> new ValidationSharedKafkaStreamsRuntimeImpl((SharedKafkaStreamsRuntimeImpl) t))
+          .collect(Collectors.toList());
+    } else {
+      this.streams = new ArrayList<>(original.streams);
+    }
     sandbox = true;
   }
 
@@ -170,7 +175,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         limit,
         windowInfo,
         excludeTombstones,
-        new ListenerImpl()
+        new ListenerImpl(),
+        new StreamsBuilder()
     );
     registerQuery(serviceContext, metaStore, query, false);
     return query;
@@ -239,7 +245,8 @@ public class QueryRegistryImpl implements QueryRegistry {
           sources, physicalPlan,
           planSummary,
           new ListenerImpl(),
-          () -> ImmutableList.copyOf(getPersistentQueries().values())
+          () -> ImmutableList.copyOf(getPersistentQueries().values()),
+          new StreamsBuilder()
       );
     }
     registerQuery(serviceContext, metaStore, query, createAsQuery);

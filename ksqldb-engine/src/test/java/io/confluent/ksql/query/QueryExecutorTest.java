@@ -56,7 +56,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 
 import java.util.ArrayList;
@@ -233,7 +232,6 @@ public class QueryExecutorTest {
         serviceContext,
         functionRegistry,
         kafkaStreamsBuilder,
-        streamsBuilder,
         new MaterializationProviderBuilderFactory(
             ksqlConfig,
             serviceContext,
@@ -260,7 +258,8 @@ public class QueryExecutorTest {
         LIMIT,
         Optional.empty(),
         false,
-        queryListener
+        queryListener,
+        streamsBuilder
     );
     queryMetadata.initialize();
 
@@ -736,8 +735,8 @@ public class QueryExecutorTest {
           physicalPlan,
           SUMMARY,
           queryListener,
-          ArrayList::new
-      );
+          ArrayList::new,
+          streamsBuilder);
     }
   }
 

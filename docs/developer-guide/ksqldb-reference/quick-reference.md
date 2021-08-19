@@ -170,7 +170,7 @@ CREATE STREAM stream_name
   FROM from_stream
   [[ LEFT | FULL | INNER ]
     JOIN [join_table | join_stream]
-      [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+      [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [, GRACE PERIOD <grace_size> <timeunit>]]
     ON join_criteria]*
   [ WHERE condition ]
   [PARTITION BY new_key_expr [, ...]]
@@ -389,7 +389,7 @@ INSERT INTO stream_name
   FROM from_stream
   [ LEFT | FULL | INNER ]
       JOIN [join_table | join_stream]
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [, GRACE PERIOD <grace_size> <timeunit>]]
       ON join_criteria
   [ WHERE condition ]
   [ PARTITION BY new_key_expr [, ...] ]
@@ -490,7 +490,7 @@ SELECT select_expr [, ...]
   FROM from_item
   [[ LEFT | FULL | INNER ]
       JOIN join_item
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [, GRACE PERIOD <grace_size> <timeunit>]]
       ON join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE condition ]

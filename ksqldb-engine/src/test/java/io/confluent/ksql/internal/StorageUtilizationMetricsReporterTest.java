@@ -57,10 +57,10 @@ public class StorageUtilizationMetricsReporterTest {
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
     when(metrics.metricName(any(), any())).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
-    final File f = new File("/tmp/cat/");
+    final File f = new File("/tmp/storage-test/");
     f.getParentFile().mkdirs();
     f.createNewFile();
-    listener.configure(ImmutableMap.of("state.dir", "/tmp/cat/"));
+    listener.configure(ImmutableMap.of("state.dir", "/tmp/storage-test/"));
   }
 
   @After
@@ -95,7 +95,7 @@ public class StorageUtilizationMetricsReporterTest {
     // Given:
 
     // When:
-    listener.configure(ImmutableMap.of("state.dir", "/tmp/cat/"));
+    listener.configure(ImmutableMap.of("state.dir", "/tmp//"));
 
     // Then:
     // did not throw error for duplicate metrics

@@ -168,10 +168,9 @@ CREATE STREAM stream_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_stream
-  [[ LEFT | FULL | INNER ]
-    JOIN [join_table | join_stream]
-      [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
-    ON join_criteria]*
+  [[ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
+    [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
+    ON join_criteria]* 
   [ WHERE condition ]
   [PARTITION BY new_key_expr [, ...]]
   EMIT CHANGES;
@@ -387,10 +386,9 @@ Stream the result of a SELECT query into an existing stream and its underlying
 INSERT INTO stream_name
   SELECT select_expr [, ...]
   FROM from_stream
-  [ LEFT | FULL | INNER ]
-      JOIN [join_table | join_stream]
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
-      ON join_criteria
+  [ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
+    [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
+    ON join_criteria
   [ WHERE condition ]
   [ PARTITION BY new_key_expr [, ...] ]
   EMIT CHANGES;
@@ -488,10 +486,7 @@ information, see [SELECT (Push Query)](../../ksqldb-reference/select-push-query)
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [[ LEFT | FULL | INNER ]
-      JOIN join_item
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
-      ON join_criteria]*
+  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE condition ]
   [ GROUP BY grouping_expression [, ...] ]

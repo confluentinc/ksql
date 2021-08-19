@@ -27,6 +27,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
@@ -47,7 +48,10 @@ public class ParseDate {
   private final LoadingCache<String, DateTimeFormatter> formatters =
       CacheBuilder.newBuilder()
           .maximumSize(1000)
-          .build(CacheLoader.from(DateTimeFormatter::ofPattern));
+          .build(CacheLoader.from(pattern -> new DateTimeFormatterBuilder()
+              .parseCaseInsensitive()
+              .appendPattern(pattern)
+              .toFormatter()));
 
   @Udf(description = "Converts a string representation of a date in the given format"
       + " into a DATE value.")

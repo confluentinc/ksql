@@ -46,6 +46,15 @@ public class ParseDateTest {
   }
 
   @Test
+  public void shouldConvertCaseInsensitiveStringToDate() {
+    // When:
+    final Date result = udf.parseDate("01-dec-2021", "dd-MMM-yyyy");
+
+    // Then:
+    assertThat(result.getTime(), is(1638316800000L));
+  }
+
+  @Test
   public void shouldThrowOnUnsupportedFields() {
     // When:
     final Exception e = assertThrows(

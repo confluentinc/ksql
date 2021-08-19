@@ -30,6 +30,7 @@ select.version {
     border-radius: 0;
     -webkit-appearance: none;
     -moz-appearance: none;
+    -ms-appearance: none;
     appearance: none;
     background-repeat: no-repeat;
     background-size: 0.6em auto;
@@ -43,6 +44,10 @@ select.version {
 
 select.version::-ms-expand {
     display: none;
+}
+
+select.version option {
+    color: #000;
 }
 
 @media screen and (min-width:0\0) {

@@ -134,24 +134,6 @@ public class QueryAnonymizerTest {
   }
 
   @Test
-  public void shouldAnonymizeJoinWithGraceStatementsCorrectly() {
-    final String output = anon.anonymize("INSERT INTO OUTPUT SELECT col1, col2, col3"
-        + " FROM SOURCE1 S1 JOIN SOURCE2 S2 "
-        + "WITHIN 1 SECOND GRACE PERIOD 2 SECONDS ON col1.k=col2.k;");
-
-    Approvals.verify(output);
-  }
-
-  @Test
-  public void shouldAnonymizeJoinWithBeforeAndAfterAndGraceStatementsCorrectly() {
-    final String output = anon.anonymize("INSERT INTO OUTPUT SELECT col1, col2, col3"
-        + " FROM SOURCE1 S1 JOIN SOURCE2 S2 "
-        + "WITHIN (1 SECOND, 3 SECONDS) GRACE PERIOD 2 SECONDS ON col1.k=col2.k;");
-
-    Approvals.verify(output);
-  }
-
-  @Test
   public void shouldAnonymizeCreateStreamQueryCorrectly() {
     final String output = anon.anonymize(
         "CREATE STREAM my_stream (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE)\n"

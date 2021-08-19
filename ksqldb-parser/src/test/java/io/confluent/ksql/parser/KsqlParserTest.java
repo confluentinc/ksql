@@ -890,36 +890,6 @@ public class KsqlParserTest {
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 
-  @Test
-  public void shouldSetWithinExpressionWithSingleWithinAndGracePeriod() {
-    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
-        + "10 SECONDS GRACE PERIOD 5 SECONDS ON TEST1.col1 = ORDERS.ORDERID ;";
-
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
-
-    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
-
-    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-
-    final Query query = createStreamAsSelect.getQuery();
-
-    assertThat(query.getFrom(), instanceOf(Join.class));
-
-    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
-
-    assertTrue(join.getWithinExpression().isPresent());
-
-    final WithinExpression withinExpression = join.getWithinExpression().get();
-
-    assertThat(withinExpression.getBefore(), is(10L));
-    assertThat(withinExpression.getAfter(), is(10L));
-    assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
-    assertThat(withinExpression.getGrace(),
-        is(Optional.of(new WindowTimeClause(5, TimeUnit.SECONDS))));
-    assertThat(join.getType(), is(JoinedSource.Type.INNER));
-  }
-
 
   @Test
   public void shouldSetWithinExpressionWithBeforeAndAfter() {
@@ -949,38 +919,6 @@ public class KsqlParserTest {
     assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
     assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
     assertThat(withinExpression.getGrace(), is(Optional.empty()));
-    assertThat(join.getType(), is(JoinedSource.Type.INNER));
-  }
-
-  @Test
-  public void shouldSetWithinExpressionWithBeforeAndAfterAndGracePeriod() {
-    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS "
-        + "WITHIN (10 seconds, 20 minutes) GRACE PERIOD 10 minutes "
-        + "ON TEST1.col1 = ORDERS.ORDERID ;";
-
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
-
-    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
-
-    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
-
-    final Query query = createStreamAsSelect.getQuery();
-
-    assertThat(query.getFrom(), instanceOf(Join.class));
-
-    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
-
-    assertTrue(join.getWithinExpression().isPresent());
-
-    final WithinExpression withinExpression = join.getWithinExpression().get();
-
-    assertThat(withinExpression.getBefore(), is(10L));
-    assertThat(withinExpression.getAfter(), is(20L));
-    assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
-    assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
-    assertThat(withinExpression.getGrace(),
-        is(Optional.of(new WindowTimeClause(10, TimeUnit.MINUTES))));
     assertThat(join.getType(), is(JoinedSource.Type.INNER));
   }
 

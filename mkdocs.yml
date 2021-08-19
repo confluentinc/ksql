@@ -249,11 +249,11 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.8
-        ksqldbversion: 0.20.0
+        ksqldbversion: 0.21.0
         kstreamsbetatag: v7.0.0-beta210713231623-cp1
         kstreamsbetabuild: 1
-        cprelease: 6.2.0
-        releasepostbranch: 6.2.0-post
+        cprelease: 7.0.0
+        releasepostbranch: 7.0.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

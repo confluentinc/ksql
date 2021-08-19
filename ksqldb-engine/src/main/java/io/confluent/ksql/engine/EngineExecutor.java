@@ -126,9 +126,7 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<QueryPlan> queryPlan = plan.getQueryPlan();
-
-    if (!queryPlan.isPresent()) {
+    if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
           .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
@@ -138,8 +136,16 @@ final class EngineExecutor {
       return ExecuteResult.of(ddlResult);
     }
 
+    final QueryPlan queryPlan = plan.getQueryPlan().get();
+    final DataSource sinkSource = engineContext.getMetaStore().getSource(queryPlan.getSink());
+
+    if (sinkSource != null && sinkSource.isSource()) {
+      throw new KsqlException(String.format("Cannot insert into read-only %s: %s",
+          sinkSource.getDataSourceType().getKsqlType().toLowerCase(), sinkSource.getName().text()));
+    }
+
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.get().getSources()));
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
@@ -147,7 +153,7 @@ final class EngineExecutor {
     }
 
     return ExecuteResult.of(executePersistentQuery(
-        queryPlan.get(),
+        queryPlan,
         plan.getStatementText(),
         plan.getDdlCommand().isPresent())
     );

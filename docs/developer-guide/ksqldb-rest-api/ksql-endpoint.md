@@ -123,7 +123,7 @@ Response JSON Object:
 - **sourceDescription.fields[i].schema** (object): A schema object that describes
   the schema of the field.
 - **sourceDescription.fields[i].schema.type** (string): The type the schema
-  represents. One of INTEGER, BIGINT, BOOLEAN, BYTES, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or
+  represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or
   STRUCT.
 - **sourceDescription.fields[i].schema.memberSchema** (object): A schema object.
   For MAP and ARRAY types, contains the schema of the map values and array
@@ -157,7 +157,7 @@ Response JSON Object:
 - **queryDescription.fields** (array): A list of field objects that describes each field in the query output.
 - **queryDescription.fields[i].name** (string): The name of the field.
 - **queryDescription.fields[i].schema** (object): A schema object that describes the schema of the field.
-- **queryDescription.fields[i].schema.type** (string): The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, BYTES, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or STRUCT.
+- **queryDescription.fields[i].schema.type** (string): The type the schema represents. One of INTEGER, BIGINT, BOOLEAN, DOUBLE, STRING, TIMESTAMP, TIME, DATE, MAP, ARRAY, or STRUCT.
 - **queryDescription.fields[i].schema.memberSchema** (object): A schema object. For MAP and ARRAY types, contains the schema of the map values and array elements, respectively. For other types this field is not used and its value is undefined.
 - **queryDescription.fields[i].schema.fields** (array): For STRUCT types, contains a list of field objects that descrbies each field within the struct. For other types this field is not used and its value is undefined.
 - **queryDescription.sources** (array): The streams and tables being read by the query.

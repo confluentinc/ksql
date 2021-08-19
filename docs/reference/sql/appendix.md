@@ -20,7 +20,6 @@ The following table shows all keywords in the language.
 | `BEGINNING`    | print from start of topic             | `PRINT <topic-name> FROM BEGINNING;`                                 |
 | `BETWEEN`      | constrain a value to a range          | `SELECT event FROM events WHERE event_id BETWEEN 10 AND 20 …`        |
 | `BY`           | specify expression                    | `GROUP BY regionid`, `ADVANCE BY 10 SECONDS`, `PARTITION BY userid`  |
-| `BYTES`        | bytes data type                       |                                                                      |
 | `CASE`         | select a condition from expressions   | `SELECT CASE WHEN condition THEN result [ WHEN … THEN … ] … END`     |
 | `CAST`         | change expression type                | `SELECT id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO') FROM views …`|
 | `CHANGES`      | specify incremental refinement type   | `SELECT * FROM users EMIT CHANGES;`                                  |

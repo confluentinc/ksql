@@ -556,7 +556,7 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldReturnCorrectSchemaForWindowedSourceTable() {
+  public void shouldThrowOnAttemptToCreateLegacyWindowedTable() {
     // Given:
     givenWindowedSourceTableV1(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 

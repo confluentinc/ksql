@@ -1,4 +1,25 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License; you may not use this file
+ * except in compliance with the License.  You may obtain a copy of the License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
+
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.tableChangeLogOpName;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.windowedKeyGenerator;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -12,7 +33,6 @@ import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
@@ -33,9 +53,9 @@ abstract class SourceBuilderBase {
       final MaterializedFactory materializedFactory,
       final PlanInfo planInfo
   ) {
-    final PhysicalSchema physicalSchema = SourceBuilderUtils.getPhysicalSchema(source);
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = SourceBuilderUtils.getValueSerde(buildContext, source, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
     final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
         source.getFormats().getKeyFormat(),
@@ -43,7 +63,7 @@ abstract class SourceBuilderBase {
         source.getProperties().getQueryContext()
     );
 
-    final Consumed<GenericKey, GenericRow> consumed = SourceBuilderUtils.buildSourceConsumed(
+    final Consumed<GenericKey, GenericRow> consumed = buildSourceConsumed(
         source,
         keySerde,
         valueSerde,
@@ -52,7 +72,7 @@ abstract class SourceBuilderBase {
         consumedFactory
     );
 
-    final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
+    final String stateStoreName = tableChangeLogOpName(source.getProperties());
 
     final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
         = buildTableMaterialized(
@@ -76,7 +96,7 @@ abstract class SourceBuilderBase {
 
     return KTableHolder.materialized(
         ktable,
-        SourceBuilderUtils.buildSchema(source, false),
+        buildSchema(source, false),
         ExecutionKeyFactory.unwindowed(buildContext),
         MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
     );
@@ -89,9 +109,9 @@ abstract class SourceBuilderBase {
       final MaterializedFactory materializedFactory,
       final PlanInfo planInfo
   ) {
-    final PhysicalSchema physicalSchema = SourceBuilderUtils.getPhysicalSchema(source);
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
-    final Serde<GenericRow> valueSerde = SourceBuilderUtils.getValueSerde(buildContext, source, physicalSchema);
+    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
     final WindowInfo windowInfo;
 
@@ -100,7 +120,7 @@ abstract class SourceBuilderBase {
     } else if (source instanceof WindowedTableSource) {
       windowInfo = ((WindowedTableSource) source).getWindowInfo();
     } else {
-      throw new KsqlException("Expected a version of WindowedTableSource");
+      throw new IllegalArgumentException("Expected a version of WindowedTableSource");
     }
 
     final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
@@ -110,7 +130,7 @@ abstract class SourceBuilderBase {
         source.getProperties().getQueryContext()
     );
 
-    final Consumed<Windowed<GenericKey>, GenericRow> consumed = SourceBuilderUtils.buildSourceConsumed(
+    final Consumed<Windowed<GenericKey>, GenericRow> consumed = buildSourceConsumed(
         source,
         keySerde,
         valueSerde,
@@ -119,7 +139,7 @@ abstract class SourceBuilderBase {
         consumedFactory
     );
 
-    final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
+    final String stateStoreName = tableChangeLogOpName(source.getProperties());
 
     final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
         = buildWindowedTableMaterialized(
@@ -134,7 +154,7 @@ abstract class SourceBuilderBase {
         source,
         buildContext,
         consumed,
-        SourceBuilderUtils.windowedKeyGenerator(source.getSourceSchema()),
+        windowedKeyGenerator(source.getSourceSchema()),
         materialized,
         valueSerde,
         stateStoreName,
@@ -143,7 +163,7 @@ abstract class SourceBuilderBase {
 
     return KTableHolder.materialized(
         ktable,
-        SourceBuilderUtils.buildSchema(source, true),
+        buildSchema(source, true),
         ExecutionKeyFactory.windowed(buildContext, windowInfo),
         MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
     );
@@ -153,7 +173,7 @@ abstract class SourceBuilderBase {
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> keySerde,
+      final Serde<GenericKey> sourceKeySerde,
       final Serde<GenericRow> valueSerde
   );
 
@@ -162,7 +182,7 @@ abstract class SourceBuilderBase {
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> keySerde,
+      final Serde<Windowed<GenericKey>> sourceKeySerde,
       final Serde<GenericRow> valueSerde
   );
 

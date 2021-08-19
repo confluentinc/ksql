@@ -147,20 +147,6 @@ final class SourceBuilderV1 extends SourceBuilderBase{
     );
   }
 
-  private <K> KStream<K, GenericRow> buildKStream(
-      final SourceStep<?> streamSource,
-      final RuntimeBuildContext buildContext,
-      final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator
-  ) {
-    final KStream<K, GenericRow> stream = buildContext.getStreamsBuilder()
-        .stream(streamSource.getTopicName(), consumed);
-
-    final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
-    return stream
-        .transformValues(new AddKeyAndPseudoColumns<>(keyGenerator, pseudoColumnVersion));
-  }
-
   @Override
   public Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
       final SourceStep<KTableHolder<GenericKey>> source,
@@ -270,6 +256,20 @@ final class SourceBuilderV1 extends SourceBuilderBase{
         stateStoreName,
         planInfo
     );
+  }
+
+  private <K> KStream<K, GenericRow> buildKStream(
+      final SourceStep<?> streamSource,
+      final RuntimeBuildContext buildContext,
+      final Consumed<K, GenericRow> consumed,
+      final Function<K, Collection<?>> keyGenerator
+  ) {
+    final KStream<K, GenericRow> stream = buildContext.getStreamsBuilder()
+        .stream(streamSource.getTopicName(), consumed);
+
+    final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
+    return stream
+        .transformValues(new AddKeyAndPseudoColumns<>(keyGenerator, pseudoColumnVersion));
   }
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(

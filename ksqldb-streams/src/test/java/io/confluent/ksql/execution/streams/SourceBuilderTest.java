@@ -468,7 +468,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToTable() {
     // Given:
-    givenWindowedSourceTable(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    givenWindowedSourceTable();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
         getTransformerFromTableSource(windowedTableSource);
 
@@ -590,7 +590,7 @@ public class SourceBuilderTest {
     transformer.init(processorCtx);
     return transformer;
   }
-  private void givenWindowedSourceTable(final int pseudoColumnVersion) {
+  private void givenWindowedSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
@@ -601,15 +601,11 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        OptionalInt.of(pseudoColumnVersion)
+        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
     );
   }
 
-  private void givenWindowedSourceTable() {
-    givenWindowedSourceTable(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
-  }
-
-  private void givenUnwindowedSourceTable(final int pseudoColumnVersion) {
+  private void givenUnwindowedSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
@@ -619,12 +615,8 @@ public class SourceBuilderTest {
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
         Optional.of(true),
-        OptionalInt.of(pseudoColumnVersion)
+        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
     );
-  }
-
-  private void givenUnwindowedSourceTable() {
-    givenUnwindowedSourceTable(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   private void givenMultiColumnSourceTable() {
@@ -637,7 +629,7 @@ public class SourceBuilderTest {
         TIMESTAMP_COLUMN,
         MULTI_COL_SOURCE_SCHEMA,
         Optional.of(true),
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
     );
   }
 

@@ -571,6 +571,11 @@ public class QueryAnonymizer {
     public String visitCreateStream(final CreateStreamContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
 
+      // optional source
+      if (context.SOURCE() != null) {
+        stringBuilder.append("SOURCE ");
+      }
+
       // optional replace
       if (context.OR() != null && context.REPLACE() != null) {
         stringBuilder.append("OR REPLACE ");
@@ -636,6 +641,11 @@ public class QueryAnonymizer {
     @Override
     public String visitCreateTable(final CreateTableContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
+
+      // optional source
+      if (context.SOURCE() != null) {
+        stringBuilder.append("SOURCE ");
+      }
 
       // optional replace
       if (context.OR() != null && context.REPLACE() != null) {

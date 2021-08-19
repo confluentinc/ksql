@@ -18,7 +18,6 @@ package io.confluent.ksql.schema.ksql;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Objects;
 
@@ -46,7 +45,6 @@ public final class PhysicalSchema {
   /**
    * @return the logical schema used to build this physical schema.
    */
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is an ImmutableList()")
   public LogicalSchema logicalSchema() {
     return logicalSchema;
   }

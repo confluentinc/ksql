@@ -628,6 +628,16 @@ Sets the maximum number of concurrent pull queries. This limit is enforced per h
 After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
+## `ksql.idle.connection.timeout.seconds`
+
+Sets the timeout for idle connections. A connection is idle if there is no data in either direction
+on that connection for the duration of the timeout. This configuration can be helpful if you are 
+issuing push queries that only receive data infrequently from the server, as otherwise those
+connections will be severed when the timeout (default 10min) is hit.
+
+Decreasing this timeout allows you to close connections more aggressively and save server resources
+while increasing this timeout makes the server more tolerant of low-data volume use cases.
+
 ## `ksql.variable.substitution.enable`
 
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.

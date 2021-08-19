@@ -633,7 +633,7 @@ at the limit.
 Sets the timeout for idle connections. A connection is idle if there is no data in either direction
 on that connection for the duration of the timeout. This configuration can be helpful if you are 
 issuing push queries that only receive data infrequently from the server, as otherwise those
-connections will be severed when the timeout (default 10min) is hit.
+connections will be severed when the timeout (default 10 minutes) is hit.
 
 Decreasing this timeout allows you to close connections more aggressively and save server resources
 while increasing this timeout makes the server more tolerant of low-data volume use cases.

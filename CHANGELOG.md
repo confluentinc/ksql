@@ -16,7 +16,6 @@
 ### Bug Fixes
 
 * block out of order migrations in migrations tool ([#7693](https://github.com/confluentinc/ksql/pull/7693)) ([1d617d3](https://github.com/confluentinc/ksql/commit/1d617d38d2928b8ec39d48df8060d4f43649382d))
-* enable KAFKA-10847 bugfix when GRACE PERIOD is used on Joins ([#7739](https://github.com/confluentinc/ksql/pull/7739)) ([c1f5da6](https://github.com/confluentinc/ksql/commit/c1f5da627541b0500a4c4c6ebc439bcce899b426))
 ([#7678](https://github.com/confluentinc/ksql/pull/7678)) ([9bf9abf](https://github.com/confluentinc/ksql/commit/9bf9abf0d8093d2b53859abd5fe54a0d280a3cc7))
 * enable schema inference for timestamp/time/date ([#7737](https://github.com/confluentinc/ksql/pull/7737)) ([35b1cad](https://github.com/confluentinc/ksql/commit/35b1cadc08faea68ca0b76e6c08ac664a5122c0b))
 * enable time unit functions for interpreter ([#7709](https://github.com/confluentinc/ksql/pull/7709)) ([a26a297](https://github.com/confluentinc/ksql/commit/a26a297af55ad46c3f46efae78f470a33d0df251))

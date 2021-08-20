@@ -9,7 +9,7 @@ keywords: ksqldb, changelog
 Version 0.20.0
 --------------
 
-- [Announcing ksqlDB 0.20.0](https://www.confluent.io/blog/ksqldb-0-19-adds-data-modeling-foreign-key-joins/)
+- [Announcing ksqlDB 0.20.0](https://www.confluent.io/blog/ksqldb-2-0-introduces-date-and-time-data-types/)
 - [ksqlDB v0.20.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0200-2021-07-26)
 
 Version 0.19.0

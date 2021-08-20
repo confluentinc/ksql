@@ -15,8 +15,10 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildWindowedKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
@@ -33,7 +35,6 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -54,7 +55,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-final class SourceBuilderV1 extends SourceBuilderBase{
+final class SourceBuilderV1 extends SourceBuilderBase {
 
   private final static SourceBuilderV1 instance;
 
@@ -78,10 +79,10 @@ final class SourceBuilderV1 extends SourceBuilderBase{
 
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
-    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
+    final Serde<GenericKey> keySerde = buildKeySerde(
+        source,
         physicalSchema,
-        source.getProperties().getQueryContext()
+        buildContext
     );
 
     final Consumed<GenericKey, GenericRow> consumed = buildSourceConsumed(
@@ -117,11 +118,11 @@ final class SourceBuilderV1 extends SourceBuilderBase{
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
     final WindowInfo windowInfo = source.getWindowInfo();
-    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        windowInfo,
+    final Serde<Windowed<GenericKey>> keySerde = buildWindowedKeySerde(
+        source,
         physicalSchema,
-        source.getProperties().getQueryContext()
+        buildContext,
+        windowInfo
     );
 
     final Consumed<Windowed<GenericKey>, GenericRow> consumed = buildSourceConsumed(
@@ -152,11 +153,11 @@ final class SourceBuilderV1 extends SourceBuilderBase{
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> keySerde,
+      final Serde<GenericKey> sourceKeySerde,
       final Serde<GenericRow> valueSerde
   ) {
     return materializedFactory.create(
-        keySerde,
+        sourceKeySerde,
         valueSerde,
         SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
     );
@@ -167,11 +168,11 @@ final class SourceBuilderV1 extends SourceBuilderBase{
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> keySerde,
+      final Serde<Windowed<GenericKey>> sourceKeySerde,
       final Serde<GenericRow> valueSerde
       ) {
     return materializedFactory.create(
-        keySerde,
+        sourceKeySerde,
         valueSerde,
         SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
     );

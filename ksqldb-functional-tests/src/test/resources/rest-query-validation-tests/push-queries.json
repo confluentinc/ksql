@@ -379,7 +379,7 @@
       "statements": [
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
         "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 3;"
       ],
       "inputs": [
@@ -407,7 +407,7 @@
       "statements": [
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
         "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 3;"
       ],
       "inputs": [
@@ -444,10 +444,10 @@
       }
     },
     {
-      "name": "windowed group by - window bounds in SELECT",
+      "name": "windowed GROUP BY - window bounds in SELECT",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT windowstart, windowend, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by K EMIT CHANGES LIMIT 2;"
+        "SELECT windowstart, windowend, count(1) AS count FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {}, "timestamp": 10345},
@@ -464,10 +464,10 @@
       ]
     },
     {
-      "name": "windowed group by - key not in projection",
+      "name": "windowed GROUP BY - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT count(1) AS count FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -484,10 +484,10 @@
       ]
     },
     {
-      "name": "non-windowed group by - key not in projection",
+      "name": "non-windowed GROUP BY - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) as count FROM test group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT count(1) AS count FROM test GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -504,10 +504,10 @@
       ]
     },
     {
-      "name": "windowed group by - repartition - key in projection",
+      "name": "windowed GROUP BY - repartition - key in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT ID, count(1) as count FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT ID, count(1) AS count FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -524,7 +524,7 @@
       ]
     },
     {
-      "name": "windowed group by - no-repartition - key in projection",
+      "name": "windowed GROUP BY - no-repartition - key in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT K, COUNT(1) AS count FROM TEST WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K EMIT CHANGES LIMIT 2;"
@@ -544,10 +544,10 @@
       ]
     },
     {
-      "name": "non-windowed group by - key in projection",
+      "name": "non-windowed GROUP BY - key in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT ID, count(1) as count FROM test group by ID EMIT CHANGES LIMIT 2;"
+        "SELECT ID, count(1) AS count FROM test GROUP BY ID EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -564,10 +564,10 @@
       ]
     },
     {
-      "name": "non-windowed group by expression - key not in projection",
+      "name": "non-windowed GROUP BY expression - key not in projection",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) as count FROM test group by ABS(ID) EMIT CHANGES LIMIT 2;"
+        "SELECT count(1) AS count FROM test GROUP BY ABS(ID) EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"id": 2}, "timestamp": 10345},
@@ -625,10 +625,10 @@
       ]
     },
     {
-      "name": "windowed group by - window bounds in WHERE",
+      "name": "windowed GROUP BY - window bounds in WHERE",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE windowstart > 1000 AND windowend < 1000000000 group by K EMIT CHANGES LIMIT 1;"
+        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) WHERE windowstart > 1000 AND windowend < 1000000000 GROUP BY K EMIT CHANGES LIMIT 1;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
@@ -637,10 +637,10 @@
       }
     },
     {
-      "name": "windowed group by - window bounds in HAVING",
+      "name": "windowed GROUP BY - window bounds in HAVING",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) group by K having min(windowstart) > 1000 EMIT CHANGES LIMIT 1;"
+        "SELECT count(1) FROM test WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K having min(windowstart) > 1000 EMIT CHANGES LIMIT 1;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
@@ -817,7 +817,7 @@
     },
     {
       "name": "non-windowed table with tombstones",
-      "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
+      "notes": "message at timestamp 3 is invalid AS key is null, so will be ignored",
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 5;"
@@ -845,7 +845,7 @@
     },
     {
       "name": "non-windowed table with tombstones - key not in projection",
-      "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
+      "notes": "message at timestamp 3 is invalid AS key is null, so will be ignored",
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
         "SELECT ID FROM INPUT EMIT CHANGES LIMIT 5;"

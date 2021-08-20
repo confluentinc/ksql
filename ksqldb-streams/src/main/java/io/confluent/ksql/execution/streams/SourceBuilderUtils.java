@@ -34,6 +34,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.StaticTopicSerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +58,8 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 
 final class SourceBuilderUtils {
 
+  static final String MATERIALIZE_OP_NAME = "Materialized";
+
   static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
       Arrays.asList(null, null, null)
   );
@@ -76,9 +79,24 @@ final class SourceBuilderUtils {
   static Serde<GenericRow> getValueSerde(
       final RuntimeBuildContext buildContext,
       final SourceStep<?> streamSource,
-      final PhysicalSchema physicalSchema) {
+      final PhysicalSchema physicalSchema,
+      final QueryContext queryContext
+  ) {
     return buildContext.buildValueSerde(
         streamSource.getFormats().getValueFormat(),
+        physicalSchema,
+        queryContext
+    );
+  }
+
+  static Serde<GenericRow> getValueSerde(
+      final RuntimeBuildContext buildContext,
+      final SourceStep<?> streamSource,
+      final PhysicalSchema physicalSchema
+  ) {
+    return getValueSerde(
+        buildContext,
+        streamSource,
         physicalSchema,
         streamSource.getProperties().getQueryContext()
     );
@@ -128,7 +146,6 @@ final class SourceBuilderUtils {
         + stateStoreName
         + "-changelog";
   }
-
 
   static TimestampExtractor timestampExtractor(
       final KsqlConfig ksqlConfig,
@@ -226,6 +243,68 @@ final class SourceBuilderUtils {
           "Unknown value"
       );
     }
+  }
+
+  static Serde<GenericKey> buildKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext,
+      final QueryContext queryContext
+  ) {
+    return buildContext.buildKeySerde(
+        step.getFormats().getKeyFormat(),
+        physicalSchema,
+        queryContext
+    );
+  }
+
+  static Serde<GenericKey> buildKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext
+  ) {
+    return buildKeySerde(
+        step,
+        physicalSchema,
+        buildContext,
+        step.getProperties().getQueryContext()
+    );
+  }
+
+  static Serde<Windowed<GenericKey>> buildWindowedKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext,
+      final WindowInfo windowInfo,
+      final QueryContext queryContext
+      ) {
+    return buildContext.buildKeySerde(
+        step.getFormats().getKeyFormat(),
+        windowInfo,
+        physicalSchema,
+        queryContext
+    );
+  }
+
+  static Serde<Windowed<GenericKey>> buildWindowedKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext,
+      final WindowInfo windowInfo
+  ) {
+    return buildWindowedKeySerde(
+        step,
+        physicalSchema,
+        buildContext,
+        windowInfo,
+        step.getProperties().getQueryContext()
+    );
+  }
+
+  static QueryContext addMaterializedContext(SourceStep<?> step) {
+    return QueryContext.Stacker.of(
+        step.getProperties().getQueryContext())
+        .push(MATERIALIZE_OP_NAME).getQueryContext();
   }
 
   static class AddKeyAndPseudoColumns<K>

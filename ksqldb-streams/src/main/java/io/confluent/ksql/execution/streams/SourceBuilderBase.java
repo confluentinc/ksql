@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
@@ -57,10 +58,10 @@ abstract class SourceBuilderBase {
 
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
-    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
+    final Serde<GenericKey> keySerde = buildKeySerde(
+        source,
         physicalSchema,
-        source.getProperties().getQueryContext()
+        buildContext
     );
 
     final Consumed<GenericKey, GenericRow> consumed = buildSourceConsumed(
@@ -123,11 +124,11 @@ abstract class SourceBuilderBase {
       throw new IllegalArgumentException("Expected a version of WindowedTableSource");
     }
 
-    final Serde<Windowed<GenericKey>> keySerde = buildContext.buildKeySerde(
-        source.getFormats().getKeyFormat(),
-        windowInfo,
+    final Serde<Windowed<GenericKey>> keySerde = SourceBuilderUtils.buildWindowedKeySerde(
+        source,
         physicalSchema,
-        source.getProperties().getQueryContext()
+        buildContext,
+        windowInfo
     );
 
     final Consumed<Windowed<GenericKey>, GenericRow> consumed = buildSourceConsumed(

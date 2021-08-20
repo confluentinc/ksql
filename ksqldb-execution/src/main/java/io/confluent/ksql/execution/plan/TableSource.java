@@ -63,10 +63,6 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
     this.forceChangelog = forceChangelog.orElse(false);
   }
 
-  public Boolean isForceChangelog() {
-    return forceChangelog;
-  }
-
   @Override
   public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
     return builder.visitTableSource(this, info);

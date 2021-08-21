@@ -55,14 +55,14 @@ public final class QueryCapacityUtil {
     return ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
   }
 
-  public static boolean exceedsPushQueryCapacity(
+  public static boolean exceedsTransientQueryCapacity(
           final KsqlExecutionContext executionContext,
           final KsqlRestConfig ksqlRestConfig
   ) {
     return getNumLivePushQueries(executionContext) >= getPushQueryLimit(ksqlRestConfig);
   }
 
-  public static void throwTooManyActivePushQueriesException(
+  public static void throwTooManyActiveTransientQueriesException(
           final KsqlExecutionContext executionContext,
           final KsqlRestConfig ksqlRestConfig,
           final String statementStr
@@ -70,8 +70,8 @@ public final class QueryCapacityUtil {
     throw new KsqlException(
             String.format(
                     "Not executing statement(s) '%s' as it would cause the number "
-                            + "of active, push queries to exceed the configured limit. "
-                            + "Terminate existing PUSH queries, "
+                            + "of active push queries to exceed the configured limit. "
+                            + "Terminate existing PUSH queries or STREAM PULL queries, "
                             + "or increase the '%s' setting via the 'ksql-server.properties' file. "
                             + "Current push query count: %d. Configured limit: %d.",
                     statementStr,

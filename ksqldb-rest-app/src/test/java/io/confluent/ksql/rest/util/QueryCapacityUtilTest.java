@@ -97,7 +97,7 @@ public class QueryCapacityUtilTest {
     givenPushQueryLimit(3);
 
     // Then:
-    assertThat(QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig),
+    assertThat(QueryCapacityUtil.exceedsTransientQueryCapacity(ksqlEngine, ksqlRestConfig),
             equalTo(true));
   }
 
@@ -109,7 +109,7 @@ public class QueryCapacityUtilTest {
     givenPushQueryLimit(6);
 
     // Then:
-    assertThat(QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig),
+    assertThat(QueryCapacityUtil.exceedsTransientQueryCapacity(ksqlEngine, ksqlRestConfig),
             equalTo(true));
   }
 
@@ -124,7 +124,7 @@ public class QueryCapacityUtilTest {
     // When:
     final KsqlException e = assertThrows(
             KsqlException.class,
-            () -> QueryCapacityUtil.throwTooManyActivePushQueriesException(ksqlEngine, ksqlRestConfig, statementStr)
+            () -> QueryCapacityUtil.throwTooManyActiveTransientQueriesException(ksqlEngine, ksqlRestConfig, statementStr)
     );
 
     // Then:

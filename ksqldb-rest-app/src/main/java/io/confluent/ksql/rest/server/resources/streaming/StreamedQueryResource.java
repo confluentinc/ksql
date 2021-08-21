@@ -552,8 +552,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ConfiguredStatement<Query> configured,
       final CompletableFuture<Void> connectionClosedFuture) {
 
-    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
-      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+    if (QueryCapacityUtil.exceedsTransientQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActiveTransientQueriesException(
           ksqlEngine,
           ksqlRestConfig,
           configured.getStatementText()
@@ -602,8 +602,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
 
-    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
-      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+    if (QueryCapacityUtil.exceedsTransientQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActiveTransientQueriesException(
           ksqlEngine,
           ksqlRestConfig,
           statement.getStatementText()

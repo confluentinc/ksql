@@ -106,6 +106,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
+  private final KsqlConfig ksqlConfig;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -174,6 +175,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+    this.ksqlConfig = ksqlConfig;
 
     cleanupService.startAsync();
   }
@@ -322,6 +324,16 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<Query> statementOrig,
       final boolean excludeTombstones
   ) {
+
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED)) {
+      throw new KsqlStatementException(
+          "Pull queries on streams are disabled. To create a push query on the stream,"
+              + " add EMIT CHANGES to the end. To enable pull queries on streams, set"
+              + " the " + KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED + " config to 'true'.",
+          statementOrig.getStatementText()
+      );
+    }
+
     // stream pull query overrides: start from earliest, use one  thread,
     // and use a tight commit interval for responsiveness.
     final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(

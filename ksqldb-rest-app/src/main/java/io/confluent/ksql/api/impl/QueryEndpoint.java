@@ -221,8 +221,8 @@ public class QueryEndpoint {
   ) {
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
-      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+    if (QueryCapacityUtil.exceedsTransientQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActiveTransientQueriesException(
               ksqlEngine,
               ksqlRestConfig,
               statement.getStatementText()
@@ -248,13 +248,17 @@ public class QueryEndpoint {
 
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
-      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+    if (QueryCapacityUtil.exceedsTransientQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActiveTransientQueriesException(
           ksqlEngine,
           ksqlRestConfig,
           statement.getStatementText()
       );
     }
+
+    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    final Decrementer decrementer = pullConcurrencyLimiter.increment();
+    pullBandRateLimiter.allow();
 
     try {
       final TransientQueryMetadata transientQueryMetadata = ksqlEngine
@@ -278,6 +282,7 @@ public class QueryEndpoint {
                   transientQueryMetadata
               );
               publisher.close();
+              decrementer.decrementAtMostOnce();
             }
           },
           false,

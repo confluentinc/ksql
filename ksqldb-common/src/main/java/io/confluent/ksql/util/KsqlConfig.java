@@ -267,8 +267,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED
       = "ksql.query.pull.table.scan.enabled";
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC =
-      "Config to enable full table scans for pull queries";
-  public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = false;
+      "Config to enable pull queries that scan over the data";
+  public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED
+      = "ksql.query.pull.stream.enabled";
+  public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC =
+      "Config to enable pull queries on streams";
+  public static final boolean KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED
       = "ksql.query.pull.interpreter.enabled";
@@ -893,6 +899,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PULL_INTERPRETER_ENABLED,

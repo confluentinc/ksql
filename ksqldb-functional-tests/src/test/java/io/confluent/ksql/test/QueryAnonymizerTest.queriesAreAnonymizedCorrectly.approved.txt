@@ -56,6 +56,4 @@ INSERT INTO stream43 SELECT column124, column126 FROM source4;
 INSERT INTO stream44 SELECT * FROM source4;
 INSERT INTO stream41 SELECT * FROM source3;
 INSERT INTO stream41 SELECT column122, column128, column129 FROM source2 INNER JOIN source3 WITHIN '0' SECOND ON anonKey1=anonKey2;
-INSERT INTO stream41 SELECT column122, column128, column129 FROM source2 INNER JOIN source3 WITHIN '0' SECOND GRACE PERIOD '0' SECONDS ON anonKey1=anonKey2;
-INSERT INTO stream41 SELECT column122, column128, column129 FROM source2 INNER JOIN source3 WITHIN ('0' SECOND, '0' SECONDS) GRACE PERIOD '0' SECONDS ON anonKey1=anonKey2;
 DROP STREAM IF EXISTS stream6;

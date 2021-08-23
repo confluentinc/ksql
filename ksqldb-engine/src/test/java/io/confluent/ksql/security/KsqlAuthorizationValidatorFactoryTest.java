@@ -71,6 +71,10 @@ public class KsqlAuthorizationValidatorFactoryTest {
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_AUTO);
+    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG))
+        .thenReturn("KAFKA");
+    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG))
+        .thenReturn("JSON");
   }
 
   @Test

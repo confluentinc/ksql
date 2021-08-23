@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
@@ -43,6 +44,8 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.Collections;
 import java.util.Optional;
+
+import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.After;
 import org.junit.Before;
@@ -94,10 +97,15 @@ public class KsqlAuthorizationValidatorImplTest {
 
   @Before
   public void setUp() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA",
+        KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "AVRO"
+    ));
+
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
 
-    authorizationValidator = new KsqlAuthorizationValidatorImpl(accessValidator);
+    authorizationValidator = new KsqlAuthorizationValidatorImpl(ksqlConfig, accessValidator);
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     givenStreamWithTopic(KAFKA_STREAM_TOPIC, KAFKA_KSQL_TOPIC);
@@ -353,6 +361,94 @@ public class KsqlAuthorizationValidatorImplTest {
     assertThat(e.getMessage(), containsString(String.format(
         "Authorization denied to Write on topic(s): [%s]", AVRO_TOPIC
     )));
+  }
+
+  @Test
+  public void shouldThrowWhenCreateAsSelectOnExistingTopicWithoutSchemaWritePermissions() {
+    // Given:
+    givenSubjectAccessDenied(AVRO_TOPIC + "-value", AclOperation.WRITE);
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM %s AS SELECT * FROM %s;", AVRO_STREAM_TOPIC, KAFKA_STREAM_TOPIC)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Write on Schema Registry subject: [%s-value]", AVRO_TOPIC
+    )));
+  }
+
+  @Test
+  public void shouldThrowWhenCreateAsSelectOnNewTopicWithoutValueSchemaWritePermissions() {
+    // Given:
+    givenSubjectAccessDenied("topic-value", AclOperation.WRITE);
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream WITH (kafka_topic='topic', value_format='AVRO') "
+            + "AS SELECT * FROM %s;", KAFKA_STREAM_TOPIC)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Write on Schema Registry subject: [topic-value]"
+    )));
+  }
+
+  @Test
+  public void shouldThrowWhenCreateAsSelectOnNewTopicWithoutKeySchemaWritePermissions() {
+    // Given:
+    givenSubjectAccessDenied("topic-key", AclOperation.WRITE);
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream WITH (kafka_topic='topic', key_format='AVRO') "
+            + "AS SELECT * FROM %s;", KAFKA_STREAM_TOPIC)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> authorizationValidator.checkAuthorization(securityContext, metaStore, statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(String.format(
+        "Authorization denied to Write on Schema Registry subject: [topic-key]"
+    )));
+  }
+
+  @Test
+  public void shouldNotThrowWhenCreateAsSelectOnNewTopicWithoutValueSchemaInferenceFormats() {
+    // Given:
+    givenSubjectAccessDenied("topic-value", AclOperation.WRITE);
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream WITH (kafka_topic='topic', value_format='DELIMITED') "
+            + "AS SELECT * FROM %s;", KAFKA_STREAM_TOPIC)
+    );
+
+    // Then/When:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
+  }
+
+  @Test
+  public void shouldNotThrowWhenCreateAsSelectOnNewTopicWithoutKeySchemaInferenceFormats() {
+    // Given:
+    givenSubjectAccessDenied("topic-key", AclOperation.WRITE);
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM newStream WITH (kafka_topic='topic', value_format='DELIMITED') "
+            + "AS SELECT * FROM %s;", KAFKA_STREAM_TOPIC)
+    );
+
+    // Then/When:
+    authorizationValidator.checkAuthorization(securityContext, metaStore, statement);
   }
 
   @Test

@@ -19,18 +19,25 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.acl.AclOperation;
 
@@ -42,9 +49,26 @@ import org.apache.kafka.common.acl.AclOperation;
  */
 public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidator {
   private final KsqlAccessValidator accessValidator;
+  private final String defaultTopicKeyFormat;
+  private final String defaultTopicValueFormat;
 
-  public KsqlAuthorizationValidatorImpl(final KsqlAccessValidator accessValidator) {
+  public KsqlAuthorizationValidatorImpl(final KsqlConfig ksqlConfig,
+                                        final KsqlAccessValidator accessValidator) {
     this.accessValidator = accessValidator;
+
+    this.defaultTopicKeyFormat =
+        ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG);
+    if (defaultTopicKeyFormat == null) {
+      throw new KsqlException("Missing default topic key format. Please provide one via the '"
+          + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "' config.");
+    }
+
+    this.defaultTopicValueFormat =
+        ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
+    if (defaultTopicValueFormat == null) {
+      throw new KsqlException("Missing default topic value format. Please provide one via the '"
+          + KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG + "' config.");
+    }
   }
 
   KsqlAccessValidator getAccessValidator() {
@@ -98,8 +122,9 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
     validateQuery(securityContext, metaStore, createAsSelect.getQuery());
 
     // At this point, the topic should have been created by the TopicCreateInjector
-    final String kafkaTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
-    checkTopicAccess(securityContext, kafkaTopic, AclOperation.WRITE);
+    final KsqlTopic sinkTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
+    checkTopicAccess(securityContext, sinkTopic.getKafkaTopicName(), AclOperation.WRITE);
+    checkSchemaAccess(securityContext, sinkTopic, AclOperation.WRITE);
   }
 
   private void validateInsertInto(
@@ -150,12 +175,51 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
     return dataSource.getKafkaTopicName();
   }
 
-  private String getCreateAsSelectSinkTopic(
+  private KsqlTopic getCreateAsSelectSinkTopic(
       final MetaStore metaStore,
       final CreateAsSelect createAsSelect
   ) {
-    return createAsSelect.getProperties().getKafkaTopic()
-        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName()));
+    final CreateSourceAsProperties properties = createAsSelect.getProperties();
+
+    final String sinkTopicName;
+    final KeyFormat sinkKeyFormat;
+    final ValueFormat sinkValueFormat;
+
+    if (!properties.getKafkaTopic().isPresent()) {
+      final DataSource dataSource = metaStore.getSource(createAsSelect.getName());
+      if (dataSource != null) {
+        sinkTopicName = dataSource.getKafkaTopicName();
+        sinkKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
+        sinkValueFormat = dataSource.getKsqlTopic().getValueFormat();
+      } else {
+        throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
+            + createAsSelect.getName());
+      }
+    } else {
+      final Format keyFormat = FormatFactory.fromName(
+          properties.getKeyFormat().orElse(defaultTopicKeyFormat));
+      final Format valueFormat = FormatFactory.fromName(
+          properties.getValueFormat().orElse(defaultTopicValueFormat));
+
+      sinkTopicName = properties.getKafkaTopic().get();
+
+      sinkKeyFormat = KeyFormat.of(
+          FormatInfo.of(keyFormat.name()),
+          keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE)
+              : SerdeFeatures.of(),
+          Optional.empty()
+      );
+
+      sinkValueFormat = ValueFormat.of(
+          FormatInfo.of(valueFormat.name()),
+          valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+              ? SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE)
+              : SerdeFeatures.of()
+      );
+    }
+
+    return new KsqlTopic(sinkTopicName, sinkKeyFormat, sinkValueFormat);
   }
 
   private Set<KsqlTopic> extractQueryTopics(final Query query, final MetaStore metaStore) {

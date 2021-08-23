@@ -25,7 +25,6 @@ import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -480,7 +479,6 @@ public class PushRouting implements AutoCloseable {
       if (closed) {
         return;
       }
-      System.out.println("Recieving remote row " + row + " at " + node);
       if (row.getFinalMessage().isPresent()) {
         close();
         return;
@@ -560,7 +558,6 @@ public class PushRouting implements AutoCloseable {
       if (closed) {
         return;
       }
-      System.out.println("Recieving row " + row + " at " + localNode);
       if (!transientQueryQueue.acceptRowNonBlocking(null, GenericRow.fromList(row))) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();

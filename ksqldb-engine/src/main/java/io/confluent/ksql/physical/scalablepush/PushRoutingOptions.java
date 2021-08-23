@@ -27,5 +27,7 @@ public interface PushRoutingOptions {
   // set this flag indicating we should error if this expectation isn't met.
   boolean getExpectingStartOfRegistryData();
 
+  // If we should wait to connect to all hosts on the initial request.  This is useful for testing
+  // to have more predictable behavior, but slows things a bit.
   boolean getWaitToConnectToHosts();
 }

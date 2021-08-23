@@ -50,6 +50,15 @@ public class PageViewDataProvider extends TestDataProvider {
       .put(genericKey("PAGE_5"), genericRow("USER_3", 7L))
       .build();
 
+  private static final Multimap<GenericKey, GenericRow> ADDITIONAL_ROWS = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("PAGE_4"), genericRow("USER_2", 8L))
+      .put(genericKey("PAGE_2"), genericRow("USER_3", 9L))
+      .put(genericKey("PAGE_1"), genericRow("USER_4", 10L))
+      .put(genericKey("PAGE_5"), genericRow("USER_0", 11L))
+      .put(genericKey("PAGE_4"), genericRow("USER_1", 12L))
+      .build();
+
   public PageViewDataProvider() {
     super("PAGEVIEW", PHYSICAL_SCHEMA, ROWS);
   }
@@ -57,5 +66,9 @@ public class PageViewDataProvider extends TestDataProvider {
   // If you need to create a different topic with the same data
   public PageViewDataProvider(final String namePrefix) {
     super(namePrefix, PHYSICAL_SCHEMA, ROWS);
+  }
+
+  public PageViewDataProvider(final String namePrefix, boolean additionalRows) {
+    super(namePrefix, PHYSICAL_SCHEMA, additionalRows ? ADDITIONAL_ROWS : ROWS);
   }
 }

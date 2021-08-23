@@ -26,4 +26,6 @@ public interface PushRoutingOptions {
   // When a rebalance occurs and we connect to a new node, we don't want to miss anything, so we
   // set this flag indicating we should error if this expectation isn't met.
   boolean getExpectingStartOfRegistryData();
+
+  boolean getWaitToConnectToHosts();
 }

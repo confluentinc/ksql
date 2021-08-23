@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
@@ -911,61 +912,6 @@ private void waitForRunningPushQueries(
     private StatementSplit(final List<String> admin, final List<String> queries) {
       this.admin = ImmutableList.copyOf(admin);
       this.queries = ImmutableList.copyOf(queries);
-    }
-  }
-
-  private static final class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
-
-    private final CompletableFuture<List<StreamedRow>> future;
-    private final CompletableFuture<StreamedRow> header;
-    private boolean closed;
-    private List<StreamedRow> rows = new ArrayList<>();
-
-    QueryStreamSubscriber(
-        final Context context,
-        final CompletableFuture<List<StreamedRow>> future,
-        final CompletableFuture<StreamedRow> header
-    ) {
-      super(context);
-      this.future = Objects.requireNonNull(future);
-      this.header = Objects.requireNonNull(header);
-    }
-
-    @Override
-    protected void afterSubscribe(final Subscription subscription) {
-      makeRequest(1);
-    }
-
-    @Override
-    protected synchronized void handleValue(final StreamedRow row) {
-      if (closed) {
-        return;
-      }
-      rows.add(row);
-      if (row.isTerminal()) {
-        future.complete(rows);
-        return;
-      }
-      if (row.getHeader().isPresent()) {
-        header.complete(row);
-      }
-      makeRequest(1);
-    }
-
-    @Override
-    protected void handleComplete() {
-      future.complete(rows);
-    }
-
-    @Override
-    protected void handleError(final Throwable t) {
-      header.completeExceptionally(t);
-      future.completeExceptionally(t);
-    }
-
-    private void close() {
-      closed = true;
-      context.runOnContext(v -> cancel());
     }
   }
 

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -52,6 +53,8 @@ public class ScalablePushQueryMetadataTest {
   private ArgumentCaptor<Consumer<Throwable>> errorCallbackCaptor;
   @Mock
   private Consumer<Throwable> errorCallback;
+  @Mock
+  private PushRoutingOptions pushRoutingOptions;
 
   private ScalablePushQueryMetadata query;
 
@@ -63,7 +66,8 @@ public class ScalablePushQueryMetadataTest {
         blockingRowQueue,
         ResultType.STREAM,
         populator,
-        () -> { }
+        () -> { },
+        pushRoutingOptions
     );
   }
 

@@ -18,16 +18,23 @@ package io.confluent.ksql.util;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScalablePushQueryMetadata implements PushQueryMetadata {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ScalablePushQueryMetadata.class);
 
   private volatile boolean closed = false;
   private final LogicalSchema logicalSchema;
@@ -36,6 +43,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
   private final PushQueryPreparer pushQueryPreparer;
+  private final PushRoutingOptions pushRoutingOptions;
 
   // Future for the start of the connections, which creates a handle
   private CompletableFuture<PushConnectionsHandle> startFuture = new CompletableFuture<>();
@@ -50,7 +58,8 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
       final BlockingRowQueue blockingRowQueue,
       final ResultType resultType,
       final PushQueryQueuePopulator pushQueryQueuePopulator,
-      final PushQueryPreparer pushQueryPreparer
+      final PushQueryPreparer pushQueryPreparer,
+      final PushRoutingOptions pushRoutingOptions
   ) {
     this.logicalSchema = logicalSchema;
     this.queryId = queryId;
@@ -58,6 +67,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
     this.resultType = resultType;
     this.pushQueryQueuePopulator = pushQueryQueuePopulator;
     this.pushQueryPreparer = pushQueryPreparer;
+    this.pushRoutingOptions = pushRoutingOptions;
   }
 
   /**
@@ -83,6 +93,13 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
           runningFuture.completeExceptionally(t);
           return null;
         });
+    if (pushRoutingOptions.getWaitToConnectToHosts()) {
+      try {
+        startFuture.get();
+      } catch (Exception e) {
+        LOG.error("Got an error waiting for host connections", e);
+      }
+    }
   }
 
   @Override

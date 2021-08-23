@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
 
 public class PushRouting implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PushRouting.class);
 
   private static final long CLUSTER_CHECK_INTERVAL_MS = 1000;
   private static final long HOST_CACHE_EXPIRATION_MS = 1000;
@@ -480,6 +480,7 @@ public class PushRouting implements AutoCloseable {
       if (closed) {
         return;
       }
+      System.out.println("Recieving remote row " + row + " at " + node);
       if (row.getFinalMessage().isPresent()) {
         close();
         return;
@@ -559,6 +560,7 @@ public class PushRouting implements AutoCloseable {
       if (closed) {
         return;
       }
+      System.out.println("Recieving row " + row + " at " + localNode);
       if (!transientQueryQueue.acceptRowNonBlocking(null, GenericRow.fromList(row))) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();

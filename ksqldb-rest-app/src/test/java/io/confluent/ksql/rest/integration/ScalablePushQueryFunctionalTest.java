@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.integration;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
@@ -383,19 +398,17 @@ public class ScalablePushQueryFunctionalTest {
       final CompletableFuture<StreamedRow> header,
       final CompletableFuture<List<StreamedRow>> future
   ) {
-    publisher = makeQueryRequest(sql, properties,
-        ImmutableMap.of());
+    publisher = makeQueryRequest(sql, properties);
     subscriber = new QueryStreamSubscriber(publisher.getContext(), future, header);
     publisher.subscribe(subscriber);
   }
 
   StreamPublisher<StreamedRow> makeQueryRequest(
       final String sql,
-      final Map<String, ?> properties,
-      final Map<String, ?> requestProperties
+      final Map<String, ?> properties
   ) {
     final RestResponse<StreamPublisher<StreamedRow>> res =
-        restClient.makeQueryRequestStreamed(sql, null, properties, requestProperties);
+        restClient.makeQueryRequestStreamed(sql, null, properties);
 
     if (res.isErroneous()) {
       throw new AssertionError("Failed to await result."

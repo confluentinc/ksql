@@ -63,12 +63,6 @@ public class KsqlRequestConfig extends AbstractConfig {
       "Indicates whether a connecting node expects to be at the start of the registry data. After a"
           + "rebalance, this ensures we don't miss any data.";
 
-  public static final String KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS =
-      "request.ksql.query.push.wait.on.connect.hosts";
-  public static final boolean KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS_DEFAULT = false;
-  private static final String KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS_DOC =
-      "Whether the receiving node should block while connecting to other hosts";
-
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -107,12 +101,6 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DOC
-        ).define(
-            KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS,
-            Type.BOOLEAN,
-            KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS_DOC
         );
     return configDef;
   }

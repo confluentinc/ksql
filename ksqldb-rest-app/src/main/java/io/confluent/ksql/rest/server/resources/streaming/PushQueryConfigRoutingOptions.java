@@ -47,14 +47,4 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     }
     return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT;
   }
-
-  @Override
-  public boolean getWaitToConnectToHosts() {
-    if (requestProperties.containsKey(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS)) {
-      return (Boolean) requestProperties.get(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS);
-    }
-    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_WAIT_ON_CONNECT_HOSTS_DEFAULT;
-  }
 }

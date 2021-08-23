@@ -323,8 +323,7 @@ final class EngineExecutor {
           transientQueryQueue,
           resultType,
           populator,
-          preparer,
-          pushRoutingOptions
+          preparer
       );
 
       return metadata;

@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -69,6 +70,12 @@ public interface SharedKafkaStreamsRuntime {
   Set<SourceName> getSources();
 
   Set<QueryId> getQueries();
+
+  KafkaStreamsBuilder getKafkaStreamsBuilder();
+
+  Map<String, PersistentQueriesInSharedRuntimesImpl> getMetadata();
+
+  Map<QueryId, Set<SourceName>> getSourcesMap();
 
   void addQueryError(QueryError e);
 }

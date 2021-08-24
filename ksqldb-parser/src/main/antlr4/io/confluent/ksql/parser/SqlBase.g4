@@ -228,8 +228,8 @@ joinWindow
     ;
 
 withinExpression
-    : '(' joinWindowSize ',' joinWindowSize ')' (gracePeriodClause)?  # joinWindowWithBeforeAndAfter
-    | joinWindowSize (gracePeriodClause)?                             # singleJoinWindow
+    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
+    | joinWindowSize                            # singleJoinWindow
     ;
 
 joinWindowSize

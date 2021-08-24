@@ -174,8 +174,10 @@ public final class SourceNode {
     return allOf(matchers);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (this == o) {
       return true;
     }

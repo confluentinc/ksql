@@ -123,11 +123,8 @@ final class SourceBuilder extends SourceBuilderBase {
             consumed.withValueSerde(StaticTopicSerde.wrap(changelogTopic, valueSerde, onFailure))
         );
 
-    final KTable<K, GenericRow> transformed = source
-        .transformValues(new AddKeyAndPseudoColumns<>(
-            keyGenerator, streamSource.getPseudoColumnVersion()));
-
-    return transformed.mapValues(row -> row, materialized);
+    return source.transformValues(new AddKeyAndPseudoColumns<>(
+        keyGenerator, streamSource.getPseudoColumnVersion()), materialized);
   }
 
   @Override
@@ -152,7 +149,7 @@ final class SourceBuilder extends SourceBuilderBase {
         queryContext
     );
 
-    final Serde<GenericKey> keySerde = buildKeySerde(
+    final Serde<GenericKey> keySerdeToMaterialize = buildKeySerde(
         source,
         physicalSchema,
         buildContext,
@@ -160,7 +157,7 @@ final class SourceBuilder extends SourceBuilderBase {
     );
 
     return materializedFactory.create(
-        keySerde,
+        keySerdeToMaterialize,
         valueSerdeToMaterialize,
         stateStoreName
     );

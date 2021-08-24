@@ -58,7 +58,7 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 
 final class SourceBuilderUtils {
 
-  static final String MATERIALIZE_OP_NAME = "Materialized";
+  private static final String MATERIALIZE_OP_NAME = "Materialized";
 
   static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
       Arrays.asList(null, null, null)

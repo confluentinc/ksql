@@ -817,7 +817,7 @@
     },
     {
       "name": "non-windowed table with tombstones",
-      "notes": "message at timestamp 3 is invalid AS key is null, so will be ignored",
+      "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 5;"
@@ -845,7 +845,7 @@
     },
     {
       "name": "non-windowed table with tombstones - key not in projection",
-      "notes": "message at timestamp 3 is invalid AS key is null, so will be ignored",
+      "notes": "message at timestamp 3 is invalid as key is null, so will be ignored",
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
         "SELECT ID FROM INPUT EMIT CHANGES LIMIT 5;"

@@ -153,11 +153,11 @@ final class SourceBuilderV1 extends SourceBuilderBase {
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> sourceKeySerde,
+      final Serde<GenericKey> keySerde,
       final Serde<GenericRow> valueSerde
   ) {
     return materializedFactory.create(
-        sourceKeySerde,
+        keySerde,
         valueSerde,
         SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
     );
@@ -168,11 +168,11 @@ final class SourceBuilderV1 extends SourceBuilderBase {
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> sourceKeySerde,
+      final Serde<Windowed<GenericKey>> keySerde,
       final Serde<GenericRow> valueSerde
       ) {
     return materializedFactory.create(
-        sourceKeySerde,
+        keySerde,
         valueSerde,
         SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
     );

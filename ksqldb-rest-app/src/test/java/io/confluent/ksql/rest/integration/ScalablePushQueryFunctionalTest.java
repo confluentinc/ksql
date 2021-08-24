@@ -40,7 +40,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
@@ -178,10 +177,14 @@ public class ScalablePushQueryFunctionalTest {
   public void tearDown() {
     try {
       subscriber.close();
-    } catch (Exception e) { }
+    } catch (Exception e) {
+      LOG.error("Error closing subscriber", e);
+    }
     try {
       publisher.close();
-    } catch (Exception e) { }
+    } catch (Exception e) {
+      LOG.error("Error closing publisher", e);
+    }
     REST_APP_0.closePersistentQueries();
     REST_APP_0.dropSourcesExcept();
     REST_APP_1.stop();

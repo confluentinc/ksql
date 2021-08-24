@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.Context;
@@ -37,6 +38,7 @@ public class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
   private boolean closed;
   private List<StreamedRow> rows = new ArrayList<>();
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryStreamSubscriber(
       final Context context,
       final CompletableFuture<List<StreamedRow>> future,

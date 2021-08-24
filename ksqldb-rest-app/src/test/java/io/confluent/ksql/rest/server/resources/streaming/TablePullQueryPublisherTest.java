@@ -69,7 +69,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PullQueryPublisherTest {
+public class TablePullQueryPublisherTest {
   private static final long TIME_NANOS = 12345;
 
   private static final LogicalSchema PULL_SCHEMA = LogicalSchema.builder()
@@ -124,11 +124,11 @@ public class PullQueryPublisherTest {
   private ArgumentCaptor<Consumer<Throwable>> onErrorCaptor;
 
   private Subscription subscription;
-  private PullQueryPublisher publisher;
+  private TablePullQueryPublisher publisher;
 
   @Before
   public void setUp() {
-    publisher = new PullQueryPublisher(
+    publisher = new TablePullQueryPublisher(
         engine,
         serviceContext,
         exec,

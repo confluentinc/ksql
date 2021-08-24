@@ -121,7 +121,7 @@ public class WSQueryEndpoint {
         exec,
         WSQueryEndpoint::startPushQueryPublisher,
         WSQueryEndpoint::startScalablePushQueryPublisher,
-        WSQueryEndpoint::startPullQueryPublisher,
+        WSQueryEndpoint::startTablePullQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
         commandQueueCatchupTimeout,
@@ -436,7 +436,7 @@ public class WSQueryEndpoint {
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  private static void startPullQueryPublisher(
+  private static void startTablePullQueryPublisher(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
@@ -452,7 +452,40 @@ public class WSQueryEndpoint {
       final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing
   ) {
-    new PullQueryPublisher(
+    new TablePullQueryPublisher(
+        ksqlEngine,
+        serviceContext,
+        exec,
+        query,
+        analysis,
+        pullQueryMetrics,
+        startTimeNanos,
+        routingFilterFactory,
+        rateLimiter,
+        pullConcurrencyLimiter,
+        pullBandRateLimiter,
+        routing
+    ).subscribe(streamSubscriber);
+  }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  private static void startStreamPullQueryPublisher(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
+      final WebSocketSubscriber<StreamedRow> streamSubscriber,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter,
+      final ConcurrencyLimiter pullConcurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
+      final HARouting routing
+  ) {
+    new StreamPullQueryPublisher(
         ksqlEngine,
         serviceContext,
         exec,

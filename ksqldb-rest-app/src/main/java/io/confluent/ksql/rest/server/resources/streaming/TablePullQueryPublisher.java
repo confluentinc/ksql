@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
+class TablePullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
@@ -66,7 +66,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  PullQueryPublisher(
+  TablePullQueryPublisher(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,

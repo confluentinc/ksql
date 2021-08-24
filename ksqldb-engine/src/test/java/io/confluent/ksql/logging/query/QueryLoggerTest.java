@@ -16,6 +16,7 @@ import io.confluent.common.logging.log4j.StructuredJsonLayout;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.rewrite.RewriteAppender;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,5 +106,14 @@ public class QueryLoggerTest {
               assertNotEquals(msg.getMessage(), message);
               assertNotEquals(msg.getQuery(), query);
             });
+  }
+
+  @Test
+  public void shouldAnonymizeQuery() {
+    QueryLogger.info("test query", "SELECT * FROM MY_TABLE WHERE card_no = \"123-456\";");
+    for (final LoggingEvent loggingEvent : testAppender.getLog()) {
+      System.out.println(loggingEvent);
+      System.out.println(loggingEvent);
+    }
   }
 }

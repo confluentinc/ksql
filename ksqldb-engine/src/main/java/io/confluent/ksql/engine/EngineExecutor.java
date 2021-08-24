@@ -20,12 +20,15 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -210,7 +213,8 @@ final class EngineExecutor {
           physicalPlan.getQueryId(), pullQueryQueue);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
-          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource);
+          physicalPlan.getPlanType(), routingNodeType, DataSourceType.KTABLE,
+          physicalPlan::getRowsReadFromDataSource);
       if (startImmediately) {
         result.start();
       }
@@ -223,7 +227,8 @@ final class EngineExecutor {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
             physicalPlan.getSourceType(),
             physicalPlan.getPlanType(),
-            routingNodeType
+            routingNodeType,
+            DataSourceType.KTABLE
         ));
       }
 

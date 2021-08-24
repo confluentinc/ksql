@@ -18,6 +18,7 @@ package io.confluent.ksql.physical.pull;
 import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
@@ -40,6 +41,7 @@ public class PullQueryResult {
   private final PullSourceType sourceType;
   private final PullPhysicalPlanType planType;
   private final RoutingNodeType routingNodeType;
+  private DataSourceType dataSourceType;
   private final Supplier<Long> rowsProcessedSupplier;
 
   // This future is used to keep track of all of the callbacks since we allow for adding them both
@@ -58,6 +60,7 @@ public class PullQueryResult {
       final PullSourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType,
+      final DataSourceType dataSourceType,
       final Supplier<Long> rowsProcessedSupplier
   ) {
     this.schema = schema;
@@ -68,6 +71,7 @@ public class PullQueryResult {
     this.sourceType = sourceType;
     this.planType = planType;
     this.routingNodeType = routingNodeType;
+    this.dataSourceType = dataSourceType;
     this.rowsProcessedSupplier = rowsProcessedSupplier;
   }
 
@@ -102,7 +106,7 @@ public class PullQueryResult {
   public void onException(final Consumer<Throwable> consumer) {
     future.exceptionally(t -> {
       pullQueryMetrics.ifPresent(metrics ->
-          metrics.recordErrorRate(1, sourceType, planType, routingNodeType));
+          metrics.recordErrorRate(1, sourceType, planType, routingNodeType, dataSourceType));
       consumer.accept(t);
       return null;
     });
@@ -129,6 +133,10 @@ public class PullQueryResult {
 
   public RoutingNodeType getRoutingNodeType() {
     return routingNodeType;
+  }
+
+  public DataSourceType getDataSourceType() {
+    return dataSourceType;
   }
 
   public long getTotalRowsReturned() {

@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -72,6 +73,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -324,6 +326,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+      final DataSource dataSource = analysis.getFrom().getDataSource();
+      final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
       // First thing, set the metrics callback so that it gets called, even if we hit an error
       final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
@@ -346,20 +350,22 @@ public class StreamedQueryResource implements KsqlConfigurable {
                       responseBytes,
                       sourceType,
                       planType,
-                      routingNodeType
+                      routingNodeType,
+                      dataSourceType
                   );
                   metrics.recordLatency(
                       startTimeNanos,
                       sourceType,
                       planType,
-                      routingNodeType
+                      routingNodeType,
+                      dataSourceType
                   );
                   metrics.recordRowsReturned(
                       r.getTotalRowsReturned(),
-                      sourceType, planType, routingNodeType);
+                      sourceType, planType, routingNodeType, dataSourceType);
                   metrics.recordRowsProcessed(
                       r.getTotalRowsProcessed(),
-                      sourceType, planType, routingNodeType);
+                      sourceType, planType, routingNodeType, dataSourceType);
                 }
                 pullBandRateLimiter.add(responseBytes);
               });
@@ -376,19 +382,34 @@ public class StreamedQueryResource implements KsqlConfigurable {
             statement.getStatementText());
       }
 
-      final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
-      final ConfiguredStatement<Query> configured = ConfiguredStatement
-          .of(statement, sessionConfig);
-      return handleTablePullQuery(
-          analysis,
-          securityContext.getServiceContext(),
-          configured,
-          request.getRequestProperties(),
-          isInternalRequest,
-          connectionClosedFuture,
-          pullBandRateLimiter,
-          resultForMetrics
-      );
+      switch (dataSourceType) {
+        case KTABLE: {
+          final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
+          final ConfiguredStatement<Query> configured = ConfiguredStatement
+              .of(statement, sessionConfig);
+          return handleTablePullQuery(
+              analysis,
+              securityContext.getServiceContext(),
+              configured,
+              request.getRequestProperties(),
+              isInternalRequest,
+              connectionClosedFuture,
+              pullBandRateLimiter,
+              resultForMetrics
+          );
+        }
+        case KSTREAM: {
+          throw new KsqlStatementException(
+              "Pull queries are not supported on streams.",
+              statement.getStatementText()
+          );
+        }
+        default:
+          throw new KsqlStatementException(
+            "Unexpected data source type for pull query: " + dataSourceType,
+              statement.getStatementText()
+          );
+      }
     } else if (ScalablePushUtil
         .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {

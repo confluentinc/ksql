@@ -46,6 +46,7 @@ public final class KsqlConstants {
   public static final String KSQL_QUERY_SOURCE_TAG = "query_source";
   public static final String KSQL_QUERY_PLAN_TYPE_TAG = "query_plan_type";
   public static final String KSQL_QUERY_ROUTING_TYPE_TAG = "query_routing_type";
+  public static final String KSQL_DATA_SOURCE_TYPE_TAG = "data_source_type";
 
   public enum KsqlQueryType {
     PERSISTENT,

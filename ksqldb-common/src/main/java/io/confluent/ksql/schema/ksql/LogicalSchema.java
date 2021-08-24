@@ -342,7 +342,7 @@ public final class LogicalSchema {
    *                            column or not
    * @return an immutable list containing the non pseudo and key columns in this LogicalSchema
    * */
-  private ImmutableList<Column> nonPseudoAndKeyColsAsValueCols(
+  private List<Column> nonPseudoAndKeyColsAsValueCols(
       final Map<Namespace, List<Column>> byNamespace,
       final int pseudoColumnVersion
   ) {
@@ -371,7 +371,7 @@ public final class LogicalSchema {
    * @param byNamespace map of columns grouped by namespace
    * @return an immutable list containing the key columns related to the provided namespace
    */
-  private ImmutableList<Column> keyColumns(
+  private List<Column> keyColumns(
       final Map<Namespace, List<Column>> byNamespace) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     final List<Column> key = byNamespace.get(Namespace.KEY);

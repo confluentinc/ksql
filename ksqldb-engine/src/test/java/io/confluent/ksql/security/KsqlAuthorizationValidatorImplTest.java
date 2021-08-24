@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
@@ -45,7 +44,6 @@ import io.confluent.ksql.services.ServiceContext;
 import java.util.Collections;
 import java.util.Optional;
 
-import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.After;
 import org.junit.Before;
@@ -97,15 +95,10 @@ public class KsqlAuthorizationValidatorImplTest {
 
   @Before
   public void setUp() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
-        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "KAFKA",
-        KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "AVRO"
-    ));
-
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
 
-    authorizationValidator = new KsqlAuthorizationValidatorImpl(ksqlConfig, accessValidator);
+    authorizationValidator = new KsqlAuthorizationValidatorImpl(accessValidator);
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     givenStreamWithTopic(KAFKA_STREAM_TOPIC, KAFKA_KSQL_TOPIC);

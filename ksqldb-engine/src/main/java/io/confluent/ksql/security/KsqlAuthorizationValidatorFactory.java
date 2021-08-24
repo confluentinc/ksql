@@ -46,7 +46,7 @@ public final class KsqlAuthorizationValidatorFactory {
     );
 
     return accessValidator.map(v ->
-        new KsqlAuthorizationValidatorImpl(ksqlConfig, cacheIfEnabled(ksqlConfig, v)));
+        new KsqlAuthorizationValidatorImpl(cacheIfEnabled(ksqlConfig, v)));
   }
 
   private static Optional<KsqlAccessValidator> getAccessValidator(

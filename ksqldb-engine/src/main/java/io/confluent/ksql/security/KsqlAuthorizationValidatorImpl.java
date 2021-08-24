@@ -34,7 +34,6 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -49,26 +48,9 @@ import org.apache.kafka.common.acl.AclOperation;
  */
 public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidator {
   private final KsqlAccessValidator accessValidator;
-  private final String defaultTopicKeyFormat;
-  private final String defaultTopicValueFormat;
 
-  public KsqlAuthorizationValidatorImpl(final KsqlConfig ksqlConfig,
-                                        final KsqlAccessValidator accessValidator) {
+  public KsqlAuthorizationValidatorImpl(final KsqlAccessValidator accessValidator) {
     this.accessValidator = accessValidator;
-
-    this.defaultTopicKeyFormat =
-        ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG);
-    if (defaultTopicKeyFormat == null) {
-      throw new KsqlException("Missing default topic key format. Please provide one via the '"
-          + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "' config.");
-    }
-
-    this.defaultTopicValueFormat =
-        ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
-    if (defaultTopicValueFormat == null) {
-      throw new KsqlException("Missing default topic value format. Please provide one via the '"
-          + KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG + "' config.");
-    }
   }
 
   KsqlAccessValidator getAccessValidator() {
@@ -196,27 +178,33 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
             + createAsSelect.getName());
       }
     } else {
-      final Format keyFormat = FormatFactory.fromName(
-          properties.getKeyFormat().orElse(defaultTopicKeyFormat));
-      final Format valueFormat = FormatFactory.fromName(
-          properties.getValueFormat().orElse(defaultTopicValueFormat));
-
       sinkTopicName = properties.getKafkaTopic().get();
 
-      sinkKeyFormat = KeyFormat.of(
-          FormatInfo.of(keyFormat.name()),
-          keyFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+      // If no format is specified for the sink topic, then use the format from the primary
+      // source topic.
+      final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
+      extractor.process(createAsSelect.getQuery(), null);
+      final KsqlTopic primaryKsqlTopic = extractor.getPrimarySourceTopic();
+
+      final Optional<Format> keyFormat =
+          properties.getKeyFormat().map(formatName -> FormatFactory.fromName(formatName));
+      final Optional<Format> valueFormat =
+          properties.getValueFormat().map(formatName -> FormatFactory.fromName(formatName));
+
+      sinkKeyFormat = keyFormat.map(format -> KeyFormat.of(
+          FormatInfo.of(format.name()),
+          format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
               ? SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE)
               : SerdeFeatures.of(),
           Optional.empty()
-      );
+      )).orElse(primaryKsqlTopic.getKeyFormat());
 
-      sinkValueFormat = ValueFormat.of(
-          FormatInfo.of(valueFormat.name()),
-          valueFormat.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
+      sinkValueFormat = valueFormat.map(format -> ValueFormat.of(
+          FormatInfo.of(format.name()),
+              format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)
               ? SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE)
               : SerdeFeatures.of()
-      );
+      )).orElse(primaryKsqlTopic.getValueFormat());
     }
 
     return new KsqlTopic(sinkTopicName, sinkKeyFormat, sinkValueFormat);

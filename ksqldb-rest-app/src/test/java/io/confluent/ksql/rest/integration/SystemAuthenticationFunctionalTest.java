@@ -170,7 +170,6 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
-        .withProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON")
         .withProperties(COMMON_CONFIG)
         .withProperties(JASS_AUTH_CONFIG)
         .withProperties(internalKeyStoreProps(true))
@@ -186,7 +185,6 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
-        .withProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON")
         .withProperties(COMMON_CONFIG)
         .withProperties(JASS_AUTH_CONFIG)
         .withProperties(internalKeyStoreProps(false))
@@ -261,7 +259,6 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
-        .withProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON")
         .withProperties(COMMON_CONFIG)
         .withProperties(internalKeyStoreProps(true))
         .build();
@@ -276,7 +273,6 @@ public class SystemAuthenticationFunctionalTest {
         .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
             KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
         .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
-        .withProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "JSON")
         .withProperties(COMMON_CONFIG)
         .withProperties(internalKeyStoreProps(false))
         .build();

@@ -283,9 +283,9 @@ public final class LogicalSchema {
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    final ImmutableList<Column> keyColumns = keyColumns(byNamespace);
+    final List<Column> keyColumns = keyColumns(byNamespace);
 
-    final ImmutableList<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
         byNamespace, pseudoColumnVersion);
 
     builder.addAll(keyColumns);
@@ -324,9 +324,9 @@ public final class LogicalSchema {
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    final ImmutableList<Column> keyColumns = keyColumns(byNamespace());
+    final List<Column> keyColumns = keyColumns(byNamespace());
 
-    final ImmutableList<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
         byNamespace(), pseudoColumnVersion);
 
     builder.addAll(keyColumns);

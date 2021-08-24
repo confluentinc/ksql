@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "name": "create source stream",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select * from INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": "a1"},
+        {"topic": "test_topic", "value": "b1"},
+        {"topic": "test_topic", "value": "B2"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": "a1"},
+        {"topic": "OUTPUT", "value": "b1"},
+        {"topic": "OUTPUT", "value": "B2"}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "INPUT",
+            "type": "stream",
+            "schema": "K STRING KEY, TEXT STRING",
+            "isSource": true
+          },
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "schema": "K STRING KEY, TEXT STRING",
+            "isSource": false
+          }
+        ]
+      }
+    }
+  ]
+}

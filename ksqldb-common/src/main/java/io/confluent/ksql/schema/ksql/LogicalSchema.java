@@ -283,9 +283,15 @@ public final class LogicalSchema {
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    addKeyColumnsToKeySchema(builder);
+    final ImmutableList<Column> keyColumns = keyColumns(byNamespace);
 
-    int valueIndex = addNonPseudoAndKeyColsToValueSchema(builder, pseudoColumnVersion);
+    final ImmutableList<Column> nonPseudoAndKeyCols = nonPseudoAndKeyCols(
+        byNamespace, pseudoColumnVersion, this);
+
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
+
+    int valueIndex = nonPseudoAndKeyCols.size();
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
@@ -317,8 +323,15 @@ public final class LogicalSchema {
    */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-    addKeyColumnsToKeySchema(builder);
-    addNonPseudoAndKeyColsToValueSchema(builder, pseudoColumnVersion);
+
+    final ImmutableList<Column> keyColumns = keyColumns(byNamespace());
+
+    final ImmutableList<Column> nonPseudoAndKeyCols = nonPseudoAndKeyCols(
+        byNamespace(), pseudoColumnVersion, this);
+
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
+
     return new LogicalSchema(builder.build());
   }
 
@@ -330,9 +343,12 @@ public final class LogicalSchema {
    * @return the number of columns added. This also functions as a "column index", to pass to
    *                builder.add()
    * */
-  private int addNonPseudoAndKeyColsToValueSchema(
-      final ImmutableList.Builder<Column> builder, final int pseudoColumnVersion) {
-    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+  private static ImmutableList<Column> nonPseudoAndKeyCols(
+      final Map<Namespace, List<Column>> byNamespace,
+      final int pseudoColumnVersion,
+      final LogicalSchema logicalSchema
+      ) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     final List<Column> value = byNamespace.get(VALUE);
 
@@ -342,13 +358,13 @@ public final class LogicalSchema {
         continue;
       }
 
-      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+      if (logicalSchema.findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
         continue;
       }
 
       builder.add(Column.of(c.name(), c.type(), VALUE, addedColumns++));
     }
-    return addedColumns;
+    return builder.build();
   }
 
   /**
@@ -356,10 +372,13 @@ public final class LogicalSchema {
    * @param builder the builder to be passed in. This builder will have key columns added to its
    *                key schema.
    */
-  private void addKeyColumnsToKeySchema(final ImmutableList.Builder<Column> builder) {
-    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+  private static ImmutableList<Column> keyColumns(
+      final Map<Namespace, List<Column>> byNamespace) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     final List<Column> key = byNamespace.get(Namespace.KEY);
+
     builder.addAll(key);
+    return builder.build();
   }
 
   private static Predicate<Column> withName(final ColumnName name) {

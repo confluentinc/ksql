@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalField;
@@ -38,7 +39,10 @@ public class StringToTimestampParser {
   private final DateTimeFormatter formatter;
 
   public StringToTimestampParser(final String pattern) {
-    formatter = DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
+    formatter = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern(pattern)
+        .toFormatter(Locale.ROOT);
   }
 
   /**

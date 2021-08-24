@@ -130,6 +130,19 @@ public class StringToTimestampParserTest {
   }
 
   @Test
+  public void shouldParseMonthNameCaseInsensitively() {
+    // Given
+    final String format = "dd-MMM-yyyy";
+    final String timestamp = "05-NoV-1605";
+
+    // When
+    final ZonedDateTime ts = new StringToTimestampParser(format).parseZoned(timestamp, ZID);
+
+    // Then
+    assertThat(ts, is(sameInstant(FIFTH_OF_NOVEMBER)));
+  }
+
+  @Test
   public void shouldParseFullLocalDateWithPassedInTimeZone() {
     // Given
     final String format = "yyyy-MM-dd HH";

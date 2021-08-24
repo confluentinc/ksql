@@ -79,7 +79,7 @@ public class QueryIdUtilTest {
     // When:
     long numUniqueIds = IntStream.range(0, 100)
         .mapToObj(i -> QueryIdUtil.buildId(engineContext, idGenerator, transientPlan,
-            false, Optional.empty()))
+            false, Optional.empty(), false))
         .distinct()
         .count();
 
@@ -95,7 +95,7 @@ public class QueryIdUtilTest {
 
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
-        false, Optional.empty());
+        false, Optional.empty(), false);
 
     // Then:
     assertThat(queryId, is(new QueryId("INSERTQUERY_1")));
@@ -113,7 +113,7 @@ public class QueryIdUtilTest {
 
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
-        false, Optional.empty());
+        false, Optional.empty(), false);
     // Then:
     assertThat(queryId, is(new QueryId("CSAS_FOO_1")));
   }
@@ -130,10 +130,25 @@ public class QueryIdUtilTest {
 
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
-        false, Optional.empty());
+        false, Optional.empty(), false);
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_1")));
+  }
+
+  @Test
+  public void shouldComputeQueryIdCorrectlyForNewSourceTable() {
+    // Given:
+    when(plan.getSinkName()).thenReturn(Optional.empty());
+    when(plan.getId()).thenReturn(new PlanNodeId("FOO"));
+    when(idGenerator.getNext()).thenReturn("1");
+
+    // When:
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
+        false, Optional.empty(), true);
+
+    // Then:
+    assertThat(queryId, is(new QueryId("CST_FOO_1")));
   }
 
   @Test
@@ -146,7 +161,7 @@ public class QueryIdUtilTest {
 
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
-        true, Optional.empty());
+        true, Optional.empty(), false);
 
     // Then:
     assertThat(queryId, is(new QueryId("CTAS_FOO_10")));
@@ -163,7 +178,7 @@ public class QueryIdUtilTest {
 
     // When:
     QueryIdUtil.buildId(engineContext, idGenerator, plan,
-        false, Optional.empty());
+        false, Optional.empty(), false);
   }
 
   @Test
@@ -176,7 +191,8 @@ public class QueryIdUtilTest {
 
     // When:
     final KsqlException e = assertThrows(KsqlException.class, () ->
-        QueryIdUtil.buildId(engineContext, idGenerator, plan, false, Optional.empty()));
+        QueryIdUtil.buildId(engineContext, idGenerator, plan, false,
+            Optional.empty(), false));
 
     // Then:
     assertThat(e.getMessage(), containsString("there are multiple queries writing"));
@@ -186,7 +202,7 @@ public class QueryIdUtilTest {
   public void shouldReturnWithQueryIdInUppercase(){
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, plan,
-        false, Optional.of("my_query_id"));
+        false, Optional.of("my_query_id"), false);
 
     // Then:
     assertThat(queryId, is(new QueryId("MY_QUERY_ID")));
@@ -198,12 +214,13 @@ public class QueryIdUtilTest {
     final Exception e = assertThrows(
         Exception.class,
         () -> QueryIdUtil.buildId(engineContext, idGenerator, plan,
-            false, Optional.of("insertquery_custom"))
+            false, Optional.of("insertquery_custom"), false)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString("Query IDs must not start with a "
-        + "reserved query ID prefix (INSERTQUERY_, CTAS_, CSAS_). Got 'INSERTQUERY_CUSTOM'."));
+        + "reserved query ID prefix (INSERTQUERY_, CTAS_, CSAS_, CST_). "
+        + "Got 'INSERTQUERY_CUSTOM'."));
   }
 
   @Test
@@ -212,7 +229,7 @@ public class QueryIdUtilTest {
     final Exception e = assertThrows(
         Exception.class,
         () -> QueryIdUtil.buildId(engineContext, idGenerator, plan,
-            false, Optional.of("with space"))
+            false, Optional.of("with space"), false)
     );
 
     // Then:
@@ -231,7 +248,7 @@ public class QueryIdUtilTest {
 
     // When:
     final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, transientPlan,
-        false, Optional.empty());
+        false, Optional.empty(), false);
 
     // Then:
     assertThat(queryId.toString(), containsString("transient_source"));

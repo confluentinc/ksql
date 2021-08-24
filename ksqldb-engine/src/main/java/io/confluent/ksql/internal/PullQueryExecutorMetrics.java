@@ -780,12 +780,12 @@ public class PullQueryExecutorMetrics implements Closeable {
 
     @Override
     public String toString() {
-      return "MetricsKey{" +
-          "sourceType=" + sourceType +
-          ", planType=" + planType +
-          ", routingNodeType=" + routingNodeType +
-          ", dataSourceType=" + dataSourceType +
-          '}';
+      return "MetricsKey{"
+          + "sourceType=" + sourceType
+          + ", planType=" + planType
+          + ", routingNodeType=" + routingNodeType
+          + ", dataSourceType=" + dataSourceType
+          + '}';
     }
 
     public String variantName() {

@@ -174,7 +174,7 @@ abstract class SourceBuilderBase {
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> sourceKeySerde,
+      final Serde<GenericKey> keySerde,
       final Serde<GenericRow> valueSerde
   );
 
@@ -183,7 +183,7 @@ abstract class SourceBuilderBase {
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> sourceKeySerde,
+      final Serde<Windowed<GenericKey>> keySerde,
       final Serde<GenericRow> valueSerde
   );
 

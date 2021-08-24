@@ -132,7 +132,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> sourceKeySerde,
+      final Serde<GenericKey> keySerde,
       final Serde<GenericRow> valueSerde
   ) {
 
@@ -169,7 +169,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> sourceKeySerde,
+      final Serde<Windowed<GenericKey>> keySerde,
       final Serde<GenericRow> valueSerde
   ) {
 
@@ -186,7 +186,7 @@ final class SourceBuilder extends SourceBuilderBase {
         queryContext
     );
 
-    final Serde<Windowed<GenericKey>> keySerde = buildWindowedKeySerde(
+    final Serde<Windowed<GenericKey>> keySerdeToMaterialize = buildWindowedKeySerde(
         source,
         physicalSchema,
         buildContext,
@@ -195,7 +195,7 @@ final class SourceBuilder extends SourceBuilderBase {
     );
 
     return materializedFactory.create(
-        keySerde,
+        keySerdeToMaterialize,
         valueSerdeToMaterialize,
         stateStoreName
     );

@@ -338,8 +338,13 @@ public final class LogicalSchema {
   /**
    * Adds columns, except for key and pseudocolumns, to a provided builder's value schema
    * and returns the number of added columns
-   * @param builder the builder to be passed in. Columns that don't qualify as key or pseudocolumns
-   *                will be added
+   *
+   * @param byNamespace map of columns grouped by namespace
+   *
+   * @param pseudoColumnVersion the pseudocolumn version used to evaluate if a column is a system
+   *                            column or not
+   * @param logicalSchema the schema to evaluate against if a column is already present or not.
+   *
    * @return the number of columns added. This also functions as a "column index", to pass to
    *                builder.add()
    * */
@@ -347,7 +352,7 @@ public final class LogicalSchema {
       final Map<Namespace, List<Column>> byNamespace,
       final int pseudoColumnVersion,
       final LogicalSchema logicalSchema
-      ) {
+  ) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     final List<Column> value = byNamespace.get(VALUE);
@@ -358,7 +363,8 @@ public final class LogicalSchema {
         continue;
       }
 
-      if (logicalSchema.findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+      if (logicalSchema.findColumnMatching(
+          withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
         continue;
       }
 
@@ -369,8 +375,7 @@ public final class LogicalSchema {
 
   /**
    * Adds key columns to key schema of a provided builder
-   * @param builder the builder to be passed in. This builder will have key columns added to its
-   *                key schema.
+   * @param byNamespace map of columns grouped by namespace
    */
   private static ImmutableList<Column> keyColumns(
       final Map<Namespace, List<Column>> byNamespace) {

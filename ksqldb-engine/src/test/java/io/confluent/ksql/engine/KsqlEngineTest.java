@@ -928,7 +928,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.getApplicationId());
+    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -947,7 +947,7 @@ public class KsqlEngineTest {
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient).deleteInternalTopics(query.getApplicationId());
+    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -997,13 +997,13 @@ public class KsqlEngineTest {
         KSQL_CONFIG, Collections.emptyMap()
     );
     final String internalTopic1Val = KsqlConstants.getSRSubject(
-        query.getApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
+        query.getQueryApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
     final String internalTopic2Val = KsqlConstants.getSRSubject(
-        query.getApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
+        query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
     final String internalTopic1Key = KsqlConstants.getSRSubject(
-        query.getApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
+        query.getQueryApplicationId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
     final String internalTopic2Key = KsqlConstants.getSRSubject(
-        query.getApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
+        query.getQueryApplicationId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
 
     when(schemaRegistryClient.getAllSubjects()).thenReturn(
         Arrays.asList(
@@ -1116,7 +1116,7 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.get(0).getApplicationId());
+    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
   @Test
@@ -1128,7 +1128,7 @@ public class KsqlEngineTest {
         "create stream persistent as select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
     );
-    final String applicationId = query.get(0).getApplicationId();
+    final String applicationId = query.get(0).getQueryApplicationId();
     final String internalTopic1Val = KsqlConstants.getSRSubject(
         applicationId + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
     final String internalTopic2Val = KsqlConstants.getSRSubject(

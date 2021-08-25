@@ -141,7 +141,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.statementString = other.getStatementString();
     this.kafkaStreams = other.getKafkaStreams();
     this.executionPlan = other.getExecutionPlan();
-    this.queryApplicationId = other.getApplicationId();
+    this.queryApplicationId = other.getQueryApplicationId();
     this.topology = other.getTopology();
     this.kafkaStreamsBuilder = other.kafkaStreamsBuilder;
     this.streamsProperties = other.getStreamsProperties();
@@ -244,7 +244,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     return executionPlan;
   }
 
-  public String getApplicationId() {
+  public String getQueryApplicationId() {
     return queryApplicationId;
   }
 

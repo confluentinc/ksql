@@ -286,7 +286,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public String getApplicationId() {
+  public String getQueryApplicationId() {
     return applicationId;
   }
 

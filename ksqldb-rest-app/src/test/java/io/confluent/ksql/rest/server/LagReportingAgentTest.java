@@ -261,9 +261,9 @@ public class LagReportingAgentTest {
 
     when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
     when(query0.getAllLocalStorePartitionLags()).thenReturn(query0Lag);
-    when(query0.getApplicationId()).thenReturn(QUERY_ID0);
+    when(query0.getQueryApplicationId()).thenReturn(QUERY_ID0);
     when(query1.getAllLocalStorePartitionLags()).thenReturn(query1Lag);
-    when(query1.getApplicationId()).thenReturn(QUERY_ID1);
+    when(query1.getQueryApplicationId()).thenReturn(QUERY_ID1);
     SendLagService sendLagService = lagReportingAgent.new SendLagService();
 
     // When:

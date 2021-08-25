@@ -570,16 +570,16 @@ public class RestTestExecutor implements Closeable {
    */
   private void waitForPersistentQueriesToProcessInputs() {
     List<String> queryApplicationIds = engine.getPersistentQueries().stream()
-        .map(QueryMetadata::getApplicationId)
+        .map(QueryMetadata::getQueryApplicationId)
         .collect(Collectors.toList());
 
     Map<String, Set<String>> possibleTopicNamesByAppId = engine.getPersistentQueries().stream()
         .collect(Collectors.toMap(
-            QueryMetadata::getApplicationId,
+            QueryMetadata::getQueryApplicationId,
             m -> {
               Set<String> topics = getSourceTopics(m);
               Set<String> possibleInternalNames = topics.stream()
-                  .map(t -> m.getApplicationId() + "-" + t)
+                  .map(t -> m.getQueryApplicationId() + "-" + t)
                   .collect(Collectors.toSet());
               Set<String> all = new HashSet<>();
               all.addAll(topics);

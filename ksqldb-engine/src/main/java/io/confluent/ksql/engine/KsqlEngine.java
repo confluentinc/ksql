@@ -391,7 +391,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     public void onClose(
         final QueryMetadata query
     ) {
-      final String applicationId = query.getApplicationId();
+      final String applicationId = query.getQueryApplicationId();
       if (query.hasEverBeenStarted()) {
         cleanupService.addCleanupTask(
             new QueryCleanupService.QueryCleanupTask(

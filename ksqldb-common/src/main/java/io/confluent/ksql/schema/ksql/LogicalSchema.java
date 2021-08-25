@@ -17,7 +17,14 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWBOUND_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
@@ -125,10 +132,36 @@ public final class LogicalSchema {
    *
    * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
    * WINDOWEND} columns will added to the value schema to represent the window bounds.
+   *
+   * @param pseudoColumnVersion determines the set of pseudocolumns to be added to the schema
+   *
+   * @return the new schema.
+   */
+  public LogicalSchema withPseudoAndKeyColsInValue(
+      final boolean windowed, final int pseudoColumnVersion) {
+    return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
+  }
+
+  /**
+   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
+   *
+   * <p>If the columns already exist in the value schema the function returns the same schema.
+   *
+   * @param windowed indicates that the source is windowed; meaning {@code WINDOWSTART} and {@code
+   * WINDOWEND} columns will added to the value schema to represent the window bounds.
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(final boolean windowed) {
-    return rebuild(true, windowed);
+    return withPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  /**
+   * Remove pseudo and key columns from the value schema, according to the pseudocolumn version
+   * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
+   * @return the new schema with the columns removed
+   */
+  LogicalSchema withoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
+    return rebuildWithoutPseudoAndKeyColsInValue(pseudoColumnVersion);
   }
 
   /**
@@ -137,12 +170,12 @@ public final class LogicalSchema {
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
-    return rebuild(false, false);
+    return withoutPseudoAndKeyColsInValue(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   /**
    * Remove all non-key columns from the value, and copy all key columns into the value.
-   * 
+   *
    * @return the new schema
    */
   public LogicalSchema withKeyColsOnly() {
@@ -236,48 +269,115 @@ public final class LogicalSchema {
     return byNamespace;
   }
 
-  private LogicalSchema rebuild(
-      final boolean withPseudoAndKeyColsInValue,
-      final boolean windowedKey
-  ) {
+  /**
+   * Rebuilds schema with pseudocolumns and key columns included
+   * @param windowedKey indicates if the schema to be rebuilt includes a windowed key
+   * @param pseudoColumnVersion indicates which set of pseudocolumns should be used
+   * @return the LogicalSchema created, with the corresponding pseudo and key columns included
+   */
+  private LogicalSchema rebuildWithPseudoAndKeyColsInValue(
+      final boolean windowedKey, final int pseudoColumnVersion) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
-    final List<Column> value = byNamespace.get(VALUE);
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    builder.addAll(key);
+    final List<Column> keyColumns = keyColumns(byNamespace);
 
-    int valueIndex = 0;
-    for (final Column c : value) {
-      if (SystemColumns.isSystemColumn(c.name())) {
-        continue;
-      }
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+        byNamespace, pseudoColumnVersion);
 
-      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
-        continue;
-      }
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
 
+    int valueIndex = nonPseudoAndKeyCols.size();
+
+    if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
+      builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
+    }
+
+    if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
+      builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
+      builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
+    }
+
+    for (final Column c : key) {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
-    if (withPseudoAndKeyColsInValue) {
-      builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
-
-      for (final Column c : key) {
-        builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
-      }
-
-      if (windowedKey) {
-        builder.add(
-            Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex++));
-        builder.add(
-            Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex));
-      }
+    if (windowedKey) {
+      builder.add(
+          Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex++));
+      builder.add(
+          Column.of(WINDOWEND_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex));
     }
 
+
     return new LogicalSchema(builder.build());
+  }
+
+  /**
+   * Rebuilds schema without pseudocolumns or key columns
+   * @return the LogicalSchema created, with the corresponding pseudo and key columns excluded
+   */
+  private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+
+    final List<Column> keyColumns = keyColumns(byNamespace());
+
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+        byNamespace(), pseudoColumnVersion);
+
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
+
+    return new LogicalSchema(builder.build());
+  }
+
+  /**
+   * Adds columns, except for key and pseudocolumns, to an immutable list and returns the list
+   * @param byNamespace map of columns grouped by namespace
+   * @param pseudoColumnVersion the pseudocolumn version used to evaluate if a column is a system
+   *                            column or not
+   * @return an immutable list containing the non pseudo and key columns in this LogicalSchema
+   * */
+  private List<Column> nonPseudoAndKeyColsAsValueCols(
+      final Map<Namespace, List<Column>> byNamespace,
+      final int pseudoColumnVersion
+  ) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+
+    final List<Column> value = byNamespace.get(VALUE);
+
+    int addedColumns = 0;
+    for (final Column c : value) {
+      if (SystemColumns.isSystemColumn(c.name(), pseudoColumnVersion)) {
+        continue;
+      }
+
+      if (findColumnMatching(
+          withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+        continue;
+      }
+
+      builder.add(Column.of(c.name(), c.type(), VALUE, addedColumns++));
+    }
+    return builder.build();
+  }
+
+  /**
+   * Adds key columns related to a namespace to an immutable list and returns the list
+   * @param byNamespace map of columns grouped by namespace
+   * @return an immutable list containing the key columns related to the provided namespace
+   */
+  private List<Column> keyColumns(
+      final Map<Namespace, List<Column>> byNamespace) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+    final List<Column> key = byNamespace.get(Namespace.KEY);
+
+    builder.addAll(key);
+    return builder.build();
   }
 
   private static Predicate<Column> withName(final ColumnName name) {

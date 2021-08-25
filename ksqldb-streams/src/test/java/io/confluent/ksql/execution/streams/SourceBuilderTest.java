@@ -134,6 +134,8 @@ public class SourceBuilderTest {
   private static final long A_WINDOW_START = 10L;
   private static final long A_WINDOW_END = 20L;
   private static final long A_ROWTIME = 456L;
+  private static final int A_ROWPARTITION = 789;
+  private static final long A_ROWOFFSET = 123;
 
   private final SerdeFeatures KEY_FEATURES = SerdeFeatures.of();
   private final SerdeFeatures VALUE_FEATURES = SerdeFeatures.of();
@@ -219,6 +221,8 @@ public class SourceBuilderTest {
     when(buildContext.getServiceContext()).thenReturn(serviceContext);
     when(buildContext.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
+    when(processorCtx.partition()).thenReturn(A_ROWPARTITION);
+    when(processorCtx.offset()).thenReturn(A_ROWOFFSET);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
@@ -528,6 +532,20 @@ public class SourceBuilderTest {
   }
 
   @Test
+  public void shouldAddRowPartitionAndOffsetColumnsToNonWindowedStream() {
+    // Given:
+    givenUnwindowedSourceStream(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(streamSource);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(KEY, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
+  }
+
+  @Test
   public void shouldAddRowTimeAndRowKeyColumnsToNonWindowedTable() {
     // Given:
     givenUnwindowedSourceTable(true);
@@ -539,6 +557,20 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
+  }
+
+  @Test
+  public void shouldAddRowPartitionAndOffsetColumnsToNonWindowedTable() {
+    // Given:
+    givenUnwindowedSourceTable(true, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(tableSource);
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(KEY, row);
+
+    // Then:
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
   }
 
   @Test
@@ -659,6 +691,27 @@ public class SourceBuilderTest {
     }
 
   @Test
+  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToStream() {
+    // Given:
+    givenWindowedSourceStream(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromStreamSource(windowedStreamSource);
+
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        equalTo(
+            GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
+
+  @Test
   public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToTable() {
     // Given:
     givenWindowedSourceTable();
@@ -676,6 +729,26 @@ public class SourceBuilderTest {
     // Then:
     assertThat(withTimestamp,
         is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+  }
+
+  @Test
+  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToTable() {
+    // Given:
+    givenWindowedSourceTable(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
+        getTransformerFromTableSource(windowedTableSource);
+
+    final Windowed<GenericKey> key = new Windowed<>(
+        KEY,
+        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
+    );
+
+    // When:
+    final GenericRow withTimestamp = transformer.transform(key, row);
+
+    // Then:
+    assertThat(withTimestamp,
+        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -815,7 +888,7 @@ public class SourceBuilderTest {
     return transformer;
   }
 
-  private void givenWindowedSourceStream() {
+  private void givenWindowedSourceStream(final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
@@ -825,11 +898,14 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
+  private void givenWindowedSourceStream() {
+    givenWindowedSourceStream(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
 
-  private void givenUnwindowedSourceStream() {
+  private void givenUnwindowedSourceStream(final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
@@ -838,11 +914,15 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
-  private void givenMultiColumnSourceStream() {
+  private void givenUnwindowedSourceStream() {
+    givenUnwindowedSourceStream(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  private void givenMultiColumnSourceStream(final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
@@ -851,11 +931,15 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         MULTI_COL_SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
-  private void givenWindowedSourceTable() {
+  private void givenMultiColumnSourceStream() {
+    givenMultiColumnSourceStream(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  private void givenWindowedSourceTable(final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
@@ -866,11 +950,16 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
-  private void givenUnwindowedSourceTable(final Boolean forceChangelog) {
+  private void givenWindowedSourceTable() {
+    givenWindowedSourceTable(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  private void givenUnwindowedSourceTable(
+      final Boolean forceChangelog, final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
@@ -880,8 +969,12 @@ public class SourceBuilderTest {
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
         Optional.of(forceChangelog),
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
+  }
+
+  private void givenUnwindowedSourceTable(final Boolean forceChangeLog) {
+    givenUnwindowedSourceTable(forceChangeLog, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {

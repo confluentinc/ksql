@@ -17,6 +17,9 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
@@ -167,6 +170,8 @@ public class LogicalSchemaTest {
   @Test
   public void shouldNotGetMetaColumnFromValue() {
     assertThat(SOME_SCHEMA.findValueColumn(ROWTIME_NAME), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(ROWPARTITION_NAME), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(ROWOFFSET_NAME), is(Optional.empty()));
   }
 
   @Test
@@ -181,6 +186,19 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(schema.findValueColumn(ROWTIME_NAME),
+        is(not(Optional.empty())));
+  }
+
+  @Test
+  public void shouldGetRowPartitionAndOffsetColumnsFromValueIfAdded() {
+    // Given:
+    final LogicalSchema schema = SOME_SCHEMA.withPseudoAndKeyColsInValue(
+        false, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+    // Then:
+    assertThat(schema.findValueColumn(ROWPARTITION_NAME),
+        is(not(Optional.empty())));
+    assertThat(schema.findValueColumn(ROWOFFSET_NAME),
         is(not(Optional.empty())));
   }
 
@@ -230,11 +248,21 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(K0, INTEGER)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
         .build();
 
     // Then:
     assertThat(
         schema.findColumn(ROWTIME_NAME).map(Column::namespace),
+        is(Optional.of(Namespace.VALUE))
+    );
+    assertThat(
+        schema.findColumn(ROWOFFSET_NAME).map(Column::namespace),
+        is(Optional.of(Namespace.VALUE))
+    );
+    assertThat(
+        schema.findColumn(ROWPARTITION_NAME).map(Column::namespace),
         is(Optional.of(Namespace.VALUE))
     );
   }
@@ -383,6 +411,34 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldAddRowPartitionAndOffsetColumnsToValue() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // When:
+    final LogicalSchema result = schema.withPseudoAndKeyColsInValue(false, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .valueColumn(K1, STRING)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldAddWindowedMetaAndKeyColumnsToValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
@@ -403,6 +459,37 @@ public class LogicalSchemaTest {
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .valueColumn(K1, STRING)
+        .valueColumn(WINDOWSTART_NAME, BIGINT)
+        .valueColumn(WINDOWEND_NAME, BIGINT)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldAddWindowedRowOffsetAndPartitionColumnsToValue() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .build();
+
+    // When:
+    final LogicalSchema result = schema
+        .withPseudoAndKeyColsInValue(true, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .keyColumn(K1, STRING)
+        .valueColumn(F0, STRING)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
         .valueColumn(K0, INTEGER)
         .valueColumn(K1, STRING)
         .valueColumn(WINDOWSTART_NAME, BIGINT)
@@ -448,6 +535,36 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(K0, INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldRemoveOthersWhenAddingRowPartitionAndOffsetColumns() {
+    // Given:
+    final LogicalSchema ksqlSchema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(K0, DOUBLE)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, DOUBLE)
+        .valueColumn(ROWPARTITION_NAME, DOUBLE)
+        .valueColumn(ROWOFFSET_NAME, DOUBLE)
+        .build();
+
+    // When:
+    final LogicalSchema result = ksqlSchema.withPseudoAndKeyColsInValue(
+        false, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
         .valueColumn(K0, INTEGER)
         .build()
     ));
@@ -520,6 +637,31 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldRemoveRowPartitionAndOffsetColumnsWhereEverTheyAre() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
+        .build();
+
+    // When
+    final LogicalSchema result = schema.withoutPseudoAndKeyColsInValue(
+        ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldRemoveKeyColumnsWhereEverTheyAre() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
@@ -566,6 +708,14 @@ public class LogicalSchemaTest {
   public void shouldMatchMetaColumnName() {
     assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));
+  }
+
+  @Test
+  public void shouldMatchRowPartitionAndOffsetColumnNames() {
+    assertThat(SystemColumns.isPseudoColumn(ROWPARTITION_NAME, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(true));
+    assertThat(SystemColumns.isPseudoColumn(ROWOFFSET_NAME, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(true));
+    assertThat(SOME_SCHEMA.isKeyColumn(ROWPARTITION_NAME), is(false));
+    assertThat(SOME_SCHEMA.isKeyColumn(ROWOFFSET_NAME), is(false));
   }
 
   @Test
@@ -662,7 +812,8 @@ public class LogicalSchemaTest {
         .build();
 
     // Then:
-    assertThat(schema.valueContainsAny(ImmutableSet.of(K0, V0, ROWTIME_NAME)), is(false));
+    assertThat(schema.valueContainsAny(
+        ImmutableSet.of(K0, V0, ROWTIME_NAME, ROWPARTITION_NAME, ROWOFFSET_NAME)), is(false));
   }
 
   @Test

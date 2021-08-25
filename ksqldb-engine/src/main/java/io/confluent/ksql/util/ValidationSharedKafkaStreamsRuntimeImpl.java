@@ -86,9 +86,20 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
       final Map<String, Object> streamsProperties,
       final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
       final QueryId queryId) {
-    metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
-    kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+    if (!sources.containsKey(queryId)) {
+      if (sources
+          .values()
+          .stream()
+          .flatMap(Collection::stream)
+          .anyMatch(t -> persistentQueriesInSharedRuntimesImpl.getSourceNames().contains(t))) {
+        throw new IllegalArgumentException(
+            queryId.toString() + ": was not reserved on this runtime");
+      } else {
+        sources.put(queryId, persistentQueriesInSharedRuntimesImpl.getSourceNames());
+      }
+    }
 
+    metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
     LOG.debug("mapping {}", metadata);
   }
 
@@ -128,21 +139,19 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
   }
 
   public synchronized void close() {
-    for (String query: metadata.keySet()) {
-      metadata.remove(query);
-    }
     kafkaStreams.close();
-    for (final String q: metadata.keySet()) {
-      kafkaStreams.cleanUpNamedTopology(q);
-    }
     kafkaStreams.cleanUp();
   }
 
   public void start(final QueryId queryId) {
     if (metadata.containsKey(queryId.toString()) && !metadata.get(queryId.toString()).everStarted) {
-      kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        //kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+      } else {
+        throw new IllegalArgumentException("not done removing query: " + queryId);
+      }
     } else {
-      throw new IllegalArgumentException("query not added to runtime");
+      throw new IllegalArgumentException("query: " + queryId + " not added to runtime");
     }
   }
 

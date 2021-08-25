@@ -361,8 +361,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(new RunningQuery(
                 metadata.getStatementString(),
-                ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
-                ImmutableSet.of(metadata.getResultTopic().getKafkaTopicName()),
+                ImmutableSet.of(metadata.getSinkName().get().toString(FormatOptions.noEscape())),
+                ImmutableSet.of(metadata.getResultTopic().get().getKafkaTopicName()),
                 metadata.getQueryId(),
                 queryStatusCount,
                 KsqlConstants.KsqlQueryType.PERSISTENT)),

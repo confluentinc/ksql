@@ -52,7 +52,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 
 public class QueryRegistryImpl implements QueryRegistry {
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
-      (sourceName, query) -> query.getSinkName().equals(sourceName);
+      (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));
 
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Map<QueryId, QueryMetadata> allLiveQueries;
@@ -282,7 +282,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       persistentQuery.initialize();
       persistentQueries.put(queryId, persistentQuery);
       if (createAsQuery) {
-        createAsQueries.put(persistentQuery.getSinkName(), queryId);
+        createAsQueries.put(persistentQuery.getSinkName().get(), queryId);
       } else {
         // Only INSERT queries exist beside CREATE_AS
         sinkAndSources(persistentQuery).forEach(sourceName ->
@@ -305,7 +305,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
       switch (persistentQuery.getPersistentQueryType()) {
         case CREATE_AS:
-          createAsQueries.remove(persistentQuery.getSinkName());
+          createAsQueries.remove(persistentQuery.getSinkName().get());
           break;
         case INSERT:
           sinkAndSources(persistentQuery).forEach(sourceName ->
@@ -337,7 +337,9 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   private Iterable<SourceName> sinkAndSources(final PersistentQueryMetadata query) {
     return Iterables.concat(
-        Collections.singleton(query.getSinkName()),
+        query.getSinkName().isPresent()
+            ? Collections.singleton(query.getSinkName().get())
+            : Collections.emptySet(),
         query.getSourceNames()
     );
   }

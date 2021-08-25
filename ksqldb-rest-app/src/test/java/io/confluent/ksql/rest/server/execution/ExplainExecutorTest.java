@@ -180,7 +180,7 @@ public class ExplainExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
+    when(metadata.getSinkName()).thenReturn(Optional.of(SourceName.of(id)));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
     when(metadata.getState()).thenReturn(KafkaStreams.State.valueOf(STATE.toString()));
     when(metadata.getTopologyDescription()).thenReturn("topology");
@@ -191,7 +191,7 @@ public class ExplainExecutorTest {
     final KsqlTopic sinkTopic = mock(KsqlTopic.class);
     when(sinkTopic.getKeyFormat()).thenReturn(
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
-    when(metadata.getResultTopic()).thenReturn(sinkTopic);
+    when(metadata.getResultTopic()).thenReturn(Optional.of(sinkTopic));
 
     return metadata;
   }

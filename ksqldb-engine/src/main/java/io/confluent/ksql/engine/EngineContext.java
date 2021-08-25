@@ -50,6 +50,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
@@ -62,7 +63,7 @@ final class EngineContext {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
-      (sourceName, query) -> query.getSinkName().equals(sourceName);
+      (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));
 
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SOURCE =
       (sourceName, query) -> query.getSourceNames().contains(sourceName);

@@ -34,9 +34,9 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   DataSource.DataSourceType getDataSourceType();
 
-  KsqlTopic getResultTopic();
+  Optional<KsqlTopic> getResultTopic();
 
-  SourceName getSinkName();
+  Optional<SourceName> getSinkName();
 
   QuerySchemas getQuerySchemas();
 
@@ -44,7 +44,7 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   ExecutionStep<?> getPhysicalPlan();
 
-  DataSource getSink();
+  Optional<DataSource> getSink();
 
   KsqlConstants.PersistentQueryType getPersistentQueryType();
 

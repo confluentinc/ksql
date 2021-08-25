@@ -261,7 +261,9 @@ public class KsqlTesterTest {
         .map(ds -> new TopicInfo(ds.getKafkaTopicName(), keySerde(ds), valueSerde(ds)))
         .collect(Collectors.toList());
 
-    final DataSource output = engine.getMetaStore().getSource(query.getSinkName());
+    // Sink may be Optional for source tables. Once source table query execution is supported, then
+    // we would need have a condition to not create an output topic info
+    final DataSource output = engine.getMetaStore().getSource(query.getSinkName().get());
     final TopicInfo outputInfo = new TopicInfo(
         output.getKafkaTopicName(),
         keySerde(output),

@@ -477,7 +477,7 @@ public class RecoveryTest {
   private static class PersistentQueryMetadataMatcher
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<SourceName>> sourcesNamesMatcher;
-    private final Matcher<SourceName> sinkNamesMatcher;
+    private final Matcher<Optional<SourceName>> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;

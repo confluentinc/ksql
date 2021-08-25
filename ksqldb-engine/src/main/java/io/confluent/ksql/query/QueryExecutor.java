@@ -273,7 +273,7 @@ final class QueryExecutor {
         statementText,
         querySchema,
         sources,
-        sinkDataSource,
+        Optional.of(sinkDataSource),
         planSummary,
         queryId,
         materializationProviderBuilder,

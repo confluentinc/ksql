@@ -283,7 +283,7 @@ public final class ListSourceExecutor {
     final List<RunningQuery> readQueries = getQueries(ksqlEngine,
         q -> q.getSourceNames().contains(dataSource.getName()));
     final List<RunningQuery> writeQueries = getQueries(ksqlEngine,
-        q -> q.getSinkName().equals(dataSource.getName()));
+        q -> q.getSinkName().equals(Optional.of(dataSource.getName())));
 
     Optional<TopicDescription> topicDescription =
         Optional.empty();
@@ -431,8 +431,12 @@ public final class ListSourceExecutor {
         .filter(predicate)
         .map(q -> new RunningQuery(
             q.getStatementString(),
-            ImmutableSet.of(q.getSinkName().text()),
-            ImmutableSet.of(q.getResultTopic().getKafkaTopicName()),
+            q.getSinkName().isPresent()
+                ? ImmutableSet.of(q.getSinkName().get().text())
+                : ImmutableSet.of(),
+            q.getResultTopic().isPresent()
+                ? ImmutableSet.of(q.getResultTopic().get().getKafkaTopicName())
+                : ImmutableSet.of(),
             q.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(q.getState(), 1)),

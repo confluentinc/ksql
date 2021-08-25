@@ -51,7 +51,6 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
@@ -353,6 +352,7 @@ public class WSQueryEndpoint {
               pullBandRateLimiter,
               routing
           );
+          return;
         }
         case KSTREAM: {
           throw new KsqlStatementException(

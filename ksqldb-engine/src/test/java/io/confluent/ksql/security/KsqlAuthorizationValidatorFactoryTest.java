@@ -69,7 +69,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     node = new Node(1, "host", 9092);
 
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
-    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_AUTO);
   }
 
@@ -150,7 +150,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
   public void shouldReturnEmptyAuthorizationValidatorKafkaAuthorizerIsSetButNotEnabled() {
     // Given:
     givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
-    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
 
     // When:
@@ -168,7 +168,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
   @Test
   public void shouldReturnAuthorizationValidatorIfEnabled() {
     // Given:
-    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS))
         .thenReturn(0L);
@@ -186,6 +186,23 @@ public class KsqlAuthorizationValidatorFactoryTest {
     assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
         is(instanceOf(KsqlBackendAccessValidator.class)));
     verifyNoMoreInteractions(adminClient);
+  }
+
+  @Test
+  public void shouldNotReturnProvidedAuthorizationValidatorIfAccessValidatorFlagIsOff() {
+    // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR))
+        .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
+
+    // When:
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
+        ksqlConfig,
+        serviceContext,
+        Optional.of(authorizationProvider)
+    );
+
+    // Then:
+    assertThat(validator, is(Optional.empty()));
   }
 
   @Test
@@ -212,7 +229,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
   @Test
   public void shouldReturnAuthorizationValidatorWhenCacheIsEnabled() {
     // Given:
-    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
+    when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_AUTH_CACHE_EXPIRY_TIME_SECS))
         .thenReturn(1L);

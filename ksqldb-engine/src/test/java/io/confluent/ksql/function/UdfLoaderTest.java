@@ -60,6 +60,7 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
@@ -113,7 +114,7 @@ public class UdfLoaderTest {
       SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
 
   @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  public TemporaryFolder tempFolder = KsqlTestFolder.temporaryFolder();
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before

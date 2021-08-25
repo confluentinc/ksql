@@ -1,65 +1,47 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM LEFT_STREAM (ID BIGINT KEY, L1 STRING) WITH (KAFKA_TOPIC='left_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO');",
+    "statementText" : "CREATE STREAM TEST (B BYTES) WITH (KAFKA_TOPIC='test', KEY_FORMAT='KAFKA', VALUE_FORMAT='PROTOBUF', VALUE_SCHEMA_ID=1);",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "LEFT_STREAM",
-      "schema" : "`ID` BIGINT KEY, `L1` STRING",
-      "topicName" : "left_topic",
+      "sourceName" : "TEST",
+      "schema" : "`B` BYTES",
+      "topicName" : "test",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "AVRO"
+          "format" : "PROTOBUF"
         }
       },
       "orReplace" : false
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM RIGHT_STREAM (ID BIGINT KEY, L2 STRING) WITH (KAFKA_TOPIC='right_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO');",
+    "statementText" : "CREATE STREAM TEST2 AS SELECT *\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "RIGHT_STREAM",
-      "schema" : "`ID` BIGINT KEY, `L2` STRING",
-      "topicName" : "right_topic",
+      "sourceName" : "TEST2",
+      "schema" : "`B` BYTES",
+      "topicName" : "TEST2",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "AVRO"
-        }
-      },
-      "orReplace" : false
-    }
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM LEFT_JOIN AS SELECT\n  T.ID T_ID,\n  T.L1 L1,\n  TT.L2 L2\nFROM LEFT_STREAM T\nLEFT OUTER JOIN RIGHT_STREAM TT WITHIN 1 MINUTES GRACE PERIOD 1 MINUTES ON ((T.ID = TT.ID))\nEMIT CHANGES",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "LEFT_JOIN",
-      "schema" : "`T_ID` BIGINT KEY, `L1` STRING, `L2` STRING",
-      "topicName" : "LEFT_JOIN",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "valueFormat" : {
-          "format" : "AVRO"
+          "format" : "PROTOBUF"
         }
       },
       "orReplace" : false
     },
     "queryPlan" : {
-      "sources" : [ "LEFT_STREAM", "RIGHT_STREAM" ],
-      "sink" : "LEFT_JOIN",
+      "sources" : [ "TEST" ],
+      "sink" : "TEST2",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
         "properties" : {
-          "queryContext" : "LEFT_JOIN"
+          "queryContext" : "TEST2"
         },
         "source" : {
           "@type" : "streamSelectV1",
@@ -67,94 +49,34 @@
             "queryContext" : "Project"
           },
           "source" : {
-            "@type" : "streamStreamJoinV1",
+            "@type" : "streamSourceV1",
             "properties" : {
-              "queryContext" : "Join"
+              "queryContext" : "KsqlTopic/Source"
             },
-            "joinType" : "LEFT",
-            "leftInternalFormats" : {
+            "topicName" : "test",
+            "formats" : {
               "keyFormat" : {
                 "format" : "KAFKA"
               },
               "valueFormat" : {
-                "format" : "AVRO"
+                "format" : "PROTOBUF"
               }
             },
-            "rightInternalFormats" : {
-              "keyFormat" : {
-                "format" : "KAFKA"
-              },
-              "valueFormat" : {
-                "format" : "AVRO"
-              }
-            },
-            "leftSource" : {
-              "@type" : "streamSelectV1",
-              "properties" : {
-                "queryContext" : "PrependAliasLeft"
-              },
-              "source" : {
-                "@type" : "streamSourceV1",
-                "properties" : {
-                  "queryContext" : "KafkaTopic_Left/Source"
-                },
-                "topicName" : "left_topic",
-                "formats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA"
-                  },
-                  "valueFormat" : {
-                    "format" : "AVRO"
-                  }
-                },
-                "sourceSchema" : "`ID` BIGINT KEY, `L1` STRING"
-              },
-              "keyColumnNames" : [ "T_ID" ],
-              "selectExpressions" : [ "L1 AS T_L1", "ROWTIME AS T_ROWTIME", "ID AS T_ID" ]
-            },
-            "rightSource" : {
-              "@type" : "streamSelectV1",
-              "properties" : {
-                "queryContext" : "PrependAliasRight"
-              },
-              "source" : {
-                "@type" : "streamSourceV1",
-                "properties" : {
-                  "queryContext" : "KafkaTopic_Right/Source"
-                },
-                "topicName" : "right_topic",
-                "formats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA"
-                  },
-                  "valueFormat" : {
-                    "format" : "AVRO"
-                  }
-                },
-                "sourceSchema" : "`ID` BIGINT KEY, `L2` STRING"
-              },
-              "keyColumnNames" : [ "TT_ID" ],
-              "selectExpressions" : [ "L2 AS TT_L2", "ROWTIME AS TT_ROWTIME", "ID AS TT_ID" ]
-            },
-            "beforeMillis" : 60.000000000,
-            "afterMillis" : 60.000000000,
-            "graceMillis" : 60.000000000,
-            "keyColName" : "T_ID"
+            "sourceSchema" : "`B` BYTES"
           },
-          "keyColumnNames" : [ "T_ID" ],
-          "selectExpressions" : [ "T_L1 AS L1", "TT_L2 AS L2" ]
+          "selectExpressions" : [ "B AS B" ]
         },
         "formats" : {
           "keyFormat" : {
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "PROTOBUF"
           }
         },
-        "topicName" : "LEFT_JOIN"
+        "topicName" : "TEST2"
       },
-      "queryId" : "CSAS_LEFT_JOIN_0"
+      "queryId" : "CSAS_TEST2_0"
     }
   } ],
   "configs" : {
@@ -189,8 +111,10 @@
     "ksql.authorization.cache.max.entries" : "10000",
     "ksql.pull.queries.enable" : "true",
     "ksql.lambdas.enabled" : "true",
+    "ksql.query.pull.max.hourly.bandwidth.megabytes" : "2147483647",
     "ksql.suppress.enabled" : "false",
     "ksql.query.push.scalable.enabled" : "false",
+    "ksql.query.push.scalable.interpreter.enabled" : "true",
     "ksql.sink.window.change.log.additional.retention" : "1000000",
     "ksql.readonly.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
     "ksql.query.persistent.active.limit" : "2147483647",

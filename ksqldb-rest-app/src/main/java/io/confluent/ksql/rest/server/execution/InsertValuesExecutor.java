@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -183,6 +183,11 @@ public class InsertValuesExecutor {
     if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert values into read-only topic: "
           + dataSource.getKafkaTopicName());
+    }
+
+    if (dataSource.isSource()) {
+      throw new KsqlException(String.format("Cannot insert values into read-only %s: %s",
+          dataSource.getDataSourceType().getKsqlType().toLowerCase(), dataSource.getName().text()));
     }
 
     return dataSource;

@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -43,6 +44,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)

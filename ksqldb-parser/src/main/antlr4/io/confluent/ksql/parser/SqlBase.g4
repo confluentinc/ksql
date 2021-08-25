@@ -67,12 +67,12 @@ statement
     | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable
-    | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createStreamAs
-    | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
+    | CREATE (OR REPLACE)? (SOURCE)? TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
     | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
@@ -228,8 +228,8 @@ joinWindow
     ;
 
 withinExpression
-    : '(' joinWindowSize ',' joinWindowSize ')' (gracePeriodClause)?  # joinWindowWithBeforeAndAfter
-    | joinWindowSize (gracePeriodClause)?                             # singleJoinWindow
+    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
+    | joinWindowSize                            # singleJoinWindow
     ;
 
 joinWindowSize

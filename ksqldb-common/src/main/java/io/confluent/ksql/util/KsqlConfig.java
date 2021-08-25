@@ -192,7 +192,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SECURITY_EXTENSION_DOC = "A KSQL security extension class that "
       + "provides authorization to KSQL servers.";
 
-  public static final String KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR = "ksql.access.validator.enable";
+  public static final String KSQL_ENABLE_ACCESS_VALIDATOR = "ksql.access.validator.enable";
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
   public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
   public static final String KSQL_ACCESS_VALIDATOR_AUTO = "auto";
@@ -284,6 +284,13 @@ public class KsqlConfig extends AbstractConfig {
       "Enables whether scalable push queries are enabled. Scalable push queries require no window "
           + "functions, aggregations, or joins, but may include projections and filters.";
   public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY
+      = "ksql.query.push.scalable.new.node.continuity";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC =
+      "Whether new node continuity is enforced for scalable push queries. This means that it's an "
+          + "error for an existing query to miss data processed on a newly added node";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DEFAULT = false;
 
   public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
       = "ksql.query.push.scalable.interpreter.enabled";
@@ -766,7 +773,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_EXTENSION_DOC
         ).define(
-            KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR,
+            KSQL_ENABLE_ACCESS_VALIDATOR,
             Type.STRING,
             KSQL_ACCESS_VALIDATOR_AUTO,
             ValidString.in(
@@ -907,6 +914,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC
         )
         .define(
             KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED,

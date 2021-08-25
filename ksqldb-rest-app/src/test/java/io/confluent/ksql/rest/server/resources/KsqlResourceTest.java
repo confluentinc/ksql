@@ -241,7 +241,8 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "KEY_FORMAT", new StringLiteral("kafka"),
               "VALUE_FORMAT", new StringLiteral("avro")
-          ))));
+          )),
+          false));
   private static final ConfiguredStatement<CreateStream> CFG_0_WITH_SCHEMA = ConfiguredStatement.of(
       STMT_0_WITH_SCHEMA,
       SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
@@ -258,7 +259,8 @@ public class KsqlResourceTest {
               "KAFKA_TOPIC", new StringLiteral("orders-topic"),
               "KEY_FORMAT", new StringLiteral("kafka"),
               "VALUE_FORMAT", new StringLiteral("avro")
-          ))));
+          )),
+          false));
   private static final ConfiguredStatement<CreateStream> CFG_1_WITH_SCHEMA = ConfiguredStatement
       .of(STMT_1_WITH_SCHEMA,
           SessionConfig.of(new KsqlConfig(getDefaultKsqlConfig()), ImmutableMap.of())
@@ -309,6 +311,10 @@ public class KsqlResourceTest {
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
+  @Mock
+  private KsqlExecutionContext executionContext;
+  @Mock
+  private Optional<PersistentQueryMetadata> persistentQuery;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -2626,7 +2632,8 @@ public class KsqlResourceTest {
             schema,
             Optional.empty(),
             false,
-            ksqlTopic
+            ksqlTopic,
+            false
         );
         break;
       case KTABLE:
@@ -2636,7 +2643,8 @@ public class KsqlResourceTest {
             schema,
             Optional.empty(),
             false,
-            ksqlTopic
+            ksqlTopic,
+            false
         );
         break;
       default:

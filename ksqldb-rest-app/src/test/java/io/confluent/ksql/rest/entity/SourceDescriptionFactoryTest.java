@@ -87,7 +87,8 @@ public class SourceDescriptionFactoryTest {
         schema,
         timestampColumn,
         false,
-        topic
+        topic,
+        false
     );
   }
 

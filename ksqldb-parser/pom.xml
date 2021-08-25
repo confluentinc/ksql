@@ -131,22 +131,5 @@
             </plugin>
         </plugins>
 
-        <resources>
-            <resource>
-                <directory>src/test/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>ksql-version.streamsProperties</include>
-                </includes>
-            </resource>
-
-            <resource>
-                <directory>src/test/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>ksql-version.streamsProperties</exclude>
-                </excludes>
-            </resource>
-        </resources>
     </build>
 </project>

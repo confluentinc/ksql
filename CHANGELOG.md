@@ -1,5 +1,37 @@
 # Change Log
 
+## [0.20.0](https://github.com/confluentinc/ksql/releases/tag/v0.20.0-ksqldb) (2021-07-26)
+
+### Features
+
+* add `LEAST` and `GREATEST` UDFs ([#7683](https://github.com/confluentinc/ksql/pull/7683)) ([0d84733](https://github.com/confluentinc/ksql/commit/0d847335b4e048ebbb8bc98a5c40f9af26c77c05))
+* add DATEADD and DATESUB functions ([#7744](https://github.com/confluentinc/ksql/pull/7744)) ([c63e924](https://github.com/confluentinc/ksql/commit/c63e924081971f70b68b6ac4545649d370eb1a29))
+* add FROM_DAYS and update UNIX_DATE function ([#7742](https://github.com/confluentinc/ksql/pull/7742)) ([3c68710](https://github.com/confluentinc/ksql/commit/3c6871089e290be60787dda260ff8f8be0422483))
+* add PARSE_DATE and FORMAT_DATE functions ([#7733](https://github.com/confluentinc/ksql/pull/7733)) ([5a64ed7](https://github.com/confluentinc/ksql/commit/5a64ed7e762a06b9a2969def7c493b84451c0ac1))
+* add PARSE_TIME and FORMAT_TIME functions ([#7722](https://github.com/confluentinc/ksql/pull/7722)) ([9a381a8](https://github.com/confluentinc/ksql/commit/9a381a8ec8efc3e49632068d65de6e8b235d0527))
+* add TIMEADD and TIMESUB functions ([#7727](https://github.com/confluentinc/ksql/pull/7727)) ([75806a0](https://github.com/confluentinc/ksql/commit/75806a0233d838b3980a9b367cab42d7ab3b62d3))
+* pull query bandwidth based throttling ([#7738](https://github.com/confluentinc/ksql/pull/7738)) ([8f01ad9](https://github.com/confluentinc/ksql/commit/8f01ad986c6d9e61be3da9b011941fef45ab2ec7))
+* add the DATE and TIME sql types ([#7641](https://github.com/confluentinc/ksql/pull/7641),[#7664](https://github.com/confluentinc/ksql/pull/7664),[#7718](https://github.com/confluentinc/ksql/pull/7718),[#7734](https://github.com/confluentinc/ksql/pull/7734),[#7708](https://github.com/confluentinc/ksql/pull/7708),[#7740](https://github.com/confluentinc/ksql/pull/7740),[#7674](https://github.com/confluentinc/ksql/pull/7674),[#7700](https://github.com/confluentinc/ksql/pull/7700))([661f198](https://github.com/confluentinc/ksql/commit/661f19836502442ee2fff155f9fbc2a6fbf0063f),[7537d87](https://github.com/confluentinc/ksql/commit/7537d87a77f37afc557d061fd2b816dfcdbfb12a),[a94f1f2](https://github.com/confluentinc/ksql/commit/a94f1f234607fb594fe4b617c83bba1b97a812d2),[78b9ae8](https://github.com/confluentinc/ksql/commit/78b9ae8666f0a74460aa9b1bed01d437930be2ce),[18cc030](https://github.com/confluentinc/ksql/commit/18cc030f453adcaa525d79e6bb773e35827a2ba7),[79d14fb](https://github.com/confluentinc/ksql/commit/79d14fb60d7d784b3e099bcd59f102012c6a0d63),[7718955](https://github.com/confluentinc/ksql/commit/771895510f9dbeadf4504dbaa562490da124dd63),[4175ad5](https://github.com/confluentinc/ksql/commit/4175ad5f46d9ee15a0469cfcffb2a217c41b3c1e))
+
+### Bug Fixes
+
+* block out of order migrations in migrations tool ([#7693](https://github.com/confluentinc/ksql/pull/7693)) ([1d617d3](https://github.com/confluentinc/ksql/commit/1d617d38d2928b8ec39d48df8060d4f43649382d))
+([#7678](https://github.com/confluentinc/ksql/pull/7678)) ([9bf9abf](https://github.com/confluentinc/ksql/commit/9bf9abf0d8093d2b53859abd5fe54a0d280a3cc7))
+* enable schema inference for timestamp/time/date ([#7737](https://github.com/confluentinc/ksql/pull/7737)) ([35b1cad](https://github.com/confluentinc/ksql/commit/35b1cadc08faea68ca0b76e6c08ac664a5122c0b))
+* enable time unit functions for interpreter ([#7709](https://github.com/confluentinc/ksql/pull/7709)) ([a26a297](https://github.com/confluentinc/ksql/commit/a26a297af55ad46c3f46efae78f470a33d0df251))
+* fixed nondeterminism in UdfIndex ([#7719](https://github.com/confluentinc/ksql/pull/7719)) ([cd1a988](https://github.com/confluentinc/ksql/commit/cd1a9880aa39e0fb9b4e84d9f713235c8569b104))
+* make current java clients compatible with pre-0.15 servers ([#7667](https://github.com/confluentinc/ksql/pull/7667)) ([8f2d799](https://github.com/confluentinc/ksql/commit/8f2d79944050af0402a208a9cd939eaf92d37851))
+* remove time/date component when casting timestamp to date/time ([#7724](https://github.com/confluentinc/ksql/pull/7724)) ([87cd3c7](https://github.com/confluentinc/ksql/commit/87cd3c727c7a27b717d89f51459a133cfa2d7cad))
+* return an error message on http2 /query-stream endpoint ([#7750](https://github.com/confluentinc/ksql/pull/7750)) ([3a4348b](https://github.com/confluentinc/ksql/commit/3a4348b9f394c9ac0dd3a3eeb64bd2e6b4663f69))
+* Fixes race condition exposing uninitialized query ([#7627](https://github.com/confluentinc/ksql/pull/7627)) ([98b1e3c](https://github.com/confluentinc/ksql/commit/98b1e3c220a6891321eecca0330adc8229eb089b))
+
+### BREAKING CHANGES
+
+* Existing queries that relied on vague implicit casting will not be started after an upgrade, and new queries that rely on vague implicit casting will be rejected. For example, foo(INT, INT) will not be able to resolve against two underlying function signatures of foo(BIGINT, BIGINT) and foo(DOUBLE, DOUBLE). Calling a function whose only parameter is variadic with an explicit null will also result in the call being rejected as vague.
+
+It's worth noting that queries which relied on this vague implicit casting were never truly supported, as they would have been nondeterministic. UDFs most likely to be adversely effected are ones which have multiple numerical overloads with repeated logic. For example, if you had two UDFs foo(INT, INT) and foo(BIGINT, BIGINT), both which relied on logic which returns null if both input parameters are null, then the prior behavior would have been to nondeterministically route to one of the two functions, at which null would be returned either way (due to the duplicate logic). This change will break existing queries that relied on this nondeterministic routing.
+
+
 ## [0.19.0](https://github.com/confluentinc/ksql/releases/tag/v0.19.0-ksqldb) (2021-06-08)
 
 ### Features

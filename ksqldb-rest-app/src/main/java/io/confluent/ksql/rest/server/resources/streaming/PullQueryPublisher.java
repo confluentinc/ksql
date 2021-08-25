@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -53,6 +54,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final ServiceContext serviceContext;
   private final ListeningScheduledExecutorService exec;
   private final ConfiguredStatement<Query> query;
+  private final ImmutableAnalysis analysis;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final long startTimeNanos;
   private final RoutingFilterFactory routingFilterFactory;
@@ -69,6 +71,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
@@ -81,6 +84,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
+    this.analysis = requireNonNull(analysis, "analysis");
     this.pullQueryMetrics = pullQueryMetrics;
     this.startTimeNanos = startTimeNanos;
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
@@ -109,7 +113,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryResult result = null;
     try {
-      result = ksqlEngine.executePullQuery(
+      result = ksqlEngine.executeTablePullQuery(
+          analysis,
           serviceContext,
           query,
           routing,
@@ -124,7 +129,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         decrementer.decrementAtMostOnce();
 
         pullQueryMetrics.ifPresent(m -> {
-          recordMetrics(m, Optional.of(finalResult));
+          recordMetrics(m, finalResult);
         });
       });
 
@@ -136,25 +141,31 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       decrementer.decrementAtMostOnce();
 
       if (result == null) {
-        pullQueryMetrics.ifPresent(m -> recordMetrics(m, Optional.empty()));
+        pullQueryMetrics.ifPresent(this::recordErrorMetrics);
       }
       throw t;
     }
   }
 
   private void recordMetrics(
-      final PullQueryExecutorMetrics metrics, final Optional<PullQueryResult> result) {
-    final PullSourceType sourceType = result.map(
-        PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
-    final PullPhysicalPlanType planType = result.map(
-        PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-    final RoutingNodeType routingNodeType = result.map(
-        PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+      final PullQueryExecutorMetrics metrics, final PullQueryResult result) {
+
+    final PullSourceType sourceType = result.getSourceType();
+    final PullPhysicalPlanType planType = result.getPlanType();
+    final RoutingNodeType routingNodeType = result.getRoutingNodeType();
+    // Note: we are not recording response size in this case because it is not
+    // accessible in the websocket endpoint.
     metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
-    metrics.recordRowsReturned(result.map(PullQueryResult::getTotalRowsReturned).orElse(0L),
+    metrics.recordRowsReturned(result.getTotalRowsReturned(),
         sourceType, planType, routingNodeType);
-    metrics.recordRowsProcessed(result.map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
+    metrics.recordRowsProcessed(result.getTotalRowsProcessed(),
         sourceType, planType, routingNodeType);
+  }
+
+  private void recordErrorMetrics(final PullQueryExecutorMetrics metrics) {
+    metrics.recordLatencyForError(startTimeNanos);
+    metrics.recordZeroRowsReturnedForError();
+    metrics.recordZeroRowsProcessedForError();
   }
 
   private static final class PullQuerySubscription

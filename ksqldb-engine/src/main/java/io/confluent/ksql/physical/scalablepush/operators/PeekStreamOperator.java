@@ -32,20 +32,23 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
+  private final boolean expectingStartOfRegistryData;
 
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
-      final QueryId queryId
+      final QueryId queryId,
+      final boolean expectingStartOfRegistryData
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
+    this.expectingStartOfRegistryData = expectingStartOfRegistryData;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue);
+    scalablePushRegistry.register(processingQueue, expectingStartOfRegistryData);
   }
 
   @Override
@@ -92,5 +95,10 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   @Override
   public boolean droppedRows() {
     return processingQueue.hasDroppedRows();
+  }
+
+  @Override
+  public boolean hasError() {
+    return processingQueue.getHasError();
   }
 }

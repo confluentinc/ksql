@@ -41,7 +41,8 @@ public final class QueryIdUtil {
   public enum ReservedQueryIdsPrefixes {
     INSERT("INSERTQUERY_"),
     CTAS("CTAS_"),
-    CSAS("CSAS_");
+    CSAS("CSAS_"),
+    CST("CST_");
 
     private final String prefix;
     ReservedQueryIdsPrefixes(final String prefix) {
@@ -92,7 +93,8 @@ public final class QueryIdUtil {
       final QueryIdGenerator idGenerator,
       final OutputNode outputNode,
       final boolean createOrReplaceEnabled,
-      final Optional<String> withQueryId) {
+      final Optional<String> withQueryId,
+      final boolean isSourceTable) {
     if (withQueryId.isPresent()) {
       final String queryId = withQueryId.get().toUpperCase();
       validateWithQueryId(queryId);
@@ -100,9 +102,15 @@ public final class QueryIdUtil {
     }
 
     if (!outputNode.getSinkName().isPresent()) {
-      final String prefix =
-          "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
-      return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
+      if (isSourceTable) {
+        final String suffix = outputNode.getId().toString().toUpperCase()
+            + "_" + idGenerator.getNext().toUpperCase();
+        return new QueryId(ReservedQueryIdsPrefixes.CST + suffix);
+      } else {
+        final String prefix =
+            "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
+        return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
+      }
     }
 
     final KsqlStructuredDataOutputNode structured = (KsqlStructuredDataOutputNode) outputNode;

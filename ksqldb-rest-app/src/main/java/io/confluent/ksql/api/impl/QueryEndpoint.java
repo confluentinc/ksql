@@ -18,6 +18,7 @@ package io.confluent.ksql.api.impl;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -34,9 +35,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -133,19 +131,36 @@ public class QueryEndpoint {
         sql, properties, sessionVariables);
 
     if (statement.getStatement().isPullQuery()) {
-      return createPullQueryPublisher(
-          context, serviceContext, statement, pullQueryMetrics, workerExecutor,
-          metricsCallbackHolder);
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+      return createTablePullQueryPublisher(
+          analysis,
+          context,
+          serviceContext,
+          statement,
+          pullQueryMetrics,
+          workerExecutor,
+          metricsCallbackHolder
+      );
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
-      return createScalablePushQueryPublisher(context, serviceContext, statement, workerExecutor,
-          requestProperties);
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+      return createScalablePushQueryPublisher(
+          analysis,
+          context,
+          serviceContext,
+          statement,
+          workerExecutor,
+          requestProperties
+      );
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
   }
 
   private QueryPublisher createScalablePushQueryPublisher(
+      final ImmutableAnalysis analysis,
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
@@ -162,8 +177,9 @@ public class QueryEndpoint {
         statement.getSessionConfig().getOverrides());
 
     final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions,
+        .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
             plannerOptions, context);
+    query.prepare();
 
 
     publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);
@@ -188,7 +204,7 @@ public class QueryEndpoint {
     }
 
     final TransientQueryMetadata queryMetadata = ksqlEngine
-        .executeQuery(serviceContext, statement, true);
+        .executeTransientQuery(serviceContext, statement, true);
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
@@ -197,7 +213,8 @@ public class QueryEndpoint {
     return publisher;
   }
 
-  private QueryPublisher createPullQueryPublisher(
+  private QueryPublisher createTablePullQueryPublisher(
+      final ImmutableAnalysis analysis,
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
@@ -209,23 +226,26 @@ public class QueryEndpoint {
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
     metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
       pullQueryMetrics.ifPresent(metrics -> {
+        final PullQueryResult r = resultForMetrics.get();
         metrics.recordStatusCode(statusCode);
         metrics.recordRequestSize(requestBytes);
-        final PullQueryResult r = resultForMetrics.get();
-        final PullSourceType sourceType = Optional.ofNullable(r).map(
-            PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
-        final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
-            PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-        final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
-            PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-        metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
-        metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
-        metrics.recordRowsReturned(
-            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-            sourceType, planType, routingNodeType);
-        metrics.recordRowsProcessed(
-            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-            sourceType, planType, routingNodeType);
+        if (r == null) {
+          metrics.recordResponseSizeForError(responseBytes);
+          metrics.recordLatencyForError(startTimeNanos);
+          metrics.recordZeroRowsReturnedForError();
+          metrics.recordZeroRowsProcessedForError();
+        } else {
+          metrics.recordResponseSize(responseBytes,
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordLatency(startTimeNanos,
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordRowsReturned(
+              r.getTotalRowsReturned(),
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordRowsProcessed(
+              r.getTotalRowsProcessed(),
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+        }
         pullBandRateLimiter.add(responseBytes);
       });
     });
@@ -246,7 +266,8 @@ public class QueryEndpoint {
     pullBandRateLimiter.allow();
 
     try {
-      final PullQueryResult result = ksqlEngine.executePullQuery(
+      final PullQueryResult result = ksqlEngine.executeTablePullQuery(
+          analysis,
           serviceContext,
           statement,
           routing,

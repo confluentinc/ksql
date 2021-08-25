@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.File;
@@ -79,7 +80,7 @@ public class RestoreCommandTopicIntegrationTest {
       .around(TEST_HARNESS);
 
   @ClassRule
-  public static final TemporaryFolder TMP_FOLDER = new TemporaryFolder();
+  public static final TemporaryFolder TMP_FOLDER = KsqlTestFolder.temporaryFolder();
 
   private static File BACKUP_LOCATION;
   private static TestKsqlRestApp REST_APP;

@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
@@ -60,7 +59,6 @@ public class AllHostsLocator implements PushLocator {
     }
 
     return currentQueries.stream()
-        .filter(persistentQueryMetadata -> persistentQueryMetadata.getState() == State.RUNNING)
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)

@@ -126,7 +126,7 @@ public final class ListSourceExecutor {
     );
   }
 
-  public static Optional<KsqlEntity> streams(
+  public static StatementExecutorResponse streams(
       final ConfiguredStatement<ListStreams> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -136,24 +136,24 @@ public final class ListSourceExecutor {
 
     final ListStreams listStreams = statement.getStatement();
     if (listStreams.getShowExtended()) {
-      return sourceDescriptionList(
+      return StatementExecutorResponse.handled(sourceDescriptionList(
           statement,
           sessionProperties,
           executionContext,
           serviceContext,
           ksqlStreams,
           listStreams.getShowExtended()
-      );
+      ));
     }
 
-    return Optional.of(new StreamsList(
+    return StatementExecutorResponse.handled(Optional.of(new StreamsList(
         statement.getStatementText(),
         ksqlStreams.stream()
             .map(ListSourceExecutor::sourceSteam)
-            .collect(Collectors.toList())));
+            .collect(Collectors.toList()))));
   }
 
-  public static Optional<KsqlEntity> tables(
+  public static StatementExecutorResponse tables(
       final ConfiguredStatement<ListTables> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -163,23 +163,23 @@ public final class ListSourceExecutor {
 
     final ListTables listTables = statement.getStatement();
     if (listTables.getShowExtended()) {
-      return sourceDescriptionList(
+      return StatementExecutorResponse.handled(sourceDescriptionList(
           statement,
           sessionProperties,
           executionContext,
           serviceContext,
           ksqlTables,
           listTables.getShowExtended()
-      );
+      ));
     }
-    return Optional.of(new TablesList(
+    return StatementExecutorResponse.handled(Optional.of(new TablesList(
         statement.getStatementText(),
         ksqlTables.stream()
             .map(ListSourceExecutor::sourceTable)
-            .collect(Collectors.toList())));
+            .collect(Collectors.toList()))));
   }
 
-  public static Optional<KsqlEntity> describeStreams(
+  public static StatementExecutorResponse describeStreams(
       final ConfiguredStatement<DescribeStreams> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -188,16 +188,16 @@ public final class ListSourceExecutor {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
 
     final DescribeStreams describeStreams = statement.getStatement();
-    return sourceDescriptionList(
+    return StatementExecutorResponse.handled(sourceDescriptionList(
         statement,
         sessionProperties,
         executionContext,
         serviceContext,
         ksqlStreams,
-        describeStreams.getShowExtended());
+        describeStreams.getShowExtended()));
   }
 
-  public static Optional<KsqlEntity> describeTables(
+  public static StatementExecutorResponse describeTables(
       final ConfiguredStatement<DescribeTables> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -206,16 +206,16 @@ public final class ListSourceExecutor {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
     final DescribeTables describeTables = statement.getStatement();
-    return sourceDescriptionList(
+    return StatementExecutorResponse.handled(sourceDescriptionList(
         statement,
         sessionProperties,
         executionContext,
         serviceContext,
         ksqlTables,
-        describeTables.getShowExtended());
+        describeTables.getShowExtended()));
   }
 
-  public static Optional<KsqlEntity> columns(
+  public static StatementExecutorResponse columns(
       final ConfiguredStatement<ShowColumns> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -232,13 +232,11 @@ public final class ListSourceExecutor {
         sessionProperties,
         ImmutableList.of()
     );
-    return Optional.of(
+    return StatementExecutorResponse.handled(Optional.of(
         new SourceDescriptionEntity(
             statement.getStatementText(),
             descriptionWithWarnings.description,
-            descriptionWithWarnings.warnings
-        )
-    );
+            descriptionWithWarnings.warnings)));
   }
 
   private static List<KsqlTable<?>> getSpecificTables(

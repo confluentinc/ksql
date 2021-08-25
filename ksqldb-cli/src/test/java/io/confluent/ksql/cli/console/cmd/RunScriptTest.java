@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.KsqlRequestExecutor;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.io.PrintWriter;
@@ -47,7 +48,7 @@ public class RunScriptTest {
   private static final String FILE_CONTENT = "some scripts;" + System.lineSeparator() + "more;";
 
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private KsqlRequestExecutor requestExecutor;

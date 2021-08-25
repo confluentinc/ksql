@@ -607,6 +607,10 @@ public final class SqlFormatter {
         builder.append("OR REPLACE ");
       }
 
+      if (node.isSource()) {
+        builder.append("SOURCE ");
+      }
+
       builder.append(type);
       builder.append(" ");
 

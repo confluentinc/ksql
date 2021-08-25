@@ -127,6 +127,21 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldGetQuery() {
+    // Given:
+    final TransientQueryMetadata q1 = givenCreateTransient(registry, "transient1");
+    final PersistentQueryMetadata q2 = givenCreate(registry, "q1", "source", "sink1", true);
+
+    // When:
+    final QueryMetadata queryMetadata1 = registry.getQuery(q1.getQueryId()).get();
+    final QueryMetadata queryMetadata2 = registry.getQuery(q2.getQueryId()).get();
+
+    // Then:
+    assertThat(queryMetadata1, is(q1));
+    assertThat(queryMetadata2, is(q2));
+  }
+
+  @Test
   public void shouldGetQueriesWithSink() {
     // Given:
     givenCreate(registry, "q1", "source", "sink1", true);

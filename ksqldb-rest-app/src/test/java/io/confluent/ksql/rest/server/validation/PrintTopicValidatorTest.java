@@ -32,7 +32,9 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -50,6 +52,10 @@ public class PrintTopicValidatorTest {
   private KsqlExecutionContext ksqlEngine;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private DistributingExecutor distributingExecutor;
+  @Mock
+  private KsqlSecurityContext ksqlSecurityContext;
 
 
   @Test

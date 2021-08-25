@@ -59,7 +59,7 @@ public class VariableExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    );
+    ).getEntity();
     assertThat(response, is(Optional.empty()));
   }
 
@@ -69,7 +69,7 @@ public class VariableExecutorTest {
         sessionProperties,
         engine.getEngine(),
         engine.getServiceContext()
-    );
+    ).getEntity();
   }
 
   @Test

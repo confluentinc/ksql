@@ -70,7 +70,6 @@ behavior depends on the type of the first non-null element.
    type is a numeric type that's wide enough to hold all numbers found in the
    list.
  * `BOOLEAN`: all other expressions must be coercible to `BOOLEAN`.
- * `BYTES`: all other expressions must be coercible to `BYTES`.
  * `TIMESTAMP`: all other expressions must be coercible to `TIMESTAMP`.
  * `TIME`: all other expressions must be coercible to `TIME`.
  * `DATE`: all other expressions must be coercible to `DATE`.

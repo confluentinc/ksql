@@ -97,7 +97,7 @@ public class DropConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> response = DropConnectorExecutor
-        .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class),null, serviceContext);
+        .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class),null, serviceContext).getEntity();
 
     // Then:
     assertThat("expected response", response.isPresent());
@@ -112,9 +112,9 @@ public class DropConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = DropConnectorExecutor
-        .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+        .execute(DROP_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
     final Optional<KsqlEntity> entityIfExists = DropConnectorExecutor
-            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
@@ -131,7 +131,7 @@ public class DropConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = DropConnectorExecutor
-            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+            .execute(DROP_CONNECTOR_IF_EXISTS_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());

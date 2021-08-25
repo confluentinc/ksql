@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
@@ -34,6 +35,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.PushQueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Collection;
@@ -80,6 +82,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context
   ) {
@@ -108,10 +111,19 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context
   ) {
-    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, pushRouting, context);
+    return new PushQueryPublisher(
+        ksqlEngine,
+        serviceContext,
+        exec,
+        query,
+        analysis,
+        pushRouting,
+        context
+    );
   }
 
   @Override
@@ -126,12 +138,16 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
               query.getSessionConfig().getConfig(false),
               query.getSessionConfig().getOverrides());
 
-      queryMetadata = ksqlEngine
-          .executeScalablePushQuery(serviceContext, query, pushRouting, routingOptions,
+      final ImmutableAnalysis analysis =
+          ksqlEngine.analyzeQueryWithNoOutputTopic(query.getStatement(), query.getStatementText());
+      final ScalablePushQueryMetadata pushQueryMetadata = ksqlEngine
+          .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
               plannerOptions, context);
+      pushQueryMetadata.prepare();
+      queryMetadata = pushQueryMetadata;
     } else {
       queryMetadata = ksqlEngine
-          .executeQuery(serviceContext, query, true);
+          .executeTransientQuery(serviceContext, query, true);
 
       localCommands.ifPresent(lc -> lc.write((TransientQueryMetadata) queryMetadata));
     }

@@ -58,6 +58,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -86,6 +87,7 @@ import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
@@ -221,6 +223,8 @@ public class StreamedQueryResourceTest {
   private QueryMetadata.Listener listener;
   @Mock
   private Context context;
+  @Mock
+  private DistributingExecutor distributingExecutor;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -355,7 +359,7 @@ public class StreamedQueryResourceTest {
         Optional.empty()
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any(), anyBoolean()))
+    when(mockKsqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(pullQueryResult);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
 
@@ -751,7 +755,7 @@ public class StreamedQueryResourceTest {
         );
     transientQueryMetadata.initialize();
 
-    when(mockKsqlEngine.executeQuery(serviceContext,
+    when(mockKsqlEngine.executeTransientQuery(serviceContext,
         ConfiguredStatement
             .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties)), false))
         .thenReturn(transientQueryMetadata);

@@ -20,7 +20,6 @@ import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.physical.PhysicalPlan;
@@ -72,7 +71,7 @@ class QueryEngine {
   PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final SessionConfig config,
-      final MutableMetaStore metaStore,
+      final MetaStore metaStore,
       final QueryId queryId
   ) {
 

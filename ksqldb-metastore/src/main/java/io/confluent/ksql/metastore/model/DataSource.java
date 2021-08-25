@@ -103,4 +103,9 @@ public interface DataSource {
    * @return a new DataSource object with all attributes the same as this, but with a new schema
    */
   DataSource with(String sql, LogicalSchema schema);
+
+  /**
+   * @return returns true if this source is read-only
+   */
+  boolean isSource();
 }

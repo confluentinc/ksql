@@ -287,7 +287,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -305,7 +306,8 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          context.SOURCE() != null
       );
     }
 
@@ -578,19 +580,18 @@ public class AstBuilder {
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
         afterSize = beforeSize;
-        gracePeriod = gracePeriodClause(singleWithin.gracePeriodClause());
+        gracePeriod = Optional.empty();
       } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
         afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
-        gracePeriod = gracePeriodClause(beforeAndAfterJoinWindow.gracePeriodClause());
+        gracePeriod = Optional.empty();
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
-            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
-            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
+            + "seconds\", or a join window with " + "before and after specified, ie. "
+            + "\"WITHIN (10 seconds, 20 seconds)\"");
       }
       return new WithinExpression(
           getLocation(ctx),
@@ -1418,7 +1419,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertStream(getLocation(context), createStream);
@@ -1438,7 +1440,8 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
-          CreateSourceProperties.from(properties)
+          CreateSourceProperties.from(properties),
+          false
       );
 
       return new AssertTable(getLocation(context), createTable);

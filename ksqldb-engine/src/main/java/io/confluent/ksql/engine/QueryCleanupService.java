@@ -115,11 +115,14 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     public void run() {
       try {
         final Path pathName = Paths.get(stateDir + "/" + appId);
-        FileUtils.deleteDirectory(new File(String.valueOf(pathName.normalize())));
-        LOG.warn("Deleted local state store for non-existing query {}. "
-            + "This is not expected and was likely due to a "
-            + "race condition when the query was dropped before.",
-            appId);
+        final File directory = new File(String.valueOf(pathName.normalize()));
+        if (directory.exists()) {
+          FileUtils.deleteDirectory(directory);
+          LOG.warn("Deleted local state store for non-existing query {}. "
+                  + "This is not expected and was likely due to a "
+                  + "race condition when the query was dropped before.",
+              appId);
+        }
       } catch (Exception e) {
         LOG.error("Error cleaning up state directory {}\n. {}", appId, e);
       }

@@ -49,7 +49,7 @@ public class DescribeFunctionExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
@@ -75,7 +75,7 @@ public class DescribeFunctionExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
@@ -101,7 +101,7 @@ public class DescribeFunctionExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {

@@ -42,6 +42,8 @@ import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 
+// CHECKSTYLE_RULES.OFF: ArrayTypeStyle
+// suppress due to https://github.com/checkstyle/checkstyle/issues/10215
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class PostConditionsNode {
 

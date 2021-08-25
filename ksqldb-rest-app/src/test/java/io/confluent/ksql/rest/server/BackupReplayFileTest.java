@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +41,7 @@ public class BackupReplayFileTest {
   private static final String REPLAY_FILE_NAME = "backup_command_topic_1";
 
   @Rule
-  public TemporaryFolder backupLocation = new TemporaryFolder();
+  public TemporaryFolder backupLocation = KsqlTestFolder.temporaryFolder();
 
   private BackupReplayFile replayFile;
   private File internalReplayFile;

@@ -186,7 +186,8 @@ public class SqlFormatterTest {
         ORDERS_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicOrders
+        ksqlTopicOrders,
+        false
     );
 
     metaStore.putSource(ksqlStreamOrders, false);
@@ -202,7 +203,8 @@ public class SqlFormatterTest {
         ITEM_INFO_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false
     );
 
     metaStore.putSource(ksqlTableOrders, false);
@@ -213,7 +215,8 @@ public class SqlFormatterTest {
         TABLE_SCHEMA,
         Optional.empty(),
         false,
-        ksqlTopicItems
+        ksqlTopicItems,
+        false
     );
 
     metaStore.putSource(ksqlTableTable, false);
@@ -227,7 +230,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createStream);
@@ -245,7 +249,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createStream);
@@ -268,13 +273,62 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         true,
         false,
-        props);
+        props,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
 
     // Then:
     assertThat(sql, is("CREATE OR REPLACE STREAM TEST (`Foo` STRING, `Bar` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateSourceTableStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateTable createTable = new CreateTable(
+        TEST,
+        ELEMENTS_WITH_PRIMARY_KEY,
+        false,
+        false,
+        props,
+        true);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createTable);
+
+    // Then:
+    assertThat(sql, is("CREATE SOURCE TABLE TEST (`k3` STRING PRIMARY KEY, `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldFormatCreateSourceStreamStatement() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties.from(
+        new ImmutableMap.Builder<String, Literal>()
+            .putAll(SOME_WITH_PROPS.copyOfOriginalLiterals())
+            .build()
+    );
+    final CreateStream createStream = new CreateStream(
+        TEST,
+        ELEMENTS_WITH_KEY,
+        false,
+        false,
+        props,
+        true);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE SOURCE STREAM TEST (`k3` STRING KEY, `Foo` STRING) "
         + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
@@ -291,7 +345,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         true,
         false,
-        props);
+        props,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -316,7 +371,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
         false,
-        props);
+        props,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -335,7 +391,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITH_PRIMARY_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -353,7 +410,8 @@ public class SqlFormatterTest {
         ELEMENTS_WITHOUT_KEY,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createTable);
@@ -376,7 +434,8 @@ public class SqlFormatterTest {
         tableElements,
         false,
         false,
-        SOME_WITH_PROPS);
+        SOME_WITH_PROPS,
+        false);
 
     // When:
     final String sql = SqlFormatter.formatSql(createStream);

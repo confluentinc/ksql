@@ -56,6 +56,13 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC =
       "Controls whether a ksql host forwards a push query request to another host";
 
+  public static final String KSQL_REQUEST_QUERY_PUSH_REGISTRY_START =
+      "request.ksql.query.push.registry.start";
+  public static final boolean KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT = false;
+  private static final String KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DOC =
+      "Indicates whether a connecting node expects to be at the start of the registry data. After a"
+          + "rebalance, this ensures we don't miss any data.";
+
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
         .define(
@@ -88,6 +95,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PUSH_REGISTRY_START,
+            Type.BOOLEAN,
+            KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DOC
         );
     return configDef;
   }

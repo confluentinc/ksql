@@ -75,7 +75,8 @@ public final class MetaStoreFixture {
         test1Schema,
         Optional.empty(),
         false, 
-        ksqlTopic0
+        ksqlTopic0,
+        false
     );
 
     metaStore.putSource(ksqlStream0, false);
@@ -92,7 +93,8 @@ public final class MetaStoreFixture {
         test1Schema,
         Optional.empty(),
         false,
-        ksqlTopic1
+        ksqlTopic1,
+        false
     );
 
     metaStore.putSource(ksqlStream1, false);
@@ -116,7 +118,8 @@ public final class MetaStoreFixture {
         test2Schema,
         Optional.empty(),
         false,
-        ksqlTopic2
+        ksqlTopic2,
+        false
     );
 
     metaStore.putSource(ksqlTable, false);
@@ -167,7 +170,8 @@ public final class MetaStoreFixture {
         ordersSchema,
         Optional.empty(),
         false,
-        ksqlTopicOrders
+        ksqlTopicOrders,
+        false
     );
 
     metaStore.putSource(ksqlStreamOrders, false);
@@ -191,7 +195,8 @@ public final class MetaStoreFixture {
         testTable3,
         Optional.empty(),
         false,
-        ksqlTopic3
+        ksqlTopic3,
+        false
     );
 
     metaStore.putSource(ksqlTable3, false);
@@ -227,7 +232,8 @@ public final class MetaStoreFixture {
         nestedArrayStructMapSchema,
         Optional.empty(),
         false,
-        nestedArrayStructMapTopic
+        nestedArrayStructMapTopic,
+        false
     );
 
     metaStore.putSource(nestedArrayStructMapOrders, false);
@@ -244,7 +250,8 @@ public final class MetaStoreFixture {
         test1Schema,
         Optional.empty(),
         false,
-        ksqlTopic4
+        ksqlTopic4,
+        false
     );
 
     metaStore.putSource(ksqlStream4, false);
@@ -268,7 +275,8 @@ public final class MetaStoreFixture {
         sensorReadingsSchema,
         Optional.empty(),
         false,
-        ksqlTopicSensorReadings
+        ksqlTopicSensorReadings,
+        false
     );
 
     metaStore.putSource(ksqlStreamSensorReadings, false);
@@ -294,7 +302,8 @@ public final class MetaStoreFixture {
         testTable5,
         Optional.empty(),
         false,
-        ksqlTopic5
+        ksqlTopic5,
+        false
     );
     metaStore.putSource(ksqlTable5, false);
 

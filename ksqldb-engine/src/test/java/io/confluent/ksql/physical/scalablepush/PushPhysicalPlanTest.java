@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -96,7 +97,7 @@ public class PushPhysicalPlanTest {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
         scalablePushRegistry, pushDataSourceOperator, context);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
-    when(pushDataSourceOperator.droppedRows()).thenReturn(false, true);
+    when(pushDataSourceOperator.droppedRows()).thenReturn(false, false, true);
 
     final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
@@ -122,6 +123,74 @@ public class PushPhysicalPlanTest {
     assertThat(subscriber.getValues().size(), is(1));
     assertThat(subscriber.getValues().get(0), is(ROW1));
     assertThat(pushPhysicalPlan.isClosed(), is(true));
+  }
+
+  @Test
+  public void shouldStopOnHasError() throws InterruptedException {
+    final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
+        scalablePushRegistry, pushDataSourceOperator, context);
+    doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
+    when(pushDataSourceOperator.hasError()).thenReturn(false, false, true);
+
+    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
+    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    publisher.subscribe(subscriber);
+
+    context.owner().setPeriodic(50, timerId -> {
+      if (runnableCaptor.getValue() == null) {
+        return;
+      }
+      when(root.next()).thenReturn(ROW1, ROW2, null);
+
+      runnableCaptor.getValue().run();
+      runnableCaptor.getValue().run();
+
+      context.owner().cancelTimer(timerId);
+    });
+
+    while (subscriber.getError() == null) {
+      Thread.sleep(100);
+    }
+
+    assertThat(subscriber.getError().getMessage(), containsString("Persistent query has error"));
+    assertThat(subscriber.getValues().size(), is(1));
+    assertThat(subscriber.getValues().get(0), is(ROW1));
+    assertThat(pushPhysicalPlan.isClosed(), is(true));
+  }
+
+  @Test
+  public void shouldThrowErrorOnOpen() throws InterruptedException {
+    final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
+        scalablePushRegistry, pushDataSourceOperator, context);
+    doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
+    doThrow(new RuntimeException("Error on open")).when(root).open();
+
+    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
+    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    publisher.subscribe(subscriber);
+
+    while (subscriber.getError() == null) {
+      Thread.sleep(100);
+    }
+    assertThat(subscriber.getError().getMessage(), containsString("Error on open"));
+  }
+
+  @Test
+  public void shouldThrowErrorOnNext() throws InterruptedException {
+    final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
+        scalablePushRegistry, pushDataSourceOperator, context);
+    doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
+    when(pushDataSourceOperator.droppedRows()).thenReturn(false);
+    doThrow(new RuntimeException("Error on next")).when(root).next();
+
+    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
+    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    publisher.subscribe(subscriber);
+
+    while (subscriber.getError() == null) {
+      Thread.sleep(100);
+    }
+    assertThat(subscriber.getError().getMessage(), containsString("Error on next"));
   }
 
   public static class TestSubscriber<T> implements Subscriber<T> {

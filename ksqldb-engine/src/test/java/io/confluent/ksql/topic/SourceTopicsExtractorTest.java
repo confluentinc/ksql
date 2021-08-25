@@ -166,7 +166,8 @@ public class SourceTopicsExtractorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
 
     metaStore.putSource(streamSource, false);

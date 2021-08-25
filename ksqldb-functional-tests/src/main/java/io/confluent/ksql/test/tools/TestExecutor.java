@@ -60,10 +60,12 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.test.utils.TestUtils;
+import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
+import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -597,6 +599,25 @@ public class TestExecutor implements Closeable {
         .forEach(kafka::writeRecord);
   }
 
+  private static Object coerceRecordFields(final Object record) {
+    if (!(record instanceof Map)) {
+      return record;
+    }
+
+    final Map<String, Object> recordMap = (Map<String, Object>) record;
+    recordMap.forEach((k, v) -> {
+      if (v instanceof ByteBuffer) {
+        final byte[] fieldBytes = BytesUtils.getByteArray((ByteBuffer) v);
+        recordMap.put(k,
+            (fieldBytes != null && fieldBytes.length > 0)
+            ? BytesUtils.encode(fieldBytes, BytesUtils.Encoding.BASE64)
+            : null);
+      }
+    });
+
+    return recordMap;
+  }
+
   private static void validateCreatedMessage(
       final String topicName,
       final Record expectedRecord,
@@ -604,8 +625,8 @@ public class TestExecutor implements Closeable {
       final boolean ranWithInsertStatements,
       final int messageIndex
   ) {
-    final Object actualKey = actualProducerRecord.key();
-    final Object actualValue = actualProducerRecord.value();
+    final Object actualKey = coerceRecordFields(actualProducerRecord.key());
+    final Object actualValue = coerceRecordFields(actualProducerRecord.value());
     final long actualTimestamp = actualProducerRecord.timestamp();
 
     final JsonNode expectedKey = expectedRecord.getJsonKey().orElse(NullNode.getInstance());

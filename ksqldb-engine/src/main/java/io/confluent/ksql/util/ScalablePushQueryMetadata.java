@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -34,6 +35,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final BlockingRowQueue rowQueue;
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
+  private final PushQueryPreparer pushQueryPreparer;
 
   // Future for the start of the connections, which creates a handle
   private CompletableFuture<PushConnectionsHandle> startFuture = new CompletableFuture<>();
@@ -47,26 +49,40 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
       final QueryId queryId,
       final BlockingRowQueue blockingRowQueue,
       final ResultType resultType,
-      final PushQueryQueuePopulator pushQueryQueuePopulator
+      final PushQueryQueuePopulator pushQueryQueuePopulator,
+      final PushQueryPreparer pushQueryPreparer
   ) {
     this.logicalSchema = logicalSchema;
     this.queryId = queryId;
     this.rowQueue = blockingRowQueue;
     this.resultType = resultType;
     this.pushQueryQueuePopulator = pushQueryQueuePopulator;
+    this.pushQueryPreparer = pushQueryPreparer;
+  }
+
+  /**
+   * Prepare to start. Any exceptions thrown here will result in an error return code rather than
+   * an error written to the stream.
+   */
+  public void prepare() {
+    // Any exceptions aren't meant to trickle up to the caller.  This will result in non ok error
+    // codes and is good for fast failing.
+    pushQueryPreparer.prepare();
   }
 
   @Override
   public void start() {
-    pushQueryQueuePopulator.run().thenApply(handle -> {
-      startFuture.complete(handle);
-      handle.onException(runningFuture::completeExceptionally);
-      return null;
-    }).exceptionally(t -> {
-      startFuture.completeExceptionally(t);
-      runningFuture.completeExceptionally(t);
-      return null;
-    });
+    CompletableFuture.completedFuture(null)
+        .thenCompose(v -> pushQueryQueuePopulator.run())
+        .thenApply(handle -> {
+          startFuture.complete(handle);
+          handle.onException(runningFuture::completeExceptionally);
+          return null;
+        }).exceptionally(t -> {
+          startFuture.completeExceptionally(t);
+          runningFuture.completeExceptionally(t);
+          return null;
+        });
   }
 
   @Override
@@ -97,7 +113,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   @Override
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
-    // We don't do anything special here since the persistent query handles its own errors
+    onException(handler::handle);
   }
 
   @Override

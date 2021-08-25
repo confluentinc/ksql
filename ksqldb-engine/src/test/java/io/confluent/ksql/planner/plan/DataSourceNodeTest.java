@@ -127,7 +127,8 @@ public class DataSourceNodeTest {
           "topic",
           KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
           ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-      )
+      ),
+      false
   );
 
   @Mock
@@ -244,7 +245,8 @@ public class DataSourceNodeTest {
             "topic2",
             KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
             ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
-        )
+        ),
+        false
     );
 
     node = new DataSourceNode(

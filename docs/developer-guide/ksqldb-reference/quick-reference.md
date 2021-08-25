@@ -168,10 +168,9 @@ CREATE STREAM stream_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_stream
-  [[ LEFT | FULL | INNER ]
-    JOIN [join_table | join_stream]
-      [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
-    ON join_criteria]*
+  [[ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
+    [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
+    ON join_criteria]* 
   [ WHERE condition ]
   [PARTITION BY new_key_expr [, ...]]
   EMIT CHANGES;
@@ -350,6 +349,23 @@ DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
 ```
 
+## IN
+Specifies multiple `OR` conditions.
+
+```sql hl_lines="3"
+  SELECT select_expr [, ...]
+    FROM from_stream | from_table
+    WHERE exp IN (exp0, exp1, exp2);
+```
+
+The above is equivalent to:
+
+```sql hl_lines="3"
+  SELECT select_expr [, ...]
+    FROM from_stream | from_table
+    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
+```
+
 ## INNER JOIN
 Select records in a stream or table that have matching values in another stream
 or table. For more information, see
@@ -370,10 +386,9 @@ Stream the result of a SELECT query into an existing stream and its underlying
 INSERT INTO stream_name
   SELECT select_expr [, ...]
   FROM from_stream
-  [ LEFT | FULL | INNER ]
-      JOIN [join_table | join_stream]
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
-      ON join_criteria
+  [ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
+    [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
+    ON join_criteria
   [ WHERE condition ]
   [ PARTITION BY new_key_expr [, ...] ]
   EMIT CHANGES;
@@ -421,23 +436,6 @@ SELECT user_id
   FROM users
   WHERE user_id LIKE 'santa%'
   EMIT CHANGES;
-```
-
-## IN
-Specifies multiple `OR` conditions.
-
-```sql hl_lines"3"
-  SELECT select_expr [, ...]
-    FROM from_stream | from_table
-    WHERE exp IN (exp0, exp1, exp2);
-```
-
-The above is equivalent to:
-
-```sql hl_lines"3"
-  SELECT select_expr [, ...]
-    FROM from_stream | from_table
-    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
 
 ## PARTITION BY
@@ -488,10 +486,7 @@ information, see [SELECT (Push Query)](../../ksqldb-reference/select-push-query)
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [[ LEFT | FULL | INNER ]
-      JOIN join_item
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
-      ON join_criteria]*
+  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE condition ]
   [ GROUP BY grouping_expression [, ...] ]
@@ -603,7 +598,7 @@ SPOOL <file_name|OFF>
 ```
 
 ## TERMINATE
-End a persistent query. For more information, see [SPOOL](../../ksqldb-reference/terminate).
+End a query. For more information, see [TERMINATE](../../ksqldb-reference/terminate).
 
 ```sql
 TERMINATE query_id;

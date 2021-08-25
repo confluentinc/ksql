@@ -15,6 +15,7 @@
 
 package io.confluent.ksql;
 
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -83,6 +84,14 @@ public interface KsqlExecutionContext {
   Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
 
   /**
+   * Retrieve the details of a query.
+   *
+   * @param queryId the id of the query to retrieve.
+   * @return the query's details or else {@code Optional.empty()} if no found.
+   */
+  Optional<QueryMetadata> getQuery(QueryId queryId);
+
+  /**
    * Retrieves the list of all running persistent queries.
    *
    * @return the list of all persistent queries
@@ -138,7 +147,7 @@ public interface KsqlExecutionContext {
    * Executes a query using the supplied service context.
    * @return the query metadata
    */
-  TransientQueryMetadata executeQuery(
+  TransientQueryMetadata executeTransientQuery(
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       boolean excludeTombstones
@@ -155,7 +164,8 @@ public interface KsqlExecutionContext {
    *                         call PullQueryResult.start to start the query.
    * @return the rows that are the result of the query evaluation.
    */
-  PullQueryResult executePullQuery(
+  PullQueryResult executeTablePullQuery(
+      ImmutableAnalysis analysis,
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       HARouting routing,
@@ -177,6 +187,7 @@ public interface KsqlExecutionContext {
    * @return A ScalablePushQueryMetadata object
    */
   ScalablePushQueryMetadata executeScalablePushQuery(
+      ImmutableAnalysis analysis,
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       PushRouting pushRouting,

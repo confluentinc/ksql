@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.UpgradeRejectedException;
 import io.vertx.core.json.JsonObject;
@@ -59,7 +60,7 @@ import org.junit.rules.TemporaryFolder;
 @Category({IntegrationTest.class})
 public class BasicAuthFunctionalTest {
 
-  private static final TemporaryFolder TMP_FOLDER = new TemporaryFolder();
+  private static final TemporaryFolder TMP_FOLDER = KsqlTestFolder.temporaryFolder();
 
   static {
     createTmpFolder();

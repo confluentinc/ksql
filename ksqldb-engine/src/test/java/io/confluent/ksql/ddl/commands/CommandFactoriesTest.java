@@ -168,7 +168,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForCreateStream() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties, false);
 
     // When:
     final DdlCommand result = commandFactories
@@ -179,9 +179,27 @@ public class CommandFactoriesTest {
   }
 
   @Test
+  public void shouldCreateCommandForCreateSourceStream() {
+    // Given:
+    final CreateStream statement = new CreateStream(SOME_NAME,
+        TableElements.of(
+            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, true, withProperties, true);
+
+    // When:
+    final DdlCommand result = commandFactories
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
+
+    // Then:
+    assertThat(result, is(createStreamCommand));
+    verify(createSourceFactory).createStreamCommand(statement, ksqlConfig);
+  }
+
+  @Test
   public void shouldCreateCommandForStreamWithOverriddenProperties() {
     // Given:
-    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties, false);
 
     // When:
     commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
@@ -198,7 +216,25 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties);
+        false, true, withProperties, false);
+
+    // When:
+    final DdlCommand result = commandFactories
+        .create(sqlExpression, statement, SessionConfig.of(ksqlConfig, emptyMap()));
+
+    // Then:
+    assertThat(result, is(createTableCommand));
+    verify(createSourceFactory).createTableCommand(statement, ksqlConfig);
+  }
+
+  @Test
+  public void shouldCreateCommandForCreateSourceTable() {
+    // Given:
+    final CreateTable statement = new CreateTable(SOME_NAME,
+        TableElements.of(
+            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, true, withProperties, true);
 
     // When:
     final DdlCommand result = commandFactories
@@ -216,7 +252,7 @@ public class CommandFactoriesTest {
         TableElements.of(
             tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
             tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
-        false, true, withProperties);
+        false, true, withProperties, false);
 
     // When:
     commandFactories.create(sqlExpression, statement, SessionConfig.of(ksqlConfig, OVERRIDES));
@@ -329,7 +365,7 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties);
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties, false);
 
     // When:
     final DdlCommand cmd = commandFactories
@@ -354,7 +390,8 @@ public class CommandFactoriesTest {
     );
 
     final DdlStatement statement =
-        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK, false, true, withProperties);
+        new CreateTable(SOME_NAME, ELEMENTS_WITH_PK,
+            false, true, withProperties, false);
 
     // When:
     final DdlCommand cmd = commandFactories

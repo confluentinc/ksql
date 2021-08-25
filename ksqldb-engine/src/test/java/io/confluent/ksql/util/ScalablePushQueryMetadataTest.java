@@ -62,7 +62,8 @@ public class ScalablePushQueryMetadataTest {
         new QueryId("queryid"),
         blockingRowQueue,
         ResultType.STREAM,
-        populator
+        populator,
+        () -> { }
     );
   }
 

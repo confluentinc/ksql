@@ -172,8 +172,7 @@ public class PullPhysicalPlan {
   public enum PullPhysicalPlanType {
     // Could be one or more keys
     KEY_LOOKUP,
-    TABLE_SCAN,
-    UNKNOWN
+    TABLE_SCAN
   }
 
   /**
@@ -182,8 +181,7 @@ public class PullPhysicalPlan {
    */
   public enum PullSourceType {
     NON_WINDOWED,
-    WINDOWED,
-    UNKNOWN
+    WINDOWED
   }
 
   /**
@@ -192,7 +190,6 @@ public class PullPhysicalPlan {
    */
   public enum RoutingNodeType {
     SOURCE_NODE,
-    REMOTE_NODE,
-    UNKNOWN
+    REMOTE_NODE
   }
 }

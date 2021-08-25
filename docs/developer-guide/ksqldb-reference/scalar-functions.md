@@ -52,7 +52,7 @@ Converts one type to another. The following casts are supported:
 
 | from | to | notes |
 |------|----|-------|
-| any except `BYTES` | `STRING` | Converts the type to its string representation. |
+| any  | `STRING` | Converts the type to its string representation. |
 | `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
 | `VARCHAR` | `TIME` | Converts time strings to `TIME`. Conversion fails if text is not in `HH:mm:ss` format.     |
@@ -426,24 +426,6 @@ ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
 ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
 ```
 
-### `ARRAY_CONCAT`
-
-Since: 0.20.0
-
-```sql
-ARRAY_CONCAT(array1, array2)
-```
-
-Returns an array representing the concatenation of both input arrays.
-
-Returns NULL if both input arrays are NULL. If only one argument is NULL, the result is the other argument.
-
-Examples:
-```sql 
-ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
-ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
-```
-
 ### `AS_MAP`
 
 Since: 0.6.0
@@ -650,10 +632,9 @@ Since: -
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
-CONCAT(bytes1, bytes2, ..., bytes-n)
 ```
 
-Concatenate two or more string or bytes expressions. Any inputs which evaluate to NULL are replaced with an empty string or bytes in the output.
+Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
 
 ### `CONCAT_WS`
 
@@ -663,7 +644,7 @@ Since: 0.10.0
 CONCAT_WS(separator, expr1, expr2, ...)
 ```
 
-Concatenates two or more string or bytes expressions, inserting a separator string or bytes between each.
+Concatenates two or more string expressions, inserting a separator string between each.
 
 If the separator is NULL, this function returns NULL.
 Any expressions which evaluate to NULL are skipped.
@@ -730,17 +711,6 @@ multiple elements, like those containing wildcards, aren't supported.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
 
-### `FROM_BYTES`
-
-Since: - 0.21
-
-```sql
-FROM_BYTES(bytes, encoding)
-```
-
-Converts a BYTES column to a STRING in the specified encoding type.
-Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
-
 ### `INITCAP`
 
 Since: 0.6.0
@@ -795,11 +765,10 @@ Convert a string to lowercase.
 Since: -
 
 ```sql
-LEN(string)
-LEN(bytes)
+LEN(col1)
 ```
 
-The length of a string or the number of bytes in a BYTES value.
+The length of a string.
 
 ### `LPAD`
 
@@ -809,10 +778,10 @@ Since: 0.10.0
 LPAD(input, length, padding)
 ```
 
-Pads the input string or bytes, starting from the left, with the specified padding of the same type until the target length is reached. 
-If the input is longer than the specified target length, it is truncated.
+Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
+If the input string is longer than the specified target length, it is truncated.
 
-If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
+If the padding string is empty or NULL, or the target length is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -989,10 +958,9 @@ Since: 0.10.0
 RPAD(input, length, padding)
 ```
 
-Pads the input string or bytes, starting from the end, with the specified padding of the same type until the target length is reached. 
-If the input is longer than the specified target length, it is truncated. 
+Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
 
-If the padding string or byte array is empty or NULL, or the target length is negative, NULL is returned.
+If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
 
 Examples:
 ```sql
@@ -1009,16 +977,16 @@ Since: 0.6.0
 SPLIT(col1, delimiter)
 ```
 
-Splits a string into an array of substrings, or
-bytes into an array of subarrays, based
+Splits a string into an array of substrings based
 on a delimiter. If the delimiter is not found,
-the original string or byte array is returned as the only
+then the original string is returned as the only
 element in the array. If the delimiter is empty,
-every character in the string or byte in the array is split.
-Returns NULL if either parameter is NULL.
+then all characters in the string are split.
+If either, string or delimiter, are NULL, then a
+NULL value is returned.
 
 If the delimiter is found at the beginning or end
-of the string or bytes, or there are contiguous delimiters,
+of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
 
 ### `SPLIT_TO_MAP`
@@ -1050,27 +1018,15 @@ SUBSTRING(col1, 2, 5)
 
 ```sql
 SUBSTRING(str, pos, [len])
-SUBSTRING(bytes, pos, [len])
 ```
 
-Returns the portion of `str` or `bytes` that starts at
-`pos` (first character or byte is at position 1) and
+Returns a substring of `str` that starts at
+`pos` (first character is at position 1) and
 has length `len`, or continues to the end of
-the string or bytes.
+the string.
 
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
-
-### `TO_BYTES`
-
-Since: - 0.21
-
-```sql
-TO_BYTES(string, encoding)
-```
-
-Converts a STRING column in the specified encoding type to a BYTES column.
-Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `TRIM`
 

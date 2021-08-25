@@ -71,7 +71,9 @@ public class StubKafkaServiceTest {
         topic.getNumPartitions() + 1,
         topic.getReplicas() + 1,
         topic.getKeySchema(),
-        topic.getValueSchema()
+        topic.getValueSchema(),
+        topic.getKeyFeatures(),
+        topic.getValueFeatures()
     );
 
     // When:

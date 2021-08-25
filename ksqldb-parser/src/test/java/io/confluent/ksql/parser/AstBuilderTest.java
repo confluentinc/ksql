@@ -44,6 +44,8 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
@@ -601,6 +603,57 @@ public class AstBuilderTest {
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getRefinement().get().getOutputRefinement(), is(OutputRefinement.FINAL));
+  }
+
+  @Test
+  public void shouldCreateSourceTable() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE SOURCE TABLE X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateTable result = (CreateTable) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(true));
+  }
+
+  @Test
+  public void shouldCreateNormalTable() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE TABLE X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateTable result = (CreateTable) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(false));
+  }
+
+  public void shouldCreateSourceStream() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE SOURCE STREAM X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateStream result = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(true));
+  }
+
+  @Test
+  public void shouldCreateNormalStream() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE STREAM X WITH (kafka_topic='X');");
+
+    // When:
+    final CreateStream result = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.isSource(), is(false));
   }
 
   @Test

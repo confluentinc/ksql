@@ -69,6 +69,10 @@
         "orReplace" : {
           "type" : "boolean",
           "default" : false
+        },
+        "isSource" : {
+          "type" : "boolean",
+          "default" : false
         }
       },
       "title" : "createStreamV1",
@@ -179,6 +183,10 @@
           "$ref" : "#/definitions/WindowInfo"
         },
         "orReplace" : {
+          "type" : "boolean",
+          "default" : false
+        },
+        "isSource" : {
           "type" : "boolean",
           "default" : false
         }

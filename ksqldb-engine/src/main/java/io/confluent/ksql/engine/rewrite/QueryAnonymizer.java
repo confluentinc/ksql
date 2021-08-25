@@ -571,6 +571,11 @@ public class QueryAnonymizer {
     public String visitCreateStream(final CreateStreamContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
 
+      // optional source
+      if (context.SOURCE() != null) {
+        stringBuilder.append("SOURCE ");
+      }
+
       // optional replace
       if (context.OR() != null && context.REPLACE() != null) {
         stringBuilder.append("OR REPLACE ");
@@ -636,6 +641,11 @@ public class QueryAnonymizer {
     @Override
     public String visitCreateTable(final CreateTableContext context) {
       final StringBuilder stringBuilder = new StringBuilder("CREATE ");
+
+      // optional source
+      if (context.SOURCE() != null) {
+        stringBuilder.append("SOURCE ");
+      }
 
       // optional replace
       if (context.OR() != null && context.REPLACE() != null) {
@@ -879,11 +889,6 @@ public class QueryAnonymizer {
 
         stringBuilder.append(String.format("%s",
             anonymizeJoinWindowSize(singleWithin.joinWindowSize())));
-
-        if (singleWithin.gracePeriodClause() != null) {
-          stringBuilder.append(String.format(" GRACE PERIOD %s",
-              anonymizeGracePeriod(singleWithin.gracePeriodClause())));
-        }
       } else if (context instanceof JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) context;
@@ -891,16 +896,10 @@ public class QueryAnonymizer {
         stringBuilder.append(String.format("(%s, %s)",
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0)),
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1))));
-
-        if (beforeAndAfterJoinWindow.gracePeriodClause() != null) {
-          stringBuilder.append(String.format(" GRACE PERIOD %s",
-              anonymizeGracePeriod(beforeAndAfterJoinWindow.gracePeriodClause())));
-        }
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
-            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
-            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
+            + "seconds\", or a join window with " + "before and after specified, ie. "
+            + "\"WITHIN (10 seconds, 20 seconds)\"");
       }
 
       return stringBuilder.append(' ').toString();

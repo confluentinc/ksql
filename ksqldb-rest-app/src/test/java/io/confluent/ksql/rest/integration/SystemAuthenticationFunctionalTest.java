@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.secure.MultiNodeKeyStore;
 import io.confluent.ksql.test.util.secure.MultiNodeTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
@@ -77,7 +78,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SystemAuthenticationFunctionalTest {
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
   @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  public static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
   private static PageViewDataProvider PAGE_VIEWS_PROVIDER;
   private static String PAGE_VIEW_TOPIC;
   private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =

@@ -75,7 +75,7 @@ public class ListTopicsExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             serviceContext
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
@@ -98,7 +98,7 @@ public class ListTopicsExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             serviceContext
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
@@ -121,7 +121,7 @@ public class ListTopicsExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             serviceContext
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(
@@ -150,7 +150,7 @@ public class ListTopicsExecutorTest {
             mock(SessionProperties.class),
             engine.getEngine(),
             serviceContext
-        ).orElseThrow(IllegalStateException::new);
+        ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
     assertThat(topicsList.getTopics(), containsInAnyOrder(

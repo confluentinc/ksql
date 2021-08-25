@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
@@ -37,6 +37,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
@@ -506,7 +507,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertValuesOnReservedInternalTopic() {
     // Given
     givenDataSourceWithSchema("_confluent-ksql-default__command-topic", SCHEMA,
-        SerdeFeatures.of(), SerdeFeatures.of(), false);
+        SerdeFeatures.of(), SerdeFeatures.of(), false, false);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
@@ -538,7 +539,7 @@ public class InsertValuesExecutorTest {
   public void shouldThrowWhenInsertValuesOnProcessingLogTopic() {
     // Given
     givenDataSourceWithSchema("default_ksql_processing_log", SCHEMA,
-        SerdeFeatures.of(), SerdeFeatures.of(), false);
+        SerdeFeatures.of(), SerdeFeatures.of(), false, false);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
     final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
@@ -664,6 +665,68 @@ public class InsertValuesExecutorTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(
         containsString("Authorization denied to Write on topic(s): [t1]"))));
+  }
+
+  @Test
+  public void shouldThrowWhenInsertingValuesOnSourceTable() {
+    // Given:
+    givenDataSourceWithSchema("source_table_1", SCHEMA,
+        SerdeFeatures.of(), SerdeFeatures.of(), true, true);
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+    final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
+        PreparedStatement.of(
+            "",
+            new InsertValues(SourceName.of("TOPIC"),
+                allAndPseudoColumnNames(SCHEMA),
+                ImmutableList.of(
+                    new LongLiteral(1L),
+                    new StringLiteral("str"),
+                    new StringLiteral("str"),
+                    new LongLiteral(2L)
+                ))),
+        SessionConfig.of(ksqlConfig, ImmutableMap.of())
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot insert values into read-only table: TOPIC"));
+  }
+
+  @Test
+  public void shouldThrowWhenInsertingValuesOnSourceStream() {
+    // Given:
+    givenDataSourceWithSchema("source_stream_1", SCHEMA,
+        SerdeFeatures.of(), SerdeFeatures.of(), false, true);
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
+    final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
+        PreparedStatement.of(
+            "",
+            new InsertValues(SourceName.of("TOPIC"),
+                allAndPseudoColumnNames(SCHEMA),
+                ImmutableList.of(
+                    new LongLiteral(1L),
+                    new StringLiteral("str"),
+                    new StringLiteral("str"),
+                    new LongLiteral(2L)
+                ))),
+        SessionConfig.of(ksqlConfig, ImmutableMap.of())
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot insert values into read-only stream: TOPIC"));
   }
 
   @Test
@@ -854,6 +917,7 @@ public class InsertValuesExecutorTest {
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
         false);
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -883,6 +947,7 @@ public class InsertValuesExecutorTest {
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
         false);
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
@@ -952,6 +1017,7 @@ public class InsertValuesExecutorTest {
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
         false);
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allColumnNames(SCHEMA),
@@ -986,6 +1052,7 @@ public class InsertValuesExecutorTest {
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
         false);
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allColumnNames(SCHEMA),
@@ -1023,6 +1090,7 @@ public class InsertValuesExecutorTest {
         SerdeFeatures.of(),
         FormatInfo.of(FormatFactory.AVRO.name()),
         FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
         false);
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allColumnNames(SCHEMA),
@@ -1063,14 +1131,14 @@ public class InsertValuesExecutorTest {
       final SerdeFeatures keyFeatures,
       final SerdeFeatures valFeatures
   ) {
-    givenDataSourceWithSchema(TOPIC_NAME, schema, keyFeatures, valFeatures, false);
+    givenDataSourceWithSchema(TOPIC_NAME, schema, keyFeatures, valFeatures, false, false);
   }
 
   private void givenSourceTableWithSchema(
       final SerdeFeatures keyFeatures,
       final SerdeFeatures valFeatures
   ) {
-    givenDataSourceWithSchema(TOPIC_NAME, SCHEMA, keyFeatures, valFeatures, true);
+    givenDataSourceWithSchema(TOPIC_NAME, SCHEMA, keyFeatures, valFeatures, true, false);
   }
 
   private void givenDataSourceWithSchema(
@@ -1078,7 +1146,8 @@ public class InsertValuesExecutorTest {
       final LogicalSchema schema,
       final SerdeFeatures keyFeatures,
       final SerdeFeatures valFeatures,
-      final boolean table
+      final boolean table,
+      final boolean isSource
   ) {
     givenDataSourceWithSchema(
         topicName,
@@ -1087,7 +1156,8 @@ public class InsertValuesExecutorTest {
         valFeatures,
         FormatInfo.of(FormatFactory.KAFKA.name()),
         FormatInfo.of(FormatFactory.JSON.name()),
-        table
+        table,
+        isSource
     );
   }
 
@@ -1098,7 +1168,8 @@ public class InsertValuesExecutorTest {
       final SerdeFeatures valFeatures,
       final FormatInfo keyFormat,
       final FormatInfo valueFormat,
-      final boolean table
+      final boolean table,
+      final boolean isSource
   ) {
     final KsqlTopic topic = new KsqlTopic(
         topicName,
@@ -1114,7 +1185,8 @@ public class InsertValuesExecutorTest {
           schema,
           Optional.empty(),
           false,
-          topic
+          topic,
+          isSource
       );
     } else {
       dataSource = new KsqlStream<>(
@@ -1123,7 +1195,8 @@ public class InsertValuesExecutorTest {
           schema,
           Optional.empty(),
           false,
-          topic
+          topic,
+          isSource
       );
     }
 

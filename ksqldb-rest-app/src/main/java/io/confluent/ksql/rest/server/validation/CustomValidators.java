@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.validation;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -49,6 +48,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
+import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.rest.server.execution.ListVariablesExecutor;
 import io.confluent.ksql.rest.server.execution.PropertyExecutor;
@@ -70,9 +70,13 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
-  QUERY_ENDPOINT(Query.class, (statement, sessionProperties, executionContext, serviceContext) -> {
-    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
-  }),
+  QUERY_ENDPOINT(Query.class,
+      (statement,
+          sessionProperties,
+          executionContext,
+          serviceContext) -> {
+        throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
+      }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
 
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),
@@ -133,6 +137,10 @@ public enum CustomValidators {
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext) throws KsqlException {
-    validator.validate(statement, sessionProperties, executionContext, serviceContext);
+    validator.validate(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext);
   }
 }

@@ -28,6 +28,65 @@
       ]
     },
     {
+      "name": "PROTOBUF in/out",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "topics": [
+        {
+          "name": "test",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bytes b = 1;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"b": "dmFyaWF0aW9ucw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "TEST2", "type": "stream", "schema": "B BYTES"}
+        ]
+      }
+    },
+    {
+      "name": "AVRO in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, b BYTES) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "topics": [
+        {
+          "name" : "test",
+          "valueSchema" : {
+            "type" : "record",
+            "name" : "KsqlDataSourceSchema",
+            "namespace" : "io.confluent.ksql.avro_schemas",
+            "fields" : [ {
+              "name" : "ID",
+              "type" : [ "null", "string" ],
+              "default" : null
+            }, {
+              "name" : "B",
+              "type" : [ "null", "bytes" ],
+              "default" : null
+            }],
+            "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
+          },
+          "valueFormat" : "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+      ]
+    },
+    {
       "name": "bytes in complex types",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, S STRUCT<B BYTES>, A ARRAY<BYTES>, M MAP<STRING, BYTES>) WITH (kafka_topic='test', value_format='JSON');",

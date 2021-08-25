@@ -214,7 +214,8 @@ final class QueryExecutor {
       isTable = false;
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
-        allPersistentQueries, isTable, windowed, streamsProperties);
+        allPersistentQueries, isTable, windowed, streamsProperties,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY));
     registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }

@@ -110,7 +110,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
@@ -124,7 +124,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
@@ -139,7 +139,7 @@ public class ConnectExecutorTest {
     //When
     final Optional<KsqlEntity> entity = ConnectExecutor
         .execute(CREATE_DUPLICATE_CONNECTOR_CONFIGURED,
-            mock(SessionProperties.class), null, serviceContext);
+            mock(SessionProperties.class), null, serviceContext).getEntity();
     //Then
     assertThat("Expected non-empty response", entity.isPresent());
     assertThat(entity.get(), instanceOf(WarningEntity.class));
@@ -154,7 +154,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext).getEntity();
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());

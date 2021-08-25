@@ -127,7 +127,13 @@ public class RequestValidator {
       );
 
       numPersistentQueries +=
-          validate(serviceContext, configured, sessionProperties, ctx, injector);
+          validate(
+              serviceContext,
+              configured,
+              sessionProperties,
+              ctx,
+              injector
+          );
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
@@ -156,8 +162,12 @@ public class RequestValidator {
         customValidators.get(statementClass);
 
     if (customValidator != null) {
-      customValidator
-          .validate(configured, sessionProperties, executionContext, serviceContext);
+      customValidator.validate(
+          configured,
+          sessionProperties,
+          executionContext,
+          serviceContext
+      );
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())
         || configured.getStatement() instanceof TerminateQuery) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);

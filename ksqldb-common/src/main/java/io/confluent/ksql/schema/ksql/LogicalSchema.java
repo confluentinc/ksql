@@ -323,7 +323,6 @@ public final class LogicalSchema {
    */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> keyColumns = keyColumns(byNamespace);

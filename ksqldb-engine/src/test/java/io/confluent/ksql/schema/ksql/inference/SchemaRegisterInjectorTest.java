@@ -174,7 +174,8 @@ public class SchemaRegisterInjectorTest {
         SCHEMA,
         Optional.empty(),
         false,
-        sourceTopic
+        sourceTopic,
+        false
     );
     metaStore.putSource(source, false);
   }

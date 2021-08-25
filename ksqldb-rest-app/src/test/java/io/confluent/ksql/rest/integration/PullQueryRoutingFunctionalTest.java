@@ -58,6 +58,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
@@ -105,7 +106,7 @@ public class PullQueryRoutingFunctionalTest {
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final int HEADER = 1;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private static final TemporaryFolder TMP = new TemporaryFolder();
+  private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
   private static final int BASE_TIME = 1_000_000;
   private final static String KEY = USER_PROVIDER.getStringKey(0);
   private final static String KEY1 = USER_PROVIDER.getStringKey(1);

@@ -82,14 +82,11 @@ public class PushPhysicalPlan {
 
   private void maybeNext(final Publisher publisher) {
     List<?> row;
-    while ((row = (List<?>)next()) != null) {
-      if (dataSourceOperator.droppedRows()) {
-        closeInternal();
-        publisher.reportDroppedRows();
-        break;
-      } else {
-        publisher.accept(row);
-      }
+    while (!isErrored(publisher) && (row = (List<?>) next(publisher)) != null) {
+      publisher.accept(row);
+    }
+    if (publisher.isFailed()) {
+      return;
     }
     if (!closed) {
       if (timer >= 0) {
@@ -103,16 +100,38 @@ public class PushPhysicalPlan {
     }
   }
 
-  private void open(final Publisher publisher) {
-    VertxUtils.checkContext(context);
-    dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
-    root.open();
-    maybeNext(publisher);
+  private boolean isErrored(final Publisher publisher) {
+    if (dataSourceOperator.droppedRows()) {
+      closeInternal();
+      publisher.reportDroppedRows();
+      return true;
+    } else if (dataSourceOperator.hasError()) {
+      closeInternal();
+      publisher.reportHasError();
+      return true;
+    }
+    return false;
   }
 
-  private Object next() {
+  private void open(final Publisher publisher) {
     VertxUtils.checkContext(context);
-    return root.next();
+    try {
+      dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
+      root.open();
+      maybeNext(publisher);
+    } catch (Throwable t) {
+      publisher.sendException(t);
+    }
+  }
+
+  private Object next(final Publisher publisher) {
+    VertxUtils.checkContext(context);
+    try {
+      return root.next();
+    } catch (final Throwable t) {
+      publisher.sendException(t);
+      return null;
+    }
   }
 
   public void close() {
@@ -142,6 +161,11 @@ public class PushPhysicalPlan {
     return scalablePushRegistry;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public Context getContext() {
+    return context;
+  }
+
   public static class Publisher extends BufferedPublisher<List<?>> {
 
     public Publisher(final Context ctx) {
@@ -150,6 +174,18 @@ public class PushPhysicalPlan {
 
     public void reportDroppedRows() {
       sendError(new RuntimeException("Dropped rows"));
+    }
+
+    public void reportHasError() {
+      sendError(new RuntimeException("Persistent query has error"));
+    }
+
+    public void sendException(final Throwable e) {
+      sendError(e);
+    }
+
+    public boolean isFailed() {
+      return super.isFailed();
     }
   }
 }

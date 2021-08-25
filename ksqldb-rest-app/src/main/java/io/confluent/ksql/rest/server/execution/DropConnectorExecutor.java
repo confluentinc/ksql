@@ -20,7 +20,6 @@ import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
@@ -34,7 +33,7 @@ public final class DropConnectorExecutor {
 
   }
 
-  public static Optional<KsqlEntity> execute(
+  public static StatementExecutorResponse execute(
       final ConfiguredStatement<DropConnector> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -47,13 +46,16 @@ public final class DropConnectorExecutor {
 
     if (response.error().isPresent()) {
       if (ifExists && response.httpCode() == HttpStatus.SC_NOT_FOUND) {
-        return Optional.of(new WarningEntity(statement.getStatementText(),
-                "Connector '" + connectorName + "' does not exist."));
+        return StatementExecutorResponse.handled(Optional.of(
+            new WarningEntity(statement.getStatementText(),
+                "Connector '" + connectorName + "' does not exist.")));
       } else {
-        return Optional.of(new ErrorEntity(statement.getStatementText(), response.error().get()));
+        return StatementExecutorResponse.handled(Optional.of(
+            new ErrorEntity(statement.getStatementText(), response.error().get())));
       }
     }
 
-    return Optional.of(new DropConnectorEntity(statement.getStatementText(), connectorName));
+    return StatementExecutorResponse.handled(Optional.of(
+        new DropConnectorEntity(statement.getStatementText(), connectorName)));
   }
 }

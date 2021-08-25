@@ -21,6 +21,7 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AG
 
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -326,11 +327,17 @@ public class WSQueryEndpoint {
         .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));
 
     if (query.isPullQuery()) {
+
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+
+
       pullQueryPublisher.start(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,
           configured,
+          analysis,
           streamSubscriber,
           pullQueryMetrics,
           startTimeNanos,
@@ -342,11 +349,16 @@ public class WSQueryEndpoint {
       );
     } else if (ScalablePushUtil.isScalablePushQuery(
         statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
+
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+
       scalablePushQueryPublisher.start(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,
           configured,
+          analysis,
           pushRouting,
           context,
           streamSubscriber
@@ -393,8 +405,13 @@ public class WSQueryEndpoint {
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final Optional<LocalCommands> localCommands
   ) {
-    PushQueryPublisher.createPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
-        .subscribe(streamSubscriber);
+    PushQueryPublisher.createPublisher(
+        ksqlEngine,
+        serviceContext,
+        exec,
+        query,
+        localCommands
+    ).subscribe(streamSubscriber);
   }
 
   private static void startScalablePushQueryPublisher(
@@ -402,13 +419,20 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    PushQueryPublisher.createScalablePublisher(ksqlEngine, serviceContext, exec, query, pushRouting,
-        context)
-        .subscribe(streamSubscriber);
+    PushQueryPublisher.createScalablePublisher(
+        ksqlEngine,
+        serviceContext,
+        exec,
+        query,
+        analysis,
+        pushRouting,
+        context
+    ).subscribe(streamSubscriber);
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -418,6 +442,7 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
+      final ImmutableAnalysis analysis,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
@@ -432,6 +457,7 @@ public class WSQueryEndpoint {
         serviceContext,
         exec,
         query,
+        analysis,
         pullQueryMetrics,
         startTimeNanos,
         routingFilterFactory,
@@ -472,6 +498,7 @@ public class WSQueryEndpoint {
         ServiceContext serviceContext,
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
+        ImmutableAnalysis analysis,
         PushRouting pushRouting,
         Context context,
         WebSocketSubscriber<StreamedRow> subscriber);
@@ -487,6 +514,7 @@ public class WSQueryEndpoint {
         ServiceContext serviceContext,
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
+        ImmutableAnalysis analysis,
         WebSocketSubscriber<StreamedRow> subscriber,
         Optional<PullQueryExecutorMetrics> pullQueryMetrics,
         long startTimeNanos,

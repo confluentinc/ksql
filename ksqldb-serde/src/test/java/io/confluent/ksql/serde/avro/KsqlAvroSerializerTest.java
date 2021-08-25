@@ -23,6 +23,7 @@ import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT32_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -251,8 +252,16 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(containsString(
-        "java.lang.Integer cannot be cast to org.apache.kafka.connect.data.Struct"))));
+    assertThat(
+        e.getCause(),
+        hasMessage(
+            allOf(
+                containsString("java.lang.Integer"),
+                containsString("cannot be cast"),
+                containsString("org.apache.kafka.connect.data.Struct")
+            )
+        )
+    );
   }
 
   @Test
@@ -480,8 +489,16 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.List"))));
+    assertThat(
+        e.getCause(),
+        hasMessage(
+            allOf(
+                containsString("java.lang.Boolean"),
+                containsString("cannot be cast"),
+                containsString("java.util.List")
+            )
+        )
+    );
   }
 
   @Test
@@ -612,7 +629,7 @@ public class KsqlAvroSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
 
     // Then:
-    assertThat(deserialize(bytes), is(ImmutableList.of(avroOrder)));
+    assertThat(deserialize(bytes), is((List<GenericRecord>) ImmutableList.of(avroOrder)));
   }
 
   @Test
@@ -667,8 +684,16 @@ public class KsqlAvroSerializerTest {
     );
 
     // Then:
-    assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
-        "java.lang.Boolean cannot be cast to java.util.Map"))));
+    assertThat(
+        e.getCause(),
+        hasMessage(
+            allOf(
+                containsString("java.lang.Boolean"),
+                containsString("cannot be cast"),
+                containsString("java.util.Map")
+            )
+        )
+    );
   }
 
   @Test

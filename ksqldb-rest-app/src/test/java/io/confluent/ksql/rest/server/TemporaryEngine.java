@@ -150,7 +150,8 @@ public class TemporaryEngine extends ExternalResource {
                 SCHEMA,
                 Optional.empty(),
                 false,
-                topic
+                topic,
+                false
             );
         break;
       case KTABLE:
@@ -161,7 +162,8 @@ public class TemporaryEngine extends ExternalResource {
                 SCHEMA,
                 Optional.empty(),
                 false,
-                topic
+                topic,
+                false
             );
         break;
       default:

@@ -40,7 +40,7 @@ public class KsqlSecurityContext {
    * {@code Optional.empty}.
    *
    * @return a {@code java.security.Principal} containing the name of the user making this request;
-   *     {@code Optional.empty} if the user has not been authenticated
+   *         {@code Optional.empty} if the user has not been authenticated
    */
   public Optional<Principal> getUserPrincipal() {
     return userPrincipal;

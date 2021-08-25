@@ -170,7 +170,8 @@ abstract class SourceBuilderBase {
     );
   }
 
-  abstract Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
+  abstract Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>>
+      buildTableMaterialized(
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
@@ -179,7 +180,7 @@ abstract class SourceBuilderBase {
   );
 
   abstract Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
-  buildWindowedTableMaterialized(
+      buildWindowedTableMaterialized(
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,

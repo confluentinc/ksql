@@ -57,7 +57,7 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 final class SourceBuilderV1 extends SourceBuilderBase {
 
-  private final static SourceBuilderV1 instance;
+  private static final SourceBuilderV1 instance;
 
   static {
     instance = new SourceBuilderV1();
@@ -164,13 +164,14 @@ final class SourceBuilderV1 extends SourceBuilderBase {
   }
 
   @Override
-  public Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> buildWindowedTableMaterialized(
+  public Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
+      buildWindowedTableMaterialized(
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<Windowed<GenericKey>> keySerde,
       final Serde<GenericRow> valueSerde
-      ) {
+  ) {
     return materializedFactory.create(
         keySerde,
         valueSerde,
@@ -280,7 +281,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
     return key -> key == null ? nullKey.values() : key.values();
   }
 
-  private static void validateNotUsingOldExecutionStepWithNewQueries(final SourceStep<?> streamSource) {
+  private static void validateNotUsingOldExecutionStepWithNewQueries(
+      final SourceStep<?> streamSource) {
     final boolean oldTable =
         streamSource instanceof TableSourceV1
             || streamSource instanceof  WindowedTableSourceV1;

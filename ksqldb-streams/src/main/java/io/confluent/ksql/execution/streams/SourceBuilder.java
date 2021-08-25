@@ -50,7 +50,7 @@ import org.apache.kafka.streams.state.KeyValueStore;
 
 final class SourceBuilder extends SourceBuilderBase {
 
-  private final static SourceBuilder instance;
+  private static final SourceBuilder instance;
 
   static {
     instance = new SourceBuilder();
@@ -74,31 +74,31 @@ final class SourceBuilder extends SourceBuilderBase {
       final String stateStoreName,
       final PlanInfo planInfo
   ) {
-      final KTable<K, GenericRow> source = buildContext
+    final KTable<K, GenericRow> source = buildContext
           .getStreamsBuilder()
           .table(streamSource.getTopicName(), consumed);
 
-      final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
+    final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
 
-      final KTable<K, GenericRow> transformed = source.transformValues(
-          new AddKeyAndPseudoColumns<>(keyGenerator, streamSource.getPseudoColumnVersion()));
+    final KTable<K, GenericRow> transformed = source.transformValues(
+        new AddKeyAndPseudoColumns<>(keyGenerator, streamSource.getPseudoColumnVersion()));
 
-      if (forceMaterialization) {
-        // add this identity mapValues call to prevent the source-changelog
-        // optimization in kafka streams - we don't want this optimization to
-        // be enabled because we cannot require symmetric serialization between
-        // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
-        // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-        return transformed.mapValues(row -> row, materialized);
+    if (forceMaterialization) {
+      // add this identity mapValues call to prevent the source-changelog
+      // optimization in kafka streams - we don't want this optimization to
+      // be enabled because we cannot require symmetric serialization between
+      // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
+      // and https://github.com/confluentinc/ksql/issues/5673 for more details)
+      return transformed.mapValues(row -> row, materialized);
 
-      } else {
-        // if we know this table source is repartitioned later in the topology,
-        // we do not need to force a materialization at this source step since the
-        // re-partitioned topic will be used for any subsequent state stores, in lieu
-        // of the original source topic, thus avoiding the issues above.
-        // See https://github.com/confluentinc/ksql/issues/6650
-        return transformed.mapValues(row -> row);
-      }
+    } else {
+      // if we know this table source is repartitioned later in the topology,
+      // we do not need to force a materialization at this source step since the
+      // re-partitioned topic will be used for any subsequent state stores, in lieu
+      // of the original source topic, thus avoiding the issues above.
+      // See https://github.com/confluentinc/ksql/issues/6650
+      return transformed.mapValues(row -> row);
+    }
 
   }
 
@@ -132,8 +132,8 @@ final class SourceBuilder extends SourceBuilderBase {
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<GenericKey> sourceKeySerde,
+      final Serde<GenericRow> sourceValueSerde
   ) {
 
     final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
@@ -165,12 +165,12 @@ final class SourceBuilder extends SourceBuilderBase {
 
   @Override
   Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
-  buildWindowedTableMaterialized(
+      buildWindowedTableMaterialized(
       final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<Windowed<GenericKey>> sourceKeySerde,
+      final Serde<GenericRow> sourceValueSerde
   ) {
 
     final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());

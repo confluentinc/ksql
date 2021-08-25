@@ -87,7 +87,7 @@ public interface MetricsReporter extends Closeable, Configurable {
       }
       final DataPoint dataPoint = (DataPoint) o;
       return time == dataPoint.time
-          && value == dataPoint.value
+          && Objects.equals(value, dataPoint.value)
           && Objects.equals(name, dataPoint.name)
           && Objects.equals(tags, dataPoint.tags);
     }

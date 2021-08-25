@@ -120,6 +120,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl.close();
 
         //Then:
-        verify(kafkaStreamsNamedTopologyWrapper).close(any());
+        verify(kafkaStreamsNamedTopologyWrapper).close();
     }
 }

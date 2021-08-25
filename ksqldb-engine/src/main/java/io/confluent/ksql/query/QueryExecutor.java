@@ -439,7 +439,9 @@ final class QueryExecutor {
       stream = new ValidationSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-          buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID() + "-validation", queryID)
+          buildStreamsProperties(
+              "_confluent-ksql-" + streams.size() + UUID.randomUUID() + "-validation",
+              queryID)
       );
     }
     streams.add(stream);

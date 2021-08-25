@@ -54,6 +54,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -237,6 +239,10 @@ public class EndToEndIntegrationTest {
     final TransientQueryMetadata queryMetadata = executeStatement(
         "SELECT * from cart_event_product EMIT CHANGES;");
 
+    ListTopicsResult result = ksqlContext.getServiceContext().getAdminClient().listTopics();
+    Collection<TopicListing> yopis = result.listings().get();
+    Set<String> s = result.names().get();
+    System.err.println();
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));

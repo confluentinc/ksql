@@ -39,7 +39,6 @@ import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import java.util.ArrayList;
@@ -215,7 +214,8 @@ public class QueryRegistryImpl implements QueryRegistry {
           statementText,
           queryId,
           sinkDataSource,
-          sources, physicalPlan,
+          sources,
+          physicalPlan,
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values())
@@ -229,7 +229,8 @@ public class QueryRegistryImpl implements QueryRegistry {
           statementText,
           queryId,
           sinkDataSource,
-          sources, physicalPlan,
+          sources,
+          physicalPlan,
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values()),

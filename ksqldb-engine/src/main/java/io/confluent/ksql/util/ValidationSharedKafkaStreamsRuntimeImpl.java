@@ -63,7 +63,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
     metadata = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getMetadata());
     sources = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getSourcesMap());
     for (PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
-      kafkaStreams.addNamedTopology(queryMetadata.getTopology());
+      //kafkaStreams.addNamedTopology(queryMetadata.getTopology());
     }
   }
 
@@ -184,12 +184,12 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
 
   @Override
   public Map<String, PersistentQueriesInSharedRuntimesImpl> getMetadata() {
-    return metadata;
+    return ImmutableMap.copyOf(metadata);
   }
 
   @Override
   public Map<QueryId, Set<SourceName>> getSourcesMap() {
-    return sources;
+    return ImmutableMap.copyOf(sources);
   }
 
   public void addQueryError(final QueryError e) {

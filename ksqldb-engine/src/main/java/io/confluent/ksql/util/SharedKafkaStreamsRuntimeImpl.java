@@ -169,15 +169,14 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
         throw new IllegalStateException("Streams in not running but is in state"
             + kafkaStreams.state());
       }
-      //kafkaStreams.cleanUpNamedTopology(queryId.toString());
+//      kafkaStreams.cleanUpNamedTopology(queryId.toString());
       // Once remove is blocking this can be uncommented for now it breaks
     }
   }
 
   public synchronized void close() {
-    kafkaStreams.close(Duration.ZERO);
-    //kafkaStreams.cleanUp();
-    //close is deadlocking on this version of streams but when that is fixed uncomment
+    kafkaStreams.close();
+    kafkaStreams.cleanUp();
   }
 
   public void start(final QueryId queryId) {
@@ -230,12 +229,12 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
 
   @Override
   public Map<String, PersistentQueriesInSharedRuntimesImpl> getMetadata() {
-    return metadata;
+    return ImmutableMap.copyOf(metadata);
   }
 
   @Override
   public Map<QueryId, Set<SourceName>> getSourcesMap() {
-    return sources;
+    return ImmutableMap.copyOf(sources);
   }
 
   public void addQueryError(final QueryError e) {

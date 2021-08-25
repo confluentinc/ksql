@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
-import io.confluent.ksql.query.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -39,7 +38,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,13 +56,10 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
   ) {
     streamsProperties = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getStreamProperties());
     streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG,
-        streamsProperties.get(
-            StreamsConfig.APPLICATION_ID_CONFIG)
-            + "validation"
-            + UUID.randomUUID()
+        "_confluent-ksql-" + UUID.randomUUID() + "-validation"
     );
     kafkaStreamsBuilder = sharedKafkaStreamsRuntime.getKafkaStreamsBuilder();
-    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
     metadata = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getMetadata());
     sources = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getSourcesMap());
     for (PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
@@ -75,7 +70,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
   public ValidationSharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                                  final int maxQueryErrorsQueueSize,
                                                  final Map<String, Object> streamsProperties) {
-    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new ConcurrentHashMap<>();
     sources = new ConcurrentHashMap<>();
@@ -137,6 +132,10 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
       metadata.remove(query);
     }
     kafkaStreams.close();
+    for (final String q: metadata.keySet()) {
+      kafkaStreams.cleanUpNamedTopology(q);
+    }
+    kafkaStreams.cleanUp();
   }
 
   public void start(final QueryId queryId) {

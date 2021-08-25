@@ -723,7 +723,7 @@ public class StreamedQueryResourceTest {
 
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
     final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
-    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any(), any())).thenReturn(mockKafkaStreams);
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
     MutableBoolean closed = new MutableBoolean(false);
     when(mockKafkaStreams.close(any())).thenAnswer(i -> {
       closed.setValue(true);

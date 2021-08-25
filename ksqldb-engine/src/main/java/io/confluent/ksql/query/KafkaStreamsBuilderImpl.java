@@ -30,8 +30,7 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier");
   }
 
-  @Override
-  public KafkaStreams buildNamedTopologyWrapper(
+  public KafkaStreams build(
           final Topology topology,
           final Map<String, Object> conf
   ) {
@@ -43,7 +42,7 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
   }
 
   @Override
-  public KafkaStreamsNamedTopologyWrapper buildNamedTopologyWrapper(
+  public KafkaStreamsNamedTopologyWrapper build(
           final Map<String, Object> conf
   ) {
     return new KafkaStreamsNamedTopologyWrapper(

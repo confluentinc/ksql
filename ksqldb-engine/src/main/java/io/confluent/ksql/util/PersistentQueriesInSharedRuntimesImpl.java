@@ -62,7 +62,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
   private final String executionPlan;
-  private final String queryApplicationId;
+  private final String applicationId;
   private final NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
@@ -99,7 +99,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
-      final String queryApplicationId,
+      final String applicationId,
       final NamedTopology topology,
       final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
       final QuerySchemas schemas,
@@ -118,7 +118,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
-    this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
+    this.applicationId = Objects.requireNonNull(applicationId, "applicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
     this.sharedKafkaStreamsRuntime =
         Objects.requireNonNull(sharedKafkaStreamsRuntime, "sharedKafkaStreamsRuntime");
@@ -154,7 +154,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.persistentQueryType = original.persistentQueryType;
     this.statementString = original.statementString;
     this.executionPlan = original.executionPlan;
-    this.queryApplicationId = original.queryApplicationId;
+    this.applicationId = original.applicationId;
     this.topology = original.topology;
     this.sharedKafkaStreamsRuntime = original.sharedKafkaStreamsRuntime;
     this.sinkDataSource = original.sinkDataSource;
@@ -286,8 +286,8 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public String getQueryApplicationId() {
-    return queryApplicationId;
+  public String getApplicationId() {
+    return applicationId;
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topology is for reference")

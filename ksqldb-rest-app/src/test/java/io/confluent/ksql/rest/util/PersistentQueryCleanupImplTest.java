@@ -94,7 +94,7 @@ public class PersistentQueryCleanupImplTest {
   @Test
   public void shouldKeepStateStoresBelongingToRunningQueries() {
     // Given:
-    when(runningQuery.getQueryApplicationId()).thenReturn("testQueryID");
+    when(runningQuery.getApplicationId()).thenReturn("testQueryID");
 
     File fakeStateStore = new File(tempFile.getAbsolutePath() + "testQueryID");
     if (!fakeStateStore.exists()) {

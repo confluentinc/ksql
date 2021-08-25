@@ -45,7 +45,7 @@ public interface QueryMetadata {
 
   String getExecutionPlan();
 
-  String getQueryApplicationId();
+  String getApplicationId();
 
   Topology getTopology();
 

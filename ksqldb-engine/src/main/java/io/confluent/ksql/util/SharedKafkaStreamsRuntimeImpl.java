@@ -57,7 +57,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
                                        final int maxQueryErrorsQueueSize,
                                        final Map<String, Object> streamsProperties) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
-    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
     queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);

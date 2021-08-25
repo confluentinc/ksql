@@ -346,7 +346,7 @@ final class QueryExecutor {
             .getStreamProperties()
             .get(StreamsConfig.APPLICATION_ID_CONFIG)
             .toString();
-    final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+    final Map<String, Object> streamsProperties = sharedKafkaStreamsRuntime.getStreamProperties();
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
             sinkDataSource.getSchema(),
@@ -439,7 +439,7 @@ final class QueryExecutor {
       stream = new ValidationSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-          buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
+          buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID() + "-validation", queryID)
       );
     }
     streams.add(stream);

@@ -73,9 +73,9 @@ public class LocalCommandsTest {
 
   @Before
   public void setup() throws IOException {
-    when(metadata1.getQueryApplicationId()).thenReturn(QUERY_APP_ID1);
-    when(metadata2.getQueryApplicationId()).thenReturn(QUERY_APP_ID2);
-    when(metadata3.getQueryApplicationId()).thenReturn(QUERY_APP_ID3);
+    when(metadata1.getApplicationId()).thenReturn(QUERY_APP_ID1);
+    when(metadata2.getApplicationId()).thenReturn(QUERY_APP_ID2);
+    when(metadata3.getApplicationId()).thenReturn(QUERY_APP_ID3);
   }
 
   @Test

@@ -159,7 +159,6 @@ public class EndToEndIntegrationTest {
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
     toClose.clear();
-    TEST_HARNESS.before();
 
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC, USERS_TOPIC);
 
@@ -186,6 +185,11 @@ public class EndToEndIntegrationTest {
     ksqlContext.sql("CREATE STREAM " + PAGE_VIEW_STREAM
         + " (pageid varchar KEY, viewtime bigint, userid varchar) "
         + "WITH (kafka_topic='" + PAGE_VIEW_TOPIC + "', value_format='JSON');");
+
+    final TransientQueryMetadata queryMetadata = executeStatement(
+        "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;");
+
+    final List<Object> columns = waitForFirstRow(queryMetadata);
   }
 
   @After

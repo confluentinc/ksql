@@ -202,8 +202,8 @@ public class QueryExecutorTest {
     when(sink.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
-    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any(), any())).thenReturn(kafkaStreams);
-    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
+    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+    when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -269,7 +269,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
-    verify(kafkaStreamsBuilder).buildNamedTopologyWrapper(any(), propertyCaptor.capture());
+    verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
   }
 
@@ -699,7 +699,7 @@ public class QueryExecutorTest {
   }
 
   private Map<String, Object> capturedStreamsProperties() {
-    verify(kafkaStreamsBuilder).buildNamedTopologyWrapper(any(), propertyCaptor.capture());
+    verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     return propertyCaptor.getValue();
   }
 

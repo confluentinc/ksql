@@ -141,7 +141,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.statementString = other.getStatementString();
     this.kafkaStreams = other.getKafkaStreams();
     this.executionPlan = other.getExecutionPlan();
-    this.queryApplicationId = other.getQueryApplicationId();
+    this.queryApplicationId = other.getApplicationId();
     this.topology = other.getTopology();
     this.kafkaStreamsBuilder = other.kafkaStreamsBuilder;
     this.streamsProperties = other.getStreamsProperties();
@@ -170,7 +170,7 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   public void initialize() {
     // initialize the first KafkaStreams
-    resetKafkaStreams(kafkaStreamsBuilder.buildNamedTopologyWrapper(topology, streamsProperties));
+    resetKafkaStreams(kafkaStreamsBuilder.build(topology, streamsProperties));
     this.initialized = true;
   }
 
@@ -244,7 +244,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     return executionPlan;
   }
 
-  public String getQueryApplicationId() {
+  public String getApplicationId() {
     return queryApplicationId;
   }
 

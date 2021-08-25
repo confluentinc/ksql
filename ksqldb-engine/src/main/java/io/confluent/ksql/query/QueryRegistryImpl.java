@@ -133,6 +133,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     this.streams = original.streams.stream()
         .map(ValidationSharedKafkaStreamsRuntimeImpl::new)
         .collect(Collectors.toList());
+
     sandbox = true;
   }
 
@@ -193,24 +194,14 @@ public class QueryRegistryImpl implements QueryRegistry {
       final String planSummary,
       final boolean createAsQuery) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor;
-    if (sandbox) {
-      executor = executorFactory.create(
+    final QueryExecutor executor = executorFactory.create(
           config,
           processingLogContext,
           serviceContext,
           metaStore,
           streams,
-          false);
-    } else {
-      executor = executorFactory.create(
-          config,
-          processingLogContext,
-          serviceContext,
-          metaStore,
-          streams,
-          true);
-    }
+          !sandbox);
+
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
     final PersistentQueryMetadata query;

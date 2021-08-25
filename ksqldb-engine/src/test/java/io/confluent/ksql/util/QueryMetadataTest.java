@@ -92,7 +92,7 @@ public class QueryMetadataTest {
 
   @Before
   public void setup() {
-    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
+    when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 

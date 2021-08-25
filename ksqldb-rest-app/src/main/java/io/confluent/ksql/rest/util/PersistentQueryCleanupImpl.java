@@ -46,7 +46,7 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
     final Set<String> stateStoreNames =
         persistentQueries
         .stream()
-        .map(PersistentQueryMetadata::getQueryApplicationId)
+        .map(PersistentQueryMetadata::getApplicationId)
         .collect(Collectors.toSet());
 
     final String[] stateDirFileNames = new File(stateDir).list();

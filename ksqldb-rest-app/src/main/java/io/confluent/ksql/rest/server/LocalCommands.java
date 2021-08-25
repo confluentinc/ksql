@@ -96,12 +96,12 @@ public class LocalCommands implements Closeable {
   public void write(final TransientQueryMetadata queryMetadata) {
     try {
       currentLocalCommands.write(
-          new TransientQueryLocalCommand(queryMetadata.getQueryApplicationId()));
+          new TransientQueryLocalCommand(queryMetadata.getApplicationId()));
     } catch (IOException e) {
       // Just log an error since not catching it would likely cause more cleanup work than this
       // aims to fix.
       LOG.error("Failed to write local command for transient query:"
-          + queryMetadata.getQueryApplicationId(), e);
+          + queryMetadata.getApplicationId(), e);
     }
   }
 

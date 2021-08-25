@@ -1212,17 +1212,34 @@
       }
     },
     {
+      "name": "on empty stream",
+      "statements": [
+        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1;"
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}}
+        ]}
+      ]
+    },
+    {
       "name": "on stream",
       "statements": [
-        "CREATE STREAM S1 (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM S2 AS SELECT * FROM S1;",
-        "SELECT * FROM S2 WHERE ID = 10;"
+        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries are not supported on streams.",
-        "status": 400
-      }
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"myvalue": 1}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
+          {"row":{"columns":[10, 1]}}
+        ]}
+      ]
     },
     {
       "name": "window start lower bound",
@@ -2893,24 +2910,6 @@
           {"row":{"columns":[101, 3]}}
         ]}
       ]
-    },
-    {
-      "name": "should give good error message when querying a stream with multiple input queries",
-      "statements": [
-        "CREATE STREAM tweets_01 (id varchar key, contents varchar) with (kafka_topic='tweets', format='json', partitions=1);",
-        "CREATE STREAM tweets_02 (id varchar key, contents varchar) with (kafka_topic='tweets', format='json', partitions=1);",
-        "CREATE STREAM ALL_TWEETS WITH (KAFKA_TOPIC='ALL_TWEETS', PARTITIONS=1, REPLICAS=1) AS SELECT * FROM tweets_01;",
-        "INSERT INTO ALL_TWEETS SELECT * FROM TWEETS_02;",
-        "SELECT * FROM ALL_TWEETS WHERE ID = '10';"
-      ],
-      "properties": {
-        "ksql.query.pull.table.scan.enabled":  false
-      },
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Add EMIT CHANGES if you intended to issue a push query.",
-        "status": 400
-      }
     },
     {
       "name": "lambdas - lambda use in SELECT",

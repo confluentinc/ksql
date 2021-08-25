@@ -23,6 +23,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.MetricsCallback;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -66,10 +67,12 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Context;
 import java.time.Clock;
 import java.time.Duration;
@@ -396,10 +399,16 @@ public class StreamedQueryResource implements KsqlConfigurable {
           );
         }
         case KSTREAM: {
-          throw new KsqlStatementException(
-              "Pull queries are not supported on streams."
-                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
-              statement.getStatementText()
+          final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
+
+          final ConfiguredStatement<Query> configured = ConfiguredStatement
+              .of(statement, sessionConfig);
+
+          return handleStreamPullQuery(
+              analysis,
+              securityContext.getServiceContext(),
+              configured,
+              connectionClosedFuture
           );
         }
         default:
@@ -538,6 +547,43 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     QueryLogger.info("Streaming scalable push query", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);
+  }
+
+  private EndpointResponse handleStreamPullQuery(
+      final ImmutableAnalysis analysis,
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> configured,
+      final CompletableFuture<Void> connectionClosedFuture) {
+
+    final TransientQueryMetadata transientQueryMetadata = ksqlEngine
+        .createStreamPullQuery(
+            serviceContext,
+            configured,
+            false
+        );
+    localCommands.ifPresent(lc -> lc.write(transientQueryMetadata));
+
+    // Be sure to close the stream in the event of any error. It's safe to close it twice,
+    // which will happen if we call close inside the block, and then again when we exit the
+    // try-with-resources
+    try (QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
+        transientQueryMetadata,
+        disconnectCheckInterval.toMillis(),
+        OBJECT_MAPPER,
+        connectionClosedFuture
+    )) {
+      ksqlEngine.waitForStreamPullQuery(
+          serviceContext,
+          analysis,
+          configured,
+          transientQueryMetadata
+      );
+      // stop the response stream before sending the successful response.
+      queryStreamWriter.close();
+      return EndpointResponse.ok(queryStreamWriter);
+    } catch (final KsqlServerException e) {
+      throw new KsqlApiException(e.getMessage(), HttpResponseStatus.INTERNAL_SERVER_ERROR.code());
+    }
   }
 
   private EndpointResponse handlePushQuery(

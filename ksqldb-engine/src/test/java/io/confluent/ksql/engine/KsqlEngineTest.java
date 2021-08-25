@@ -37,6 +37,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,8 +56,9 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -65,12 +67,10 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -83,7 +83,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
 import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
@@ -100,6 +99,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
 import org.junit.Assert;
@@ -1924,6 +1924,47 @@ public class KsqlEngineTest {
     // Then:
     verifyNoMoreInteractions(topicClient);
     verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldCheckStreamPullQueryEnabledFlag() {
+    // create a separate KsqlEngine with the feature flag disabled
+    try (final KsqlEngine ksqlEngine = new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        "spq_test_instance_",
+        metaStore,
+        (engine) -> new KsqlEngineMetrics(
+            "spq",
+            engine,
+            new Metrics(),
+            emptyMap(),
+            Optional.empty()),
+        new SequentialQueryIdGenerator(),
+        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, "false")),
+        Collections.emptyList()
+    )) {
+
+      final ConfiguredStatement<Query> statementOrig = mock(ConfiguredStatement.class);
+      when(statementOrig.getStatementText()).thenReturn("TEXT");
+
+      final KsqlStatementException ksqlStatementException = assertThrows(
+          KsqlStatementException.class,
+          () -> ksqlEngine.createStreamPullQuery(
+              null,
+              statementOrig,
+              false
+          )
+      );
+
+      assertThat(ksqlStatementException.getSqlStatement(), is("TEXT"));
+      assertThat(ksqlStatementException.getRawMessage(), is(
+          "Pull queries on streams are disabled."
+              + " To create a push query on the stream, add EMIT CHANGES to the end."
+              + " To enable pull queries on streams,"
+              + " set the ksql.query.pull.stream.enabled config to 'true'."
+      ));
+    }
   }
 
   private void givenTopicsExist(final String... topics) {

@@ -48,9 +48,9 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
 @RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
@@ -95,6 +95,7 @@ public class QueryRegistryImplTest {
 
   @Before
   public void setup() {
+    rule.strictness(Strictness.WARN);
     when(executorFactory.create(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(executor);
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());

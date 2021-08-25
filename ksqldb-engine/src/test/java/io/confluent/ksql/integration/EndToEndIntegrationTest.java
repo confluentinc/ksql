@@ -130,6 +130,7 @@ public class EndToEndIntegrationTest {
 
   @Before
   public void before() throws Exception {
+    TEST_HARNESS.before();
     ksqlContext  = TEST_HARNESS.ksqlContextBuilder()
         .withAdditionalConfig(
             StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -187,17 +188,14 @@ public class EndToEndIntegrationTest {
     ksqlContext.sql("CREATE STREAM " + PAGE_VIEW_STREAM
         + " (pageid varchar KEY, viewtime bigint, userid varchar) "
         + "WITH (kafka_topic='" + PAGE_VIEW_TOPIC + "', value_format='JSON');");
-
-    final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES;");
-
-    final List<Object> columns = waitForFirstRow(queryMetadata);
   }
 
   @After
   public void after() {
     toClose.forEach(QueryMetadata::close);
     ksqlContext.after();
+    TEST_HARNESS.deleteTopics(Arrays.asList(PAGE_VIEW_TOPIC, USERS_TOPIC));
+    TEST_HARNESS.after();
   }
 
   @Test
@@ -239,10 +237,6 @@ public class EndToEndIntegrationTest {
     final TransientQueryMetadata queryMetadata = executeStatement(
         "SELECT * from cart_event_product EMIT CHANGES;");
 
-    ListTopicsResult result = ksqlContext.getServiceContext().getAdminClient().listTopics();
-    Collection<TopicListing> yopis = result.listings().get();
-    Set<String> s = result.names().get();
-    System.err.println();
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));

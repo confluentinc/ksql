@@ -161,15 +161,13 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
   public void stop(final QueryId queryId) {
     LOG.info("Attempting to stop Query: " + queryId.toString());
     if (metadata.containsKey(queryId.toString()) && sources.containsKey(queryId)) {
-      sources.remove(queryId);
-      metadata.remove(queryId.toString());
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         kafkaStreams.removeNamedTopology(queryId.toString());
       } else {
         throw new IllegalStateException("Streams in not running but is in state"
             + kafkaStreams.state());
       }
-      kafkaStreams.cleanUpNamedTopology(queryId.toString());
+      //kafkaStreams.cleanUpNamedTopology(queryId.toString());
       // Once remove is blocking this can be uncommented for now it breaks
     }
   }

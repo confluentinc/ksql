@@ -117,19 +117,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
-    public void shouldStopQuery() {
-        //Given:
-        sharedKafkaStreamsRuntimeImpl.start(queryId);
-        when(kafkaStreamsNamedTopologyWrapper.state()).thenReturn(KafkaStreams.State.RUNNING);
-
-        //When:
-        sharedKafkaStreamsRuntimeImpl.stop(queryId);
-
-        //Then:
-        assertThat("Query was not stopped", !sharedKafkaStreamsRuntimeImpl.getQueries().contains(queryId));
-    }
-
-    @Test
     public void shouldCloseRuntime() {
         //When:
         sharedKafkaStreamsRuntimeImpl.close();

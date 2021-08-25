@@ -87,7 +87,6 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
         persistentQueriesInSharedRuntimes,
         queryId);
     when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
-    when(persistentQueriesInSharedRuntimes.getTopology()).thenReturn(namedTopology);
   }
 
   @Test

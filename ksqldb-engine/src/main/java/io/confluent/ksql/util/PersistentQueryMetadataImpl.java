@@ -59,7 +59,6 @@ public class PersistentQueryMetadataImpl
       materializationProviderBuilder;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   private final ProcessingLogger processingLogger;
-  private final DataSourceType outputSourceType;
 
   private Optional<MaterializationProvider> materializationProvider;
   private final ScheduledExecutorService executorService;
@@ -124,10 +123,6 @@ public class PersistentQueryMetadataImpl
         1,
         new ThreadFactoryBuilder().setNameFormat("ksql-csu-metrics-reporter-%d").build()
       );
-
-    // Once source tables is supported, sinkDataSource will be optional and we should get
-    // the output source type from a different place
-    this.outputSourceType = sinkDataSource.get().getDataSourceType();
   }
 
   // for creating sandbox instances
@@ -146,7 +141,6 @@ public class PersistentQueryMetadataImpl
     this.scalablePushRegistry = original.scalablePushRegistry;
     this.persistentQueryType = original.getPersistentQueryType();
     this.executorService = original.executorService;
-    this.outputSourceType = original.outputSourceType;
   }
 
   @Override
@@ -172,8 +166,8 @@ public class PersistentQueryMetadataImpl
   }
 
   @Override
-  public DataSourceType getDataSourceType() {
-    return outputSourceType;
+  public Optional<DataSourceType> getDataSourceType() {
+    return sinkDataSource.map(DataSource::getDataSourceType);
   }
 
   @Override

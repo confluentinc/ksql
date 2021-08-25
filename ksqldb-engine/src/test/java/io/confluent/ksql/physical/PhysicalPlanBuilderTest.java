@@ -124,7 +124,7 @@ public class PhysicalPlanBuilderTest {
   public void shouldHaveKStreamDataSource() {
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) buildQuery(
         "CREATE STREAM FOO AS " + simpleSelectFilter);
-    assertThat(metadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(metadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test

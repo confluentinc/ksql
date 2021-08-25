@@ -291,7 +291,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
     assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
-    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
@@ -331,7 +331,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
     assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
-    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));

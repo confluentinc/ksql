@@ -32,7 +32,7 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public interface PersistentQueryMetadata extends QueryMetadata {
 
-  DataSource.DataSourceType getDataSourceType();
+  Optional<DataSource.DataSourceType> getDataSourceType();
 
   Optional<KsqlTopic> getResultTopic();
 

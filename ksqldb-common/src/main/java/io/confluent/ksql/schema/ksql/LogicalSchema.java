@@ -283,9 +283,15 @@ public final class LogicalSchema {
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    addKeyColumnsToKeySchema(builder);
+    final List<Column> keyColumns = keyColumns(byNamespace);
 
-    int valueIndex = addNonPseudoAndKeyColsToValueSchema(builder, pseudoColumnVersion);
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+        byNamespace, pseudoColumnVersion);
+
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
+
+    int valueIndex = nonPseudoAndKeyCols.size();
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
@@ -317,22 +323,32 @@ public final class LogicalSchema {
    */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-    addKeyColumnsToKeySchema(builder);
-    addNonPseudoAndKeyColsToValueSchema(builder, pseudoColumnVersion);
+
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+
+    final List<Column> keyColumns = keyColumns(byNamespace);
+
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+        byNamespace, pseudoColumnVersion);
+
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
+
     return new LogicalSchema(builder.build());
   }
 
   /**
-   * Adds columns, except for key and pseudocolumns, to a provided builder's value schema
-   * and returns the number of added columns
-   * @param builder the builder to be passed in. Columns that don't qualify as key or pseudocolumns
-   *                will be added
-   * @return the number of columns added. This also functions as a "column index", to pass to
-   *                builder.add()
+   * Adds columns, except for key and pseudocolumns, to an immutable list and returns the list
+   * @param byNamespace map of columns grouped by key and value
+   * @param pseudoColumnVersion the pseudocolumn version used to evaluate if a column is a system
+   *                            column or not
+   * @return an immutable list containing the non pseudo and key columns in this LogicalSchema
    * */
-  private int addNonPseudoAndKeyColsToValueSchema(
-      final ImmutableList.Builder<Column> builder, final int pseudoColumnVersion) {
-    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+  private List<Column> nonPseudoAndKeyColsAsValueCols(
+      final Map<Namespace, List<Column>> byNamespace,
+      final int pseudoColumnVersion
+  ) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     final List<Column> value = byNamespace.get(VALUE);
 
@@ -342,24 +358,28 @@ public final class LogicalSchema {
         continue;
       }
 
-      if (findColumnMatching(withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+      if (findColumnMatching(
+          withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
         continue;
       }
 
       builder.add(Column.of(c.name(), c.type(), VALUE, addedColumns++));
     }
-    return addedColumns;
+    return builder.build();
   }
 
   /**
-   * Adds key columns to key schema of a provided builder
-   * @param builder the builder to be passed in. This builder will have key columns added to its
-   *                key schema.
+   * Adds key columns to a list and returns that list
+   * @param byNamespace map of columns grouped by if they are key or value
+   * @return an immutable list containing the key columns of this query
    */
-  private void addKeyColumnsToKeySchema(final ImmutableList.Builder<Column> builder) {
-    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+  private List<Column> keyColumns(
+      final Map<Namespace, List<Column>> byNamespace) {
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
     final List<Column> key = byNamespace.get(Namespace.KEY);
+
     builder.addAll(key);
+    return builder.build();
   }
 
   private static Predicate<Column> withName(final ColumnName name) {

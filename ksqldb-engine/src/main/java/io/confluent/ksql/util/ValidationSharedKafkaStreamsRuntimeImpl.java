@@ -59,7 +59,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
         "_confluent-ksql-" + UUID.randomUUID() + "-validation"
     );
     kafkaStreamsBuilder = sharedKafkaStreamsRuntime.getKafkaStreamsBuilder();
-    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
     metadata = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getMetadata());
     sources = new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getSourcesMap());
     for (PersistentQueriesInSharedRuntimesImpl queryMetadata : metadata.values()) {
@@ -70,7 +70,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl implements SharedKafkaStrea
   public ValidationSharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                                  final int maxQueryErrorsQueueSize,
                                                  final Map<String, Object> streamsProperties) {
-    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new ConcurrentHashMap<>();
     sources = new ConcurrentHashMap<>();

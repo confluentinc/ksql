@@ -30,19 +30,11 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier");
   }
 
-  public KafkaStreams build(
-          final Topology topology,
-          final Map<String, Object> conf
-  ) {
-    return new KafkaStreams(
-        topology,
-        PropertiesUtil.asProperties(conf),
-        clientSupplier
-    );
+  public KafkaStreams build(final Topology topology, final Map<String, Object> conf) {
+    return new KafkaStreams(topology, PropertiesUtil.asProperties(conf), clientSupplier);
   }
 
-  @Override
-  public KafkaStreamsNamedTopologyWrapper build(
+  public KafkaStreamsNamedTopologyWrapper buildNamedTopologyWrapper(
           final Map<String, Object> conf
   ) {
     return new KafkaStreamsNamedTopologyWrapper(

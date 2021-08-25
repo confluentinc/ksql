@@ -23,5 +23,5 @@ import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNa
 public interface KafkaStreamsBuilder {
   KafkaStreams build(Topology topology, Map<String, Object> conf);
 
-  KafkaStreamsNamedTopologyWrapper build(Map<String, Object> conf);
+  KafkaStreamsNamedTopologyWrapper buildNamedTopologyWrapper(Map<String, Object> conf);
 }

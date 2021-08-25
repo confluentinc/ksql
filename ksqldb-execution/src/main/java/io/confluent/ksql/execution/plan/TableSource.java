@@ -40,13 +40,11 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
   );
 
   public TableSource(
-      @JsonProperty(value = "properties", required = true)
-      final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "forceChangelog") final Optional<Boolean> forceChangelog,
       @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
     super(

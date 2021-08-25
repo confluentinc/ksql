@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -16,9 +16,9 @@ package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildWindowedKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
@@ -133,10 +133,9 @@ final class SourceBuilder extends SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<GenericKey> sourceKeySerde,
-      final Serde<GenericRow> sourceValueSerde
+      final Serde<GenericRow> sourceValueSerde,
+      final String stateStoreName
   ) {
-
-    final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
 
     final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
 
@@ -149,7 +148,7 @@ final class SourceBuilder extends SourceBuilderBase {
         queryContext
     );
 
-    final Serde<GenericKey> keySerdeToMaterialize = buildKeySerde(
+    final Serde<GenericKey> keySerdeToMaterialize = getKeySerde(
         source,
         physicalSchema,
         buildContext,
@@ -170,10 +169,9 @@ final class SourceBuilder extends SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<Windowed<GenericKey>> sourceKeySerde,
-      final Serde<GenericRow> sourceValueSerde
+      final Serde<GenericRow> sourceValueSerde,
+      final String stateStoreName
   ) {
-
-    final String stateStoreName = SourceBuilderUtils.tableChangeLogOpName(source.getProperties());
 
     final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
 
@@ -186,7 +184,7 @@ final class SourceBuilder extends SourceBuilderBase {
         queryContext
     );
 
-    final Serde<Windowed<GenericKey>> keySerdeToMaterialize = buildWindowedKeySerde(
+    final Serde<Windowed<GenericKey>> keySerdeToMaterialize = getWindowedKeySerde(
         source,
         physicalSchema,
         buildContext,

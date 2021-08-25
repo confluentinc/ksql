@@ -15,10 +15,10 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildWindowedKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
@@ -79,7 +79,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
 
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
-    final Serde<GenericKey> keySerde = buildKeySerde(
+    final Serde<GenericKey> keySerde = getKeySerde(
         source,
         physicalSchema,
         buildContext
@@ -118,7 +118,7 @@ final class SourceBuilderV1 extends SourceBuilderBase {
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
     final WindowInfo windowInfo = source.getWindowInfo();
-    final Serde<Windowed<GenericKey>> keySerde = buildWindowedKeySerde(
+    final Serde<Windowed<GenericKey>> keySerde = getWindowedKeySerde(
         source,
         physicalSchema,
         buildContext,
@@ -154,12 +154,13 @@ final class SourceBuilderV1 extends SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<GenericKey> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName
   ) {
     return materializedFactory.create(
         keySerde,
         valueSerde,
-        SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
+        stateStoreName
     );
   }
 
@@ -170,12 +171,13 @@ final class SourceBuilderV1 extends SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<Windowed<GenericKey>> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName
   ) {
     return materializedFactory.create(
         keySerde,
         valueSerde,
-        SourceBuilderUtils.tableChangeLogOpName(source.getProperties())
+        stateStoreName
     );
   }
 

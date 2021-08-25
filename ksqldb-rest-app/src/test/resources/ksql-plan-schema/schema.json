@@ -774,8 +774,8 @@
       "properties" : {
         "@type" : {
           "type" : "string",
-          "enum" : [ "tableSourceV1" ],
-          "default" : "tableSourceV1"
+          "enum" : [ "tableSourceV2" ],
+          "default" : "tableSourceV2"
         },
         "properties" : {
           "$ref" : "#/definitions/ExecutionStepPropertiesV1"
@@ -791,9 +791,6 @@
         },
         "sourceSchema" : {
           "type" : "string"
-        },
-        "forceChangelog" : {
-          "type" : "boolean"
         }
       },
       "title" : "tableSourceV2",

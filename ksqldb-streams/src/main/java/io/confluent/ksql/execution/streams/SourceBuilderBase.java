@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
@@ -58,7 +58,7 @@ abstract class SourceBuilderBase {
 
     final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
 
-    final Serde<GenericKey> keySerde = buildKeySerde(
+    final Serde<GenericKey> keySerde = getKeySerde(
         source,
         physicalSchema,
         buildContext
@@ -81,7 +81,8 @@ abstract class SourceBuilderBase {
         buildContext,
         materializedFactory,
         keySerde,
-        valueSerde
+        valueSerde,
+        stateStoreName
     );
 
     final KTable<GenericKey, GenericRow> ktable = buildKTable(
@@ -124,7 +125,7 @@ abstract class SourceBuilderBase {
       throw new IllegalArgumentException("Expected a version of WindowedTableSource");
     }
 
-    final Serde<Windowed<GenericKey>> keySerde = SourceBuilderUtils.buildWindowedKeySerde(
+    final Serde<Windowed<GenericKey>> keySerde = SourceBuilderUtils.getWindowedKeySerde(
         source,
         physicalSchema,
         buildContext,
@@ -148,7 +149,8 @@ abstract class SourceBuilderBase {
         buildContext,
         materializedFactory,
         keySerde,
-        valueSerde
+        valueSerde,
+        stateStoreName
     );
 
     final KTable<Windowed<GenericKey>, GenericRow> ktable = buildWindowedKTable(
@@ -176,7 +178,8 @@ abstract class SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<GenericKey> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName
   );
 
   abstract Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
@@ -185,7 +188,8 @@ abstract class SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<Windowed<GenericKey>> keySerde,
-      final Serde<GenericRow> valueSerde
+      final Serde<GenericRow> valueSerde,
+      final String stateStoreName
   );
 
   abstract <K> KTable<K, GenericRow> buildKTable(

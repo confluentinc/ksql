@@ -146,7 +146,6 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        Optional.of(true),
         OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }

@@ -60,7 +60,7 @@ final class SourceBuilderUtils {
 
   private static final String MATERIALIZE_OP_NAME = "Materialized";
 
-  static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
+  private static final Collection<?> NULL_WINDOWED_KEY_COLUMNS = Collections.unmodifiableList(
       Arrays.asList(null, null, null)
   );
 
@@ -99,6 +99,62 @@ final class SourceBuilderUtils {
         streamSource,
         physicalSchema,
         streamSource.getProperties().getQueryContext()
+    );
+  }
+
+  static Serde<GenericKey> getKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext,
+      final QueryContext queryContext
+  ) {
+    return buildContext.buildKeySerde(
+        step.getFormats().getKeyFormat(),
+        physicalSchema,
+        queryContext
+    );
+  }
+
+  static Serde<GenericKey> getKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext
+  ) {
+    return getKeySerde(
+        step,
+        physicalSchema,
+        buildContext,
+        step.getProperties().getQueryContext()
+    );
+  }
+
+  static Serde<Windowed<GenericKey>> getWindowedKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext,
+      final WindowInfo windowInfo,
+      final QueryContext queryContext
+  ) {
+    return buildContext.buildKeySerde(
+        step.getFormats().getKeyFormat(),
+        windowInfo,
+        physicalSchema,
+        queryContext
+    );
+  }
+
+  static Serde<Windowed<GenericKey>> getWindowedKeySerde(
+      final SourceStep<?> step,
+      final PhysicalSchema physicalSchema,
+      final RuntimeBuildContext buildContext,
+      final WindowInfo windowInfo
+  ) {
+    return getWindowedKeySerde(
+        step,
+        physicalSchema,
+        buildContext,
+        windowInfo,
+        step.getProperties().getQueryContext()
     );
   }
 
@@ -243,62 +299,6 @@ final class SourceBuilderUtils {
           "Unknown value"
       );
     }
-  }
-
-  static Serde<GenericKey> buildKeySerde(
-      final SourceStep<?> step,
-      final PhysicalSchema physicalSchema,
-      final RuntimeBuildContext buildContext,
-      final QueryContext queryContext
-  ) {
-    return buildContext.buildKeySerde(
-        step.getFormats().getKeyFormat(),
-        physicalSchema,
-        queryContext
-    );
-  }
-
-  static Serde<GenericKey> buildKeySerde(
-      final SourceStep<?> step,
-      final PhysicalSchema physicalSchema,
-      final RuntimeBuildContext buildContext
-  ) {
-    return buildKeySerde(
-        step,
-        physicalSchema,
-        buildContext,
-        step.getProperties().getQueryContext()
-    );
-  }
-
-  static Serde<Windowed<GenericKey>> buildWindowedKeySerde(
-      final SourceStep<?> step,
-      final PhysicalSchema physicalSchema,
-      final RuntimeBuildContext buildContext,
-      final WindowInfo windowInfo,
-      final QueryContext queryContext
-      ) {
-    return buildContext.buildKeySerde(
-        step.getFormats().getKeyFormat(),
-        windowInfo,
-        physicalSchema,
-        queryContext
-    );
-  }
-
-  static Serde<Windowed<GenericKey>> buildWindowedKeySerde(
-      final SourceStep<?> step,
-      final PhysicalSchema physicalSchema,
-      final RuntimeBuildContext buildContext,
-      final WindowInfo windowInfo
-  ) {
-    return buildWindowedKeySerde(
-        step,
-        physicalSchema,
-        buildContext,
-        windowInfo,
-        step.getProperties().getQueryContext()
-    );
   }
 
   static QueryContext addMaterializedContext(SourceStep<?> step) {

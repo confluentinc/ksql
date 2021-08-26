@@ -308,6 +308,22 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
+  @Test
+  public void shouldThrowOnDeleteTopicIfSourceIsReadOnly() {
+    // Given:
+    when(source.isSource()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> deleteInjector.inject(DROP_WITH_DELETE_TOPIC)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("" +
+        "Cannot delete topic for read-only source: SOMETHING"));
+  }
+
   private static DataSource givenSource(final SourceName name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);

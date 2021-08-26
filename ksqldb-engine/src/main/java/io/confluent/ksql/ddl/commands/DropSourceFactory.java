@@ -36,6 +36,7 @@ public final class DropSourceFactory {
     return create(
         statement.getName(),
         statement.getIfExists(),
+        statement.isDeleteTopic(),
         DataSourceType.KSTREAM
     );
   }
@@ -44,6 +45,7 @@ public final class DropSourceFactory {
     return create(
         statement.getName(),
         statement.getIfExists(),
+        statement.isDeleteTopic(),
         DataSourceType.KTABLE
     );
   }
@@ -51,6 +53,7 @@ public final class DropSourceFactory {
   private DropSourceCommand create(
       final SourceName sourceName,
       final boolean ifExists,
+      final boolean deleteTopic,
       final DataSourceType dataSourceType) {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
@@ -63,6 +66,8 @@ public final class DropSourceFactory {
           dataSource.getDataSourceType() == DataSourceType.KSTREAM ? "STREAM" : "TABLE",
           dataSourceType == DataSourceType.KSTREAM ? "STREAM" : "TABLE"
       ));
+    } else if (dataSource.isSource() && deleteTopic) {
+      throw new KsqlException("Cannot delete topic for read-only source: " + sourceName.text());
     }
     return new DropSourceCommand(sourceName);
   }

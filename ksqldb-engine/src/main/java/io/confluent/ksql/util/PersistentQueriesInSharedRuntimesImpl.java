@@ -69,7 +69,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final ImmutableMap<String, Object> overriddenProperties;
   private final Set<SourceName> sourceNames;
   private final QueryId queryId;
-  private final DataSource sinkDataSource;
+  private final Optional<DataSource> sinkDataSource;
   private final ProcessingLogger processingLogger;
   private final ExecutionStep<?> physicalPlan;
   private final PhysicalSchema resultSchema;
@@ -109,7 +109,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
           materializationProviderBuilder,
       final ExecutionStep<?> physicalPlan,
       final ProcessingLogger processingLogger,
-      final DataSource sinkDataSource,
+      final Optional<DataSource> sinkDataSource,
       final Listener listener,
       final QueryErrorClassifier classifier,
       final Map<String, Object> streamsProperties,
@@ -173,18 +173,18 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public DataSource.DataSourceType getDataSourceType() {
-    return sinkDataSource.getDataSourceType();
+  public Optional<DataSource.DataSourceType> getDataSourceType() {
+    return sinkDataSource.map(DataSource::getDataSourceType);
   }
 
   @Override
-  public KsqlTopic getResultTopic() {
-    return sinkDataSource.getKsqlTopic();
+  public Optional<KsqlTopic> getResultTopic() {
+    return sinkDataSource.map(DataSource::getKsqlTopic);
   }
 
   @Override
-  public SourceName getSinkName() {
-    return sinkDataSource.getName();
+  public Optional<SourceName> getSinkName() {
+    return sinkDataSource.map(DataSource::getName);
   }
 
   @Override
@@ -203,7 +203,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public DataSource getSink() {
+  public Optional<DataSource> getSink() {
     return sinkDataSource;
   }
 

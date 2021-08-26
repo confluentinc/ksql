@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationF
 import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
 import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.internal.StorageUtilizationMetricsReporter;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -53,12 +54,16 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -68,6 +73,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -76,6 +82,8 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryExecutor {
@@ -89,14 +97,18 @@ final class QueryExecutor {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
+  private final List<SharedKafkaStreamsRuntime> streams;
+  private final boolean real;
 
   QueryExecutor(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry) {
+      final FunctionRegistry functionRegistry,
+      final List<SharedKafkaStreamsRuntime> streams,
+      final boolean real
+  ) {
     this(
         config,
         processingLogContext,
@@ -104,13 +116,14 @@ final class QueryExecutor {
         functionRegistry,
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
-        new StreamsBuilder(),
         new MaterializationProviderBuilderFactory(
             config.getConfig(true),
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        )
+        ),
+        streams,
+        real
     );
   }
 
@@ -121,8 +134,9 @@ final class QueryExecutor {
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final StreamsBuilder streamsBuilder,
-      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
+      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
+      final List<SharedKafkaStreamsRuntime> streams,
+      final boolean real
   ) {
     this.config = Objects.requireNonNull(config, "config");
     this.processingLogContext = Objects.requireNonNull(
@@ -132,13 +146,15 @@ final class QueryExecutor {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
-    this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
     this.materializationProviderBuilderFactory = Objects.requireNonNull(
         materializationProviderBuilderFactory,
         "materializationProviderBuilderFactory"
     );
+    this.streams = Objects.requireNonNull(streams, "streams");
+    this.real = real;
   }
 
+  @SuppressWarnings("ParameterNumber")
   TransientQueryMetadata buildTransientQuery(
       final String statementText,
       final QueryId queryId,
@@ -149,11 +165,16 @@ final class QueryExecutor {
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones,
-      final QueryMetadata.Listener listener
+      final QueryMetadata.Listener listener,
+      final StreamsBuilder streamsBuilder
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
-    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+        applicationId,
+        queryId,
+        streamsBuilder
+    );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
@@ -220,7 +241,9 @@ final class QueryExecutor {
     return registry;
   }
 
-  PersistentQueryMetadata buildPersistentQuery(
+  @SuppressWarnings("ParameterNumber")
+  PersistentQueryMetadata buildPersistentQueryInDedicatedRuntime(
+      final KsqlConfig ksqlConfig,
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
       final QueryId queryId,
@@ -229,9 +252,8 @@ final class QueryExecutor {
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final QueryMetadata.Listener listener,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
-  ) {
-    final KsqlConfig ksqlConfig = config.getConfig(true);
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final StreamsBuilder streamsBuilder) {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
@@ -242,15 +264,25 @@ final class QueryExecutor {
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+        applicationId,
+        queryId,
+        streamsBuilder
+    );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
     // scalable push queries are enabled.
     final Optional<ScalablePushRegistry> scalablePushRegistry
-        = applyScalablePushProcessor(querySchema.logicalSchema(), result, allPersistentQueries,
-        sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
-        streamsProperties, ksqlConfig);
-    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
+        = applyScalablePushProcessor(
+            querySchema.logicalSchema(),
+            result,
+            allPersistentQueries,
+            sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+            streamsProperties,
+            ksqlConfig
+    );
+    final Topology topology = streamsBuilder
+            .build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -273,7 +305,7 @@ final class QueryExecutor {
         statementText,
         querySchema,
         sources,
-        sinkDataSource,
+        Optional.of(sinkDataSource),
         planSummary,
         queryId,
         materializationProviderBuilder,
@@ -293,6 +325,133 @@ final class QueryExecutor {
         listener,
         scalablePushRegistry
     );
+
+  }
+
+  PersistentQueryMetadata buildPersistentQueryInSharedRuntime(
+      final KsqlConfig ksqlConfig,
+      final KsqlConstants.PersistentQueryType persistentQueryType,
+      final String statementText,
+      final QueryId queryId,
+      final DataSource sinkDataSource,
+      final Set<SourceName> sources,
+      final ExecutionStep<?> physicalPlan,
+      final String planSummary,
+      final QueryMetadata.Listener listener,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+  ) {
+    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
+        sources,
+        queryId);
+
+    final String applicationId = sharedKafkaStreamsRuntime
+            .getStreamProperties()
+            .get(StreamsConfig.APPLICATION_ID_CONFIG)
+            .toString();
+    final Map<String, Object> streamsProperties = sharedKafkaStreamsRuntime.getStreamProperties();
+
+    final PhysicalSchema querySchema = PhysicalSchema.from(
+            sinkDataSource.getSchema(),
+            sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+            sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
+    );
+
+    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
+            queryId.toString()
+    );
+
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+            applicationId,
+            queryId,
+            namedTopologyStreamsBuilder
+    );
+    final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
+    // scalable push queries are enabled.
+    final Optional<ScalablePushRegistry> scalablePushRegistry
+            = applyScalablePushProcessor(
+            querySchema.logicalSchema(),
+            result,
+            allPersistentQueries,
+            sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+            streamsProperties,
+            ksqlConfig
+    );
+    final NamedTopology topology = namedTopologyStreamsBuilder
+            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
+
+    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+            materializationProviderBuilder = getMaterializationInfo(result).map(info ->
+            materializationProviderBuilderFactory.materializationProviderBuilder(
+                    info,
+                    querySchema,
+                    sinkDataSource.getKsqlTopic().getKeyFormat(),
+                    streamsProperties,
+                    applicationId
+            ));
+
+    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
+            .and(new AuthorizationClassifier(applicationId));
+    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
+            .map(userErrorClassifiers::and)
+            .orElse(userErrorClassifiers);
+
+    return new PersistentQueriesInSharedRuntimesImpl(
+        persistentQueryType,
+        statementText,
+        querySchema,
+        sources,
+        planSummary,
+        applicationId,
+        topology,
+        sharedKafkaStreamsRuntime,
+        runtimeBuildContext.getSchemas(),
+        config.getOverrides(),
+        queryId,
+        materializationProviderBuilder,
+        physicalPlan,
+        getUncaughtExceptionProcessingLogger(queryId),
+        sinkDataSource,
+        listener,
+        classifier,
+        streamsProperties,
+        scalablePushRegistry
+    );
+
+  }
+
+  private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
+          final Set<SourceName> sources,
+          final QueryId queryID) {
+    for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)
+          || sharedKafkaStreamsRuntime.getQueries().contains(queryID)) {
+        sharedKafkaStreamsRuntime.markSources(queryID, sources);
+        return sharedKafkaStreamsRuntime;
+      }
+    }
+    final SharedKafkaStreamsRuntime stream;
+    if (real) {
+      stream = new SharedKafkaStreamsRuntimeImpl(
+          kafkaStreamsBuilder,
+          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          buildStreamsProperties(
+              "_confluent-ksql-" + streams.size() + "-" + UUID.randomUUID(),
+              queryID)
+      );
+    } else {
+      stream = new ValidationSharedKafkaStreamsRuntimeImpl(
+          kafkaStreamsBuilder,
+          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          buildStreamsProperties(
+              "_confluent-ksql-" + streams.size() + "-" + UUID.randomUUID() + "-validation",
+              queryID)
+      );
+    }
+    streams.add(stream);
+    stream.markSources(queryID, sources);
+    return stream;
+
   }
 
   private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
@@ -342,7 +501,10 @@ final class QueryExecutor {
     return physicalPlan.build(planBuilder);
   }
 
-  private RuntimeBuildContext buildContext(final String applicationId, final QueryId queryId) {
+  private RuntimeBuildContext buildContext(
+          final String applicationId,
+          final QueryId queryId,
+          final StreamsBuilder streamsBuilder) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),
@@ -381,6 +543,11 @@ final class QueryExecutor {
         newStreamsProperties,
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         RocksDBMetricsCollector.class.getName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        StorageUtilizationMetricsReporter.class.getName()
     );
     return newStreamsProperties;
   }

@@ -71,7 +71,6 @@ public class QueryStateMetricsReportingListenerTest {
     when(metrics.metricName(any(), any(), any(), anyMap()))
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2);
-    when(query.getQueryApplicationId()).thenReturn("app-id");
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
     listener = new QueryStateMetricsReportingListener(metrics, "");
@@ -90,10 +89,10 @@ public class QueryStateMetricsReportingListenerTest {
     // Then:
     verify(metrics).metricName("query-status", "ksql-queries",
         "The current status of the given query.",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", QUERY_ID.toString()));
     verify(metrics).metricName("error-status", "ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", QUERY_ID.toString()));
 
     verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
     verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
@@ -133,10 +132,10 @@ public class QueryStateMetricsReportingListenerTest {
     // Then:
     verify(metrics).metricName("query-status", groupPrefix + "ksql-queries",
         "The current status of the given query.",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", QUERY_ID.toString()));
     verify(metrics).metricName("error-status", groupPrefix + "ksql-queries",
         "The current error status of the given query, if the state is in ERROR state",
-        ImmutableMap.of("status", "app-id"));
+        ImmutableMap.of("status", QUERY_ID.toString()));
   }
 
   @Test

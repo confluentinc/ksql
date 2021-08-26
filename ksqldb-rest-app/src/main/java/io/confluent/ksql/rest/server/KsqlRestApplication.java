@@ -36,7 +36,6 @@ import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
@@ -44,7 +43,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.UtilizationMetricsListener;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -127,7 +125,6 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -137,7 +134,6 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -704,16 +700,6 @@ public final class KsqlRestApplication implements Executable {
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
 
-    final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1,
-        new ThreadFactoryBuilder()
-            .setNameFormat("ksql-csu-metrics-reporter-%d")
-            .build()
-    );
-    final UtilizationMetricsListener csuMetricReporter = new UtilizationMetricsListener();
-    executorService.scheduleAtFixedRate(csuMetricReporter, 0, 300000, TimeUnit.MILLISECONDS);
-    final List<QueryEventListener> listeners = new ArrayList<>();
-    listeners.add(csuMetricReporter);
-
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
@@ -721,7 +707,7 @@ public final class KsqlRestApplication implements Executable {
         ServiceInfo.create(ksqlConfig, metricsPrefix),
         specificQueryIdGenerator,
         new KsqlConfig(restConfig.getKsqlConfigProperties()),
-        listeners
+        Collections.emptyList()
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();

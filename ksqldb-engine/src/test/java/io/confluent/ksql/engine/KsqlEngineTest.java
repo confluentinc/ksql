@@ -78,6 +78,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
+import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -162,8 +163,10 @@ public class KsqlEngineTest {
     assertThat(queries, hasSize(2));
     assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
     assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is(SourceName.of("BAR")));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is(SourceName.of("FOO")));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName().get(),
+        is(SourceName.of("BAR")));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName().get(),
+        is(SourceName.of("FOO")));
   }
 
   @Test
@@ -980,7 +983,7 @@ public class KsqlEngineTest {
         if (q instanceof TransientQueryMetadata) {
           assertTrue(sq instanceof SandboxedTransientQueryMetadata);
         } else {
-          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl);
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl || sq instanceof SandboxedPersistentQueriesInSharedRuntimesImpl);
         }
       }
     }
@@ -1050,7 +1053,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_query_CTAS_BAR_0"));
+        containsString("_confluent-ksql"));
   }
 
   @Test
@@ -1759,13 +1762,14 @@ public class KsqlEngineTest {
     // Given:
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
     final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+    KafkaStreams.State state = ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState();
 
     // When:
     sandbox.getPersistentQuery(query.getQueryId()).get().start();
 
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState(),
-        is(KafkaStreams.State.CREATED));
+        is(state));
   }
 
   @Test
@@ -1774,13 +1778,13 @@ public class KsqlEngineTest {
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
     final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
     ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
-
+    KafkaStreams.State state = ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState();
     // When:
     sandbox.getPersistentQuery(query.getQueryId()).get().stop();
 
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState(),
-        is(KafkaStreams.State.REBALANCING));
+        is(state));
   }
 
   @Test
@@ -1789,13 +1793,14 @@ public class KsqlEngineTest {
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
     final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
     ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
+    KafkaStreams.State state = ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState();
 
     // When:
     sandbox.getPersistentQuery(query.getQueryId()).get().close();
 
     // Then:
     assertThat(ksqlEngine.getPersistentQuery(query.getQueryId()).get().getState(),
-        is(KafkaStreams.State.REBALANCING));
+        is(state));
   }
 
   @Test

@@ -55,8 +55,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueryMetadataImpl;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +66,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -78,6 +81,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -160,6 +164,8 @@ public class QueryExecutorTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
+  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
+  @Mock
   private Topology topology;
   @Mock
   private TopologyDescription topoDesc;
@@ -186,6 +192,7 @@ public class QueryExecutorTest {
 
   private QueryExecutor queryBuilder;
   private final Stacker stacker = new Stacker();
+  private List<SharedKafkaStreamsRuntime> sharedKafkaStreamsRuntimes;
 
   @Before
   public void setup() {
@@ -196,6 +203,7 @@ public class QueryExecutorTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+    when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -210,11 +218,13 @@ public class QueryExecutorTest {
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
     when(kstream.filter(any())).thenReturn(kstream);
+    sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryExecutor(
         config,
@@ -222,13 +232,14 @@ public class QueryExecutorTest {
         serviceContext,
         functionRegistry,
         kafkaStreamsBuilder,
-        streamsBuilder,
         new MaterializationProviderBuilderFactory(
             ksqlConfig,
             serviceContext,
             ksMaterializationFactory,
             ksqlMaterializationFactory
-        ));
+        ),
+        sharedKafkaStreamsRuntimes,
+        true);
   }
 
   @Test
@@ -247,7 +258,8 @@ public class QueryExecutorTest {
         LIMIT,
         Optional.empty(),
         false,
-        queryListener
+        queryListener,
+        streamsBuilder
     );
     queryMetadata.initialize();
 
@@ -271,27 +283,21 @@ public class QueryExecutorTest {
     )).thenReturn(uncaughtProcessingLogger);
 
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     );
     queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
     assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
-    assertThat(queryMetadata.getSinkName(), equalTo(SINK_NAME));
+    assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
-    assertThat(queryMetadata.getResultTopic(), is(ksqlTopic));
+    assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
-    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
@@ -311,27 +317,20 @@ public class QueryExecutorTest {
     )).thenReturn(uncaughtProcessingLogger);
 
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.INSERT,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
-    );
+        KsqlConstants.PersistentQueryType.INSERT,
+        QUERY_ID);
     queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
     assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
-    assertThat(queryMetadata.getSinkName(), equalTo(SINK_NAME));
+    assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
-    assertThat(queryMetadata.getResultTopic(), is(ksqlTopic));
+    assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
-    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
@@ -344,16 +343,10 @@ public class QueryExecutorTest {
   @Test
   public void shouldBuildPersistentQueryWithCorrectStreamsApp() {
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -365,16 +358,10 @@ public class QueryExecutorTest {
   @Test
   public void shouldStartPersistentQueryWithCorrectMaterializationProvider() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -389,16 +376,10 @@ public class QueryExecutorTest {
   @Test
   public void shouldCreateKSMaterializationCorrectly() {
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     ).initialize();
 
     // Then:
@@ -419,16 +400,10 @@ public class QueryExecutorTest {
   @Test
   public void shouldMaterializeCorrectlyOnStart() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -450,16 +425,10 @@ public class QueryExecutorTest {
     // Given:
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
 
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     );
     queryMetadata.initialize();
 
@@ -473,16 +442,10 @@ public class QueryExecutorTest {
   @Test
   public void shouldCreateExpectedServiceId() {
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     ).initialize();
 
     // Then:
@@ -496,16 +459,10 @@ public class QueryExecutorTest {
   @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToStreamsConfig() {
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     ).initialize();
 
     // Then:
@@ -528,16 +485,10 @@ public class QueryExecutorTest {
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -591,16 +542,10 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     ).initialize();
 
     // Then:
@@ -618,16 +563,10 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     ).initialize();
 
     // Then:
@@ -646,17 +585,7 @@ public class QueryExecutorTest {
     ));
 
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
-        SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
-    ).initialize();
+    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -673,21 +602,45 @@ public class QueryExecutorTest {
   }
 
   @Test
+  public void shouldMakePersistentQueriesWithSameSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID);
+    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID_2);
+
+    assertThat("chose same source", sharedKafkaStreamsRuntimes.size() > 1);
+  }
+
+  @Test
+  public void shouldMakePersistentQueriesWithDifferentSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    PersistentQueryMetadata queryMetadata = buildPersistentQuery(
+        SOURCES,
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID);
+
+    PersistentQueryMetadata queryMetadata2 = buildPersistentQuery(
+            ImmutableSet.of(SourceName.of("food"),
+            SourceName.of("bard")),
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID);
+    assertThat("did not chose the same runtime", queryMetadata.getKafkaStreams().equals(queryMetadata2.getKafkaStreams()));
+
+  }
+
+  @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);
 
     // When:
-    queryBuilder.buildPersistentQuery(
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        STATEMENT_TEXT,
-        QUERY_ID,
-        sink,
+    buildPersistentQuery(
         SOURCES,
-        physicalPlan,
-        SUMMARY,
-        queryListener,
-        Collections::emptyList
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
     ).initialize();
 
     // Then:
@@ -754,4 +707,37 @@ public class QueryExecutorTest {
     when(physicalPlan.build(any())).thenReturn(streamHolder);
     when(streamHolder.getStream()).thenReturn(kstream);
   }
+
+  private PersistentQueryMetadata buildPersistentQuery(final Set<SourceName> sourceNames,
+                                                       final KsqlConstants.PersistentQueryType persistentQueryType,
+                                                       final QueryId queryId) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      return queryBuilder.buildPersistentQueryInSharedRuntime(
+          ksqlConfig,
+          persistentQueryType,
+          STATEMENT_TEXT,
+          queryId,
+          sink,
+          sourceNames,
+          physicalPlan,
+          SUMMARY,
+          queryListener,
+          ArrayList::new
+      );
+    } else {
+      return queryBuilder.buildPersistentQueryInDedicatedRuntime(
+          ksqlConfig,
+          persistentQueryType,
+          STATEMENT_TEXT,
+          queryId,
+          sink,
+          SOURCES,
+          physicalPlan,
+          SUMMARY,
+          queryListener,
+          ArrayList::new,
+          streamsBuilder);
+    }
+  }
+
 }

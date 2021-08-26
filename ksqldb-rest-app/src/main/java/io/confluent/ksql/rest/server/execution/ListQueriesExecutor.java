@@ -95,8 +95,13 @@ public final class ListQueriesExecutor {
                 final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
                 return new RunningQuery(
                     q.getStatementString(),
-                    ImmutableSet.of(persistentQuery.getSinkName().text()),
-                    ImmutableSet.of(persistentQuery.getResultTopic().getKafkaTopicName()),
+                    persistentQuery.getSinkName().isPresent()
+                        ? ImmutableSet.of(persistentQuery.getSinkName().get().text())
+                        : ImmutableSet.of(),
+                    persistentQuery.getResultTopic().isPresent()
+                        ? ImmutableSet.of(
+                            persistentQuery.getResultTopic().get().getKafkaTopicName())
+                        : ImmutableSet.of(),
                     q.getQueryId(),
                     QueryStatusCount.fromStreamsStateCounts(
                         Collections.singletonMap(q.getState(), 1)),

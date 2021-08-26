@@ -236,7 +236,6 @@ public class SourceBuilderTest {
     );
   }
 
-
   @Test
   @SuppressWarnings("unchecked")
   public void shouldBuildTableWithCorrectTimestampExtractor() {
@@ -486,7 +485,6 @@ public class SourceBuilderTest {
     assertThat(withTimestamp,
         is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
-
 
   @Test
   public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToTable() {

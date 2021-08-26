@@ -60,8 +60,6 @@ public class PersistentQueriesInSharedRuntimesImplTest {
     @Mock
     private Map<String, Object> overrides;
     @Mock
-    private QueryErrorClassifier queryErrorClassifier;
-    @Mock
     private ExecutionStep<?> physicalPlan;
     @Mock
     private ProcessingLogger processingLogger;

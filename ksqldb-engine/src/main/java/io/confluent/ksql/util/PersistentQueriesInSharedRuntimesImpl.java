@@ -173,18 +173,18 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public DataSource.DataSourceType getDataSourceType() {
-    return sinkDataSource.getDataSourceType();
+  public Optional<DataSource.DataSourceType> getDataSourceType() {
+    return Optional.of(sinkDataSource.getDataSourceType());
   }
 
   @Override
-  public KsqlTopic getResultTopic() {
-    return sinkDataSource.getKsqlTopic();
+  public Optional<KsqlTopic> getResultTopic() {
+    return Optional.of(sinkDataSource.getKsqlTopic());
   }
 
   @Override
-  public SourceName getSinkName() {
-    return sinkDataSource.getName();
+  public Optional<SourceName> getSinkName() {
+    return Optional.of(sinkDataSource.getName());
   }
 
   @Override
@@ -203,8 +203,8 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public DataSource getSink() {
-    return sinkDataSource;
+  public Optional<DataSource> getSink() {
+    return Optional.of(sinkDataSource);
   }
 
   @Override

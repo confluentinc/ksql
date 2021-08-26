@@ -16,12 +16,12 @@ package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -103,7 +103,8 @@ final class SourceBuilder extends SourceBuilderBase {
   }
 
   @Override
-  <K> KTable<K, GenericRow> buildWindowedKTable(SourceStep<?> streamSource,
+  <K> KTable<K, GenericRow> buildWindowedKTable(
+      final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,
       final Consumed<K, GenericRow> consumed,
       final Function<K, Collection<?>> keyGenerator,

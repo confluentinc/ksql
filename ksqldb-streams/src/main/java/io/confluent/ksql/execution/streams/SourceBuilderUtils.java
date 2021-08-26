@@ -301,7 +301,7 @@ final class SourceBuilderUtils {
     }
   }
 
-  static QueryContext addMaterializedContext(SourceStep<?> step) {
+  static QueryContext addMaterializedContext(final SourceStep<?> step) {
     return QueryContext.Stacker.of(
         step.getProperties().getQueryContext())
         .push(MATERIALIZE_OP_NAME).getQueryContext();

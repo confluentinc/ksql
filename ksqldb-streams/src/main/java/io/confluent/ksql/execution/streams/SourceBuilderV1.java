@@ -15,14 +15,14 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.windowedKeyGenerator;
 
 import io.confluent.ksql.GenericKey;

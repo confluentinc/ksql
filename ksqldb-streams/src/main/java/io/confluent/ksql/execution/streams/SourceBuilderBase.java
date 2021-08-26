@@ -14,9 +14,9 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSourceConsumed;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysicalSchema;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.tableChangeLogOpName;
@@ -174,44 +174,44 @@ abstract class SourceBuilderBase {
 
   abstract Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>>
       buildTableMaterialized(
-      final SourceStep<KTableHolder<GenericKey>> source,
-      final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory,
-      final Serde<GenericKey> keySerde,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName
+      SourceStep<KTableHolder<GenericKey>> source,
+      RuntimeBuildContext buildContext,
+      MaterializedFactory materializedFactory,
+      Serde<GenericKey> keySerde,
+      Serde<GenericRow> valueSerde,
+      String stateStoreName
   );
 
   abstract Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
       buildWindowedTableMaterialized(
-      final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
-      final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> keySerde,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName
+      SourceStep<KTableHolder<Windowed<GenericKey>>> source,
+      RuntimeBuildContext buildContext,
+      MaterializedFactory materializedFactory,
+      Serde<Windowed<GenericKey>> keySerde,
+      Serde<GenericRow> valueSerde,
+      String stateStoreName
   );
 
   abstract <K> KTable<K, GenericRow> buildKTable(
-      final SourceStep<?> streamSource,
-      final RuntimeBuildContext buildContext,
-      final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator,
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName,
-      final PlanInfo planInfo
+      SourceStep<?> streamSource,
+      RuntimeBuildContext buildContext,
+      Consumed<K, GenericRow> consumed,
+      Function<K, Collection<?>> keyGenerator,
+      Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      Serde<GenericRow> valueSerde,
+      String stateStoreName,
+      PlanInfo planInfo
   );
 
   abstract <K> KTable<K, GenericRow> buildWindowedKTable(
-      final SourceStep<?> streamSource,
-      final RuntimeBuildContext buildContext,
-      final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator,
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName,
-      final PlanInfo planInfo
+      SourceStep<?> streamSource,
+      RuntimeBuildContext buildContext,
+      Consumed<K, GenericRow> consumed,
+      Function<K, Collection<?>> keyGenerator,
+      Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
+      Serde<GenericRow> valueSerde,
+      String stateStoreName,
+      PlanInfo planInfo
   );
 
 }

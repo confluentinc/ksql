@@ -20,7 +20,7 @@
   <parent>
     <artifactId>ksql-parent</artifactId>
     <groupId>io.confluent.ksql</groupId>
-    <version>5.4.5-SNAPSHOT</version>
+    <version>5.4.5</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 

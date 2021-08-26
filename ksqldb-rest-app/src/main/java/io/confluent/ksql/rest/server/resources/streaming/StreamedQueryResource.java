@@ -397,7 +397,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         }
         case KSTREAM: {
           throw new KsqlStatementException(
-              "Pull queries are not supported on streams.",
+              "Pull queries are not supported on streams."
+                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
               statement.getStatementText()
           );
         }

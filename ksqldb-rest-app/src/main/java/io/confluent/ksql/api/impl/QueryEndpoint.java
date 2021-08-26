@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -149,7 +150,8 @@ public class QueryEndpoint {
           );
         case KSTREAM:
           throw new KsqlStatementException(
-              "Pull queries are not supported on streams.",
+              "Pull queries are not supported on streams."
+                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
               statement.getStatementText()
           );
         default:

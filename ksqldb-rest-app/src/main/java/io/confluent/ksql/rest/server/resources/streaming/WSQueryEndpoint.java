@@ -22,6 +22,7 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AG
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -356,7 +357,8 @@ public class WSQueryEndpoint {
         }
         case KSTREAM: {
           throw new KsqlStatementException(
-              "Pull queries are not supported on streams.",
+              "Pull queries are not supported on streams."
+                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
               statement.getStatementText()
           );
         }

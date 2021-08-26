@@ -349,22 +349,20 @@ public class StreamedQueryResource implements KsqlConfigurable {
                       responseBytes,
                       sourceType,
                       planType,
-                      routingNodeType,
-                      dataSourceType
+                      routingNodeType
                   );
                   metrics.recordLatency(
                       startTimeNanos,
                       sourceType,
                       planType,
-                      routingNodeType,
-                      dataSourceType
+                      routingNodeType
                   );
                   metrics.recordRowsReturned(
                       r.getTotalRowsReturned(),
-                      sourceType, planType, routingNodeType, dataSourceType);
+                      sourceType, planType, routingNodeType);
                   metrics.recordRowsProcessed(
                       r.getTotalRowsProcessed(),
-                      sourceType, planType, routingNodeType, dataSourceType);
+                      sourceType, planType, routingNodeType);
                 }
                 pullBandRateLimiter.add(responseBytes);
               });

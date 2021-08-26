@@ -210,8 +210,7 @@ final class EngineExecutor {
           physicalPlan.getQueryId(), pullQueryQueue);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
-          physicalPlan.getPlanType(), routingNodeType, DataSourceType.KTABLE,
-          physicalPlan::getRowsReadFromDataSource);
+          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource);
       if (startImmediately) {
         result.start();
       }
@@ -224,8 +223,7 @@ final class EngineExecutor {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
             physicalPlan.getSourceType(),
             physicalPlan.getPlanType(),
-            routingNodeType,
-            DataSourceType.KTABLE
+            routingNodeType
         ));
       }
 

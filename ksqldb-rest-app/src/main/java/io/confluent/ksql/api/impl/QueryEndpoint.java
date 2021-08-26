@@ -30,16 +30,12 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -255,43 +251,17 @@ public class QueryEndpoint {
           metrics.recordZeroRowsReturnedForError();
           metrics.recordZeroRowsProcessedForError();
         } else {
-          // hard coded because this is the table pull query publisher
-          final DataSourceType dataSourceType = DataSourceType.KTABLE;
-
-          final PullSourceType sourceType = r.getSourceType();
-          final PullPhysicalPlanType planType = r.getPlanType();
-          final RoutingNodeType routingNodeType = r.getRoutingNodeType();
-
-          metrics.recordResponseSize(
-              responseBytes,
-              sourceType,
-              planType,
-              routingNodeType,
-              dataSourceType
-          );
-          metrics.recordLatency(
-              startTimeNanos,
-              sourceType,
-              planType,
-              routingNodeType,
-              dataSourceType
-          );
+          metrics.recordResponseSize(responseBytes,
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          metrics.recordLatency(startTimeNanos,
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
           metrics.recordRowsReturned(
-              Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-              sourceType,
-              planType,
-              routingNodeType,
-              dataSourceType
-          );
+              r.getTotalRowsReturned(),
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
           metrics.recordRowsProcessed(
-              Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-              sourceType,
-              planType,
-              routingNodeType,
-              dataSourceType
-          );
+              r.getTotalRowsProcessed(),
+              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
         }
-
         pullBandRateLimiter.add(responseBytes);
       });
     });
@@ -453,13 +423,8 @@ public class QueryEndpoint {
         result.onException(future::completeExceptionally);
         result.onCompletion(future::complete);
       } catch (Exception e) {
-        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(
-            1,
-            result.getSourceType(),
-            result.getPlanType(),
-            result.getRoutingNodeType(),
-            result.getDataSourceType()
-        ));
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
+            result.getPlanType(), result.getRoutingNodeType()));
       }
     }
 

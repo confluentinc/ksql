@@ -2299,8 +2299,12 @@ public class KsqlResourceTest {
         .stream()
         .map(md -> new RunningQuery(
             md.getStatementString(),
-            ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
-            ImmutableSet.of(md.getResultTopic().getKafkaTopicName()),
+            md.getSinkName().isPresent()
+                ? ImmutableSet.of(md.getSinkName().get().text())
+                : ImmutableSet.of(),
+            md.getResultTopic().isPresent()
+                ? ImmutableSet.of(md.getResultTopic().get().getKafkaTopicName())
+                : ImmutableSet.of(),
             md.getQueryId(),
             QueryStatusCount.fromStreamsStateCounts(
                 Collections.singletonMap(md.getState(), 1)), KsqlConstants.KsqlQueryType.PERSISTENT)

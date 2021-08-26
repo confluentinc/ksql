@@ -287,11 +287,11 @@ public class QueryExecutorTest {
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
     assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
-    assertThat(queryMetadata.getSinkName(), equalTo(SINK_NAME));
+    assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
-    assertThat(queryMetadata.getResultTopic(), is(ksqlTopic));
+    assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
-    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
@@ -327,11 +327,11 @@ public class QueryExecutorTest {
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
     assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
-    assertThat(queryMetadata.getSinkName(), equalTo(SINK_NAME));
+    assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
-    assertThat(queryMetadata.getResultTopic(), is(ksqlTopic));
+    assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
-    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));

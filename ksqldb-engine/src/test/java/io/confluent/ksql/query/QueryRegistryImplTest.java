@@ -393,8 +393,8 @@ public class QueryRegistryImplTest {
     final DataSource sinkSource = mock(DataSource.class);
     when(sinkSource.getName()).thenReturn(SourceName.of(sink));
     when(query.getQueryId()).thenReturn(queryId);
-    when(query.getSinkName()).thenReturn(SourceName.of(sink));
-    when(query.getSink()).thenReturn(sinkSource);
+    when(query.getSinkName()).thenReturn(Optional.of(SourceName.of(sink)));
+    when(query.getSink()).thenReturn(Optional.of(sinkSource));
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
     when(query.getPersistentQueryType()).thenReturn(createAs
         ? KsqlConstants.PersistentQueryType.CREATE_AS

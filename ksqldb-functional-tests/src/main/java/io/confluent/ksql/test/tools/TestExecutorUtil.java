@@ -129,8 +129,10 @@ public final class TestExecutorUtil {
           })
           .collect(Collectors.toList());
 
+      // Sink may be Optional for source tables. Once source table query execution is supported,
+      // then we would need have a condition to not create a sink topic info
       final Topic sinkTopic = buildSinkTopic(
-          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName()),
+          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName().get()),
           stubKafkaService,
           serviceContext.getSchemaRegistryClient());
       testCase.setGeneratedTopologies(

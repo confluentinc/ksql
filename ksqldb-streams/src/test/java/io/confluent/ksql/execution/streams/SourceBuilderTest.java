@@ -113,10 +113,10 @@ public class SourceBuilderTest {
   private static final GenericKey KEY = GenericKey.genericKey(A_KEY);
 
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
-      .withPseudoAndKeyColsInValue(false);
+      .withPseudoAndKeyColsInValue(false, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
   private static final LogicalSchema WINDOWED_SCHEMA = SOURCE_SCHEMA
-      .withPseudoAndKeyColsInValue(true);
+      .withPseudoAndKeyColsInValue(true, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
@@ -185,6 +185,8 @@ public class SourceBuilderTest {
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
+  private ArgumentCaptor<Materialized<?, GenericRow, KeyValueStore<Bytes, byte[]>>> materializedArgumentCaptor;
+  @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
   @Captor
   private ArgumentCaptor<StaticTopicSerde<GenericRow>> serdeCaptor;
@@ -210,6 +212,7 @@ public class SourceBuilderTest {
     when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
+    when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class), any(Materialized.class))).thenReturn(kTable);
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(buildContext.getServiceContext()).thenReturn(serviceContext);
@@ -223,6 +226,7 @@ public class SourceBuilderTest {
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
     when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
+    when(consumedWindowed.withValueSerde(any())).thenReturn(consumedWindowed);
 
     planBuilder = new KSPlanBuilder(
         buildContext,
@@ -468,7 +472,7 @@ public class SourceBuilderTest {
     // Given:
     givenWindowedSourceTable();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSource);
+        getTransformerFromMaterializedTableSource(windowedTableSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -489,7 +493,7 @@ public class SourceBuilderTest {
     // Given:
     givenWindowedSourceTable();
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSource);
+        getTransformerFromMaterializedTableSource(windowedTableSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -588,6 +592,19 @@ public class SourceBuilderTest {
     transformer.init(processorCtx);
     return transformer;
   }
+
+  @SuppressWarnings("unchecked")
+  private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromMaterializedTableSource(
+      final SourceStep<?> streamSource
+  ) {
+    streamSource.build(planBuilder, planInfo);
+    verify(kTable).transformValues(transformSupplierCaptor.capture(), materializedArgumentCaptor.capture());
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
+        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
+    transformer.init(processorCtx);
+    return transformer;
+  }
+
   private void givenWindowedSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);

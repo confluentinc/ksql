@@ -125,6 +125,7 @@ The new semantics will be tested as:
 * Tests for successful materialization and pull query
 * Tests for query termination restriction
 * Tests for `DESCRIBE` sources
+* Tests for `LIST QUERIES`
 
 ## LOEs and Delivery Milestones
 The estimated work time will be spent as follows (to implement and review):

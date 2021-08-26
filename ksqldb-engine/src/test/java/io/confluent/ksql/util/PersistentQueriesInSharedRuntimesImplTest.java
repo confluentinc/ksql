@@ -16,10 +16,10 @@
 package io.confluent.ksql.util;
 
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -30,7 +30,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.util.QueryMetadata.Listener;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -84,7 +83,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
             KsqlConstants.PersistentQueryType.CREATE_AS,
             SQL,
             physicalSchema,
-            Collections.EMPTY_SET,
+            ImmutableSet.of(),
             EXECUTION_PLAN,
             APPLICATION_ID,
             topology,

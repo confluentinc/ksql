@@ -25,17 +25,18 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public final class QueryPlan  {
   private final ImmutableSet<SourceName> sources;
-  private final SourceName sink;
+  private final Optional<SourceName> sink;
   private final ExecutionStep<?> physicalPlan;
   private final QueryId queryId;
 
   public QueryPlan(
       @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
-      @JsonProperty(value = "sink", required = true) final SourceName sink,
+      @JsonProperty(value = "sink") final Optional<SourceName> sink,
       @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
       @JsonProperty(value = "queryId", required = true) final QueryId queryId
   ) {
@@ -43,12 +44,14 @@ public final class QueryPlan  {
         Comparator.comparing(Name::text),
         Objects.requireNonNull(sources, "sources")
     );
-    this.sink = Objects.requireNonNull(sink, "sink");
+    // Sink can be null when a query plan forms part of a create source table command.
+    // CST statements need a plan without a sink topic.
+    this.sink = sink;
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
-  public SourceName getSink() {
+  public Optional<SourceName> getSink() {
     return sink;
   }
 

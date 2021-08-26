@@ -15,12 +15,21 @@
 
 package io.confluent.ksql.engine;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
+
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import java.util.Optional;
+
+import io.confluent.ksql.util.KsqlConstants;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -46,5 +55,74 @@ public class KsqlPlanV1Test {
         .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand2), Optional.of(queryPlan1)))
         .addEqualityGroup(new KsqlPlanV1("foo", Optional.of(ddlCommand1), Optional.of(queryPlan2)))
         .testEquals();
+  }
+
+  @Test
+  public void shouldReturnNoPersistentQueryTypeOnPlansWithoutQueryPlans() {
+    // Given:
+    final KsqlPlanV1 plan = new KsqlPlanV1(
+        "stmt",
+        Optional.of(ddlCommand1),
+        Optional.empty());
+
+    // When/Then:
+    assertThat(plan.getPersistentQueryType(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnInsertPersistentQueryTypeOnPlansWithoutDdlCommands() {
+    // Given:
+    final KsqlPlanV1 plan = new KsqlPlanV1(
+        "stmt",
+        Optional.empty(),
+        Optional.of(queryPlan1));
+
+    // When/Then:
+    assertThat(plan.getPersistentQueryType(),
+        is(Optional.of(KsqlConstants.PersistentQueryType.INSERT)));
+  }
+
+  @Test
+  public void shouldReturnCreateSourcePersistentQueryTypeOnCreateSourceTable() {
+    // Given:
+    final CreateTableCommand ddlCommand = Mockito.mock(CreateTableCommand.class);
+    when(ddlCommand.getIsSource()).thenReturn(true);
+    final KsqlPlanV1 plan = new KsqlPlanV1(
+        "stmt",
+        Optional.of(ddlCommand),
+        Optional.of(queryPlan1));
+
+    // When/Then:
+    assertThat(plan.getPersistentQueryType(),
+        is(Optional.of(KsqlConstants.PersistentQueryType.CREATE_SOURCE)));
+  }
+
+  @Test
+  public void shouldReturnCreateAsPersistentQueryTypeOnCreateTable() {
+    // Given:
+    final CreateTableCommand ddlCommand = Mockito.mock(CreateTableCommand.class);
+    when(ddlCommand.getIsSource()).thenReturn(false);
+    final KsqlPlanV1 plan = new KsqlPlanV1(
+        "stmt",
+        Optional.of(ddlCommand),
+        Optional.of(queryPlan1));
+
+    // When/Then:
+    assertThat(plan.getPersistentQueryType(),
+        is(Optional.of(KsqlConstants.PersistentQueryType.CREATE_AS)));
+  }
+
+  @Test
+  public void shouldReturnCreateAsPersistentQueryTypeOnCreateStream() {
+    // Given:
+    final CreateStreamCommand ddlCommand = Mockito.mock(CreateStreamCommand.class);
+    final KsqlPlanV1 plan = new KsqlPlanV1(
+        "stmt",
+        Optional.of(ddlCommand),
+        Optional.of(queryPlan1));
+
+    // When/Then:
+    assertThat(plan.getPersistentQueryType(),
+        is(Optional.of(KsqlConstants.PersistentQueryType.CREATE_AS)));
   }
 }

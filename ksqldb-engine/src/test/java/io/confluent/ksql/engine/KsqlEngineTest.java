@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -55,6 +56,7 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -64,7 +66,11 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -167,6 +173,35 @@ public class KsqlEngineTest {
         is(SourceName.of("BAR")));
     assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName().get(),
         is(SourceName.of("FOO")));
+  }
+
+  @Test
+  public void shouldCreateSourceTablesQueries() {
+    // Given:
+    givenTopicsExist("s0_topic", "t1_topic");
+
+    // When:
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create source table t1 (f0 bigint primary key, f1 double, f2 boolean) "
+            + "with (kafka_topic='t1_topic', value_format='json');",
+        KSQL_CONFIG,
+        Collections.emptyMap());
+
+    // Then:
+    assertThat(queries, hasSize(1));
+    assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
+
+    final PersistentQueryMetadata metadata = (PersistentQueryMetadata) queries.get(0);
+    assertThat(metadata.getPersistentQueryType(),
+        is(KsqlConstants.PersistentQueryType.CREATE_SOURCE));
+    assertThat((metadata).getSink(), is(Optional.empty()));
+    assertThat((metadata).getSinkName(), is(Optional.empty()));
+    assertThat((metadata).getDataSourceType(), is(Optional.empty()));
+    assertThat((metadata).getResultTopic(), is(Optional.empty()));
+    assertThat(metadata.getLogicalSchema().key(), hasItems(hasFullName("F0")));
+    assertThat(metadata.getLogicalSchema().value(), hasItems(hasFullName("F1"), hasFullName("F2")));
   }
 
   @Test

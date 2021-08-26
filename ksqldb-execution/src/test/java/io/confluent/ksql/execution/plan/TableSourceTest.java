@@ -71,9 +71,6 @@ public class TableSourceTest {
                 properties1, "topic1", formats1, Optional.of(timestamp1), schema2, OptionalInt.of(0)))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
-        .addEqualityGroup(
-            new TableSource(
                 properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(1)))
         .testEquals();
   }

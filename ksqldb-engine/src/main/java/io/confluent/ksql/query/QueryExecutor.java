@@ -411,7 +411,7 @@ final class QueryExecutor {
         materializationProviderBuilder,
         physicalPlan,
         getUncaughtExceptionProcessingLogger(queryId),
-        sinkDataSource,
+        Optional.of(sinkDataSource),
         listener,
         classifier,
         streamsProperties,

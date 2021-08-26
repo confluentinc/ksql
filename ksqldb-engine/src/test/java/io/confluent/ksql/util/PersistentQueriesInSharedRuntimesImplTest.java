@@ -95,7 +95,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
             Optional.empty(),
             physicalPlan,
             processingLogger,
-            sinkDataSource,
+            Optional.of(sinkDataSource),
             listener,
             classifier,
             streamsProperties,

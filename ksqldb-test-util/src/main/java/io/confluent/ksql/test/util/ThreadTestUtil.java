@@ -131,8 +131,8 @@ public final class ThreadTestUtil {
     }
 
     public ThreadFilterBuilder excludeSystem() {
-      filter(e -> e.getKey().getThreadGroup() == null ||
-          !e.getKey().getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME));
+      filter(e -> e.getKey().getThreadGroup() == null
+          || !e.getKey().getThreadGroup().getName().equals(SYSTEM_THREAD_GROUP_NAME));
       return this;
     }
 

@@ -44,6 +44,8 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,6 +54,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -70,6 +74,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +84,7 @@ import org.slf4j.LoggerFactory;
  * are what we expect. This tests a broad set of KSQL functionality and is a good catch-all.
  */
 @SuppressWarnings("ConstantConditions")
+@RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class EndToEndIntegrationTest {
 
@@ -98,33 +105,23 @@ public class EndToEndIntegrationTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
+  @SuppressWarnings("deprecation")
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Boolean> data() {
+    return Arrays.asList(
+        true, false
+    );
+  }
+
+  @Parameterized.Parameter
+  public boolean sharedRuntimes;
+
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS);
 
-  @Rule
-  public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
-      .withAdditionalConfig(
-          StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
-          DummyProducerInterceptor.class.getName()
-      )
-      .withAdditionalConfig(
-          StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-          DummyConsumerInterceptor.class.getName()
-      )
-      .withAdditionalConfig(
-          KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
-          "foo-bar"
-      )
-      .withAdditionalConfig(
-          KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
-          "expected-value"
-      )
-      .withAdditionalConfig(
-          KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
-          "http://foo:8080")
-      .build();
+  public TestKsqlContext ksqlContext;
 
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
@@ -132,7 +129,35 @@ public class EndToEndIntegrationTest {
   private final List<QueryMetadata> toClose = new ArrayList<>();
 
   @Before
-  public void before() {
+  public void before() throws Exception {
+    TEST_HARNESS.before();
+    ksqlContext  = TEST_HARNESS.ksqlContextBuilder()
+        .withAdditionalConfig(
+            StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyProducerInterceptor.class.getName()
+        )
+        .withAdditionalConfig(
+            StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+            DummyConsumerInterceptor.class.getName()
+        )
+        .withAdditionalConfig(
+            KSQL_FUNCTIONS_PROPERTY_PREFIX + "e2econfigurableudf.some.setting",
+            "foo-bar"
+        )
+        .withAdditionalConfig(
+            KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param",
+            "expected-value"
+        )
+        .withAdditionalConfig(
+            KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
+            "http://foo:8080")
+        .withAdditionalConfig(
+            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
+            sharedRuntimes)
+        .build();
+
+    ksqlContext.before();
+
     ConfigurableUdf.PASSED_CONFIG = null;
     PRODUCED_COUNT.set(0);
     CONSUMED_COUNT.set(0);
@@ -168,6 +193,9 @@ public class EndToEndIntegrationTest {
   @After
   public void after() {
     toClose.forEach(QueryMetadata::close);
+    ksqlContext.after();
+    TEST_HARNESS.deleteTopics(Arrays.asList(PAGE_VIEW_TOPIC, USERS_TOPIC));
+    TEST_HARNESS.after();
   }
 
   @Test

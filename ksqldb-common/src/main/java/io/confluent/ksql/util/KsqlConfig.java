@@ -400,6 +400,14 @@ public class KsqlConfig extends AbstractConfig {
           + "if false, new lambda queries won't be processed but any existing lambda "
           + "queries are unaffected.";
 
+  public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
+  public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
+  public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
+      "Feature flag for sharing streams runtimes. "
+          + "Default is false. If false, persistent queries will use separate "
+          + " runtimes, if true, new queries may share streams instances.";
+
+
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
@@ -1018,6 +1026,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_LAMBDAS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_LAMBDAS_ENABLED_DOC
+        ).define(
+            KSQL_SHARED_RUNTIME_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHARED_RUNTIME_ENABLED_DOC
         )
         .withClientSslSupport();
 

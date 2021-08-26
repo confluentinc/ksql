@@ -345,7 +345,11 @@ public class KsqlEngineMetrics implements Closeable {
     final String description = String.format("Count of queries in %s state.", state.toString());
     final MetricName metricName = metrics.metricName(name, group, description, tags);
     final CountMetric countMetric = new CountMetric(metricName, gauge);
-    metrics.addMetric(metricName, gauge);
+    try {
+      metrics.addMetric(metricName, gauge);
+    } catch (IllegalArgumentException e) {
+      //not duplicate metrics, can be improved
+    }
     countMetrics.add(countMetric);
   }
 

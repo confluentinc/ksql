@@ -22,11 +22,13 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AG
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -50,6 +52,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -330,23 +333,41 @@ public class WSQueryEndpoint {
 
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+      final DataSource dataSource = analysis.getFrom().getDataSource();
+      final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
-
-      pullQueryPublisher.start(
-          ksqlEngine,
-          info.securityContext.getServiceContext(),
-          exec,
-          configured,
-          analysis,
-          streamSubscriber,
-          pullQueryMetrics,
-          startTimeNanos,
-          routingFilterFactory,
-          rateLimiter,
-          pullConcurrencyLimiter,
-          pullBandRateLimiter,
-          routing
-      );
+      switch (dataSourceType) {
+        case KTABLE: {
+          pullQueryPublisher.start(
+              ksqlEngine,
+              info.securityContext.getServiceContext(),
+              exec,
+              configured,
+              analysis,
+              streamSubscriber,
+              pullQueryMetrics,
+              startTimeNanos,
+              routingFilterFactory,
+              rateLimiter,
+              pullConcurrencyLimiter,
+              pullBandRateLimiter,
+              routing
+          );
+          return;
+        }
+        case KSTREAM: {
+          throw new KsqlStatementException(
+              "Pull queries are not supported on streams."
+                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
+              statement.getStatementText()
+          );
+        }
+        default:
+          throw new KsqlStatementException(
+              "Unexpected data source type for pull query: " + dataSourceType,
+              statement.getStatementText()
+          );
+      }
     } else if (ScalablePushUtil.isScalablePushQuery(
         statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
 

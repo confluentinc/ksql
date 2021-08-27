@@ -51,7 +51,8 @@ public final class PullQueryExecutionUtil {
     final Set<QueryId> queries = engineContext.getQueryRegistry().getQueriesWithSink(sourceName);
 
     if (source.getDataSourceType() != DataSourceType.KTABLE) {
-      throw new KsqlException("Pull queries are not supported on streams."
+      throw new KsqlException("Unexpected data source type for table pull query: "
+          + source.getDataSourceType() + " "
           + PullQueryValidator.PULL_QUERY_SYNTAX_HELP);
     }
 

@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -29,6 +30,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -133,15 +135,31 @@ public class QueryEndpoint {
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
-      return createTablePullQueryPublisher(
-          analysis,
-          context,
-          serviceContext,
-          statement,
-          pullQueryMetrics,
-          workerExecutor,
-          metricsCallbackHolder
-      );
+      final DataSource dataSource = analysis.getFrom().getDataSource();
+      final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
+      switch (dataSourceType) {
+        case KTABLE:
+          return createTablePullQueryPublisher(
+              analysis,
+              context,
+              serviceContext,
+              statement,
+              pullQueryMetrics,
+              workerExecutor,
+              metricsCallbackHolder
+          );
+        case KSTREAM:
+          throw new KsqlStatementException(
+              "Pull queries are not supported on streams."
+                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
+              statement.getStatementText()
+          );
+        default:
+          throw new KsqlStatementException(
+              "Unexpected data source type for pull query: " + dataSourceType,
+              statement.getStatementText()
+          );
+      }
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
       final ImmutableAnalysis analysis = ksqlEngine

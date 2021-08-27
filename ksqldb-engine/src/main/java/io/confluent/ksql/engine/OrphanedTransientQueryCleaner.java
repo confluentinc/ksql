@@ -55,12 +55,17 @@ public class OrphanedTransientQueryCleaner {
       return;
     }
     // Find any transient query topics
+    LOG.info("query IDs that we could cleanup as orphaned internal topics {}", queryApplicationIds);
     final Set<String> orphanedQueryApplicationIds = topicNames.stream()
         .map(topicName -> queryApplicationIds.stream().filter(topicName::startsWith).findFirst())
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toSet());
+    LOG.info("not cleaning up the following query IDs: {}", 
+      queryApplicationIds.removeAll(orphanedQueryApplicationIds)
+    );
     for (final String queryApplicationId : orphanedQueryApplicationIds) {
+      LOG.info("adding a cleanup task for query ID {}", queryApplicationId);
       cleanupService.addCleanupTask(
           new QueryCleanupService.QueryCleanupTask(
               serviceContext,

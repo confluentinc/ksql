@@ -383,12 +383,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     ) {
       final String applicationId = query.getQueryApplicationId();
       if (query.hasEverBeenStarted()) {
+        log.info("cleaning up query {}", applicationId);
         cleanupService.addCleanupTask(
             new QueryCleanupService.QueryCleanupTask(
                 serviceContext,
                 applicationId,
                 query instanceof TransientQueryMetadata
             ));
+      } else {
+        log.info("not cleaning up query {}", applicationId);
       }
 
       StreamsErrorCollector.notifyApplicationClose(applicationId);

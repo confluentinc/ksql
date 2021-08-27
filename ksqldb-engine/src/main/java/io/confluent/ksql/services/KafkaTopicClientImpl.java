@@ -291,6 +291,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       try {
         entry.getValue().get(30, TimeUnit.SECONDS);
       } catch (final Exception e) {
+        LOG.info("caught an error while deleting internal topics");
         final Throwable rootCause = ExceptionUtils.getRootCause(e);
 
         if (rootCause instanceof TopicDeletionDisabledException) {
@@ -322,9 +323,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       for (final String topicName : topicNames) {
         if (isInternalTopic(topicName, applicationId)) {
           internalTopics.add(topicName);
+        } else {
+          LOG.info("{} is not an internal topic", topicName);
         }
       }
       if (!internalTopics.isEmpty()) {
+        LOG.info("deleting internal topics for {}", applicationId);
         deleteTopics(internalTopics);
       }
     } catch (final Exception e) {

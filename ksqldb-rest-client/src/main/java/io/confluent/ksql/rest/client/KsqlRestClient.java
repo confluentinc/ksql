@@ -180,7 +180,7 @@ public final class KsqlRestClient implements Closeable {
       final String ksql,
       final Long commandSeqNum
   ) {
-    return makeQueryRequestStreamed(ksql, commandSeqNum, Collections.emptyMap());
+    return makeQueryRequestStreamed(ksql, commandSeqNum, null);
   }
 
   public RestResponse<StreamPublisher<StreamedRow>> makeQueryRequestStreamed(

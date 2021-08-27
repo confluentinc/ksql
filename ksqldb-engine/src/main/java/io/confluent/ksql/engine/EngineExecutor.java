@@ -559,13 +559,12 @@ final class EngineExecutor {
         Optional.of(outputNode)
     );
     final QueryId queryId = QueryIdUtil.buildId(
+        statement.getStatement(),
         engineContext,
         engineContext.idGenerator(),
         outputNode,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
-        withQueryId,
-        statement.getStatement() instanceof CreateTable
-            && ((CreateTable) statement.getStatement()).isSource()
+        withQueryId
     );
 
     if (withQueryId.isPresent()

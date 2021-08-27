@@ -44,9 +44,7 @@ public final class QueryPlan  {
         Comparator.comparing(Name::text),
         Objects.requireNonNull(sources, "sources")
     );
-    // Sink can be null when a query plan forms part of a create source table command.
-    // CST statements need a plan without a sink topic.
-    this.sink = sink;
+    this.sink = Objects.requireNonNull(sink, "sink");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }

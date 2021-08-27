@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -23,9 +24,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
-import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -33,6 +32,8 @@ import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * Factory class used to create stream and table sources
@@ -136,14 +137,28 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
-    final WindowedTableSource step = ExecutionStepFactory.tableSourceWindowed(
-        contextStacker,
-        dataSource.getSchema(),
-        dataSource.getKafkaTopicName(),
-        Formats.from(dataSource.getKsqlTopic()),
-        windowInfo,
-        dataSource.getTimestampColumn()
-    );
+    final SourceStep<KTableHolder<Windowed<GenericKey>>> step;
+
+    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
+      step = ExecutionStepFactory.tableSourceWindowed(
+          contextStacker,
+          dataSource.getSchema(),
+          dataSource.getKafkaTopicName(),
+          Formats.from(dataSource.getKsqlTopic()),
+          windowInfo,
+          dataSource.getTimestampColumn()
+      );
+
+    } else {
+      step = ExecutionStepFactory.tableSourceWindowedV1(
+          contextStacker,
+          dataSource.getSchema(),
+          dataSource.getKafkaTopicName(),
+          Formats.from(dataSource.getKsqlTopic()),
+          windowInfo,
+          dataSource.getTimestampColumn()
+      );
+    }
 
     return schemaKTable(
         buildContext,
@@ -162,13 +177,26 @@ public final class SchemaKSourceFactory {
       throw new IllegalArgumentException("windowed");
     }
 
-    final TableSource step = ExecutionStepFactory.tableSource(
-        contextStacker,
-        dataSource.getSchema(),
-        dataSource.getKafkaTopicName(),
-        Formats.from(dataSource.getKsqlTopic()),
-        dataSource.getTimestampColumn()
-    );
+    final SourceStep<KTableHolder<GenericKey>> step;
+
+    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
+      step = ExecutionStepFactory.tableSource(
+          contextStacker,
+          dataSource.getSchema(),
+          dataSource.getKafkaTopicName(),
+          Formats.from(dataSource.getKsqlTopic()),
+          dataSource.getTimestampColumn()
+      );
+
+    } else {
+      step = ExecutionStepFactory.tableSourceV1(
+          contextStacker,
+          dataSource.getSchema(),
+          dataSource.getKafkaTopicName(),
+          Formats.from(dataSource.getKsqlTopic()),
+          dataSource.getTimestampColumn()
+      );
+    }
 
     return schemaKTable(
         buildContext,

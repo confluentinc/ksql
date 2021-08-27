@@ -323,11 +323,12 @@ public final class LogicalSchema {
    */
   private LogicalSchema rebuildWithoutPseudoAndKeyColsInValue(final int pseudoColumnVersion) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
-    final List<Column> keyColumns = keyColumns(byNamespace());
+    final List<Column> keyColumns = keyColumns(byNamespace);
 
     final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
-        byNamespace(), pseudoColumnVersion);
+        byNamespace, pseudoColumnVersion);
 
     builder.addAll(keyColumns);
     builder.addAll(nonPseudoAndKeyCols);
@@ -337,7 +338,7 @@ public final class LogicalSchema {
 
   /**
    * Adds columns, except for key and pseudocolumns, to an immutable list and returns the list
-   * @param byNamespace map of columns grouped by namespace
+   * @param byNamespace map of columns grouped by key and value
    * @param pseudoColumnVersion the pseudocolumn version used to evaluate if a column is a system
    *                            column or not
    * @return an immutable list containing the non pseudo and key columns in this LogicalSchema
@@ -367,9 +368,9 @@ public final class LogicalSchema {
   }
 
   /**
-   * Adds key columns related to a namespace to an immutable list and returns the list
-   * @param byNamespace map of columns grouped by namespace
-   * @return an immutable list containing the key columns related to the provided namespace
+   * Adds key columns to a list and returns that list
+   * @param byNamespace map of columns grouped by if they are key or value
+   * @return an immutable list containing the key columns of this query
    */
   private List<Column> keyColumns(
       final Map<Namespace, List<Column>> byNamespace) {

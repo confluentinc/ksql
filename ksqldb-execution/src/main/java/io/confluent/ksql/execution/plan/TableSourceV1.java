@@ -29,22 +29,27 @@ import java.util.OptionalInt;
 import javax.annotation.Nonnull;
 
 @Immutable
-public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
+public final class TableSourceV1 extends SourceStep<KTableHolder<GenericKey>> {
+
+  private final Boolean forceChangelog;
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("topicName", s -> ((TableSource) s).topicName),
-      new Property("formats", s -> ((TableSource) s).formats),
-      new Property("timestampColumn", s -> ((TableSource) s).timestampColumn)
+      new Property("topicName", s -> ((TableSourceV1) s).topicName),
+      new Property("formats", s -> ((TableSourceV1) s).formats),
+      new Property("timestampColumn", s -> ((TableSourceV1) s).timestampColumn),
+      new Property("forceChangelog", s -> ((TableSourceV1) s).forceChangelog)
   );
 
-  public TableSource(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+  public TableSourceV1(
+      @JsonProperty(value = "properties", required = true)
+      final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "forceChangelog") final Optional<Boolean> forceChangelog,
       @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
     super(
@@ -55,6 +60,11 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         sourceSchema,
         pseudoColumnVersion.orElse(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER)
     );
+    this.forceChangelog = forceChangelog.orElse(false);
+  }
+
+  public Boolean isForceChangelog() {
+    return forceChangelog;
   }
 
   @Override
@@ -70,10 +80,10 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
   @Override
   public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
     ExecutionStep<?> source = to;
-    while (!(source instanceof TableSource)) {
+    while (!(source instanceof TableSourceV1)) {
       if (to.getSources().isEmpty()) {
         throw new KsqlException("Query is not upgradeable. The root source node of "
-            + "the upgrade tree must be TableSource, but was " + source.getClass());
+            + "the upgrade tree must be TableSourceV1, but was " + source.getClass());
       } else if (to.getSources().size() > 1) {
         throw new KsqlException("Query is not upgradeable. Cannot change a non-join source "
             + "into a join source.");
@@ -96,12 +106,13 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableSource that = (TableSource) o;
+    final TableSourceV1 that = (TableSourceV1) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(forceChangelog, that.forceChangelog)
         && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
   }
 
@@ -113,6 +124,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
+        forceChangelog,
         pseudoColumnVersion);
   }
 }

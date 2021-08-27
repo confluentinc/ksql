@@ -26,7 +26,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
-public class TableSourceTest {
+public class TableSourceV1Test {
   @Mock
   private ExecutionStepPropertiesV1 properties1;
   @Mock
@@ -48,30 +48,33 @@ public class TableSourceTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)),
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.empty()))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)),
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)),
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.empty()))
         .addEqualityGroup(
-            new TableSource(
-                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new TableSource(
-                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new TableSource(
-                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, OptionalInt.of(0)))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, Optional.of(false), OptionalInt.of(0)))
         .addEqualityGroup(
-            new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(1)))
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(true), OptionalInt.of(0)))
+        .addEqualityGroup(
+            new TableSourceV1(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(true), OptionalInt.of(1)))
         .testEquals();
   }
 }

@@ -400,6 +400,13 @@ public class KsqlConfig extends AbstractConfig {
           + "if false, new lambda queries won't be processed but any existing lambda "
           + "queries are unaffected.";
 
+  public static final String KSQL_ROWPARTITION_ROWOFFSET_ENABLED =
+      "ksql.rowpartition.rowoffset.enabled";
+  public static final Boolean KSQL_ROWPARTITION_ROWOFFSET_DEFAULT = false;
+  public static final String KSQL_ROWPARTITION_ROWOFFSET_DOC =
+      "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
+          + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";
+
   public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
   public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
   public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
@@ -1027,6 +1034,13 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_LAMBDAS_ENABLED_DOC
         ).define(
+            KSQL_ROWPARTITION_ROWOFFSET_ENABLED,
+            Type.BOOLEAN,
+            KSQL_ROWPARTITION_ROWOFFSET_DEFAULT,
+            Importance.LOW,
+            KSQL_ROWPARTITION_ROWOFFSET_DOC
+        )
+        .define(
             KSQL_SHARED_RUNTIME_ENABLED,
             Type.BOOLEAN,
             KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,

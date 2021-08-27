@@ -80,8 +80,16 @@ public class PlanInfoExtractor {
     return visitJoinStep(streamTableJoin);
   }
 
+  public PlanInfo visitTableSource(final TableSourceV1 tableSourceV1) {
+    return visitSourceStep(tableSourceV1);
+  }
+
   public PlanInfo visitTableSource(final TableSource tableSource) {
     return visitSourceStep(tableSource);
+  }
+
+  public PlanInfo visitWindowedTableSource(final WindowedTableSourceV1 windowedTableSourceV1) {
+    return visitSourceStep(windowedTableSourceV1);
   }
 
   public PlanInfo visitWindowedTableSource(final WindowedTableSource windowedTableSource) {

@@ -25,8 +25,8 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
-import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.PlanInfo;
+import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
@@ -81,7 +81,6 @@ public class PlanInfoExtractorTest {
         formats,
         Optional.empty(),
         schema,
-        Optional.of(true),
         OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
     streamSourceRepartitioned = new StreamSelectKey<>(

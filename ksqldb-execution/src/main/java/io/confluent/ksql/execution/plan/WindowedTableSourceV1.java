@@ -16,33 +16,25 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
-import javax.annotation.Nonnull;
+import org.apache.kafka.streams.kstream.Windowed;
 
-@Immutable
-public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
+public final class WindowedTableSourceV1 extends SourceStep<KTableHolder<Windowed<GenericKey>>> {
 
-  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
-      new Property("class", Object::getClass),
-      new Property("properties", ExecutionStep::getProperties),
-      new Property("topicName", s -> ((TableSource) s).topicName),
-      new Property("formats", s -> ((TableSource) s).formats),
-      new Property("timestampColumn", s -> ((TableSource) s).timestampColumn)
-  );
+  private final WindowInfo windowInfo;
 
-  public TableSource(
+  public WindowedTableSourceV1(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
       @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
@@ -55,37 +47,21 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         sourceSchema,
         pseudoColumnVersion.orElse(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER)
     );
+    this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
+  }
+
+  public WindowInfo getWindowInfo() {
+    return windowInfo;
   }
 
   @Override
-  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
-    return builder.visitTableSource(this, info);
+  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitWindowedTableSource(this, info);
   }
 
   @Override
   public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
-    return extractor.visitTableSource(this);
-  }
-
-  @Override
-  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
-    ExecutionStep<?> source = to;
-    while (!(source instanceof TableSource)) {
-      if (to.getSources().isEmpty()) {
-        throw new KsqlException("Query is not upgradeable. The root source node of "
-            + "the upgrade tree must be TableSource, but was " + source.getClass());
-      } else if (to.getSources().size() > 1) {
-        throw new KsqlException("Query is not upgradeable. Cannot change a non-join source "
-            + "into a join source.");
-      } else if (to.type() != StepType.PASSIVE) {
-        throw new KsqlException("Query is not upgradeable. Cannot add a " + to.getClass()
-            + " step that is not in the original query plan.");
-      }
-
-      source = to.getSources().get(0);
-    }
-
-    mustMatch(source, MUST_MATCH);
+    return extractor.visitWindowedTableSource(this);
   }
 
   @Override
@@ -96,7 +72,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableSource that = (TableSource) o;
+    final WindowedTableSourceV1 that = (WindowedTableSourceV1) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
@@ -113,6 +89,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        pseudoColumnVersion);
+        pseudoColumnVersion
+    );
   }
 }

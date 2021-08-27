@@ -43,10 +43,12 @@ import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
@@ -95,8 +97,10 @@ public class PlanSummary {
           .put(TableSink.class, "SINK")
           .put(TableTableJoin.class, "JOIN")
           .put(ForeignKeyTableTableJoin.class, "JOIN")
+          .put(TableSourceV1.class, "SOURCE")
           .put(TableSource.class, "SOURCE")
           .put(TableSuppress.class, "SUPPRESS")
+          .put(WindowedTableSourceV1.class, "SOURCE")
           .put(WindowedTableSource.class, "SOURCE")
           .build();
 

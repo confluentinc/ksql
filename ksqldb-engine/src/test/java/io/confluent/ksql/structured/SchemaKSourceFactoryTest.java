@@ -28,9 +28,9 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.StreamSource;
-import io.confluent.ksql.execution.plan.TableSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -168,7 +168,7 @@ public class SchemaKSourceFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(SchemaKTable.class));
-    assertThat(result.getSourceStep(), instanceOf(WindowedTableSource.class));
+    assertThat(result.getSourceStep(), instanceOf(WindowedTableSourceV1.class));
 
     assertValidSchema(result);
     assertThat(result.getSourceStep().getSources(), is(empty()));
@@ -190,7 +190,7 @@ public class SchemaKSourceFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(SchemaKTable.class));
-    assertThat(result.getSourceStep(), instanceOf(TableSource.class));
+    assertThat(result.getSourceStep(), instanceOf(TableSourceV1.class));
 
     assertValidSchema(result);
     assertThat(result.getSourceStep().getSources(), is(empty()));

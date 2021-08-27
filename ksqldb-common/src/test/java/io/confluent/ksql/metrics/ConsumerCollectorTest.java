@@ -86,7 +86,7 @@ public class ConsumerCollectorTest {
       collector.onConsume(consumerRecords2);
     }
 
-    final Metrics metrics = collector.getMetrics();
+    final Metrics metrics = MetricCollectors.getMetrics();
     assertThat(Double.parseDouble(metrics.metric(metrics.metricName(
         ConsumerCollector.CONSUMER_ALL_TOTAL_BYTES_SUM,
         ConsumerCollector.CONSUMER_COLLECTOR_METRICS_GROUP_NAME)

@@ -46,14 +46,19 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
   public static final String CONSUMER_ALL_TOTAL_BYTES_SUM = "consumer-all-total-bytes-sum";
   public static final String CONSUMER_COLLECTOR_METRICS_GROUP_NAME = "consumer-metrics";
+  private static final Sensor totalBytesSum;
 
   private final Map<String, TopicSensors<ConsumerRecord<Object, Object>>> topicSensors =
       new HashMap<>();
-  private Sensor totalBytesSum;
   private Metrics metrics;
   private String id;
   private String groupId;
   private Time time;
+
+  static
+  {
+    totalBytesSum = configureTotalBytesSum(MetricCollectors.getMetrics());
+  }
 
   public void configure(final Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
@@ -76,7 +81,6 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     this.id = id;
     this.metrics = metrics;
     this.time = time;
-    this.totalBytesSum = configureTotalBytesSum();
     return this;
   }
 
@@ -186,7 +190,6 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   public void close() {
     MetricCollectors.remove(this.id);
     topicSensors.values().forEach(v -> v.close(metrics));
-    metrics.removeSensor(totalBytesSum.name());
   }
 
   @Override
@@ -204,7 +207,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
   }
 
-  private Sensor configureTotalBytesSum() {
+  private static Sensor configureTotalBytesSum(final Metrics metrics) {
     final String description = "The total number of bytes consumed across all consumers";
     final Sensor sensor = metrics.sensor(CONSUMER_ALL_TOTAL_BYTES_SUM);
     sensor.add(

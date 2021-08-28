@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -195,7 +196,7 @@ public class ScalablePushQueryFunctionalTest {
   }
 
   @Test
-  public void shouldGetContinuousStreamOfResults() {
+  public void shouldGetContinuousStreamOfResults() throws ExecutionException, InterruptedException {
     assertAllPersistentQueriesRunning(true);
     final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
     final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
@@ -204,13 +205,7 @@ public class ScalablePushQueryFunctionalTest {
         ImmutableMap.of("auto.offset.reset", "latest"),
         header, complete);
 
-    try {
-      header.get();
-    } catch (Exception e) {
-      LOG.error("Error waiting on header", e);
-      throw new AssertionError(e);
-    }
-
+    header.get();
     assertExpectedScalablePushQueries(1, true);
 
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
@@ -226,7 +221,8 @@ public class ScalablePushQueryFunctionalTest {
   }
 
   @Test
-  public void shouldRebalance_addNewHost_skipServer1() {
+  public void shouldRebalance_addNewHost_skipServer1()
+      throws ExecutionException, InterruptedException {
     assertAllPersistentQueriesRunning(false);
     final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
     final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
@@ -235,12 +231,7 @@ public class ScalablePushQueryFunctionalTest {
         ImmutableMap.of("auto.offset.reset", "latest"),
         header, complete);
 
-    try {
-      header.get();
-    } catch (Exception e) {
-      LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
-      throw new AssertionError(e);
-    }
+    header.get();
 
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
@@ -267,7 +258,7 @@ public class ScalablePushQueryFunctionalTest {
   }
 
   @Test
-  public void shouldRebalance_removeHost() {
+  public void shouldRebalance_removeHost() throws ExecutionException, InterruptedException {
     assertAllPersistentQueriesRunning(true);
     final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
     final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
@@ -276,13 +267,7 @@ public class ScalablePushQueryFunctionalTest {
         ImmutableMap.of("auto.offset.reset", "latest"),
         header, complete);
 
-    try {
-      header.get();
-    } catch (Exception e) {
-      LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
-      throw new AssertionError(e);
-    }
-
+    header.get();
     assertExpectedScalablePushQueries(1, true);
 
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,

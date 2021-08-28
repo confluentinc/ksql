@@ -49,7 +49,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -65,7 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
@@ -79,7 +78,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
@@ -88,6 +86,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -96,8 +95,8 @@ public class QueryExecutorTest {
   private static final String STATEMENT_TEXT = "KSQL STATEMENT";
   private static final QueryId QUERY_ID = new QueryId("queryid");
   private static final QueryId QUERY_ID_2 = new QueryId("queryid-2");
-  private static final Set<SourceName> SOURCES
-      = ImmutableSet.of(SourceName.of("foo"), SourceName.of("bar"));
+  private static final Set<DataSource> SOURCES
+      = ImmutableSet.of(givenSource("foo"), givenSource("bar"));
   private static final SourceName SINK_NAME = SourceName.of("baz");
   private static final String STORE_NAME = "store";
   private static final String SUMMARY = "summary";
@@ -152,10 +151,6 @@ public class QueryExecutorTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
-  private KafkaTopicClient topicClient;
-  @Mock
-  private Consumer<QueryMetadata> closeCallback;
-  @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
   private StreamsBuilder streamsBuilder;
@@ -167,8 +162,6 @@ public class QueryExecutorTest {
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
   @Mock
   private Topology topology;
-  @Mock
-  private TopologyDescription topoDesc;
   @Mock
   private KsMaterializationFactory ksMaterializationFactory;
   @Mock
@@ -251,7 +244,7 @@ public class QueryExecutorTest {
     final TransientQueryMetadata queryMetadata = queryBuilder.buildTransientQuery(
         STATEMENT_TEXT,
         QUERY_ID,
-        SOURCES,
+        SOURCES.stream().map(DataSource::getName).collect(Collectors.toSet()),
         physicalPlan,
         SUMMARY,
         TRANSIENT_SINK_SCHEMA,
@@ -265,7 +258,8 @@ public class QueryExecutorTest {
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
-    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
+    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
+        .map(DataSource::getName).collect(Collectors.toSet())));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
@@ -296,7 +290,8 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
     assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
-    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
+      assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
+          .map(DataSource::getName).collect(Collectors.toSet())));
     assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
@@ -329,7 +324,8 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSinkName().get(), equalTo(SINK_NAME));
     assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
     assertThat(queryMetadata.getResultTopic(), is(Optional.of(ksqlTopic)));
-    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
+      assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES.stream()
+          .map(DataSource::getName).collect(Collectors.toSet())));
     assertThat(queryMetadata.getDataSourceType().get(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
@@ -353,6 +349,30 @@ public class QueryExecutorTest {
 
     // Then:
     verify(kafkaStreams).start();
+  }
+
+  @Test
+  public void shouldStartCreateSourceQueryWithMaterializationProvider() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // Given:
+    final DataSource source = givenSource("foo");
+    when(source.getSchema()).thenReturn(SINK_SCHEMA);
+    when(source.getKsqlTopic()).thenReturn(ksqlTopic);
+    final PersistentQueryMetadata queryMetadata = buildPersistentQuery(
+        ImmutableSet.of(source),
+        KsqlConstants.PersistentQueryType.CREATE_SOURCE,
+        QUERY_ID,
+        Optional.empty()
+    );
+    queryMetadata.initialize();
+    queryMetadata.start();
+
+    // When:
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
+
+    // Then:
+    assertThat(result.get(), is(materialization));
   }
 
   @Test
@@ -623,8 +643,7 @@ public class QueryExecutorTest {
         QUERY_ID);
 
     PersistentQueryMetadata queryMetadata2 = buildPersistentQuery(
-            ImmutableSet.of(SourceName.of("food"),
-            SourceName.of("bard")),
+            ImmutableSet.of(givenSource("food"), givenSource("bard")),
         KsqlConstants.PersistentQueryType.CREATE_AS,
         QUERY_ID);
     assertThat("did not chose the same runtime", queryMetadata.getKafkaStreams().equals(queryMetadata2.getKafkaStreams()));
@@ -708,9 +727,16 @@ public class QueryExecutorTest {
     when(streamHolder.getStream()).thenReturn(kstream);
   }
 
-  private PersistentQueryMetadata buildPersistentQuery(final Set<SourceName> sourceNames,
+  private PersistentQueryMetadata buildPersistentQuery(final Set<DataSource> sources,
                                                        final KsqlConstants.PersistentQueryType persistentQueryType,
                                                        final QueryId queryId) {
+    return buildPersistentQuery(sources, persistentQueryType, queryId, Optional.of(sink));
+  }
+
+  private PersistentQueryMetadata buildPersistentQuery(final Set<DataSource> sources,
+                                                       final KsqlConstants.PersistentQueryType persistentQueryType,
+                                                       final QueryId queryId,
+                                                       final Optional<DataSource> sink) {
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       return queryBuilder.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
@@ -718,7 +744,7 @@ public class QueryExecutorTest {
           STATEMENT_TEXT,
           queryId,
           sink,
-          sourceNames,
+          sources,
           physicalPlan,
           SUMMARY,
           queryListener,
@@ -740,4 +766,9 @@ public class QueryExecutorTest {
     }
   }
 
+  private static DataSource givenSource(final String name) {
+    final DataSource source = Mockito.mock(DataSource.class);
+    when(source.getName()).thenReturn(SourceName.of(name));
+    return source;
+  }
 }

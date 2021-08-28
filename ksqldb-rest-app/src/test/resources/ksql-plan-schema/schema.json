@@ -288,7 +288,7 @@
           "type" : "string"
         }
       },
-      "required" : [ "sources", "sink", "physicalPlan", "queryId" ]
+      "required" : [ "sources", "physicalPlan", "queryId" ]
     },
     "StreamAggregate" : {
       "type" : "object",

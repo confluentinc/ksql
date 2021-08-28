@@ -49,6 +49,8 @@ import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -75,6 +77,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -247,8 +250,8 @@ final class QueryExecutor {
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
       final QueryId queryId,
-      final DataSource sinkDataSource,
-      final Set<SourceName> sources,
+      final Optional<DataSource> sinkDataSource,
+      final Set<DataSource> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final QueryMetadata.Listener listener,
@@ -258,10 +261,32 @@ final class QueryExecutor {
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
 
+    final LogicalSchema logicalSchema;
+    final KeyFormat keyFormat;
+    final ValueFormat valueFormat;
+
+    switch (persistentQueryType) {
+      // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
+      case CREATE_SOURCE:
+        final DataSource dataSource = Iterables.getOnlyElement(sources);
+
+        logicalSchema = dataSource.getSchema();
+        keyFormat = dataSource.getKsqlTopic().getKeyFormat();
+        valueFormat = dataSource.getKsqlTopic().getValueFormat();
+
+        break;
+      default:
+        logicalSchema = sinkDataSource.get().getSchema();
+        keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
+        valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
+
+        break;
+    }
+
     final PhysicalSchema querySchema = PhysicalSchema.from(
-        sinkDataSource.getSchema(),
-        sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
-        sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
+        logicalSchema,
+        keyFormat.getFeatures(),
+        valueFormat.getFeatures()
     );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
@@ -277,7 +302,7 @@ final class QueryExecutor {
             querySchema.logicalSchema(),
             result,
             allPersistentQueries,
-            sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+            keyFormat.isWindowed(),
             streamsProperties,
             ksqlConfig
     );
@@ -289,7 +314,7 @@ final class QueryExecutor {
             materializationProviderBuilderFactory.materializationProviderBuilder(
                 info,
                 querySchema,
-                sinkDataSource.getKsqlTopic().getKeyFormat(),
+                keyFormat,
                 streamsProperties,
                 applicationId
             ));
@@ -304,8 +329,8 @@ final class QueryExecutor {
         persistentQueryType,
         statementText,
         querySchema,
-        sources,
-        Optional.of(sinkDataSource),
+        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+        sinkDataSource,
         planSummary,
         queryId,
         materializationProviderBuilder,
@@ -333,15 +358,15 @@ final class QueryExecutor {
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
       final QueryId queryId,
-      final DataSource sinkDataSource,
-      final Set<SourceName> sources,
+      final Optional<DataSource> sinkDataSource,
+      final Set<DataSource> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
     final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
-        sources,
+        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         queryId);
 
     final String applicationId = sharedKafkaStreamsRuntime
@@ -350,12 +375,33 @@ final class QueryExecutor {
             .toString();
     final Map<String, Object> streamsProperties = sharedKafkaStreamsRuntime.getStreamProperties();
 
-    final PhysicalSchema querySchema = PhysicalSchema.from(
-            sinkDataSource.getSchema(),
-            sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
-            sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
-    );
+    final LogicalSchema logicalSchema;
+    final KeyFormat keyFormat;
+    final ValueFormat valueFormat;
 
+    switch (persistentQueryType) {
+      // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
+      case CREATE_SOURCE:
+        final DataSource dataSource = Iterables.getOnlyElement(sources);
+
+        logicalSchema = dataSource.getSchema();
+        keyFormat = dataSource.getKsqlTopic().getKeyFormat();
+        valueFormat = dataSource.getKsqlTopic().getValueFormat();
+
+        break;
+      default:
+        logicalSchema = sinkDataSource.get().getSchema();
+        keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
+        valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
+
+        break;
+    }
+
+    final PhysicalSchema querySchema = PhysicalSchema.from(
+        logicalSchema,
+        keyFormat.getFeatures(),
+        valueFormat.getFeatures()
+    );
     final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
             queryId.toString()
     );
@@ -373,7 +419,7 @@ final class QueryExecutor {
             querySchema.logicalSchema(),
             result,
             allPersistentQueries,
-            sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+            keyFormat.isWindowed(),
             streamsProperties,
             ksqlConfig
     );
@@ -385,7 +431,7 @@ final class QueryExecutor {
             materializationProviderBuilderFactory.materializationProviderBuilder(
                     info,
                     querySchema,
-                    sinkDataSource.getKsqlTopic().getKeyFormat(),
+                    keyFormat,
                     streamsProperties,
                     applicationId
             ));
@@ -400,7 +446,7 @@ final class QueryExecutor {
         persistentQueryType,
         statementText,
         querySchema,
-        sources,
+        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         planSummary,
         applicationId,
         topology,
@@ -411,13 +457,12 @@ final class QueryExecutor {
         materializationProviderBuilder,
         physicalPlan,
         getUncaughtExceptionProcessingLogger(queryId),
-        Optional.of(sinkDataSource),
+        sinkDataSource,
         listener,
         classifier,
         streamsProperties,
         scalablePushRegistry
     );
-
   }
 
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(

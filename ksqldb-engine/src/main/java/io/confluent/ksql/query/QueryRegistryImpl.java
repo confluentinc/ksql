@@ -174,7 +174,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         new ListenerImpl(),
         new StreamsBuilder()
     );
-    registerQuery(serviceContext, metaStore, query, false);
+    registerTransientQuery(serviceContext, metaStore, query);
     return query;
   }
 
@@ -187,11 +187,11 @@ public class QueryRegistryImpl implements QueryRegistry {
       final MetaStore metaStore,
       final String statementText,
       final QueryId queryId,
-      final DataSource sinkDataSource,
-      final Set<SourceName> sources,
+      final Optional<DataSource> sinkDataSource,
+      final Set<DataSource> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final boolean createAsQuery) {
+      final KsqlConstants.PersistentQueryType persistentQueryType) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor = executorFactory.create(
           config,
@@ -208,9 +208,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       query = executor.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
-          createAsQuery
-              ? KsqlConstants.PersistentQueryType.CREATE_AS
-              : KsqlConstants.PersistentQueryType.INSERT,
+          persistentQueryType,
           statementText,
           queryId,
           sinkDataSource,
@@ -223,9 +221,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     } else {
       query = executor.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
-          createAsQuery
-              ? KsqlConstants.PersistentQueryType.CREATE_AS
-              : KsqlConstants.PersistentQueryType.INSERT,
+          persistentQueryType,
           statementText,
           queryId,
           sinkDataSource,
@@ -237,7 +233,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           new StreamsBuilder()
       );
     }
-    registerQuery(serviceContext, metaStore, query, createAsQuery);
+    registerPersistentQuery(serviceContext, metaStore, query);
     return query;
   }
 
@@ -316,45 +312,56 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
   }
 
-  private void registerQuery(
+  private void registerPersistentQuery(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
-      final QueryMetadata query,
-      final boolean createAsQuery
+      final PersistentQueryMetadata persistentQuery
   ) {
-    if (query instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
-      final QueryId queryId = persistentQuery.getQueryId();
+    final QueryId queryId = persistentQuery.getQueryId();
 
-      // don't use persistentQueries.put(queryId) here because oldQuery.close()
-      // will remove any query with oldQuery.getQueryId() from the map of persistent
-      // queries
-      final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
-      if (oldQuery != null) {
-        oldQuery.getPhysicalPlan()
-            .validateUpgrade(((PersistentQueryMetadata) query).getPhysicalPlan());
+    // don't use persistentQueries.put(queryId) here because oldQuery.close()
+    // will remove any query with oldQuery.getQueryId() from the map of persistent
+    // queries
+    final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+    if (oldQuery != null) {
+      oldQuery.getPhysicalPlan().validateUpgrade((persistentQuery).getPhysicalPlan());
 
-        // don't close the old query so that we don't delete the changelog
-        // topics and the state store, instead use QueryMetadata#stop
-        oldQuery.stop();
-        unregisterQuery(oldQuery);
-      }
+      // don't close the old query so that we don't delete the changelog
+      // topics and the state store, instead use QueryMetadata#stop
+      oldQuery.stop();
+      unregisterQuery(oldQuery);
+    }
 
-      // Initialize the query before it's exposed to other threads via the map/sets.
-      persistentQuery.initialize();
-      persistentQueries.put(queryId, persistentQuery);
-      if (createAsQuery) {
+    // Initialize the query before it's exposed to other threads via the map/sets.
+    persistentQuery.initialize();
+    persistentQueries.put(queryId, persistentQuery);
+    switch (persistentQuery.getPersistentQueryType()) {
+      case CREATE_SOURCE:
+        createAsQueries.put(Iterables.getOnlyElement(persistentQuery.getSourceNames()), queryId);
+        break;
+      case CREATE_AS:
         createAsQueries.put(persistentQuery.getSinkName().get(), queryId);
-      } else {
-        // Only INSERT queries exist beside CREATE_AS
+        break;
+      case INSERT:
         sinkAndSources(persistentQuery).forEach(sourceName ->
             insertQueries.computeIfAbsent(sourceName,
                 x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
-      }
-    } else {
-      // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
-      query.initialize();
+        break;
+      default:
+        // do nothing
     }
+
+    allLiveQueries.put(persistentQuery.getQueryId(), persistentQuery);
+    notifyCreate(serviceContext, metaStore, persistentQuery);
+  }
+
+  private void registerTransientQuery(
+      final ServiceContext serviceContext,
+      final MetaStore metaStore,
+      final TransientQueryMetadata query
+  ) {
+    // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
+    query.initialize();
     allLiveQueries.put(query.getQueryId(), query);
     notifyCreate(serviceContext, metaStore, query);
   }
@@ -366,6 +373,9 @@ public class QueryRegistryImpl implements QueryRegistry {
       persistentQueries.remove(queryId);
 
       switch (persistentQuery.getPersistentQueryType()) {
+        case CREATE_SOURCE:
+          createAsQueries.remove(Iterables.getOnlyElement(persistentQuery.getSourceNames()));
+          break;
         case CREATE_AS:
           createAsQueries.remove(persistentQuery.getSinkName().get());
           break;

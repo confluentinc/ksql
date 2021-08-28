@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -80,12 +81,14 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -159,11 +162,20 @@ final class EngineExecutor {
     }
 
     final QueryPlan queryPlan = plan.getQueryPlan().get();
-    final DataSource sinkSource = engineContext.getMetaStore().getSource(queryPlan.getSink());
+    final KsqlConstants.PersistentQueryType persistentQueryType =
+        plan.getPersistentQueryType().get();
 
-    if (sinkSource != null && sinkSource.isSource()) {
-      throw new KsqlException(String.format("Cannot insert into read-only %s: %s",
-          sinkSource.getDataSourceType().getKsqlType().toLowerCase(), sinkSource.getName().text()));
+    // CREATE_SOURCE do not write to any topic. We check for read-only topics only for queries
+    // that attempt to write to a sink (i.e. INSERT or CREATE_AS).
+    if (persistentQueryType != KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
+      final DataSource sinkSource = engineContext.getMetaStore()
+          .getSource(queryPlan.getSink().get());
+
+      if (sinkSource != null && sinkSource.isSource()) {
+        throw new KsqlException(String.format("Cannot insert into read-only %s: %s",
+            sinkSource.getDataSourceType().getKsqlType().toLowerCase(),
+            sinkSource.getName().text()));
+      }
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
@@ -177,7 +189,7 @@ final class EngineExecutor {
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
         plan.getStatementText(),
-        plan.getDdlCommand().isPresent())
+        persistentQueryType)
     );
   }
 
@@ -444,7 +456,7 @@ final class EngineExecutor {
 
     final QueryPlan queryPlan = new QueryPlan(
         getSourceNames(outputNode),
-        null,
+        Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
         plans.physicalPlan.getQueryId()
     );
@@ -505,7 +517,7 @@ final class EngineExecutor {
 
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
-          outputNode.getSinkName().get(),
+          outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId()
       );
@@ -547,13 +559,12 @@ final class EngineExecutor {
         Optional.of(outputNode)
     );
     final QueryId queryId = QueryIdUtil.buildId(
+        statement.getStatement(),
         engineContext,
         engineContext.idGenerator(),
         outputNode,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
-        withQueryId,
-        statement.getStatement() instanceof CreateTable
-            && ((CreateTable) statement.getStatement()).isSource()
+        withQueryId
     );
 
     if (withQueryId.isPresent()
@@ -738,10 +749,24 @@ final class EngineExecutor {
     }
   }
 
+  private Set<DataSource> getSources(final QueryPlan queryPlan) {
+    final ImmutableSet.Builder<DataSource> sources = ImmutableSet.builder();
+    for (final SourceName name : queryPlan.getSources()) {
+      final DataSource dataSource = engineContext.getMetaStore().getSource(name);
+      if (dataSource == null) {
+        throw new KsqlException("Unknown source: " + name.toString(FormatOptions.noEscape()));
+      }
+
+      sources.add(dataSource);
+    }
+
+    return sources.build();
+  }
+
   private PersistentQueryMetadata executePersistentQuery(
       final QueryPlan queryPlan,
       final String statementText,
-      final boolean createAsQuery
+      final KsqlConstants.PersistentQueryType persistentQueryType
   ) {
     final QueryRegistry queryRegistry = engineContext.getQueryRegistry();
     return queryRegistry.createOrReplacePersistentQuery(
@@ -751,11 +776,11 @@ final class EngineExecutor {
         engineContext.getMetaStore(),
         statementText,
         queryPlan.getQueryId(),
-        engineContext.getMetaStore().getSource(queryPlan.getSink()),
-        queryPlan.getSources(),
+        queryPlan.getSink().map(s -> engineContext.getMetaStore().getSource(s)),
+        getSources(queryPlan),
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
-        createAsQuery
+        persistentQueryType
     );
   }
 

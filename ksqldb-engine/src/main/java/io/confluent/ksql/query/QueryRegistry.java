@@ -24,6 +24,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -91,11 +92,11 @@ public interface QueryRegistry {
       MetaStore metaStore,
       String statementText,
       QueryId queryId,
-      DataSource sinkDataSource,
-      Set<SourceName> sources,
+      Optional<DataSource> sinkDataSource,
+      Set<DataSource> sources,
       ExecutionStep<?> physicalPlan,
       String planSummary,
-      boolean createAsQuery
+      KsqlConstants.PersistentQueryType persistentQueryType
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 

@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
@@ -314,18 +315,17 @@ public class DdlCommandExecTest {
   @Test
   public void shouldAddSourceTable() {
     // Given:
-    final CreateTableCommand cmd = buildCreateTable(
-        SourceName.of("t1"),
-        false,
-        true
-    );
+    final CreateTableCommand cmd = buildCreateTable(TABLE_NAME, false, true);
 
     // When:
-    cmdExec.execute(SQL_TEXT, cmd, true, NO_QUERY_SOURCES);
+    cmdExec.execute(SQL_TEXT, cmd, true, ImmutableSet.of(TABLE_NAME));
 
     // Then:
-    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("t1"));
+    final KsqlTable ksqlTable = (KsqlTable) metaStore.getSource(TABLE_NAME);
     assertThat(ksqlTable.isSource(), is(true));
+
+    // Check query source was not added as constraints for source tables
+    assertThat(metaStore.getSourceConstraints(TABLE_NAME), is(NO_QUERY_SOURCES));
   }
 
   @Test

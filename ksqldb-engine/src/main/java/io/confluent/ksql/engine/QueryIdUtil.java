@@ -18,6 +18,8 @@ package io.confluent.ksql.engine;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
@@ -82,6 +84,7 @@ public final class QueryIdUtil {
   /**
    * Builds a {@link QueryId} for a physical plan specification.
    *
+   * @param statement the statement that requires the query ID
    * @param engineContext  the context representing the current state of the engine
    * @param idGenerator generates query ids
    * @param outputNode  the logical plan
@@ -89,28 +92,28 @@ public final class QueryIdUtil {
    * @return the {@link QueryId} to be used
    */
   static QueryId buildId(
+      final Statement statement,
       final EngineContext engineContext,
       final QueryIdGenerator idGenerator,
       final OutputNode outputNode,
       final boolean createOrReplaceEnabled,
-      final Optional<String> withQueryId,
-      final boolean isSourceTable) {
+      final Optional<String> withQueryId) {
     if (withQueryId.isPresent()) {
       final String queryId = withQueryId.get().toUpperCase();
       validateWithQueryId(queryId);
       return new QueryId(queryId);
     }
+    if (statement instanceof CreateTable && ((CreateTable) statement).isSource()) {
+      // Use the CST name as part of the QueryID
+      final String suffix = ((CreateTable) statement).getName().text().toUpperCase()
+          + "_" + idGenerator.getNext().toUpperCase();
+      return new QueryId(ReservedQueryIdsPrefixes.CST + suffix);
+    }
 
     if (!outputNode.getSinkName().isPresent()) {
-      if (isSourceTable) {
-        final String suffix = outputNode.getId().toString().toUpperCase()
-            + "_" + idGenerator.getNext().toUpperCase();
-        return new QueryId(ReservedQueryIdsPrefixes.CST + suffix);
-      } else {
-        final String prefix =
-            "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
-        return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
-      }
+      final String prefix =
+          "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
+      return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
     }
 
     final KsqlStructuredDataOutputNode structured = (KsqlStructuredDataOutputNode) outputNode;

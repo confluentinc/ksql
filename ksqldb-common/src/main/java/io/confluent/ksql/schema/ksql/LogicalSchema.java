@@ -192,6 +192,20 @@ public final class LogicalSchema {
   }
 
   /**
+   * Adds just the pseudocolumns that must be materialized as part of a join involving a table.
+   * As of pseudocolumn version {@code SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION},
+   * there are only two pseudocolumns that fall under this definition: {@code ROWPARTITION} and
+   * {@code ROWOFFSET}.
+   *
+   * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
+   *
+   * @return the new schema with the columns removed
+   */
+  public LogicalSchema withPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
+    return rebuildWithPseudoColumnsToMaterialize(pseudoColumnVersion);
+  }
+
+  /**
    * @param columnName the column name to check
    * @return {@code true} if the column matches the name of any key column.
    */
@@ -332,6 +346,38 @@ public final class LogicalSchema {
 
     builder.addAll(keyColumns);
     builder.addAll(nonPseudoAndKeyCols);
+
+    return new LogicalSchema(builder.build());
+  }
+
+
+  /**
+   * Rebuilds schema with only certain pseudocolumns to materialize in an intermittent store
+   * @param pseudoColumnVersion indicates which set of pseudocolumns should be used
+   * @return the LogicalSchema created, with the corresponding pseudocolumns
+   */
+  private LogicalSchema rebuildWithPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
+    final Map<Namespace, List<Column>> byNamespace = byNamespace();
+
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+
+    final List<Column> keyColumns = keyColumns(byNamespace);
+
+    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+        byNamespace, pseudoColumnVersion);
+
+    int valueIndex = nonPseudoAndKeyCols.size();
+
+    builder.addAll(keyColumns);
+    builder.addAll(nonPseudoAndKeyCols);
+
+    //put all pseudocolumns which are not able to be accessed via processorContext after a join,
+    //and therefore require materialization, in a conditional block corresponding to their
+    //pseudocolumn version number
+    if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
+      builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
+      builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
+    }
 
     return new LogicalSchema(builder.build());
   }

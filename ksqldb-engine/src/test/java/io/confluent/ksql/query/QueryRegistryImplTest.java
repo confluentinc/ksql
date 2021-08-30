@@ -518,7 +518,8 @@ public class QueryRegistryImplTest {
         ImmutableSet.of(toSource(source)),
         mock(ExecutionStep.class),
         "plan-summary",
-        persistentQueryType
+        persistentQueryType,
+        true
     );
     return query;
   }

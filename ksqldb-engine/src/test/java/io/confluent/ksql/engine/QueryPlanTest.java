@@ -58,12 +58,12 @@ public class QueryPlanTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new QueryPlan(sources1, Optional.of(sink1), plan1, id1),
-            new QueryPlan(sources1, Optional.of(sink1), plan1, id1))
-        .addEqualityGroup(new QueryPlan(sources2, Optional.of(sink1), plan1, id1))
-        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink2), plan1, id1))
-        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink1), plan2, id1))
-        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink1), plan1, id2))
+            new QueryPlan(sources1, Optional.of(sink1), plan1, id1, true),
+            new QueryPlan(sources1, Optional.of(sink1), plan1, id1, true))
+        .addEqualityGroup(new QueryPlan(sources2, Optional.of(sink1), plan1, id1, true))
+        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink2), plan1, id1, true))
+        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink1), plan2, id1, true))
+        .addEqualityGroup(new QueryPlan(sources1, Optional.of(sink1), plan1, id2, true))
         .testEquals();
   }
 }

@@ -471,7 +471,8 @@ final class EngineExecutor {
         getSourceNames(outputNode),
         Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
-        plans.physicalPlan.getQueryId()
+        plans.physicalPlan.getQueryId(),
+        config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -555,7 +556,8 @@ final class EngineExecutor {
           getSourceNames(outputNode),
           outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
-          plans.physicalPlan.getQueryId()
+          plans.physicalPlan.getQueryId(),
+          config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -816,7 +818,8 @@ final class EngineExecutor {
         getSources(queryPlan),
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
-        persistentQueryType
+        persistentQueryType,
+        queryPlan.usesSharedRuntime()
     );
   }
 

@@ -157,6 +157,7 @@ public final class LogicalSchema {
 
   /**
    * Remove pseudo and key columns from the value schema, according to the pseudocolumn version
+   *
    * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
    * @return the new schema with the columns removed
    */
@@ -198,7 +199,6 @@ public final class LogicalSchema {
    * {@code ROWOFFSET}.
    *
    * @param pseudoColumnVersion the version of pseudocolumns to evaluate against
-   *
    * @return the new schema with the columns removed
    */
   public LogicalSchema withPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
@@ -371,9 +371,9 @@ public final class LogicalSchema {
     builder.addAll(keyColumns);
     builder.addAll(nonPseudoAndKeyCols);
 
-    //put all pseudocolumns which are not able to be accessed via processorContext after a join,
-    //and therefore require materialization, in a conditional block corresponding to their
-    //pseudocolumn version number
+    //put pseudocolumns which are not able to be accessed when getting value from an upstream
+    //state store, and therefore require materialization, in a conditional block corresponding to
+    //its pseudocolumn version number
     if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
       builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
       builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));

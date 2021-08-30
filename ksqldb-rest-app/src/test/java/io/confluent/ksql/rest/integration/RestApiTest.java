@@ -819,17 +819,6 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldReportErrorOnInvalidPullQueryOverRest() {
-    // When:
-    final String response = rawRestQueryRequest(
-        "SELECT * from " + AGG_TABLE + ";",
-        MediaType.APPLICATION_JSON);
-
-    // Then:
-    assertThat(response, containsString("Missing WHERE clause"));
-  }
-
-  @Test
   public void shouldPrintTopicOverWebSocket() {
     // When:
     final List<String> messages = makeWebSocketRequest(

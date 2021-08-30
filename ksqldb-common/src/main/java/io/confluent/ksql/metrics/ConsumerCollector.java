@@ -55,8 +55,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   private String groupId;
   private Time time;
 
-  static
-  {
+  static {
     totalBytesSum = configureTotalBytesSum(MetricCollectors.getMetrics());
   }
 
@@ -217,9 +216,5 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
             description),
         new CumulativeSum());
     return sensor;
-  }
-
-  protected Metrics getMetrics() {
-    return metrics;
   }
 }

@@ -133,4 +133,36 @@ public class DropSourceFactoryTest {
     // Then:
     assertThat(e.getMessage(), containsString("Incompatible data source type is TABLE"));
   }
+
+  @Test
+  public void shouldFailDeleteTopicForSourceStream() {
+    // Given:
+    final DropStream dropStream = new DropStream(SOME_NAME, false, true);
+    when(ksqlStream.isSource()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropStream)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot delete topic for read-only source: bob"));
+  }
+
+  @Test
+  public void shouldFailDeleteTopicForSourceTable() {
+    // Given:
+    final DropTable dropTable = new DropTable(TABLE_NAME, false, true);
+    when(ksqlTable.isSource()).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropTable)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot delete topic for read-only source: tablename"));
+  }
 }

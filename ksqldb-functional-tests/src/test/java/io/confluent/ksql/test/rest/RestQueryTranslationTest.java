@@ -139,7 +139,6 @@ public class RestQueryTranslationTest {
 
   @After
   public void tearDown() {
-    REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
     TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
 

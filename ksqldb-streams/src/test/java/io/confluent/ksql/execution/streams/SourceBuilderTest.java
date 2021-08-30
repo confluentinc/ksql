@@ -229,7 +229,6 @@ public class SourceBuilderTest {
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
     when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
-    when(consumedWindowed.withValueSerde(any())).thenReturn(consumedWindowed);
 
     planBuilder = new KSPlanBuilder(
         buildContext,
@@ -628,7 +627,6 @@ public class SourceBuilderTest {
   private void givenWindowedSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
-    givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
@@ -667,6 +665,7 @@ public class SourceBuilderTest {
   }
 
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {
+    when(consumedWindowed.withValueSerde(any())).thenReturn(consumedWindowed);
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
     when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);

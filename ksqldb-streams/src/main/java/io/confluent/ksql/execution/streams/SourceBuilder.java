@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -42,6 +43,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import java.util.Collection;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
@@ -234,15 +236,15 @@ final class SourceBuilder extends SourceBuilderBase {
   private static PhysicalSchema getPhysicalSchemaWithPseudoColumnsToMaterialize(
       final SourceStep<?> streamSource) {
 
-    FormatInfo f = streamSource.getFormats().getKeyFormat();
-    SerdeFeatures s = streamSource.getFormats().getKeyFeatures();
-    KeyFormat k = streamSource instanceof WindowedTableSource
+    final FormatInfo f = streamSource.getFormats().getKeyFormat();
+    final SerdeFeatures s = streamSource.getFormats().getKeyFeatures();
+    final KeyFormat k = streamSource instanceof WindowedTableSource
         ? KeyFormat.windowed(f, s, ((WindowedTableSource) streamSource).getWindowInfo())
         : KeyFormat.nonWindowed(f, s);
 
-    Formats format = of(k, streamSource.getFormats().getValueFormat());
+    final Formats format = of(k, streamSource.getFormats().getValueFormat());
 
-    LogicalSchema withPseudosToMaterialize
+    final LogicalSchema withPseudosToMaterialize
         = streamSource.getSourceSchema().withPseudoColumnsToMaterialize(
         streamSource.getPseudoColumnVersion());
 
@@ -350,14 +352,15 @@ final class SourceBuilder extends SourceBuilderBase {
           row.ensureAdditionalCapacity(pseudoColumnsToAdd);
 
           //calculate number of user columns and
-          final int totalPseudoColumns = SystemColumns.pseudoColumnNames(pseudoColumnVersion).size();
+          final Set<ColumnName> columnNames = SystemColumns.pseudoColumnNames(pseudoColumnVersion);
+          final int totalPseudoColumns = columnNames.size();
           final int pseudoColumnsToShift = totalPseudoColumns - pseudoColumnsToAdd;
           final int numUserColumns = row.size() - pseudoColumnsToShift;
 
           Object toShift = processorContext.timestamp();
 
           for (int i = numUserColumns; i < row.size(); i++) {
-            Object temp = row.get(i);
+            final Object temp = row.get(i);
             row.set(i, toShift);
             toShift = temp;
           }

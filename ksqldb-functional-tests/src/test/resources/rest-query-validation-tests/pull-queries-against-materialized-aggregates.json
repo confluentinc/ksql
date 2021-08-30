@@ -1212,36 +1212,6 @@
       }
     },
     {
-      "name": "on empty stream",
-      "statements": [
-        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT * FROM S1;"
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}}
-        ]}
-      ]
-    },
-    {
-      "name": "on stream",
-      "statements": [
-        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT * FROM S1;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"myvalue": 1}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
-          {"row":{"columns":[10, 1]}}
-        ]}
-      ]
-    },
-    {
       "name": "window start lower bound",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",

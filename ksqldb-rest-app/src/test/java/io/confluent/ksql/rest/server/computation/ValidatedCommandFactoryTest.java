@@ -19,10 +19,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -41,6 +43,7 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -99,6 +102,27 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(command, is(Command.of(configuredStatement)));
+  }
+
+  @Test
+  public void shouldFailTerminateSourceTableQuery() {
+    // Given:
+    configuredStatement = configuredStatement("TERMINATE X", terminateQuery);
+    when(terminateQuery.getQueryId()).thenReturn(Optional.of(QUERY_ID));
+    when(executionContext.getPersistentQuery(QUERY_ID)).thenReturn(Optional.of(query1));
+    when(query1.getPersistentQueryType())
+        .thenReturn(KsqlConstants.PersistentQueryType.CREATE_SOURCE);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> commandFactory.create(configuredStatement, executionContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot terminate query 'FOO' because it is linked to a source table"));
+    verify(query1, times(0)).close();
   }
 
   @Test

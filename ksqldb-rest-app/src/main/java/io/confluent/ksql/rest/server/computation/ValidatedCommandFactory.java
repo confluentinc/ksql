@@ -27,6 +27,7 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -122,11 +123,18 @@ public final class ValidatedCommandFactory {
       return Command.of(statement);
     }
 
-    context.getPersistentQuery(queryId.get())
+    final PersistentQueryMetadata queryMetadata = context.getPersistentQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
             "Unknown queryId: " + queryId.get(),
-            statement.getStatementText()))
-        .close();
+            statement.getStatementText()));
+
+    if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
+      throw new KsqlStatementException(
+          String.format("Cannot terminate query '%s' because it is linked to a source table.",
+              queryId.get()), statement.getStatementText());
+    }
+
+    queryMetadata.close();
     return Command.of(statement);
   }
 

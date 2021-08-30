@@ -178,7 +178,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreateSourceTablesQueries() {
     // Given:
-    givenTopicsExist("s0_topic", "t1_topic");
+    givenTopicsExist("t1_topic");
 
     // When:
     final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(

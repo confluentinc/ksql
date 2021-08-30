@@ -130,7 +130,7 @@ public final class ValidatedCommandFactory {
 
     if (queryMetadata.getPersistentQueryType() == KsqlConstants.PersistentQueryType.CREATE_SOURCE) {
       throw new KsqlStatementException(
-          String.format("Cannot terminate query '%s' because is linked to a source table.",
+          String.format("Cannot terminate query '%s' because it is linked to a source table.",
               queryId.get()), statement.getStatementText());
     }
 

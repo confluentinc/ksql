@@ -121,7 +121,7 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot terminate query 'FOO' because is linked to a source table"));
+        "Cannot terminate query 'FOO' because it is linked to a source table"));
     verify(query1, times(0)).close();
   }
 

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -109,7 +110,7 @@ public class KafkaTopicClientImplTest {
     topicConfigs.clear();
 
     when(adminClient.listTopics()).thenAnswer(listTopicResult());
-    when(adminClient.describeTopics(any(), any())).thenAnswer(describeTopicsResult());
+    when(adminClient.describeTopics(anyCollection(), any())).thenAnswer(describeTopicsResult());
     when(adminClient.createTopics(any(), any())).thenAnswer(createTopicsResult());
     when(adminClient.deleteTopics(any(Collection.class))).thenAnswer(deleteTopicsResult());
     when(adminClient.describeConfigs(any())).thenAnswer(describeConfigsResult());
@@ -193,7 +194,7 @@ public class KafkaTopicClientImplTest {
     // Given:
     givenTopicExists("topicName", 1, 2);
 
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult()) // checks that topic exists
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
         .thenAnswer(describeTopicsResult()); // succeeds the third time
@@ -202,7 +203,7 @@ public class KafkaTopicClientImplTest {
     kafkaTopicClient.createTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(3)).describeTopics(any(), any());
+    verify(adminClient, times(3)).describeTopics(anyCollection(), any());
   }
 
   @Test
@@ -279,7 +280,7 @@ public class KafkaTopicClientImplTest {
     // Given:
     givenTopicExists("topicName", 1, 2);
 
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult()) // checks that topic exists
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh"))) // fails during validateProperties
         .thenAnswer(describeTopicsResult()); // succeeds the third time
@@ -288,13 +289,13 @@ public class KafkaTopicClientImplTest {
     kafkaTopicClient.validateCreateTopic("topicName", 1, (short) 2);
 
     // Then:
-    verify(adminClient, times(3)).describeTopics(any(), any());
+    verify(adminClient, times(3)).describeTopics(anyCollection(), any());
   }
 
   @Test
   public void shouldThrowOnDescribeTopicsWhenRetriesExpire() {
     // Given:
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
         .thenAnswer(describeTopicsResult(new UnknownTopicOrPartitionException("meh")))
@@ -311,7 +312,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldThrowOnDescribeOnTopicAuthorizationException() {
     // Given:
-    when(adminClient.describeTopics(any(), any()))
+    when(adminClient.describeTopics(anyCollection(), any()))
         .thenAnswer(describeTopicsResult(new TopicAuthorizationException("meh")));
 
     // When:
@@ -810,7 +811,7 @@ public class KafkaTopicClientImplTest {
     kafkaTopicClient.isTopicExists("foobar");
 
     // Then
-    verify(adminClient, times(1)).describeTopics(any(), any());
+    verify(adminClient, times(1)).describeTopics(anyCollection(), any());
   }
 
   @Test

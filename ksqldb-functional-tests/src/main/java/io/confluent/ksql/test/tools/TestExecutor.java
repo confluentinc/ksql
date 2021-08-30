@@ -504,20 +504,22 @@ public class TestExecutor implements Closeable {
             producedRecord.value(),
             producedRecord.timestamp());
 
-    final String sinkTopicName = testDriver.getSinkTopicName();
-    final TestOutputTopic<byte[], byte[]> sinkTopic = testDriver.getSinkTopic(sinkTopicName);
+    testDriver.getSinkTopicName().ifPresent(topicName -> {
+      final String sinkTopicName = topicName;
+      final TestOutputTopic<byte[], byte[]> sinkTopic = testDriver.getSinkTopic(sinkTopicName);
 
-    processRecordsForTopic(sinkTopic, sinkTopicName);
+      processRecordsForTopic(sinkTopic, sinkTopicName);
 
-    for (final Topic possibleSinkTopic : possibleSinkTopics) {
-      if (possibleSinkTopic.getName().equals(sinkTopicName)) {
-        continue;
+      for (final Topic possibleSinkTopic : possibleSinkTopics) {
+        if (possibleSinkTopic.getName().equals(sinkTopicName)) {
+          continue;
+        }
+        processRecordsForTopic(
+            testDriver.getSinkTopic(possibleSinkTopic.getName()),
+            possibleSinkTopic.getName()
+        );
       }
-      processRecordsForTopic(
-          testDriver.getSinkTopic(possibleSinkTopic.getName()),
-          possibleSinkTopic.getName()
-      );
-    }
+    });
   }
 
   private void processRecordsForTopic(

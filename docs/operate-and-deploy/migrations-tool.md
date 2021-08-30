@@ -569,5 +569,10 @@ INSERT INTO MIGRATION_EVENTS (
 ``` 
 
 Once you've updated the migrations metadata stream, the migrations metadata table
-will update automatically and metadata validation will be unblocked. 
+will update automatically and metadata validation will be unblocked.
+
+Next Steps
+----------
+
+- Blog post: [Online, Managed Schema Evolution with ksqlDB Migrations](https://www.confluent.io/blog/easily-manage-database-migrations-with-evolving-schemas-in-ksqldb/)
 

@@ -73,7 +73,7 @@ public final class CollectListUdaf {
 
   @UdafFactory(description = "collect values of a Timestamp field into a single Array")
   public static TableUdaf<Timestamp, List<Timestamp>, List<Timestamp>>
-  createCollectListTimestamp() {
+      createCollectListTimestamp() {
     return new Collect<>();
   }
 

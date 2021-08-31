@@ -191,14 +191,22 @@ commit messages should be of the form:
 
     [optional footer]
 
-where the `type` is one of
+where the `type` is one of the following, and determines whether or not the commit will appear in 
+the auto-generated changelog for releases. Commit types that do appear in changelogs are:
  * "fix": for bug fixes
  * "feat": for new features
- * "refactor": for refactors
- * "test": for test-only changes
- * "docs": for docs-only changes
+ * "perf": for performance enhancements
  * "revert": for reverting other changes
- * "perf", "style", "build", "ci", or "chore": as described in the [Angular specification][https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type] for Conventional Commits.
+ 
+Commit types that do not appear in changelogs include:
+ * "docs": for docs-only changes
+ * "test": for test-only changes
+ * "refactor": for refactors
+ * "style": for stylistic-only changes
+ * "build": for build-related changes
+ * "chore": for automated changes, as well as other changes not relevant for users.
+   This can include changes that don't fall cleanly into any of the other categories above such as
+   PRs that contain progress towards an incomplete feature. 
 
 The (optional) scope is a noun describing the section of the codebase affected by the change.
 Examples that could make sense for ksqlDB include "parser", "analyzer", "rest server", "testing tool",

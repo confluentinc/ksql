@@ -451,8 +451,10 @@ public final class KsqlTarget {
         if (begin != i) { // Ignore random newlines - the server can send these
           final Buffer sliced = buff.slice(begin, i);
           final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
-          final StreamedRow row = deserialize(tidied, StreamedRow.class);
-          rows.add(row);
+          if (tidied.length() > 0) {
+            final StreamedRow row = deserialize(tidied, StreamedRow.class);
+            rows.add(row);
+          }
         }
 
         begin = i + 1;

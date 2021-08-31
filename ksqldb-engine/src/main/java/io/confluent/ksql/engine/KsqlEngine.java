@@ -62,6 +62,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.io.Closeable;
@@ -108,6 +109,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final KsqlConfig ksqlConfig;
+  private final Admin persistentAdminClient;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -178,6 +180,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         TimeUnit.MILLISECONDS
     );
     this.ksqlConfig = ksqlConfig;
+    this.persistentAdminClient = Admin.create(ksqlConfig.getKsqlAdminClientConfigProps());
 
     cleanupService.startAsync();
   }
@@ -324,9 +327,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    * API endpoints all need to do different stuff before, in the middle of, and after these two
    * phases. One of them actually needs to wait on the pull query in a callback after starting the
    * query, so splitting it into two method calls was the most practical choice.
+   * @return
    */
-  public TransientQueryMetadata createStreamPullQuery(
+  public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,
+      final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statementOrig,
       final boolean excludeTombstones
   ) {
@@ -360,22 +365,49 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .create(primaryContext, serviceContext, statement.getSessionConfig())
         .executeTransientQuery(statement, excludeTombstones);
 
+    final Map<TopicPartition, Long> endOffsets =
+        getQueryInputEndOffsets(analysis, statement, serviceContext.getAdminClient());
+
     QueryLogger.info(
         "Streaming stream pull query results '{}'",
         statement.getStatementText()
     );
 
-    return transientQueryMetadata;
+    return new StreamPullQueryMetadata(transientQueryMetadata, endOffsets);
   }
 
-  public void waitForStreamPullQuery(
-      final ServiceContext serviceContext,
+  public boolean passedEndOffsets(final StreamPullQueryMetadata streamPullQueryMetadata) {
+
+    try {
+      final ListConsumerGroupOffsetsResult result =
+          persistentAdminClient.listConsumerGroupOffsets(
+              streamPullQueryMetadata.getTransientQueryMetadata().getQueryApplicationId()
+          );
+
+      final Map<TopicPartition, OffsetAndMetadata> metadataMap =
+          result.partitionsToOffsetAndMetadata().get();
+
+      final Map<TopicPartition, Long> endOffsets = streamPullQueryMetadata.getEndOffsets();
+
+      for (final Map.Entry<TopicPartition, Long> entry : endOffsets.entrySet()) {
+        final OffsetAndMetadata offsetAndMetadata = metadataMap.get(entry.getKey());
+        if (offsetAndMetadata == null || offsetAndMetadata.offset() < entry.getValue()) {
+          log.debug("SPQ waiting on " + entry + " at " + offsetAndMetadata);
+          return false;
+        }
+      }
+      return true;
+    } catch (final ExecutionException | InterruptedException e) {
+      throw new KsqlException(e);
+    }
+  }
+
+  private Map<TopicPartition, Long> getQueryInputEndOffsets(
       final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statement,
-      final TransientQueryMetadata transientQueryMetadata) {
-    // query the endOffsets of the input
+      final Admin admin) {
+
     final String sourceTopicName = analysis.getFrom().getDataSource().getKafkaTopicName();
-    final Admin admin = serviceContext.getAdminClient();
     final TopicDescription topicDescription = getTopicDescription(
         admin,
         sourceTopicName
@@ -392,28 +424,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             ? IsolationLevel.READ_UNCOMMITTED
             : IsolationLevel.READ_COMMITTED;
 
-    final Map<TopicPartition, Long> endOffsets = getEndOffsets(
+    return getEndOffsets(
         admin,
         topicDescription,
         isolationLevel
     );
-
-    // wait for the query to pass the endOffsets
-    while (!passedEndOffsets(admin, transientQueryMetadata, endOffsets)) {
-      if (transientQueryMetadata.getState() == State.ERROR) {
-        log.error("Stream pull query execution has failed");
-        throw new KsqlServerException("Server error");
-      } else {
-        try {
-          Thread.sleep(50L);
-        } catch (final InterruptedException e) {
-          log.error("Interrupted waiting for stream pull query to complete", e);
-          throw new KsqlServerException("Interrupted");
-        }
-      }
-    }
-    transientQueryMetadata.getKafkaStreams().close(Duration.ZERO);
-    QueryLogger.info("Finished pull query results", statement.getStatementText());
   }
 
   private TopicDescription getTopicDescription(final Admin admin, final String sourceTopicName) {
@@ -474,27 +489,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     } catch (final TimeoutException e) {
       log.error("Admin#listOffsets(" + topicDescription.name() + ") timed out", e);
       throw new KsqlServerException("Backend timed out");
-    }
-  }
-
-  private boolean passedEndOffsets(final Admin admin,
-      final TransientQueryMetadata query,
-      final Map<TopicPartition, Long> endOffsets) {
-    try {
-      final ListConsumerGroupOffsetsResult result =
-          admin.listConsumerGroupOffsets(query.getQueryApplicationId());
-      final Map<TopicPartition, OffsetAndMetadata> metadataMap =
-          result.partitionsToOffsetAndMetadata().get();
-      for (final Map.Entry<TopicPartition, Long> entry : endOffsets.entrySet()) {
-        final OffsetAndMetadata offsetAndMetadata = metadataMap.get(entry.getKey());
-        if (offsetAndMetadata == null || offsetAndMetadata.offset() < entry.getValue()) {
-          log.debug("SPQ waiting on " + entry + " at " + offsetAndMetadata);
-          return false;
-        }
-      }
-      return true;
-    } catch (final ExecutionException | InterruptedException e) {
-      throw new KsqlException(e);
     }
   }
 
@@ -565,6 +559,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
+    persistentAdminClient.close();
   }
 
   @Override

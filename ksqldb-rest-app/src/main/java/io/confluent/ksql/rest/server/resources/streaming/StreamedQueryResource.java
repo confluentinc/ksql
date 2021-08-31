@@ -70,6 +70,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -85,6 +86,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -555,36 +557,24 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ConfiguredStatement<Query> configured,
       final CompletableFuture<Void> connectionClosedFuture) {
 
-    final TransientQueryMetadata transientQueryMetadata = ksqlEngine
+    final StreamPullQueryMetadata streamPullQueryMetadata = ksqlEngine
         .createStreamPullQuery(
             serviceContext,
+            analysis,
             configured,
             false
         );
-    localCommands.ifPresent(lc -> lc.write(transientQueryMetadata));
+    localCommands.ifPresent(lc -> lc.write(streamPullQueryMetadata.getTransientQueryMetadata()));
 
-    // Be sure to close the stream in the event of any error. It's safe to close it twice,
-    // which will happen if we call close inside the block, and then again when we exit the
-    // try-with-resources
-    try (QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
-        transientQueryMetadata,
+    final StreamPullQueryStreamWriter queryStreamWriter = new StreamPullQueryStreamWriter(
+        streamPullQueryMetadata.getTransientQueryMetadata(),
         disconnectCheckInterval.toMillis(),
         OBJECT_MAPPER,
-        connectionClosedFuture
-    )) {
-      ksqlEngine.waitForStreamPullQuery(
-          serviceContext,
-          analysis,
-          configured,
-          transientQueryMetadata
-      );
-      // stop the response stream before sending the successful response.
-      queryStreamWriter.close();
-      return EndpointResponse.ok(queryStreamWriter);
-    } catch (final KsqlServerException e) {
-      log.error("Server exception in stream pull query", e);
-      throw new KsqlApiException(e.getMessage(), HttpResponseStatus.INTERNAL_SERVER_ERROR.code());
-    }
+        connectionClosedFuture,
+        () -> ksqlEngine.passedEndOffsets(streamPullQueryMetadata)
+    );
+
+    return EndpointResponse.ok(queryStreamWriter);
   }
 
   private EndpointResponse handlePushQuery(

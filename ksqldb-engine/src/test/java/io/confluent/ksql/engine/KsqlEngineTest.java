@@ -1952,6 +1952,7 @@ public class KsqlEngineTest {
           KsqlStatementException.class,
           () -> ksqlEngine.createStreamPullQuery(
               null,
+              null,
               statementOrig,
               false
           )

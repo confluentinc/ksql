@@ -44,6 +44,9 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
   public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
   public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
+  public static final String CONSUMER_ALL_TOTAL_BYTES_SUM = "consumer-all-total-bytes-sum";
+  public static final String CONSUMER_COLLECTOR_METRICS_GROUP_NAME = "consumer-metrics";
+  private static final Sensor totalBytesSum;
 
   private final Map<String, TopicSensors<ConsumerRecord<Object, Object>>> topicSensors =
       new HashMap<>();
@@ -51,6 +54,10 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   private String id;
   private String groupId;
   private Time time;
+
+  static {
+    totalBytesSum = configureTotalBytesSum(MetricCollectors.getMetrics());
+  }
 
   public void configure(final Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
@@ -105,6 +112,8 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     topicSensors.computeIfAbsent(getCounterKey(topic), k ->
         new TopicSensors<>(topic, buildSensors(k))
     ).increment(record, isError);
+    totalBytesSum.record(record == null ? 0.0
+        : (double) record.serializedValueSize() + record.serializedKeySize());
   }
 
   private String getCounterKey(final String topic) {
@@ -155,7 +164,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
 
     final MetricName metricName = new MetricName(
         metricNameString,
-        "consumer-metrics",
+        CONSUMER_COLLECTOR_METRICS_GROUP_NAME,
         "consumer-" + name,
         ImmutableMap.of("key", key, "id", id)
     );
@@ -195,5 +204,17 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   @Override
   public String toString() {
     return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
+  }
+
+  private static Sensor configureTotalBytesSum(final Metrics metrics) {
+    final String description = "The total number of bytes consumed across all consumers";
+    final Sensor sensor = metrics.sensor(CONSUMER_ALL_TOTAL_BYTES_SUM);
+    sensor.add(
+        metrics.metricName(
+            CONSUMER_ALL_TOTAL_BYTES_SUM,
+            CONSUMER_COLLECTOR_METRICS_GROUP_NAME,
+            description),
+        new CumulativeSum());
+    return sensor;
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 
@@ -23,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.SystemTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -57,5 +59,37 @@ public class ConsumerCollectorTest {
 
     assertThat( stats.toString(), containsString("name=consumer-messages-per-sec,"));
     assertThat( stats.toString(), containsString("total-messages, value=100.0"));
+  }
+
+  @Test
+  public void shouldDisplayByteThroughputAcrossAllTopics() {
+
+    final ConsumerCollector collector = new ConsumerCollector();
+    collector.configure(new Metrics(), "group", new SystemTime());
+
+    for (int i = 0; i < 100; i++){
+
+      final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records1 = ImmutableMap.of(
+          new TopicPartition(TEST_TOPIC, 1), Collections.singletonList(
+              new ConsumerRecord<>(TEST_TOPIC, 1, i, 1L, TimestampType.CREATE_TIME, 1L, 10, 10,
+                  "key", "1234567890")));
+
+      final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records2 = ImmutableMap.of(
+          new TopicPartition(TEST_TOPIC, 1), Collections.singletonList(
+              new ConsumerRecord<>(TEST_TOPIC, 1, i, 1L, TimestampType.CREATE_TIME, 1L, 10, 10,
+                  "key", "1234567890")));
+
+      final ConsumerRecords<Object, Object> consumerRecords1 = new ConsumerRecords<>(records1);
+      final ConsumerRecords<Object, Object> consumerRecords2 = new ConsumerRecords<>(records2);
+
+      collector.onConsume(consumerRecords1);
+      collector.onConsume(consumerRecords2);
+    }
+
+    final Metrics metrics = MetricCollectors.getMetrics();
+    assertThat(Double.parseDouble(metrics.metric(metrics.metricName(
+        ConsumerCollector.CONSUMER_ALL_TOTAL_BYTES_SUM,
+        ConsumerCollector.CONSUMER_COLLECTOR_METRICS_GROUP_NAME)
+    ).metricValue().toString()), equalTo(4000.0));
   }
 }

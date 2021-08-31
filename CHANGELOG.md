@@ -5,7 +5,8 @@
 ### Features
 
 * add `ARRAY_CONCAT` UDF ([#7761](https://github.com/confluentinc/ksql/pull/7761)) ([1de9ef8](https://github.com/confluentinc/ksql/commit/1de9ef8108ff0d5a472a993ee27dae13e65d0b39))
-* add BYTES type to ksqlDB ([#7778](https://github.com/confluentinc/ksql/pull/7778)) ([06657ba](https://github.com/confluentinc/ksql/commit/06657bafe73aa6066723dfbaf0742e92a289fb80))
+* add BYTES type to ksqlDB ([#7778](https://github.com/confluentinc/ksql/pull/7778),[#7804](https://github.com/confluentinc/ksql/pull/7804),[#7791](https://github.com/confluentinc/ksql/pull/7791),[#7823](https://github.com/confluentinc/ksql/pull/7823)) ([06657ba](https://github.com/confluentinc/ksql/commit/06657bafe73aa6066723dfbaf0742e92a289fb80),[02352f2](https://github.com/confluentinc/ksql/commit/02352f20594b1029c65b78332366dc443825e3d5),[2ae4cae](https://github.com/confluentinc/ksql/commit/2ae4caeb2e5edfba8f5b6c15611d6f37aef0d60b),[df5964e](https://github.com/confluentinc/ksql/commit/df5964ed5a22ef9c2a316d4fdf32f927b548ecb4))
+
 * add interface for metrics reporter ([#7788](https://github.com/confluentinc/ksql/pull/7788)) ([0ee06d2](https://github.com/confluentinc/ksql/commit/0ee06d2462b5d6a94d1b333a6d7fe1baec7d0fcd))
 * add observability metric skeleton ([#7769](https://github.com/confluentinc/ksql/pull/7769)) ([3362c00](https://github.com/confluentinc/ksql/commit/3362c00e18fed4615b4224b3814ee238ceb7e8d4))
 * add TO_BYTES/FROM_BYTES functions for bytes/string conversions ([#7831](https://github.com/confluentinc/ksql/pull/7831)) ([cea0989](https://github.com/confluentinc/ksql/commit/cea09894b89712b43a6e9cd58b0d6ac445ce8ba5))

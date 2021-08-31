@@ -388,7 +388,7 @@ public class SourceBuilderTest {
     final GenericKey key = GenericKey.genericKey(1d, 2d);
 
     // When:
-    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
     assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
@@ -404,7 +404,7 @@ public class SourceBuilderTest {
     final GenericKey key = GenericKey.genericKey(null, 2d);
 
     // When:
-    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
     assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
@@ -420,7 +420,7 @@ public class SourceBuilderTest {
     final GenericKey key = GenericKey.genericKey(null, null);
 
     // When:
-    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
     assertThat(withKeyAndPseudoCols, equalTo(
@@ -447,7 +447,7 @@ public class SourceBuilderTest {
         getTransformersFromTableSource(tableSource);
 
     // When:
-    final GenericRow withKeyAndPseudoCols = applyAllTransformers(KEY, transformers);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(KEY, transformers, row);
 
     // Then:
     assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
@@ -463,7 +463,7 @@ public class SourceBuilderTest {
     final GenericKey nullKey = GenericKey.genericKey((Object) null);
 
     // When:
-    final GenericRow withKeyAndPseudoCols = applyAllTransformers(nullKey, transformers);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(nullKey, transformers, row);
 
     // Then:
     assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
@@ -611,9 +611,10 @@ public class SourceBuilderTest {
     return transformer;
   }
 
-  private GenericRow applyAllTransformers(
+  private static GenericRow applyAllTransformers(
       final GenericKey key,
-      final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformerList
+      final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformerList,
+      final GenericRow row
   ) {
     GenericRow last = row;
 
@@ -665,7 +666,7 @@ public class SourceBuilderTest {
   }
 
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {
-    when(consumedWindowed.withValueSerde(any())).thenReturn(consumedWindowed);
+    when(consumed.withValueSerde(any())).thenReturn(consumed);
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
     when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);

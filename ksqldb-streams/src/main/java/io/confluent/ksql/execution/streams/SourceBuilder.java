@@ -91,7 +91,7 @@ final class SourceBuilder extends SourceBuilderBase {
     final KTable<K, GenericRow> transformed = source.transformValues(
         new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
 
-    final KTable<K, GenericRow> toPotentiallyMaterialize;
+    final KTable<K, GenericRow> maybeMaterialized;
 
     if (forceMaterialization) {
       // add this identity mapValues call to prevent the source-changelog
@@ -99,17 +99,17 @@ final class SourceBuilder extends SourceBuilderBase {
       // be enabled because we cannot require symmetric serialization between
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-      toPotentiallyMaterialize = transformed.mapValues(row -> row, materialized);
+      maybeMaterialized = transformed.mapValues(row -> row, materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
       // we do not need to force a materialization at this source step since the
       // re-partitioned topic will be used for any subsequent state stores, in lieu
       // of the original source topic, thus avoiding the issues above.
       // See https://github.com/confluentinc/ksql/issues/6650
-      toPotentiallyMaterialize = transformed.mapValues(row -> row);
+      maybeMaterialized = transformed.mapValues(row -> row);
     }
 
-    return toPotentiallyMaterialize.transformValues(new AddRemainingPseudoAndKeyCols<>(
+    return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
         keyGenerator,
         streamSource.getPseudoColumnVersion()));
   }
@@ -150,7 +150,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final String stateStoreName
   ) {
 
-    final PhysicalSchema physicalSchema = getPhysicalSchemaWithPseudoColumnsToMaterialize(source);
+    final PhysicalSchema physicalSchema = getPhysicalSchemaWithRelevantPseudoAndKeyCols(source);
 
     final QueryContext queryContext = addMaterializedContext(source);
 
@@ -186,7 +186,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final String stateStoreName
   ) {
 
-    final PhysicalSchema physicalSchema = getPhysicalSchemaWithKeyAndPseudoCols(source);
+    final PhysicalSchema physicalSchema = getPhysicalSchemaWithRelevantPseudoAndKeyCols(source);
 
     final QueryContext queryContext = addMaterializedContext(source);
 
@@ -212,44 +212,31 @@ final class SourceBuilder extends SourceBuilderBase {
     );
   }
 
-  private static PhysicalSchema getPhysicalSchemaWithKeyAndPseudoCols(
+  private static PhysicalSchema getPhysicalSchemaWithRelevantPseudoAndKeyCols(
       final SourceStep<?> streamSource) {
 
     final boolean windowed = streamSource instanceof WindowedTableSource;
 
     final FormatInfo formatInfo = streamSource.getFormats().getKeyFormat();
     final SerdeFeatures serdeFeatures = streamSource.getFormats().getKeyFeatures();
+
     final KeyFormat keyFormat = windowed
         ? KeyFormat.windowed(
             formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
         : KeyFormat.nonWindowed(formatInfo, serdeFeatures);
 
-    final Formats formats = of(keyFormat, streamSource.getFormats().getValueFormat());
+    final Formats format = of(keyFormat, streamSource.getFormats().getValueFormat());
+
+    //we currently don't materialize partition and offset to get them downstream for windowed
+    //tables, so act accordingly here
+    final LogicalSchema withPseudoCols =
+        windowed
+            ? buildSchema(streamSource, true)
+            : streamSource.getSourceSchema().withPseudoColumnsToMaterialize(
+                streamSource.getPseudoColumnVersion());
 
     return PhysicalSchema.from(
-        buildSchema(streamSource, windowed),
-        formats.getKeyFeatures(),
-        formats.getValueFeatures()
-    );
-  }
-
-  private static PhysicalSchema getPhysicalSchemaWithPseudoColumnsToMaterialize(
-      final SourceStep<?> streamSource) {
-
-    final FormatInfo f = streamSource.getFormats().getKeyFormat();
-    final SerdeFeatures s = streamSource.getFormats().getKeyFeatures();
-    final KeyFormat k = streamSource instanceof WindowedTableSource
-        ? KeyFormat.windowed(f, s, ((WindowedTableSource) streamSource).getWindowInfo())
-        : KeyFormat.nonWindowed(f, s);
-
-    final Formats format = of(k, streamSource.getFormats().getValueFormat());
-
-    final LogicalSchema withPseudosToMaterialize
-        = streamSource.getSourceSchema().withPseudoColumnsToMaterialize(
-        streamSource.getPseudoColumnVersion());
-
-    return PhysicalSchema.from(
-        withPseudosToMaterialize,
+        withPseudoCols,
         format.getKeyFeatures(),
         format.getValueFeatures()
     );
@@ -351,7 +338,7 @@ final class SourceBuilder extends SourceBuilderBase {
 
           row.ensureAdditionalCapacity(pseudoColumnsToAdd);
 
-          //calculate number of user columns and
+          //calculate number of user columns, pseudo columns, and columns to shift for next step
           final Set<ColumnName> columnNames = SystemColumns.pseudoColumnNames(pseudoColumnVersion);
           final int totalPseudoColumns = columnNames.size();
           final int pseudoColumnsToShift = totalPseudoColumns - pseudoColumnsToAdd;

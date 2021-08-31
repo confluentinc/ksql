@@ -91,7 +91,7 @@ final class SourceBuilder extends SourceBuilderBase {
     final KTable<K, GenericRow> toPotentiallyMaterialize;
 
     if (forceMaterialization) {
-      // add this identity mapValues call to prevent the source-changelog
+      // materialize to prevent the source-changelog
       // optimization in kafka streams - we don't want this optimization to
       // be enabled because we cannot require symmetric serialization between
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179

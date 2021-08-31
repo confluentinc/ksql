@@ -208,7 +208,8 @@ public final class EarliestByOffset {
 
   @UdafFactory(description = "return the earliest N values of a timestamp column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL TIMESTAMP>>")
-  public static Udaf<Timestamp, List<Struct>, List<Timestamp>> earliestTimestamps(final int earliestN) {
+  public static Udaf<Timestamp, List<Struct>, List<Timestamp>> earliestTimestamps(
+      final int earliestN) {
     return earliestTimestamps(earliestN, true);
   }
 
@@ -289,7 +290,8 @@ public final class EarliestByOffset {
 
   @UdafFactory(description = "return the earliest N values of a bytes column",
       aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BYTES>>")
-  public static Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> earliestBytes(final int earliestN) {
+  public static Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> earliestBytes(
+      final int earliestN) {
     return earliestBytes(earliestN, true);
   }
 

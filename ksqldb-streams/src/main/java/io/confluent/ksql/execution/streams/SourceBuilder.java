@@ -88,10 +88,7 @@ final class SourceBuilder extends SourceBuilderBase {
 
     final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
 
-    final KTable<K, GenericRow> transformed = source.transformValues(
-        new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
-
-    final KTable<K, GenericRow> maybeMaterialized;
+    final KTable<K, GenericRow> toPotentiallyMaterialize;
 
     if (forceMaterialization) {
       // add this identity mapValues call to prevent the source-changelog
@@ -99,17 +96,19 @@ final class SourceBuilder extends SourceBuilderBase {
       // be enabled because we cannot require symmetric serialization between
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-      maybeMaterialized = transformed.mapValues(row -> row, materialized);
+     toPotentiallyMaterialize = source.transformValues(
+         new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
       // we do not need to force a materialization at this source step since the
       // re-partitioned topic will be used for any subsequent state stores, in lieu
       // of the original source topic, thus avoiding the issues above.
       // See https://github.com/confluentinc/ksql/issues/6650
-      maybeMaterialized = transformed.mapValues(row -> row);
+      toPotentiallyMaterialize = source.transformValues(
+          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
     }
 
-    return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
+    return toPotentiallyMaterialize.transformValues(new AddRemainingPseudoAndKeyCols<>(
         keyGenerator,
         streamSource.getPseudoColumnVersion()));
   }
@@ -278,10 +277,12 @@ final class SourceBuilder extends SourceBuilderBase {
             return row;
           }
 
-          final int numPseudoColumns = SystemColumns
-              .pseudoColumnNames(pseudoColumnVersion).size();
+          final int additionalCapacity = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+              .stream()
+              .filter(SystemColumns::mustBeMaterializedForTableJoins)
+              .count();
 
-          row.ensureAdditionalCapacity(numPseudoColumns - 1);
+          row.ensureAdditionalCapacity(additionalCapacity);
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final int partition = processorContext.partition();

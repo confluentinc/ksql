@@ -114,6 +114,10 @@ public final class SystemColumns {
     return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
+  public static Boolean mustBeMaterializedForTableJoins(ColumnName columnName) {
+    return PseudoColumns.MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
+  }
+
   private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {
     return ImmutableSet.<ColumnName>builder()
         .addAll(pseudoColumnNames(pseudoColumnVersion))
@@ -144,6 +148,12 @@ public final class SystemColumns {
         ImmutableMap.of(
             0, VERSION_ZERO_NAMES,
             1, VERSION_ONE_NAMES
+        );
+
+    private static final Set<ColumnName> MUST_BE_MATERIALIZED_FOR_TABLE_JOINS =
+        ImmutableSet.of(
+            ROWPARTITION_NAME,
+            ROWOFFSET_NAME
         );
 
     private static Set<ColumnName> getPseudoColumnNamesByVersion(final int pseudoColumnVersion) {

@@ -121,7 +121,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
 
   @VisibleForTesting
-  int numRegistered() {
+  public int numRegistered() {
     return processingQueues.size();
   }
 

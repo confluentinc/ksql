@@ -25,7 +25,6 @@ import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -63,7 +62,7 @@ import org.slf4j.LoggerFactory;
 
 public class PushRouting implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PushRouting.class);
 
   private static final long CLUSTER_CHECK_INTERVAL_MS = 1000;
   private static final long HOST_CACHE_EXPIRATION_MS = 1000;

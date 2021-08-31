@@ -14,7 +14,6 @@
 * don't start queries when corruption is detected during startup ([#7821](https://github.com/confluentinc/ksql/pull/7821)) ([4c0c181](https://github.com/confluentinc/ksql/commit/4c0c181b5cc3bad69d7f140518c25fde94d62a65))
 * enable BYTES for LPAD and RPAD ([#7909](https://github.com/confluentinc/ksql/pull/7909)) ([f0c23b1](https://github.com/confluentinc/ksql/commit/f0c23b111285e7738fe614522a1d3deecded09ae))
 * enables BYTES for CONCAT and CONCAT_WS ([#7876](https://github.com/confluentinc/ksql/pull/7876)) ([f631c2b](https://github.com/confluentinc/ksql/commit/f631c2b3bcfdc044851667b5e1a6dd0d7793d6cf))
-* implement bytes comparisons ([#7804](https://github.com/confluentinc/ksql/pull/7804)) ([02352f2](https://github.com/confluentinc/ksql/commit/02352f20594b1029c65b78332366dc443825e3d5))
 * implement serdes for bytes ([#7791](https://github.com/confluentinc/ksql/pull/7791)) ([2ae4cae](https://github.com/confluentinc/ksql/commit/2ae4caeb2e5edfba8f5b6c15611d6f37aef0d60b))
 * make SchemaRegistry permission validations on KSQL requests ([#7773](https://github.com/confluentinc/ksql/pull/7773)) ([ad01b72](https://github.com/confluentinc/ksql/commit/ad01b72ee25ce8848d3c67fa6321924c309867a5))
 * support BYTES column types in Java client API ([#7823](https://github.com/confluentinc/ksql/pull/7823)) ([df5964e](https://github.com/confluentinc/ksql/commit/df5964ed5a22ef9c2a316d4fdf32f927b548ecb4))

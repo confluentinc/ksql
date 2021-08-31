@@ -359,7 +359,7 @@ public class PersistentQuerySaturationMetricsTest {
 
     private GivenMetrics withBlockedTime(final String threadName, final Duration blockedTime) {
       final MetricName metricName = new MetricName(
-          "blocked-time-total",
+          "blocked-time-ns-total",
           "stream-thread-metrics",
           "",
           ImmutableMap.of("thread-id", threadName)

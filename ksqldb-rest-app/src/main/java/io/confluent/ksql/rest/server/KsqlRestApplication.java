@@ -136,6 +136,7 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -720,7 +721,7 @@ public final class KsqlRestApplication implements Executable {
 
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
         ksqlEngine,
-        new JmxDataPointsReporter(new Metrics(), "ksqldb-utilization", Duration.ofMinutes(1)),
+        new JmxDataPointsReporter(new Metrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
         Duration.ofMinutes(5),
         Duration.ofSeconds(30)
     );

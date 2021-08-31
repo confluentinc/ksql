@@ -50,7 +50,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   private static final String QUERY_SATURATION = "node-query-saturation";
   private static final String NODE_QUERY_SATURATION = "max-node-query-saturation";
   private static final String QUERY_THREAD_SATURATION = "query-thread-saturation";
-  private static final String STREAMS_TOTAL_BLOCKED_TIME = "blocked-time-total";
+  private static final String STREAMS_TOTAL_BLOCKED_TIME = "blocked-time-ns-total";
   private static final String STREAMS_THREAD_START_TIME = "thread-start-time";
   private static final String STREAMS_THREAD_METRICS_GROUP = "stream-thread-metrics";
   private static final String THREAD_ID = "thread-id";

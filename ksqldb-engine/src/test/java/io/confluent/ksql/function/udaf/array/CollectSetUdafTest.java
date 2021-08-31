@@ -23,6 +23,10 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.udaf.Udaf;
+import java.nio.ByteBuffer;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.List;
 import org.apache.kafka.common.Configurable;
 import org.junit.Test;
@@ -38,6 +42,50 @@ public class CollectSetUdafTest {
       runningList = udaf.aggregate(i, runningList);
     }
     assertThat(runningList, contains(3, 4, 5));
+  }
+
+  @Test
+  public void shouldCollectDistinctTimestamps() {
+    final Udaf<Timestamp, List<Timestamp>, List<Timestamp>> udaf = CollectSetUdaf.createCollectSetTimestamp();
+    final Timestamp[] values = new Timestamp[] {new Timestamp(1), new Timestamp(2)};
+    List<Timestamp> runningList = udaf.initialize();
+    for (final Timestamp i : values) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, contains(new Timestamp(1), new Timestamp(2)));
+  }
+
+  @Test
+  public void shouldCollectDistinctTimes() {
+    final Udaf<Time, List<Time>, List<Time>> udaf = CollectSetUdaf.createCollectSetTime();
+    final Time[] values = new Time[] {new Time(1), new Time(2)};
+    List<Time> runningList = udaf.initialize();
+    for (final Time i : values) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, contains(new Time(1), new Time(2)));
+  }
+
+  @Test
+  public void shouldCollectDistinctDates() {
+    final Udaf<Date, List<Date>, List<Date>> udaf = CollectSetUdaf.createCollectSetDate();
+    final Date[] values = new Date[] {new Date(1), new Date(2)};
+    List<Date> runningList = udaf.initialize();
+    for (final Date i : values) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, contains(new Date(1), new Date(2)));
+  }
+
+  @Test
+  public void shouldCollectDistinctBytes() {
+    final Udaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> udaf = CollectSetUdaf.createCollectSetBytes();
+    final ByteBuffer[] values = new ByteBuffer[] {ByteBuffer.wrap(new byte[] {1}), ByteBuffer.wrap(new byte[] {2})};
+    List<ByteBuffer> runningList = udaf.initialize();
+    for (final ByteBuffer i : values) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, contains(ByteBuffer.wrap(new byte[] {1}), ByteBuffer.wrap(new byte[] {2})));
   }
 
   @Test

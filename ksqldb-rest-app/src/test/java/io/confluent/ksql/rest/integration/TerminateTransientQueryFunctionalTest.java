@@ -82,8 +82,9 @@ public class TerminateTransientQueryFunctionalTest {
       .around(REST_APP_1);
   @BeforeClass
   public static void setUpClass() {
-    TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
+    TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC, USER_TOPIC);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
+    RestIntegrationTestUtil.createTable(REST_APP_0, USER_DATA_PROVIDER, true);
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
         "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
@@ -103,9 +104,8 @@ public class TerminateTransientQueryFunctionalTest {
   @Test
   public void shouldFailOnTerminateSourceTableQuery() {
     // Given
-    TEST_HARNESS.ensureTopics(USER_TOPIC);
-    RestIntegrationTestUtil.createTable(REST_APP_0, USER_DATA_PROVIDER, true);
-    final String persistentQueryId = getPersistentQueryIds().stream()
+    final String persistentQueryId = getPersistentQueryIds()
+        .stream()
         .filter(n -> n.contains("CST_" + USER_TABLE))
         .collect(Collectors.toList())
         .get(0);
@@ -184,6 +184,7 @@ public class TerminateTransientQueryFunctionalTest {
 
   public List<String> getPersistentQueryIds () {
     return showQueries().stream()
+        .filter(q -> !q.getId().toString().contains("transient"))
         .map(q -> q.getId().toString())
         .collect(Collectors.toList());
   }

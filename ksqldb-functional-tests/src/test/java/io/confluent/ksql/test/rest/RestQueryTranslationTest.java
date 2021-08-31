@@ -42,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import io.confluent.ksql.util.RetryUtil;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
@@ -139,8 +141,20 @@ public class RestQueryTranslationTest {
 
   @After
   public void tearDown() {
+    REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
-    TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
+
+
+    // Sometimes a race-condition throws an error when deleting a changelog topic (created by
+    // a CST query) that is later deleted automatically just before the Kafka API delete is called.
+    // Let's retry a few more times before marking this deletion as failure.
+    RetryUtil.retryWithBackoff(
+        10,
+        10,
+        (int) TimeUnit.SECONDS.toMillis(10),
+        () -> TEST_HARNESS.getKafkaCluster()
+            .deleteAllTopics(TestKsqlRestApp.getCommandTopicName())
+    );
 
     final ThreadSnapshot thread = STARTING_THREADS.get();
     if (thread == null) {

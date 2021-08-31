@@ -79,6 +79,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,6 +178,10 @@ public class QueryExecutorTest {
   @Mock
   private KStreamHolder<Struct> streamHolder;
   @Mock
+  private KTable<Struct, GenericRow> kTable;
+  @Mock
+  private KStream<Struct, GenericRow> kStream;
+  @Mock
   private SessionConfig config;
   @Mock
   private QueryMetadata.Listener queryListener;
@@ -198,6 +203,9 @@ public class QueryExecutorTest {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
+    when(tableHolder.getTable()).thenReturn(kTable);
+    when(kTable.toStream()).thenReturn(kStream);
+    when(streamHolder.getStream()).thenReturn(kstream);
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);

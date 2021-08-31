@@ -407,6 +407,15 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
           + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";
 
+  public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
+      "ksql.source.table.materialization.enabled";
+  private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
+  private static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC =
+      "Feature flag that enables table materialization on source tables. "
+          + "A source table is created with the CREATE SOURCE TABLE syntax. "
+          + "Default is true. If false, CREATE SOURCE TABLE will not be materialized, "
+          + "thus not able to run pull queries on them.";
+
   public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
   public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
   public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
@@ -1046,6 +1055,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
             Importance.MEDIUM,
             KSQL_SHARED_RUNTIME_ENABLED_DOC
+        )
+        .define(
+            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,
+            Type.BOOLEAN,
+            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
         )
         .withClientSslSupport();
 

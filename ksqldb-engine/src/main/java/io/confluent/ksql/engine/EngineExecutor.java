@@ -186,6 +186,21 @@ final class EngineExecutor {
       return ExecuteResult.of(ddlResult.get());
     }
 
+    final boolean sourceTableMaterializationEnabled = config.getConfig(false)
+        .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
+
+    // Do not execute the plan (found on new CST commands or commands read from the command topic)
+    // for source tables if the feature is disabled. CST will still be read-only, but no query
+    // must be executed.
+    if (persistentQueryType == KsqlConstants.PersistentQueryType.CREATE_SOURCE
+        && !sourceTableMaterializationEnabled) {
+      LOG.info(String.format(
+          "Source table query '%s' is not materialized because '%s' is disabled.",
+          plan.getStatementText(),
+          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
+      return ExecuteResult.of(ddlResult.get());
+    }
+
     return ExecuteResult.of(executePersistentQuery(
         queryPlan,
         plan.getStatementText(),
@@ -480,9 +495,19 @@ final class EngineExecutor {
       throwOnNonExecutableStatement(statement);
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
-        if (statement.getStatement() instanceof CreateTable
-            && ((CreateTable) statement.getStatement()).isSource()) {
-          return sourceTablePlan(statement);
+        final boolean isSourceTable = statement.getStatement() instanceof CreateTable
+            && ((CreateTable) statement.getStatement()).isSource();
+
+        if (isSourceTable) {
+          final boolean sourceTableMaterializationEnabled = config.getConfig(false)
+              .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
+
+          if (sourceTableMaterializationEnabled) {
+            return sourceTablePlan(statement);
+          } else {
+            throw new KsqlStatementException("Cannot execute command because source table "
+                + "materialization is disabled.", statement.getStatementText());
+          }
         } else {
           final DdlCommand ddlCommand = engineContext.createDdlCommand(
               statement.getStatementText(),

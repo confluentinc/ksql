@@ -345,6 +345,10 @@ final class SourceBuilder extends SourceBuilderBase {
           final int pseudoColumnsToShift = totalPseudoColumns - pseudoColumnsToAdd;
           final int numUserColumns = row.size() - pseudoColumnsToShift;
 
+          //as we need to re-insert pseudocolumns after we've added timestamp, take the index we
+          //will add timestamp in, save the column that was occupying the index, then add timestamp.
+          //repeat this process until we reach end of the row, then append last saved column after
+          //loop is exited
           Object toShift = processorContext.timestamp();
 
           for (int i = numUserColumns; i < row.size(); i++) {

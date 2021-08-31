@@ -15,7 +15,6 @@
 * enable BYTES for LPAD and RPAD ([#7909](https://github.com/confluentinc/ksql/pull/7909)) ([f0c23b1](https://github.com/confluentinc/ksql/commit/f0c23b111285e7738fe614522a1d3deecded09ae))
 * enables BYTES for CONCAT and CONCAT_WS ([#7876](https://github.com/confluentinc/ksql/pull/7876)) ([f631c2b](https://github.com/confluentinc/ksql/commit/f631c2b3bcfdc044851667b5e1a6dd0d7793d6cf))
 * make SchemaRegistry permission validations on KSQL requests ([#7773](https://github.com/confluentinc/ksql/pull/7773)) ([ad01b72](https://github.com/confluentinc/ksql/commit/ad01b72ee25ce8848d3c67fa6321924c309867a5))
-* support BYTES column types in Java client API ([#7823](https://github.com/confluentinc/ksql/pull/7823)) ([df5964e](https://github.com/confluentinc/ksql/commit/df5964ed5a22ef9c2a316d4fdf32f927b548ecb4))
 * update len function to accept BYTES ([#7865](https://github.com/confluentinc/ksql/pull/7865)) ([eaaa0db](https://github.com/confluentinc/ksql/commit/eaaa0db39d1274445f874708517cc3b608aa2289))
 * Update SUBSTRING function to accept BYTES types ([#7861](https://github.com/confluentinc/ksql/pull/7861)) ([fccc56d](https://github.com/confluentinc/ksql/commit/fccc56d36db58f01665ebab39b747c09c7c2c419))
 

@@ -321,10 +321,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   /**
    * Unlike the other queries, stream pull queries are split into create and wait because the three
-   * API endpoints all need to do different stuff before, in the middle of,
-   * and after these two phases. One of them actually needs to wait on the pull
-   * query in a callback after starting the query, so splitting it into two method calls was
-   * the most practical choice.
+   * API endpoints all need to do different stuff before, in the middle of, and after these two
+   * phases. One of them actually needs to wait on the pull query in a callback after starting the
+   * query, so splitting it into two method calls was the most practical choice.
    */
   public TransientQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,
@@ -357,25 +356,16 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             .put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100)
             .build()
     );
-    try {
+    final TransientQueryMetadata transientQueryMetadata = EngineExecutor
+        .create(primaryContext, serviceContext, statement.getSessionConfig())
+        .executeTransientQuery(statement, excludeTombstones);
 
-      final TransientQueryMetadata transientQueryMetadata = EngineExecutor
-          .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeTransientQuery(statement, excludeTombstones);
+    QueryLogger.info(
+        "Streaming stream pull query results '{}'",
+        statement.getStatementText()
+    );
 
-      QueryLogger.info(
-          "Streaming stream pull query results '{}'",
-          statement.getStatementText()
-      );
-
-      return transientQueryMetadata;
-
-    } catch (final KsqlStatementException e) {
-      throw e;
-    } catch (final KsqlException e) {
-      // add the statement text to the KsqlException
-      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
-    }
+    return transientQueryMetadata;
   }
 
   public void waitForStreamPullQuery(

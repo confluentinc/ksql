@@ -582,6 +582,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       queryStreamWriter.close();
       return EndpointResponse.ok(queryStreamWriter);
     } catch (final KsqlServerException e) {
+      log.error("Server exception in stream pull query", e);
       throw new KsqlApiException(e.getMessage(), HttpResponseStatus.INTERNAL_SERVER_ERROR.code());
     }
   }

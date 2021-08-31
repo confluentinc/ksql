@@ -1,5 +1,27 @@
 # Change Log
 
+## [0.21.0](https://github.com/confluentinc/ksql/releases/tag/v0.21.0-ksqldb) (2021-08-31)
+
+### Features
+
+* add `ARRAY_CONCAT` UDF ([#7761](https://github.com/confluentinc/ksql/pull/7761)) ([1de9ef8](https://github.com/confluentinc/ksql/commit/1de9ef8108ff0d5a472a993ee27dae13e65d0b39))
+* add BYTES type to ksqlDB ([#7778](https://github.com/confluentinc/ksql/pull/7778)) ([06657ba](https://github.com/confluentinc/ksql/commit/06657bafe73aa6066723dfbaf0742e92a289fb80))
+* add interface for metrics reporter ([#7788](https://github.com/confluentinc/ksql/pull/7788)) ([0ee06d2](https://github.com/confluentinc/ksql/commit/0ee06d2462b5d6a94d1b333a6d7fe1baec7d0fcd))
+* add observability metric skeleton ([#7769](https://github.com/confluentinc/ksql/pull/7769)) ([3362c00](https://github.com/confluentinc/ksql/commit/3362c00e18fed4615b4224b3814ee238ceb7e8d4))
+* add TO_BYTES/FROM_BYTES functions for bytes/string conversions ([#7831](https://github.com/confluentinc/ksql/pull/7831)) ([cea0989](https://github.com/confluentinc/ksql/commit/cea09894b89712b43a6e9cd58b0d6ac445ce8ba5))
+* allow expressions on left table columns in FK-joins ([#7904](https://github.com/confluentinc/ksql/pull/7904)) ([a9668de](https://github.com/confluentinc/ksql/commit/a9668de461566f401d79666c4d5fff9ff0c255a6))
+* allow Java clients to set HTTP/2 multiplex limit ([#7871](https://github.com/confluentinc/ksql/pull/7871)) ([790d6fe](https://github.com/confluentinc/ksql/commit/790d6fe2c39265c77493ec0a331b416ed147a8cd))
+* don't start queries when corruption is detected during startup ([#7821](https://github.com/confluentinc/ksql/pull/7821)) ([4c0c181](https://github.com/confluentinc/ksql/commit/4c0c181b5cc3bad69d7f140518c25fde94d62a65))
+* enable BYTES for LPAD and RPAD ([#7909](https://github.com/confluentinc/ksql/pull/7909)) ([f0c23b1](https://github.com/confluentinc/ksql/commit/f0c23b111285e7738fe614522a1d3deecded09ae))
+* enables BYTES for CONCAT and CONCAT_WS ([#7876](https://github.com/confluentinc/ksql/pull/7876)) ([f631c2b](https://github.com/confluentinc/ksql/commit/f631c2b3bcfdc044851667b5e1a6dd0d7793d6cf))
+* implement bytes comparisons ([#7804](https://github.com/confluentinc/ksql/pull/7804)) ([02352f2](https://github.com/confluentinc/ksql/commit/02352f20594b1029c65b78332366dc443825e3d5))
+* implement serdes for bytes ([#7791](https://github.com/confluentinc/ksql/pull/7791)) ([2ae4cae](https://github.com/confluentinc/ksql/commit/2ae4caeb2e5edfba8f5b6c15611d6f37aef0d60b))
+* make SchemaRegistry permission validations on KSQL requests ([#7773](https://github.com/confluentinc/ksql/pull/7773)) ([ad01b72](https://github.com/confluentinc/ksql/commit/ad01b72ee25ce8848d3c67fa6321924c309867a5))
+* support BYTES column types in Java client API ([#7823](https://github.com/confluentinc/ksql/pull/7823)) ([df5964e](https://github.com/confluentinc/ksql/commit/df5964ed5a22ef9c2a316d4fdf32f927b548ecb4))
+* update len function to accept BYTES ([#7865](https://github.com/confluentinc/ksql/pull/7865)) ([eaaa0db](https://github.com/confluentinc/ksql/commit/eaaa0db39d1274445f874708517cc3b608aa2289))
+* Update SUBSTRING function to accept BYTES types ([#7861](https://github.com/confluentinc/ksql/pull/7861)) ([fccc56d](https://github.com/confluentinc/ksql/commit/fccc56d36db58f01665ebab39b747c09c7c2c419))
+
+
 ## [0.20.0](https://github.com/confluentinc/ksql/releases/tag/v0.20.0-ksqldb) (2021-07-26)
 
 ### Features

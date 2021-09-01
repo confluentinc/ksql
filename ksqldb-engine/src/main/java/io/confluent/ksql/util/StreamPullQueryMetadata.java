@@ -15,25 +15,39 @@
 
 package io.confluent.ksql.util;
 
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.kafka.common.TopicPartition;
 
 public class StreamPullQueryMetadata {
   private final TransientQueryMetadata transientQueryMetadata;
-  private final Map<TopicPartition, Long> endOffsets;
+  private final ImmutableMap<TopicPartition, Long> endOffsets;
 
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "See notes on getters."
+  )
   public StreamPullQueryMetadata(
       final TransientQueryMetadata transientQueryMetadata,
-      final Map<TopicPartition, Long> endOffsets) {
+      final ImmutableMap<TopicPartition, Long> endOffsets) {
     this.transientQueryMetadata = transientQueryMetadata;
     this.endOffsets = endOffsets;
   }
 
+
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "TransientQueryMetadata is mutable, but it's what we need to pass around."
+  )
   public TransientQueryMetadata getTransientQueryMetadata() {
     return transientQueryMetadata;
   }
 
-  public Map<TopicPartition, Long> getEndOffsets() {
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP",
+      justification = "ImmutableMap is immutable. https://github.com/spotbugs/spotbugs/issues/1601"
+  )
+  public ImmutableMap<TopicPartition, Long> getEndOffsets() {
     return endOffsets;
   }
 }

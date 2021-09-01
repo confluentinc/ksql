@@ -362,7 +362,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .create(primaryContext, serviceContext, statement.getSessionConfig())
         .executeTransientQuery(statement, excludeTombstones);
 
-    final Map<TopicPartition, Long> endOffsets =
+    final ImmutableMap<TopicPartition, Long> endOffsets =
         getQueryInputEndOffsets(analysis, statement, serviceContext.getAdminClient());
 
     QueryLogger.info(
@@ -399,7 +399,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  private Map<TopicPartition, Long> getQueryInputEndOffsets(
+  private ImmutableMap<TopicPartition, Long> getQueryInputEndOffsets(
       final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statement,
       final Admin admin) {
@@ -448,7 +448,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  private Map<TopicPartition, Long> getEndOffsets(
+  private ImmutableMap<TopicPartition, Long> getEndOffsets(
       final Admin admin,
       final TopicDescription topicDescription,
       final IsolationLevel isolationLevel) {
@@ -469,7 +469,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     try {
       final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
           listOffsetsResult.all().get(10, TimeUnit.SECONDS);
-      return partitionResultMap
+      final Map<TopicPartition, Long> result = partitionResultMap
           .entrySet()
           .stream()
           // special case where we expect no work at all on the partition, so we don't even
@@ -477,6 +477,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           // since Streams won't commit anything for an empty topic).
           .filter(e -> e.getValue().offset() > 0L)
           .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
+      return ImmutableMap.copyOf(result);
     } catch (final InterruptedException e) {
       log.error("Admin#listOffsets(" + topicDescription.name() + ") interrupted", e);
       throw new KsqlServerException("Interrupted");

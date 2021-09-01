@@ -22,8 +22,6 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import org.apache.kafka.streams.StreamsConfig;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;

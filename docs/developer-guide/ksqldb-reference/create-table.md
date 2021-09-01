@@ -9,7 +9,7 @@ keywords: ksqlDB, create, table
 ## Synopsis
 
 ```sql
-CREATE [OR REPLACE] TABLE [IF NOT EXISTS] table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
+CREATE [OR REPLACE] [SOURCE] TABLE [IF NOT EXISTS] table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 
@@ -19,6 +19,19 @@ Create a new table with the specified columns and properties.
 
 If the IF NOT EXISTS clause is present, the statement won't fail if a
 table with the same name already exists.
+
+### Source tables
+
+If the SOURCE clause is present, you can execute pull queries on it. The SOURCE
+clause executes an internal query for the table to create a materialized state that's
+used by pull queries. You can't terminate this query manually. You can terminate it only
+by dropping the table with the DROP TABLE statement.
+
+Also, when you provide the SOURCE clause, the table is created as read-only. For a read-only table,
+INSERT statements and the DELETE TOPIC on DROP TABLE statements aren't be permitted.
+
+To disable the SOURCE table feature, set `ksql.source.table.materialization.enabled` to
+`false` in your ksqlDB server properties file.
 
 ### Partitioning
 

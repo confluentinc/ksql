@@ -411,10 +411,11 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.source.table.materialization.enabled";
   private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
   private static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC =
-      "Feature flag that enables table materialization on source tables. "
-          + "A source table is created with the CREATE SOURCE TABLE syntax. "
-          + "Default is true. If false, CREATE SOURCE TABLE will not be materialized, "
-          + "thus not able to run pull queries on them.";
+      "Feature flag that enables table materialization on source tables. Default is true. "
+          + "If false, CREATE SOURCE [TABLE|STREAM] statements will be rejected. "
+          + "Current CREATE SOURCE TABLE statements found in the KSQL command topic will "
+          + "not be materialized and pull queries won't be allowed on them. However, current "
+          + "CREATE SOURCE [TABLE|STREAM] statements will continue being read-only.";
 
   public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
   public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;

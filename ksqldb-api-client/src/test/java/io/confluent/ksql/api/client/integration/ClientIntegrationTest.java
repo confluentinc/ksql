@@ -79,6 +79,7 @@ import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
@@ -97,6 +98,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -136,10 +140,11 @@ public class ClientIntegrationTest {
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
-      ImmutableList.of("K", "STR", "LONG", "DEC", "BYTES_", "ARRAY", "MAP", "STRUCT", "COMPLEX");
+      ImmutableList.of("K", "STR", "LONG", "DEC", "BYTES_", "ARRAY", "MAP", "STRUCT", "COMPLEX",
+          "TIMESTAMP", "DATE", "TIME");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRUCT", "STRING", "BIGINT", "DECIMAL",
-          "BYTES", "ARRAY", "MAP", "STRUCT", "STRUCT"));
+          "BYTES", "ARRAY", "MAP", "STRUCT", "STRUCT", "TIMESTAMP", "DATE", "TIME"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS =
       convertToClientRows(TEST_DATA_PROVIDER.data());
 
@@ -623,7 +628,10 @@ public class ClientIntegrationTest {
         .put("ARRAY", new KsqlArray().add("v1").add("v2"))
         .put("MAP", new KsqlObject().put("some_key", "a_value").put("another_key", ""))
         .put("STRUCT", new KsqlObject().put("f1", 12)) // Nested field names are case-insensitive
-        .put("COMPLEX", COMPLEX_FIELD_VALUE);
+        .put("COMPLEX", COMPLEX_FIELD_VALUE)
+        .put("TIMESTAMP", "1970-01-01T00:00:00.001")
+        .put("DATE", "1970-01-01")
+        .put("TIME", "00:00:01");
 
     // When
     client.insertInto(EMPTY_TEST_STREAM.toLowerCase(), insertRow).get(); // Stream name is case-insensitive
@@ -643,6 +651,9 @@ public class ClientIntegrationTest {
     assertThat(rows.get(0).getKsqlObject("MAP"), is(new KsqlObject().put("some_key", "a_value").put("another_key", "")));
     assertThat(rows.get(0).getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 12)));
     assertThat(rows.get(0).getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
+    assertThat(rows.get(0).getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
+    assertThat(rows.get(0).getString("DATE"), is("1970-01-01"));
+    assertThat(rows.get(0).getString("TIME"), is("00:00:01"));
   }
 
   @Test
@@ -680,7 +691,10 @@ public class ClientIntegrationTest {
         .put("ARRAY", new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties"))
         .put("MAP", new KsqlObject().put("test_name", "shouldStreamQueryWithProperties"))
         .put("STRUCT", new KsqlObject().put("F1", 4))
-        .put("COMPLEX", COMPLEX_FIELD_VALUE);
+        .put("COMPLEX", COMPLEX_FIELD_VALUE)
+        .put("TIMESTAMP", "1970-01-01T00:00:00.001")
+        .put("DATE", "1970-01-01")
+        .put("TIME", "00:00:00");
 
     // When
     final StreamedQueryResult queryResult = client.streamQuery(sql, properties).get();
@@ -705,6 +719,9 @@ public class ClientIntegrationTest {
     assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldStreamQueryWithProperties")));
     assertThat(row.getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 4)));
     assertThat(row.getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
+    assertThat(row.getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
+    assertThat(row.getString("DATE"), is("1970-01-01"));
+    assertThat(row.getString("TIME"), is("00:00"));
   }
 
   @Test
@@ -723,7 +740,10 @@ public class ClientIntegrationTest {
         .put("ARRAY", new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties"))
         .put("MAP", new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties"))
         .put("STRUCT", new KsqlObject().put("F1", 4))
-        .put("COMPLEX", COMPLEX_FIELD_VALUE);
+        .put("COMPLEX", COMPLEX_FIELD_VALUE)
+        .put("TIMESTAMP", "1970-01-01T00:00:00.001")
+        .put("DATE", "1970-01-01")
+        .put("TIME", "00:00:00");
 
     // When
     final BatchedQueryResult queryResult = client.executeQuery(sql, properties);
@@ -763,6 +783,9 @@ public class ClientIntegrationTest {
     assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties")));
     assertThat(row.getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 4)));
     assertThat(row.getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
+    assertThat(row.getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
+    assertThat(row.getString("DATE"), is("1970-01-01"));
+    assertThat(row.getString("TIME"), is("00:00"));
   }
 
   @Test
@@ -787,7 +810,10 @@ public class ClientIntegrationTest {
           .put("BYTES_", new byte[]{0, 1, 2})
           .put("ARRAY", new KsqlArray().add("v_" + i))
           .put("MAP", new KsqlObject().put("k_" + i, "v_" + i))
-          .put("COMPLEX", COMPLEX_FIELD_VALUE));
+          .put("COMPLEX", COMPLEX_FIELD_VALUE)
+          .put("TIMESTAMP", "1970-01-01T00:00:00.001")
+          .put("DATE", "1970-01-01")
+          .put("TIME", "00:00"));
     }
 
     // Then
@@ -816,6 +842,9 @@ public class ClientIntegrationTest {
       assertThat(rows.get(i).getKsqlArray("ARRAY"), is(new KsqlArray().add("v_" + i)));
       assertThat(rows.get(i).getKsqlObject("MAP"), is(new KsqlObject().put("k_" + i, "v_" + i)));
       assertThat(rows.get(i).getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
+      assertThat(rows.get(i).getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
+      assertThat(rows.get(i).getString("DATE"), is("1970-01-01"));
+      assertThat(rows.get(i).getString("TIME"), is("00:00"));
     }
 
     // When: end connection
@@ -1067,7 +1096,7 @@ public class ClientIntegrationTest {
             + "COMPLEX STRUCT<`DECIMAL` DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, "
             + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
             + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
-            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>) "
+            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>, TIMESTAMP TIMESTAMP, DATE DATE, TIME TIME) "
             + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
   }
 
@@ -1430,6 +1459,12 @@ public class ClientIntegrationTest {
       // Can't use expectedRow.add((BigDecimal) value) directly since client serializes BigDecimal as string,
       // whereas this method builds up the expected result (unrelated to serialization)
       array.addAll(new KsqlArray(Collections.singletonList(value)));
+    } else if (value instanceof Timestamp) {
+      array.add(SqlTimeTypes.formatTimestamp((Timestamp) value));
+    } else if (value instanceof Date) {
+      array.add(SqlTimeTypes.formatDate((Date) value));
+    } else if (value instanceof Time) {
+      array.add(SqlTimeTypes.formatTime((Time) value));
     } else {
       array.add(value);
     }

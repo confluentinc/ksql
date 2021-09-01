@@ -16,8 +16,6 @@
 package io.confluent.ksql.rest.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.fail;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -33,7 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import io.confluent.ksql.util.UserDataProvider;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -50,13 +47,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TerminateTransientQueryFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
-  private static final UserDataProvider USER_DATA_PROVIDER = new UserDataProvider();
-
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
   private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
-
-  private static final String USER_TOPIC = USER_DATA_PROVIDER.topicName();
-  private static final String USER_TABLE = USER_DATA_PROVIDER.sourceName();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
@@ -82,9 +74,8 @@ public class TerminateTransientQueryFunctionalTest {
       .around(REST_APP_1);
   @BeforeClass
   public static void setUpClass() {
-    TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC, USER_TOPIC);
+    TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
-    RestIntegrationTestUtil.createTable(REST_APP_0, USER_DATA_PROVIDER, true);
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
         "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
@@ -99,30 +90,6 @@ public class TerminateTransientQueryFunctionalTest {
   @AfterClass
   public static void tearDownClass() {
     service.shutdownNow();
-  }
-
-  @Test
-  public void shouldFailOnTerminateSourceTableQuery() {
-    // Given
-    final String persistentQueryId = getPersistentQueryIds()
-        .stream()
-        .filter(n -> n.contains("CST_" + USER_TABLE))
-        .collect(Collectors.toList())
-        .get(0);
-
-    // When:
-    try {
-      RestIntegrationTestUtil.makeKsqlRequest(
-          REST_APP_0,
-          "terminate " + persistentQueryId + ";"
-      );
-
-      fail("CST queries cannot be terminated manually.");
-    } catch (final AssertionError e) {
-      // Then:
-      assertThat(e.getMessage(), containsString("Cannot terminate query " +
-          "'" + persistentQueryId + "' because it is linked to a source table."));
-    }
   }
 
   @Test
@@ -178,13 +145,6 @@ public class TerminateTransientQueryFunctionalTest {
   public List<String> getTransientQueryIds () {
     return showQueries().stream()
         .filter(q -> q.getId().toString().contains("transient"))
-        .map(q -> q.getId().toString())
-        .collect(Collectors.toList());
-  }
-
-  public List<String> getPersistentQueryIds () {
-    return showQueries().stream()
-        .filter(q -> !q.getId().toString().contains("transient"))
         .map(q -> q.getId().toString())
         .collect(Collectors.toList());
   }

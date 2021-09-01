@@ -418,26 +418,35 @@ public final class RestIntegrationTestUtil {
       final TestDataProvider dataProvider,
       final Optional<BasicCredentials> userCreds
   ) {
-    createSource(restApp, dataProvider, false, userCreds);
+    createSource(restApp, dataProvider, false,false, userCreds);
   }
 
   public static void createTable(
       final TestKsqlRestApp restApp,
       final TestDataProvider dataProvider
   ) {
-    createSource(restApp, dataProvider, true, Optional.empty());
+    createSource(restApp, dataProvider, false, true, Optional.empty());
+  }
+
+  public static void createTable(
+      final TestKsqlRestApp restApp,
+      final TestDataProvider dataProvider,
+      final boolean isSource
+  ) {
+    createSource(restApp, dataProvider, isSource,true, Optional.empty());
   }
 
   public static void createSource(
       final TestKsqlRestApp restApp,
       final TestDataProvider dataProvider,
+      final boolean isSource,
       final boolean table,
       final Optional<BasicCredentials> userCreds
   ) {
     makeKsqlRequest(
         restApp,
-        "CREATE " + (table ? "TABLE" : "STREAM") + " " + dataProvider.sourceName()
-            + " (" + dataProvider.ksqlSchemaString(table) + ") "
+        "CREATE " + (isSource ? "SOURCE " : "") + (table ? "TABLE" : "STREAM") + " "
+            + dataProvider.sourceName() + " (" + dataProvider.ksqlSchemaString(table) + ") "
             + "WITH (kafka_topic='" + dataProvider.topicName() + "', value_format='json');",
         userCreds
     );

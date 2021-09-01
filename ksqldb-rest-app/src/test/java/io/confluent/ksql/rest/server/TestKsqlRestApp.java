@@ -216,13 +216,21 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public Set<String> getPersistentQueries() {
     try (final KsqlRestClient client = buildKsqlClient()) {
-      return getPersistentQueries(client);
+      return getPersistentQueries(client)
+          .stream()
+          .map(RunningQuery::getId)
+          .map(QueryId::toString)
+          .collect(Collectors.toSet());
     }
   }
 
   public Set<String> getTransientQueries() {
     try (final KsqlRestClient client = buildKsqlClient()) {
-      return getTransientQueries(client);
+      return getTransientQueries(client)
+          .stream()
+          .map(RunningQuery::getId)
+          .map(QueryId::toString)
+          .collect(Collectors.toSet());
     }
   }
 
@@ -232,7 +240,14 @@ public class TestKsqlRestApp extends ExternalResource {
 
   public void closePersistentQueries(final Optional<BasicCredentials> credentials) {
     try (final KsqlRestClient client = buildKsqlClient(credentials)) {
-      terminateQueries(getPersistentQueries(client), client);
+      // Filter source tables queries because they cannot be terminated manually
+      final Set<String> queriesToTerminate = getPersistentQueries(client).stream()
+          .filter(query -> !query.getQueryString().startsWith("CREATE SOURCE TABLE"))
+          .map(RunningQuery::getId)
+          .map(QueryId::toString)
+          .collect(Collectors.toSet());
+
+      terminateQueries(queriesToTerminate, client);
     }
   }
 
@@ -355,15 +370,16 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private Set<String> getPersistentQueries(final KsqlRestClient client) {
+  private Set<RunningQuery> getPersistentQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PERSISTENT);
   }
 
-  private Set<String> getTransientQueries(final KsqlRestClient client) {
+  private Set<RunningQuery> getTransientQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PUSH);
   }
 
-  private Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
+  private Set<RunningQuery> getQueries(final KsqlRestClient client,
+                                 final KsqlQueryType queryType) {
     final RestResponse<KsqlEntityList> response = makeKsqlRequest(client, "SHOW QUERIES;");
     if (response.isErroneous()) {
       throw new AssertionError("Failed to get persistent queries."
@@ -373,8 +389,6 @@ public class TestKsqlRestApp extends ExternalResource {
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
         .filter(query -> query.getQueryType() == queryType)
-        .map(RunningQuery::getId)
-        .map(QueryId::toString)
         .collect(Collectors.toSet());
   }
 

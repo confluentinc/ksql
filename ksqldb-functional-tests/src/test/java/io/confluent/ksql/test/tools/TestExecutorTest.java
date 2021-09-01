@@ -141,7 +141,7 @@ public class TestExecutorTest {
     final TopologyTestDriverContainer container = TopologyTestDriverContainer.of(
         topologyTestDriver,
         ImmutableList.of(sourceTopic),
-        sinkTopic
+        Optional.of(sinkTopic)
     );
 
     when(topologyTestDriver.producedTopicNames()).thenReturn(ImmutableSet.of(SINK_TOPIC_NAME));

@@ -721,7 +721,7 @@ public final class KsqlRestApplication implements Executable {
 
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
         ksqlEngine,
-        new JmxDataPointsReporter(new Metrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
+        new JmxDataPointsReporter(MetricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
         Duration.ofMinutes(5),
         Duration.ofSeconds(30)
     );

@@ -30,7 +30,7 @@ import java.util.Deque;
  */
 public class ProcessingQueue {
 
-  static final int BLOCKING_QUEUE_CAPACITY = 100;
+  static final int BLOCKING_QUEUE_CAPACITY = 1000;
 
   private final Deque<TableRow> rowQueue;
   private final QueryId queryId;

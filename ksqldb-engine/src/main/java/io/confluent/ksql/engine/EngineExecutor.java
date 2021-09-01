@@ -42,6 +42,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
@@ -183,6 +184,18 @@ final class EngineExecutor {
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
+      return ExecuteResult.of(ddlResult.get());
+    }
+
+    // Do not execute the plan (found on new CST commands or commands read from the command topic)
+    // for source tables if the feature is disabled. CST will still be read-only, but no query
+    // must be executed.
+    if (persistentQueryType == KsqlConstants.PersistentQueryType.CREATE_SOURCE
+        && !isSourceTableMaterializationEnabled()) {
+      LOG.info(String.format(
+          "Source table query '%s' won't be materialized because '%s' is disabled.",
+          plan.getStatementText(),
+          KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED));
       return ExecuteResult.of(ddlResult.get());
     }
 
@@ -473,6 +486,19 @@ final class EngineExecutor {
         queryPlan);
   }
 
+  private boolean isSourceStreamOrTable(final ConfiguredStatement<?> statement) {
+    return (statement.getStatement() instanceof CreateStream
+        && ((CreateStream) statement.getStatement()).isSource())
+        || (statement.getStatement() instanceof CreateTable
+        && ((CreateTable) statement.getStatement()).isSource());
+  }
+
+  private boolean isSourceTableMaterializationEnabled() {
+    // Do not get overridden configs because this must be set only from the Server side
+    return config.getConfig(false)
+        .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
+  }
+
   // Known to be non-empty
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
@@ -480,8 +506,18 @@ final class EngineExecutor {
       throwOnNonExecutableStatement(statement);
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
-        if (statement.getStatement() instanceof CreateTable
-            && ((CreateTable) statement.getStatement()).isSource()) {
+        final boolean isSourceStream = statement.getStatement() instanceof CreateStream
+            && ((CreateStream) statement.getStatement()).isSource();
+
+        final boolean isSourceTable = statement.getStatement() instanceof CreateTable
+            && ((CreateTable) statement.getStatement()).isSource();
+
+        if ((isSourceStream || isSourceTable) && !isSourceTableMaterializationEnabled()) {
+          throw new KsqlStatementException("Cannot execute command because source table "
+              + "materialization is disabled.", statement.getStatementText());
+        }
+
+        if (isSourceTable) {
           return sourceTablePlan(statement);
         } else {
           final DdlCommand ddlCommand = engineContext.createDdlCommand(

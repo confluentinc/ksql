@@ -23,7 +23,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
-import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.MetricsCallback;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -67,13 +66,11 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Context;
 import java.time.Clock;
 import java.time.Duration;
@@ -85,8 +82,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -415,7 +412,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         }
         default:
           throw new KsqlStatementException(
-            "Unexpected data source type for pull query: " + dataSourceType,
+              "Unexpected data source type for pull query: " + dataSourceType,
               statement.getStatementText()
           );
       }
@@ -566,15 +563,47 @@ public class StreamedQueryResource implements KsqlConfigurable {
         );
     localCommands.ifPresent(lc -> lc.write(streamPullQueryMetadata.getTransientQueryMetadata()));
 
-    final StreamPullQueryStreamWriter queryStreamWriter = new StreamPullQueryStreamWriter(
+    final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         streamPullQueryMetadata.getTransientQueryMetadata(),
         disconnectCheckInterval.toMillis(),
         OBJECT_MAPPER,
         connectionClosedFuture,
-        () -> ksqlEngine.passedEndOffsets(streamPullQueryMetadata)
+        new StreamPullQueryCompletionCheck(ksqlEngine, streamPullQueryMetadata)
     );
 
     return EndpointResponse.ok(queryStreamWriter);
+  }
+
+  private static final class StreamPullQueryCompletionCheck implements Supplier<Boolean> {
+
+    boolean complete = false;
+    long lastCheck = 0;
+    private final KsqlEngine ksqlEngine;
+    private final StreamPullQueryMetadata streamPullQueryMetadata;
+
+    private StreamPullQueryCompletionCheck(final KsqlEngine ksqlEngine,
+        final StreamPullQueryMetadata streamPullQueryMetadata) {
+      this.ksqlEngine = ksqlEngine;
+      this.streamPullQueryMetadata = streamPullQueryMetadata;
+    }
+
+    @Override
+    public Boolean get() {
+      if (complete) {
+        return true;
+      } else {
+        final long now = System.currentTimeMillis();
+        if (now - lastCheck > 100L) {
+          lastCheck = now;
+          final boolean completed =
+              ksqlEngine.passedEndOffsets(streamPullQueryMetadata);
+          complete = completed;
+          return completed;
+        } else {
+          return false;
+        }
+      }
+    }
   }
 
   private EndpointResponse handlePushQuery(

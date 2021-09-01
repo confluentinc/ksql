@@ -66,7 +66,6 @@ import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.io.Closeable;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +90,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -327,7 +325,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    * API endpoints all need to do different stuff before, in the middle of, and after these two
    * phases. One of them actually needs to wait on the pull query in a callback after starting the
    * query, so splitting it into two method calls was the most practical choice.
-   * @return
    */
   public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,

@@ -215,6 +215,7 @@ public class RestApiTest {
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
       .withProperties(ClientTrustStore.trustStoreProps())
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
       .build();
 

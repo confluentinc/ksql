@@ -285,6 +285,13 @@ public class KsqlConfig extends AbstractConfig {
           + "functions, aggregations, or joins, but may include projections and filters.";
   public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED
+      = "ksql.query.push.scalable.registry.installed";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DOC =
+      "Enables whether scalable push registry should be installed. This is a requirement of "
+          + "enabling scalable push queries using ksql.query.push.scalable.enabled.";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DEFAULT = false;
+
   public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY
       = "ksql.query.push.scalable.new.node.continuity";
   public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC =
@@ -922,6 +929,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DOC
         )
         .define(
             KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY,

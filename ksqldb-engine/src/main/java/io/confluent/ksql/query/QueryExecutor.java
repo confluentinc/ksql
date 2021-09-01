@@ -225,6 +225,9 @@ final class QueryExecutor {
       final Map<String, Object> streamsProperties,
       final KsqlConfig ksqlConfig
   ) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED)) {
+      return Optional.empty();
+    }
     final KStream<?, GenericRow> stream;
     final boolean isTable;
     if (result instanceof KTableHolder) {

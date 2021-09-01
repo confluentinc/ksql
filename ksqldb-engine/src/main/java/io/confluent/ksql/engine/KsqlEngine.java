@@ -79,6 +79,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListOffsetsOptions;
@@ -129,6 +130,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
         ),
+        () -> Admin.create(ksqlConfig.getKsqlAdminClientConfigProps()),
         queryIdGenerator,
         ksqlConfig,
         queryEventListeners
@@ -142,6 +144,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String serviceId,
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
+      final Supplier<Admin> adminSupplier,
       final QueryIdGenerator queryIdGenerator,
       final KsqlConfig ksqlConfig,
       final List<QueryEventListener> queryEventListeners
@@ -178,7 +181,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         TimeUnit.MILLISECONDS
     );
     this.ksqlConfig = ksqlConfig;
-    this.persistentAdminClient = Admin.create(ksqlConfig.getKsqlAdminClientConfigProps());
+    this.persistentAdminClient = adminSupplier.get();
 
     cleanupService.startAsync();
   }

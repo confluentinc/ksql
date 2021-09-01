@@ -99,8 +99,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1940,6 +1942,7 @@ public class KsqlEngineTest {
             new Metrics(),
             emptyMap(),
             Optional.empty()),
+        () -> EasyMock.mock(Admin.class),
         new SequentialQueryIdGenerator(),
         new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, "false")),
         Collections.emptyList()

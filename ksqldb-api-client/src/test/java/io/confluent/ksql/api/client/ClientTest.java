@@ -1816,6 +1816,9 @@ public class ClientTest extends BaseApiTest {
     assertThat(values.getKsqlObject(8), is(row.getKsqlObject("f_map")));
     assertThat(values.getKsqlObject(9), is(row.getKsqlObject("f_struct")));
     assertThat(values.getValue(10), is(nullValue()));
+    assertThat(values.getValue(11), is(row.getString("f_timestamp")));
+    assertThat(values.getValue(12), is(row.getString("f_date")));
+    assertThat(values.getValue(13), is(row.getString("f_time")));
     assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
     assertThat(values.toString(), is(values.toJsonString()));
 

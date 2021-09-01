@@ -202,6 +202,7 @@ public class HealthCheckAgentTest {
     assertThat(response.getIsHealthy(), is(true));
   }
 
+  // isolate suppressed calls to their own methods
   @SuppressWarnings("unchecked")
   private void givenDescribeTopicsReturns(final DescribeTopicsResult topicsResult) {
     when(adminClient.describeTopics(any(Collection.class), any())).thenReturn(topicsResult);

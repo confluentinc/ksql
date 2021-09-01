@@ -23,11 +23,11 @@ stream with the same name already exists.
 ### Source streams
 
 A stream can be created as read-only if the SOURCE clause is provided. INSERTS statements and the
-DELETE TOPIC on DROP STREAM statements won't be permitted. Source streams do not support pull
-queries currently. Only source tables support running pull queries on them.
+DELETE TOPIC on DROP STREAM statements aren't permitted. Source streams do not support pull
+queries. Only source tables support running pull queries on them.
 
-To disable the SOURCE stream feature, you can set `ksql.source.table.materialization.enabled` to
-`false` in your KSQL server properties file.
+To disable the SOURCE stream feature, set `ksql.source.table.materialization.enabled` to
+`false` in your ksqlDB server properties file.
 
 ### Partitioning
 

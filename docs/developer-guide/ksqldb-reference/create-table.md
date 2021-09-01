@@ -22,16 +22,16 @@ table with the same name already exists.
 
 ### Source tables
 
-If the SOURCE clause is present, then pull queries can be executed on it. Note that the SOURCE
-clause will execute an internal query for this table in order to create a materialized state which
-is used by pull queries. This query cannot be terminated manually. This query is only terminated
-when dropping the table with DROP TABLE.
+If the SOURCE clause is present, you can execute pull queries on it. The SOURCE
+clause executes an internal query for the table to create a materialized state that's
+used by pull queries. You can't terminate this query manually. You can terminate it only
+by dropping the table with the DROP TABLE statement.
 
-Also, the table will be created as read-only when the SOURCE clause is provided. INSERTS statements
-and the DELETE TOPIC on DROP TABLE statements won't be permitted.
+Also, when you provide the SOURCE clause, the table is created as read-only. For a read-only table,
+INSERT statements and the DELETE TOPIC on DROP TABLE statements aren't be permitted.
 
-To disable the SOURCE table feature, you can set `ksql.source.table.materialization.enabled` to
-`false` in your KSQL server properties file.
+To disable the SOURCE table feature, set `ksql.source.table.materialization.enabled` to
+`false` in your ksqlDB server properties file.
 
 ### Partitioning
 

@@ -93,7 +93,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl implements PushQue
   }
 
   public boolean isRunning() {
-    return isRunning.get();
+    return isRunning.get() && getKafkaStreams().state().isRunningOrRebalancing();
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")

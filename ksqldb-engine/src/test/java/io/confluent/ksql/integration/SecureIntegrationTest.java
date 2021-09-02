@@ -86,6 +86,7 @@ import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.MissingSourceTopicException;
 import org.apache.kafka.streams.errors.StreamsException;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -417,6 +418,7 @@ public class SecureIntegrationTest {
     serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
     ksqlEngine = new KsqlEngine(
         serviceContext,
+        () -> EasyMock.mock(Admin.class),
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
         ServiceInfo.create(ksqlConfig),

@@ -361,26 +361,6 @@ public class ApiIntegrationTest {
   }
 
   @Test
-  public void shouldFailPullQueryWithNoWhereClause() {
-
-    // Given:
-    String sql = "SELECT * from " + AGG_TABLE + ";";
-
-    // Then:
-    shouldFailToExecuteQuery(sql, "Missing WHERE clause.");
-  }
-
-  @Test
-  public void shouldFailPullQueryWithNonKeyLookup() {
-
-    // Given:
-    String sql = "SELECT * from " + AGG_TABLE + " WHERE LONG=12345;";
-
-    // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause missing key column for disjunct: (LONG = 12345).");
-  }
-
-  @Test
   public void shouldExecuteInserts() {
 
     // Given:

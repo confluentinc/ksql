@@ -130,6 +130,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -161,7 +162,8 @@ public class StreamedQueryResourceTest {
       .build();
 
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
-      StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
+      StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
+      CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2"
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
@@ -287,19 +289,23 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldThrowExceptionIfConfigDisabledStream() {
-    shouldThrowExceptionIfConfigDisabled(DataSourceType.KSTREAM);
+
+  public void shouldThrowExceptionIfPullQueriesDisabledStream() {
+    shouldThrowExceptionIfPullQueriesDisabled(DataSourceType.KSTREAM);
   }
 
   @Test
-  public void shouldThrowExceptionIfConfigDisabledTable() {
-    shouldThrowExceptionIfConfigDisabled(DataSourceType.KTABLE);
+  public void shouldThrowExceptionIfPullQueriesDisabledTable() {
+    shouldThrowExceptionIfPullQueriesDisabled(DataSourceType.KTABLE);
   }
 
-  private void shouldThrowExceptionIfConfigDisabled(final DataSourceType dataSourceType) {
+  private void shouldThrowExceptionIfPullQueriesDisabled(final DataSourceType dataSourceType) {
     // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps())
-        .thenReturn(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"));
+    final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
+        CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2",
+        KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG, "false"
+    ));
     when(mockDataSource.getDataSourceType()).thenReturn(dataSourceType);
     testResource.configure(ksqlConfig);
 
@@ -422,6 +428,7 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void queryLoggerShouldNotReceiveStatementsWhenHandlePullQuery() {
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       testResource.streamQuery(
           securityContext,
@@ -606,6 +613,7 @@ public class StreamedQueryResourceTest {
     testResource.configure(new KsqlConfig(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
     // When:
     testResource.streamQuery(

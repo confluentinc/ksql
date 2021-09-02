@@ -537,7 +537,7 @@ public class ClientIntegrationTest {
   @Test
   public void shouldHandleErrorResponseFromExecuteQuery() {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT * from " + AGG_TABLE + ";");
+    final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT * from A_FAKE_TABLE_NAME;");
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
         batchedQueryResult::get
@@ -546,7 +546,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Missing WHERE clause"));
+    assertThat(e.getCause().getMessage(), containsString("A_FAKE_TABLE_NAME does not exist."));
 
     // queryID future should also be completed exceptionally
     final Exception queryIdException = assertThrows(
@@ -555,7 +555,7 @@ public class ClientIntegrationTest {
     );
     assertThat(queryIdException.getCause(), instanceOf(KsqlClientException.class));
     assertThat(queryIdException.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(queryIdException.getCause().getMessage(), containsString("Missing WHERE clause"));
+    assertThat(queryIdException.getCause().getMessage(), containsString("A_FAKE_TABLE_NAME does not exist."));
   }
 
   @Test

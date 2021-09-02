@@ -68,6 +68,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
@@ -81,6 +82,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
@@ -396,15 +398,21 @@ public class StreamedQueryResource implements KsqlConfigurable {
           );
         }
         case KSTREAM: {
-          throw new KsqlStatementException(
-              "Pull queries are not supported on streams."
-                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
-              statement.getStatementText()
+          final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
+
+          final ConfiguredStatement<Query> configured = ConfiguredStatement
+              .of(statement, sessionConfig);
+
+          return handleStreamPullQuery(
+              analysis,
+              securityContext.getServiceContext(),
+              configured,
+              connectionClosedFuture
           );
         }
         default:
           throw new KsqlStatementException(
-            "Unexpected data source type for pull query: " + dataSourceType,
+              "Unexpected data source type for pull query: " + dataSourceType,
               statement.getStatementText()
           );
       }
@@ -538,6 +546,64 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     QueryLogger.info("Streaming scalable push query", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);
+  }
+
+  private EndpointResponse handleStreamPullQuery(
+      final ImmutableAnalysis analysis,
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> configured,
+      final CompletableFuture<Void> connectionClosedFuture) {
+
+    final StreamPullQueryMetadata streamPullQueryMetadata = ksqlEngine
+        .createStreamPullQuery(
+            serviceContext,
+            analysis,
+            configured,
+            false
+        );
+    localCommands.ifPresent(lc -> lc.write(streamPullQueryMetadata.getTransientQueryMetadata()));
+
+    final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
+        streamPullQueryMetadata.getTransientQueryMetadata(),
+        disconnectCheckInterval.toMillis(),
+        OBJECT_MAPPER,
+        connectionClosedFuture,
+        new StreamPullQueryCompletionCheck(ksqlEngine, streamPullQueryMetadata)
+    );
+
+    return EndpointResponse.ok(queryStreamWriter);
+  }
+
+  private static final class StreamPullQueryCompletionCheck implements Supplier<Boolean> {
+
+    boolean complete = false;
+    long lastCheck = 0;
+    private final KsqlEngine ksqlEngine;
+    private final StreamPullQueryMetadata streamPullQueryMetadata;
+
+    private StreamPullQueryCompletionCheck(final KsqlEngine ksqlEngine,
+        final StreamPullQueryMetadata streamPullQueryMetadata) {
+      this.ksqlEngine = ksqlEngine;
+      this.streamPullQueryMetadata = streamPullQueryMetadata;
+    }
+
+    @Override
+    public Boolean get() {
+      if (complete) {
+        return true;
+      } else {
+        final long now = System.currentTimeMillis();
+        if (now - lastCheck > 100L) {
+          lastCheck = now;
+          final boolean completed =
+              ksqlEngine.passedEndOffsets(streamPullQueryMetadata);
+          complete = completed;
+          return completed;
+        } else {
+          return false;
+        }
+      }
+    }
   }
 
   private EndpointResponse handlePushQuery(

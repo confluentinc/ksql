@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -136,11 +137,46 @@ public class QueryStreamWriterTest {
 
     // Then:
     final List<String> lines = getOutput(out);
-    assertThat(lines, contains(
-        containsString("header"),
-        containsString("Row1"),
-        containsString("Row2"),
-        containsString("Row3")));
+    assertThat(lines, is(Arrays.asList(
+        "[{\"header\":{\"queryId\":\"id\",\"schema\":\"`col1` STRING\"}},",
+        "{\"row\":{\"columns\":[\"Row1\"]}},",
+        "{\"row\":{\"columns\":[\"Row2\"]}},",
+        "{\"row\":{\"columns\":[\"Row3\"]}},",
+        "]"
+    )));
+  }
+
+  @Test
+  public void shouldExitAndDrainIfQueryComplete() {
+    // Given:
+    doAnswer(streamRows("Row1", "Row2", "Row3"))
+        .when(rowQueue).drainTo(any());
+
+    writer = new QueryStreamWriter(
+        queryMetadata,
+        1000,
+        objectMapper,
+        new CompletableFuture<>(),
+        () -> true
+    );
+
+    out = new ByteArrayOutputStream();
+
+    verify(queryMetadata).setLimitHandler(limitHandlerCapture.capture());
+    limitHandler = limitHandlerCapture.getValue();
+
+    // When:
+    writer.write(out);
+
+    // Then:
+    final List<String> lines = getOutput(out);
+    assertThat(lines, is(Arrays.asList(
+        "[{\"header\":{\"queryId\":\"id\",\"schema\":\"`col1` STRING\"}},",
+        "{\"row\":{\"columns\":[\"Row1\"]}},",
+        "{\"row\":{\"columns\":[\"Row2\"]}},",
+        "{\"row\":{\"columns\":[\"Row3\"]}},",
+        "]"
+    )));
   }
 
   @Test

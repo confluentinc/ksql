@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
+import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -35,11 +36,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class QueryStreamWriter implements StreamingOutput {
+
   private static final int WRITE_TIMEOUT_MS = 10 * 60000;
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
@@ -48,6 +51,7 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final TombstoneFactory tombstoneFactory;
+  private final Supplier<Boolean> isComplete;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
   private volatile boolean connectionClosed;
@@ -59,24 +63,39 @@ class QueryStreamWriter implements StreamingOutput {
       final ObjectMapper objectMapper,
       final CompletableFuture<Void> connectionClosedFuture
   ) {
+    this(queryMetadata, disconnectCheckInterval, objectMapper, connectionClosedFuture, () -> false);
+  }
+
+  QueryStreamWriter(
+      final PushQueryMetadata queryMetadata,
+      final long disconnectCheckInterval,
+      final ObjectMapper objectMapper,
+      final CompletableFuture<Void> connectionClosedFuture,
+      final Supplier<Boolean> isComplete
+  ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     this.queryMetadata.setLimitHandler(new LimitHandler());
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
+    this.isComplete = Objects.requireNonNull(isComplete, "isComplete");
     this.tombstoneFactory = TombstoneFactory.create(queryMetadata);
     connectionClosedFuture.thenAccept(v -> connectionClosed = true);
     queryMetadata.start();
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public void write(final OutputStream out) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     try {
       out.write("[".getBytes(StandardCharsets.UTF_8));
       write(out, buildHeader());
 
-      while (!connectionClosed && queryMetadata.isRunning() && !limitReached) {
-        final KeyValue<List<?>, GenericRow> row = queryMetadata.getRowQueue().poll(
+      final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
+
+      while (!connectionClosed && queryMetadata.isRunning() && !limitReached && !isComplete.get()) {
+        final KeyValue<List<?>, GenericRow> row = rowQueue.poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
@@ -91,13 +110,18 @@ class QueryStreamWriter implements StreamingOutput {
         drainAndThrowOnError(out);
       }
 
+      if (connectionClosed) {
+        return;
+      }
+
       drain(out);
 
       if (limitReached) {
         objectMapper.writeValue(out, StreamedRow.finalMessage("Limit Reached"));
-        out.write("]\n".getBytes(StandardCharsets.UTF_8));
-        out.flush();
       }
+
+      out.write("]\n".getBytes(StandardCharsets.UTF_8));
+      out.flush();
     } catch (final EOFException exception) {
       // The user has terminated the connection; we can stop writing
       log.warn("Query terminated due to exception:" + exception.toString());

@@ -52,6 +52,22 @@ public final class QueryPlan  {
     this.usesSharedRuntime = usesSharedRuntime;
   }
 
+  public QueryPlan(
+      @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
+      @JsonProperty(value = "sink") final Optional<SourceName> sink,
+      @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
+      @JsonProperty(value = "queryId", required = true) final QueryId queryId
+  ) {
+    this.sources = ImmutableSortedSet.copyOf(
+        Comparator.comparing(Name::text),
+        Objects.requireNonNull(sources, "sources")
+    );
+    this.sink = Objects.requireNonNull(sink, "sink");
+    this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
+    this.queryId = Objects.requireNonNull(queryId, "queryId");
+    this.usesSharedRuntime = false;
+  }
+
   public Optional<SourceName> getSink() {
     return sink;
   }

@@ -128,6 +128,15 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldNotUseGlobalConfigIfQueryPlanOverrides() {
+    // Given:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(!sharedRuntimes);
+    QueryMetadata query = givenCreate(registry, "q1", "source", Optional.of("sink"), CREATE_AS);
+
+    verify(listener1).onCreate(serviceContext, metaStore, query);
+  }
+
+  @Test
   public void shouldGetAllLiveQueriesSandbox() {
     // Given:
     givenCreate(registry, "q1", "source", Optional.of("sink"), CREATE_AS);
@@ -506,7 +515,6 @@ public class QueryRegistryImplTest {
       ).thenReturn(query);
     }
     when(config.getConfig(true)).thenReturn(ksqlConfig);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(sharedRuntimes);
     registry.createOrReplacePersistentQuery(
         config,
         serviceContext,
@@ -519,7 +527,7 @@ public class QueryRegistryImplTest {
         mock(ExecutionStep.class),
         "plan-summary",
         persistentQueryType,
-        true
+        sharedRuntimes
     );
     return query;
   }

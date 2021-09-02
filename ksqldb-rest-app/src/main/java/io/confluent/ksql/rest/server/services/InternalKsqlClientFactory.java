@@ -60,9 +60,9 @@ public final class InternalKsqlClientFactory {
 
   private static Function<Boolean, HttpClientOptions> httpOptionsFactory(
       final Map<String, String> clientProps, final boolean verifyHost,
-      final Supplier<HttpClientOptions> optionsSupplier) {
+      final Function<Boolean, HttpClientOptions> clientOptions) {
     return (tls) -> {
-      final HttpClientOptions httpClientOptions = optionsSupplier.get();
+      final HttpClientOptions httpClientOptions = clientOptions.apply(tls);
       if (!tls) {
         return httpClientOptions;
       }
@@ -89,11 +89,12 @@ public final class InternalKsqlClientFactory {
     };
   }
 
-  private static HttpClientOptions createClientOptions() {
+  private static HttpClientOptions createClientOptions(boolean tls) {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
 
-  private static HttpClientOptions createClientOptionsHttp2() {
-    return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2);
+  private static HttpClientOptions createClientOptionsHttp2(boolean tls) {
+    return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2)
+        .setUseAlpn(tls);
   }
 }

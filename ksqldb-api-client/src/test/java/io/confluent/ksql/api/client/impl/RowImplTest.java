@@ -41,10 +41,10 @@ public class RowImplTest {
 
   private static final List<String> COLUMN_NAMES =
       ImmutableList.of("f_str", "f_int", "f_long", "f_double", "f_bool", "f_decimal", "f_bytes",
-          "f_array", "f_map", "f_struct", "f_null");
+          "f_array", "f_map", "f_struct", "f_null", "f_timestamp", "f_date", "f_time");
   private static final List<ColumnType> COLUMN_TYPES = RowUtil.columnTypesFromStrings(
       ImmutableList.of("STRING", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN", "DECIMAL", "BYTES",
-          "ARRAY", "MAP", "STRUCT", "INTEGER"));
+          "ARRAY", "MAP", "STRUCT", "INTEGER", "TIMESTAMP", "DATE", "TIME"));
   private static final Map<String, Integer> COLUMN_NAME_TO_INDEX = RowUtil.valueToIndexMap(COLUMN_NAMES);
   private static final JsonArray VALUES = new JsonArray()
       .add("foo")
@@ -57,7 +57,10 @@ public class RowImplTest {
       .add(new JsonArray("[\"e1\",\"e2\"]"))
       .add(new JsonObject("{\"k1\":\"v1\",\"k2\":\"v2\"}"))
       .add(new JsonObject("{\"f1\":\"baz\",\"f2\":12}"))
-      .addNull();
+      .addNull()
+      .add("2020-01-01T04:40:34.789") // server endpoint returns timestamp/date/time as strings
+      .add("2020-01-01")
+      .add("04:40:34.789");
 
   private RowImpl row;
 
@@ -83,6 +86,9 @@ public class RowImplTest {
     assertThat(row.getValue(9), is(new JsonObject("{\"k1\":\"v1\",\"k2\":\"v2\"}")));
     assertThat(row.getValue(10), is(new JsonObject("{\"f1\":\"baz\",\"f2\":12}")));
     assertThat(row.getValue(11), is(nullValue()));
+    assertThat(row.getValue(12), is("2020-01-01T04:40:34.789"));
+    assertThat(row.getValue(13), is("2020-01-01"));
+    assertThat(row.getValue(14), is("04:40:34.789"));
   }
 
   @Test
@@ -175,6 +181,9 @@ public class RowImplTest {
     assertThat(obj.getKsqlArray("f_array"), is(new KsqlArray(ImmutableList.of("e1", "e2"))));
     assertThat(obj.getKsqlObject("f_map"), is(new KsqlObject(ImmutableMap.of("k1", "v1", "k2", "v2"))));
     assertThat(obj.getKsqlObject("f_struct"), is(new KsqlObject(ImmutableMap.of("f1", "baz", "f2", 12))));
+    assertThat(obj.getString("f_timestamp"), is("2020-01-01T04:40:34.789"));
+    assertThat(obj.getString("f_date"), is("2020-01-01"));
+    assertThat(obj.getString("f_time"), is("04:40:34.789"));
   }
 
   @Test

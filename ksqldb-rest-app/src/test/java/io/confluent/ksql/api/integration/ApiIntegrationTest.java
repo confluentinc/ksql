@@ -165,7 +165,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(2));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(
         new JsonArray().add("K").add("STR").add("LONG").add("DEC").add("BYTES_").add("ARRAY")
-            .add("MAP").add("STRUCT").add("COMPLEX")));
+            .add("MAP").add("STRUCT").add("COMPLEX").add("TIMESTAMP").add("DATE").add("TIME")));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(
         new JsonArray().add("STRUCT<`F1` ARRAY<STRING>>").add("STRING").add("BIGINT")
             .add("DECIMAL(4, 2)").add("BYTES").add("ARRAY<STRING>").add("MAP<STRING, STRING>")
@@ -173,7 +173,8 @@ public class ApiIntegrationTest {
             .add("STRUCT<`DECIMAL` DECIMAL(2, 1), `STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, "
                 + "`ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, `ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, "
                 + "`ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, `MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, "
-                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")));
+                + "`MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, `MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>")
+            .add("TIMESTAMP").add("DATE").add("TIME")));
     assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
   }
 

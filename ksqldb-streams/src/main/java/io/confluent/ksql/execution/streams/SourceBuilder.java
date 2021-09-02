@@ -151,7 +151,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final String stateStoreName
   ) {
 
-    final PhysicalSchema physicalSchema = getPhysicalSchemaWithRelevantPseudoAndKeyCols(source);
+    final PhysicalSchema physicalSchema = getPhysicalSchemaWithPseudoColumnsToMaterialize(source);
 
     final QueryContext queryContext = addMaterializedContext(source);
 
@@ -187,7 +187,7 @@ final class SourceBuilder extends SourceBuilderBase {
       final String stateStoreName
   ) {
 
-    final PhysicalSchema physicalSchema = getPhysicalSchemaWithRelevantPseudoAndKeyCols(source);
+    final PhysicalSchema physicalSchema = getPhysicalSchemaWithPseudoColumnsToMaterialize(source);
 
     final QueryContext queryContext = addMaterializedContext(source);
 
@@ -213,7 +213,7 @@ final class SourceBuilder extends SourceBuilderBase {
     );
   }
 
-  private static PhysicalSchema getPhysicalSchemaWithRelevantPseudoAndKeyCols(
+  private static PhysicalSchema getPhysicalSchemaWithPseudoColumnsToMaterialize(
       final SourceStep<?> streamSource) {
 
     final boolean windowed = streamSource instanceof WindowedTableSource;

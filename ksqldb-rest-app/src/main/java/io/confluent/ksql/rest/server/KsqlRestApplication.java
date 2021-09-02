@@ -145,7 +145,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
@@ -721,7 +720,8 @@ public final class KsqlRestApplication implements Executable {
 
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
         ksqlEngine,
-        new JmxDataPointsReporter(MetricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
+        new JmxDataPointsReporter(
+            MetricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
         Duration.ofMinutes(5),
         Duration.ofSeconds(30)
     );

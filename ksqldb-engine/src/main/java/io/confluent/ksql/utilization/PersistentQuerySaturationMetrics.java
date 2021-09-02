@@ -315,13 +315,20 @@ public class PersistentQuerySaturationMetrics implements Runnable {
       final Instant windowStart = now.minus(window);
       final Instant earliest = now.minus(window.plus(sampleMargin));
       final Instant latest = now.minus(window.minus(sampleMargin));
-      LOGGER.debug("{}: record and measure with now {},  window {} ({} : {})", threadName, now, windowStart, earliest, latest);
+      LOGGER.debug(
+          "{}: record and measure with now {},  window {} ({} : {})",
+          threadName,
+          now,
+          windowStart,
+          earliest,
+          latest
+      );
       samples.add(current);
       samples.removeIf(s -> s.timestamp.isBefore(earliest));
       if (!inRange(samples.get(0).timestamp, earliest, latest) && !startTime.isAfter(windowStart)) {
         return Optional.empty();
       }
-      BlockedTimeSample startSample = samples.get(0);
+      final BlockedTimeSample startSample = samples.get(0);
       LOGGER.debug("{}: start sample {}", threadName, startSample);
       double blocked =
           Math.max(current.totalBlockedTime - startSample.totalBlockedTime, 0);
@@ -349,10 +356,10 @@ public class PersistentQuerySaturationMetrics implements Runnable {
 
     @Override
     public String toString() {
-      return "BlockedTimeSample{" +
-          "timestamp=" + timestamp +
-          ", totalBlockedTime=" + totalBlockedTime +
-          '}';
+      return "BlockedTimeSample{"
+          + "timestamp=" + timestamp
+          + ", totalBlockedTime=" + totalBlockedTime
+          + '}';
     }
   }
 }

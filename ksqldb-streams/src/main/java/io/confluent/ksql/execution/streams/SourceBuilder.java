@@ -42,7 +42,9 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
@@ -88,15 +90,15 @@ final class SourceBuilder extends SourceBuilderBase {
 
     final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
 
-    final KTable<K, GenericRow> toPotentiallyMaterialize;
+    final KTable<K, GenericRow> maybeMaterialized;
 
     if (forceMaterialization) {
-      // materialize to prevent the source-changelog
-      // optimization in kafka streams - we don't want this optimization to
+      // besides materializing necessary pseudocolumns, we also materialize to prevent the
+      // source-changelog optimization in kafka streams - we don't want this optimization to
       // be enabled because we cannot require symmetric serialization between
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-     toPotentiallyMaterialize = source.transformValues(
+     maybeMaterialized = source.transformValues(
          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
@@ -104,11 +106,11 @@ final class SourceBuilder extends SourceBuilderBase {
       // re-partitioned topic will be used for any subsequent state stores, in lieu
       // of the original source topic, thus avoiding the issues above.
       // See https://github.com/confluentinc/ksql/issues/6650
-      toPotentiallyMaterialize = source.transformValues(
+      maybeMaterialized = source.transformValues(
           new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
     }
 
-    return toPotentiallyMaterialize.transformValues(new AddRemainingPseudoAndKeyCols<>(
+    return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
         keyGenerator,
         streamSource.getPseudoColumnVersion()));
   }
@@ -334,30 +336,37 @@ final class SourceBuilder extends SourceBuilderBase {
           //remove pseudocolumns we previously materialized so we can add them back in correct order
 
           //ensure extra capacity equal to number of pseudoColumns which we haven't materialized
-          final int pseudoColumnsToAdd = SystemColumns.pseudoColumnNames(
-              SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION).size();
+          final int pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+              .stream()
+              .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
+              .count();
 
           row.ensureAdditionalCapacity(pseudoColumnsToAdd);
 
-          //calculate number of user columns, pseudo columns, and columns to shift for next step
+          //append nulls, so we can populate the row with set() later without going OOB
+          for (int i = 0; i < pseudoColumnsToAdd; i++) {
+            row.append(null);
+          }
+
+          //calculate number of user columns, pseudo columns, and columns to shift for next steps
           final Set<ColumnName> columnNames = SystemColumns.pseudoColumnNames(pseudoColumnVersion);
           final int totalPseudoColumns = columnNames.size();
           final int pseudoColumnsToShift = totalPseudoColumns - pseudoColumnsToAdd;
-          final int numUserColumns = row.size() - pseudoColumnsToShift;
+          final int numUserColumns = row.size() - totalPseudoColumns;
 
-          //as we need to re-insert pseudocolumns after we've added timestamp, take the index we
-          //will add timestamp in, save the column that was occupying the index, then add timestamp.
-          //repeat this process until we reach end of the row, then append last saved column after
-          //loop is exited
-          Object toShift = processorContext.timestamp();
-
-          for (int i = numUserColumns; i < row.size(); i++) {
-            final Object temp = row.get(i);
-            row.set(i, toShift);
-            toShift = temp;
+          //create a list of pseudocolumns, in the order which they should be added
+          List<Object> pseudoCols = new ArrayList<>();
+          if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
+            pseudoCols.add(processorContext.timestamp());
           }
 
-          row.append(toShift);
+          for (int i = numUserColumns; i < numUserColumns + pseudoColumnsToShift ; i++) {
+            pseudoCols.add(row.get(i));
+          }
+
+          for (int i = 0; i < totalPseudoColumns; i++) {
+            row.set(i + numUserColumns, pseudoCols.get(i));
+          }
 
           row.appendAll(keyColumns);
           return row;

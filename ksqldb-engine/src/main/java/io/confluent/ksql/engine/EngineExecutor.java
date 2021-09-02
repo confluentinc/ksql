@@ -472,7 +472,7 @@ final class EngineExecutor {
         Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
         plans.physicalPlan.getQueryId(),
-        config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        getApplicationId()
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -557,7 +557,7 @@ final class EngineExecutor {
           outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId(),
-          config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+          getApplicationId()
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -576,6 +576,12 @@ final class EngineExecutor {
     } catch (final Exception e) {
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
     }
+  }
+
+  private String getApplicationId() {
+    return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        ? "appId"
+        : "";
   }
 
   private ExecutorPlans planQuery(

@@ -527,7 +527,7 @@ public class QueryRegistryImplTest {
         mock(ExecutionStep.class),
         "plan-summary",
         persistentQueryType,
-        sharedRuntimes
+        sharedRuntimes ? Optional.of("applicationId") : Optional.empty()
     );
     return query;
   }

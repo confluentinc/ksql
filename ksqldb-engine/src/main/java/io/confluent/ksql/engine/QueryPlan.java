@@ -33,14 +33,14 @@ public final class QueryPlan  {
   private final Optional<SourceName> sink;
   private final ExecutionStep<?> physicalPlan;
   private final QueryId queryId;
-  private final boolean usesSharedRuntime;
+  private final Optional<String> usesSharedRuntime;
 
   public QueryPlan(
       @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
       @JsonProperty(value = "sink") final Optional<SourceName> sink,
       @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
       @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-      @JsonProperty(value = "sharedRuntimes") final boolean usesSharedRuntime
+      @JsonProperty(value = "sharedRuntimes") final String usesSharedRuntime
   ) {
     this.sources = ImmutableSortedSet.copyOf(
         Comparator.comparing(Name::text),
@@ -49,7 +49,9 @@ public final class QueryPlan  {
     this.sink = Objects.requireNonNull(sink, "sink");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.usesSharedRuntime = usesSharedRuntime;
+    this.usesSharedRuntime = usesSharedRuntime.equals("")
+        ? Optional.of(usesSharedRuntime)
+        : Optional.empty();
   }
 
   public QueryPlan(
@@ -65,7 +67,7 @@ public final class QueryPlan  {
     this.sink = Objects.requireNonNull(sink, "sink");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.usesSharedRuntime = false;
+    this.usesSharedRuntime = Optional.empty();
   }
 
   public Optional<SourceName> getSink() {
@@ -85,7 +87,7 @@ public final class QueryPlan  {
     return queryId;
   }
 
-  public boolean usesSharedRuntime() {
+  public Optional<String> usesSharedRuntime() {
     return usesSharedRuntime;
   }
 

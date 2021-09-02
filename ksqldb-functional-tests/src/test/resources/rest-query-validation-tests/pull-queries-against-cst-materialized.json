@@ -68,6 +68,28 @@
           {"row":{"columns":[2,"a2"]}}
         ]}
       ]
+    },
+    {
+      "name": "should not override offset on CST commands",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "SELECT * FROM INPUT WHERE K=2;"
+      ],
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 1, "value": "a1"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 2, "value": "a2"},
+        {"topic": "test_topic", "timestamp": 12345, "key": 3, "value": "a3"}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"row":{"columns":[2,"a2"]}}
+        ]}
+      ]
     }
   ]
 }

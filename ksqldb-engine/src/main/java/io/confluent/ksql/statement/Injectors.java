@@ -33,7 +33,8 @@ public enum Injectors implements BiFunction<KsqlExecutionContext, ServiceContext
       new DefaultSchemaInjector(
           new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
       new TopicCreateInjector(ec, sc),
-      new SchemaRegisterInjector(ec, sc)
+      new SchemaRegisterInjector(ec, sc),
+      new PropertiesInjector()
   )),
 
   DEFAULT((ec, sc) -> InjectorChain.of(

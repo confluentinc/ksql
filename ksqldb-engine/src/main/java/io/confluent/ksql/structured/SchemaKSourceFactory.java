@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
@@ -35,6 +36,7 @@ import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Set;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -89,6 +91,8 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
+    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+
     final WindowedStreamSource step = ExecutionStepFactory.streamSourceWindowed(
         contextStacker,
         dataSource.getSchema(),
@@ -96,7 +100,7 @@ public final class SchemaKSourceFactory {
         Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
         dataSource.getTimestampColumn(),
-        SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+        pseudoColumnVersionToUse
     );
 
     return schemaKStream(
@@ -116,13 +120,15 @@ public final class SchemaKSourceFactory {
       throw new IllegalArgumentException("windowed");
     }
 
+    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+
     final StreamSource step = ExecutionStepFactory.streamSource(
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         Formats.from(dataSource.getKsqlTopic()),
         dataSource.getTimestampColumn(),
-        SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+        pseudoColumnVersionToUse
     );
 
     return schemaKStream(
@@ -141,6 +147,8 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
+    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+
     final SourceStep<KTableHolder<Windowed<GenericKey>>> step =
         ExecutionStepFactory.tableSourceWindowed(
         contextStacker,
@@ -149,7 +157,7 @@ public final class SchemaKSourceFactory {
         Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
         dataSource.getTimestampColumn(),
-        SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+        pseudoColumnVersionToUse
       );
 
     return schemaKTable(
@@ -174,7 +182,25 @@ public final class SchemaKSourceFactory {
 
     final SourceStep<KTableHolder<GenericKey>> step;
 
-    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
+    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+
+    //if old query has any v1 table steps, use v1 table steps
+    boolean useOldExecutionStepVersion = false;
+    if (buildContext.getPlanInfo().isPresent()) {
+      final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSourceSet();
+      useOldExecutionStepVersion = sourceSteps
+          .stream()
+          .anyMatch(executionStep -> executionStep instanceof TableSourceV1);
+    }
+
+    if (useOldExecutionStepVersion && pseudoColumnVersionToUse != 0) {
+      throw new IllegalStateException("TableSourceV2 was released in conjunction with pseudocolumn"
+          + "version 1. Something has gone very wrong");
+    }
+
+    //when feature flag is removed, remove getBoolean() from condition
+    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        && !useOldExecutionStepVersion) {
       step = ExecutionStepFactory.tableSource(
           contextStacker,
           dataSource.getSchema(),
@@ -182,7 +208,7 @@ public final class SchemaKSourceFactory {
           Formats.from(dataSource.getKsqlTopic()),
           dataSource.getTimestampColumn(),
           InternalFormats.of(keyFormat, Formats.from(dataSource.getKsqlTopic()).getValueFormat()),
-          SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+          pseudoColumnVersionToUse
       );
 
     } else {
@@ -192,7 +218,7 @@ public final class SchemaKSourceFactory {
           dataSource.getKafkaTopicName(),
           Formats.from(dataSource.getKsqlTopic()),
           dataSource.getTimestampColumn(),
-          SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+          pseudoColumnVersionToUse
       );
     }
 
@@ -202,6 +228,21 @@ public final class SchemaKSourceFactory {
         dataSource.getKsqlTopic().getKeyFormat(),
         step
     );
+  }
+
+  private static int determinePseudoColumnVersionToUse(final PlanBuildContext buildContext) {
+
+    //assume statement is CREATE OR REPLACE if this is present, as it indicates that there was
+    //an existing query with the same ID. if it wasn't COR, it will fail later
+    if (buildContext.getPlanInfo().isPresent()) {
+      final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSourceSet();
+
+      return sourceSteps.stream()
+          .map(SourceStep.class::cast)
+          .mapToInt(SourceStep::getPseudoColumnVersion)
+          .findAny().getAsInt();
+    }
+    return SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig());
   }
 
   private static <K> SchemaKStream<K> schemaKStream(
@@ -243,5 +284,4 @@ public final class SchemaKSourceFactory {
         buildContext.getFunctionRegistry()
     ).resolve(step, dataSource.getSchema());
   }
-  
 }

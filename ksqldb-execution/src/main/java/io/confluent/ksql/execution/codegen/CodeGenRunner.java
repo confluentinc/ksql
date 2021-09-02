@@ -167,10 +167,10 @@ public class CodeGenRunner {
       return new CompiledExpression(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
-          + ". expression:" + expression + ", schema:" + schema, e);
+          + ". expression: " + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
       throw new RuntimeException("Unexpected error generating code for " + type
-          + ". expression:" + expression, e);
+          + ". expression: " + expression, e);
     }
   }
 

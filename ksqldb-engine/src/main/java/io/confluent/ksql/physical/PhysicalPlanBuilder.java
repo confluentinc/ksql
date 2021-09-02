@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical;
 
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -26,6 +27,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class PhysicalPlanBuilder {
@@ -54,15 +56,18 @@ public class PhysicalPlanBuilder {
 
   public PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
-      final QueryId queryId
+      final QueryId queryId,
+      final Optional<PlanInfo> oldPlanToMaybeUse
   ) {
+    //if query ID is
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
     final PlanBuildContext buildContext = PlanBuildContext.of(
         ksqlConfig,
         serviceContext,
-        functionRegistry
+        functionRegistry,
+        oldPlanToMaybeUse //I think I need to pipe a step here
     );
 
     final SchemaKStream<?> resultStream = outputNode.buildStream(buildContext);

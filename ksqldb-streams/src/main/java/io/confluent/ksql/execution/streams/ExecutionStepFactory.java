@@ -83,6 +83,7 @@ public final class ExecutionStepFactory {
       final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new WindowedStreamSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
@@ -103,6 +104,7 @@ public final class ExecutionStepFactory {
       final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new StreamSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
@@ -122,6 +124,7 @@ public final class ExecutionStepFactory {
       final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new TableSourceV1(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
@@ -143,6 +146,7 @@ public final class ExecutionStepFactory {
       final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new TableSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,
@@ -164,6 +168,7 @@ public final class ExecutionStepFactory {
       final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+
     return new WindowedTableSource(
         new ExecutionStepPropertiesV1(queryContext),
         topicName,

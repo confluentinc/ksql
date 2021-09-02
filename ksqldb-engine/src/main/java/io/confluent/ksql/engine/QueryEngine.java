@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Query;
@@ -72,7 +73,8 @@ class QueryEngine {
       final LogicalPlanNode logicalPlanNode,
       final SessionConfig config,
       final MetaStore metaStore,
-      final QueryId queryId
+      final QueryId queryId,
+      final Optional<PlanInfo> oldPlanToMaybeUse
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -86,6 +88,6 @@ class QueryEngine {
         metaStore
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId, oldPlanToMaybeUse);
   }
 }

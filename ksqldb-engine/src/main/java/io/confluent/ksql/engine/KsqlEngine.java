@@ -112,6 +112,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   public KsqlEngine(
       final ServiceContext serviceContext,
+      final Supplier<Admin> adminSupplier,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final ServiceInfo serviceInfo,
@@ -130,7 +131,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
         ),
-        () -> Admin.create(ksqlConfig.getKsqlAdminClientConfigProps()),
+        adminSupplier,
         queryIdGenerator,
         ksqlConfig,
         queryEventListeners

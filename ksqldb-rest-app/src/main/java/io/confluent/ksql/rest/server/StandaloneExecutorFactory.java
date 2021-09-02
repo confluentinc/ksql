@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.admin.Admin;
 
 public final class StandaloneExecutorFactory {
 
@@ -73,6 +74,7 @@ public final class StandaloneExecutorFactory {
         queriesFile,
         installDir,
         serviceContextFactory,
+        () -> Admin.create(tempConfig.getKsqlAdminClientConfigProps()),
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new
@@ -100,6 +102,7 @@ public final class StandaloneExecutorFactory {
       final String queriesFile,
       final String installDir,
       final Function<KsqlConfig, ServiceContext> serviceContextFactory,
+      final Supplier<Admin> adminSupplier,
       final BiFunction<String, KsqlConfig, ConfigStore> configStoreFactory,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final StandaloneExecutorConstructor constructor
@@ -126,6 +129,7 @@ public final class StandaloneExecutorFactory {
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
+        adminSupplier,
         processingLogContext,
         functionRegistry,
         ServiceInfo.create(ksqlConfig),

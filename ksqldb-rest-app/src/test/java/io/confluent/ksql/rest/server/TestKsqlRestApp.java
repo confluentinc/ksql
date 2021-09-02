@@ -102,6 +102,7 @@ public class TestKsqlRestApp extends ExternalResource {
   protected KsqlRestConfig ksqlRestConfig;
   protected KsqlRestApplication ksqlRestApplication;
   protected long lastCommandSequenceNumber = -1L;
+  private Vertx vertx;
 
   static {
     // Increase the default - it's low (100)
@@ -312,6 +313,9 @@ public class TestKsqlRestApp extends ExternalResource {
     }
     ksqlRestApplication = null;
     lastCommandSequenceNumber = -1;
+    if (vertx != null) {
+      vertx.close();
+    }
   }
 
   protected void initialize() {
@@ -320,9 +324,9 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
+    vertx = Vertx.vertx();
 
     try {
-      Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,

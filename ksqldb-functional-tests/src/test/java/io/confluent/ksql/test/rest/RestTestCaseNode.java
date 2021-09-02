@@ -19,8 +19,6 @@ import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.model.RecordNode;
 import io.confluent.ksql.test.model.TopicNode;
@@ -33,7 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * JSON serializable Pojo representing the test case used by {@link RestQueryTranslationTest}.
+ * JSON serializable Pojo representing the test case used by {@link RestFunctionalTest}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RestTestCaseNode {

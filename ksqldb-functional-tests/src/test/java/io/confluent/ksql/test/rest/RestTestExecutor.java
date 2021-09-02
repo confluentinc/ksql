@@ -31,8 +31,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
@@ -59,7 +60,6 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
-import io.vertx.core.Context;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -74,6 +74,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -89,7 +90,6 @@ import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
-import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,6 +187,69 @@ public class RestTestExecutor implements Closeable {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
     }
   }
+
+  public void buildAndExecuteQuery(final RestTestCase testCase, final Client client) {
+    topicInfoCache.clear();
+
+    if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
+      throw new AssertionError("Invalid test case: more expected responses than statements. "
+          + System.lineSeparator()
+          + "statementCount: " + testCase.getStatements().size()
+          + System.lineSeparator()
+          + "responsesCount: " + testCase.getExpectedResponses().size());
+    }
+
+    initializeTopics(testCase);
+
+    final StatementSplit statements = splitStatements(testCase);
+
+    testCase.getProperties().forEach(restClient::setProperty);
+
+    try {
+      final Optional<List<RqttResponse>> adminResults =
+          sendAdminStatements(testCase, statements.admin);
+
+      if (!adminResults.isPresent()) {
+        return;
+      }
+
+      final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
+          && testCase.getInputConditions().get().getWaitForQueryHeader();
+      final Optional<Runnable> postQueryHeaderRunnable;
+      if (!waitForQueryHeaderToProduceInput) {
+        produceInputs(testCase.getInputsByTopic());
+        postQueryHeaderRunnable = Optional.empty();
+      } else {
+        postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
+      }
+
+      if (!testCase.expectedError().isPresent()
+          && testCase.getExpectedResponses().size() > statements.admin.size()) {
+        waitForPersistentQueriesToProcessInputs();
+        if (waitForQueryHeaderToProduceInput) {
+          waitForRunningPushQueries(statements.queries);
+        }
+      }
+
+      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
+          postQueryHeaderRunnable, client);
+      if (!queryResults.isEmpty()) {
+        failIfExpectingError(testCase);
+      }
+
+      final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
+          .addAll(adminResults.get())
+          .addAll(queryResults)
+          .build();
+
+      verifyOutput(testCase);
+      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
+
+    } finally {
+      testCase.getProperties().keySet().forEach(restClient::unsetProperty);
+    }
+  }
+
 
   public void close() {
     restClient.close();
@@ -349,6 +412,31 @@ public class RestTestExecutor implements Closeable {
         .collect(Collectors.toList());
   }
 
+
+  private List<RqttResponse> sendQueryStatements(final RestTestCase testCase,
+      final List<String> statements, final Optional<Runnable> afterHeader,
+      final Client client) {
+    // We only produce inputs after the first query at the moment to simplify things
+    final boolean[] runAfterHeader = new boolean[1];
+    return statements.stream()
+        .map(stmt -> {
+          if (afterHeader.isPresent() && !runAfterHeader[0]) {
+            runAfterHeader[0] = true;
+            Optional<List<Row>> rows =
+                sendQueryStatement(testCase, stmt, afterHeader.get(), client);
+            return rows;
+          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
+            throw new AssertionError(
+                "Can only have one query when using waitForQueryHeader");
+          }
+          return sendQueryStatement(testCase, stmt, client);
+        })
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .map(RqttResponse::rowQuery)
+        .collect(Collectors.toList());
+  }
+
   private Optional<List<StreamedRow>> sendQueryStatement(
       final RestTestCase testCase,
       final String sql
@@ -377,6 +465,31 @@ public class RestTestExecutor implements Closeable {
     }
 
     return handleRowPublisher(resp.getResponse(), afterHeader);
+  }
+
+  private Optional<List<Row>> sendQueryStatement(
+      final RestTestCase testCase,
+      final String sql,
+      final Client client) {
+
+    try {
+      return Optional.of(client.executeQuery(sql).get());
+    } catch (final InterruptedException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Optional<List<Row>> sendQueryStatement(
+      final RestTestCase testCase,
+      final String sql,
+      final Runnable afterHeader,
+      final Client client) {
+
+    try {
+      return Optional.of(client.executeQuery(sql).get());
+    } catch (final InterruptedException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private Optional<List<StreamedRow>> handleRowPublisher(
@@ -801,6 +914,10 @@ private void waitForRunningPushQueries(
       return new RqttQueryResponse(rows);
     }
 
+    static RqttResponse rowQuery(final List<Row> rows) {
+      return RqttQueryResponse.forHttp2(rows);
+    }
+
     void verify(
         String expectedType,
         Object expectedPayload,
@@ -850,9 +967,20 @@ private void waitForRunningPushQueries(
     private static final String INDENT = System.lineSeparator() + "\t";
 
     private final List<StreamedRow> rows;
+    private final List<Row> http2rows;
+
+    private RqttQueryResponse(final List<StreamedRow> rows, final List<Row> http2rows) {
+      this.rows = rows;
+      this.http2rows = http2rows;
+    }
 
     RqttQueryResponse(final List<StreamedRow> rows) {
       this.rows = requireNonNull(rows, "rows");
+      this.http2rows = null;
+    }
+
+    public static RqttQueryResponse forHttp2(final List<Row> rows) {
+      return new RqttQueryResponse(null, requireNonNull(rows, "rows"));
     }
 
     @SuppressWarnings("unchecked")
@@ -863,6 +991,15 @@ private void waitForRunningPushQueries(
         final List<String> statements,
         final int idx
     ) {
+      if (rows != null) {
+        verifyHttp1(expectedType, expectedPayload, statements, idx);
+      } else {
+        verifyHttp2(expectedType, expectedPayload, statements, idx);
+      }
+    }
+
+    private void verifyHttp1(final String expectedType, final Object expectedPayload,
+        final List<String> statements, final int idx) {
       assertThat("Expected query response", expectedType, is("query"));
       assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
 
@@ -893,6 +1030,44 @@ private void waitForRunningPushQueries(
         );
 
         final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
+        final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
+        matchResponseFields(actual, expected, statements, idx,
+            "responses[" + idx + "]->query[" + i + "]");
+      }
+    }
+
+    private void verifyHttp2(final String expectedType, final Object expectedPayload,
+        final List<String> statements, final int idx) {
+      assertThat("Expected query response", expectedType, is("query"));
+      assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
+
+      final List<?> expectedRows = (List<?>) expectedPayload;
+
+      assertThat(
+          "row count mismatch."
+              + System.lineSeparator()
+              + "Expected: "
+              + expectedRows.stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(INDENT, INDENT, ""))
+              + System.lineSeparator()
+              + "Got: "
+              + http2rows.stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(INDENT, INDENT, ""))
+              + System.lineSeparator(),
+          http2rows,
+          hasSize(expectedRows.size())
+      );
+
+      for (int i = 0; i != http2rows.size(); ++i) {
+        assertThat(
+            "Each row should be JSON object",
+            expectedRows.get(i),
+            is(instanceOf(Map.class))
+        );
+
+        final Map<String, Object> actual = asJson(http2rows.get(i), PAYLOAD_TYPE);
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
         matchResponseFields(actual, expected, statements, idx,
             "responses[" + idx + "]->query[" + i + "]");

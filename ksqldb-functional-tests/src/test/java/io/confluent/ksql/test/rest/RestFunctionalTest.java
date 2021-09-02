@@ -23,6 +23,8 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -33,6 +35,8 @@ import io.confluent.ksql.test.util.ThreadTestUtil;
 import io.confluent.ksql.test.util.ThreadTestUtil.ThreadSnapshot;
 import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.Vertx;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -75,7 +79,7 @@ import org.junit.runners.Parameterized;
  */
 @Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
-public class RestQueryTranslationTest {
+public class RestFunctionalTest {
 
   private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
 
@@ -107,6 +111,18 @@ public class RestQueryTranslationTest {
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
+  private Vertx vertx = null;
+  private Client client = null;
+
+  public static Client buildHttp2Client(final Vertx vertx) {
+    final URI httpListener = REST_APP.getHttpListener();
+    final ClientOptions clientOptions = ClientOptions.create()
+        .setHost(httpListener.getHost())
+        .setPort(httpListener.getPort());
+    return Client.create(clientOptions, vertx);
+  }
+
+
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
@@ -119,7 +135,7 @@ public class RestQueryTranslationTest {
   public static Collection<Object[]> data() {
     final String testRegex = System.getProperty("ksql.rqtt.regex");
 
-    return JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
+    return JsonTestLoader.of(TEST_DIR, RestFunctionalTestFile.class)
         .load()
         .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .map(testCase -> new Object[]{testCase.getName(), testCase})
@@ -136,12 +152,20 @@ public class RestQueryTranslationTest {
    * @param testCase - testCase to run.
    */
   @SuppressWarnings("unused")
-  public RestQueryTranslationTest(final String name, final RestTestCase testCase) {
+  public RestFunctionalTest(final String name, final RestTestCase testCase) {
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
   @After
   public void tearDown() {
+    if (client != null) {
+      client.close();
+      client = null;
+    }
+    if (vertx != null) {
+      vertx.close();
+      vertx = null;
+    }
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
 
@@ -187,6 +211,24 @@ public class RestQueryTranslationTest {
     }
   }
 
+  @Test
+  public void shouldBuildAndExecuteQueriesHttp2() {
+    vertx = Vertx.vertx();
+    client = buildHttp2Client(vertx);
+
+    try (RestTestExecutor testExecutor = testExecutor()) {
+      testExecutor.buildAndExecuteQuery(testCase, client);
+    } catch (final AssertionError | Exception e) {
+      throw new AssertionError(e.getMessage()
+          + System.lineSeparator()
+          + "failed test: " + testCase.getName()
+          + System.lineSeparator()
+          + "in file: " + testCase.getTestLocation(),
+          e
+      );
+    }
+  }
+
   private static RestTestExecutor testExecutor() {
     return new RestTestExecutor(
         REST_APP.getEngine(),
@@ -197,11 +239,11 @@ public class RestQueryTranslationTest {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  static class RqttTestFile implements TestFile<RestTestCase> {
+  static class RestFunctionalTestFile implements TestFile<RestTestCase> {
 
     private final List<RestTestCaseNode> tests;
 
-    RqttTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
+    RestFunctionalTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
 
       if (tests.isEmpty()) {

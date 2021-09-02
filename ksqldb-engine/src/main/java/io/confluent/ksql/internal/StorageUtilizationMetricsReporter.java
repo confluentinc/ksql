@@ -67,20 +67,9 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
 
   @Override
   public void configure(final Map<String, ?> map) {
-    final String dir;
-    if (map.containsKey(StreamsConfig.STATE_DIR_CONFIG)) {
-      dir = map.get(StreamsConfig.STATE_DIR_CONFIG).toString();
-    } else {
-      dir =  StreamsConfig
-        .configDef()
-        .defaultValues()
-        .get(StreamsConfig.STATE_DIR_CONFIG)
-        .toString();
-    }
-    configureShared(new File(dir), this.metricRegistry);
   }
 
-  private static void configureShared(final File baseDir, final Metrics metricRegistry) {
+  public static void configureShared(final File baseDir, final Metrics metricRegistry) {
     if (registeredNodeMetrics.getAndSet(true)) {
       return;
     }

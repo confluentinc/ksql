@@ -85,8 +85,8 @@ final class SourceBuilder extends SourceBuilderBase {
       final PlanInfo planInfo
   ) {
     final KTable<K, GenericRow> source = buildContext
-          .getStreamsBuilder()
-          .table(streamSource.getTopicName(), consumed);
+        .getStreamsBuilder()
+        .table(streamSource.getTopicName(), consumed);
 
     final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
 
@@ -98,8 +98,8 @@ final class SourceBuilder extends SourceBuilderBase {
       // be enabled because we cannot require symmetric serialization between
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-     maybeMaterialized = source.transformValues(
-         new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
+      maybeMaterialized = source.transformValues(
+          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
       // we do not need to force a materialization at this source step since the
@@ -223,7 +223,7 @@ final class SourceBuilder extends SourceBuilderBase {
 
     final KeyFormat keyFormat = windowed
         ? KeyFormat.windowed(
-            formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
+        formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
         : KeyFormat.nonWindowed(formatInfo, serdeFeatures);
 
     final Formats format = of(keyFormat, streamSource.getFormats().getValueFormat());
@@ -355,12 +355,12 @@ final class SourceBuilder extends SourceBuilderBase {
           final int numUserColumns = row.size() - totalPseudoColumns;
 
           //create a list of pseudocolumns, in the order which they should be added
-          List<Object> pseudoCols = new ArrayList<>();
+          final List<Object> pseudoCols = new ArrayList<>();
           if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
             pseudoCols.add(processorContext.timestamp());
           }
 
-          for (int i = numUserColumns; i < numUserColumns + pseudoColumnsToShift ; i++) {
+          for (int i = numUserColumns; i < numUserColumns + pseudoColumnsToShift; i++) {
             pseudoCols.add(row.get(i));
           }
 

@@ -114,7 +114,7 @@ public final class SystemColumns {
     return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
-  public static boolean mustBeMaterializedForTableJoins(ColumnName columnName) {
+  public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
     return PseudoColumns.MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
   }
 

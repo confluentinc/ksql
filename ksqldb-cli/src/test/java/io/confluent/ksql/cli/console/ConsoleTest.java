@@ -372,7 +372,8 @@ public class ConsoleTest {
                     Collections.emptySet(),
                     Optional.empty()
                 )
-            )
+            ),
+            "consumerGroupId"
         )
     );
 

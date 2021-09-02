@@ -500,6 +500,7 @@ public class ListQueriesExecutorTest {
     when(metadata.getState()).thenReturn(state);
     when(metadata.getTopologyDescription()).thenReturn("topology");
     when(metadata.getExecutionPlan()).thenReturn("plan");
+    when(metadata.getQueryApplicationId()).thenReturn("consumer-group-id");
 
     final StreamsMetadata localStreamsMetadata = mock(StreamsMetadata.class);
     when(localStreamsMetadata.hostInfo()).thenReturn(LOCAL_HOST);

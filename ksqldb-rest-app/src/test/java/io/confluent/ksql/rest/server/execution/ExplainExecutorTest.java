@@ -179,6 +179,7 @@ public class ExplainExecutorTest {
   @SuppressWarnings("SameParameterValue")
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
+    when(metadata.getQueryApplicationId()).thenReturn("consumer-group-id");
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(Optional.of(SourceName.of(id)));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);

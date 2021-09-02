@@ -53,6 +53,7 @@ public class QueryDescription {
   private final KsqlQueryType queryType;
   private final List<QueryError> queryErrors;
   private final Set<StreamsTaskMetadata> tasksMetadata;
+  private final String consumerGroupId;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -71,7 +72,8 @@ public class QueryDescription {
           ksqlHostQueryStatus,
       @JsonProperty("queryType") final KsqlQueryType queryType,
       @JsonProperty("queryErrors") final List<QueryError> queryErrors,
-      @JsonProperty("tasksMetadata") final Set<StreamsTaskMetadata> tasksMetadata
+      @JsonProperty("tasksMetadata") final Set<StreamsTaskMetadata> tasksMetadata,
+      @JsonProperty("consumerGroupId") final String getConsumerGroupId
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -88,10 +90,15 @@ public class QueryDescription {
     this.queryType = Objects.requireNonNull(queryType, "queryType");
     this.queryErrors = new ArrayList<>(Objects.requireNonNull(queryErrors, "queryErrors"));
     this.tasksMetadata = new HashSet<>(Objects.requireNonNull(tasksMetadata));
+    this.consumerGroupId = Objects.requireNonNull(getConsumerGroupId, "consumerGroupId");
   }
 
   public QueryId getId() {
     return id;
+  }
+
+  public String getConsumerGroupId() {
+    return consumerGroupId;
   }
 
   public String getStatementText() {
@@ -195,7 +202,8 @@ public class QueryDescription {
         && Objects.equals(ksqlHostQueryStatus, that.ksqlHostQueryStatus)
         && Objects.equals(queryType, that.queryType)
         && Objects.equals(queryErrors, that.queryErrors)
-        && Objects.equals(tasksMetadata, that.tasksMetadata);
+        && Objects.equals(tasksMetadata, that.tasksMetadata)
+        && Objects.equals(consumerGroupId, that.consumerGroupId);
   }
 
   @Override
@@ -213,7 +221,8 @@ public class QueryDescription {
         ksqlHostQueryStatus,
         queryType,
         queryErrors,
-        tasksMetadata
+        tasksMetadata,
+        consumerGroupId
     );
   }
 }

@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class InternalKsqlClientFactory {
 
@@ -89,11 +88,11 @@ public final class InternalKsqlClientFactory {
     };
   }
 
-  private static HttpClientOptions createClientOptions(boolean tls) {
+  private static HttpClientOptions createClientOptions(final boolean tls) {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
 
-  private static HttpClientOptions createClientOptionsHttp2(boolean tls) {
+  private static HttpClientOptions createClientOptionsHttp2(final boolean tls) {
     return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2)
         .setUseAlpn(tls);
   }

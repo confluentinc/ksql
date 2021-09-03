@@ -286,6 +286,9 @@
         },
         "queryId" : {
           "type" : "string"
+        },
+        "consumerGroupId" : {
+          "type" : "string"
         }
       },
       "required" : [ "sources", "physicalPlan", "queryId" ]

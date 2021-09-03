@@ -578,10 +578,10 @@ final class EngineExecutor {
     }
   }
 
-  private String getApplicationId() {
+  private Optional<String> getApplicationId() {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? "appId"
-        : "";
+        ? Optional.of("appId")
+        : Optional.empty();
   }
 
   private ExecutorPlans planQuery(

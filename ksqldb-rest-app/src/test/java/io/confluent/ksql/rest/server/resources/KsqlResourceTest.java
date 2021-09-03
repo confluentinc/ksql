@@ -2024,7 +2024,7 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
     assertThat(result.getMessage(),
-        containsString("Failed to prepare statement: Error processing statement: Statement is too large to parse. "
+        containsString("Statement is too large to parse. "
             + "This may be caused by having too many nested expressions in the statement."));
   }
 

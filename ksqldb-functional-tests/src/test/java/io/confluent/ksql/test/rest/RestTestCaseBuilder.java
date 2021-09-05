@@ -101,6 +101,7 @@ final class RestTestCaseBuilder {
           outputRecords,
           statements,
           test.getResponses(),
+          test.expectedError(),
           ee,
           test.getInputConditions()
       );

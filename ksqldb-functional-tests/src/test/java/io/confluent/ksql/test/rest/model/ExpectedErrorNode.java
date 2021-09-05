@@ -54,6 +54,18 @@ public final class ExpectedErrorNode {
     }
   }
 
+  public Optional<String> getType() {
+    return type;
+  }
+
+  public Optional<String> getMessage() {
+    return message;
+  }
+
+  public Optional<Integer> getStatus() {
+    return status;
+  }
+
   public Matcher<RestResponse<?>> build(final String lastStatement) {
     final MatcherBuilder builder = new MatcherBuilder();
 

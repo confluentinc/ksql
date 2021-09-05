@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.model.TestLocation;
+import io.confluent.ksql.test.rest.model.ExpectedErrorNode;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Test;
@@ -43,6 +44,7 @@ class RestTestCase implements Test {
   private final ImmutableList<String> statements;
   private final ImmutableList<Response> responses;
   private final Optional<Matcher<RestResponse<?>>> expectedError;
+  private final Optional<ExpectedErrorNode> expectedErrorNode;
   private final Optional<InputConditions> inputConditions;
 
   RestTestCase(
@@ -54,6 +56,7 @@ class RestTestCase implements Test {
       final Collection<Record> outputRecords,
       final Collection<String> statements,
       final Collection<Response> responses,
+      final Optional<ExpectedErrorNode> expectedErrorNode,
       final Optional<Matcher<RestResponse<?>>> expectedError,
       final Optional<InputConditions> inputConditions
   ) {
@@ -66,6 +69,7 @@ class RestTestCase implements Test {
     this.statements = immutableCopyOf(requireNonNull(statements, "statements"));
     this.responses = immutableCopyOf(requireNonNull(responses, "responses"));
     this.expectedError = requireNonNull(expectedError, "expectedError");
+    this.expectedErrorNode = requireNonNull(expectedErrorNode, "expectedErrorNode");
     this.inputConditions = requireNonNull(inputConditions, "inputConditions");
   }
 
@@ -111,6 +115,10 @@ class RestTestCase implements Test {
 
   public Optional<Matcher<RestResponse<?>>> expectedError() {
     return expectedError;
+  }
+
+  public Optional<ExpectedErrorNode> getExpectedErrorNode() {
+    return expectedErrorNode;
   }
 
   public Map<String, Object> getProperties() {

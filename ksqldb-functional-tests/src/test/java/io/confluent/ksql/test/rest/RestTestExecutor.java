@@ -17,6 +17,8 @@ package io.confluent.ksql.test.rest;
 
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
@@ -31,8 +33,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -44,6 +48,7 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.rest.model.ExpectedErrorNode;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
@@ -475,7 +480,12 @@ public class RestTestExecutor implements Closeable {
     try {
       return Optional.of(client.executeQuery(sql).get());
     } catch (final InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e);
+      if (e.getCause() == null || e.getCause() instanceof KsqlClientException) {
+        handleErrorResponse(testCase, (KsqlClientException) e.getCause());
+        return Optional.empty();
+      } else {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -557,6 +567,34 @@ public class RestTestExecutor implements Closeable {
         + "Actual: " + resp.getErrorMessage();
 
     assertThat(reason, resp, expectedError.get());
+  }
+
+  private static void handleErrorResponse(final RestTestCase testCase,
+      final KsqlClientException e) {
+    final Optional<ExpectedErrorNode> expectedError = testCase.getExpectedErrorNode();
+    if (!expectedError.isPresent()) {
+      throw new AssertionError(
+          "Server failed to execute statement" + System.lineSeparator()
+              + "reason: " + e.getMessage(),
+          e
+      );
+    } else {
+      final ExpectedErrorNode expectedErrorNode = expectedError.get();
+      if (expectedErrorNode.getStatus().isPresent()) {
+        assertThat(
+            e.getMessage(),
+            containsString(
+                "Received " + expectedErrorNode.getStatus().get() + " response from server"
+            )
+        );
+      }
+      if (expectedErrorNode.getMessage().isPresent()) {
+        assertThat(
+            e.getMessage(),
+            containsString(expectedErrorNode.getMessage().get())
+        );
+      }
+    }
   }
 
   private static void verifyResponses(
@@ -641,10 +679,11 @@ public class RestTestExecutor implements Closeable {
   }
 
   /**
-   * The expected key loaded from the JSON file may need a little coercing to the right type, e.g
-   * a double value of {@code 1.23} will be deserialized as a {@code BigDecimal}.
+   * The expected key loaded from the JSON file may need a little coercing to the right type, e.g a
+   * double value of {@code 1.23} will be deserialized as a {@code BigDecimal}.
+   *
    * @param expectedKey the key to coerce
-   * @param actualKey the type to coerce to.
+   * @param actualKey   the type to coerce to.
    * @return the coerced key.
    */
   private static Object coerceExpectedKey(
@@ -660,7 +699,7 @@ public class RestTestExecutor implements Closeable {
     }
 
     if (actualKey instanceof Long && expectedKey instanceof Integer) {
-      return ((Integer)expectedKey).longValue();
+      return ((Integer) expectedKey).longValue();
     }
 
     return expectedKey;
@@ -678,9 +717,9 @@ public class RestTestExecutor implements Closeable {
   /**
    * This method looks at all of the source topics that feed into all of the subtopologies and waits
    * for the consumer group associated with each application to reach the end offsets for those
-   * topics.  This effectively ensures that nothing is lagging when it completes successfully.
-   * This should ensure that any materialized state has been built up correctly and is ready for
-   * pull queries.
+   * topics.  This effectively ensures that nothing is lagging when it completes successfully. This
+   * should ensure that any materialized state has been built up correctly and is ready for pull
+   * queries.
    */
   private void waitForPersistentQueriesToProcessInputs() {
     List<String> queryApplicationIds = engine.getPersistentQueries().stream()
@@ -764,11 +803,12 @@ public class RestTestExecutor implements Closeable {
             IsolationLevel.READ_COMMITTED);
 
         for (final TopicPartition tp : topicPartitions) {
-            if (!currentOffsets.containsKey(tp) && endOffsets.get(tp) > 0) {
-              LOG.info("Haven't committed offsets yet for " + tp + " end offset " + endOffsets.get(tp));
-              threadYield();
-              continue mainloop;
-            }
+          if (!currentOffsets.containsKey(tp) && endOffsets.get(tp) > 0) {
+            LOG.info(
+                "Haven't committed offsets yet for " + tp + " end offset " + endOffsets.get(tp));
+            threadYield();
+            continue mainloop;
+          }
         }
 
         for (final Map.Entry<TopicPartition, Long> entry : currentOffsets.entrySet()) {
@@ -808,7 +848,7 @@ public class RestTestExecutor implements Closeable {
   }
 
 
-private void waitForRunningPushQueries(
+  private void waitForRunningPushQueries(
       final List<String> queries
   ) {
     for (int i = 0; i != queries.size(); ++i) {
@@ -953,7 +993,8 @@ private void waitForRunningPushQueries(
 
       final Map<String, Object> actualPayload = asJson(entity, PAYLOAD_TYPE);
 
-      matchResponseFields(actualPayload, expected, statements, idx, "responses[" + idx + "]->admin");
+      matchResponseFields(actualPayload, expected, statements, idx,
+          "responses[" + idx + "]->admin");
     }
   }
 
@@ -1041,7 +1082,15 @@ private void waitForRunningPushQueries(
       assertThat("Expected query response", expectedType, is("query"));
       assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
 
-      final List<?> expectedRows = (List<?>) expectedPayload;
+      final List<Map<String, Object>> expectedRows = (List<Map<String, Object>>) expectedPayload;
+
+      // TODO validate headers
+      final Map<String, Object> headerRow;
+      if (!expectedRows.isEmpty() && expectedRows.get(0).containsKey("header")) {
+        headerRow = expectedRows.remove(0);
+      } else {
+        headerRow = null;
+      }
 
       assertThat(
           "row count mismatch."
@@ -1067,8 +1116,11 @@ private void waitForRunningPushQueries(
             is(instanceOf(Map.class))
         );
 
-        final Map<String, Object> actual = asJson(http2rows.get(i), PAYLOAD_TYPE);
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
+        final List<?> list = http2rows.get(i).values().getList();
+        final ImmutableMap<String, ImmutableMap<String, ? extends List<?>>> actualJsonable =
+            ImmutableMap.of("row", ImmutableMap.of("columns", list));
+        final Map<String, Object> actual = asJson(actualJsonable, PAYLOAD_TYPE);
         matchResponseFields(actual, expected, statements, idx,
             "responses[" + idx + "]->query[" + i + "]");
       }

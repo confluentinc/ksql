@@ -354,7 +354,7 @@ final class SourceBuilder extends SourceBuilderBase {
           final int pseudoColumnsToShift = totalPseudoColumns - pseudoColumnsToAdd;
           final int numUserColumns = row.size() - totalPseudoColumns;
 
-          //create a list of pseudocolumns, in the order which they should be added
+          // collect pseudocolumn values, in the order in which they should be added
           final List<Object> pseudoCols = new ArrayList<>();
           if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
             pseudoCols.add(processorContext.timestamp());

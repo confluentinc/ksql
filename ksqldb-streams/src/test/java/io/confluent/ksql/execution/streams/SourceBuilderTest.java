@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
@@ -188,6 +189,8 @@ public class SourceBuilderTest {
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
+  private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor2;
+  @Captor
   private ArgumentCaptor<Materialized<?, GenericRow, KeyValueStore<Bytes, byte[]>>> materializedArgumentCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
@@ -269,7 +272,6 @@ public class SourceBuilderTest {
     final InOrder validator = inOrder(streamsBuilder, kTable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
     validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
-    validator.verify(kTable).mapValues(any(ValueMapper.class), any(Materialized.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -289,7 +291,7 @@ public class SourceBuilderTest {
     assertThat(builtKTable.getTable(), is(kTable));
     final InOrder validator = inOrder(streamsBuilder, kTable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
-    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    validator.verify(kTable, times(2)).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -587,13 +589,14 @@ public class SourceBuilderTest {
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
-    verify(kTable, times(2)).transformValues(transformSupplierCaptor.capture());
+    verify(kTable).transformValues(transformSupplierCaptor.capture());
+    verify(kTable).transformValues(transformSupplierCaptor2.capture(), materializedArgumentCaptor.capture());
+
     final List<ValueTransformerWithKey<K, GenericRow, GenericRow>> transformers =
-        transformSupplierCaptor.getAllValues()
-            .stream()
-            .map(t -> t.get())
-            .map(t -> (ValueTransformerWithKey<K, GenericRow, GenericRow>) t)
-            .collect(Collectors.toList());
+        Stream.concat(transformSupplierCaptor2.getAllValues().stream(), transformSupplierCaptor.getAllValues().stream())
+        .map(t -> t.get())
+        .map(t -> (ValueTransformerWithKey<K, GenericRow, GenericRow>) t)
+        .collect(Collectors.toList());
 
     transformers.forEach(t -> t.init(processorCtx));
     return transformers;

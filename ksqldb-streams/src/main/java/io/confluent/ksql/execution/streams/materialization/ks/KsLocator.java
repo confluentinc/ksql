@@ -21,6 +21,7 @@ import static org.apache.kafka.streams.processor.internals.StreamsMetadataState.
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -96,16 +97,22 @@ public final class KsLocator implements Locator {
   public List<KsqlPartitionLocation> locate(
       final List<KsqlKey> keys,
       final RoutingOptions routingOptions,
-      final RoutingFilterFactory routingFilterFactory
+      final RoutingFilterFactory routingFilterFactory,
+      final boolean isRangeScan
   ) {
+    if (isRangeScan && keys.isEmpty()) {
+      throw new IllegalStateException("Query is range scan but found no range keys.");
+    }
     final ImmutableList.Builder<KsqlPartitionLocation> partitionLocations = ImmutableList.builder();
     final Set<Integer> filterPartitions = routingOptions.getPartitions();
+    final Optional<Set<KsqlKey>> keySet = keys.isEmpty() ? Optional.empty() :
+        Optional.of(Sets.newHashSet(keys));
 
     // Depending on whether this is a key-based lookup, determine which metadata method to use.
     // If we don't have keys, find the metadata for all partitions since we'll run the query for
     // all partitions of the state store rather than a particular one.
-    final List<PartitionMetadata> metadata = keys.isEmpty()
-        ? getMetadataForAllPartitions(filterPartitions)
+    final List<PartitionMetadata> metadata = keys.isEmpty() || isRangeScan
+        ? getMetadataForAllPartitions(filterPartitions, keySet)
         : getMetadataForKeys(keys, filterPartitions);
     // Go through the metadata and group them by partition.
     for (PartitionMetadata partitionMetadata : metadata) {
@@ -185,7 +192,7 @@ public final class KsLocator implements Locator {
    * @return The metadata associated with all partitions
    */
   private List<PartitionMetadata>  getMetadataForAllPartitions(
-      final Set<Integer> filterPartitions) {
+      final Set<Integer> filterPartitions, final Optional<Set<KsqlKey>> keys) {
     // It's important that we consider only the source topics for the subtopology that contains the
     // state store. Otherwise, we'll be given the wrong partition -> host mappings.
     // The underlying state store has a number of partitions that is the MAX of the number of
@@ -234,7 +241,7 @@ public final class KsLocator implements Locator {
       final Set<HostInfo> standbyHosts = standbyHostsByPartition.getOrDefault(partition,
           Collections.emptySet());
       metadataList.add(
-          new PartitionMetadata(activeHost, standbyHosts, partition, Optional.empty()));
+          new PartitionMetadata(activeHost, standbyHosts, partition, keys));
     }
     return metadataList;
   }

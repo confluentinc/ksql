@@ -24,7 +24,7 @@ import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
+import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.util.Iterator;
@@ -112,11 +112,11 @@ public class KeyedWindowedTableLookupOperator
   }
 
   private static WindowBounds getWindowBounds(final KsqlKey ksqlKey) {
-    if (!(ksqlKey instanceof KeyConstraintKey)) {
+    if (!(ksqlKey instanceof KeyConstraint)) {
       throw new IllegalStateException(String.format("Table windowed queries should be done with "
           + "key constraints: %s", ksqlKey.toString()));
     }
-    final KeyConstraintKey keyConstraintKey = (KeyConstraintKey) ksqlKey;
+    final KeyConstraint keyConstraintKey = (KeyConstraint) ksqlKey;
     if (!keyConstraintKey.getWindowBounds().isPresent()) {
       throw new IllegalStateException(String.format("Table windowed queries should be done with "
           + "window bounds: %s", ksqlKey));

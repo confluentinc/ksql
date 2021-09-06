@@ -36,7 +36,10 @@ import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperato
 import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KeyConstraint;
+import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.planner.plan.NonKeyConstraint;
@@ -66,6 +69,7 @@ public class PullPhysicalPlanBuilder {
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final QueryId queryId;
   private final Materialization mat;
+  private final QueryPlannerOptions queryPlannerOptions;
 
   private List<LookupConstraint> lookupConstraints;
   private PullPhysicalPlanType pullPhysicalPlanType;
@@ -75,7 +79,8 @@ public class PullPhysicalPlanBuilder {
   public PullPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
       final PersistentQueryMetadata persistentQueryMetadata,
-      final ImmutableAnalysis analysis
+      final ImmutableAnalysis analysis,
+      final QueryPlannerOptions queryPlannerOptions
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
@@ -86,6 +91,7 @@ public class PullPhysicalPlanBuilder {
     mat = this.persistentQueryMetadata
         .getMaterialization(queryId, contextStacker)
         .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
+    this.queryPlannerOptions = queryPlannerOptions;
   }
 
   /**
@@ -180,27 +186,53 @@ public class PullPhysicalPlanBuilder {
     return new SelectOperator(logicalNode, logger);
   }
 
+  private PullPhysicalPlanType getPlanType() {
+    if (!seenSelectOperator) {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
+    } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
+    } else if (lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
+        == ConstraintOperator.EQUAL)) {
+      return PullPhysicalPlanType.KEY_LOOKUP;
+    } else if (lookupConstraints.size() == 1
+        && lookupConstraints.stream().allMatch(lc -> ((KeyConstraint) lc).getOperator()
+        != ConstraintOperator.EQUAL)) {
+      return PullPhysicalPlanType.RANGE_SCAN;
+    } else {
+      lookupConstraints = Collections.emptyList();
+      return PullPhysicalPlanType.TABLE_SCAN;
+    }
+  }
+
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
-    boolean isTableScan = false;
-    if (!seenSelectOperator) {
-      lookupConstraints = Collections.emptyList();
-      isTableScan = true;
-    } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
-      isTableScan = true;
+    pullPhysicalPlanType = getPlanType();
+    if (pullPhysicalPlanType == PullPhysicalPlanType.RANGE_SCAN
+        && (!queryPlannerOptions.getRangeScansEnabled() || logicalNode.isWindowed())) {
+      pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
     }
+    if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
+      if (queryPlannerOptions.getTableScansEnabled()) {
+        lookupConstraints = Collections.emptyList();
+      } else {
+        throw new KsqlException("Query requires table scan to be enabled. Table scans can be"
+          + " enabled by setting ksql.query.pull.table.scan.enabled=true");
+      }
+    }
+
     pullSourceType = logicalNode.isWindowed()
         ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
-    if (isTableScan) {
-      pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
+    if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
         return new WindowedTableScanOperator(mat, logicalNode);
       }
     }
-    pullPhysicalPlanType = PullPhysicalPlanType.KEY_LOOKUP;
+
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

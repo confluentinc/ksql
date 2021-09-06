@@ -243,7 +243,8 @@ final class EngineExecutor {
 
       plan = buildPullPhysicalPlan(
           logicalPlan,
-          analysis
+          analysis,
+          queryPlannerOptions
       );
       final PullPhysicalPlan physicalPlan = plan;
 
@@ -649,13 +650,15 @@ final class EngineExecutor {
 
   private PullPhysicalPlan buildPullPhysicalPlan(
       final LogicalPlanNode logicalPlan,
-      final ImmutableAnalysis analysis
+      final ImmutableAnalysis analysis,
+      final QueryPlannerOptions queryPlannerOptions
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
-        analysis
+        analysis,
+        queryPlannerOptions
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }

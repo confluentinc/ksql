@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartition
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -111,7 +112,8 @@ public final class HARouting implements AutoCloseable {
         .locate(
             pullPhysicalPlan.getKeys(),
             routingOptions,
-            routingFilterFactory
+            routingFilterFactory,
+            pullPhysicalPlan.getPlanType() == PullPhysicalPlanType.RANGE_SCAN
     );
 
     final Map<Integer, List<Host>> emptyPartitions = allLocations.stream()

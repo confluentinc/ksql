@@ -23,11 +23,11 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.planner.plan.KeyConstraint;
-import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -123,26 +123,17 @@ public class PullPhysicalPlan {
   }
 
   public List<KsqlKey> getKeys() {
-    if (requiresRequestsToAllPartitions()) {
-      return Collections.emptyList();
+    final List<KsqlKey> list = new ArrayList<>();
+    for (LookupConstraint c : lookupConstraints) {
+      if (c instanceof KeyConstraint) {
+        final KeyConstraint kc = (KeyConstraint) c;
+        list.add(kc.getKsqlKey());
+      } else {
+        //we shouldn't see any NonKeyContraints here
+        return Collections.emptyList();
+      }
     }
-    return lookupConstraints.stream()
-        .filter(lookupConstraint -> lookupConstraint instanceof KeyConstraint)
-        .map(KeyConstraint.class::cast)
-        .filter(keyConstraint -> keyConstraint.getConstraintOperator() == ConstraintOperator.EQUAL)
-        .map(KeyConstraint::getKsqlKey)
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  private boolean requiresRequestsToAllPartitions() {
-    return lookupConstraints.stream()
-        .anyMatch(lookupConstraint -> {
-          if (lookupConstraint instanceof KeyConstraint) {
-            final KeyConstraint keyConstraint = (KeyConstraint) lookupConstraint;
-            return keyConstraint.getConstraintOperator() != ConstraintOperator.EQUAL;
-          }
-          return true;
-        });
+    return ImmutableList.copyOf(list);
   }
 
   public LogicalSchema getOutputSchema() {
@@ -172,6 +163,7 @@ public class PullPhysicalPlan {
   public enum PullPhysicalPlanType {
     // Could be one or more keys
     KEY_LOOKUP,
+    RANGE_SCAN,
     TABLE_SCAN
   }
 

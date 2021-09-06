@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
@@ -226,7 +227,7 @@ final class SourceBuilder extends SourceBuilderBase {
         formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
         : KeyFormat.nonWindowed(formatInfo, serdeFeatures);
 
-    final Formats format = of(keyFormat, streamSource.getFormats().getValueFormat());
+    final Formats format = ((TableSource) streamSource).getStateStoreVersion();
 
     //we currently don't materialize partition and offset to get them downstream for windowed
     //tables, so act accordingly here
@@ -240,17 +241,6 @@ final class SourceBuilder extends SourceBuilderBase {
         withPseudoCols,
         format.getKeyFeatures(),
         format.getValueFeatures()
-    );
-  }
-
-  //todo: put this logic into TableSource and WindowedTableSource
-  private static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
-
-    return Formats.of(
-        keyFormat.getFormatInfo(),
-        valueFormat,
-        keyFormat.getFeatures(),
-        SerdeFeatures.of()
     );
   }
 

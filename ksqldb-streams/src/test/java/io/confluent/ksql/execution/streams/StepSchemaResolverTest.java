@@ -543,7 +543,8 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER),
+        formats
     );
 
     // When:

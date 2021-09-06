@@ -645,26 +645,31 @@ public class SourceBuilderTest {
   private void givenUnwindowedSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
+    Formats genericFormat = Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES);
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        genericFormat,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
+        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION),
+        genericFormat
     );
   }
 
   private void givenMultiColumnSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
-    tableSource = new TableSource(
+
+    Formats genericFormat = Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES);
+        tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        genericFormat,
         TIMESTAMP_COLUMN,
         MULTI_COL_SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
+        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION),
+        genericFormat
     );
   }
 

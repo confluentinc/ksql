@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.junit.Before;
@@ -180,6 +181,7 @@ public class SchemaKSourceFactoryTest {
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(keyFormat.isWindowed()).thenReturn(false);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
+    when(keyFormat.getFormatInfo().getFormat()).thenReturn("asdf");
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(

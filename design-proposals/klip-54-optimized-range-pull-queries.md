@@ -1,4 +1,4 @@
-# KLIP 53 - Optimized Range Pull Queries 
+# KLIP 54 - Optimized Range Pull Queries 
 
 **Author**: Patrick Stuedi (@pstuedi) | 
 **Release Target**: 0.22 | 

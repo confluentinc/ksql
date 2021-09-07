@@ -702,11 +702,14 @@ public final class KsqlRestApplication implements Executable {
         new SpecificQueryIdGenerator();
     
     final String stateDir = ksqlConfig.getKsqlStreamConfigProps().getOrDefault(
-      StreamsConfig.STATE_DIR_CONFIG,
-      StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
-      .toString();
+          StreamsConfig.STATE_DIR_CONFIG,
+          StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+          .toString();
 
-    StorageUtilizationMetricsReporter.configureShared(new File(stateDir), MetricCollectors.getMetrics());
+    StorageUtilizationMetricsReporter.configureShared(
+      new File(stateDir), 
+            MetricCollectors.getMetrics()
+    );
 
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,

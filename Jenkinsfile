@@ -11,7 +11,7 @@ dockerfile {
     dockerImageClean = false
     downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
     nanoVersion = true
-    maxBuildsToKeep = 999
+    maxBuildsToKeep = 99
     maxDaysToKeep = 90
 }
 

@@ -98,8 +98,8 @@ public class ScalablePushQueryFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       // Make rebalances happen quicker for the sake of the test
       .withProperty(KSQL_STREAMS_PREFIX + "max.poll.interval.ms", 5000)
       .withProperty(KSQL_STREAMS_PREFIX + "session.timeout.ms", 10000)
@@ -113,8 +113,8 @@ public class ScalablePushQueryFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       // Make rebalances happen quicker for the sake of the test
       .withProperty(KSQL_STREAMS_PREFIX + "max.poll.interval.ms", 5000)
       .withProperty(KSQL_STREAMS_PREFIX + "session.timeout.ms", 10000)

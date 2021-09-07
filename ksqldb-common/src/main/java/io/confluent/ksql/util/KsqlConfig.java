@@ -278,34 +278,37 @@ public class KsqlConfig extends AbstractConfig {
           + " much faster for short-lived queries.";
   public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED
-      = "ksql.query.push.scalable.enabled";
-  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC =
-      "Enables whether scalable push queries are enabled. Scalable push queries require no window "
-          + "functions, aggregations, or joins, but may include projections and filters.";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
+  public static final String KSQL_QUERY_PUSH_V2_ENABLED
+      = "ksql.query.push.v2.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
+      "Enables whether v2 push queries are enabled. The scalable form of push queries require no"
+          + " window functions, aggregations, or joins, but may include projections and filters. If"
+          + " they cannot be utilized, the streams application version will automatically be used"
+          + " instead.";
+  public static final boolean KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED
-      = "ksql.query.push.scalable.registry.installed";
-  public static final String KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DOC =
-      "Enables whether scalable push registry should be installed. This is a requirement of "
-          + "enabling scalable push queries using ksql.query.push.scalable.enabled.";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DEFAULT = false;
+  public static final String KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED
+      = "ksql.query.push.v2.registry.installed";
+  public static final String KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC =
+      "Enables whether v2 push registry should be installed. This is a requirement of "
+          + "enabling scalable push queries using ksql.query.push.v2.enabled.";
+  public static final boolean KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY
-      = "ksql.query.push.scalable.new.node.continuity";
-  public static final String KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC =
-      "Whether new node continuity is enforced for scalable push queries. This means that it's an "
-          + "error for an existing query to miss data processed on a newly added node";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DEFAULT = false;
+  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY
+      = "ksql.query.push.v2.new.node.continuity";
+  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC =
+      "Whether new node continuity is enforced for the scalable form of push queries. "
+          + "This means that it's an error for an existing query to miss data processed on a newly "
+          + "added node";
+  public static final boolean KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
-      = "ksql.query.push.scalable.interpreter.enabled";
-  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC =
+  public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED
+      = "ksql.query.push.v2.interpreter.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC =
       "Enables whether we use the interpreter for expression evaluation for scalable push queries, "
           + "or the default code generator. They should produce the same results, but may have "
           + "different performance characteristics.";
-  public static final boolean KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT = true;
+  public static final boolean KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT = true;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -934,32 +937,32 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_SCALABLE_ENABLED,
+            KSQL_QUERY_PUSH_V2_ENABLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
+            KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+            KSQL_QUERY_PUSH_V2_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED,
+            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DEFAULT,
+            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED_DOC
+            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY,
+            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DEFAULT,
+            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY_DOC
+            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED,
+            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT,
+            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC
+            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

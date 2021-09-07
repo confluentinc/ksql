@@ -48,7 +48,6 @@ import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -199,24 +198,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       throw new KsqlException(res.getErrorMessage().getMessage());
     }
     return res.getResponse();
-  }
-
-  StreamPublisher<StreamedRow> makeQueryRequestAsync(
-      final String sql,
-      final Map<String, ?> properties
-  ) throws ExecutionException, InterruptedException {
-    final CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>> res =
-        restClient.makeQueryRequestStreamedAsync(sql, properties);
-
-    if (res.get().isErroneous()) {
-      throw new KsqlException(res.get().getErrorMessage().getMessage());
-    }
-    if (res.isCompletedExceptionally()
-        && !res.get().getErrorMessage().getMessage().equalsIgnoreCase(RATE_LIMIT_MESSAGE)) {
-      throw new KsqlException(res.get().getErrorMessage().getMessage());
-    }
-
-    return res.get().getResponse();
   }
 
   private void assertAllPersistentQueriesRunning() {

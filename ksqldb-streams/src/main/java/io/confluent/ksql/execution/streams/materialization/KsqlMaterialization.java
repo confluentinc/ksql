@@ -225,6 +225,26 @@ class KsqlMaterialization implements Materialization {
           .map(Optional::get)
           .iterator();
     }
+
+    @Override
+    public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
+                                     final Range<Instant> windowEndBounds, final GenericKey from,
+                                     final GenericKey to) {
+      if (transforms.isEmpty()) {
+        return table.get(partition, windowStartBounds, windowEndBounds);
+      }
+
+      final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds,
+          from, to);
+      return Streams.stream(result)
+        .map(row ->  {
+          return filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
+            .map(v -> row.withValue(v, schema()));
+        })
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .iterator();
+    }
   }
 
   /*

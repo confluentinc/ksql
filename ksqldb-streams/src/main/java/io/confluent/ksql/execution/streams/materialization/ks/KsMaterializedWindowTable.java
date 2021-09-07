@@ -161,6 +161,50 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
     }
   }
 
+  public Iterator<WindowedRow> get(
+      final int partition,
+      final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds,
+      final GenericKey from,
+      final GenericKey to) {
+    try {
+      final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedWindowStore(), partition);
+
+      final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
+
+      final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
+
+      final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> iterator
+          = cacheBypassFetcherRange.fetchRange(store, from, to, lower, upper);
+      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close)).map(next -> {
+        final Instant windowStart = next.key.window().startTime();
+        if (!windowStartBounds.contains(windowStart)) {
+          return null;
+        }
+
+        final Instant windowEnd = next.key.window().endTime();
+        if (!windowEndBounds.contains(windowEnd)) {
+          return null;
+        }
+
+        final TimeWindow window =
+            new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
+
+        final WindowedRow row = WindowedRow.of(
+            stateStore.schema(),
+          new Windowed<>(next.key.key(), window),
+            next.value.value(),
+            next.value.timestamp()
+        );
+
+        return row;
+      }).filter(Objects::nonNull).iterator();
+    } catch (final Exception e) {
+      throw new MaterializationException("Failed to scan materialized table", e);
+    }
+  }
+
   private Instant calculateUpperBound(
       final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds

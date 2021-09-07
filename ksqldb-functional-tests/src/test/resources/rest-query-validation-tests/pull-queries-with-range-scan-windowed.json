@@ -1,0 +1,31 @@
+{
+  "comments": [
+    "Tests covering pull queries with range scan"
+  ],
+  "tests": [
+    {
+      "name": "windowed - select star",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID <= '10';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false,
+        "ksql.query.pull.range.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}}
+        ]}
+      ]
+    }
+  ]
+}

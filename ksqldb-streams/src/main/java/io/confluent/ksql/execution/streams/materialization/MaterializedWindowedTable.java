@@ -49,4 +49,17 @@ public interface MaterializedWindowedTable {
    * @return the rows for the key that exist within the range.
    */
   Iterator<WindowedRow> get(int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
+
+  /**
+   * RangeScan the table for rows
+   *
+   * @param partition partition to limit the get to
+   * @param windowStart the bounds on the window's start time.
+   * @param windowEnd the bounds on the window's end time.
+   * @param from first key in the range
+   * @param to last key in range
+   * @return the rows.
+   */
+  Iterator<WindowedRow> get(int partition, Range<Instant> windowStart, Range<Instant> windowEnd,
+                              GenericKey from, GenericKey to);
 }

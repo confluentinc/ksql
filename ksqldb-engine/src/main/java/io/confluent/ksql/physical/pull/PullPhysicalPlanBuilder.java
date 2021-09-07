@@ -211,7 +211,7 @@ public class PullPhysicalPlanBuilder {
   ) {
     pullPhysicalPlanType = getPlanType();
     if (pullPhysicalPlanType == PullPhysicalPlanType.RANGE_SCAN
-        && (!queryPlannerOptions.getRangeScansEnabled() || logicalNode.isWindowed())) {
+        && !queryPlannerOptions.getRangeScansEnabled()) {
       pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
     }
     if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {

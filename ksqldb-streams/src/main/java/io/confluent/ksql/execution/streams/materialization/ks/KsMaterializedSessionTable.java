@@ -77,6 +77,13 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
     throw new MaterializationException("Table scan unsupported on session tables");
   }
 
+  @Override
+  public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
+                                   final Range<Instant> windowEndBounds,
+                                   final GenericKey from, final GenericKey to) {
+    throw new MaterializationException("Table scan unsupported on session tables");
+  }
+
   private List<WindowedRow> findSession(
       final ReadOnlySessionStore<GenericKey, GenericRow> store,
       final GenericKey key,

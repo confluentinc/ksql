@@ -26,6 +26,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,8 +60,11 @@ import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
@@ -185,6 +189,8 @@ public class SourceBuilderTest {
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
+  private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor2;
+  @Captor
   private ArgumentCaptor<Materialized<?, GenericRow, KeyValueStore<Bytes, byte[]>>> materializedArgumentCaptor;
   @Captor
   private ArgumentCaptor<TimestampExtractor> timestampExtractorCaptor;
@@ -226,7 +232,6 @@ public class SourceBuilderTest {
     when(materializationFactory.create(any(), any(), any()))
         .thenReturn((Materialized) materialized);
     when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
-    when(consumedWindowed.withValueSerde(any())).thenReturn(consumedWindowed);
 
     planBuilder = new KSPlanBuilder(
         buildContext,
@@ -267,7 +272,6 @@ public class SourceBuilderTest {
     final InOrder validator = inOrder(streamsBuilder, kTable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
     validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
-    validator.verify(kTable).mapValues(any(ValueMapper.class), any(Materialized.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -287,7 +291,7 @@ public class SourceBuilderTest {
     assertThat(builtKTable.getTable(), is(kTable));
     final InOrder validator = inOrder(streamsBuilder, kTable);
     validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
-    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    validator.verify(kTable, times(2)).transformValues(any(ValueTransformerWithKeySupplier.class));
     verify(consumedFactory).create(keySerde, valueSerde);
     verify(consumed).withTimestampExtractor(any());
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -380,48 +384,49 @@ public class SourceBuilderTest {
   public void shouldHandleMultiKeyField() {
     // Given:
     givenMultiColumnSourceTable();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+    final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformers =
+        getTransformersFromTableSource(tableSource);
 
     final GenericKey key = GenericKey.genericKey(1d, 2d);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
   }
 
   @Test
   public void shouldHandleMultiKeyFieldWithNullCol() {
     // Given:
     givenMultiColumnSourceTable();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+    final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformers =
+        getTransformersFromTableSource(tableSource);
 
     final GenericKey key = GenericKey.genericKey(null, 2d);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
   }
 
   @Test
   public void shouldHandleMultiKeyFieldEmptyGenericKey() {
     // Given:
     givenMultiColumnSourceTable();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+    final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformers =
+        getTransformersFromTableSource(tableSource);
 
     final GenericKey key = GenericKey.genericKey(null, null);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
+    assertThat(withKeyAndPseudoCols, equalTo(
+        genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
   }
 
   @Test
@@ -440,30 +445,30 @@ public class SourceBuilderTest {
   public void shouldAddPseudoAndRowKeyColumnsToNonWindowedTable() {
     // Given:
     givenUnwindowedSourceTable();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+    final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformers =
+        getTransformersFromTableSource(tableSource);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(KEY, row);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(KEY, transformers, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
   }
 
   @Test
   public void shouldHandleEmptyKey() {
     // Given:
     givenUnwindowedSourceTable();
-    final ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(tableSource);
+    final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformers =
+        getTransformersFromTableSource(tableSource);
 
     final GenericKey nullKey = GenericKey.genericKey((Object) null);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(nullKey, row);
+    final GenericRow withKeyAndPseudoCols = applyAllTransformers(nullKey, transformers, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
   }
 
   @Test
@@ -580,15 +585,21 @@ public class SourceBuilderTest {
   }
 
   @SuppressWarnings("unchecked")
-  private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromTableSource(
+  private <K> List<ValueTransformerWithKey<K, GenericRow, GenericRow>> getTransformersFromTableSource(
       final SourceStep<?> streamSource
   ) {
     streamSource.build(planBuilder, planInfo);
     verify(kTable).transformValues(transformSupplierCaptor.capture());
-    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
-        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
-    transformer.init(processorCtx);
-    return transformer;
+    verify(kTable).transformValues(transformSupplierCaptor2.capture(), materializedArgumentCaptor.capture());
+
+    final List<ValueTransformerWithKey<K, GenericRow, GenericRow>> transformers =
+        Stream.concat(transformSupplierCaptor2.getAllValues().stream(), transformSupplierCaptor.getAllValues().stream())
+        .map(t -> t.get())
+        .map(t -> (ValueTransformerWithKey<K, GenericRow, GenericRow>) t)
+        .collect(Collectors.toList());
+
+    transformers.forEach(t -> t.init(processorCtx));
+    return transformers;
   }
 
   @SuppressWarnings("unchecked")
@@ -603,9 +614,22 @@ public class SourceBuilderTest {
     return transformer;
   }
 
+  private static GenericRow applyAllTransformers(
+      final GenericKey key,
+      final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformerList,
+      final GenericRow row
+  ) {
+    GenericRow last = row;
+
+    for (ValueTransformerWithKey<GenericKey, GenericRow, GenericRow> transformer
+        : transformerList) {
+      last = transformer.transform(key, last);
+    }
+    return last;
+  }
+
   private void givenWindowedSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
-    givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
         new ExecutionStepPropertiesV1(ctx),
@@ -645,6 +669,7 @@ public class SourceBuilderTest {
   }
 
   private <K> void givenConsumed(final Consumed<K, GenericRow> consumed, final Serde<K> keySerde) {
+    when(consumed.withValueSerde(any())).thenReturn(consumed);
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
     when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);

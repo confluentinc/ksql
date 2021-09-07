@@ -92,6 +92,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
+  private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
   private final HARouting routing;
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
@@ -118,6 +119,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
@@ -144,6 +146,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter);
+    this.scalablePushBandRateLimiter = Objects.requireNonNull(scalablePushBandRateLimiter);
     this.routing = Objects.requireNonNull(routing);
     this.pushRouting = pushRouting;
     this.localCommands = Objects.requireNonNull(localCommands);
@@ -164,8 +167,8 @@ public class KsqlServerEndpoints implements Endpoints {
       try {
         return new QueryEndpoint(
             ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, pullConcurrencyLimiter, pullBandRateLimiter, routing, pushRouting,
-            localCommands)
+            rateLimiter, pullConcurrencyLimiter, pullBandRateLimiter, scalablePushBandRateLimiter,
+            routing, pushRouting, localCommands)
             .createQueryPublisher(
                 sql,
                 properties,

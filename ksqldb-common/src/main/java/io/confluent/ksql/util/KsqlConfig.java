@@ -258,6 +258,14 @@ public class KsqlConfig extends AbstractConfig {
       = "The maximum amount of pull query bandwidth in megabytes allowed over"
       + " a period of one hour. Once the limit is hit, queries will fail immediately";
 
+  public static final String KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG
+      = "ksql.query.push.scalable.max.hourly.bandwidth.megabytes";
+  public static final Integer KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT
+      = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
+      = "The maximum amount of scalable push query bandwidth in megabytes allowed over"
+      + " a period of one hour. Once the limit is hit, queries will fail immediately";
+
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
   public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
@@ -926,6 +934,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
             Importance.HIGH,
             KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,
+        Type.INT,
+            KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
+        Importance.HIGH,
+            KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
         )
         .define(
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,

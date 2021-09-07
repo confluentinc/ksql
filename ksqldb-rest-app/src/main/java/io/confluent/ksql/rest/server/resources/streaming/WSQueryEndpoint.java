@@ -90,6 +90,7 @@ public class WSQueryEndpoint {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
+  private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
   private final PushRouting pushRouting;
@@ -112,6 +113,7 @@ public class WSQueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands,
       final PushRouting pushRouting
@@ -136,6 +138,7 @@ public class WSQueryEndpoint {
         rateLimiter,
         pullConcurrencyLimiter,
         pullBandRateLimiter,
+        scalablePushBandRateLimiter,
         routing,
         localCommands,
         pushRouting
@@ -164,6 +167,7 @@ public class WSQueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands,
       final PushRouting pushRouting
@@ -195,6 +199,8 @@ public class WSQueryEndpoint {
     this.pullConcurrencyLimiter =
         Objects.requireNonNull(pullConcurrencyLimiter, "pullConcurrencyLimiter");
     this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
+    this.scalablePushBandRateLimiter =
+        Objects.requireNonNull(scalablePushBandRateLimiter, "scalablePushBandRateLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
     this.pushRouting = Objects.requireNonNull(pushRouting, "pushRouting");
@@ -382,7 +388,8 @@ public class WSQueryEndpoint {
           analysis,
           pushRouting,
           context,
-          streamSubscriber
+          streamSubscriber,
+          scalablePushBandRateLimiter
       );
     } else {
       pushQueryPublisher.start(
@@ -443,7 +450,8 @@ public class WSQueryEndpoint {
       final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber
+      final WebSocketSubscriber<StreamedRow> streamSubscriber,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
     PushQueryPublisher.createScalablePublisher(
         ksqlEngine,
@@ -452,7 +460,8 @@ public class WSQueryEndpoint {
         query,
         analysis,
         pushRouting,
-        context
+        context,
+        scalablePushBandRateLimiter
     ).subscribe(streamSubscriber);
   }
 
@@ -522,7 +531,8 @@ public class WSQueryEndpoint {
         ImmutableAnalysis analysis,
         PushRouting pushRouting,
         Context context,
-        WebSocketSubscriber<StreamedRow> subscriber);
+        WebSocketSubscriber<StreamedRow> subscriber,
+        SlidingWindowRateLimiter scalablePushBandRateLimiter);
 
   }
 

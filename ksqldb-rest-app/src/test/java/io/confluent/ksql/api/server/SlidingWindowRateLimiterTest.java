@@ -13,7 +13,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SlidingWindowRateLimiterTest {
     private SlidingWindowRateLimiter limiter;
-    private static String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for pull queries.";
+    private static String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for queries.";
     private static String TEST_SHOULD_NOT_FAIL = "This test should not throw an exception";
 
     @Before

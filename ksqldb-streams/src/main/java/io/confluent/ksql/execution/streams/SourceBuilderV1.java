@@ -287,28 +287,6 @@ final class SourceBuilderV1 extends SourceBuilderBase {
             keyGenerator, streamSource.getPseudoColumnVersion()));
   }
 
-  <K> KTable<K, GenericRow> buildWindowedKTable(
-      final SourceStep<?> streamSource,
-      final RuntimeBuildContext buildContext,
-      final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator,
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName,
-      final PlanInfo planInfo
-  ) {
-    return buildKTable(
-        streamSource,
-        buildContext,
-        consumed,
-        keyGenerator,
-        materialized,
-        valueSerde,
-        stateStoreName,
-        planInfo
-    );
-  }
-
   private <K> KStream<K, GenericRow> buildKStream(
       final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,

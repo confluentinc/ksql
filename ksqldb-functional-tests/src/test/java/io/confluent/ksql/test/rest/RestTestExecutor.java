@@ -1101,6 +1101,9 @@ public class RestTestExecutor implements Closeable {
         headerRow = null;
       }
 
+      // the HTTP/2 endpoint doesn't return this sentinel response at the end.
+      expectedRows.removeIf(row -> "Limit Reached".equals(row.get("finalMessage")));
+
       assertThat(
           "row count mismatch."
               + System.lineSeparator()
@@ -1131,7 +1134,7 @@ public class RestTestExecutor implements Closeable {
         if (headerRow != null) {
           final Map<String, String> header = (Map<String, String>) headerRow.get("header");
           final String schema = header.get("schema");
-          final String[] split = schema.split(",");
+          final String[] split = schema.replaceAll("<[^>]*>","<...>").split(",");
           final List<String> columnNames = row.columnNames();
           final List<ColumnType> columnTypes = row.columnTypes();
           for (int schemaIdx = 0; schemaIdx < split.length; schemaIdx++) {

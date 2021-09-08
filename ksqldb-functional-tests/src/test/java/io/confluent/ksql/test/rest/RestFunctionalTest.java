@@ -53,6 +53,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,9 +73,9 @@ import org.junit.runners.Parameterized;
  * <li>INSERT VALUES statements</li>
  * <li>Pull queries against materialized stores</li>
  * </ul>
- *
+ * <p>
  * Runs the json functional tests defined under `ksql-functional-tests/src/test/resources/rest-query-validation-tests`.
- *
+ * <p>
  * See `ksql-functional-tests/README.md` for more info.
  */
 @Category({IntegrationTest.class})
@@ -148,7 +149,7 @@ public class RestFunctionalTest {
   private final RestTestCase testCase;
 
   /**
-   * @param name - unused. Is just so the tests get named.
+   * @param name     - unused. Is just so the tests get named.
    * @param testCase - testCase to run.
    */
   @SuppressWarnings("unused")
@@ -168,7 +169,6 @@ public class RestFunctionalTest {
     }
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
-
 
     // Sometimes a race-condition throws an error when deleting a changelog topic (created by
     // a CST query) that is later deleted automatically just before the Kafka API delete is called.
@@ -198,7 +198,7 @@ public class RestFunctionalTest {
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    try (RestTestExecutor testExecutor = testExecutor()) {
+    try (final RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
@@ -213,10 +213,13 @@ public class RestFunctionalTest {
 
   @Test
   public void shouldBuildAndExecuteQueriesHttp2() {
+    // ignore the test if it's not enabled for Http2
+    Assume.assumeTrue(testCase.getEnabledHttp2());
+
     vertx = Vertx.vertx();
     client = buildHttp2Client(vertx);
 
-    try (RestTestExecutor testExecutor = testExecutor()) {
+    try (final RestTestExecutor testExecutor = testExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase, client);
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()

@@ -46,6 +46,7 @@ class RestTestCase implements Test {
   private final Optional<Matcher<RestResponse<?>>> expectedError;
   private final Optional<ExpectedErrorNode> expectedErrorNode;
   private final Optional<InputConditions> inputConditions;
+  private final Boolean enabledHttp2;
 
   RestTestCase(
       final TestLocation location,
@@ -58,7 +59,8 @@ class RestTestCase implements Test {
       final Collection<Response> responses,
       final Optional<ExpectedErrorNode> expectedErrorNode,
       final Optional<Matcher<RestResponse<?>>> expectedError,
-      final Optional<InputConditions> inputConditions
+      final Optional<InputConditions> inputConditions,
+      final Boolean enabledHttp2
   ) {
     this.name = requireNonNull(name, "name");
     this.location = requireNonNull(location, "testPath");
@@ -71,6 +73,7 @@ class RestTestCase implements Test {
     this.expectedError = requireNonNull(expectedError, "expectedError");
     this.expectedErrorNode = requireNonNull(expectedErrorNode, "expectedErrorNode");
     this.inputConditions = requireNonNull(inputConditions, "inputConditions");
+    this.enabledHttp2 = enabledHttp2;
   }
 
   @Override
@@ -127,5 +130,9 @@ class RestTestCase implements Test {
 
   public Optional<InputConditions> getInputConditions() {
     return inputConditions;
+  }
+
+  public Boolean getEnabledHttp2() {
+    return enabledHttp2;
   }
 }

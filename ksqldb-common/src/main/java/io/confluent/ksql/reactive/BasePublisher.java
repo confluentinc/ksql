@@ -57,7 +57,7 @@ public abstract class BasePublisher<T> implements Publisher<T> {
       throw new IllegalStateException(
           "Cannot subscribe to failed publisher. Failure cause: " + failure);
     }
-    Objects.requireNonNull(subscriber);
+    Objects.requireNonNull(subscriber, "subscriber was null");
     if (VertxUtils.isEventLoopAndSameContext(ctx)) {
       doSubscribe(subscriber);
     } else {

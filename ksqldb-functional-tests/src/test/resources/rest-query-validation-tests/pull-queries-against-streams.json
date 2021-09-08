@@ -4,6 +4,7 @@
   ],
   "tests": [
     {
+      "enabledHttp2": false,
       "name": "empty response on empty stream",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -17,6 +18,7 @@
       ]
     },
     {
+      "enabledHttp2": false,
       "name": "error on GROUP BY",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -29,6 +31,7 @@
       }
     },
     {
+      "enabledHttp2": false,
       "name": "error on LIMIT",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -41,6 +44,7 @@
       }
     },
     {
+      "enabledHttp2": false,
       "name": "error on ORDER BY",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -53,6 +57,7 @@
       }
     },
     {
+      "enabledHttp2": false,
       "name": "error on WINDOW",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -65,6 +70,7 @@
       }
     },
     {
+      "enabledHttp2": false,
       "name": "error on JOIN",
       "statements": [
         "CREATE STREAM S1 (MYKEY1 INT KEY, MYVALUE1 INT) WITH (kafka_topic='test_topic1', value_format='JSON');",
@@ -78,6 +84,7 @@
       }
     },
     {
+      "enabledHttp2": false,
       "name": "correct results",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",

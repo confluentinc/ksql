@@ -47,6 +47,7 @@ public class RestTestCaseNode {
   private final Optional<ExpectedErrorNode> expectedError;
   private final Optional<InputConditions> inputConditions;
   private final boolean enabled;
+  private final boolean enabledHttp2;
 
   public RestTestCaseNode(
       @JsonProperty("name") final String name,
@@ -59,7 +60,8 @@ public class RestTestCaseNode {
       @JsonProperty("expectedError") final ExpectedErrorNode expectedError,
       @JsonProperty("responses") final List<Response> responses,
       @JsonProperty("inputConditions") final InputConditions inputConditions,
-      @JsonProperty("enabled") final Boolean enabled
+      @JsonProperty("enabled") final Boolean enabled,
+      @JsonProperty("enabledHttp2") final Boolean enabledHttp2
   ) {
     this.name = name == null ? "" : name;
     this.formats = immutableCopyOf(formats);
@@ -72,12 +74,17 @@ public class RestTestCaseNode {
     this.responses = immutableCopyOf(responses);
     this.inputConditions = Optional.ofNullable(inputConditions);
     this.enabled = !Boolean.FALSE.equals(enabled);
+    this.enabledHttp2 = !Boolean.FALSE.equals(enabledHttp2);
 
     validate();
   }
 
   public boolean isEnabled() {
     return enabled;
+  }
+
+  public boolean isEnabledHttp2() {
+    return enabledHttp2;
   }
 
   public String name() {

@@ -137,9 +137,8 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
-    final SourceStep<KTableHolder<Windowed<GenericKey>>> step;
-
-    step = ExecutionStepFactory.tableSourceWindowed(
+    final SourceStep<KTableHolder<Windowed<GenericKey>>> step =
+        ExecutionStepFactory.tableSourceWindowed(
         contextStacker,
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),

@@ -188,14 +188,13 @@ final class SourceBuilderV1 extends SourceBuilderBase {
     final String stateStoreName = tableChangeLogOpName(source.getProperties());
 
     final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
-        = buildWindowedTableMaterialized(
-        materializedFactory,
+        = materializedFactory.create(
         keySerde,
         valueSerde,
         stateStoreName
     );
 
-    final KTable<Windowed<GenericKey>, GenericRow> ktable = buildWindowedKTable(
+    final KTable<Windowed<GenericKey>, GenericRow> ktable = buildKTable(
         source,
         buildContext,
         consumed,
@@ -220,20 +219,6 @@ final class SourceBuilderV1 extends SourceBuilderBase {
       final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<GenericKey> keySerde,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName
-  ) {
-    return materializedFactory.create(
-        keySerde,
-        valueSerde,
-        stateStoreName
-    );
-  }
-
-  public Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
-      buildWindowedTableMaterialized(
-      final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> keySerde,
       final Serde<GenericRow> valueSerde,
       final String stateStoreName
   ) {

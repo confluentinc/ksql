@@ -163,9 +163,9 @@ final class SourceBuilder extends SourceBuilderBase {
     final FormatInfo formatInfo = streamSource.getFormats().getKeyFormat();
     final SerdeFeatures serdeFeatures = streamSource.getFormats().getKeyFeatures();
 
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(formatInfo, serdeFeatures);
-
-    final Formats format = of(keyFormat, streamSource.getFormats().getValueFormat());
+    final Formats format = of(
+        KeyFormat.nonWindowed(formatInfo, serdeFeatures),
+        streamSource.getFormats().getValueFormat());
 
     final LogicalSchema withPseudoCols = streamSource.getSourceSchema()
         .withPseudoColumnsToMaterialize(streamSource.getPseudoColumnVersion());

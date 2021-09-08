@@ -1051,6 +1051,7 @@ public class SourceBuilderV1Test {
         OptionalInt.of(pseudoColumnVersion)
     );
   }
+
   private void
   givenWindowedSourceStream() {
     givenWindowedSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
@@ -1108,7 +1109,6 @@ public class SourceBuilderV1Test {
   private void givenWindowedSourceTable() {
     givenWindowedSourceTable(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
-
 
     private void givenUnwindowedSourceTableV1(
       final Boolean forceChangelog, final int pseudoColumnVersion) {

@@ -1052,8 +1052,7 @@ public class SourceBuilderV1Test {
     );
   }
 
-  private void
-  givenWindowedSourceStream() {
+  private void givenWindowedSourceStream() {
     givenWindowedSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
@@ -1110,7 +1109,7 @@ public class SourceBuilderV1Test {
     givenWindowedSourceTable(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
-    private void givenUnwindowedSourceTableV1(
+  private void givenUnwindowedSourceTableV1(
       final Boolean forceChangelog, final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);

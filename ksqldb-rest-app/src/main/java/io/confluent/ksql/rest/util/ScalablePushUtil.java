@@ -45,7 +45,7 @@ public final class ScalablePushUtil {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED)) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)) {
       return false;
     }
     if (! (statement instanceof Query)) {

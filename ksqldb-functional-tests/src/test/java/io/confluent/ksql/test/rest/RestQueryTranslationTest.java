@@ -102,8 +102,8 @@ public class RestQueryTranslationTest {
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 

@@ -225,7 +225,7 @@ final class QueryExecutor {
       final Map<String, Object> streamsProperties,
       final KsqlConfig ksqlConfig
   ) {
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED)) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED)) {
       return Optional.empty();
     }
     final KStream<?, GenericRow> stream;
@@ -239,7 +239,7 @@ final class QueryExecutor {
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
         allPersistentQueries, isTable, windowed, streamsProperties,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_NEW_NODE_CONTINUITY));
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY));
     registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }

@@ -18,9 +18,9 @@ package io.confluent.ksql.api.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -85,10 +85,10 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
       .withProperties(ClientTrustStore.trustStoreProps())
-      .withProperty(KSQL_QUERY_PUSH_SCALABLE_ENABLED , true)
+      .withProperty(KSQL_QUERY_PUSH_V2_ENABLED , true)
       .withProperty(KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG , 1)
       .withProperty("auto.offset.reset", "latest")
-      .withProperty(KSQL_QUERY_PUSH_SCALABLE_REGISTRY_INSTALLED, true)
+      .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();

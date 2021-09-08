@@ -1,9 +1,7 @@
 #!/usr/bin/env groovy
 
-def channel = "${env.BRANCH_NAME}".contains('master') ? '#ksql-alerts' : '#ksqldb-warn'
-
 dockerfile {
-    slackChannel = channel
+    slackChannel = '#ksqldb-quality-oncall'
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'
     dockerPush = false

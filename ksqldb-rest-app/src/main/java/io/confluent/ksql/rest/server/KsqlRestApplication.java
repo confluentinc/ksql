@@ -800,7 +800,7 @@ public final class KsqlRestApplication implements Executable {
             NUM_MILLISECONDS_IN_HOUR);
     final SlidingWindowRateLimiter scalablePushBandRateLimiter = new SlidingWindowRateLimiter(
         ksqlConfig.getInt(
-            KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG),
+            KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG),
         NUM_MILLISECONDS_IN_HOUR);
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));

@@ -60,7 +60,7 @@ public class StorageUtilizationMetricsReporterTest {
     final File f = new File("/tmp/storage-test/");
     f.getParentFile().mkdirs();
     f.createNewFile();
-    listener.configure(ImmutableMap.of("state.dir", "/tmp/storage-test/"));
+    listener.configureShared(f, metrics);
   }
 
   @After

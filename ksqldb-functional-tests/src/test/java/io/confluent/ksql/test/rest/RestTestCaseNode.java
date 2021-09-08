@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * JSON serializable Pojo representing the test case used by {@link RestFunctionalTest}.
+ * JSON serializable Pojo representing the test case used by {@link KsqlDBFunctionalTest}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RestTestCaseNode {

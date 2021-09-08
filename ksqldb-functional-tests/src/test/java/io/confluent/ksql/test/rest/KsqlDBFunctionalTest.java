@@ -23,8 +23,6 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -35,8 +33,7 @@ import io.confluent.ksql.test.util.ThreadTestUtil;
 import io.confluent.ksql.test.util.ThreadTestUtil.ThreadSnapshot;
 import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
-import io.vertx.core.Vertx;
-import java.net.URI;
+import io.confluent.ksql.util.RetryUtil;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -46,14 +43,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import io.confluent.ksql.util.RetryUtil;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -80,9 +76,9 @@ import org.junit.runners.Parameterized;
  */
 @Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
-public class RestFunctionalTest {
+public class KsqlDBFunctionalTest {
 
-  private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
+  private static final Path TEST_DIR = Paths.get("functional-tests");
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -112,18 +108,6 @@ public class RestFunctionalTest {
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
-  private Vertx vertx = null;
-  private Client client = null;
-
-  public static Client buildHttp2Client(final Vertx vertx) {
-    final URI httpListener = REST_APP.getHttpListener();
-    final ClientOptions clientOptions = ClientOptions.create()
-        .setHost(httpListener.getHost())
-        .setPort(httpListener.getPort());
-    return Client.create(clientOptions, vertx);
-  }
-
-
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
@@ -134,9 +118,9 @@ public class RestFunctionalTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final String testRegex = System.getProperty("ksql.rqtt.regex");
+    final String testRegex = System.getProperty("ksqldb.functional.test.regex");
 
-    return JsonTestLoader.of(TEST_DIR, RestFunctionalTestFile.class)
+    return JsonTestLoader.of(TEST_DIR, KsqlDBFunctionalTestFile.class)
         .load()
         .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .map(testCase -> new Object[]{testCase.getName(), testCase})
@@ -146,29 +130,22 @@ public class RestFunctionalTest {
   @Rule
   public final Timeout timeout = Timeout.seconds(60);
 
-  private final RestTestCase testCase;
+  private final KsqlDBFunctionalTestCase testCase;
 
   /**
    * @param name     - unused. Is just so the tests get named.
    * @param testCase - testCase to run.
    */
   @SuppressWarnings("unused")
-  public RestFunctionalTest(final String name, final RestTestCase testCase) {
+  public KsqlDBFunctionalTest(final String name, final KsqlDBFunctionalTestCase testCase) {
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
   @After
   public void tearDown() {
-    if (client != null) {
-      client.close();
-      client = null;
-    }
-    if (vertx != null) {
-      vertx.close();
-      vertx = null;
-    }
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
+
 
     // Sometimes a race-condition throws an error when deleting a changelog topic (created by
     // a CST query) that is later deleted automatically just before the Kafka API delete is called.
@@ -197,9 +174,9 @@ public class RestFunctionalTest {
   }
 
   @Test
-  public void shouldBuildAndExecuteQueries() {
-    try (final RestTestExecutor testExecutor = testExecutor()) {
-      testExecutor.buildAndExecuteQuery(testCase);
+  public void shouldBuildAndExecuteQueriesHttp1() {
+    try (final KsqlDBFunctionalTestExecutor testExecutor = testExecutor()) {
+      testExecutor.buildAndExecuteHttp1Query(testCase);
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
@@ -216,11 +193,10 @@ public class RestFunctionalTest {
     // ignore the test if it's not enabled for Http2
     Assume.assumeTrue(testCase.getEnabledHttp2());
 
-    vertx = Vertx.vertx();
-    client = buildHttp2Client(vertx);
-
-    try (final RestTestExecutor testExecutor = testExecutor()) {
-      testExecutor.buildAndExecuteQuery(testCase, client);
+    try (final KsqlDBFunctionalTestExecutor testExecutor = testExecutorWithHttp2Client()) {
+      testExecutor.buildAndExecuteHttp2Query(testCase);
+    } catch (final AssumptionViolatedException e) {
+      throw e;
     } catch (final AssertionError | Exception e) {
       throw new AssertionError(e.getMessage()
           + System.lineSeparator()
@@ -232,21 +208,32 @@ public class RestFunctionalTest {
     }
   }
 
-  private static RestTestExecutor testExecutor() {
-    return new RestTestExecutor(
+  private static KsqlDBFunctionalTestExecutor testExecutor() {
+    return new KsqlDBFunctionalTestExecutor(
         REST_APP.getEngine(),
         REST_APP.getListeners().get(0),
         TEST_HARNESS.getKafkaCluster(),
-        TEST_HARNESS.getServiceContext()
+        TEST_HARNESS.getServiceContext(),
+        false
+    );
+  }
+
+  private static KsqlDBFunctionalTestExecutor testExecutorWithHttp2Client() {
+    return new KsqlDBFunctionalTestExecutor(
+        REST_APP.getEngine(),
+        REST_APP.getListeners().get(0),
+        TEST_HARNESS.getKafkaCluster(),
+        TEST_HARNESS.getServiceContext(),
+        true
     );
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  static class RestFunctionalTestFile implements TestFile<RestTestCase> {
+  static class KsqlDBFunctionalTestFile implements TestFile<KsqlDBFunctionalTestCase> {
 
     private final List<RestTestCaseNode> tests;
 
-    RestFunctionalTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
+    KsqlDBFunctionalTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
 
       if (tests.isEmpty()) {
@@ -255,10 +242,10 @@ public class RestFunctionalTest {
     }
 
     @Override
-    public Stream<RestTestCase> buildTests(final TestFileContext ctx) {
+    public Stream<KsqlDBFunctionalTestCase> buildTests(final TestFileContext ctx) {
       return tests
           .stream()
-          .flatMap(node -> RestTestCaseBuilder.buildTests(node, ctx));
+          .flatMap(node -> KsqlDBFunctionalTestCaseBuilder.buildTests(node, ctx));
     }
   }
 }

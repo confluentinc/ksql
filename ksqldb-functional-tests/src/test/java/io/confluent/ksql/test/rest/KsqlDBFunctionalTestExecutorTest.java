@@ -30,11 +30,11 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.test.rest.RestTestExecutor.RqttQueryResponse;
+import io.confluent.ksql.test.rest.KsqlDBFunctionalTestExecutor.FunctionalTestQueryResponse;
 import java.math.BigDecimal;
 import org.junit.Test;
 
-public class RestTestExecutorTest {
+public class KsqlDBFunctionalTestExecutorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
@@ -43,7 +43,7 @@ public class RestTestExecutorTest {
   @Test
   public void shouldFailToVerifyOnDifferentColumnsSchema() {
     // Given:
-    final RqttQueryResponse response = new RqttQueryResponse(of(
+    final FunctionalTestQueryResponse response = new FunctionalTestQueryResponse(of(
         header(new QueryId("not checked"), SCHEMA)
     ));
 
@@ -76,7 +76,7 @@ public class RestTestExecutorTest {
   @Test
   public void shouldFailToVerifyOnDifferentRowValues() {
     // Given:
-    final RqttQueryResponse response = new RqttQueryResponse(of(
+    final FunctionalTestQueryResponse response = new FunctionalTestQueryResponse(of(
         StreamedRow.pushRow(genericRow("key", 55, new BigDecimal("66.675")))
     ));
 
@@ -107,7 +107,7 @@ public class RestTestExecutorTest {
   @Test
   public void shouldFailToVerifyOnDifferentTombstoneValue() {
     // Given:
-    final RqttQueryResponse response = new RqttQueryResponse(of(
+    final FunctionalTestQueryResponse response = new FunctionalTestQueryResponse(of(
         StreamedRow.pushRow(genericRow("key", 55, new BigDecimal("66.675")))
     ));
 
@@ -141,7 +141,7 @@ public class RestTestExecutorTest {
   @Test
   public void shouldPassVerificationOnMatch() {
     // Given:
-    final RqttQueryResponse response = new RqttQueryResponse(ImmutableList.of(
+    final FunctionalTestQueryResponse response = new FunctionalTestQueryResponse(ImmutableList.of(
         header(new QueryId("not checked"), SCHEMA),
         StreamedRow.pushRow(GenericRow.genericRow("key", 55, new BigDecimal("66.675")))
     ));

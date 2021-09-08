@@ -31,14 +31,14 @@ import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 
 /**
- * Builds {@link RestTestCase}s from {@link RestTestCaseNode}.
+ * Builds {@link KsqlDBFunctionalTestCase}s from {@link RestTestCaseNode}.
  */
-final class RestTestCaseBuilder {
+final class KsqlDBFunctionalTestCaseBuilder {
 
-  private RestTestCaseBuilder() {
+  private KsqlDBFunctionalTestCaseBuilder() {
   }
 
-  static Stream<RestTestCase> buildTests(
+  static Stream<KsqlDBFunctionalTestCase> buildTests(
       final RestTestCaseNode test,
       final TestFileContext ctx
   ) {
@@ -60,7 +60,7 @@ final class RestTestCaseBuilder {
     }
   }
 
-  private static RestTestCase createTest(
+  private static KsqlDBFunctionalTestCase createTest(
       final RestTestCaseNode test,
       final Optional<String> explicitFormat,
       final TestLocation location
@@ -92,7 +92,7 @@ final class RestTestCaseBuilder {
           .map(RecordNode::build)
           .collect(Collectors.toList());
 
-      return new RestTestCase(
+      return new KsqlDBFunctionalTestCase(
           location,
           testName,
           test.properties(),

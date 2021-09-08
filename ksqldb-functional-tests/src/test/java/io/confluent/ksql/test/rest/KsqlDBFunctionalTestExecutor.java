@@ -17,13 +17,13 @@ package io.confluent.ksql.test.rest;
 
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -34,7 +34,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -65,6 +67,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.Closeable;
@@ -75,6 +78,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -98,12 +102,13 @@ import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.junit.Assume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RestTestExecutor implements Closeable {
+public class KsqlDBFunctionalTestExecutor implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlDBFunctionalTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
@@ -112,15 +117,20 @@ public class RestTestExecutor implements Closeable {
 
   private final KsqlExecutionContext engine;
   private final KsqlRestClient restClient;
+
+  private Vertx clientVertx = null;
+  private Client client = null;
+
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
   private final ServiceContext serviceContext;
   private final TopicInfoCache topicInfoCache;
 
-  RestTestExecutor(
+  KsqlDBFunctionalTestExecutor(
       final KsqlExecutionContext engine,
       final URL url,
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final boolean includeHttp2Client
   ) {
     this.engine = engine;
     this.restClient = KsqlRestClient.create(
@@ -129,12 +139,22 @@ public class RestTestExecutor implements Closeable {
         ImmutableMap.of(),
         Optional.empty()
     );
+
+    if (includeHttp2Client) {
+      clientVertx = Vertx.vertx();
+
+      final ClientOptions clientOptions = ClientOptions.create()
+          .setHost(url.getHost())
+          .setPort(url.getPort());
+      client = Client.create(clientOptions, clientVertx);
+    }
+
     this.kafkaCluster = requireNonNull(kafkaCluster, "kafkaCluster");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.topicInfoCache = new TopicInfoCache(engine, serviceContext.getSchemaRegistryClient());
   }
 
-  void buildAndExecuteQuery(final RestTestCase testCase) {
+  void buildAndExecuteHttp1Query(final KsqlDBFunctionalTestCase testCase) {
     topicInfoCache.clear();
 
     if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
@@ -149,10 +169,9 @@ public class RestTestExecutor implements Closeable {
 
     final StatementSplit statements = splitStatements(testCase);
 
-    testCase.getProperties().forEach(restClient::setProperty);
 
     try {
-      final Optional<List<RqttResponse>> adminResults =
+      final Optional<List<FunctionalTestResponse>> adminResults =
           sendAdminStatements(testCase, statements.admin);
 
       if (!adminResults.isPresent()) {
@@ -177,13 +196,13 @@ public class RestTestExecutor implements Closeable {
         }
       }
 
-      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
+      final List<FunctionalTestResponse> queryResults = sendQueryStatements(testCase, statements.queries,
           postQueryHeaderRunnable);
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
       }
 
-      final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
+      final List<FunctionalTestResponse> responses = ImmutableList.<FunctionalTestResponse>builder()
           .addAll(adminResults.get())
           .addAll(queryResults)
           .build();
@@ -196,7 +215,9 @@ public class RestTestExecutor implements Closeable {
     }
   }
 
-  public void buildAndExecuteQuery(final RestTestCase testCase, final Client client) {
+  public void buildAndExecuteHttp2Query(final KsqlDBFunctionalTestCase testCase) {
+    requireNonNull(client, "client wasn't initialized");
+
     topicInfoCache.clear();
 
     if (testCase.getStatements().size() < testCase.getExpectedResponses().size()) {
@@ -211,66 +232,67 @@ public class RestTestExecutor implements Closeable {
 
     final StatementSplit statements = splitStatements(testCase);
 
-    testCase.getProperties().forEach(restClient::setProperty);
+    final Optional<List<FunctionalTestResponse>> adminResults =
+        sendAdminStatements(testCase, statements.admin, client);
 
-    try {
-      final Optional<List<RqttResponse>> adminResults =
-          sendAdminStatements(testCase, statements.admin);
-
-      if (!adminResults.isPresent()) {
-        return;
-      }
-
-      final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
-          && testCase.getInputConditions().get().getWaitForQueryHeader();
-      final Optional<Runnable> postQueryHeaderRunnable;
-      if (!waitForQueryHeaderToProduceInput) {
-        produceInputs(testCase.getInputsByTopic());
-        postQueryHeaderRunnable = Optional.empty();
-      } else {
-        postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
-      }
-
-      if (!testCase.expectedError().isPresent()
-          && testCase.getExpectedResponses().size() > statements.admin.size()) {
-        waitForPersistentQueriesToProcessInputs();
-        if (waitForQueryHeaderToProduceInput) {
-          waitForRunningPushQueries(statements.queries);
-        }
-      }
-
-      // TODO also test INSERT
-      final List<RqttResponse> queryResults = sendQueryStatements(
-          testCase,
-          statements.queries,
-          postQueryHeaderRunnable,
-          client);
-      if (!queryResults.isEmpty()) {
-        testCase.expectedError().map(ee -> {
-          throw new AssertionError("Expected last statement to return an error: "
-              + StringDescription.toString(ee) + " but was" + queryResults);
-        });
-      }
-
-      final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
-          .addAll(adminResults.get())
-          .addAll(queryResults)
-          .build();
-
-      verifyOutput(testCase);
-      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
-
-    } finally {
-      testCase.getProperties().keySet().forEach(restClient::unsetProperty);
+    if (!adminResults.isPresent()) {
+      return;
     }
+
+    final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
+        && testCase.getInputConditions().get().getWaitForQueryHeader();
+    final Optional<Runnable> postQueryHeaderRunnable;
+    if (!waitForQueryHeaderToProduceInput) {
+      produceInputs(testCase.getInputsByTopic());
+      postQueryHeaderRunnable = Optional.empty();
+    } else {
+      postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
+    }
+
+    if (!testCase.expectedError().isPresent()
+        && testCase.getExpectedResponses().size() > statements.admin.size()) {
+      waitForPersistentQueriesToProcessInputs();
+      if (waitForQueryHeaderToProduceInput) {
+        waitForRunningPushQueries(statements.queries);
+      }
+    }
+
+    final List<FunctionalTestResponse> queryResults = sendQueryStatements(
+        testCase,
+        statements.queries,
+        postQueryHeaderRunnable,
+        client
+    );
+    if (!queryResults.isEmpty()) {
+      testCase.expectedError().map(ee -> {
+        throw new AssertionError("Expected last statement to return an error: "
+            + StringDescription.toString(ee) + " but was" + queryResults);
+      });
+    }
+
+    final List<FunctionalTestResponse> responses = ImmutableList.<FunctionalTestResponse>builder()
+        .addAll(adminResults.get())
+        .addAll(queryResults)
+        .build();
+
+    verifyOutput(testCase);
+    verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
   }
 
 
   public void close() {
     restClient.close();
+    if (client != null) {
+      client.close();
+      client = null;
+    }
+    if (clientVertx != null) {
+      clientVertx.close();
+      clientVertx = null;
+    }
   }
 
-  private void initializeTopics(final RestTestCase testCase) {
+  private void initializeTopics(final KsqlDBFunctionalTestCase testCase) {
 
     final Collection<Topic> topics = TestCaseBuilderUtil.getAllTopics(
         testCase.getStatements(),
@@ -347,7 +369,7 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private static StatementSplit splitStatements(final RestTestCase testCase) {
+  private static StatementSplit splitStatements(final KsqlDBFunctionalTestCase testCase) {
 
     final List<String> allStatements = testCase.getStatements();
 
@@ -383,8 +405,8 @@ public class RestTestExecutor implements Closeable {
     return StatementSplit.of(admin, queries);
   }
 
-  private Optional<List<RqttResponse>> sendAdminStatements(
-      final RestTestCase testCase,
+  private Optional<List<FunctionalTestResponse>> sendAdminStatements(
+      final KsqlDBFunctionalTestCase testCase,
       final List<String> statements
   ) {
     final String sql = statements.stream()
@@ -398,11 +420,39 @@ public class RestTestExecutor implements Closeable {
     }
 
     final KsqlEntityList entity = resp.getResponse();
-    return Optional.of(RqttResponse.admin(entity));
+    return Optional.of(FunctionalTestResponse.admin(entity));
   }
 
-  private List<RqttResponse> sendQueryStatements(
-      final RestTestCase testCase,
+  private Optional<List<FunctionalTestResponse>> sendAdminStatements(
+      final KsqlDBFunctionalTestCase testCase,
+      final List<String> statements,
+      final Client client
+  ) {
+    final List<FunctionalTestResponse> results = new LinkedList<>();
+    for (final String statement : statements) {
+      Assume.assumeThat(
+          "INSERT VALUES queries are currently not supported via HTTP/2",
+          statement,
+          not(containsString("VALUES"))
+      );
+      try {
+        final ExecuteStatementResult executeStatementResult =
+            client.executeStatement(statement, testCase.getProperties()).get();
+        results.add(FunctionalTestResponse.admin(executeStatementResult));
+      }  catch (final InterruptedException | ExecutionException e) {
+        if (e.getCause() == null || e.getCause() instanceof KsqlClientException) {
+          handleErrorResponse(testCase, (KsqlClientException) e.getCause(), statement);
+          return Optional.empty();
+        } else {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+    return Optional.of(results);
+  }
+
+  private List<FunctionalTestResponse> sendQueryStatements(
+      final KsqlDBFunctionalTestCase testCase,
       final List<String> statements,
       final Optional<Runnable> afterHeader
   ) {
@@ -423,37 +473,32 @@ public class RestTestExecutor implements Closeable {
         })
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .map(RqttResponse::query)
+        .map(FunctionalTestResponse::query)
         .collect(Collectors.toList());
   }
 
 
-  private List<RqttResponse> sendQueryStatements(final RestTestCase testCase,
+  private List<FunctionalTestResponse> sendQueryStatements(final KsqlDBFunctionalTestCase testCase,
       final List<String> statements, final Optional<Runnable> afterHeader,
       final Client client) {
     // We only produce inputs after the first query at the moment to simplify things
     final boolean[] runAfterHeader = new boolean[1];
     return statements.stream()
         .map(stmt -> {
-          if (afterHeader.isPresent() && !runAfterHeader[0]) {
-            runAfterHeader[0] = true;
-            Optional<List<Row>> rows =
-                sendQueryStatement(testCase, stmt, afterHeader.get(), client);
-            return rows;
-          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
-            throw new AssertionError(
-                "Can only have one query when using waitForQueryHeader");
-          }
+          Assume.assumeFalse(
+              "waiting on headers is not yet implemented for HTTP/2 tests",
+              afterHeader.isPresent() && !runAfterHeader[0]
+          );
           return sendQueryStatement(testCase, stmt, client);
         })
         .filter(Optional::isPresent)
         .map(Optional::get)
-        .map(RqttResponse::rowQuery)
+        .map(FunctionalTestResponse::rowQuery)
         .collect(Collectors.toList());
   }
 
   private Optional<List<StreamedRow>> sendQueryStatement(
-      final RestTestCase testCase,
+      final KsqlDBFunctionalTestCase testCase,
       final String sql
   ) {
     final RestResponse<List<StreamedRow>> resp = restClient.makeQueryRequest(sql, null);
@@ -466,8 +511,25 @@ public class RestTestExecutor implements Closeable {
     return Optional.of(resp.getResponse());
   }
 
+  private Optional<List<Row>> sendQueryStatement(
+      final KsqlDBFunctionalTestCase testCase,
+      final String sql,
+      final Client client) {
+
+    try {
+      return Optional.of(client.executeQuery(sql, testCase.getProperties()).get());
+    } catch (final InterruptedException | ExecutionException e) {
+      if (e.getCause() == null || e.getCause() instanceof KsqlClientException) {
+        handleErrorResponse(testCase, (KsqlClientException) e.getCause(), sql);
+        return Optional.empty();
+      } else {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
   private Optional<List<StreamedRow>> sendQueryStatement(
-      final RestTestCase testCase,
+      final KsqlDBFunctionalTestCase testCase,
       final String sql,
       final Runnable afterHeader
   ) {
@@ -480,36 +542,6 @@ public class RestTestExecutor implements Closeable {
     }
 
     return handleRowPublisher(resp.getResponse(), afterHeader);
-  }
-
-  private Optional<List<Row>> sendQueryStatement(
-      final RestTestCase testCase,
-      final String sql,
-      final Client client) {
-
-    try {
-      return Optional.of(client.executeQuery(sql, testCase.getProperties()).get());
-    } catch (final InterruptedException | ExecutionException e) {
-      if (e.getCause() == null || e.getCause() instanceof KsqlClientException) {
-        handleErrorResponse(testCase, (KsqlClientException) e.getCause());
-        return Optional.empty();
-      } else {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  private Optional<List<Row>> sendQueryStatement(
-      final RestTestCase testCase,
-      final String sql,
-      final Runnable afterHeader,
-      final Client client) {
-
-    try {
-      return Optional.of(client.executeQuery(sql).get());
-    } catch (final InterruptedException | ExecutionException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private Optional<List<StreamedRow>> handleRowPublisher(
@@ -535,7 +567,7 @@ public class RestTestExecutor implements Closeable {
     }
   }
 
-  private void verifyOutput(final RestTestCase testCase) {
+  private void verifyOutput(final KsqlDBFunctionalTestCase testCase) {
     testCase.getOutputsByTopic().forEach((topicName, records) -> {
 
       final TopicInfo topicInfo = topicInfoCache.get(topicName)
@@ -558,7 +590,7 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private static void handleErrorResponse(final RestTestCase testCase, final RestResponse<?> resp) {
+  private static void handleErrorResponse(final KsqlDBFunctionalTestCase testCase, final RestResponse<?> resp) {
     final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
     if (!expectedError.isPresent()) {
       final String statement = resp.getErrorMessage() instanceof KsqlStatementErrorMessage
@@ -579,12 +611,13 @@ public class RestTestExecutor implements Closeable {
     assertThat(reason, resp, expectedError.get());
   }
 
-  private static void handleErrorResponse(final RestTestCase testCase,
-      final KsqlClientException e) {
+  private static void handleErrorResponse(final KsqlDBFunctionalTestCase testCase,
+      final KsqlClientException e, final String statement) {
     final Optional<ExpectedErrorNode> expectedError = testCase.getExpectedErrorNode();
     if (!expectedError.isPresent()) {
       throw new AssertionError(
           "Server failed to execute statement" + System.lineSeparator()
+              + statement + System.lineSeparator()
               + "reason: " + e.getMessage(),
           e
       );
@@ -608,7 +641,7 @@ public class RestTestExecutor implements Closeable {
   }
 
   private static void verifyResponses(
-      final List<RqttResponse> actualResponses,
+      final List<FunctionalTestResponse> actualResponses,
       final List<Response> expectedResponses,
       final List<String> statements
   ) {
@@ -626,12 +659,12 @@ public class RestTestExecutor implements Closeable {
       final String expectedType = expectedResponse.keySet().iterator().next();
       final Object expectedPayload = expectedResponse.values().iterator().next();
 
-      final RqttResponse actualResponse = actualResponses.get(idx);
+      final FunctionalTestResponse actualResponse = actualResponses.get(idx);
       actualResponse.verify(expectedType, expectedPayload, statements, idx);
     }
   }
 
-  private static void failIfExpectingError(final RestTestCase testCase) {
+  private static void failIfExpectingError(final KsqlDBFunctionalTestCase testCase) {
     testCase.expectedError().map(ee -> {
       throw new AssertionError("Expected last statement to return an error: "
           + StringDescription.toString(ee));
@@ -952,20 +985,24 @@ public class RestTestExecutor implements Closeable {
     }
   }
 
-  private interface RqttResponse {
+  private interface FunctionalTestResponse {
 
-    static List<RqttResponse> admin(final KsqlEntityList adminResponses) {
+    static List<FunctionalTestResponse> admin(final KsqlEntityList adminResponses) {
       return adminResponses.stream()
-          .map(RqttAdminResponse::new)
+          .map(FunctionalTestAdminResponse::new)
           .collect(Collectors.toList());
     }
 
-    static RqttResponse query(final List<StreamedRow> rows) {
-      return new RqttQueryResponse(rows);
+    static FunctionalTestResponse admin(final ExecuteStatementResult adminResponses) {
+      return new FunctionalTestAdminResponse(adminResponses);
     }
 
-    static RqttResponse rowQuery(final List<Row> rows) {
-      return RqttQueryResponse.forHttp2(rows);
+    static FunctionalTestResponse query(final List<StreamedRow> rows) {
+      return new FunctionalTestQueryResponse(rows);
+    }
+
+    static FunctionalTestResponse rowQuery(final List<Row> rows) {
+      return FunctionalTestQueryResponse.forHttp2(rows);
     }
 
     void verify(
@@ -976,16 +1013,23 @@ public class RestTestExecutor implements Closeable {
     );
   }
 
-  private static class RqttAdminResponse implements RqttResponse {
+  private static class FunctionalTestAdminResponse implements FunctionalTestResponse {
 
     private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
         new TypeReference<Map<String, Object>>() {
         };
 
     private final KsqlEntity entity;
+    private final ExecuteStatementResult http2Result;
 
-    RqttAdminResponse(final KsqlEntity entity) {
+    FunctionalTestAdminResponse(final ExecuteStatementResult result) {
+      this.entity = null;
+      this.http2Result = requireNonNull(result, "result");
+    }
+
+    FunctionalTestAdminResponse(final KsqlEntity entity) {
       this.entity = requireNonNull(entity, "entity");
+      this.http2Result = null;
     }
 
     @SuppressWarnings("unchecked")
@@ -996,6 +1040,17 @@ public class RestTestExecutor implements Closeable {
         final List<String> statements,
         final int idx
     ) {
+      if (entity != null) {
+        verifyHttp1(expectedType, expectedPayload, statements, idx);
+      } else if (http2Result != null){
+        verifyHttp2(expectedType, expectedPayload, statements, idx);
+      } else {
+        throw new IllegalStateException("got neither an HTTP/1 nor an HTTP/2 response");
+      }
+    }
+
+    private void verifyHttp1(final String expectedType, final Object expectedPayload,
+        final List<String> statements, final int idx) {
       assertThat("Expected admin response", expectedType, is("admin"));
       assertThat("Admin payload should be JSON object", expectedPayload, is(instanceOf(Map.class)));
 
@@ -1006,10 +1061,19 @@ public class RestTestExecutor implements Closeable {
       matchResponseFields(actualPayload, expected, statements, idx,
           "responses[" + idx + "]->admin");
     }
+
+    private void verifyHttp2(final String expectedType, final Object expectedPayload,
+        final List<String> statements, final int idx) {
+      assertThat("Expected admin response", expectedType, is("admin"));
+      assertThat("Admin payload should be JSON object", expectedPayload, is(instanceOf(Map.class)));
+
+      // TODO: the expected response for these queries is _completely_ different versus HTTP/1
+      // For now, we will just accept any non-error response for any expected admin response.
+    }
   }
 
   @VisibleForTesting
-  static class RqttQueryResponse implements RqttResponse {
+  static class FunctionalTestQueryResponse implements FunctionalTestResponse {
 
     private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
         new TypeReference<Map<String, Object>>() {
@@ -1020,18 +1084,18 @@ public class RestTestExecutor implements Closeable {
     private final List<StreamedRow> rows;
     private final List<Row> http2rows;
 
-    private RqttQueryResponse(final List<StreamedRow> rows, final List<Row> http2rows) {
+    private FunctionalTestQueryResponse(final List<StreamedRow> rows, final List<Row> http2rows) {
       this.rows = rows;
       this.http2rows = http2rows;
     }
 
-    RqttQueryResponse(final List<StreamedRow> rows) {
+    FunctionalTestQueryResponse(final List<StreamedRow> rows) {
       this.rows = requireNonNull(rows, "rows");
       this.http2rows = null;
     }
 
-    public static RqttQueryResponse forHttp2(final List<Row> rows) {
-      return new RqttQueryResponse(null, requireNonNull(rows, "rows"));
+    public static FunctionalTestQueryResponse forHttp2(final List<Row> rows) {
+      return new FunctionalTestQueryResponse(null, requireNonNull(rows, "rows"));
     }
 
     @SuppressWarnings("unchecked")

@@ -33,7 +33,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
-class RestTestCase implements Test {
+class KsqlDBFunctionalTestCase implements Test {
 
   private final TestLocation location;
   private final String name;
@@ -44,11 +44,13 @@ class RestTestCase implements Test {
   private final ImmutableList<String> statements;
   private final ImmutableList<Response> responses;
   private final Optional<Matcher<RestResponse<?>>> expectedError;
+  // a duplicate of expectedError that just includes the metadata, since
+  // the other field only applies to HTTP/1 responses.
   private final Optional<ExpectedErrorNode> expectedErrorNode;
   private final Optional<InputConditions> inputConditions;
   private final Boolean enabledHttp2;
 
-  RestTestCase(
+  KsqlDBFunctionalTestCase(
       final TestLocation location,
       final String name,
       final Map<String, Object> properties,

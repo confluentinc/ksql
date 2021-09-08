@@ -56,11 +56,35 @@ public final class SystemColumns {
       WINDOWEND_NAME
   );
 
+  private static final Set<ColumnName> PSEUDO_COLUMN_VERSION_ZERO_NAMES
+      = ImmutableSet.<ColumnName>builder()
+      .add(ROWTIME_NAME)
+      .build();
+
+  private static final Set<ColumnName> PSEUDO_COLUMN_VERSION_ONE_NAMES
+      = ImmutableSet.<ColumnName>builder()
+      .addAll(PSEUDO_COLUMN_VERSION_ZERO_NAMES)
+      .add(ROWPARTITION_NAME)
+      .add(ROWOFFSET_NAME)
+      .build();
+
+  private static final Map<Integer, Set<ColumnName>> PSEUDO_COLUMN_NAMES_BY_VERSION =
+      ImmutableMap.of(
+          0, PSEUDO_COLUMN_VERSION_ZERO_NAMES,
+          1, PSEUDO_COLUMN_VERSION_ONE_NAMES
+      );
+
+  private static final Set<ColumnName> MUST_BE_MATERIALIZED_FOR_TABLE_JOINS =
+      ImmutableSet.of(
+          ROWPARTITION_NAME,
+          ROWOFFSET_NAME
+      );
+
   private static final Map<Integer, Set<ColumnName>> SYSTEM_COLUMN_NAMES_BY_VERSION =
       ImmutableMap.of(
-      0, buildColumns(0),
-      1, buildColumns(1)
-  );
+          0, buildColumns(0),
+          1, buildColumns(1)
+      );
 
   private SystemColumns() {
   }
@@ -87,7 +111,11 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
-    return PseudoColumns.getPseudoColumnNamesByVersion(pseudoColumnVersion);
+    if (!PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
+      throw new KsqlException(
+          "Provided pseudoColumnVersion has no corresponding columns defined");
+    }
+    return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
   }
 
   public static Set<ColumnName> pseudoColumnNames() {
@@ -115,7 +143,7 @@ public final class SystemColumns {
   }
 
   public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
-    return PseudoColumns.MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
+    return MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
   }
 
   private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {
@@ -123,46 +151,5 @@ public final class SystemColumns {
         .addAll(pseudoColumnNames(pseudoColumnVersion))
         .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
         .build();
-  }
-
-  private static class PseudoColumns {
-
-    private static final Set<ColumnName> VERSION_ZERO_NAMES;
-    private static final Set<ColumnName> VERSION_ONE_NAMES;
-
-    static {
-      final ImmutableSet.Builder<ColumnName> versionZeroBuilder = ImmutableSet.builder();
-      VERSION_ZERO_NAMES = versionZeroBuilder
-          .add(ROWTIME_NAME)
-          .build();
-
-      final ImmutableSet.Builder<ColumnName> versionOneBuilder = ImmutableSet.builder();
-      VERSION_ONE_NAMES = versionOneBuilder
-          .addAll(VERSION_ZERO_NAMES)
-          .add(ROWPARTITION_NAME)
-          .add(ROWOFFSET_NAME)
-          .build();
-    }
-
-    private static final Map<Integer, Set<ColumnName>> PSEUDO_COLUMN_NAMES_BY_VERSION =
-        ImmutableMap.of(
-            0, VERSION_ZERO_NAMES,
-            1, VERSION_ONE_NAMES
-        );
-
-    private static final Set<ColumnName> MUST_BE_MATERIALIZED_FOR_TABLE_JOINS =
-        ImmutableSet.of(
-            ROWPARTITION_NAME,
-            ROWOFFSET_NAME
-        );
-
-    private static Set<ColumnName> getPseudoColumnNamesByVersion(final int pseudoColumnVersion) {
-      if (!PSEUDO_COLUMN_NAMES_BY_VERSION.containsKey(pseudoColumnVersion)) {
-        throw new KsqlException(
-            "Provided pseudoColumnVersion has no corresponding columns defined");
-      }
-      return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
-    }
-
   }
 }

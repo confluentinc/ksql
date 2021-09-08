@@ -33,8 +33,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -236,10 +236,17 @@ public class RestTestExecutor implements Closeable {
         }
       }
 
-      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
-          postQueryHeaderRunnable, client);
+      // TODO also test INSERT
+      final List<RqttResponse> queryResults = sendQueryStatements(
+          testCase,
+          statements.queries,
+          postQueryHeaderRunnable,
+          client);
       if (!queryResults.isEmpty()) {
-        failIfExpectingError(testCase);
+        testCase.expectedError().map(ee -> {
+          throw new AssertionError("Expected last statement to return an error: "
+              + StringDescription.toString(ee) + " but was" + queryResults);
+        });
       }
 
       final List<RqttResponse> responses = ImmutableList.<RqttResponse>builder()
@@ -478,7 +485,7 @@ public class RestTestExecutor implements Closeable {
       final Client client) {
 
     try {
-      return Optional.of(client.executeQuery(sql).get());
+      return Optional.of(client.executeQuery(sql, testCase.getProperties()).get());
     } catch (final InterruptedException | ExecutionException e) {
       if (e.getCause() == null || e.getCause() instanceof KsqlClientException) {
         handleErrorResponse(testCase, (KsqlClientException) e.getCause());
@@ -1117,7 +1124,20 @@ public class RestTestExecutor implements Closeable {
         );
 
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
-        final List<?> list = http2rows.get(i).values().getList();
+        final Row row = http2rows.get(i);
+
+        if (headerRow != null) {
+          final Map<String, String> header = (Map<String, String>) headerRow.get("header");
+          final String schema = header.get("schema");
+          final String[] split = schema.split(",");
+          final List<String> columnNames = row.columnNames();
+          final List<ColumnType> columnTypes = row.columnTypes();
+          for (int schemaIdx = 0; schemaIdx < split.length; schemaIdx++) {
+            assertThat(split[schemaIdx], containsString(columnNames.get(schemaIdx)));
+            assertThat(split[schemaIdx], containsString(columnTypes.get(schemaIdx).getType().name()));
+          }
+        }
+        final List<?> list = row.values().getList();
         final ImmutableMap<String, ImmutableMap<String, ? extends List<?>>> actualJsonable =
             ImmutableMap.of("row", ImmutableMap.of("columns", list));
         final Map<String, Object> actual = asJson(actualJsonable, PAYLOAD_TYPE);

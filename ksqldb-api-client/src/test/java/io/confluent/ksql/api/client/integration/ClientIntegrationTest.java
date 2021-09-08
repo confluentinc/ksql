@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -45,6 +46,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.ConnectorDescription;
@@ -907,6 +909,66 @@ public class ClientIntegrationTest {
     // Then
     verifyNumStreams(numInitialStreams);
     assertThat(dropStreamResult.queryId(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldExecuteExplainStatements() throws Exception {
+    // Given
+    final String streamName = TEST_STREAM + "_COPY";
+    final String csas = "create stream " + streamName + " as select * from " + TEST_STREAM + " emit changes;";
+
+    final int numInitialStreams = 3;
+    final int numInitialQueries = 1;
+    verifyNumStreams(numInitialStreams);
+    verifyNumQueries(numInitialQueries);
+
+    // When: create stream, start persistent query
+    final ExecuteStatementResult csasResult = client.executeStatement(csas).get();
+
+    // Then
+    verifyNumStreams(numInitialStreams + 1);
+    verifyNumQueries(numInitialQueries + 1);
+    assertThat(csasResult.queryId(), is(Optional.of(findQueryIdForSink(streamName))));
+
+    // When: terminate persistent query
+    final String queryId = csasResult.queryId().get();
+    final ExecuteStatementResult terminateResult =
+        client.executeStatement("terminate " + queryId + ";").get();
+
+    // Then
+    verifyNumQueries(numInitialQueries);
+    assertThat(terminateResult.queryId(), is(Optional.empty()));
+
+    // When: drop stream
+    final ExecuteStatementResult dropStreamResult =
+        client.executeStatement("drop stream " + streamName + ";").get();
+
+    // Then
+    verifyNumStreams(numInitialStreams);
+    assertThat(dropStreamResult.queryId(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldExecutePlainHttpRequests() throws Exception {
+    HttpResponse response = client.sendRequest(Client.buildRequest().get().path("/info")).get();
+    assertEquals(200, response.status());
+    Map<String, Map<String, Object>> info = response.payloadAsMap();
+
+    // Given:
+    final String expectedClusterId = REST_APP.getServiceContext().getAdminClient().describeCluster().clusterId().get();
+
+    // When:
+    final ServerInfo serverInfo = client.serverInfo().get();
+
+    // Then:
+    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
+    assertThat(serverInfo.getKsqlServiceId(), is("default_"));
+    assertThat(serverInfo.getKafkaClusterId(), is(expectedClusterId));
+
+    assertThat(info.get("KsqlServerInfo").get("version"), is(serverInfo.getServerVersion()));
+    assertThat(info.get("KsqlServerInfo").get("ksqlServiceId"), is(serverInfo.getKsqlServiceId()));
+    assertThat(info.get("KsqlServerInfo").get("kafkaClusterId"), is(serverInfo.getKafkaClusterId()));
+    assertThat(info.get("KsqlServerInfo").get("serverStatus"), is("RUNNING"));
   }
 
   @Test

@@ -56,6 +56,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -455,6 +456,29 @@ public class ClientImpl implements Client {
     );
   }
 
+  public CompletableFuture<HttpResponse> sendRequest(HttpRequest request) {
+    Objects.requireNonNull(request);
+    Objects.requireNonNull(request.method(), "HTTP method may not be null.");
+    Objects.requireNonNull(request.path(), "Illegal request for HTTP request to null path.");
+    final CompletableFuture<HttpResponse> cf = new CompletableFuture<>();
+
+    Map<String, Object> payload = request.payload();
+    // include session varibles specified in client object
+    payload.put("sessionVariables", sessionVariables);
+    JsonObject jsonPayload = new JsonObject(payload);
+
+    makeRequest(
+        request.path(),
+        jsonPayload.toBuffer(),
+        cf,
+        response -> handleResponse(response, cf),
+        true,
+        HttpMethod.valueOf(request.method().toUpperCase(Locale.ROOT))
+    );
+
+    return cf;
+  }
+
   private <T extends CompletableFuture<?>> void makeGetRequest(
       final String path,
       final JsonObject requestBody,
@@ -596,6 +620,16 @@ public class ClientImpl implements Client {
     } else {
       handleErrorResponse(response, cf);
     }
+  }
+
+  static void handleResponse(
+      final HttpClientResponse httpResponse,
+      final CompletableFuture<HttpResponse> cf
+  ) {
+    httpResponse.bodyHandler(
+        buffer -> cf.complete(new HttpResponseImpl(httpResponse.statusCode(), buffer.getBytes()))
+    );
+    httpResponse.exceptionHandler(cf::completeExceptionally);
   }
 
   private static <T extends CompletableFuture<?>> void handleErrorResponse(

@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
+import io.confluent.ksql.api.client.impl.HttpRequestImpl;
 import io.vertx.core.Vertx;
 import java.io.Closeable;
 import java.util.List;
@@ -282,6 +283,16 @@ public interface Client extends Closeable {
   CompletableFuture<ConnectorDescription> describeConnector(String connectorName);
 
   /**
+   * Make an HTTP request to ksqldb server and return its reponse.
+   *
+   * @param request a {@link HttpRequest} object set up to construct an HTTP request.
+   *
+   * @return a future that completes with a {@link HttpResponse} if the http request completes
+   * or throws an exception for low level network errors
+   */
+  CompletableFuture<HttpResponse> sendRequest(HttpRequest request);
+
+  /**
    * Define a session variable which can be referenced in sql commands by wrapping the variable name
    * with {@code ${}}.
    *
@@ -319,4 +330,106 @@ public interface Client extends Closeable {
   static Client create(ClientOptions clientOptions, Vertx vertx) {
     return new ClientImpl(clientOptions, vertx);
   }
+
+  static HttpRequest buildRequest() {
+    return new HttpRequestImpl();
+  }
+
+  interface HttpRequest {
+
+    /**
+     * Execute an HTTP GET request.
+     * @return this instance of {@link HttpRequest}
+     */
+    default HttpRequest get() {
+      return method("GET");
+    }
+
+    /**
+     * Execute an HTTP POST request
+     * @return this instance of {@link HttpRequest}
+     */
+    default HttpRequest post() {
+      return method("POST");
+    }
+
+    /**
+     * Execute an HTTP PUT request
+     * @return this instance of {@link HttpRequest}
+     */
+    default HttpRequest put() {
+      return method("PUT");
+    }
+
+    /**
+     * Execute an HTTP DELETE request
+     * @return this instance of {@link HttpRequest}
+     */
+    default HttpRequest delete() {
+      return method("DELETE");
+    }
+
+    /**
+     * Set the HTTP verb for this request.
+     *
+     * @param method the http verb (for example, "get", "put"). the input is case-sensitive and may
+     *               not be null.
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest method(String method);
+
+    /**
+     * Set the URL path for this request.
+     *
+     * @param path a non-null URL path
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest path(String path);
+
+    /**
+     * Add a key and value in the payload map. If an entry already exists with this key, it is
+     * replaced.
+     *
+     * @param key a String key
+     * @param value the value
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest payload(String key, Object value);
+
+    /**
+     * Add all entries from the input map into the payload map. If any of the entries already
+     * exist, it is replaced with the new one.
+     *
+     * @param payload a non-null input map
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest payload(Map<String, Object> payload);
+
+    /**
+     * @return a non-null payload map constructed so far for this request.
+     */
+    Map<String, Object> payload();
+
+    /**
+     * @return the URL path for this request. may be null, if {@link #path(String)} has not been
+     * successfully invoked.
+     */
+    String path();
+
+    /**
+     * @return the HTTP method this request will execute. may be null, if {@link #method(String)}
+     * has not been successfully invoked.
+     */
+    String method();
+  }
+
+  interface HttpResponse {
+
+    int status();
+
+    byte[] payloadAsBytes();
+
+    <T> Map<String, T> payloadAsMap();
+  }
+
 }

@@ -56,7 +56,6 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
-import sun.tools.jconsole.Tab;
 
 final class SourceBuilderV1 extends SourceBuilderBase {
 

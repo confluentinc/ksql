@@ -149,7 +149,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static WindowedTableSource tableSourceWindowedV1(
+  public static WindowedTableSource tableSourceWindowed(
       final QueryContext.Stacker stacker,
       final LogicalSchema sourceSchema,
       final String topicName,

@@ -21,17 +21,15 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import javax.annotation.Nonnull;
 
 @Immutable
 public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
 
-  final Formats stateStoreVersion;
+  final Formats stateStoreFormats;
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
@@ -39,7 +37,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
       new Property("topicName", s -> ((TableSource) s).topicName),
       new Property("formats", s -> ((TableSource) s).formats),
       new Property("timestampColumn", s -> ((TableSource) s).timestampColumn),
-      new Property("stateStoreSchema", s -> ((TableSource) s).timestampColumn)
+      new Property("stateStoreFormats", s -> ((TableSource) s).stateStoreFormats)
   );
 
   public TableSource(
@@ -48,8 +46,8 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion,
-      @JsonProperty("stateStoreVersion") final Formats stateStoreVersion
+      @JsonProperty("pseudoColumnVersion") final int pseudoColumnVersion,
+      @JsonProperty("stateStoreFormats") final Formats stateStoreFormats
   ) {
     super(
         props,
@@ -57,14 +55,13 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        pseudoColumnVersion.orElseThrow(() -> new IllegalStateException(
-            "V2 TableSource should always have a pseudocolumn version serialized"))
+        pseudoColumnVersion
     );
-    this.stateStoreVersion = stateStoreVersion;
+    this.stateStoreFormats = stateStoreFormats;
   }
 
-  public Formats getStateStoreVersion() {
-    return stateStoreVersion;
+  public Formats getStateStoreFormats() {
+    return stateStoreFormats;
   }
 
   @Override
@@ -113,7 +110,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(sourceSchema, that.sourceSchema)
         && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion)
-        && Objects.equals(stateStoreVersion, that.stateStoreVersion);
+        && Objects.equals(stateStoreFormats, that.stateStoreFormats);
   }
 
   @Override
@@ -125,6 +122,6 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         timestampColumn,
         sourceSchema,
         pseudoColumnVersion,
-        stateStoreVersion);
+        stateStoreFormats);
   }
 }

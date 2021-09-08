@@ -227,7 +227,7 @@ final class SourceBuilder extends SourceBuilderBase {
         formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
         : KeyFormat.nonWindowed(formatInfo, serdeFeatures);
 
-    final Formats format = ((TableSource) streamSource).getStateStoreVersion();
+    final Formats format = ((TableSource) streamSource).getStateStoreFormats();
 
     //we currently don't materialize partition and offset to get them downstream for windowed
     //tables, so act accordingly here

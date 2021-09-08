@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -40,12 +40,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.junit.Before;
@@ -64,7 +64,6 @@ public class SchemaKSourceFactoryTest {
       .build();
 
   private static final String TOPIC_NAME = "fred";
-  private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
   @Mock
   private PlanBuildContext buildContext;
@@ -88,6 +87,8 @@ public class SchemaKSourceFactoryTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private WindowInfo windowInfo;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
@@ -100,7 +101,7 @@ public class SchemaKSourceFactoryTest {
 
     when(contextStacker.getQueryContext()).thenReturn(queryContext);
 
-    when(buildContext.getKsqlConfig()).thenReturn(CONFIG);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
 
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
@@ -176,12 +177,10 @@ public class SchemaKSourceFactoryTest {
   }
 
   @Test
-  public void shouldBuildNonWindowedTable() {
+  public void shouldBuildV1NonWindowedTable() {
     // Given:
-    when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(keyFormat.isWindowed()).thenReturn(false);
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
-    when(keyFormat.getFormatInfo().getFormat()).thenReturn("asdf");
+    setUpForNonWindowedTable();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -198,10 +197,59 @@ public class SchemaKSourceFactoryTest {
     assertThat(result.getSourceStep().getSources(), is(empty()));
   }
 
+  @Test
+  public void shouldBuildV2NonWindowedTable() {
+    // Given:
+    setUpForNonWindowedTable();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+
+    // When:
+    final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
+        buildContext,
+        dataSource,
+        contextStacker
+    );
+
+    // Then:
+    assertThat(result, instanceOf(SchemaKTable.class));
+    assertThat(result.getSourceStep(), instanceOf(TableSource.class));
+
+    assertValidSchema(result);
+    assertThat(result.getSourceStep().getSources(), is(empty()));
+  }
+
+  @Test
+  public void shouldBuildCorrectFormatsForV2NonWindowedTable() {
+    // Given:
+    setUpForNonWindowedTable();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+
+    // When:
+    final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
+        buildContext,
+        dataSource,
+        contextStacker
+    );
+
+    // Then:
+    assertThat(((TableSource) result.getSourceStep()).getStateStoreFormats(), is(
+        InternalFormats.of(
+            keyFormat,
+            valueFormatInfo
+        )
+    ));
+  }
+
+  private void setUpForNonWindowedTable() {
+    when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(keyFormat.getFormatInfo().getFormat()).thenReturn("JSON");
+  }
+
   private void assertValidSchema(final SchemaKStream<?> result) {
     assertThat(
         result.getSchema(),
-        is(new StepSchemaResolver(CONFIG, functionRegistry).resolve(result.getSourceStep(), SCHEMA))
+        is(new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(result.getSourceStep(), SCHEMA))
     );
   }
 }

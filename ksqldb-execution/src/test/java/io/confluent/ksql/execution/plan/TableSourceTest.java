@@ -49,32 +49,32 @@ public class TableSourceTest {
     new EqualsTester()
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0), formats1),
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, 0, formats1),
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0), formats1),
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, 0, formats1),
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.empty(), formats1))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, 0, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0), formats1))
+                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, 0, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(0), formats1))
+                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, 0, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, OptionalInt.of(0), formats1))
+                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, 0, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, OptionalInt.of(0), formats1))
+                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, 0, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, OptionalInt.of(0), formats1))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, 0, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, OptionalInt.of(1), formats1))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, 1, formats1))
         .addEqualityGroup(
             new TableSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, OptionalInt.of(0), formats2))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, 0, formats2))
         .testEquals();
   }
 }

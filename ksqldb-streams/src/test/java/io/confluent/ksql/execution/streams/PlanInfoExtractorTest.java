@@ -81,7 +81,7 @@ public class PlanInfoExtractorTest {
         formats,
         Optional.empty(),
         schema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER),
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
         formats
     );
     streamSourceRepartitioned = new StreamSelectKey<>(

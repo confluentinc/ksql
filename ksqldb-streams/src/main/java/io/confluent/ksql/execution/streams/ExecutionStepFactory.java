@@ -138,7 +138,7 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
-      final Formats stateStoreFormat
+      final Formats stateStoreFormats
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSource(
@@ -147,8 +147,8 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER),
-        stateStoreFormat
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
+        stateStoreFormats
     );
   }
 

@@ -23,10 +23,12 @@ import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getPhysical
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.tableChangeLogOpName;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.windowedKeyGenerator;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -35,7 +37,7 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -54,6 +56,7 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.state.KeyValueStore;
+import sun.tools.jconsole.Tab;
 
 final class SourceBuilderV1 extends SourceBuilderBase {
 
@@ -148,6 +151,70 @@ final class SourceBuilderV1 extends SourceBuilderBase {
     );
   }
 
+  KTableHolder<Windowed<GenericKey>> buildWindowedTable(
+      final RuntimeBuildContext buildContext,
+      final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
+      final ConsumedFactory consumedFactory,
+      final MaterializedFactory materializedFactory,
+      final PlanInfo planInfo
+  ) {
+    final PhysicalSchema physicalSchema = getPhysicalSchema(source);
+
+    final Serde<GenericRow> valueSerde = getValueSerde(buildContext, source, physicalSchema);
+
+    final WindowInfo windowInfo;
+
+    if (source instanceof WindowedTableSource) {
+      windowInfo = ((WindowedTableSource) source).getWindowInfo();
+    } else {
+      throw new IllegalArgumentException("Expected a version of WindowedTableSource");
+    }
+
+    final Serde<Windowed<GenericKey>> keySerde = SourceBuilderUtils.getWindowedKeySerde(
+        source,
+        physicalSchema,
+        buildContext,
+        windowInfo
+    );
+
+    final Consumed<Windowed<GenericKey>, GenericRow> consumed = buildSourceConsumed(
+        source,
+        keySerde,
+        valueSerde,
+        AutoOffsetReset.EARLIEST,
+        buildContext,
+        consumedFactory
+    );
+
+    final String stateStoreName = tableChangeLogOpName(source.getProperties());
+
+    final Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>> materialized
+        = buildWindowedTableMaterialized(
+        materializedFactory,
+        keySerde,
+        valueSerde,
+        stateStoreName
+    );
+
+    final KTable<Windowed<GenericKey>, GenericRow> ktable = buildWindowedKTable(
+        source,
+        buildContext,
+        consumed,
+        windowedKeyGenerator(source.getSourceSchema()),
+        materialized,
+        valueSerde,
+        stateStoreName,
+        planInfo
+    );
+
+    return KTableHolder.materialized(
+        ktable,
+        buildSchema(source, true),
+        ExecutionKeyFactory.windowed(buildContext, windowInfo),
+        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
+    );
+  }
+
   @Override
   public Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
       final SourceStep<KTableHolder<GenericKey>> source,
@@ -164,11 +231,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
     );
   }
 
-  @Override
   public Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
       buildWindowedTableMaterialized(
-      final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
-      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final Serde<Windowed<GenericKey>> keySerde,
       final Serde<GenericRow> valueSerde,
@@ -239,7 +303,6 @@ final class SourceBuilderV1 extends SourceBuilderBase {
             keyGenerator, streamSource.getPseudoColumnVersion()));
   }
 
-  @Override
   <K> KTable<K, GenericRow> buildWindowedKTable(
       final SourceStep<?> streamSource,
       final RuntimeBuildContext buildContext,
@@ -285,11 +348,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
 
   private static void validateNotUsingOldExecutionStepWithNewQueries(
       final SourceStep<?> streamSource) {
-    final boolean oldTable =
-        streamSource instanceof TableSourceV1
-            || streamSource instanceof  WindowedTableSourceV1;
 
-    if (oldTable && streamSource.getPseudoColumnVersion() != 0) {
+    if (streamSource instanceof TableSourceV1 && streamSource.getPseudoColumnVersion() != 0) {
       throw new KsqlException("Should not be using old execution step version with new queries");
     }
   }

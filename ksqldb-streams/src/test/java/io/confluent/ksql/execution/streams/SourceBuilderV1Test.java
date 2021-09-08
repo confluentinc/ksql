@@ -51,7 +51,7 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
+import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -208,7 +208,7 @@ public class SourceBuilderV1Test {
   private StreamSource streamSource;
   private WindowedStreamSource windowedStreamSource;
   private TableSourceV1 tableSourceV1;
-  private WindowedTableSourceV1 windowedTableSourceV1;
+  private WindowedTableSource windowedTableSource;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -426,10 +426,10 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldUseOffsetResetEarliestForWindowedTable() {
     // Given:
-    givenWindowedSourceTableV1(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenWindowedSourceTable(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
 
     // When
-    windowedTableSourceV1.build(planBuilder, planInfo);
+    windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -475,7 +475,7 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldReturnCorrectSchemaForUnwindowedSourceTable() {
+  public void shouldReturnCorrectSchemaForLegacyUnwindowedSourceTable() {
     // Given:
     givenUnwindowedSourceTableV1(true, LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
 
@@ -487,7 +487,7 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldThrowOnAttemptToCreateLegacyUnwindowedTable() {
+  public void shouldThrowOnAttemptToCreateV1UnwindowedTableWithNewPseudoColumnVersion() {
     // Given:
     givenUnwindowedSourceTableV1(true, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
@@ -544,6 +544,18 @@ public class SourceBuilderV1Test {
   }
 
   @Test
+  public void shouldReturnCorrectSchemaForWindowedSourceTable() {
+    // Given:
+    givenWindowedSourceTable();
+
+    // When:
+    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder, planInfo);
+
+    // Then:
+    assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA_WITH_V1_PSEUDOCOLUMNS));
+  }
+
+  @Test
   public void shouldReturnCorrectSchemaForLegacyWindowedSourceStream() {
     // Given:
     givenWindowedSourceStream(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
@@ -556,28 +568,12 @@ public class SourceBuilderV1Test {
   }
 
   @Test
-  public void shouldThrowOnAttemptToCreateLegacyWindowedTable() {
-    // Given:
-    givenWindowedSourceTableV1(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> windowedTableSourceV1.build(planBuilder, planInfo)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Should not be using old execution step version with new queries"));
-  }
-
-  @Test
   public void shouldReturnCorrectSchemaForLegacyWindowedSourceTable() {
     // Given:
-    givenWindowedSourceTableV1(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenWindowedSourceTable(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSourceV1
+    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource
         .build(planBuilder, planInfo);
 
     // Then:
@@ -867,9 +863,9 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldAddRowTimeAndTimeWindowedRowKeyColumnsToLegacyTable() {
     // Given:
-    givenWindowedSourceTableV1(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenWindowedSourceTable(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSourceV1);
+        getTransformerFromTableSource(windowedTableSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -928,9 +924,9 @@ public class SourceBuilderV1Test {
   @Test
   public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToTableLegacy() {
     // Given:
-    givenWindowedSourceTableV1(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    givenWindowedSourceTable(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
     final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromTableSource(windowedTableSourceV1);
+        getTransformerFromTableSource(windowedTableSource);
 
     final Windowed<GenericKey> key = new Windowed<>(
         KEY,
@@ -1055,7 +1051,8 @@ public class SourceBuilderV1Test {
         OptionalInt.of(pseudoColumnVersion)
     );
   }
-  private void givenWindowedSourceStream() {
+  private void
+  givenWindowedSourceStream() {
     givenWindowedSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
@@ -1093,11 +1090,11 @@ public class SourceBuilderV1Test {
     givenMultiColumnSourceStream(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
   }
 
-  private void givenWindowedSourceTableV1(final int pseudoColumnVersion) {
+  private void givenWindowedSourceTable(final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
-    windowedTableSourceV1 = new WindowedTableSourceV1(
+    windowedTableSource = new WindowedTableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
@@ -1108,7 +1105,12 @@ public class SourceBuilderV1Test {
     );
   }
 
-  private void givenUnwindowedSourceTableV1(
+  private void givenWindowedSourceTable() {
+    givenWindowedSourceTable(ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
+  }
+
+
+    private void givenUnwindowedSourceTableV1(
       final Boolean forceChangelog, final int pseudoColumnVersion) {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);

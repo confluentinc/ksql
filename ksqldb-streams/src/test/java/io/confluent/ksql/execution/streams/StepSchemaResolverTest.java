@@ -55,7 +55,6 @@ import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSourceV1;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -596,7 +595,7 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForWindowedTableSourceV1() {
     // Given:
-    final WindowedTableSourceV1 step = new WindowedTableSourceV1(
+    final WindowedTableSource step = new WindowedTableSource(
         PROPERTIES,
         "foo",
         formats,

@@ -32,12 +32,14 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 public class DataSourceExtractorTest {
 
@@ -53,9 +55,12 @@ public class DataSourceExtractorTest {
 
   private DataSourceExtractor extractor;
 
+  @Mock
+  private KsqlConfig ksqlConfig;
+
   @Before
   public void setUp() {
-    extractor = new DataSourceExtractor(META_STORE);
+    extractor = new DataSourceExtractor(META_STORE, ksqlConfig);
   }
 
   @Test
@@ -210,7 +215,7 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    SystemColumns.pseudoColumnNames().forEach(pseudoCol ->
+    SystemColumns.pseudoColumnNames(ksqlConfig).forEach(pseudoCol ->
         assertThat(pseudoCol + " should clash", extractor.isClashingColumnName(pseudoCol))
     );
   }

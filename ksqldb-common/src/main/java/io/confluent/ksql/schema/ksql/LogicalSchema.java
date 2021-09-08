@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
+import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
@@ -38,6 +39,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DuplicateColumnException;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -155,6 +157,18 @@ public final class LogicalSchema {
     return withPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
+  public LogicalSchema withPseudoAndKeyColsInValue(
+      final boolean windowed,
+      final KsqlConfig ksqlConfig
+  ) {
+    return withPseudoAndKeyColsInValue(
+        windowed,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+            ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+            : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER
+    );
+  }
+
   /**
    * Remove pseudo and key columns from the value schema, according to the pseudocolumn version
    *
@@ -172,6 +186,14 @@ public final class LogicalSchema {
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
     return withoutPseudoAndKeyColsInValue(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  }
+
+  public LogicalSchema withoutPseudoAndKeyColsInValue(final KsqlConfig ksqlConfig) {
+    return withoutPseudoAndKeyColsInValue(
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER
+    );
   }
 
   /**

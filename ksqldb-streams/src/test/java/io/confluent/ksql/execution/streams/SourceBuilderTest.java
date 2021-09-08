@@ -126,8 +126,6 @@ public class SourceBuilderTest {
       )
   );
 
-  private static final long A_WINDOW_START = 10L;
-  private static final long A_WINDOW_END = 20L;
   private static final long A_ROWTIME = 456L;
   private static final int A_ROWPARTITION = 789;
   private static final long A_ROWOFFSET = 123;
@@ -204,7 +202,7 @@ public class SourceBuilderTest {
     when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
-    when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
+    when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream); //todo: remove
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class), any(Materialized.class))).thenReturn(kTable);
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);

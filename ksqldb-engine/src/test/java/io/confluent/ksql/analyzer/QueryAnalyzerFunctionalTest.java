@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -30,12 +31,15 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.io.File;
 import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 /**
  * DO NOT ADD NEW TESTS TO THIS FILE
@@ -47,10 +51,19 @@ import org.junit.Test;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerFunctionalTest {
 
+  @Mock
+  private KsqlConfig ksqlConfig;
+
+  @Before
+  public void setup() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED))
+        .thenReturn(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_DEFAULT);
+  }
+
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~");
+      new QueryAnalyzer(metaStore, "prefix-~", ksqlConfig);
 
   @Test
   public void shouldAnalyseTableFunctions() {

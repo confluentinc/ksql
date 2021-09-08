@@ -27,9 +27,11 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 public class SourceSchemasTest {
 
@@ -59,20 +61,23 @@ public class SourceSchemasTest {
 
   private SourceSchemas sourceSchemas;
 
+  @Mock
+  private KsqlConfig ksqlConfig;
+
   @Before
   public void setUp() {
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2));
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ksqlConfig);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnNoSchemas() {
-    new SourceSchemas(ImmutableMap.of());
+    new SourceSchemas(ImmutableMap.of(), ksqlConfig);
   }
 
   @Test
   public void shouldNotBeJoinIfSingleSchema() {
     // When:
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1));
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1), ksqlConfig);
 
     // Then:
     assertThat(sourceSchemas.isJoin(), is(false));
@@ -81,7 +86,7 @@ public class SourceSchemasTest {
   @Test
   public void shouldBeJoinIfMultipleSchemas() {
     // When:
-    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2));
+    sourceSchemas = new SourceSchemas(ImmutableMap.of(ALIAS_1, SCHEMA_1, ALIAS_2, SCHEMA_2), ksqlConfig);
 
     // Then:
     assertThat(sourceSchemas.isJoin(), is(true));

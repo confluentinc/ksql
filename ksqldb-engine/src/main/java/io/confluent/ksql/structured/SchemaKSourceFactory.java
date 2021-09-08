@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -93,7 +94,8 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
-        dataSource.getTimestampColumn()
+        dataSource.getTimestampColumn(),
+        getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
     );
 
     return schemaKStream(
@@ -118,7 +120,8 @@ public final class SchemaKSourceFactory {
         dataSource.getSchema(),
         dataSource.getKafkaTopicName(),
         Formats.from(dataSource.getKsqlTopic()),
-        dataSource.getTimestampColumn()
+        dataSource.getTimestampColumn(),
+        getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
     );
 
     return schemaKStream(
@@ -144,7 +147,8 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
-        dataSource.getTimestampColumn()
+        dataSource.getTimestampColumn(),
+        getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
       );
 
     return schemaKTable(
@@ -172,7 +176,8 @@ public final class SchemaKSourceFactory {
           dataSource.getSchema(),
           dataSource.getKafkaTopicName(),
           Formats.from(dataSource.getKsqlTopic()),
-          dataSource.getTimestampColumn()
+          dataSource.getTimestampColumn(),
+          getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
       );
 
     } else {
@@ -181,7 +186,8 @@ public final class SchemaKSourceFactory {
           dataSource.getSchema(),
           dataSource.getKafkaTopicName(),
           Formats.from(dataSource.getKsqlTopic()),
-          dataSource.getTimestampColumn()
+          dataSource.getTimestampColumn(),
+          getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
       );
     }
 
@@ -231,5 +237,11 @@ public final class SchemaKSourceFactory {
         buildContext.getKsqlConfig(),
         buildContext.getFunctionRegistry()
     ).resolve(step, dataSource.getSchema());
+  }
+
+  private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        ? SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        : SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }
 }

@@ -43,7 +43,7 @@ public final class AnalysisTestUtil {
       final String queryStr,
       final MetaStore metaStore
   ) {
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore);
+    final Analyzer analyzer = new Analyzer(queryStr, metaStore, ksqlConfig);
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -55,9 +55,10 @@ public final class AnalysisTestUtil {
 
     private final Analysis analysis;
 
-    private Analyzer(final String queryStr, final MetaStore metaStore) {
+    private Analyzer(
+        final String queryStr, final MetaStore metaStore, final KsqlConfig ksqlConfig) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "");
+          metaStore, "", ksqlConfig);
       final Statement statement = parseStatement(queryStr, metaStore);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()

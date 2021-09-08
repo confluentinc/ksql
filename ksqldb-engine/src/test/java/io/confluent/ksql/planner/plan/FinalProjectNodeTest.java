@@ -39,6 +39,7 @@ import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
@@ -70,6 +71,8 @@ public class FinalProjectNodeTest {
   private MetaStore metaStore;
   @Mock
   private Analysis.Into into;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private List<SelectItem> selects;
   private FinalProjectNode projectNode;
@@ -92,7 +95,9 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore);
+        metaStore,
+        ksqlConfig
+    );
   }
 
   @Test
@@ -120,7 +125,9 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore);
+        metaStore,
+        ksqlConfig
+    );
 
     // Then:
     verify(source).validateColumns(RequiredColumns.builder().add(syntheticKeyRef).build());
@@ -146,7 +153,9 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore)
+            metaStore,
+            ksqlConfig
+        )
     );
 
     // Then:
@@ -166,7 +175,8 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore
+            metaStore,
+            ksqlConfig
         )
     );
 
@@ -190,7 +200,8 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore
+            metaStore,
+            ksqlConfig
         )
     );
 

@@ -22,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +50,7 @@ public final class SystemColumns {
 
   public static final int LEGACY_PSEUDOCOLUMN_VERSION_NUMBER = ROWTIME_PSEUDOCOLUMN_VERSION;
   public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER =
-      ROWTIME_PSEUDOCOLUMN_VERSION;
+      ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 
   private static final Set<ColumnName> WINDOW_BOUNDS_COLUMN_NAMES = ImmutableSet.of(
       WINDOWSTART_NAME,
@@ -106,8 +107,11 @@ public final class SystemColumns {
     return pseudoColumnNames(pseudoColumnVersion).contains(columnName);
   }
 
-  public static boolean isPseudoColumn(final ColumnName columnName) {
-    return isPseudoColumn(columnName, SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  public static boolean isPseudoColumn(
+      final ColumnName columnName,
+      final KsqlConfig ksqlConfig
+  ) {
+    return isPseudoColumn(columnName, getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
@@ -118,28 +122,24 @@ public final class SystemColumns {
     return PSEUDO_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
   }
 
-  public static Set<ColumnName> pseudoColumnNames() {
-    return pseudoColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  public static Set<ColumnName> pseudoColumnNames(final KsqlConfig ksqlConfig) {
+    return pseudoColumnNames(getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
   public static boolean isSystemColumn(final ColumnName columnName, final int pseudoColumnVersion) {
     return systemColumnNames(pseudoColumnVersion).contains(columnName);
   }
 
-  public static boolean isSystemColumn(final ColumnName columnName) {
-    return isSystemColumn(columnName, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+  public static boolean isSystemColumn(final ColumnName columnName, final KsqlConfig ksqlConfig) {
+    return isSystemColumn(columnName, getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
   @SuppressFBWarnings(
       value = "MS_EXPOSE_REP",
       justification = "SYSTEM_COLUMN_NAMES is ImmutableSet"
   )
-  public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
+  private static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
     return SYSTEM_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
-  }
-
-  public static Set<ColumnName> systemColumnNames() {
-    return systemColumnNames(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
@@ -152,4 +152,10 @@ public final class SystemColumns {
         .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
         .build();
   }
+
+    private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+      return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+          ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+          : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+    }
 }

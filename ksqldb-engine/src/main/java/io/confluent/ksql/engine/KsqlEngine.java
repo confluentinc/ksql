@@ -601,7 +601,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Query query,
       final String queryText) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "");
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig);
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

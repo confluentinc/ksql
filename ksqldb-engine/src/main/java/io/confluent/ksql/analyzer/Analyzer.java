@@ -66,6 +66,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
@@ -97,17 +98,21 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
+  private final KsqlConfig ksqlConfig;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
+   * @param ksqlConfig the config with which to identify the correct pseudocolumn version to use.
    */
   Analyzer(
       final MetaStore metaStore,
-      final String topicPrefix
+      final String topicPrefix,
+      final KsqlConfig ksqlConfig
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   /**
@@ -142,7 +147,7 @@ class Analyzer {
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.analysis = new Analysis(query.getRefinement());
+      this.analysis = new Analysis(query.getRefinement(), ksqlConfig);
       this.persistent = persistent;
     }
 
@@ -593,7 +598,7 @@ class Analyzer {
           .orElseThrow(IllegalStateException::new);
 
       if (persistent) {
-        if (SystemColumns.isSystemColumn(columnName)) {
+        if (SystemColumns.isSystemColumn(columnName, ksqlConfig)) {
           throw new KsqlException("Reserved column name in select: " + columnName + ". "
               + "Please remove or alias the column.");
         }

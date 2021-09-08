@@ -34,8 +34,10 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,15 +62,17 @@ public class AnalysisTest {
   @Mock
   private KsqlStream<?> dataSource;
   @Mock
-  private Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory;
+  private BiFunction<Map<SourceName, LogicalSchema>, KsqlConfig, SourceSchemas> sourceSchemasFactory;
   @Mock
   private WindowExpression windowExpression;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private Analysis analysis;
 
   @Before
   public void setUp() {
-    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory);
+    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, ksqlConfig);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }
@@ -87,7 +91,7 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
         SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ));
+    ), ksqlConfig);
   }
 
   @Test
@@ -104,7 +108,7 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
         SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ));
+    ), ksqlConfig);
   }
 
   @Test
@@ -122,7 +126,7 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
         SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ));
+    ), ksqlConfig);
   }
 
   @Test
@@ -139,7 +143,7 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
         SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ));
+    ), ksqlConfig);
   }
 
   @Test
@@ -156,7 +160,7 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
         SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ));
+    ), ksqlConfig);
   }
 
   @Test
@@ -174,7 +178,7 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(ImmutableMap.of(
         ALIAS,
         SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ));
+    ), ksqlConfig);
   }
 
   private static void givenNoneWindowedSource(final KsqlStream<?> dataSource) {

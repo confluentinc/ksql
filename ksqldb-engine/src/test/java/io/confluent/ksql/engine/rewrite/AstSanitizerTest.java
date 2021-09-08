@@ -43,11 +43,13 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
+import org.mockito.Mock;
 
 public class AstSanitizerTest {
 
@@ -55,6 +57,9 @@ public class AstSanitizerTest {
       .getNewMetaStore(mock(FunctionRegistry.class));
 
   private static final SourceName TEST1_NAME = SourceName.of("TEST1");
+
+  @Mock
+  private KsqlConfig ksqlConfigl;
 
   @Test
   public void shouldThrowIfSourceDoesNotExist() {
@@ -165,7 +170,7 @@ public class AstSanitizerTest {
     // When:
     final Exception e = assertThrows(
         UnsupportedOperationException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE, false)
+        () -> AstSanitizer.sanitize(stmt, META_STORE, false, ksqlConfigl)
     );
 
     // Then:

@@ -21,6 +21,7 @@ import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
@@ -706,7 +707,7 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldMatchMetaColumnName() {
-    assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME), is(true));
+    assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME, ROWTIME_PSEUDOCOLUMN_VERSION), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));
   }
 
@@ -720,7 +721,7 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldMatchKeyColumnName() {
-    assertThat(SystemColumns.isPseudoColumn(K0), is(false));
+    assertThat(SystemColumns.isPseudoColumn(K0, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(false));
     assertThat(SOME_SCHEMA.isKeyColumn(K0), is(true));
   }
 
@@ -728,14 +729,14 @@ public class LogicalSchemaTest {
   public void shouldNotMatchValueColumnsAsBeingMetaOrKeyColumns() {
     SOME_SCHEMA.value().forEach(column ->
     {
-      assertThat(SystemColumns.isPseudoColumn(column.name()), is(false));
+      assertThat(SystemColumns.isPseudoColumn(column.name(), ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(false));
       assertThat(SOME_SCHEMA.isKeyColumn(column.name()), is(false));
     });
   }
 
   @Test
   public void shouldNotMatchRandomColumnNameAsBeingMetaOrKeyColumns() {
-    assertThat(SystemColumns.isPseudoColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
+    assertThat(SystemColumns.isPseudoColumn(ColumnName.of("well_this_ain't_in_the_schema"), ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(false));
     assertThat(SOME_SCHEMA.isKeyColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
   }
 

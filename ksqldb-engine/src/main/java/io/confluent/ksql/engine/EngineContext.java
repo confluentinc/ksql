@@ -177,7 +177,8 @@ final class EngineContext {
           AstSanitizer.sanitize(
               preparedStatement.getStatement(),
               metaStore,
-              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED),
+              ksqlConfig
           ));
     } catch (final KsqlStatementException e) {
       throw e;

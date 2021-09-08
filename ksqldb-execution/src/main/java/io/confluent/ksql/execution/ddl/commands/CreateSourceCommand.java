@@ -95,7 +95,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
   }
 
   private static void validate(final LogicalSchema schema, final boolean windowed) {
-    if (schema.valueContainsAny(SystemColumns.systemColumnNames())) {
+    if (schema.valueContainsAny(SystemColumns.systemColumnNames(0))) {
       throw new IllegalArgumentException("Schema contains system columns in value schema");
     }
 

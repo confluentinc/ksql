@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -44,6 +45,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -53,6 +55,7 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
@@ -76,6 +79,9 @@ public class AnalyzerFunctionalTest {
   private Query query;
   private Analyzer analyzer;
 
+  @Mock
+  private KsqlConfig ksqlConfig;
+
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -84,11 +90,14 @@ public class AnalyzerFunctionalTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
-    analyzer = new Analyzer(jsonMetaStore, "");
+    analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
     registerKafkaSource();
+
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).
+        thenReturn(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_DEFAULT);
   }
 
 
@@ -99,7 +108,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -116,7 +125,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -132,7 +141,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ksqlConfig);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -176,7 +185,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", ksqlConfig);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -192,7 +201,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "");
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ksqlConfig);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -226,7 +235,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     // When:
     final Exception e = assertThrows(
@@ -249,7 +258,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     // When:
     final Exception e = assertThrows(
@@ -274,7 +283,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     // When:
     final Exception e = assertThrows(
@@ -297,7 +306,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     // When:
     final Exception e = assertThrows(
@@ -322,7 +331,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     // When:
     final Exception e = assertThrows(
@@ -347,7 +356,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
     // When:
     final Exception e = assertThrows(

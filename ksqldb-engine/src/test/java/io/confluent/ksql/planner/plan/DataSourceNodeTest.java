@@ -157,6 +157,8 @@ public class DataSourceNodeTest {
   private ProcessingLogger processingLogger;
   @Mock
   private Projection projection;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private DataSourceNode node;
 
@@ -196,7 +198,8 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         SOME_SOURCE,
         SOME_SOURCE.getName(),
-        false
+        false,
+        ksqlConfig
     );
   }
 
@@ -253,7 +256,8 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         table,
         table.getName(),
-        false
+        false,
+        ksqlConfig
     );
 
     // When:
@@ -455,7 +459,8 @@ public class DataSourceNodeTest {
         dataSource,
         SOURCE_NAME,
         schemaKStreamFactory,
-        false
+        false,
+        ksqlConfig
     );
   }
 

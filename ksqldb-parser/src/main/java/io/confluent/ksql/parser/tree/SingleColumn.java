@@ -46,7 +46,7 @@ public class SingleColumn extends SelectItem {
   ) {
     super(location);
 
-    SystemColumns.systemColumnNames()
+    SystemColumns.systemColumnNames(0)
         .forEach(columnName -> checkForReservedToken(expression, alias, columnName));
 
     this.expression = requireNonNull(expression, "expression");

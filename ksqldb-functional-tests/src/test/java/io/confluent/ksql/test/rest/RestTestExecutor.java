@@ -65,6 +65,8 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -72,6 +74,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1091,7 +1094,6 @@ public class RestTestExecutor implements Closeable {
 
       final List<Map<String, Object>> expectedRows = (List<Map<String, Object>>) expectedPayload;
 
-      // TODO validate headers
       final Map<String, Object> headerRow;
       if (!expectedRows.isEmpty() && expectedRows.get(0).containsKey("header")) {
         headerRow = expectedRows.remove(0);
@@ -1137,13 +1139,41 @@ public class RestTestExecutor implements Closeable {
             assertThat(split[schemaIdx], containsString(columnTypes.get(schemaIdx).getType().name()));
           }
         }
-        final List<?> list = row.values().getList();
+        final List<?> list = getConvertibleList(row.values().getList());
         final ImmutableMap<String, ImmutableMap<String, ? extends List<?>>> actualJsonable =
             ImmutableMap.of("row", ImmutableMap.of("columns", list));
         final Map<String, Object> actual = asJson(actualJsonable, PAYLOAD_TYPE);
         matchResponseFields(actual, expected, statements, idx,
             "responses[" + idx + "]->query[" + i + "]");
       }
+    }
+
+    private List<Object> getConvertibleList(final List<?> list) {
+      final List<Object> result = new ArrayList<>(list.size());
+      for (final Object o : list) {
+        result.add(getConvertible(o));
+      }
+      return result;
+    }
+
+    private Map<String, Object> getConvertibleMap(final Map<String, Object> map) {
+      final Map<String, Object> result = new LinkedHashMap<>(map.size());
+      for (final Map.Entry<String, Object> e : map.entrySet()) {
+        result.put(e.getKey(), getConvertible(e.getValue()));
+      }
+      return result;
+    }
+
+    private Object getConvertible(final Object o) {
+      final Object toAdd;
+      if (o instanceof JsonArray) {
+         toAdd = getConvertibleList(((JsonArray) o).getList());
+      } else if (o instanceof JsonObject) {
+        toAdd = getConvertibleMap(((JsonObject) o).getMap());
+      } else {
+        toAdd = o;
+      }
+      return toAdd;
     }
   }
 

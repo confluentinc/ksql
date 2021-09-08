@@ -18,8 +18,6 @@ package io.confluent.ksql.rest.server;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -35,13 +33,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
@@ -68,7 +66,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -149,6 +146,8 @@ public class KsqlRestApplicationTest {
   private ConcurrencyLimiter concurrencyLimiter;
   @Mock
   private SlidingWindowRateLimiter pullBandRateLimiter;
+  @Mock
+  private SlidingWindowRateLimiter scalablePushBandRateLimiter;
   @Mock
   private HARouting haRouting;
   @Mock
@@ -500,6 +499,7 @@ public class KsqlRestApplicationTest {
         rateLimiter,
         concurrencyLimiter,
         pullBandRateLimiter,
+        scalablePushBandRateLimiter,
         haRouting,
         pushRouting,
         Optional.empty()

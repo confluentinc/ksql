@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
@@ -59,6 +60,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   private final PushRouting pushRouting;
   private final boolean isScalablePush;
   private final Context context;
+  private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
 
   private PushQueryPublisher(
       final KsqlEngine ksqlEngine,
@@ -75,6 +77,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     this.pushRouting = null;
     this.isScalablePush = false;
     this.context = null;
+    this.scalablePushBandRateLimiter = null;
   }
 
   private PushQueryPublisher(
@@ -84,7 +87,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ConfiguredStatement<Query> query,
       final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
-      final Context context
+      final Context context,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -94,6 +98,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     this.pushRouting = requireNonNull(pushRouting, "pushRouting");
     this.isScalablePush = true;
     this.context = requireNonNull(context, "context");
+    this.scalablePushBandRateLimiter =
+        requireNonNull(scalablePushBandRateLimiter, "scalablePushBandRateLimiter");
   }
 
   public static PushQueryPublisher createPublisher(
@@ -113,7 +119,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ConfiguredStatement<Query> query,
       final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
-      final Context context
+      final Context context,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
     return new PushQueryPublisher(
         ksqlEngine,
@@ -122,7 +129,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
         query,
         analysis,
         pushRouting,
-        context
+        context,
+        scalablePushBandRateLimiter
     );
   }
 
@@ -137,6 +145,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
               query.getSessionConfig().getConfig(false),
               query.getSessionConfig().getOverrides());
+
+      scalablePushBandRateLimiter.allow();
 
       final ImmutableAnalysis analysis =
           ksqlEngine.analyzeQueryWithNoOutputTopic(query.getStatement(), query.getStatementText());

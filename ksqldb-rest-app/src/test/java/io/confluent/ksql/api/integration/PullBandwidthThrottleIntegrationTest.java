@@ -15,24 +15,30 @@
 
 package io.confluent.ksql.api.integration;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertEquals;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -47,13 +53,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
 import org.junit.After;
 import org.junit.AfterClass;
-import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -95,7 +96,7 @@ public class PullBandwidthThrottleIntegrationTest {
             .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS)
             .around(REST_APP);
-    private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for pull queries.";
+    private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for queries.";
 
     @BeforeClass
     public static void setUpClass() {

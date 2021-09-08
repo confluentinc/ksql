@@ -84,6 +84,7 @@ public class QueryEndpoint {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
+  private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
   private final HARouting routing;
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
@@ -100,6 +101,7 @@ public class QueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandLimiter,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
@@ -112,6 +114,7 @@ public class QueryEndpoint {
     this.rateLimiter = rateLimiter;
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.pullBandRateLimiter = pullBandLimiter;
+    this.scalablePushBandRateLimiter = scalablePushBandRateLimiter;
     this.routing = routing;
     this.pushRouting = pushRouting;
     this.localCommands = localCommands;
@@ -170,7 +173,8 @@ public class QueryEndpoint {
           serviceContext,
           statement,
           workerExecutor,
-          requestProperties
+          requestProperties,
+          metricsCallbackHolder
       );
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
@@ -183,9 +187,15 @@ public class QueryEndpoint {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final WorkerExecutor workerExecutor,
-      final Map<String, Object> requestProperties
+      final Map<String, Object> requestProperties,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
-    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
+    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
+      scalablePushBandRateLimiter.add(responseBytes);
+    });
+
+    final BlockingQueryPublisher publisher =
+        new BlockingQueryPublisher(context, workerExecutor);
 
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
@@ -193,6 +203,8 @@ public class QueryEndpoint {
     final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
         ksqlConfig,
         statement.getSessionConfig().getOverrides());
+
+    scalablePushBandRateLimiter.allow();
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,

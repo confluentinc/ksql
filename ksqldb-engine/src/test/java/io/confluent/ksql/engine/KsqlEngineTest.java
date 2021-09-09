@@ -37,6 +37,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -1930,45 +1931,34 @@ public class KsqlEngineTest {
 
   @Test
   public void shouldCheckStreamPullQueryEnabledFlag() {
-    // create a separate KsqlEngine with the feature flag disabled
-    try (final KsqlEngine ksqlEngine = new KsqlEngine(
-        serviceContext,
-        ProcessingLogContext.create(),
-        "spq_test_instance_",
-        metaStore,
-        (engine) -> new KsqlEngineMetrics(
-            "spq",
-            engine,
-            new Metrics(),
-            emptyMap(),
-            Optional.empty()),
-        () -> EasyMock.mock(Admin.class),
-        new SequentialQueryIdGenerator(),
-        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, "false")),
-        Collections.emptyList()
-    )) {
+    @SuppressWarnings("unchecked") final ConfiguredStatement<Query> statementOrig =
+        mock(ConfiguredStatement.class);
+    when(statementOrig.getStatementText()).thenReturn("TEXT");
 
-      final ConfiguredStatement<Query> statementOrig = mock(ConfiguredStatement.class);
-      when(statementOrig.getStatementText()).thenReturn("TEXT");
+    final SessionConfig mockSessionConfig = mock(SessionConfig.class);
+    final KsqlConfig mockConfig = mock(KsqlConfig.class);
+    when(statementOrig.getSessionConfig()).thenReturn(mockSessionConfig);
+    when(mockSessionConfig.getConfig(eq(true))).thenReturn(mockConfig);
+    when(mockConfig.getBoolean(eq(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED)))
+        .thenReturn(false);
 
-      final KsqlStatementException ksqlStatementException = assertThrows(
-          KsqlStatementException.class,
-          () -> ksqlEngine.createStreamPullQuery(
-              null,
-              null,
-              statementOrig,
-              false
-          )
-      );
+    final KsqlStatementException ksqlStatementException = assertThrows(
+        KsqlStatementException.class,
+        () -> ksqlEngine.createStreamPullQuery(
+            null,
+            null,
+            statementOrig,
+            false
+        )
+    );
 
-      assertThat(ksqlStatementException.getSqlStatement(), is("TEXT"));
-      assertThat(ksqlStatementException.getRawMessage(), is(
-          "Pull queries on streams are disabled."
-              + " To create a push query on the stream, add EMIT CHANGES to the end."
-              + " To enable pull queries on streams,"
-              + " set the ksql.query.pull.stream.enabled config to 'true'."
-      ));
-    }
+    assertThat(ksqlStatementException.getSqlStatement(), is("TEXT"));
+    assertThat(ksqlStatementException.getRawMessage(), is(
+        "Pull queries on streams are disabled."
+            + " To create a push query on the stream, add EMIT CHANGES to the end."
+            + " To enable pull queries on streams,"
+            + " set the ksql.query.pull.stream.enabled config to 'true'."
+    ));
   }
 
   private void givenTopicsExist(final String... topics) {

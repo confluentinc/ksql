@@ -32,9 +32,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -160,9 +157,6 @@ final class SourceBuilder extends SourceBuilderBase {
 
   private static PhysicalSchema getPhysicalSchemaWithPseudoColumnsToMaterialize(
       final SourceStep<?> streamSource) {
-
-    final FormatInfo formatInfo = streamSource.getFormats().getKeyFormat();
-    final SerdeFeatures serdeFeatures = streamSource.getFormats().getKeyFeatures();
 
     final Formats format = ((TableSource) streamSource).getStateStoreFormats();
 

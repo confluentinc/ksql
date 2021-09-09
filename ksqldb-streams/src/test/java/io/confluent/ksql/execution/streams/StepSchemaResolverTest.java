@@ -593,26 +593,6 @@ public class StepSchemaResolverTest {
     assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
   }
 
-  @Test
-  public void shouldResolveSchemaForWindowedTableSourceV1() {
-    // Given:
-    final WindowedTableSource step = new WindowedTableSource(
-        PROPERTIES,
-        "foo",
-        formats,
-        mock(WindowInfo.class),
-        Optional.empty(),
-        SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
-  }
-
   private void givenTableFunction(final String name, final SqlType returnType) {
     final KsqlTableFunction tableFunction = mock(KsqlTableFunction.class);
     when(functionRegistry.isTableFunction(FunctionName.of(name))).thenReturn(true);

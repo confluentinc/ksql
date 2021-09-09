@@ -287,7 +287,7 @@
         "queryId" : {
           "type" : "string"
         },
-        "consumerGroupId" : {
+        "runtimeId" : {
           "type" : "string"
         }
       },

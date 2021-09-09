@@ -825,7 +825,7 @@ final class EngineExecutor {
         queryPlan.getPhysicalPlan(),
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
         persistentQueryType,
-        queryPlan.usesSharedRuntime()
+        queryPlan.getRuntimeId()
     );
   }
 

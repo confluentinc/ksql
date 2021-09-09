@@ -192,7 +192,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final KsqlConstants.PersistentQueryType persistentQueryType,
-      final Optional<String> usesSharedRuntimes) {
+      final Optional<String> runtimeId) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor = executorFactory.create(
           config,
@@ -206,7 +206,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     final PersistentQueryMetadata query;
 
-    if (usesSharedRuntimes.isPresent()) {
+    if (runtimeId.isPresent()) {
       query = executor.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
           persistentQueryType,

@@ -50,7 +50,6 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import java.util.Objects;
@@ -278,24 +277,10 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
-      final WindowedTableSourceV1 windowedTableSourceV1,
-      final PlanInfo planInfo
-  ) {
-    return SourceBuilderV1.instance().buildWindowedTable(
-        buildContext,
-        windowedTableSourceV1,
-        streamsFactories.getConsumedFactory(),
-        streamsFactories.getMaterializedFactory(),
-        planInfo
-    );
-  }
-
-  @Override
-  public KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
       final WindowedTableSource windowedTableSource,
       final PlanInfo planInfo
   ) {
-    return SourceBuilder.instance().buildWindowedTable(
+    return SourceBuilderV1.instance().buildWindowedTable(
         buildContext,
         windowedTableSource,
         streamsFactories.getConsumedFactory(),

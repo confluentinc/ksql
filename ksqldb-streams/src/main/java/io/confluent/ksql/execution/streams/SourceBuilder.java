@@ -14,14 +14,9 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.AddKeyAndPseudoColumns;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.buildSchema;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.changelogTopic;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getRegisterCallback;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
-import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getWindowedKeySerde;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
@@ -31,7 +26,6 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -40,8 +34,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.StaticTopicSerde;
-import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -54,10 +46,25 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.state.KeyValueStore;
 
+/**
+ * <p>
+ * This is the V2 version of SourceBuilder, which is used to build TableSource{V2} steps.
+ * The reason this was neccessary was due to a change in state store schema required for the
+ * addition of ROWPARTITION and ROWOFFSET pseudocolumns(see
+ * https://github.com/confluentinc/ksql/pull/7990 and
+ * https://github.com/confluentinc/ksql/pull/8072).
+ * </p>
+ *
+ * <p>
+ * If we want to support joins on windowed tables in the future while supporting these new
+ * pseudocolumns, it will be neccessary to bump the version of WindowedTableSource and include
+ * similar logic. However, this was decided against doing in the short-term, as we currently do not
+ * truly support joins on windowed tables (see https://github.com/confluentinc/ksql/issues/805)
+ * </p>
+ */
 final class SourceBuilder extends SourceBuilderBase {
 
   private static final SourceBuilder instance;
@@ -116,32 +123,6 @@ final class SourceBuilder extends SourceBuilderBase {
   }
 
   @Override
-  <K> KTable<K, GenericRow> buildWindowedKTable(
-      final SourceStep<?> streamSource,
-      final RuntimeBuildContext buildContext,
-      final Consumed<K, GenericRow> consumed,
-      final Function<K, Collection<?>> keyGenerator,
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
-      final Serde<GenericRow> valueSerde,
-      final String stateStoreName,
-      final PlanInfo planInfo
-  ) {
-    final String changelogTopic = changelogTopic(buildContext, stateStoreName);
-    final Callback onFailure = getRegisterCallback(
-        buildContext, streamSource.getFormats().getValueFormat());
-
-    final KTable<K, GenericRow> source = buildContext
-        .getStreamsBuilder()
-        .table(
-            streamSource.getTopicName(),
-            consumed.withValueSerde(StaticTopicSerde.wrap(changelogTopic, valueSerde, onFailure))
-        );
-
-    return source.transformValues(new AddKeyAndPseudoColumns<>(
-        keyGenerator, streamSource.getPseudoColumnVersion()), materialized);
-  }
-
-  @Override
   Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> buildTableMaterialized(
       final SourceStep<KTableHolder<GenericKey>> source,
       final RuntimeBuildContext buildContext,
@@ -176,65 +157,18 @@ final class SourceBuilder extends SourceBuilderBase {
     );
   }
 
-  @Override
-  Materialized<Windowed<GenericKey>, GenericRow, KeyValueStore<Bytes, byte[]>>
-      buildWindowedTableMaterialized(
-      final SourceStep<KTableHolder<Windowed<GenericKey>>> source,
-      final RuntimeBuildContext buildContext,
-      final MaterializedFactory materializedFactory,
-      final Serde<Windowed<GenericKey>> sourceKeySerde,
-      final Serde<GenericRow> sourceValueSerde,
-      final String stateStoreName
-  ) {
-
-    final PhysicalSchema physicalSchema = getPhysicalSchemaWithPseudoColumnsToMaterialize(source);
-
-    final QueryContext queryContext = addMaterializedContext(source);
-
-    final Serde<GenericRow> valueSerdeToMaterialize = getValueSerde(
-        buildContext,
-        source,
-        physicalSchema,
-        queryContext
-    );
-
-    final Serde<Windowed<GenericKey>> keySerdeToMaterialize = getWindowedKeySerde(
-        source,
-        physicalSchema,
-        buildContext,
-        ((WindowedTableSource) source).getWindowInfo(),
-        queryContext
-    );
-
-    return materializedFactory.create(
-        keySerdeToMaterialize,
-        valueSerdeToMaterialize,
-        stateStoreName
-    );
-  }
-
   private static PhysicalSchema getPhysicalSchemaWithPseudoColumnsToMaterialize(
       final SourceStep<?> streamSource) {
-
-    final boolean windowed = streamSource instanceof WindowedTableSource;
 
     final FormatInfo formatInfo = streamSource.getFormats().getKeyFormat();
     final SerdeFeatures serdeFeatures = streamSource.getFormats().getKeyFeatures();
 
-    final KeyFormat keyFormat = windowed
-        ? KeyFormat.windowed(
-        formatInfo, serdeFeatures, ((WindowedTableSource) streamSource).getWindowInfo())
-        : KeyFormat.nonWindowed(formatInfo, serdeFeatures);
+    final Formats format = of(
+        KeyFormat.nonWindowed(formatInfo, serdeFeatures),
+        streamSource.getFormats().getValueFormat());
 
-    final Formats format = of(keyFormat, streamSource.getFormats().getValueFormat());
-
-    //we currently don't materialize partition and offset to get them downstream for windowed
-    //tables, so act accordingly here
-    final LogicalSchema withPseudoCols =
-        windowed
-            ? buildSchema(streamSource, true)
-            : streamSource.getSourceSchema().withPseudoColumnsToMaterialize(
-                streamSource.getPseudoColumnVersion());
+    final LogicalSchema withPseudoCols = streamSource.getSourceSchema()
+        .withPseudoColumnsToMaterialize(streamSource.getPseudoColumnVersion());
 
     return PhysicalSchema.from(
         withPseudoCols,

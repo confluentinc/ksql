@@ -88,10 +88,6 @@ public class PlanInfoExtractor {
     return visitSourceStep(tableSource);
   }
 
-  public PlanInfo visitWindowedTableSource(final WindowedTableSourceV1 windowedTableSourceV1) {
-    return visitSourceStep(windowedTableSourceV1);
-  }
-
   public PlanInfo visitWindowedTableSource(final WindowedTableSource windowedTableSource) {
     return visitSourceStep(windowedTableSource);
   }

@@ -796,7 +796,7 @@
       "title" : "tableSourceV2",
       "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
     },
-    "WindowedTableSourceV1" : {
+    "WindowedTableSource" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {
@@ -825,37 +825,6 @@
         }
       },
       "title" : "windowedTableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
-    },
-    "WindowedTableSource" : {
-      "type" : "object",
-      "additionalProperties" : false,
-      "properties" : {
-        "@type" : {
-          "type" : "string",
-          "enum" : [ "windowedTableSourceV2" ],
-          "default" : "windowedTableSourceV2"
-        },
-        "properties" : {
-          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
-        },
-        "topicName" : {
-          "type" : "string"
-        },
-        "formats" : {
-          "$ref" : "#/definitions/Formats"
-        },
-        "windowInfo" : {
-          "$ref" : "#/definitions/WindowInfo"
-        },
-        "timestampColumn" : {
-          "$ref" : "#/definitions/TimestampColumn"
-        },
-        "sourceSchema" : {
-          "type" : "string"
-        }
-      },
-      "title" : "windowedTableSourceV2",
       "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
     },
     "TableAggregate" : {
@@ -1195,8 +1164,6 @@
         "$ref" : "#/definitions/TableSourceV1"
       }, {
         "$ref" : "#/definitions/TableSource"
-      }, {
-        "$ref" : "#/definitions/WindowedTableSourceV1"
       }, {
         "$ref" : "#/definitions/WindowedTableSource"
       }, {

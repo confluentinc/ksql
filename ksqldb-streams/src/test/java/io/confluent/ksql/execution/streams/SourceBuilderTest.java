@@ -44,7 +44,6 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.TableSource;
-import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -57,7 +56,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.StaticTopicSerde;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -78,9 +76,6 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.internals.SessionWindow;
-import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -155,15 +150,11 @@ public class SourceBuilderTest {
   @Mock
   private FormatInfo keyFormatInfo;
   @Mock
-  private WindowInfo windowInfo;
-  @Mock
   private FormatInfo valueFormatInfo;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
   private Serde<GenericKey> keySerde;
-  @Mock
-  private Serde<Windowed<GenericKey>> windowedKeySerde;
   @Mock
   private ProcessorContext processorCtx;
   @Mock
@@ -172,8 +163,6 @@ public class SourceBuilderTest {
   private StreamsFactories streamsFactories;
   @Mock
   private Consumed<GenericKey, GenericRow> consumed;
-  @Mock
-  private Consumed<Windowed<GenericKey>, GenericRow> consumedWindowed;
   @Mock
   private MaterializedFactory materializationFactory;
   @Mock
@@ -200,7 +189,6 @@ public class SourceBuilderTest {
   private PlanBuilder planBuilder;
 
   private TableSource tableSource;
-  private WindowedTableSource windowedTableSource;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -312,18 +300,6 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldUseOffsetResetEarliestForWindowedTable() {
-    // Given:
-    givenWindowedSourceTable();
-
-    // When
-    windowedTableSource.build(planBuilder, planInfo);
-
-    // Then:
-    verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
-  }
-
-  @Test
   public void shouldUseConfiguredResetPolicyForTable() {
     // Given:
     when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(
@@ -361,23 +337,6 @@ public class SourceBuilderTest {
 
     // Then:
     verify(buildContext).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
-  }
-
-  @Test
-  public void shouldBuildSourceKeySerdeCorrectly() {
-    // Given:
-    givenWindowedSourceTable();
-
-    // When:
-    windowedTableSource.build(planBuilder, planInfo);
-
-    // Then:
-    verify(buildContext).buildKeySerde(
-        keyFormatInfo,
-        windowInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
-        ctx
-    );
   }
 
   @Test
@@ -430,19 +389,7 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldReturnCorrectSchemaForWindowedSourceTable() {
-    // Given:
-    givenWindowedSourceTable();
-
-    // When:
-    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder, planInfo);
-
-    // Then:
-    assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA));
-  }
-
-  @Test
-  public void shouldAddPseudoAndRowKeyColumnsToNonWindowedTable() {
+  public void shouldAddPseudoAndRowKeyColumnsToUnwindowedTable() {
     // Given:
     givenUnwindowedSourceTable();
     final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformers =
@@ -472,64 +419,7 @@ public class SourceBuilderTest {
   }
 
   @Test
-  public void shouldAddPseudoColumnsAndTimeWindowedRowKeyColumnsToTable() {
-    // Given:
-    givenWindowedSourceTable();
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromMaterializedTableSource(windowedTableSource);
-
-    final Windowed<GenericKey> key = new Windowed<>(
-        KEY,
-        new TimeWindow(A_WINDOW_START, A_WINDOW_END)
-    );
-
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp,
-        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
-  }
-
-  @Test
-  public void shouldAddRowTimeAndSessionWindowedRowKeyColumnsToTable() {
-    // Given:
-    givenWindowedSourceTable();
-    final ValueTransformerWithKey<Windowed<GenericKey>, GenericRow, GenericRow> transformer =
-        getTransformerFromMaterializedTableSource(windowedTableSource);
-
-    final Windowed<GenericKey> key = new Windowed<>(
-        KEY,
-        new SessionWindow(A_WINDOW_START, A_WINDOW_END)
-    );
-
-    // When:
-    final GenericRow withTimestamp = transformer.transform(key, row);
-
-    // Then:
-    assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
-  }
-
-  @Test
-  public void shouldUseCorrectSerdeForWindowedKey() {
-    // Given:
-    givenWindowedSourceTable();
-
-    // When:
-    windowedTableSource.build(planBuilder, planInfo);
-
-    // Then:
-    verify(buildContext).buildKeySerde(
-        keyFormatInfo,
-        windowInfo,
-        PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
-        ctx
-    );
-  }
-
-  @Test
-  public void shouldUseCorrectSerdeForNonWindowedKey() {
+  public void shouldUseCorrectSerdeForUnwindowedKey() {
     // Given:
     givenUnwindowedSourceTable();
 
@@ -556,20 +446,6 @@ public class SourceBuilderTest {
     reset(buildContext);
     table.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
     verify(buildContext).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
-  }
-
-  @Test
-  public void shouldReturnCorrectSerdeFactoryForWindowedSource() {
-    // Given:
-    givenWindowedSourceTable();
-
-    // When:
-    final KTableHolder<?> stream = windowedTableSource.build(planBuilder, planInfo);
-
-    // Then:
-    reset(buildContext);
-    stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
-    verify(buildContext).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
   }
 
   @Test
@@ -602,18 +478,6 @@ public class SourceBuilderTest {
     return transformers;
   }
 
-  @SuppressWarnings("unchecked")
-  private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromMaterializedTableSource(
-      final SourceStep<?> streamSource
-  ) {
-    streamSource.build(planBuilder, planInfo);
-    verify(kTable).transformValues(transformSupplierCaptor.capture(), materializedArgumentCaptor.capture());
-    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
-        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
-    transformer.init(processorCtx);
-    return transformer;
-  }
-
   private static GenericRow applyAllTransformers(
       final GenericKey key,
       final List<ValueTransformerWithKey<GenericKey, GenericRow, GenericRow>> transformerList,
@@ -626,20 +490,6 @@ public class SourceBuilderTest {
       last = transformer.transform(key, last);
     }
     return last;
-  }
-
-  private void givenWindowedSourceTable() {
-    when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
-    givenConsumed(consumedWindowed, windowedKeySerde);
-    windowedTableSource = new WindowedTableSource(
-        new ExecutionStepPropertiesV1(ctx),
-        TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
-        windowInfo,
-        TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
-    );
   }
 
   private void givenUnwindowedSourceTable() {

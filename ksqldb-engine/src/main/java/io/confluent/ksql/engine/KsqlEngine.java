@@ -336,8 +336,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<Query> statementOrig,
       final boolean excludeTombstones
   ) {
+    final boolean streamPullQueriesEnabled =
+        statementOrig
+            .getSessionConfig()
+            .getConfig(true)
+            .getBoolean(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED);
 
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED)) {
+    if (!streamPullQueriesEnabled) {
       throw new KsqlStatementException(
           "Pull queries on streams are disabled. To create a push query on the stream,"
               + " add EMIT CHANGES to the end. To enable pull queries on streams, set"

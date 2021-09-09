@@ -791,6 +791,9 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "stateStoreFormats" : {
+          "$ref" : "#/definitions/Formats"
         }
       },
       "title" : "tableSourceV2",

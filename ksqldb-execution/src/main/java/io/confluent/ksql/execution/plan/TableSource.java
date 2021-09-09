@@ -57,7 +57,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         sourceSchema,
         pseudoColumnVersion
     );
-    this.stateStoreFormats = stateStoreFormats;
+    this.stateStoreFormats = Objects.requireNonNull(stateStoreFormats);
   }
 
   public Formats getStateStoreFormats() {

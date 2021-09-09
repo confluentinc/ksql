@@ -136,7 +136,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldBuildNonWindowedStream() {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
-    when(keyFormat.isWindowed()).thenReturn(false);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
 
     // When:
@@ -180,7 +179,6 @@ public class SchemaKSourceFactoryTest {
   public void shouldBuildV1NonWindowedTable() {
     // Given:
     setUpForNonWindowedTable();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -242,7 +240,6 @@ public class SchemaKSourceFactoryTest {
 
   private void setUpForNonWindowedTable() {
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(keyFormat.isWindowed()).thenReturn(false);
     when(keyFormat.getFormatInfo().getFormat()).thenReturn("JSON");
   }
 

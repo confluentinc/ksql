@@ -46,8 +46,8 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty("pseudoColumnVersion") final int pseudoColumnVersion,
-      @JsonProperty("stateStoreFormats") final Formats stateStoreFormats
+      @JsonProperty(value = "pseudoColumnVersion", required = true) final int pseudoColumnVersion,
+      @JsonProperty(value = "stateStoreFormats", required = true) final Formats stateStoreFormats
   ) {
     super(
         props,
@@ -57,7 +57,8 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         sourceSchema,
         pseudoColumnVersion
     );
-    this.stateStoreFormats = Objects.requireNonNull(stateStoreFormats);
+    this.stateStoreFormats = Objects.requireNonNull(stateStoreFormats,
+        "stateStoreFormats");
   }
 
   public Formats getStateStoreFormats() {

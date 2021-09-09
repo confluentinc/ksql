@@ -137,6 +137,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
+    when(keyFormat.isWindowed()).thenReturn(false);
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -178,7 +179,7 @@ public class SchemaKSourceFactoryTest {
   @Test
   public void shouldBuildV1NonWindowedTable() {
     // Given:
-    setUpForNonWindowedTable();
+    givenNonWindowedTable();
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
@@ -198,7 +199,7 @@ public class SchemaKSourceFactoryTest {
   @Test
   public void shouldBuildV2NonWindowedTable() {
     // Given:
-    setUpForNonWindowedTable();
+    givenNonWindowedTable();
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
@@ -219,7 +220,7 @@ public class SchemaKSourceFactoryTest {
   @Test
   public void shouldBuildCorrectFormatsForV2NonWindowedTable() {
     // Given:
-    setUpForNonWindowedTable();
+    givenNonWindowedTable();
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
@@ -238,9 +239,10 @@ public class SchemaKSourceFactoryTest {
     ));
   }
 
-  private void setUpForNonWindowedTable() {
+  private void givenNonWindowedTable() {
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(keyFormat.getFormatInfo().getFormat()).thenReturn("JSON");
+    when(keyFormat.isWindowed()).thenReturn(false);
   }
 
   private void assertValidSchema(final SchemaKStream<?> result) {

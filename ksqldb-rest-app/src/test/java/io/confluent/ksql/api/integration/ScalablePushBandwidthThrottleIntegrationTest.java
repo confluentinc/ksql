@@ -49,6 +49,7 @@ import io.vertx.core.Vertx;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -164,6 +165,35 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       }
   }
 
+  @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})
+  @Test
+  public void scalablePushBandwidthThrottleTestHTTP2()
+      throws ExecutionException, InterruptedException {
+    assertAllPersistentQueriesRunning();
+    String veryLong = createDataSize(100000);
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";
+
+    // scalable push query should succeed 10 times
+    for (int i = 0; i < 11; i += 1) {
+      makeRequestAndSetupSubscriberAsync(sql,
+          ImmutableMap.of("auto.offset.reset", "latest"),
+          header, complete );
+      TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
+      System.out.println(i);
+    }
+
+    // scalable push query should fail on 11th try since it exceeds 1MB bandwidth limit
+    try {
+      makeQueryRequest(sql,
+          ImmutableMap.of("auto.offset.reset", "latest"));
+      throw new AssertionError("New scalable push query should have exceeded bandwidth limit ");
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), is(RATE_LIMIT_MESSAGE));
+    }
+  }
+
 
 
   private static String createDataSize(int msgSize) {
@@ -188,6 +218,16 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
     subscriber = new QueryStreamSubscriber(publisher.getContext(), future, header);
     publisher.subscribe(subscriber);
   }
+  private void makeRequestAndSetupSubscriberAsync(
+      final String sql,
+      final Map<String, ?> properties,
+      final CompletableFuture<StreamedRow> header,
+      final CompletableFuture<List<StreamedRow>> future
+  ) throws ExecutionException, InterruptedException {
+    publisher = makeQueryRequestAsync(sql, properties);
+    subscriber = new QueryStreamSubscriber(publisher.getContext(), future, header);
+    publisher.subscribe(subscriber);
+  }
 
   StreamPublisher<StreamedRow> makeQueryRequest(
       final String sql,
@@ -200,6 +240,24 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       throw new KsqlException(res.getErrorMessage().getMessage());
     }
     return res.getResponse();
+  }
+
+  StreamPublisher<StreamedRow> makeQueryRequestAsync(
+      final String sql,
+      final Map<String, ?> properties
+  ) throws ExecutionException, InterruptedException {
+    final CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>> res =
+        restClient.makeQueryRequestStreamedAsync(sql, properties);
+
+    if (res.get().isErroneous()) {
+      throw new KsqlException(res.get().getErrorMessage().getMessage());
+    }
+    if (res.isCompletedExceptionally()
+        && !res.get().getErrorMessage().getMessage().equalsIgnoreCase(RATE_LIMIT_MESSAGE)) {
+      throw new KsqlException(res.get().getErrorMessage().getMessage());
+    }
+
+    return res.get().getResponse();
   }
 
   private void assertAllPersistentQueriesRunning() {

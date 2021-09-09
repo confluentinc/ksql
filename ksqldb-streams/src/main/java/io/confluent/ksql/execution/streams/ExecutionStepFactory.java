@@ -53,7 +53,6 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
@@ -149,26 +148,6 @@ public final class ExecutionStepFactory {
         sourceSchema,
         SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
         stateStoreFormats
-    );
-  }
-
-  public static WindowedTableSourceV1 tableSourceWindowedV1(
-      final QueryContext.Stacker stacker,
-      final LogicalSchema sourceSchema,
-      final String topicName,
-      final Formats formats,
-      final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn
-  ) {
-    final QueryContext queryContext = stacker.getQueryContext();
-    return new WindowedTableSourceV1(
-        new ExecutionStepPropertiesV1(queryContext),
-        topicName,
-        formats,
-        windowInfo,
-        timestampColumn,
-        sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 

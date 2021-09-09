@@ -138,28 +138,15 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
-    final SourceStep<KTableHolder<Windowed<GenericKey>>> step;
-
-    if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
-      step = ExecutionStepFactory.tableSourceWindowed(
-          contextStacker,
-          dataSource.getSchema(),
-          dataSource.getKafkaTopicName(),
-          Formats.from(dataSource.getKsqlTopic()),
-          windowInfo,
-          dataSource.getTimestampColumn()
+    final SourceStep<KTableHolder<Windowed<GenericKey>>> step =
+        ExecutionStepFactory.tableSourceWindowed(
+        contextStacker,
+        dataSource.getSchema(),
+        dataSource.getKafkaTopicName(),
+        Formats.from(dataSource.getKsqlTopic()),
+        windowInfo,
+        dataSource.getTimestampColumn()
       );
-
-    } else {
-      step = ExecutionStepFactory.tableSourceWindowedV1(
-          contextStacker,
-          dataSource.getSchema(),
-          dataSource.getKafkaTopicName(),
-          Formats.from(dataSource.getKsqlTopic()),
-          windowInfo,
-          dataSource.getTimestampColumn()
-      );
-    }
 
     return schemaKTable(
         buildContext,

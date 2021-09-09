@@ -26,7 +26,7 @@ import org.apache.kafka.common.utils.Time;
 
 /**
  * SlidingWindowRateLimiter keeps a log of timestamps and the size for each response returned by
- * pull queries. When a response comes, we first pop all outdated timestamps outside of past hour
+ * queries. When a response comes, we first pop all outdated timestamps outside of past hour
  * before appending the new response time and size to the log. Then we decide whether this response
  * should be processed depending on whether the log size has exceeded the throttleLimit.
  * Many rate limiters require you to ask for access before it's granted whereas this method always
@@ -55,15 +55,15 @@ public class SlidingWindowRateLimiter {
   private final long slidingWindowSizeMs;
 
   /**
-   * Aggregate of pull query response sizes in the past hour
+   * Aggregate of query response sizes in the past hour
    */
   private long numBytesInWindow;
 
   public SlidingWindowRateLimiter(final int requestLimitInMB, final long slidingWindowSizeMs) {
     checkArgument(requestLimitInMB >= 0,
-            "Pull Query bandwidth limit can't be negative.");
+            "Query bandwidth limit can't be negative.");
     checkArgument(slidingWindowSizeMs >= 0,
-            "Pull Query throttle window size can't be negative");
+            "Query throttle window size can't be negative");
 
     this.throttleLimit = (long) requestLimitInMB * NUM_BYTES_IN_ONE_MEGABYTE;
     this.slidingWindowSizeMs = slidingWindowSizeMs;
@@ -72,9 +72,9 @@ public class SlidingWindowRateLimiter {
   }
 
   /**
-   * Checks if pull queries have returned more than the throttleLimit in the past hour.
+   * Checks if queries have returned more than the throttleLimit in the past hour.
    * Throws a KsqlException is the limit has been breached
-   * @throws KsqlException Exception that the throttle limit has been reached for pull queries
+   * @throws KsqlException Exception that the throttle limit has been reached for queries
    */
   public synchronized void allow() throws KsqlException {
     this.allow(Time.SYSTEM.milliseconds());
@@ -90,14 +90,14 @@ public class SlidingWindowRateLimiter {
       this.numBytesInWindow -= responseSizesLog.poll().right;
     }
     if (this.numBytesInWindow > throttleLimit) {
-      throw new KsqlException("Host is at bandwidth rate limit for pull queries.");
+      throw new KsqlException("Host is at bandwidth rate limit for queries.");
     }
   }
 
   /**
    * Adds the responseSizeInBytes and its timestamp to the queue of all response sizes
    * in the past hour.
-   * @param responseSizeInBytes pull query response size measured in Bytes
+   * @param responseSizeInBytes query response size measured in Bytes
    */
   public synchronized void add(final long responseSizeInBytes) {
     add(Time.SYSTEM.milliseconds(), responseSizeInBytes);

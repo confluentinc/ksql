@@ -62,9 +62,6 @@ public interface PlanBuilder {
   KTableHolder<GenericKey> visitTableSource(TableSource tableSource, PlanInfo planInfo);
 
   KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
-      WindowedTableSourceV1 windowedTableSourceV1, PlanInfo planInfo);
-
-  KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
       WindowedTableSource windowedTableSource, PlanInfo planInfo);
 
   KTableHolder<Windowed<GenericKey>> visitStreamWindowedAggregate(

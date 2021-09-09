@@ -9,7 +9,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -60,12 +59,9 @@ public class LoggingHandlerTest {
 
   @Before
   public void setUp() {
-    when(server.getConfig()).thenReturn(ksqlRestConfig);
-    when(routingContext.response()).thenReturn(response);
     when(routingContext.request()).thenReturn(request);
     when(request.response()).thenReturn(response);
     when(request.remoteAddress()).thenReturn(socketAddress);
-    when(ksqlRestConfig.getList(any())).thenReturn(ImmutableList.of("401"));
     when(loggingRateLimiter.shouldLog(logger, "/query", 200)).thenReturn(true);
     when(loggingRateLimiter.shouldLog(logger, "/query", 405)).thenReturn(true);
     when(clock.millis()).thenReturn(1699813434333L);

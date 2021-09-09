@@ -50,7 +50,6 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
-import io.confluent.ksql.execution.plan.WindowedTableSourceV1;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -98,7 +97,6 @@ public final class StepSchemaResolver {
       .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSourceV1.class, StepSchemaResolver::handleSource)
       .put(TableSource.class, StepSchemaResolver::handleSource)
-      .put(WindowedTableSourceV1.class, StepSchemaResolver::handleWindowedSource)
       .put(WindowedTableSource.class, StepSchemaResolver::handleWindowedSource)
       .build();
 

@@ -41,9 +41,12 @@ import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.MetricsContext;
 import org.apache.kafka.common.metrics.MetricsReporter;
-import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StorageUtilizationMetricsReporter implements MetricsReporter {
+  private static final Logger LOGGER
+      = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
 
   private final Map<String, Map<String, TaskStorageMetric>> metricsSeen;
@@ -67,23 +70,13 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
 
   @Override
   public void configure(final Map<String, ?> map) {
-    final String dir;
-    if (map.containsKey(StreamsConfig.STATE_DIR_CONFIG)) {
-      dir = map.get(StreamsConfig.STATE_DIR_CONFIG).toString();
-    } else {
-      dir =  StreamsConfig
-        .configDef()
-        .defaultValues()
-        .get(StreamsConfig.STATE_DIR_CONFIG)
-        .toString();
-    }
-    configureShared(new File(dir), this.metricRegistry);
   }
 
-  private static void configureShared(final File baseDir, final Metrics metricRegistry) {
+  public static void configureShared(final File baseDir, final Metrics metricRegistry) {
     if (registeredNodeMetrics.getAndSet(true)) {
       return;
     }
+    LOGGER.info("Adding node level storage usage gauges");
     final MetricName nodeAvailable =
         metricRegistry.metricName("node_storage_free_bytes", METRIC_GROUP);
     final MetricName nodeTotal =
@@ -169,6 +162,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       final String taskId,
       final String queryId
   ) {
+    LOGGER.debug("Updating disk usage metrics");
     // if we haven't seen a task for this query yet
     if (!metricsSeen.containsKey(queryId)) {
       metricRegistry.addMetric(

@@ -19,9 +19,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -43,18 +43,31 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.MockitoRule;
 
+@RunWith(MockitoJUnitRunner.class)
 public class GenericRecordFactoryTest {
+
+  @Rule public MockitoRule rule = MockitoJUnit.rule();
 
   private static final ColumnName KEY = ColumnName.of("K0");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
 
   private final AtomicLong clock = new AtomicLong();
-  private final KsqlConfig config = new KsqlConfig(ImmutableMap.of());
   private final FunctionRegistry functions = TestFunctionRegistry.INSTANCE.get();
-  private final GenericRecordFactory recordFactory = new GenericRecordFactory(config, functions, clock::get);
+
+  @Mock
+  private KsqlConfig ksqlConfig;
+
+  //fixme: why is config not mocked yet here?
+  private final GenericRecordFactory recordFactory = new GenericRecordFactory(ksqlConfig, functions, clock::get);
 
   @Before
   public void setUp() {
@@ -348,6 +361,26 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Expected type"));
+  }
+
+  @Test
+  public void shouldThrowOnInsertDisallowedColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(KEY, SqlTypes.STRING)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .build();
+    final Expression exp = new StringLiteral("a");
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> recordFactory.build(
+        ImmutableList.of(SystemColumns.ROWTIME_NAME, KEY, SystemColumns.ROWOFFSET_NAME),
+        ImmutableList.of(new LongLiteral(1L), exp, exp), schema, DataSourceType.KSTREAM
+    ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Inserting into column `ROWOFFSET` is not allowed."));
   }
 
 }

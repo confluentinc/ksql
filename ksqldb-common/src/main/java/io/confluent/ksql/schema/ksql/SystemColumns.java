@@ -67,18 +67,21 @@ public final class SystemColumns {
           ROWTIME_NAME,
           ROWTIME_TYPE,
           ROWTIME_PSEUDOCOLUMN_VERSION,
-          false
+          false,
+          true
       ),
       PseudoColumn.of(
           ROWPARTITION_NAME,
           ROWPARTITION_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true,
           true
       ),
       PseudoColumn.of(
           ROWOFFSET_NAME,
           ROWOFFSET_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true,
           true
       )
   );
@@ -165,6 +168,22 @@ public final class SystemColumns {
         .mustBeMaterializedForTableJoins;
   }
 
+  /**
+   * Checks if a given ColumnName is associated with a pseudo column that is disallowed
+   * for INSERT VALUES operations
+   *
+   * @param columnName the pseudo column name provided
+   * @return if the name is associated with a pseudo column that is disallowed for INSERT VALUES
+   * @throws IllegalArgumentException when column name is not associated with a pseudo column
+   */
+  public static boolean isDisallowedForInsertValues(final ColumnName columnName) {
+    return pseudoColumns
+        .stream()
+        .filter(col -> col.name.equals(columnName))
+        .findFirst().orElseThrow(IllegalArgumentException::new)
+        .isDisallowedForInsertValues;
+  }
+
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
         ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
@@ -185,26 +204,37 @@ public final class SystemColumns {
     final SqlType type;
     final int version;
     final boolean mustBeMaterializedForTableJoins;
+    final boolean isDisallowedForInsertValues;
 
     private PseudoColumn(
         final ColumnName name,
         final SqlType type,
         final int version,
-        final boolean mustBeMaterializedForTableJoins
+        final boolean mustBeMaterializedForTableJoins,
+        final boolean isDisallowedForInsertValues
     ) {
       this.name = requireNonNull(name, "name");
       this.type = requireNonNull(type, "type");
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
+      this.isDisallowedForInsertValues = isDisallowedForInsertValues;
     }
 
     private static PseudoColumn of(
         final ColumnName name,
         final SqlType type,
         final int version,
-        final boolean mustBeMaterializedForTableJoins
+        final boolean mustBeMaterializedForTableJoins,
+        final boolean isDisallowedForInsertValues
+
     ) {
-      return new PseudoColumn(name, type, version, mustBeMaterializedForTableJoins);
+      return new PseudoColumn(
+          name,
+          type,
+          version,
+          mustBeMaterializedForTableJoins,
+          isDisallowedForInsertValues
+      );
     }
   }
 }

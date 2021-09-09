@@ -286,6 +286,9 @@
         },
         "queryId" : {
           "type" : "string"
+        },
+        "runtimeId" : {
+          "type" : "string"
         }
       },
       "required" : [ "sources", "physicalPlan", "queryId" ]

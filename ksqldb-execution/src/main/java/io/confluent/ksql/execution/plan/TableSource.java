@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 @Immutable
 public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
 
-  final Formats stateStoreFormats;
+  private final Formats stateStoreFormats;
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),

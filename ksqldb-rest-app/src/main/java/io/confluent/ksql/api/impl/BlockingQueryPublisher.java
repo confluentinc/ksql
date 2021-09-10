@@ -80,6 +80,18 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
         ctx.runOnContext(v -> sendComplete());
       }
     });
+    // Justification for duplicated code:
+    // The way we handle query completion right now happens to be the same as the way
+    // we handle limit above, but this is not necessarily going to stay the same. For example,
+    // we should be returning a "Limit Reached" message as we do in the HTTP/1 endpoint when
+    // we hit the limit, but for query completion, we should just end the response stream.
+    this.queue.setCompletionHandler(() -> {
+      complete = true;
+      // This allows us to finish the query immediately if the query is already fully streamed.
+      if (queue.isEmpty()) {
+        ctx.runOnContext(v -> sendComplete());
+      }
+    });
     this.queryHandle = queryHandle;
     queryHandle.onException(t -> ctx.runOnContext(v -> sendError(t)));
   }

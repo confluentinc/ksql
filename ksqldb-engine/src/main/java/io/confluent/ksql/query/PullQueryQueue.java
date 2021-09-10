@@ -83,6 +83,12 @@ public class PullQueryQueue implements BlockingRowQueue {
   }
 
   @Override
+  public void setCompletionHandler(final CompletionHandler completionHandler) {
+    // not currently used in pull queries, although future refactoring might be able to
+    // take advantage of this mechanism.
+  }
+
+  @Override
   public void setQueuedCallback(final Runnable queuedCallback) {
     final Runnable parent = this.queuedCallback;
 

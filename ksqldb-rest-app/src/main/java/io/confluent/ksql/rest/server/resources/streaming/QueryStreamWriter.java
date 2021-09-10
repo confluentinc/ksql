@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +50,9 @@ class QueryStreamWriter implements StreamingOutput {
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final TombstoneFactory tombstoneFactory;
-  private final Supplier<Boolean> isComplete;
   private volatile Exception streamsException;
   private volatile boolean limitReached = false;
+  private volatile boolean complete;
   private volatile boolean connectionClosed;
   private boolean closed;
 
@@ -63,7 +62,7 @@ class QueryStreamWriter implements StreamingOutput {
       final ObjectMapper objectMapper,
       final CompletableFuture<Void> connectionClosedFuture
   ) {
-    this(queryMetadata, disconnectCheckInterval, objectMapper, connectionClosedFuture, () -> false);
+    this(queryMetadata, disconnectCheckInterval, objectMapper, connectionClosedFuture, false);
   }
 
   QueryStreamWriter(
@@ -71,17 +70,23 @@ class QueryStreamWriter implements StreamingOutput {
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Supplier<Boolean> isComplete
+      final boolean emptyStream
   ) {
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     this.disconnectCheckInterval = disconnectCheckInterval;
     this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
-    this.queryMetadata.setLimitHandler(new LimitHandler());
+    this.queryMetadata.setLimitHandler(() -> limitReached = true);
+    this.queryMetadata.setCompletionHandler(() -> complete = true);
     this.queryMetadata.setUncaughtExceptionHandler(new StreamsExceptionHandler());
-    this.isComplete = Objects.requireNonNull(isComplete, "isComplete");
     this.tombstoneFactory = TombstoneFactory.create(queryMetadata);
     connectionClosedFuture.thenAccept(v -> connectionClosed = true);
-    queryMetadata.start();
+    if (emptyStream) {
+      // if we're writing an empty stream, it's already complete,
+      // and we don't even need to bother starting Streams.
+      complete = true;
+    } else {
+      queryMetadata.start();
+    }
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -94,7 +99,7 @@ class QueryStreamWriter implements StreamingOutput {
 
       final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
-      while (!connectionClosed && queryMetadata.isRunning() && !limitReached && !isComplete.get()) {
+      while (!connectionClosed && queryMetadata.isRunning() && !limitReached && !complete) {
         final KeyValue<List<?>, GenericRow> row = rowQueue.poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
@@ -218,10 +223,4 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private class LimitHandler implements io.confluent.ksql.query.LimitHandler {
-    @Override
-    public void limitReached() {
-      limitReached = true;
-    }
-  }
 }

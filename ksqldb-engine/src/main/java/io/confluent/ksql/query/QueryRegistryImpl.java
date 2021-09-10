@@ -16,6 +16,7 @@
 package io.confluent.ksql.query;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.config.SessionConfig;
@@ -54,6 +55,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
 
@@ -151,7 +153,8 @@ public class QueryRegistryImpl implements QueryRegistry {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
-      final boolean excludeTombstones) {
+      final boolean excludeTombstones,
+      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
@@ -172,7 +175,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder()
+        new StreamsBuilder(),
+        endOffsets
     );
     registerTransientQuery(serviceContext, metaStore, query);
     return query;

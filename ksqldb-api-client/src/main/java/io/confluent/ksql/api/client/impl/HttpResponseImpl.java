@@ -26,11 +26,11 @@ import java.util.Map;
 public class HttpResponseImpl implements HttpResponse {
 
   private final int status;
-  private final byte[] payloadBytes;
+  private final byte[] body;
 
-  public HttpResponseImpl(int status, byte[] payloadBytes) {
+  public HttpResponseImpl(int status, byte[] body) {
     this.status = status;
-    this.payloadBytes = payloadBytes;
+    this.body = body;
   }
 
   @Override
@@ -39,22 +39,21 @@ public class HttpResponseImpl implements HttpResponse {
   }
 
   @Override
-  public byte[] payloadAsBytes() {
-    return payloadBytes;
+  public byte[] body() {
+    return body;
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> Map<String, T> payloadAsMap() {
-    if (payloadBytes == null) {
+  public <T> Map<String, T> bodyAsMap() {
+    if (body == null) {
       return Collections.emptyMap();
     }
     try {
-      JsonObject object = new JsonObject(Buffer.buffer(payloadBytes));
+      JsonObject object = new JsonObject(Buffer.buffer(body));
       return (Map<String, T>) object.getMap();
     } catch (DecodeException e) {
-      throw new KsqlClientException("could not decode response: " + new String(payloadBytes));
+      throw new KsqlClientException("could not decode response: " + new String(body));
     }
   }
-
 }

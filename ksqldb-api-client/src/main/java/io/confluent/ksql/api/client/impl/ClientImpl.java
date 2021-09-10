@@ -456,14 +456,18 @@ public class ClientImpl implements Client {
     );
   }
 
-  public CompletableFuture<HttpResponse> sendRequest(HttpRequest request) {
-    Objects.requireNonNull(request);
-    Objects.requireNonNull(request.method(), "HTTP method may not be null.");
-    Objects.requireNonNull(request.path(), "Illegal request for HTTP request to null path.");
+  @Override
+  public HttpRequest request(String method, String path) {
+    return new HttpRequestImpl(method, path, this);
+  }
+
+  CompletableFuture<HttpResponse> send(HttpRequest request) {
     final CompletableFuture<HttpResponse> cf = new CompletableFuture<>();
 
     Map<String, Object> payload = request.payload();
-    // include session varibles specified in client object
+    // include properties
+    payload.put("properties", request.properties());
+    // include session variables
     payload.put("sessionVariables", sessionVariables);
     JsonObject jsonPayload = new JsonObject(payload);
 

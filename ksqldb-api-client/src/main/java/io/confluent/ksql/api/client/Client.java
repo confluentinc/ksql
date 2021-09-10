@@ -285,12 +285,14 @@ public interface Client extends Closeable {
   /**
    * Make an HTTP request to ksqldb server and return its reponse.
    *
-   * @param request a {@link HttpRequest} object set up to construct an HTTP request.
+   * @param method the http verb (for example, "get", "put"). the input is case-sensitive and may
+   *               not be null.
+   * @param path   a non-null URL path
    *
    * @return a future that completes with a {@link HttpResponse} if the http request completes
    * or throws an exception for low level network errors
    */
-  CompletableFuture<HttpResponse> sendRequest(HttpRequest request);
+  HttpRequest request(String method, String path);
 
   /**
    * Define a session variable which can be referenced in sql commands by wrapping the variable name
@@ -331,69 +333,7 @@ public interface Client extends Closeable {
     return new ClientImpl(clientOptions, vertx);
   }
 
-  /**
-   * Construct and return an {@link HttpRequest}.
-   *
-   * @return an instance of {@link HttpRequest}.
-   */
-  static HttpRequest buildRequest() {
-    return new HttpRequestImpl();
-  }
-
   interface HttpRequest {
-
-    /**
-     * Execute an HTTP GET request.
-     *
-     * @return this instance of {@link HttpRequest}
-     */
-    default HttpRequest get() {
-      return method("GET");
-    }
-
-    /**
-     * Execute an HTTP POST request
-     *
-     * @return this instance of {@link HttpRequest}
-     */
-    default HttpRequest post() {
-      return method("POST");
-    }
-
-    /**
-     * Execute an HTTP PUT request
-     *
-     * @return this instance of {@link HttpRequest}
-     */
-    default HttpRequest put() {
-      return method("PUT");
-    }
-
-    /**
-     * Execute an HTTP DELETE request
-     *
-     * @return this instance of {@link HttpRequest}
-     */
-    default HttpRequest delete() {
-      return method("DELETE");
-    }
-
-    /**
-     * Set the HTTP verb for this request.
-     *
-     * @param method the http verb (for example, "get", "put"). the input is case-sensitive and may
-     *               not be null.
-     * @return this instance of {@link HttpRequest}
-     */
-    HttpRequest method(String method);
-
-    /**
-     * Set the URL path for this request.
-     *
-     * @param path a non-null URL path
-     * @return this instance of {@link HttpRequest}
-     */
-    HttpRequest path(String path);
 
     /**
      * Add a key and value in the payload map. If an entry already exists with this key, it is
@@ -415,21 +355,77 @@ public interface Client extends Closeable {
     HttpRequest payload(Map<String, Object> payload);
 
     /**
+     * Set a property. If an entry already exists with this key, it is
+     * replaced.
+     *
+     * @param key   a String key
+     * @param value the value
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest property(String key, Object value);
+
+    /**
+     * Add all properties from the given map. If an entry already exists with this key, it is
+     * replaced.
+     *
+     * @param properties a non-null input map
+     * @return this instance of {@link HttpRequest}
+     */
+    HttpRequest properties(Map<String, Object> properties);
+
+    /**
      * @return a non-null payload map constructed so far for this request.
      */
     Map<String, Object> payload();
 
     /**
-     * @return the URL path for this request. may be null, if {@link #path(String)} has not been
-     * successfully invoked.
+     * @return a non-null properties map constructed so far for this request.
+     */
+    Map<String, Object> properties();
+
+    /**
+     * @return the URL path for this request.
      */
     String path();
 
     /**
-     * @return the HTTP method this request will execute. may be null, if {@link #method(String)}
-     * has not been successfully invoked.
+     * @return the HTTP method this request will execute.
      */
     String method();
+
+    /**
+     * Complete the HTTP request. This method combines the payload key-value pairs, properties and
+     * session variables (set with {@link #define(String, Object)} above) into a json payload that
+     * is sent to the server in the request body. For example, invoking the API as follows:
+     *
+     * <pre>
+     *   client.define("s1", "v1");
+     *   client.request("POST", "/some/path")
+     *     .payload("k1", "v1").
+     *     .payload(singletonMap("k2", "v2"))
+     *     .property("p1", "v2")
+     *     .properties(singletonMap("p2", "v2"))
+     *     .send().get();
+     * </pre>
+     *
+     * will create the following request body:
+     *
+     * <pre>
+     *   {
+     *     "k1": "v1",
+     *     "properties": {
+     *       "p1": "v1",
+     *       "p2": "v2"
+     *     }, sessionVariables: {
+     *       "s1": "v1"
+     *     }
+     *   }
+     * </pre>
+     *
+     * @return a future that completes once the server response is received and parsed into
+     * a {@link HttpResponse} or with an exception if the request failed to complete.
+     */
+    CompletableFuture<HttpResponse> send();
   }
 
   interface HttpResponse {
@@ -442,7 +438,7 @@ public interface Client extends Closeable {
     /**
      * @return response payload as a byte array.
      */
-    byte[] payloadAsBytes();
+    byte[] body();
 
     /**
      * Parse and return JSON response as a {@link Map}.
@@ -452,7 +448,6 @@ public interface Client extends Closeable {
      * @throws io.confluent.ksql.api.client.exception.KsqlClientException if response could not be
      *                                                                    parsed.
      */
-    <T> Map<String, T> payloadAsMap();
+    <T> Map<String, T> bodyAsMap();
   }
-
 }

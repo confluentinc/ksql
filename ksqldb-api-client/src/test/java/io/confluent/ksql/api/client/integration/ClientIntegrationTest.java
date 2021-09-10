@@ -33,7 +33,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
@@ -913,25 +912,17 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldExecutePlainHttpRequests() throws Exception {
-    HttpResponse response = client.sendRequest(Client.buildRequest().get().path("/info")).get();
-    assertEquals(200, response.status());
-    Map<String, Map<String, Object>> info = response.payloadAsMap();
+    HttpResponse response = client.request("GET", "/info").send().get();
+    assertThat(response.status(), is(200));
+    Map<String, Map<String, Object>> info = response.bodyAsMap();
 
-    // Given:
-    final String expectedClusterId = REST_APP.getServiceContext().getAdminClient().describeCluster().clusterId().get();
-
-    // When:
     final ServerInfo serverInfo = client.serverInfo().get();
+    Map<String, Object> innerMap = info.get("KsqlServerInfo");
 
-    // Then:
-    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
-    assertThat(serverInfo.getKsqlServiceId(), is("default_"));
-    assertThat(serverInfo.getKafkaClusterId(), is(expectedClusterId));
-
-    assertThat(info.get("KsqlServerInfo").get("version"), is(serverInfo.getServerVersion()));
-    assertThat(info.get("KsqlServerInfo").get("ksqlServiceId"), is(serverInfo.getKsqlServiceId()));
-    assertThat(info.get("KsqlServerInfo").get("kafkaClusterId"), is(serverInfo.getKafkaClusterId()));
-    assertThat(info.get("KsqlServerInfo").get("serverStatus"), is("RUNNING"));
+    assertThat(innerMap.get("version"), is(serverInfo.getServerVersion()));
+    assertThat(innerMap.get("ksqlServiceId"), is(serverInfo.getKsqlServiceId()));
+    assertThat(innerMap.get("kafkaClusterId"), is(serverInfo.getKafkaClusterId()));
+    assertThat(innerMap.get("serverStatus"), is("RUNNING"));
   }
 
   @Test

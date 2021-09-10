@@ -54,7 +54,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Analysis implements ImmutableAnalysis {
@@ -85,7 +84,8 @@ public class Analysis implements ImmutableAnalysis {
   @VisibleForTesting
   Analysis(
       final Optional<RefinementInfo> refinementInfo,
-      final BiFunction<Map<SourceName, LogicalSchema>, KsqlConfig, SourceSchemas> sourceSchemasFactory,
+      final BiFunction<Map<SourceName, LogicalSchema>, KsqlConfig, SourceSchemas>
+          sourceSchemasFactory,
       final KsqlConfig ksqlConfig
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");

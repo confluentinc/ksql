@@ -21,8 +21,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Objects;
 import java.util.Optional;
 

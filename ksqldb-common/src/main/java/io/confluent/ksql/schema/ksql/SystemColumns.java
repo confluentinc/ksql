@@ -153,9 +153,9 @@ public final class SystemColumns {
         .build();
   }
 
-    private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-      return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-          ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-          : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
-    }
+  private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+  }
 }

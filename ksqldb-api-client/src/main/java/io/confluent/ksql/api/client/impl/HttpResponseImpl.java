@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -28,7 +28,7 @@ public class HttpResponseImpl implements HttpResponse {
   private final int status;
   private final byte[] body;
 
-  public HttpResponseImpl(int status, byte[] body) {
+  public HttpResponseImpl(final int status, final byte[] body) {
     this.status = status;
     this.body = body;
   }
@@ -53,7 +53,7 @@ public class HttpResponseImpl implements HttpResponse {
       JsonObject object = new JsonObject(Buffer.buffer(body));
       return (Map<String, T>) object.getMap();
     } catch (DecodeException e) {
-      throw new KsqlClientException("could not decode response: " + new String(body));
+      throw new KsqlClientException("Could not decode response: " + new String(body));
     }
   }
 }

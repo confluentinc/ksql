@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -37,7 +37,7 @@ public class HttpRequestImpl implements HttpRequest {
   }
 
   public HttpRequestImpl(String method, String path, ClientImpl client) {
-    Objects.requireNonNull(path, "path may not be null");
+    Objects.requireNonNull(path, "Path may not be null");
     Objects.requireNonNull(method, "HTTP method may not be null");
     this.path = path;
     this.method = HttpMethod.valueOf(method.toUpperCase(Locale.ROOT));
@@ -61,7 +61,7 @@ public class HttpRequestImpl implements HttpRequest {
 
   @Override
   public HttpRequest payload(Map<String, Object> payload) {
-    Objects.requireNonNull(payload, "payload may not be null");
+    Objects.requireNonNull(payload, "Payload may not be null");
     payloadAsMap.putAll(Objects.requireNonNull(payload));
     return this;
   }
@@ -73,16 +73,16 @@ public class HttpRequestImpl implements HttpRequest {
 
   @Override
   public HttpRequest payload(String key, Object value) {
-    Objects.requireNonNull(key, "key may not be null");
-    Objects.requireNonNull(value, "value may not be null");
+    Objects.requireNonNull(key, "Payload key may not be null");
+    Objects.requireNonNull(value, "Payload value may not be null");
     payloadAsMap.put(key, value);
     return this;
   }
 
   @Override
   public HttpRequest property(String key, Object value) {
-    Objects.requireNonNull(key, "property key may not be null");
-    Objects.requireNonNull(value, "property value may not be null");
+    Objects.requireNonNull(key, "Property key may not be null");
+    Objects.requireNonNull(value, "Property value may not be null");
 
     properties.put(key, value);
     return this;
@@ -90,7 +90,7 @@ public class HttpRequestImpl implements HttpRequest {
 
   @Override
   public HttpRequest properties(Map<String, Object> properties) {
-    Objects.requireNonNull(properties, "properties may not be null");
+    Objects.requireNonNull(properties, "Properties map may not be null");
     this.properties.putAll(properties);
     return this;
   }

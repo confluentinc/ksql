@@ -437,7 +437,7 @@ public class ExpressionEvaluatorParityTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, ksqlConfig)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

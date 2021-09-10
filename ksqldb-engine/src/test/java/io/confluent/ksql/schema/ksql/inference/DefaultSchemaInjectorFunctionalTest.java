@@ -71,6 +71,8 @@ public class DefaultSchemaInjectorFunctionalTest {
   private AvroSchema avroSchema;
   @Mock
   private MetaStore metaStore;
+  @Mock
+  private KsqlConfig ksqlConfig;
   private DefaultSchemaInjector schemaInjector;
 
   @Before
@@ -517,7 +519,7 @@ public class DefaultSchemaInjectorFunctionalTest {
         "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro');";
 
     final PreparedStatement<Statement> prepared = KsqlParserTestUtil
-        .buildSingleAst(stmtNoSchema, metaStore);
+        .buildSingleAst(stmtNoSchema, metaStore, ksqlConfig);
 
     // When:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -526,7 +528,7 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     // Then:
     final Statement withSchema = KsqlParserTestUtil
-        .buildSingleAst(inferred.getStatementText(), metaStore)
+        .buildSingleAst(inferred.getStatementText(), metaStore, ksqlConfig)
         .getStatement();
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);

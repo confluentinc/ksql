@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -92,19 +91,15 @@ public class AnalyzerFunctionalTest {
 
     analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
 
-    query = parseSingle("Select COL0, COL1 from TEST1;");
+    query = parseSingle("Select COL0, COL1 from TEST1;", ksqlConfig);
 
     registerKafkaSource();
-
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).
-        thenReturn(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_DEFAULT);
   }
-
 
   @Test
   public void shouldUseExplicitNamespaceForAvroSchema() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore, ksqlConfig);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
@@ -121,7 +116,7 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldUseImplicitNamespaceForAvroSchema() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore, ksqlConfig);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
@@ -137,7 +132,7 @@ public class AnalyzerFunctionalTest {
   public void shouldUseExplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 with (VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1') as select * from test1;";
 
-    final List<Statement> statements = parse(simpleQuery, avroMetaStore);
+    final List<Statement> statements = parse(simpleQuery, avroMetaStore, ksqlConfig);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
@@ -181,7 +176,7 @@ public class AnalyzerFunctionalTest {
 
     newAvroMetaStore.putSource(ksqlStream, false);
 
-    final List<Statement> statements = parse(simpleQuery, newAvroMetaStore);
+    final List<Statement> statements = parse(simpleQuery, newAvroMetaStore, ksqlConfig);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
@@ -197,7 +192,7 @@ public class AnalyzerFunctionalTest {
   public void shouldUseImplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 as select * from test1;";
 
-    final List<Statement> statements = parse(simpleQuery, avroMetaStore);
+    final List<Statement> statements = parse(simpleQuery, avroMetaStore, ksqlConfig);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
@@ -212,7 +207,7 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldCaptureProjectionColumnRefs() {
     // Given:
-    query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;");
+    query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;", ksqlConfig);
 
     // When:
     final Analysis analysis = analyzer.analyze(query, Optional.empty());
@@ -230,7 +225,8 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.col0 = t2.col0;"
+            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.col0 = t2.col0;",
+        ksqlConfig
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -253,7 +249,8 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 AND t1.col0 = t2.col0;"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 AND t1.col0 = t2.col0;",
+        ksqlConfig
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -278,7 +275,8 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;",
+        ksqlConfig
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -301,7 +299,8 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = 'foo';"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = 'foo';",
+        ksqlConfig
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -326,7 +325,8 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 + t2.col0 = t1.col0;"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 + t2.col0 = t1.col0;",
+        ksqlConfig
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -351,7 +351,8 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t1.col0;"
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t1.col0;",
+        ksqlConfig
     );
 
     final Query query = createStreamAsSelect.getQuery();
@@ -371,8 +372,11 @@ public class AnalyzerFunctionalTest {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Statement> T parseSingle(final String simpleQuery) {
-    return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
+  private <T extends Statement> T parseSingle(
+      final String simpleQuery,
+      final KsqlConfig ksqlConfig
+  ) {
+    return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore, ksqlConfig));
   }
 
   private void registerKafkaSource() {
@@ -400,8 +404,12 @@ public class AnalyzerFunctionalTest {
     jsonMetaStore.putSource(stream, false);
   }
 
-  private static List<Statement> parse(final String simpleQuery, final MetaStore metaStore) {
-    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore)
+  private static List<Statement> parse(
+      final String simpleQuery,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig
+  ) {
+    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore, ksqlConfig)
         .stream()
         .map(PreparedStatement::getStatement)
         .collect(Collectors.toList());

@@ -75,6 +75,14 @@ public final class AstSanitizer {
     return sanitize(node, metaStore, true, null);
   }
 
+  @VisibleForTesting
+  public static Statement sanitize(
+      final Statement node,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig) {
+    return sanitize(node, metaStore, true, ksqlConfig);
+  }
+
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,

@@ -114,9 +114,6 @@ public class SourceBuilderTest {
   private static final LogicalSchema SCHEMA = SOURCE_SCHEMA
       .withPseudoAndKeyColsInValue(false, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
 
-  private static final LogicalSchema WINDOWED_SCHEMA = SOURCE_SCHEMA
-      .withPseudoAndKeyColsInValue(true, SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION);
-
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
 
   private static final Optional<TimestampColumn> TIMESTAMP_COLUMN = Optional.of(
@@ -197,12 +194,10 @@ public class SourceBuilderTest {
     when(buildContext.getApplicationId()).thenReturn("appid");
     when(buildContext.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
     when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class))).thenReturn(kTable);
     when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
-    when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream); //todo: remove
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class), any(Materialized.class))).thenReturn(kTable);
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);

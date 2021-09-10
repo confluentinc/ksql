@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
@@ -37,7 +36,6 @@ import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.io.File;
 import java.util.Optional;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -53,12 +51,6 @@ public class QueryAnalyzerFunctionalTest {
 
   @Mock
   private KsqlConfig ksqlConfig;
-
-  @Before
-  public void setup() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED))
-        .thenReturn(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_DEFAULT);
-  }
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
@@ -108,7 +100,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldHandleValueFormat() {
     // Given:
     final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create stream s with(value_format='delimited') as select * from test1;", metaStore);
+        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ksqlConfig);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -121,6 +113,6 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   private Query givenQuery(final String sql) {
-    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ksqlConfig).getStatement();
   }
 }

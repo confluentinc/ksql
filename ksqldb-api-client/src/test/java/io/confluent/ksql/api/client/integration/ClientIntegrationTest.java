@@ -912,43 +912,6 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldExecuteExplainStatements() throws Exception {
-    // Given
-    final String streamName = TEST_STREAM + "_COPY";
-    final String csas = "create stream " + streamName + " as select * from " + TEST_STREAM + " emit changes;";
-
-    final int numInitialStreams = 3;
-    final int numInitialQueries = 1;
-    verifyNumStreams(numInitialStreams);
-    verifyNumQueries(numInitialQueries);
-
-    // When: create stream, start persistent query
-    final ExecuteStatementResult csasResult = client.executeStatement(csas).get();
-
-    // Then
-    verifyNumStreams(numInitialStreams + 1);
-    verifyNumQueries(numInitialQueries + 1);
-    assertThat(csasResult.queryId(), is(Optional.of(findQueryIdForSink(streamName))));
-
-    // When: terminate persistent query
-    final String queryId = csasResult.queryId().get();
-    final ExecuteStatementResult terminateResult =
-        client.executeStatement("terminate " + queryId + ";").get();
-
-    // Then
-    verifyNumQueries(numInitialQueries);
-    assertThat(terminateResult.queryId(), is(Optional.empty()));
-
-    // When: drop stream
-    final ExecuteStatementResult dropStreamResult =
-        client.executeStatement("drop stream " + streamName + ";").get();
-
-    // Then
-    verifyNumStreams(numInitialStreams);
-    assertThat(dropStreamResult.queryId(), is(Optional.empty()));
-  }
-
-  @Test
   public void shouldExecutePlainHttpRequests() throws Exception {
     HttpResponse response = client.sendRequest(Client.buildRequest().get().path("/info")).get();
     assertEquals(200, response.status());

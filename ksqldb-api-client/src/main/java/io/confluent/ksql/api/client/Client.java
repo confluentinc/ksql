@@ -331,6 +331,11 @@ public interface Client extends Closeable {
     return new ClientImpl(clientOptions, vertx);
   }
 
+  /**
+   * Construct and return an {@link HttpRequest}.
+   *
+   * @return an instance of {@link HttpRequest}.
+   */
   static HttpRequest buildRequest() {
     return new HttpRequestImpl();
   }
@@ -339,6 +344,7 @@ public interface Client extends Closeable {
 
     /**
      * Execute an HTTP GET request.
+     *
      * @return this instance of {@link HttpRequest}
      */
     default HttpRequest get() {
@@ -347,6 +353,7 @@ public interface Client extends Closeable {
 
     /**
      * Execute an HTTP POST request
+     *
      * @return this instance of {@link HttpRequest}
      */
     default HttpRequest post() {
@@ -355,6 +362,7 @@ public interface Client extends Closeable {
 
     /**
      * Execute an HTTP PUT request
+     *
      * @return this instance of {@link HttpRequest}
      */
     default HttpRequest put() {
@@ -363,6 +371,7 @@ public interface Client extends Closeable {
 
     /**
      * Execute an HTTP DELETE request
+     *
      * @return this instance of {@link HttpRequest}
      */
     default HttpRequest delete() {
@@ -390,15 +399,15 @@ public interface Client extends Closeable {
      * Add a key and value in the payload map. If an entry already exists with this key, it is
      * replaced.
      *
-     * @param key a String key
+     * @param key   a String key
      * @param value the value
      * @return this instance of {@link HttpRequest}
      */
     HttpRequest payload(String key, Object value);
 
     /**
-     * Add all entries from the input map into the payload map. If any of the entries already
-     * exist, it is replaced with the new one.
+     * Add all entries from the input map into the payload map. If any of the entries already exist,
+     * it is replaced with the new one.
      *
      * @param payload a non-null input map
      * @return this instance of {@link HttpRequest}
@@ -425,10 +434,24 @@ public interface Client extends Closeable {
 
   interface HttpResponse {
 
+    /**
+     * @return the status code of the HTTP response.
+     */
     int status();
 
+    /**
+     * @return response payload as a byte array.
+     */
     byte[] payloadAsBytes();
 
+    /**
+     * Parse and return JSON response as a {@link Map}.
+     *
+     * @param <T> the type of the values in the returned map.
+     * @return the parsed response
+     * @throws io.confluent.ksql.api.client.exception.KsqlClientException if response could not be
+     *                                                                    parsed.
+     */
     <T> Map<String, T> payloadAsMap();
   }
 

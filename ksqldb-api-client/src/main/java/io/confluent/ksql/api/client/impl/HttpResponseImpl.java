@@ -16,7 +16,9 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.Client.HttpResponse;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import java.util.Collections;
 import java.util.Map;
@@ -24,11 +26,11 @@ import java.util.Map;
 public class HttpResponseImpl implements HttpResponse {
 
   private final int status;
-  private final byte[] payload;
+  private final byte[] payloadBytes;
 
-  public HttpResponseImpl(int status, byte[] payload) {
+  public HttpResponseImpl(int status, byte[] payloadBytes) {
     this.status = status;
-    this.payload = payload;
+    this.payloadBytes = payloadBytes;
   }
 
   @Override
@@ -38,17 +40,21 @@ public class HttpResponseImpl implements HttpResponse {
 
   @Override
   public byte[] payloadAsBytes() {
-    return payload;
+    return payloadBytes;
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public <T> Map<String, T> payloadAsMap() {
-    if (payload == null) {
+    if (payloadBytes == null) {
       return Collections.emptyMap();
     }
-    JsonObject object = new JsonObject(Buffer.buffer(payload));
-    return (Map<String, T>) object.getMap();
+    try {
+      JsonObject object = new JsonObject(Buffer.buffer(payloadBytes));
+      return (Map<String, T>) object.getMap();
+    } catch (DecodeException e) {
+      throw new KsqlClientException("could not decode response: " + new String(payloadBytes));
+    }
   }
 
 }

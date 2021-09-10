@@ -4,7 +4,10 @@
   ],
   "tests": [
     {
-      "name": "create ROWOFFSET and ROWPARTITION sink user columns as STRINGs",
+      "name": "create ROWOFFSET and ROWPARTITION sink user columns as STRINGs- ROWOFFSET/ROWPARTITION disabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": false
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, val STRING, other_val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT id, val as ROWPARTITION, other_val as ROWOFFSET FROM INPUT;"
@@ -22,7 +25,10 @@
       }
     },
     {
-      "name": "test ROWOFFSET and ROWPARTITION sink user columns with pseudocolumn data types",
+      "name": "test ROWOFFSET and ROWPARTITION sink user columns with pseudocolumn data types- ROWOFFSET/ROWPARTITION disabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": false
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, val INTEGER, other_val BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT id, val as ROWPARTITION, other_val as ROWOFFSET FROM INPUT;"
@@ -40,7 +46,10 @@
       }
     },
     {
-      "name": "create ROWOFFSET and ROWPARTITION source user columns as STRINGs",
+      "name": "create ROWOFFSET and ROWPARTITION source user columns as STRINGs- ROWOFFSET/ROWPARTITION disabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": false
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, ROWPARTITION string, ROWOFFSET string) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT id, ROWPARTITION as val, ROWOFFSET as other_val FROM INPUT;"
@@ -58,7 +67,10 @@
       }
     },
     {
-      "name": "test ROWOFFSET and ROWPARTITION source user columns with pseudocolumn data types",
+      "name": "test ROWOFFSET and ROWPARTITION source user columns with pseudocolumn data types- ROWOFFSET/ROWPARTITION disabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": false
+      },
       "statements": [
         "CREATE STREAM INPUT (id int KEY, ROWPARTITION INTEGER, ROWOFFSET BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT id, ROWPARTITION as val, ROWOFFSET as other_val FROM INPUT;"
@@ -73,6 +85,60 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, val INTEGER, other_val BIGINT"}
         ]
+      }
+    },
+    {
+      "name": "create ROWOFFSET and ROWPARTITION sink user columns as STRINGs- ROWOFFSET/ROWPARTITION enabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, val STRING, other_val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, val as ROWPARTITION, other_val as ROWOFFSET FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Reserved column name in select: `ROWPARTITION`. Please remove or alias the column."
+      }
+    },
+    {
+      "name": "test ROWOFFSET and ROWPARTITION sink user columns with pseudocolumn data types- ROWOFFSET/ROWPARTITION enabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, val INTEGER, other_val BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT id, val as ROWPARTITION, other_val as ROWOFFSET FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Reserved column name in select: `ROWPARTITION`. Please remove or alias the column."
+      }
+    },
+    {
+      "name": "create ROWOFFSET and ROWPARTITION source user columns as STRINGs- ROWOFFSET/ROWPARTITION enabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, ROWPARTITION string, ROWOFFSET string) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'ROWPARTITION' is a reserved column name. You cannot use it as a name for a column."
+      }
+    },
+    {
+      "name": "test ROWOFFSET and ROWPARTITION source user columns with pseudocolumn data types- ROWOFFSET/ROWPARTITION enabled",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, ROWPARTITION INTEGER, ROWOFFSET BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'ROWPARTITION' is a reserved column name. You cannot use it as a name for a column."
       }
     }
   ]

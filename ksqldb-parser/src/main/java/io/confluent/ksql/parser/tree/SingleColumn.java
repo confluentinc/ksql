@@ -46,33 +46,12 @@ public class SingleColumn extends SelectItem {
   ) {
     super(location);
 
-    SystemColumns.systemColumnNames(0)
-        .forEach(columnName -> checkForReservedToken(expression, alias, columnName));
-
     this.expression = requireNonNull(expression, "expression");
     this.alias = requireNonNull(alias, "alias");
   }
 
   public SingleColumn copyWithExpression(final Expression expression) {
     return new SingleColumn(getLocation(), expression, alias);
-  }
-
-  private static void checkForReservedToken(
-      final Expression expression,
-      final Optional<ColumnName> alias,
-      final ColumnName reservedToken
-  ) {
-    if (!alias.isPresent()) {
-      return;
-    }
-    if (alias.get().text().equalsIgnoreCase(reservedToken.text())) {
-      final String text = expression.toString();
-      if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken.text())) {
-        throw new ParseFailedException("'" + reservedToken.text() + "'"
-            + " is a reserved column name. "
-            + "You cannot use it as an alias for a column.");
-      }
-    }
   }
 
   public Optional<ColumnName> getAlias() {

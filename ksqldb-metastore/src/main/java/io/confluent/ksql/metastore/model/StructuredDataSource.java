@@ -77,10 +77,6 @@ abstract class StructuredDataSource<K> implements DataSource {
     this.casTarget = casTarget;
     this.isSource = isSource;
 
-    if (schema.valueContainsAny(SystemColumns.systemColumnNames(0))) {
-      throw new IllegalArgumentException("Schema contains system columns in value schema");
-    }
-
     final Set<ColumnName> keyNames = schema.key().stream()
         .map(Column::name)
         .collect(Collectors.toSet());

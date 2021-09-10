@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -146,7 +147,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
               query.getSessionConfig().getConfig(false),
               query.getSessionConfig().getOverrides());
 
-      scalablePushBandRateLimiter.allow();
+      scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
 
       final ImmutableAnalysis analysis =
           ksqlEngine.analyzeQueryWithNoOutputTopic(query.getStatement(), query.getStatementText());

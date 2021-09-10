@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.util.KsqlPreconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.LinkedList;
@@ -76,12 +78,12 @@ public class SlidingWindowRateLimiter {
    * Throws a KsqlException is the limit has been breached
    * @throws KsqlException Exception that the throttle limit has been reached for queries
    */
-  public synchronized void allow() throws KsqlException {
-    this.allow(Time.SYSTEM.milliseconds());
+  public synchronized void allow(final KsqlQueryType ksqlQueryType) throws KsqlException {
+    this.allow(ksqlQueryType, Time.SYSTEM.milliseconds());
   }
 
   @VisibleForTesting
-  protected synchronized void allow(final long timestamp) throws KsqlException {
+  protected synchronized void allow(final KsqlQueryType ksqlQueryType, final long timestamp) throws KsqlException {
     checkArgument(timestamp >= 0,
             "Timestamp can't be negative.");
 
@@ -90,7 +92,9 @@ public class SlidingWindowRateLimiter {
       this.numBytesInWindow -= responseSizesLog.poll().right;
     }
     if (this.numBytesInWindow > throttleLimit) {
-      throw new KsqlException("Host is at bandwidth rate limit for queries.");
+      throw new KsqlApiException("Host is at bandwidth rate limit for "
+          + ksqlQueryType.toString().toLowerCase() + " queries.",
+          ERROR_CODE_BAD_REQUEST);
     }
   }
 

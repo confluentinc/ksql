@@ -65,6 +65,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -494,7 +495,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
       decrementer = concurrencyLimiter.increment();
     }
-    pullBandRateLimiter.allow();
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
 
     final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
 
@@ -548,7 +549,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final PushQueryConfigPlannerOptions plannerOptions =
         new PushQueryConfigPlannerOptions(ksqlConfig, configOverrides);
 
-    scalablePushBandRateLimiter.allow();
+    scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, configured, pushRouting, routingOptions,

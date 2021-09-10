@@ -110,6 +110,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
                 queryPublisher.getColumnTypes());
             routingContext.response().endHandler(v -> {
               queryPublisher.close();
+              metricsCallbackHolder.reportMetrics(
+                  routingContext.response().getStatusCode(),
+                  routingContext.request().bytesRead(),
+                  routingContext.response().bytesWritten(),
+                  startTimeNanos);
             });
           } else {
             final PushQueryHolder query = connectionQueryManager

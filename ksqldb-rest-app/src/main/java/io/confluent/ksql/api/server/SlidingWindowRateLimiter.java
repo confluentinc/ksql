@@ -83,7 +83,8 @@ public class SlidingWindowRateLimiter {
   }
 
   @VisibleForTesting
-  protected synchronized void allow(final KsqlQueryType ksqlQueryType, final long timestamp) throws KsqlException {
+  protected synchronized void allow(final KsqlQueryType ksqlQueryType, final long timestamp)
+      throws KsqlException {
     checkArgument(timestamp >= 0,
             "Timestamp can't be negative.");
 

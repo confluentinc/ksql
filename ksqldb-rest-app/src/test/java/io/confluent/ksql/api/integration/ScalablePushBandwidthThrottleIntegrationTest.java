@@ -68,8 +68,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-
-
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()

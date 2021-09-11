@@ -204,7 +204,7 @@ public final class KsqlRestClient implements Closeable {
       final Map<String, ?> properties
   ) {
     KsqlTarget targetHttp2 = targetHttp2();
-    if (properties != null) {
+    if (!properties.isEmpty()) {
       targetHttp2 = targetHttp2.properties(properties);
     }
     return targetHttp2.postQueryRequestStreamedAsync(ksql, properties);

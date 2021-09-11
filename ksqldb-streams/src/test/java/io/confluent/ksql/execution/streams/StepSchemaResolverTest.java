@@ -542,7 +542,8 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
+        formats
     );
 
     // When:
@@ -574,26 +575,6 @@ public class StepSchemaResolverTest {
 
   @Test
   public void shouldResolveSchemaForWindowedTableSource() {
-    // Given:
-    final WindowedTableSource step = new WindowedTableSource(
-        PROPERTIES,
-        "foo",
-        formats,
-        mock(WindowInfo.class),
-        Optional.empty(),
-        SCHEMA,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
-    );
-
-    // When:
-    final LogicalSchema result = resolver.resolve(step, SCHEMA);
-
-    // Then:
-    assertThat(result, is(SCHEMA.withPseudoAndKeyColsInValue(true)));
-  }
-
-  @Test
-  public void shouldResolveSchemaForWindowedTableSourceV1() {
     // Given:
     final WindowedTableSource step = new WindowedTableSource(
         PROPERTIES,

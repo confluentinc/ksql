@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -160,7 +161,10 @@ public final class SchemaKSourceFactory {
       final DataSource dataSource,
       final Stacker contextStacker
   ) {
-    if (dataSource.getKsqlTopic().getKeyFormat().getWindowInfo().isPresent()) {
+
+    final KeyFormat keyFormat = dataSource.getKsqlTopic().getKeyFormat();
+
+    if (keyFormat.isWindowed()) {
       throw new IllegalArgumentException("windowed");
     }
 
@@ -172,7 +176,8 @@ public final class SchemaKSourceFactory {
           dataSource.getSchema(),
           dataSource.getKafkaTopicName(),
           Formats.from(dataSource.getKsqlTopic()),
-          dataSource.getTimestampColumn()
+          dataSource.getTimestampColumn(),
+          InternalFormats.of(keyFormat, Formats.from(dataSource.getKsqlTopic()).getValueFormat())
       );
 
     } else {

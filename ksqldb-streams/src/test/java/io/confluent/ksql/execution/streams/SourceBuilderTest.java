@@ -187,6 +187,7 @@ public class SourceBuilderTest {
   private ArgumentCaptor<StaticTopicSerde<GenericRow>> serdeCaptor;
   private final GenericRow row = genericRow("baz", 123);
   private PlanBuilder planBuilder;
+  private Formats formats;
 
   private TableSource tableSource;
 
@@ -227,6 +228,8 @@ public class SourceBuilderTest {
         mock(AggregateParamsFactory.class),
         streamsFactories
     );
+
+    formats = Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES);
   }
 
   @Test
@@ -498,23 +501,26 @@ public class SourceBuilderTest {
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        formats,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
+        SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+        formats
     );
   }
 
   private void givenMultiColumnSourceTable() {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
-    tableSource = new TableSource(
+
+        tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),
         TOPIC_NAME,
-        Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
+        formats,
         TIMESTAMP_COLUMN,
         MULTI_COL_SOURCE_SCHEMA,
-        OptionalInt.of(SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION)
+        SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+        formats
     );
   }
 

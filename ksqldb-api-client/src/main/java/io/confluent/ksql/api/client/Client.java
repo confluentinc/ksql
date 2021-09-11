@@ -16,7 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
-import io.confluent.ksql.api.client.impl.HttpRequestImpl;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Vertx;
 import java.io.Closeable;
 import java.util.List;
@@ -283,7 +283,8 @@ public interface Client extends Closeable {
   CompletableFuture<ConnectorDescription> describeConnector(String connectorName);
 
   /**
-   * Make an HTTP request to ksqldb server and return its reponse.
+   * A factory to construct {@link HttpRequest} objects. Instances of {@link HttpRequest} are
+   * used to make direct HTTP requests to ksqlDB server's REST API.
    *
    * @param method the http verb (for example, "get", "put"). the input is case-sensitive and may
    *               not be null.
@@ -292,7 +293,7 @@ public interface Client extends Closeable {
    * @return a future that completes with a {@link HttpResponse} if the http request completes
    * or throws an exception for low level network errors
    */
-  HttpRequest request(String method, String path);
+  HttpRequest buildRequest(String method, String path);
 
   /**
    * Define a session variable which can be referenced in sql commands by wrapping the variable name
@@ -333,6 +334,10 @@ public interface Client extends Closeable {
     return new ClientImpl(clientOptions, vertx);
   }
 
+  /**
+   * Instances of {@link HttpRequest} are used to make direct HTTP requests
+   * to ksqlDB server's REST API.
+   */
   interface HttpRequest {
 
     /**
@@ -445,8 +450,7 @@ public interface Client extends Closeable {
      *
      * @param <T> the type of the values in the returned map.
      * @return the parsed response
-     * @throws io.confluent.ksql.api.client.exception.KsqlClientException if response could not be
-     *                                                                    parsed.
+     * @throws KsqlClientException if response could not be parsed.
      */
     <T> Map<String, T> bodyAsMap();
   }

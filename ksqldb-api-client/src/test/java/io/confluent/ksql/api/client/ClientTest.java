@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -37,6 +38,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.api.BaseApiTest;
 import io.confluent.ksql.api.TestQueryPublisher;
+import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
@@ -1705,6 +1707,24 @@ public class ClientTest extends BaseApiTest {
 
     // Then:
     assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void clientShouldMakeHttpRequests() throws Exception {
+    HttpResponse response = javaClient.buildRequest("GET", "/info").send().get();
+    assertThat(response.status(), is(200));
+
+    Map<String, Map<String, Object>> info = response.bodyAsMap();
+    Map<String, Object> serverInfo = info.get("KsqlServerInfo");
+    assertThat(serverInfo.get("version"), is(AppInfo.getVersion()));
+    assertThat(serverInfo.get("ksqlServiceId"), is("ksql-service-id"));
+    assertThat(serverInfo.get("kafkaClusterId"), is("kafka-cluster-id"));
+  }
+
+  @Test
+  public void clientShouldReturn404Responses() throws Exception {
+    HttpResponse response = javaClient.buildRequest("GET", "/abc").send().get();
+    assertThat(response.status(), is(404));
   }
 
   protected Client createJavaClient() {

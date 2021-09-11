@@ -912,7 +912,7 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldExecutePlainHttpRequests() throws Exception {
-    HttpResponse response = client.request("GET", "/info").send().get();
+    HttpResponse response = client.buildRequest("GET", "/info").send().get();
     assertThat(response.status(), is(200));
     Map<String, Map<String, Object>> info = response.bodyAsMap();
 

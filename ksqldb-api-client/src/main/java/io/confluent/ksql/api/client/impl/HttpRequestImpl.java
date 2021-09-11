@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.Client.HttpRequest;
 import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.vertx.core.http.HttpMethod;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -30,18 +30,14 @@ public class HttpRequestImpl implements HttpRequest {
   private final Map<String, Object> properties = new HashMap<>();
   private final String path;
   private final HttpMethod method;
-  private final ClientImpl client;
+  private final Client client;
 
-  public HttpRequestImpl(String method, String path) {
-    this(method, path, null);
-  }
-
-  public HttpRequestImpl(String method, String path, ClientImpl client) {
-    Objects.requireNonNull(path, "Path may not be null");
-    Objects.requireNonNull(method, "HTTP method may not be null");
-    this.path = path;
-    this.method = HttpMethod.valueOf(method.toUpperCase(Locale.ROOT));
-    this.client = client;
+  public HttpRequestImpl(String method, String path, Client client) {
+    this.path = Objects.requireNonNull(path, "Path may not be null");
+    this.method = HttpMethod.valueOf(
+        Objects.requireNonNull(method, "HTTP method may not be null")
+    );
+    this.client = Objects.requireNonNull(client, "Client may not be null");
   }
 
   @Override
@@ -60,9 +56,9 @@ public class HttpRequestImpl implements HttpRequest {
   }
 
   @Override
-  public HttpRequest payload(Map<String, Object> payload) {
+  public HttpRequest payload(final Map<String, Object> payload) {
     Objects.requireNonNull(payload, "Payload may not be null");
-    payloadAsMap.putAll(Objects.requireNonNull(payload));
+    payload.forEach(this::payload);
     return this;
   }
 
@@ -72,7 +68,7 @@ public class HttpRequestImpl implements HttpRequest {
   }
 
   @Override
-  public HttpRequest payload(String key, Object value) {
+  public HttpRequest payload(final String key, final Object value) {
     Objects.requireNonNull(key, "Payload key may not be null");
     Objects.requireNonNull(value, "Payload value may not be null");
     payloadAsMap.put(key, value);
@@ -80,7 +76,7 @@ public class HttpRequestImpl implements HttpRequest {
   }
 
   @Override
-  public HttpRequest property(String key, Object value) {
+  public HttpRequest property(final String key, final Object value) {
     Objects.requireNonNull(key, "Property key may not be null");
     Objects.requireNonNull(value, "Property value may not be null");
 
@@ -89,19 +85,19 @@ public class HttpRequestImpl implements HttpRequest {
   }
 
   @Override
-  public HttpRequest properties(Map<String, Object> properties) {
+  public HttpRequest properties(final Map<String, Object> properties) {
     Objects.requireNonNull(properties, "Properties map may not be null");
-    this.properties.putAll(properties);
+    this.properties.forEach(this::property);
     return this;
   }
 
   @Override
   public CompletableFuture<HttpResponse> send() {
-    return client.send(this);
+    return ((ClientImpl) client).send(this);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }

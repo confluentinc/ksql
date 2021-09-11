@@ -457,11 +457,11 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public HttpRequest request(String method, String path) {
+  public HttpRequest buildRequest(final String method, final String path) {
     return new HttpRequestImpl(method, path, this);
   }
 
-  CompletableFuture<HttpResponse> send(HttpRequest request) {
+  CompletableFuture<HttpResponse> send(final HttpRequest request) {
     final CompletableFuture<HttpResponse> cf = new CompletableFuture<>();
 
     Map<String, Object> payload = request.payload();

@@ -19,16 +19,21 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.api.client.Client;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Test;
+import org.mockito.Mock;
 
 public class HttpRequestImplTest {
 
+  @Mock
+  private Client client;
+
   @Test
   public void testSetMethodAndPath() {
-    HttpRequestImpl request = new HttpRequestImpl("GET", "/");
+    HttpRequestImpl request = request();
     assertEquals("GET", request.method());
     assertEquals("/", request.path());
   }
@@ -36,14 +41,14 @@ public class HttpRequestImplTest {
   @Test
   public void nullMethodsShouldNotBeAllowedTest() {
     assertThrows(
-        NullPointerException.class, () -> new HttpRequestImpl(null, "/")
+        NullPointerException.class, () -> new HttpRequestImpl(null, "/", client)
     );
   }
 
   @Test
   public void nullPathsShouldNotBeAllowedTest() {
     assertThrows(
-        NullPointerException.class, () -> new HttpRequestImpl("GET", null)
+        NullPointerException.class, () -> new HttpRequestImpl("GET", null, client)
     );
   }
 
@@ -51,7 +56,7 @@ public class HttpRequestImplTest {
   public void nullPayloadKeysShouldNotBeAllowed() {
     assertThrows(
         NullPointerException.class,
-        () -> new HttpRequestImpl("GET", "/").payload(null, "")
+        () -> new HttpRequestImpl("GET", "/", client).payload(null, "")
     );
   }
 
@@ -59,13 +64,13 @@ public class HttpRequestImplTest {
   public void nullPayloadValuesShouldNotBeAllowed() {
     assertThrows(
         NullPointerException.class,
-        () -> new HttpRequestImpl("GET", "/").payload("", null)
+        () -> new HttpRequestImpl("GET", "/", client).payload("", null)
     );
   }
 
   @Test
   public void testSetAndUpdatePayload() {
-    HttpRequestImpl request = new HttpRequestImpl("GET", "/");
+    HttpRequestImpl request = new HttpRequestImpl("GET", "/", client);
     request.payload("hello", "world");
     assertEquals(Collections.singletonMap("hello", "world"), request.payload());
     request.payload("hello", "again");
@@ -97,7 +102,7 @@ public class HttpRequestImplTest {
 
   @Test
   public void testSetAndUpdateProperties() {
-    HttpRequestImpl request = new HttpRequestImpl("GET", "/");
+    HttpRequestImpl request = new HttpRequestImpl("GET", "/", client);
     request.property("hello", "world");
     assertEquals(Collections.singletonMap("hello", "world"), request.properties());
     request.property("hello", "again");
@@ -128,6 +133,6 @@ public class HttpRequestImplTest {
   }
 
   HttpRequestImpl request() {
-    return new HttpRequestImpl("GET", "/");
+    return new HttpRequestImpl("GET", "/", client);
   }
 }

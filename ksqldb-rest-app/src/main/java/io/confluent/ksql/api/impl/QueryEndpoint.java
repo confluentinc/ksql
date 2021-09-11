@@ -56,6 +56,7 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -200,11 +201,15 @@ public class QueryEndpoint {
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
 
+    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
+      scalablePushBandRateLimiter.add(responseBytes);
+    });
+
     final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
         ksqlConfig,
         statement.getSessionConfig().getOverrides());
 
-    scalablePushBandRateLimiter.allow();
+    scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
@@ -293,7 +298,7 @@ public class QueryEndpoint {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = pullConcurrencyLimiter.increment();
-    pullBandRateLimiter.allow();
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
 
     try {
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(

@@ -76,6 +76,7 @@ public class QueryProjectNode extends ProjectNode {
   private final boolean addAdditionalColumnsToIntermediateSchema;
   private final KsqlConfig ksqlConfig;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public QueryProjectNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -88,6 +89,7 @@ public class QueryProjectNode extends ProjectNode {
       final boolean isScalablePush
   ) {
     super(id, source);
+    this.ksqlConfig = ksqlConfig;
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.queryPlannerOptions = Objects.requireNonNull(queryPlannerOptions, "queryPlannerOptions");
@@ -113,7 +115,6 @@ public class QueryProjectNode extends ProjectNode {
                 queryPlannerOptions)
         )
         .collect(ImmutableList.toImmutableList());
-    this.ksqlConfig = ksqlConfig;
   }
 
   @Override

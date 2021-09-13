@@ -367,7 +367,7 @@ public class ExpressionEvaluatorParityTest {
         = ExpressionTreeRewriter.rewriteWith(columnReferenceRewriter::process, expression);
 
     LogicalSchema schema = metaStore.getSource(SourceName.of(streamName)).getSchema()
-        .withPseudoAndKeyColsInValue(false);
+        .withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     runEvaluator(row,
         () -> CodeGenRunner.compileExpression(

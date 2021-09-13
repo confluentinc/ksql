@@ -42,6 +42,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   private final ValueFormat valueFormat;
   private final KsqlConfig ksqlConfig;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public UserRepartitionNode(
       final PlanNodeId id,
       final PlanNode source,

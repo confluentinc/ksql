@@ -88,10 +88,11 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(false);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ), ksqlConfig);
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+        ), ksqlConfig);
   }
 
   @Test
@@ -105,10 +106,11 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(false);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ), ksqlConfig);
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
+        ), ksqlConfig);
   }
 
   @Test
@@ -123,10 +125,11 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(false);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ), ksqlConfig);
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+        ), ksqlConfig);
   }
 
   @Test
@@ -140,10 +143,12 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(true);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
-    ), ksqlConfig);
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+        ),
+        ksqlConfig);
   }
 
   @Test
@@ -157,10 +162,12 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(true);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ), ksqlConfig);
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
+        ),
+        ksqlConfig);
   }
 
   @Test
@@ -175,10 +182,12 @@ public class AnalysisTest {
     analysis.getFromSourceSchemas(true);
 
     // Then:
-    verify(sourceSchemasFactory).apply(ImmutableMap.of(
-        ALIAS,
-        SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true)
-    ), ksqlConfig);
+    verify(sourceSchemasFactory).apply(
+        ImmutableMap.of(
+            ALIAS,
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
+        ),
+        ksqlConfig);
   }
 
   private static void givenNoneWindowedSource(final KsqlStream<?> dataSource) {

@@ -273,7 +273,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)));
   }
 
   @Test
@@ -286,7 +286,7 @@ public class DataSourceNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     // Then:
-    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true)));
+    assertThat(schema, is(REAL_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)));
   }
 
   @Test

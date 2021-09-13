@@ -38,9 +38,6 @@ public class CreateSourceCommandTest {
   private static final SourceName SOURCE_NAME = SourceName.of("bob");
   private static final String TOPIC_NAME = "vic";
   private static final Formats FORAMTS = mock(Formats.class);
-  private static final ColumnName K0 = ColumnName.of("k0");
-  private static final ColumnName K1 = ColumnName.of("k1");
-
 
   @Test
   public void shouldThrowOnWindowedWithoutKeyColumn() {
@@ -64,58 +61,6 @@ public class CreateSourceCommandTest {
 
     // Then:
     assertThat(e.getMessage(), is(("Windowed sources require a key column.")));
-  }
-
-  @Test
-  public void shouldThrowOnWindowStartColumn() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.INTEGER)
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> new TestCommand(
-            SOURCE_NAME,
-            schema,
-            Optional.empty(),
-            TOPIC_NAME,
-            FORAMTS,
-            Optional.empty()
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Schema contains system columns in value schema"));
-  }
-
-  @Test
-  public void shouldThrowOnWindowEndColumn() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.INTEGER)
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        IllegalArgumentException.class,
-        () -> new TestCommand(
-            SOURCE_NAME,
-            schema,
-            Optional.empty(),
-            TOPIC_NAME,
-            FORAMTS,
-            Optional.empty()
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Schema contains system columns in value schema"));
   }
 
   private static final class TestCommand extends CreateSourceCommand {

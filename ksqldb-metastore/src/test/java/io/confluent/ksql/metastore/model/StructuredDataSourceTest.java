@@ -46,50 +46,11 @@ public class StructuredDataSourceTest {
       .build();
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsRowTime() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new TestStructuredDataSource(schema);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnDuplicateColumnNames() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("dup"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("dup"), SqlTypes.STRING)
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new TestStructuredDataSource(schema);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsWindowStart() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    new TestStructuredDataSource(schema);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfSchemaContainsWindowEnd() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
-        .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 

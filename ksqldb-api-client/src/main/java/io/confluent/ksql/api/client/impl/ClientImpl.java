@@ -461,23 +461,23 @@ public class ClientImpl implements Client {
     return new HttpRequestImpl(method, path, this);
   }
 
-  CompletableFuture<HttpResponse> send(final HttpRequest request) {
+  CompletableFuture<HttpResponse> send(
+      final HttpMethod method,
+      final String path,
+      final Map<String, Object> payload
+  ) {
     final CompletableFuture<HttpResponse> cf = new CompletableFuture<>();
 
-    Map<String, Object> payload = request.payload();
-    // include properties
-    payload.put("properties", request.properties());
-    // include session variables
-    payload.put("sessionVariables", sessionVariables);
-    JsonObject jsonPayload = new JsonObject(payload);
+    JsonObject jsonPayload = new JsonObject(payload)
+        .put("sessionVariables", sessionVariables);
 
     makeRequest(
-        request.path(),
+        path,
         jsonPayload.toBuffer(),
         cf,
         response -> handleResponse(response, cf),
         true,
-        HttpMethod.valueOf(request.method().toUpperCase(Locale.ROOT))
+        method
     );
 
     return cf;

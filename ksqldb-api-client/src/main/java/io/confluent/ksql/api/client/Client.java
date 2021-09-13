@@ -379,6 +379,15 @@ public interface Client extends Closeable {
     HttpRequest properties(Map<String, Object> properties);
 
     /**
+     * Set the key to be used for properties map in the request. If not set, all properties are
+     * keyed to a <strong>"properties"</strong> when sent in the request body. This is useful
+     * as certain endpoints (for example, the /ksql endpoint) in ksqlDB's API look for
+     * properties in a top-level "streamProperties" object, whereas others look for this
+     * in this top-level "properties" object.
+     */
+    HttpRequest propertiesKey(String propertiesKey);
+
+    /**
      * @return a non-null payload map constructed so far for this request.
      */
     Map<String, Object> payload();
@@ -387,6 +396,11 @@ public interface Client extends Closeable {
      * @return a non-null properties map constructed so far for this request.
      */
     Map<String, Object> properties();
+
+    /**
+     * @return the key the properties are associated with in the final request payload.
+     */
+    String propertiesKey();
 
     /**
      * @return the URL path for this request.
@@ -408,8 +422,9 @@ public interface Client extends Closeable {
      *   client.request("POST", "/some/path")
      *     .payload("k1", "v1").
      *     .payload(singletonMap("k2", "v2"))
-     *     .property("p1", "v2")
+     *     .property("p1", "v1")
      *     .properties(singletonMap("p2", "v2"))
+     *     .propertiesKey("streamProperties")
      *     .send().get();
      * </pre>
      *
@@ -418,7 +433,7 @@ public interface Client extends Closeable {
      * <pre>
      *   {
      *     "k1": "v1",
-     *     "properties": {
+     *     "streamProperties": {
      *       "p1": "v1",
      *       "p2": "v2"
      *     }, sessionVariables: {

@@ -29,7 +29,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -1725,6 +1724,20 @@ public class ClientTest extends BaseApiTest {
   public void clientShouldReturn404Responses() throws Exception {
     HttpResponse response = javaClient.buildRequest("GET", "/abc").send().get();
     assertThat(response.status(), is(404));
+  }
+
+  @Test
+  public void setSessionVariablesWithHttpRequest() throws Exception {
+    javaClient.define("some-var", "var-value");
+    HttpResponse response = javaClient.buildRequest("POST", "/ksql")
+        .payload("ksql", "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;")
+        .propertiesKey("streamsProperties")
+        .property("auto.offset.reset", "earliest")
+        .send()
+        .get();
+    assertThat(response.status(), is(200));
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("some-var", "var-value")));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
   }
 
   protected Client createJavaClient() {

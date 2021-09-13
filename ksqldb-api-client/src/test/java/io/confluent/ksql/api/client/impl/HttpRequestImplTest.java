@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
@@ -24,8 +26,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class HttpRequestImplTest {
 
   @Mock
@@ -53,6 +58,24 @@ public class HttpRequestImplTest {
   }
 
   @Test
+  public void testDefaultPropertiesKey() {
+    HttpRequestImpl request = new HttpRequestImpl("GET", "/path", client);
+    request.property("a", 1);
+    assertEquals(singletonMap("a", 1), request.buildPayload().get("properties"));
+  }
+
+  @Test
+  public void testOverridePopertiesKeyValue() {
+    HttpRequestImpl request = new HttpRequestImpl("GET", "/path", client);
+    request.property("a", 1);
+    assertFalse(request.buildPayload().containsKey("hello"));
+    assertEquals(singletonMap("a", 1), request.buildPayload().get("properties"));
+    // override
+    request.propertiesKey("hello");
+    assertEquals(singletonMap("a", 1), request.buildPayload().get("hello"));
+  }
+
+  @Test
   public void nullPayloadKeysShouldNotBeAllowed() {
     assertThrows(
         NullPointerException.class,
@@ -72,9 +95,9 @@ public class HttpRequestImplTest {
   public void testSetAndUpdatePayload() {
     HttpRequestImpl request = new HttpRequestImpl("GET", "/", client);
     request.payload("hello", "world");
-    assertEquals(Collections.singletonMap("hello", "world"), request.payload());
+    assertEquals(singletonMap("hello", "world"), request.payload());
     request.payload("hello", "again");
-    assertEquals(Collections.singletonMap("hello", "again"), request.payload());
+    assertEquals(singletonMap("hello", "again"), request.payload());
     request.payload("ob", "one");
     request.payload("ken", "ob");
     assertEquals(3, request.payload().size());
@@ -104,9 +127,9 @@ public class HttpRequestImplTest {
   public void testSetAndUpdateProperties() {
     HttpRequestImpl request = new HttpRequestImpl("GET", "/", client);
     request.property("hello", "world");
-    assertEquals(Collections.singletonMap("hello", "world"), request.properties());
+    assertEquals(singletonMap("hello", "world"), request.properties());
     request.property("hello", "again");
-    assertEquals(Collections.singletonMap("hello", "again"), request.properties());
+    assertEquals(singletonMap("hello", "again"), request.properties());
     request.property("ob", "one");
     request.property("ken", "ob");
     assertEquals(3, request.properties().size());

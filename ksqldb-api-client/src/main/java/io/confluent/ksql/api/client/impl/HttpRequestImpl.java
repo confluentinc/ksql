@@ -31,6 +31,7 @@ public class HttpRequestImpl implements HttpRequest {
   private final String path;
   private final HttpMethod method;
   private final Client client;
+  private String propertiesKey = "properties";
 
   public HttpRequestImpl(String method, String path, Client client) {
     this.path = Objects.requireNonNull(path, "Path may not be null");
@@ -87,13 +88,31 @@ public class HttpRequestImpl implements HttpRequest {
   @Override
   public HttpRequest properties(final Map<String, Object> properties) {
     Objects.requireNonNull(properties, "Properties map may not be null");
-    this.properties.forEach(this::property);
+    properties.forEach(this::property);
     return this;
   }
 
   @Override
+  public HttpRequest propertiesKey(String propertiesKey) {
+    this.propertiesKey = propertiesKey;
+    return this;
+  }
+
+  public String propertiesKey() {
+    return propertiesKey;
+  }
+
+
+  Map<String, Object> buildPayload() {
+    Map<String, Object> payload = payload();
+    // include properties
+    payload.put(propertiesKey(), properties());
+    return payload;
+  }
+
+  @Override
   public CompletableFuture<HttpResponse> send() {
-    return ((ClientImpl) client).send(this);
+    return ((ClientImpl) client).send(method, path, buildPayload());
   }
 
   @Override

@@ -812,12 +812,12 @@ Map<String, Object> variables = client.getVariables();
 Execute Direct HTTP Requests<a name="direct-http-requests"></a>
 ---------------------------------------------------------------
 
-Sometimes it is necessary to execute requests directly against the ksqlDB server for reasons including, 
+Sometimes, you need to execute requests directly against the ksqlDB server for reasons including, 
 but not limited to, accessing features in ksqlDB REST API that are not available in the API client,
 or deserializing responses into different classes that are more native to your application.
 
-For this, the Client now adds an `HttpRequest` and `HttpResponse` interface that can be used to send 
-direct requests. 
+For this purpose, the Client now adds an `HttpRequest` and `HttpResponse` interface that you can 
+use for sending direct requests. 
 
 ### Example Usage ###
 Call the `/info` endpoint in ksqlDB with: 
@@ -857,7 +857,8 @@ HttpResponse response = client.buildRequest("POST", "/ksql")
 assert response.status() == 200;
 ```
 
-The `send()` method will add authentication headers as specified in [ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html).
+The `send()` method adds authentication headers as specified in 
+[ClientOptions](api/io/confluent/ksql/api/client/ClientOptions.html).
 
 Tutorial Examples<a name="tutorial-examples"></a>
 -------------------------------------------------

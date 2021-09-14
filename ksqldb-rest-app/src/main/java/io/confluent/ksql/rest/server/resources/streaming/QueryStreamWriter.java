@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +56,7 @@ class QueryStreamWriter implements StreamingOutput {
   private volatile boolean complete;
   private volatile boolean connectionClosed;
   private boolean closed;
+  private AtomicLong totalRowsQueued = new AtomicLong(0);
 
   QueryStreamWriter(
       final PushQueryMetadata queryMetadata,

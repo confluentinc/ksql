@@ -194,4 +194,15 @@ public class TransientQueryQueueTest {
     queue.drainTo(entries);
     return entries;
   }
+
+  @Test
+  public void shouldCountTotalRowsQueued() {
+    // When:
+    queue.acceptRow(KEY_ONE, VAL_ONE);
+
+    // Then:
+    assertThat(queue.getTotalRowsQueued(), is(1L));
+    queue.acceptRow(KEY_TWO, VAL_TWO);
+    assertThat(queue.getTotalRowsQueued(), is(2L));
+  }
 }

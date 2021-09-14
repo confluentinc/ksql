@@ -52,8 +52,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
+import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -107,6 +107,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
@@ -240,6 +241,14 @@ public class StreamedQueryResourceTest {
   private AliasedDataSource mockAliasedDataSource;
   @Mock
   private DataSource mockDataSource;
+  @Mock
+  private StreamPullQueryMetadata streamPullQueryMetadata;
+  @Mock
+  private TransientQueryMetadata transientQueryMetadata;
+  @Mock
+  private TombstoneFactory tombstoneFactory;
+  @Mock
+  private QueryStreamWriter queryStreamWriter;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -398,6 +407,52 @@ public class StreamedQueryResourceTest {
         .thenReturn(pullQueryResult);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
+    // When:
+    testResource.streamQuery(
+        securityContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>(),
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder(),
+        context);
+
+    // Then:
+    assertThrows(KsqlException.class, () -> PullQueryExecutionUtil.checkRateLimit(pullQueryRateLimiter));
+  }
+
+  @Test
+  public void shouldRateLimitPullStreamQueries() {
+    final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
+
+    testResource = new StreamedQueryResource(
+        mockKsqlEngine,
+        ksqlRestConfig,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        denyListPropertyValidator,
+        Optional.empty(),
+        routingFilterFactory,
+        pullQueryRateLimiter,
+        concurrencyLimiter,
+        pullBandRateLimiter,
+        scalablePushBandRateLimiter,
+        haRouting,
+        pushRouting,
+        Optional.empty()
+    );
+    testResource.configure(VALID_CONFIG);
+
+    when(mockKsqlEngine.createStreamPullQuery(any(), any(), any(), anyBoolean()))
+        .thenReturn(streamPullQueryMetadata);
+    when(streamPullQueryMetadata.getTransientQueryMetadata()).thenReturn(transientQueryMetadata);
+    when(transientQueryMetadata.getLogicalSchema()).thenReturn(schema);
 
     // When:
     testResource.streamQuery(

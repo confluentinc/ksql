@@ -31,6 +31,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -61,7 +62,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
-    this.ksqlConfig = ksqlConfig;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig) ;
   }
 
   @Override

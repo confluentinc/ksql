@@ -51,7 +51,7 @@ class DataSourceExtractor {
 
   DataSourceExtractor(final MetaStore metaStore, final KsqlConfig ksqlConfig) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.ksqlConfig = ksqlConfig;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
   }
 
   public void extractDataSources(final AstNode node) {

@@ -90,7 +90,7 @@ public class Analysis implements ImmutableAnalysis {
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
-    this.ksqlConfig = ksqlConfig;
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   void addSelectItem(final SelectItem selectItem) {

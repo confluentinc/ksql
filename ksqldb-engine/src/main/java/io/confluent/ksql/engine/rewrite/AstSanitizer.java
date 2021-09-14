@@ -18,6 +18,7 @@ package io.confluent.ksql.engine.rewrite;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -68,14 +69,6 @@ public final class AstSanitizer {
   private AstSanitizer() {
   }
 
-  @VisibleForTesting
-  public static Statement sanitize(
-      final Statement node,
-      final MetaStore metaStore) {
-    return sanitize(node, metaStore, true, null);
-  }
-
-  @VisibleForTesting
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,

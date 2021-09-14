@@ -112,7 +112,9 @@ final class SourceBuilder extends SourceBuilderBase {
       // we do not need to force a materialization at this source step since the
       // re-partitioned topic will be used for any subsequent state stores, in lieu
       // of the original source topic, thus avoiding the issues above.
-      // See https://github.com/confluentinc/ksql/issues/6650
+      // See https://github.com/confluentinc/ksql/issues/6650.
+      // This intermittent transformValues() call is unneccessary in this case,
+      // it is included to keep KStreams topologies consistent and simplify code
       maybeMaterialized = source.transformValues(
           new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
     }

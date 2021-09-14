@@ -62,7 +62,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
         .getDataSource()
         .getKsqlTopic()
         .getValueFormat();
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig) ;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
   }
 
   @Override

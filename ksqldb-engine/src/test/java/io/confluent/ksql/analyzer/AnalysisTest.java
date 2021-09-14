@@ -92,7 +92,9 @@ public class AnalysisTest {
         ImmutableMap.of(
             ALIAS,
             SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
-        ), ksqlConfig);
+        ),
+        ksqlConfig
+    );
   }
 
   @Test
@@ -110,7 +112,9 @@ public class AnalysisTest {
         ImmutableMap.of(
             ALIAS,
             SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
-        ), ksqlConfig);
+        ),
+        ksqlConfig
+    );
   }
 
   @Test
@@ -129,7 +133,9 @@ public class AnalysisTest {
         ImmutableMap.of(
             ALIAS,
             SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
-        ), ksqlConfig);
+        ),
+        ksqlConfig
+    );
   }
 
   @Test
@@ -148,7 +154,8 @@ public class AnalysisTest {
             ALIAS,
             SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
         ),
-        ksqlConfig);
+        ksqlConfig
+    );
   }
 
   @Test
@@ -167,7 +174,8 @@ public class AnalysisTest {
             ALIAS,
             SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
         ),
-        ksqlConfig);
+        ksqlConfig
+    );
   }
 
   @Test
@@ -187,7 +195,8 @@ public class AnalysisTest {
             ALIAS,
             SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
         ),
-        ksqlConfig);
+        ksqlConfig
+    );
   }
 
   private static void givenNoneWindowedSource(final KsqlStream<?> dataSource) {

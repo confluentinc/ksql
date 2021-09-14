@@ -45,6 +45,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.ConnectorDescription;
@@ -907,6 +908,21 @@ public class ClientIntegrationTest {
     // Then
     verifyNumStreams(numInitialStreams);
     assertThat(dropStreamResult.queryId(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldExecutePlainHttpRequests() throws Exception {
+    HttpResponse response = client.buildRequest("GET", "/info").send().get();
+    assertThat(response.status(), is(200));
+    Map<String, Map<String, Object>> info = response.bodyAsMap();
+
+    final ServerInfo serverInfo = client.serverInfo().get();
+    Map<String, Object> innerMap = info.get("KsqlServerInfo");
+
+    assertThat(innerMap.get("version"), is(serverInfo.getServerVersion()));
+    assertThat(innerMap.get("ksqlServiceId"), is(serverInfo.getKsqlServiceId()));
+    assertThat(innerMap.get("kafkaClusterId"), is(serverInfo.getKafkaClusterId()));
+    assertThat(innerMap.get("serverStatus"), is("RUNNING"));
   }
 
   @Test

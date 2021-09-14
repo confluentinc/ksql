@@ -333,8 +333,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       unregisterQuery(oldQuery);
     }
 
-    // Initialize the query before it's exposed to other threads via the map/sets.
-    persistentQuery.initialize();
+    // If the old query was sandboxed, then the stop() won't stop the streams and will cause
+    // the initialize() to fail because the stream is still running. Let's initialize the
+    // query only when it is a new query or the old query is not sandboxed.
+    if (oldQuery == null || !sandbox) {
+      // Initialize the query before it's exposed to other threads via the map/sets.
+      persistentQuery.initialize();
+    }
     persistentQueries.put(queryId, persistentQuery);
     switch (persistentQuery.getPersistentQueryType()) {
       case CREATE_SOURCE:

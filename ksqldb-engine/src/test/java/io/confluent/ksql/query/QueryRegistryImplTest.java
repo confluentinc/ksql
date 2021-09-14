@@ -58,8 +58,6 @@ import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
-  private static final SourceName SINK = SourceName.of("source");
-
   @Mock
   private SessionConfig config;
   @Mock

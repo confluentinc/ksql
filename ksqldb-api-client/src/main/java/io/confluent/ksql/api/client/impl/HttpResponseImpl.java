@@ -20,6 +20,7 @@ import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 
@@ -30,7 +31,12 @@ public class HttpResponseImpl implements HttpResponse {
 
   public HttpResponseImpl(final int status, final byte[] body) {
     this.status = status;
-    this.body = body;
+    if (body == null) {
+      this.body = null;
+    } else {
+      this.body = new byte[body.length];
+      System.arraycopy(body, 0, this.body, 0, body.length);
+    }
   }
 
   @Override
@@ -40,7 +46,13 @@ public class HttpResponseImpl implements HttpResponse {
 
   @Override
   public byte[] body() {
-    return body;
+    if (body == null) {
+      return null;
+    } else {
+      final byte[] copy = new byte[body.length];
+      System.arraycopy(body, 0, copy, 0, body.length);
+      return copy;
+    }
   }
 
   @Override
@@ -50,10 +62,12 @@ public class HttpResponseImpl implements HttpResponse {
       return Collections.emptyMap();
     }
     try {
-      JsonObject object = new JsonObject(Buffer.buffer(body));
+      final JsonObject object = new JsonObject(Buffer.buffer(body));
       return (Map<String, T>) object.getMap();
     } catch (DecodeException e) {
-      throw new KsqlClientException("Could not decode response: " + new String(body));
+      throw new KsqlClientException(
+          "Could not decode response: " + new String(body, StandardCharsets.UTF_8)
+      );
     }
   }
 }

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.client;
 
-import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
 import java.io.Closeable;
 import java.util.List;
@@ -291,7 +291,7 @@ public interface Client extends Closeable {
    * @param path   a non-null URL path
    *
    * @return a future that completes with a {@link HttpResponse} if the http request completes
-   * or throws an exception for low level network errors
+   *         or throws an exception for low level network errors
    */
   HttpRequest buildRequest(String method, String path);
 
@@ -360,6 +360,11 @@ public interface Client extends Closeable {
     HttpRequest payload(Map<String, Object> payload);
 
     /**
+     * @return a non-null payload map constructed so far for this request.
+     */
+    Map<String, Object> payload();
+
+    /**
      * Set a property. If an entry already exists with this key, it is
      * replaced.
      *
@@ -368,6 +373,11 @@ public interface Client extends Closeable {
      * @return this instance of {@link HttpRequest}
      */
     HttpRequest property(String key, Object value);
+
+    /**
+     * @return a non-null properties map constructed so far for this request.
+     */
+    Map<String, Object> properties();
 
     /**
      * Add all properties from the given map. If an entry already exists with this key, it is
@@ -386,16 +396,6 @@ public interface Client extends Closeable {
      * in this top-level "properties" object.
      */
     HttpRequest propertiesKey(String propertiesKey);
-
-    /**
-     * @return a non-null payload map constructed so far for this request.
-     */
-    Map<String, Object> payload();
-
-    /**
-     * @return a non-null properties map constructed so far for this request.
-     */
-    Map<String, Object> properties();
 
     /**
      * @return the key the properties are associated with in the final request payload.
@@ -428,7 +428,7 @@ public interface Client extends Closeable {
      *     .send().get();
      * </pre>
      *
-     * will create the following request body:
+     * <p>will create the following request body:
      *
      * <pre>
      *   {
@@ -443,7 +443,7 @@ public interface Client extends Closeable {
      * </pre>
      *
      * @return a future that completes once the server response is received and parsed into
-     * a {@link HttpResponse} or with an exception if the request failed to complete.
+     *         an {@link HttpResponse} or with an exception if the request failed to complete.
      */
     CompletableFuture<HttpResponse> send();
   }

@@ -56,7 +56,6 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -468,7 +467,7 @@ public class ClientImpl implements Client {
   ) {
     final CompletableFuture<HttpResponse> cf = new CompletableFuture<>();
 
-    JsonObject jsonPayload = new JsonObject(payload)
+    final JsonObject jsonPayload = new JsonObject(payload)
         .put("sessionVariables", sessionVariables);
 
     makeRequest(

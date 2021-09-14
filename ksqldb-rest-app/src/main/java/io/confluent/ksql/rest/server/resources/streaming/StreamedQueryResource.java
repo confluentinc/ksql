@@ -362,7 +362,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
           final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
           metricsCallbackHolder.setCallback(
               pullMetricsInitializer.initializeTableMetricsCallback(resultForMetrics));
-//          metricsCallbackHolder.setCallback(initializeTablePullMetricsCallback(resultForMetrics));
 
           final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
           final ConfiguredStatement<Query> configured = ConfiguredStatement
@@ -388,8 +387,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
           metricsCallbackHolder.setCallback(
               pullMetricsInitializer.initializeStreamMetricsCallback(analysis, resultForMetrics,
                                                              optionalDecrementer));
-//          metricsCallbackHolder.setCallback(initializeStreamPullMetricsCallback(analysis,
-//              resultForMetrics, optionalDecrementer));
 
           final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
           final ConfiguredStatement<Query> configured = ConfiguredStatement
@@ -561,7 +558,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     // Apply the same rate, bandwidth and concurrency limits as with table pull queries
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = concurrencyLimiter.increment();
-    pullBandRateLimiter.allow();
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
     optionalDecrementer.set(Optional.ofNullable(decrementer));
 
     final StreamPullQueryMetadata streamPullQueryMetadata = ksqlEngine
@@ -685,7 +682,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
                   final TransientQueryQueue rowQueue = (TransientQueryQueue)
                       m.getTransientQueryMetadata().getRowQueue();
                   // The rows read from the underlying data source equal the rows read by the user
-                  // since the WHERE condition is pushed to the data source and the plan is pipelined
+                  // since the WHERE condition is pushed to the data source
                   metrics.recordRowsReturned(rowQueue.getTotalRowsQueued(), sourceType, planType,
                                              routingNodeType);
                   metrics.recordRowsProcessed(rowQueue.getTotalRowsQueued(), sourceType, planType,
@@ -697,7 +694,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       return metricsCallback;
     }
 
-    private void recordErrorMetrics(long responseBytes, long startTimeNanos) {
+    private void recordErrorMetrics(final long responseBytes, final long startTimeNanos) {
       pullQueryMetrics.ifPresent(metrics -> {
         metrics.recordResponseSizeForError(responseBytes);
         metrics.recordLatencyForError(startTimeNanos);

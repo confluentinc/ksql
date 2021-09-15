@@ -139,7 +139,7 @@ public class PushRoutingTest {
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
             outputSchema, transientQueryQueue);
-    future.get();
+    final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
       localPublisher.accept(LOCAL_ROW2);
@@ -157,6 +157,7 @@ public class PushRoutingTest {
       }
       rows.add(kv.value().values());
     }
+    handle.close();
     assertThat(rows.contains(LOCAL_ROW1), is(true));
     assertThat(rows.contains(LOCAL_ROW2), is(true));
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
@@ -179,7 +180,7 @@ public class PushRoutingTest {
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
             outputSchema, transientQueryQueue);
-    future.get();
+    final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
       localPublisher.accept(LOCAL_ROW2);
@@ -210,6 +211,7 @@ public class PushRoutingTest {
       }
       rows.add(kv.value().values());
     }
+    handle.close();
     assertThat(rows.contains(LOCAL_ROW1), is(true));
     assertThat(rows.contains(LOCAL_ROW2), is(true));
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
@@ -256,6 +258,7 @@ public class PushRoutingTest {
       Thread.sleep(100);
       continue;
     }
+    handle.close();
 
     // Then:
     assertThat(rows.contains(LOCAL_ROW1), is(true));
@@ -304,6 +307,7 @@ public class PushRoutingTest {
       Thread.sleep(100);
       continue;
     }
+    handle.close();
 
     // Then:
     assertThat(rows.contains(LOCAL_ROW1), is(true));
@@ -342,6 +346,7 @@ public class PushRoutingTest {
       Thread.sleep(100);
       continue;
     }
+    handle.close();
 
     // Then:
     assertThat(exception.get().getMessage(), containsString("Random error"));
@@ -360,7 +365,7 @@ public class PushRoutingTest {
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
             outputSchema, transientQueryQueue);
-    future.get();
+    final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
       localPublisher.accept(LOCAL_ROW2);
@@ -377,6 +382,7 @@ public class PushRoutingTest {
       }
       rows.add(kv.value().values());
     }
+    handle.close();
     assertThat(rows.contains(LOCAL_ROW1), is(true));
     assertThat(rows.contains(LOCAL_ROW2), is(true));
   }
@@ -463,6 +469,7 @@ public class PushRoutingTest {
       }
       rows.add(kv.value().values());
     }
+    handle.close();
     assertThat(rows.get(0), is(LOCAL_ROW1));
     assertThat(handle.getError().getMessage(), containsString("Hit limit of request queue"));
   }
@@ -497,6 +504,7 @@ public class PushRoutingTest {
       }
       rows.add(kv.value().values());
     }
+    handle.close();
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
     assertThat(handle.getError().getMessage(), containsString("Hit limit of request queue"));
   }

@@ -594,6 +594,7 @@ public class PushRouting implements AutoCloseable {
   public static class PushConnectionsHandle {
     private final Map<KsqlNode, RoutingResult> results = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> errorCallback;
+    private volatile boolean closed = false;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public PushConnectionsHandle() {
@@ -619,6 +620,7 @@ public class PushRouting implements AutoCloseable {
     }
 
     public void close() {
+      closed = true;
       for (RoutingResult result : results.values()) {
         result.close();
       }
@@ -636,7 +638,7 @@ public class PushRouting implements AutoCloseable {
     }
 
     public boolean isClosed() {
-      return errorCallback.isDone();
+      return closed || errorCallback.isDone();
     }
 
     public void onException(final Consumer<Throwable> consumer) {

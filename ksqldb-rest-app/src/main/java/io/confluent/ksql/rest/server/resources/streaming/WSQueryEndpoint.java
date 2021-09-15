@@ -315,7 +315,7 @@ public class WSQueryEndpoint {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
 
-      PushQueryPublisher.createScalablePublisher(
+      PushQueryPublisher.createScalablePushQueryPublisher(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,
@@ -326,7 +326,7 @@ public class WSQueryEndpoint {
           scalablePushBandRateLimiter
       ).subscribe(streamSubscriber);
     } else {
-      PushQueryPublisher.createPublisher(
+      PushQueryPublisher.createPushQueryPublisher(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,

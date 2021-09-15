@@ -34,7 +34,7 @@ public final class VariableParser {
 
     final ImmutableMap.Builder<String, String> variables = ImmutableMap.builder();
     for (String pair : definedVars) {
-      final String[] parts = pair.split("=");
+      final String[] parts = pair.split("=", 2);
       if (parts.length != 2) {
         throw new IllegalArgumentException("Failed to parse argument " + pair
             + ": variables must be defined using '=' (i.e. var=val).");

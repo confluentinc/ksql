@@ -38,6 +38,7 @@ import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -102,6 +103,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -217,6 +219,7 @@ public class RestApiTest {
       .withProperties(ClientTrustStore.trustStoreProps())
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
       .build();
 
   @ClassRule
@@ -341,6 +344,36 @@ public class RestApiTest {
     ));
     assertThat(messages.get(2), is(
         "{\"row\":{\"columns\":[\"PAGE_2\",\"USER_2\",2]}}"
+    ));
+  }
+
+  @Test
+  public void shouldExecutePullQueryThatReturnsStreamOverWebSocketWithJsonContentType() {
+    // When:
+    final List<String> messages = makeWebSocketRequest(
+        "SELECT * from " + PAGE_VIEW_STREAM + ";",
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON
+    );
+
+    // Then:
+    assertThat(messages, equalTo(
+        ImmutableList.of(
+            "[{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
+                + ",{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
+                + ",{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]",
+            "{\"row\":{\"columns\":[\"PAGE_1\",\"USER_1\",1]}}",
+            "{\"row\":{\"columns\":[\"PAGE_2\",\"USER_2\",2]}}",
+            "{\"row\":{\"columns\":[\"PAGE_3\",\"USER_4\",3]}}",
+            "{\"row\":{\"columns\":[\"PAGE_4\",\"USER_3\",4]}}",
+            "{\"row\":{\"columns\":[\"PAGE_5\",\"USER_0\",5]}}",
+            "{\"row\":{\"columns\":[\"PAGE_5\",\"USER_2\",6]}}",
+            "{\"row\":{\"columns\":[\"PAGE_5\",\"USER_3\",7]}}",
+            // This is a bit weird, but it's clearly what the code is meant to produce.
+            // I'm unsure if it's ok to change this to make more sense, or if user code depends
+            // on this completion message.
+            "{\"error\":\"done\"}"
+        )
     ));
   }
 

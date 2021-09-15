@@ -81,6 +81,12 @@ public final class SystemColumns {
           ROWOFFSET_NAME
       );
 
+  private static final Set<ColumnName> DISALLOWED_FOR_PULL_QUERIES =
+      ImmutableSet.of(
+          ROWPARTITION_NAME,
+          ROWOFFSET_NAME
+      );
+
   private static final Map<Integer, Set<ColumnName>> SYSTEM_COLUMN_NAMES_BY_VERSION =
       ImmutableMap.of(
           0, buildColumns(0),
@@ -134,6 +140,24 @@ public final class SystemColumns {
     return isSystemColumn(columnName, getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
+  public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+  }
+
+  public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
+    return MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
+  }
+
+  public static boolean disallowedForPullQueries(
+      final ColumnName columnName,
+      final int pseudoColumnVersion
+  ) {
+    return isSystemColumn(columnName, pseudoColumnVersion)
+        && DISALLOWED_FOR_PULL_QUERIES.contains(columnName);
+  }
+
   @SuppressFBWarnings(
       value = "MS_EXPOSE_REP",
       justification = "SYSTEM_COLUMN_NAMES is ImmutableSet"
@@ -142,20 +166,10 @@ public final class SystemColumns {
     return SYSTEM_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
   }
 
-  public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
-    return MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
-  }
-
   private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {
     return ImmutableSet.<ColumnName>builder()
         .addAll(pseudoColumnNames(pseudoColumnVersion))
         .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
         .build();
-  }
-
-  private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }
 }

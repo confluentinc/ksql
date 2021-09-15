@@ -66,31 +66,31 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Map<SourceName, QueryId> createAsQueries;
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
-  private final QueryExecutorFactory executorFactory;
+  private final QueryBuilderFactory queryBuilderFactory;
   private final List<SharedKafkaStreamsRuntime> streams;
   private final boolean sandbox;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
-    this(eventListeners, QueryExecutor::new);
+    this(eventListeners, QueryBuilder::new);
   }
 
   QueryRegistryImpl(
       final Collection<QueryEventListener> eventListeners,
-      final QueryExecutorFactory executorFactory
+      final QueryBuilderFactory queryBuilderFactory
   ) {
     this.persistentQueries = new ConcurrentHashMap<>();
     this.allLiveQueries = new ConcurrentHashMap<>();
     this.createAsQueries = new ConcurrentHashMap<>();
     this.insertQueries = new ConcurrentHashMap<>();
     this.eventListeners = Objects.requireNonNull(eventListeners);
-    this.executorFactory = Objects.requireNonNull(executorFactory);
+    this.queryBuilderFactory = Objects.requireNonNull(queryBuilderFactory);
     this.streams = new ArrayList<>();
     this.sandbox = false;
   }
 
   // Used to construct a sandbox
   private QueryRegistryImpl(final QueryRegistryImpl original) {
-    executorFactory = original.executorFactory;
+    queryBuilderFactory = original.queryBuilderFactory;
     persistentQueries = new ConcurrentHashMap<>();
     allLiveQueries = new ConcurrentHashMap<>();
     createAsQueries = new ConcurrentHashMap<>();
@@ -153,7 +153,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor = executorFactory.create(
+    final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
           processingLogContext,
           serviceContext,
@@ -161,7 +161,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           streams,
           !sandbox);
 
-    final TransientQueryMetadata query = executor.buildTransientQuery(
+    final TransientQueryMetadata query = queryBuilder.buildTransientQuery(
         statementText,
         queryId,
         sources,
@@ -194,7 +194,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final Optional<String> runtimeId) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor = executorFactory.create(
+    final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
           processingLogContext,
           serviceContext,
@@ -207,7 +207,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     final PersistentQueryMetadata query;
 
     if (runtimeId.isPresent()) {
-      query = executor.buildPersistentQueryInSharedRuntime(
+      query = queryBuilder.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
           persistentQueryType,
           statementText,
@@ -220,7 +220,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           () -> ImmutableList.copyOf(getPersistentQueries().values())
       );
     } else {
-      query = executor.buildPersistentQueryInDedicatedRuntime(
+      query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
           persistentQueryType,
           statementText,
@@ -418,8 +418,8 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @FunctionalInterface
-  interface QueryExecutorFactory {
-    QueryExecutor create(
+  interface QueryBuilderFactory {
+    QueryBuilder create(
         SessionConfig config,
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,

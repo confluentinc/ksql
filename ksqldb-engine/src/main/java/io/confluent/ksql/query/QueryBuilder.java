@@ -88,8 +88,11 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
 
+/**
+ * A builder for creating queries metadata.
+ */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-final class QueryExecutor {
+final class QueryBuilder {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
@@ -104,7 +107,7 @@ final class QueryExecutor {
   private final List<SharedKafkaStreamsRuntime> streams;
   private final boolean real;
 
-  QueryExecutor(
+  QueryBuilder(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
@@ -131,7 +134,7 @@ final class QueryExecutor {
   }
 
   @VisibleForTesting
-  QueryExecutor(
+  QueryBuilder(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,

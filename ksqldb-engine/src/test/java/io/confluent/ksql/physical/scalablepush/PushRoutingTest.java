@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,6 +81,8 @@ public class PushRoutingTest {
   @Mock
   private KsqlNode ksqlNodeRemote;
   @Mock
+  private KsqlNode ksqlNodeRemote2;
+  @Mock
   private TransientQueryQueue transientQueryQueueMock;
 
   private Vertx vertx;
@@ -103,6 +106,8 @@ public class PushRoutingTest {
     when(ksqlNodeLocal.isLocal()).thenReturn(true);
     when(ksqlNodeRemote.location()).thenReturn(URI.create("http://remote:8088"));
     when(ksqlNodeRemote.isLocal()).thenReturn(false);
+    when(ksqlNodeRemote2.location()).thenReturn(URI.create("http://remote2:8088"));
+    when(ksqlNodeRemote2.isLocal()).thenReturn(false);
     when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(false);
 
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty());
@@ -425,10 +430,15 @@ public class PushRoutingTest {
   @Test
   public void shouldFail_errorRemoteCall() throws ExecutionException, InterruptedException {
     // Given:
-    when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeRemote));
+    when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeRemote, ksqlNodeRemote2));
     final PushRouting routing = new PushRouting();
-    when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
+    TestRemotePublisher remotePublisher = new TestRemotePublisher(context);
+    when(simpleKsqlClient.makeQueryRequestStreamed(
+        eq(ksqlNodeRemote.location()), any(), any(), any()))
         .thenReturn(createErrorFuture(new RuntimeException("Error remote!")));
+    when(simpleKsqlClient.makeQueryRequestStreamed(
+        eq(ksqlNodeRemote2.location()), any(), any(), any()))
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
 
     // When:
     CompletableFuture<PushConnectionsHandle> future =
@@ -438,6 +448,7 @@ public class PushRoutingTest {
 
     // Then:
     assertThat(handle.getError().getMessage(), containsString("Error remote!"));
+    assertThat(remotePublisher.isClosed(), is(true));
   }
 
   @Test
@@ -511,12 +522,23 @@ public class PushRoutingTest {
 
   private static class TestRemotePublisher extends BufferedPublisher<StreamedRow> {
 
+    private volatile boolean closed = false;
+
     public TestRemotePublisher(Context ctx) {
       super(ctx);
     }
 
     public void error(final Throwable e) {
       sendError(e);
+    }
+
+    public void close() {
+      closed = true;
+      super.close();
+    }
+
+    public boolean isClosed() {
+      return closed;
     }
   }
 }

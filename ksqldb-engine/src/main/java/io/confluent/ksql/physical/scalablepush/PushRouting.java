@@ -197,20 +197,33 @@ public class PushRouting implements AutoCloseable {
               .map(Entry::getKey)
               .findFirst()
               .orElse(null);
+          for (KsqlNode n : hosts) {
+            final CompletableFuture<RoutingResult> future = futureMap.get(n);
+            // For simplicity, just close all of the connections that may have succeeded
+            if (future.isDone() && !future.isCompletedExceptionally()) {
+              final RoutingResult routingResult = future.join();
+              routingResult.close();
+            }
+            // Mark these all as failed
+            pushConnectionsHandle.get(n)
+                .ifPresent(result -> result.updateStatus(RoutingResultStatus.FAILED));
+          }
           LOG.warn("Error routing query {} id {} to host {} at timestamp {} with exception {}",
               statement.getStatementText(), pushPhysicalPlan.getQueryId(), node,
               System.currentTimeMillis(), t.getCause());
 
           // We only fail the whole thing if this is not a new dynamically added node. We allow
           // retries in that case and don't fail the original request.
-          pushConnectionsHandle.get(node)
-              .ifPresent(result -> result.updateStatus(RoutingResultStatus.FAILED));
           if (!dynamicallyAddedNode) {
             pushConnectionsHandle.completeExceptionally(
                 new KsqlException(String.format(
                     "Unable to execute push query \"%s\". %s",
                     statement.getStatementText(), t.getCause().getMessage())));
           }
+          return pushConnectionsHandle;
+        })
+        .exceptionally(t -> {
+          LOG.error("Unexpected error handing exception", t);
           return pushConnectionsHandle;
         });
   }
@@ -594,6 +607,7 @@ public class PushRouting implements AutoCloseable {
   public static class PushConnectionsHandle {
     private final Map<KsqlNode, RoutingResult> results = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> errorCallback;
+    private volatile boolean closed = false;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public PushConnectionsHandle() {
@@ -608,6 +622,10 @@ public class PushRouting implements AutoCloseable {
 
     public void add(final KsqlNode ksqlNode, final RoutingResult result) {
       results.put(ksqlNode, result);
+      // Make sure that we close the result if the handle has been closed.
+      if (isClosed()) {
+        result.close();
+      }
     }
 
     public RoutingResult remove(final KsqlNode ksqlNode) {
@@ -619,6 +637,7 @@ public class PushRouting implements AutoCloseable {
     }
 
     public void close() {
+      closed = true;
       for (RoutingResult result : results.values()) {
         result.close();
       }
@@ -636,7 +655,7 @@ public class PushRouting implements AutoCloseable {
     }
 
     public boolean isClosed() {
-      return errorCallback.isDone();
+      return closed || errorCallback.isDone();
     }
 
     public void onException(final Consumer<Throwable> consumer) {

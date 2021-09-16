@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 
@@ -32,7 +33,7 @@ public interface TableRow {
 
   GenericRow value();
 
-  String token();
+  Optional<ProgressToken> token();
 
   TableRow withValue(
       GenericRow newValue,

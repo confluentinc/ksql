@@ -24,6 +24,7 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import java.util.List;
+import java.util.Optional;
 
 public class TestQueryPublisher
     extends BasePublisher<KeyValueMetadata<List<?>, GenericRow>>
@@ -70,7 +71,7 @@ public class TestQueryPublisher
           getSubscriber().onError(new RuntimeException("Failure in processing"));
         } else {
           rowsSent++;
-          getSubscriber().onNext(new KeyValueMetadata<>(KeyValue.keyValue(null, row), ""));
+          getSubscriber().onNext(new KeyValueMetadata<>(KeyValue.keyValue(null, row), Optional.empty()));
           if (rowsSent == limit) {
             sendComplete();
           }

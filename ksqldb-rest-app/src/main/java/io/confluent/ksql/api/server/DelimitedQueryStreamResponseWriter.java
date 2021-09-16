@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryResponseRow;
 import io.vertx.core.http.HttpServerResponse;
@@ -60,6 +61,12 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   public QueryStreamResponseWriter writeRow(final GenericRow row, Optional<String> token) {
     QueryResponseRow r = new QueryResponseRow(row.values(), token);
     response.write(ServerUtils.serializeObject(r).appendString("\n"));
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeProgressToken(ProgressToken token) {
+    response.write(ServerUtils.serializeObject(token).appendString("\n"));
     return this;
   }
 

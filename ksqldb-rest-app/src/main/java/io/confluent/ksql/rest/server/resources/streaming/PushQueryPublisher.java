@@ -27,6 +27,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -202,7 +203,15 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
         return null;
       } else {
         return rows.stream()
-            .map(kv -> StreamedRow.pushRow(kv.getKeyValue().value(), kv.getToken()))
+            .map(kv -> {
+              if (kv.getProgressMetadata().isPresent()) {
+                return StreamedRow.pushRow(new ProgressToken(
+                    kv.getProgressMetadata().get().getStartToken(),
+                    kv.getProgressMetadata().get().getEndToken()));
+              } else {
+                return StreamedRow.pushRow(kv.getKeyValue().value(), Optional.empty());
+              }
+            })
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

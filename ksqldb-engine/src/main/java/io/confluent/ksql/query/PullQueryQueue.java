@@ -22,6 +22,7 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -177,7 +178,7 @@ public class PullQueryQueue implements BlockingRowQueue {
     if (row == null) {
       return null;
     }
-    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()), "");
+    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()), Optional.empty());
   }
 
   /**

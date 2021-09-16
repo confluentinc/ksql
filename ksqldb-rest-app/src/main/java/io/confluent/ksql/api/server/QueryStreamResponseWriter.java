@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import java.util.Optional;
 
@@ -28,6 +29,8 @@ public interface QueryStreamResponseWriter {
   QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
   QueryStreamResponseWriter writeRow(GenericRow row, Optional<String> token);
+
+  QueryStreamResponseWriter writeProgressToken(ProgressToken token);
 
   QueryStreamResponseWriter writeError(KsqlErrorMessage error);
 

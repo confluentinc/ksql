@@ -22,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,7 +33,7 @@ public final class Row implements TableRow {
   private final GenericKey key;
   private final GenericRow value;
   private final long rowTime;
-  private final String token;
+  private final Optional<ProgressToken> token;
   private final Validator validator;
 
   public static Row of(
@@ -40,7 +41,7 @@ public final class Row implements TableRow {
       final GenericKey key,
       final GenericRow value,
       final long rowTime,
-      final String token
+      final Optional<ProgressToken> token
   ) {
     return new Row(schema, key, value, rowTime, token, TableRowValidation::validate);
   }
@@ -51,7 +52,7 @@ public final class Row implements TableRow {
       final GenericRow value,
       final long rowTime
   ) {
-    return new Row(schema, key, value, rowTime, "", TableRowValidation::validate);
+    return new Row(schema, key, value, rowTime, Optional.empty(), TableRowValidation::validate);
   }
 
   @VisibleForTesting
@@ -60,7 +61,7 @@ public final class Row implements TableRow {
       final GenericKey key,
       final GenericRow value,
       final long rowTime,
-      final String token,
+      final Optional<ProgressToken> token,
       final Validator validator
   ) {
     this.schema = requireNonNull(schema, "schema");
@@ -100,7 +101,7 @@ public final class Row implements TableRow {
   }
 
   @Override
-  public String token() {
+  public Optional<ProgressToken> token() {
     return token;
   }
 

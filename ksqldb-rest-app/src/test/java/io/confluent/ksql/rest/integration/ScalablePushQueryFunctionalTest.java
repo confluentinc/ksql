@@ -364,16 +364,18 @@ public class ScalablePushQueryFunctionalTest {
   ) {
     assertThatEventually(() -> {
       for (final PersistentQueryMetadata metadata : REST_APP_0.getEngine().getPersistentQueries()) {
-        if (metadata.getScalablePushRegistry().get().numRegistered()
-            < expectedScalablePushQueries) {
+        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
+            < expectedScalablePushQueries
+            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
           return false;
         }
       }
       if (app1) {
         for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
             .getPersistentQueries()) {
-          if (metadata.getScalablePushRegistry().get().numRegistered()
-              < expectedScalablePushQueries) {
+          if (metadata.getScalablePushRegistry().get().latestNumRegistered()
+              < expectedScalablePushQueries
+              || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
             return false;
           }
         }

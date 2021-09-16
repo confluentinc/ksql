@@ -22,6 +22,7 @@ import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -34,6 +35,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -172,7 +174,11 @@ class QueryStreamWriter implements StreamingOutput {
   private StreamedRow buildRow(final KeyValueMetadata<List<?>, GenericRow> row) {
     return row.getKeyValue().value() == null
         ? StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()))
-        : StreamedRow.pushRow(row.getKeyValue().value(), row.getToken());
+        : row.getProgressMetadata().isPresent() ?
+            StreamedRow.pushRow(
+                new ProgressToken(row.getProgressMetadata().get().getStartToken(),
+                    row.getProgressMetadata().get().getEndToken()))
+            : StreamedRow.pushRow(row.getKeyValue().value(), Optional.empty());
   }
 
   private void outputException(final OutputStream out, final Throwable exception) {

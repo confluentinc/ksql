@@ -22,6 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
@@ -95,8 +96,8 @@ public final class WindowedRow implements TableRow {
   }
 
   @Override
-  public String token() {
-    return "";
+  public Optional<ProgressToken> token() {
+    return Optional.empty();
   }
 
   @Override

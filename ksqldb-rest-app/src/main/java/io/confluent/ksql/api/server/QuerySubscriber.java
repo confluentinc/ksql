@@ -21,12 +21,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +61,12 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleValue(final KeyValueMetadata<List<?>, GenericRow> row) {
-    queryStreamResponseWriter.writeRow(row.getKeyValue().value(), row.getToken());
+    if (row.getProgressMetadata().isPresent()) {
+      queryStreamResponseWriter.writeProgressToken(new ProgressToken(
+          row.getProgressMetadata().get().getStartToken(), row.getProgressMetadata().get().getEndToken()));
+    } else {
+      queryStreamResponseWriter.writeRow(row.getKeyValue().value(), Optional.empty());
+    }
     tokens--;
     if (response.writeQueueFull()) {
       response.drainHandler(v -> checkMakeRequest());

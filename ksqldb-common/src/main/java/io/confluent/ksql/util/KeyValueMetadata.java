@@ -7,18 +7,18 @@ public class KeyValueMetadata<K, V> {
 
 
   private final KeyValue<K, V> keyValue;
-  private final String token;
+  private final Optional<ProgressMetadata> progressMetadata;
 
-  public KeyValueMetadata(KeyValue<K, V> keyValue, String token) {
+  public KeyValueMetadata(KeyValue<K, V> keyValue, Optional<ProgressMetadata> progressMetadata) {
     this.keyValue = keyValue;
-    this.token = token;
+    this.progressMetadata = progressMetadata;
   }
 
   public KeyValue<K, V> getKeyValue() {
     return keyValue;
   }
 
-  public Optional<String> getToken() {
-    return Optional.ofNullable(Strings.emptyToNull(token));
+  public Optional<ProgressMetadata> getProgressMetadata() {
+    return progressMetadata;
   }
 }

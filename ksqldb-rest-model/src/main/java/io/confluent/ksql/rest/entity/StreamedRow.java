@@ -52,7 +52,7 @@ public final class StreamedRow {
   private final Optional<KsqlErrorMessage> errorMessage;
   private final Optional<String> finalMessage;
   private final Optional<KsqlHostInfoEntity> sourceHost;
-  private final Optional<String> token;
+  private final Optional<ProgressToken> progress;
 
   /**
    * The header used in queries.
@@ -90,7 +90,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        token
+        Optional.empty()
     );
   }
 
@@ -105,6 +105,20 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
+    );
+  }
+
+  /**
+   * Row returned from a push query.
+   */
+  public static StreamedRow pushRow(final ProgressToken progressToken) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(progressToken)
     );
   }
 
@@ -165,16 +179,16 @@ public final class StreamedRow {
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
       @JsonProperty("finalMessage") final Optional<String> finalMessage,
       @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost,
-      @JsonProperty("token") final Optional<String> token
+      @JsonProperty("progress") final Optional<ProgressToken> progress
   ) {
     this.header = requireNonNull(header, "header");
     this.row = requireNonNull(row, "row");
     this.errorMessage = requireNonNull(errorMessage, "errorMessage");
     this.finalMessage = requireNonNull(finalMessage, "finalMessage");
     this.sourceHost = requireNonNull(sourceHost, "sourceHost");
-    this.token = token;
+    this.progress = requireNonNull(progress, "progress");
 
-    checkUnion(header, row, errorMessage, finalMessage);
+    checkUnion(header, row, errorMessage, finalMessage, progress);
   }
 
   public Optional<Header> getHeader() {
@@ -197,8 +211,8 @@ public final class StreamedRow {
     return sourceHost;
   }
 
-  public Optional<String> getToken() {
-    return token;
+  public Optional<ProgressToken> getProgressToken() {
+    return progress;
   }
 
   @JsonIgnore

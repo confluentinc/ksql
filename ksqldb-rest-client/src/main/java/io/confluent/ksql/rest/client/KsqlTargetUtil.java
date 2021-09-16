@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryResponseRow;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -53,6 +54,12 @@ public final class KsqlTargetUtil {
     try {
       final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
       return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
+    } catch (KsqlRestClientException e) {
+      // Not a {@link KsqlErrorMessage}
+    }
+    try {
+      final ProgressToken progressToken = deserialize(buff, ProgressToken.class);
+      return StreamedRow.pushRow(progressToken);
     } catch (KsqlRestClientException e) {
       // Not a {@link KsqlErrorMessage}
     }

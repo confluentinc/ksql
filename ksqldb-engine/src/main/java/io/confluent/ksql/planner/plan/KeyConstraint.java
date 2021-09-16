@@ -27,7 +27,7 @@ import java.util.Optional;
  * available through the given methods. These are used as hints for the physical planning
  * layer about how to fetch the corresponding rows.
  */
-public class KeyConstraint implements LookupConstraint, KsqlKey {
+public class KeyConstraint implements LookupConstraint,   KsqlKey {
 
   private final ConstraintOperator operator;
   private final GenericKey key;

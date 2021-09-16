@@ -90,6 +90,9 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     if (row == null) {
       return null;
     }
+    if (row.token().isPresent()) {
+      return row;
+    }
 
     final GenericRow intermediate = PhysicalOperatorUtil.getIntermediateRow(
         row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());

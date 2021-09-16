@@ -19,10 +19,13 @@ import static io.confluent.ksql.util.KeyValue.keyValue;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.ProgressMetadata;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -123,7 +126,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
       }
 
       final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
-      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row, "");
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row, Optional.empty());
 
       while (!closed) {
         if (rowQueue.offer(keyValueMetadata, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
@@ -144,14 +147,15 @@ public class TransientQueryQueue implements BlockingRowQueue {
    * @return If the row was accepted or discarded for an acceptable reason, false if it was rejected
    *     because the queue was full.
    */
-  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value, final String token) {
+  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value, final Optional<ProgressToken> token) {
     try {
       if (!callback.shouldQueue()) {
         return true;
       }
 
       final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
-      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row, token);
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row,
+          token.map(t -> new ProgressMetadata(t.getStartToken(), t.getEndToken())));
 
       if (!closed) {
         if (!rowQueue.offer(keyValueMetadata, 0, TimeUnit.MILLISECONDS)) {

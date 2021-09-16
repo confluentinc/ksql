@@ -84,6 +84,7 @@ public class WSQueryEndpointTest {
         mock(Errors.class),
         denyListPropertyValidator,
         Optional.empty(),
+        Optional.empty(),
         mock(RoutingFilterFactory.class),
         mock(RateLimiter.class),
         mock(ConcurrencyLimiter.class),

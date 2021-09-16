@@ -54,7 +54,9 @@ public final class KsqlConstants {
   }
 
   public enum PersistentQueryType {
-    CREATE_SOURCE, CREATE_AS, INSERT
+    CREATE_SOURCE,
+    CREATE_AS,
+    INSERT
   }
 
   public enum KsqlQueryStatus {
@@ -80,4 +82,24 @@ public final class KsqlConstants {
   public static final String TIME_PATTERN = "HH:mm:ss.SSS";
   public static final String DATE_PATTERN = "yyyy-MM-dd";
   public static final String DATE_TIME_PATTERN = DATE_PATTERN + "'T'" + TIME_PATTERN;
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum QuerySourceType {
+    NON_WINDOWED,
+    WINDOWED,
+    NON_WINDOWED_STREAM,
+    WINDOWED_STREAM
+  }
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum RoutingNodeType {
+    SOURCE_NODE,
+    REMOTE_NODE
+  }
 }

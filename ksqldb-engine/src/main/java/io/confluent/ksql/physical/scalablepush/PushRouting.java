@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
@@ -100,19 +101,20 @@ public class PushRouting implements AutoCloseable {
       final ConfiguredStatement<Query> statement,
       final PushRoutingOptions pushRoutingOptions,
       final LogicalSchema outputSchema,
-      final TransientQueryQueue transientQueryQueue
+      final TransientQueryQueue transientQueryQueue,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     final Set<KsqlNode> hosts = getInitialHosts(pushPhysicalPlan, statement, pushRoutingOptions);
 
     final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle();
     // Returns a future with the handle once the initial connection is made
     final CompletableFuture<PushConnectionsHandle> result = connectToHosts(
-        serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-        transientQueryQueue, pushConnectionsHandle, false);
+        serviceContext, pushPhysicalPlan, statement, hosts, outputSchema, transientQueryQueue,
+        pushConnectionsHandle, false, scalablePushQueryMetrics);
     // Only check for new nodes if this is the source node
     if (backgroundRetries && !pushRoutingOptions.getHasBeenForwarded()) {
       checkForNewHostsOnContext(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-          transientQueryQueue, pushConnectionsHandle);
+          transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics);
     }
     return result;
   }
@@ -158,7 +160,8 @@ public class PushRouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
-      final boolean dynamicallyAddedNode
+      final boolean dynamicallyAddedNode,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     final Map<KsqlNode, CompletableFuture<RoutingResult>> futureMap = new LinkedHashMap<>();
     for (final KsqlNode node : hosts) {
@@ -180,7 +183,7 @@ public class PushRouting implements AutoCloseable {
       });
       futureMap.put(node, executeOrRouteQuery(
           node, statement, serviceContext, pushPhysicalPlan, outputSchema,
-          transientQueryQueue, callback, dynamicallyAddedNode));
+          transientQueryQueue, callback, dynamicallyAddedNode, scalablePushQueryMetrics));
     }
     return CompletableFuture.allOf(futureMap.values().toArray(new CompletableFuture[0]))
         .thenApply(v -> {
@@ -237,12 +240,15 @@ public class PushRouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final CompletableFuture<Void> callback,
-      final boolean dynamicallyAddedNode
+      final boolean dynamicallyAddedNode,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     if (node.isLocal()) {
       LOG.debug("Query {} id {} executed locally at host {} at timestamp {}.",
           statement.getStatementText(), pushPhysicalPlan.getQueryId(), node.location(),
           System.currentTimeMillis());
+      scalablePushQueryMetrics
+          .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       final AtomicReference<BufferedPublisher<List<?>>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
@@ -273,6 +279,8 @@ public class PushRouting implements AutoCloseable {
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
           statement.getStatementText(), node.location(), System.currentTimeMillis());
+      scalablePushQueryMetrics
+          .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
           = new AtomicReference<>(null);
       final CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture
@@ -339,11 +347,12 @@ public class PushRouting implements AutoCloseable {
       final Set<KsqlNode> hosts,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
-      final PushConnectionsHandle pushConnectionsHandle
+      final PushConnectionsHandle pushConnectionsHandle,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     pushPhysicalPlan.getContext().runOnContext(v ->
         checkForNewHosts(serviceContext, pushPhysicalPlan, statement, outputSchema,
-            transientQueryQueue, pushConnectionsHandle));
+            transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics));
   }
 
   private void checkForNewHosts(
@@ -352,7 +361,8 @@ public class PushRouting implements AutoCloseable {
       final ConfiguredStatement<Query> statement,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
-      final PushConnectionsHandle pushConnectionsHandle
+      final PushConnectionsHandle pushConnectionsHandle,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     VertxUtils.checkContext(pushPhysicalPlan.getContext());
     if (pushConnectionsHandle.isClosed()) {
@@ -372,7 +382,8 @@ public class PushRouting implements AutoCloseable {
     if (newHosts.size() > 0) {
       LOG.info("Dynamically adding new hosts {} for {}", newHosts, pushPhysicalPlan.getQueryId());
       connectToHosts(serviceContext, pushPhysicalPlan, statement, newHosts, outputSchema,
-          transientQueryQueue, pushConnectionsHandle, true);
+          transientQueryQueue, pushConnectionsHandle, true,
+          scalablePushQueryMetrics);
     }
     if (removedHosts.size() > 0) {
       LOG.info("Dynamically removing hosts {} for {}", removedHosts, pushPhysicalPlan.getQueryId());
@@ -384,7 +395,7 @@ public class PushRouting implements AutoCloseable {
     }
     pushPhysicalPlan.getContext().owner().setTimer(clusterCheckInterval, timerId ->
         checkForNewHosts(serviceContext, pushPhysicalPlan, statement, outputSchema,
-            transientQueryQueue, pushConnectionsHandle));
+            transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics));
   }
 
   private static Set<KsqlNode> loadCurrentHosts(final ScalablePushRegistry scalablePushRegistry) {

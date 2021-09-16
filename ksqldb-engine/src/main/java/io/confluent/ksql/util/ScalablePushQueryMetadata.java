@@ -24,7 +24,10 @@ import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -37,6 +40,8 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
   private final PushQueryPreparer pushQueryPreparer;
+  private final QuerySourceType sourceType;
+  private final RoutingNodeType routingNodeType;
 
   // Future for the start of the connections, which creates a handle
   private CompletableFuture<PushConnectionsHandle> startFuture = new CompletableFuture<>();
@@ -51,7 +56,9 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
       final BlockingRowQueue blockingRowQueue,
       final ResultType resultType,
       final PushQueryQueuePopulator pushQueryQueuePopulator,
-      final PushQueryPreparer pushQueryPreparer
+      final PushQueryPreparer pushQueryPreparer,
+      final QuerySourceType sourceType,
+      final RoutingNodeType routingNodeType
   ) {
     this.logicalSchema = logicalSchema;
     this.queryId = queryId;
@@ -59,6 +66,8 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
     this.resultType = resultType;
     this.pushQueryQueuePopulator = pushQueryQueuePopulator;
     this.pushQueryPreparer = pushQueryPreparer;
+    this.sourceType = sourceType;
+    this.routingNodeType = routingNodeType;
   }
 
   /**
@@ -142,5 +151,20 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
       consumer.accept(t);
       return null;
     });
+  }
+
+  public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
+    runningFuture.handle((v, t) -> {
+      biConsumer.accept(v, t);
+      return null;
+    });
+  }
+
+  public QuerySourceType getSourceType() {
+    return sourceType;
+  }
+
+  public RoutingNodeType getRoutingNodeType() {
+    return routingNodeType;
   }
 }

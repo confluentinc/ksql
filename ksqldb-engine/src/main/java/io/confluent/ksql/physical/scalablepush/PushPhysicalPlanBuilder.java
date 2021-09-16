@@ -33,6 +33,8 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.Context;
@@ -52,6 +54,8 @@ public class PushPhysicalPlanBuilder {
   private final boolean expectingStartOfRegistryData;
   private final Stacker contextStacker;
   private final QueryId queryId;
+
+  private QuerySourceType querySourceType;
 
   public PushPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
@@ -130,7 +134,8 @@ public class PushPhysicalPlanBuilder {
         queryId,
         dataSourceOperator.getScalablePushRegistry(),
         dataSourceOperator,
-        context);
+        context,
+        querySourceType);
   }
 
   private ProjectOperator translateProjectNode(final QueryProjectNode logicalNode) {
@@ -163,6 +168,9 @@ public class PushPhysicalPlanBuilder {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
+
+    querySourceType = logicalNode.isWindowed()
+        ? KsqlConstants.QuerySourceType.WINDOWED : KsqlConstants.QuerySourceType.NON_WINDOWED;
     return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId,
         expectingStartOfRegistryData);
   }

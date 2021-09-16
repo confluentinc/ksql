@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -450,7 +451,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
-      final Context context
+      final Context context,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     final ScalablePushQueryMetadata query = EngineExecutor
         .create(primaryContext, serviceContext, statement.getSessionConfig())
@@ -460,7 +462,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             pushRouting,
             pushRoutingOptions,
             queryPlannerOptions,
-            context);
+            context,
+            scalablePushQueryMetrics);
     return query;
   }
 

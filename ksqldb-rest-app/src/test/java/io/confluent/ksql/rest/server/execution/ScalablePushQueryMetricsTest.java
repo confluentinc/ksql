@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -25,12 +25,11 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.Map;
 import org.apache.kafka.common.metrics.Metrics;
@@ -43,9 +42,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PullQueryMetricsTest {
+public class ScalablePushQueryMetricsTest {
 
-  private PullQueryExecutorMetrics pullMetrics;
+  private ScalablePushQueryExecutorMetrics scalablePushQueryMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
   private static final Map<String, String> CUSTOM_TAGS = ImmutableMap
       .of("tag1", "value1", "tag2", "value2");
@@ -64,65 +63,57 @@ public class PullQueryMetricsTest {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(time.nanoseconds()).thenReturn(6000L);
 
-    pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time);
+    scalablePushQueryMetrics = new ScalablePushQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time);
   }
 
   @After
   public void tearDown() {
-    pullMetrics.close();
+    scalablePushQueryMetrics.close();
     MetricCollectors.cleanUp();
   }
 
   @Test
   public void shouldRemoveAllSensorsOnClose() {
-    assertTrue(pullMetrics.getSensors().size() > 0);
+    assertTrue(scalablePushQueryMetrics.getSensors().size() > 0);
 
-    pullMetrics.close();
+    scalablePushQueryMetrics.close();
 
-    pullMetrics.getSensors().forEach(
-        sensor -> assertThat(pullMetrics.getMetrics().getSensor(sensor.name()), is(nullValue())));
+    scalablePushQueryMetrics.getSensors().forEach(
+        sensor -> assertThat(scalablePushQueryMetrics.getMetrics().getSensor(sensor.name()), is(nullValue())));
   }
 
   @Test
   public void shouldRecordNumberOfLocalRequests() {
     // Given:
-    pullMetrics.recordLocalRequests(3);
+    scalablePushQueryMetrics.recordLocalRequests(3);
 
     // When:
     final double value = getMetricValue("-local-count");
-    final double rate = getMetricValue("-local-rate");
     final double legacyValue = getMetricValueLegacy("-local-count");
-    final double legacyRate = getMetricValueLegacy("-local-rate");
 
     // Then:
     assertThat(value, equalTo(1.0));
-    assertThat(rate, closeTo(0.03, 0.001));
     assertThat(legacyValue, equalTo(1.0));
-    assertThat(legacyRate, closeTo(0.03, 0.001));
   }
 
   @Test
   public void shouldRecordNumberOfRemoteRequests() {
     // Given:
-    pullMetrics.recordRemoteRequests(3);
+    scalablePushQueryMetrics.recordRemoteRequests(3);
 
     // When:
     final double value = getMetricValue("-remote-count");
-    final double rate = getMetricValue("-remote-rate");
     final double legacyValue = getMetricValueLegacy("-remote-count");
-    final double legacyRate = getMetricValueLegacy("-remote-rate");
 
     // Then:
     assertThat(value, equalTo(1.0));
-    assertThat(rate, closeTo(0.03, 0.001));
     assertThat(legacyValue, equalTo(1.0));
-    assertThat(legacyRate, closeTo(0.03, 0.001));
   }
 
   @Test
   public void shouldRecordErrorRate() {
     // Given:
-    pullMetrics.recordErrorRate(3, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordErrorRate(3, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // When:
@@ -131,7 +122,7 @@ public class PullQueryMetricsTest {
     final double legacyValue = getMetricValueLegacy("-error-total");
     final double legacyRate = getMetricValueLegacy("-error-rate");
     final double detailedValue = getMetricValue("-detailed-error-total",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(value, equalTo(1.0));
@@ -144,13 +135,12 @@ public class PullQueryMetricsTest {
   @Test
   public void shouldRecordResponseSize() {
     // Given:
-    pullMetrics.recordResponseSize(1500, KsqlConstants.QuerySourceType.NON_WINDOWED,
-        PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+    scalablePushQueryMetrics.recordResponseSize(1500, KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double value = getMetricValue("-response-size");
     final double detailedValue = getMetricValue("-detailed-response-size",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(value, equalTo(1500.0));
@@ -158,28 +148,9 @@ public class PullQueryMetricsTest {
   }
 
   @Test
-  public void shouldRecordRequestRate() {
-    // Given:
-    pullMetrics.recordLatency(3000, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
-        KsqlConstants.RoutingNodeType.SOURCE_NODE);
-    pullMetrics.recordLatency(3000, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
-        KsqlConstants.RoutingNodeType.SOURCE_NODE);
-    pullMetrics.recordLatency(3000, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
-        KsqlConstants.RoutingNodeType.SOURCE_NODE);
-
-    // When:
-    final double rate = getMetricValue("-rate");
-    final double legacyRate = getMetricValueLegacy("-rate");
-
-    // Then:
-    assertThat(rate, closeTo(0.03, 0.001));
-    assertThat(legacyRate, closeTo(0.03, 0.001));
-  }
-
-  @Test
   public void shouldRecordLatency() {
     // Given:
-    pullMetrics.recordLatency(3000, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordLatency(3000, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // When:
@@ -192,13 +163,13 @@ public class PullQueryMetricsTest {
     final double legacyMin = getMetricValueLegacy("-latency-min");
     final double legacyTotal = getMetricValueLegacy("-total");
     final double detailedAvg = getMetricValue("-detailed-latency-avg",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
     final double detailedMax = getMetricValue("-detailed-latency-max",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
     final double detailedMin = getMetricValue("-detailed-latency-min",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
     final double detailedTotal = getMetricValue("-detailed-total",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(avg, is(3.0));
@@ -219,26 +190,26 @@ public class PullQueryMetricsTest {
   public void shouldRecordLatencyPercentiles() {
     // Given:
     when(time.nanoseconds()).thenReturn(600000000L);
-    pullMetrics.recordLatency(100000000L, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordLatency(100000000L, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
-    pullMetrics.recordLatency(200000000L, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordLatency(200000000L, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
-    pullMetrics.recordLatency(300000000L, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordLatency(300000000L, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
-    pullMetrics.recordLatency(400000000L, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordLatency(400000000L, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
-    pullMetrics.recordLatency(500000000L, KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP,
+    scalablePushQueryMetrics.recordLatency(500000000L, KsqlConstants.QuerySourceType.NON_WINDOWED,
         KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double detailed50 = getMetricValue("-detailed-distribution-50",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
     final double detailed75 = getMetricValue("-detailed-distribution-75",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
     final double detailed90 = getMetricValue("-detailed-distribution-90",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
     final double detailed99 = getMetricValue("-detailed-distribution-99",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(detailed50, closeTo(297857.85, 0.1));
@@ -250,12 +221,12 @@ public class PullQueryMetricsTest {
   @Test
   public void shouldRecordStatus() {
     // Given:
-    pullMetrics.recordStatusCode(200);
-    pullMetrics.recordStatusCode(200);
-    pullMetrics.recordStatusCode(401);
-    pullMetrics.recordStatusCode(401);
-    pullMetrics.recordStatusCode(401);
-    pullMetrics.recordStatusCode(502);
+    scalablePushQueryMetrics.recordStatusCode(200);
+    scalablePushQueryMetrics.recordStatusCode(200);
+    scalablePushQueryMetrics.recordStatusCode(401);
+    scalablePushQueryMetrics.recordStatusCode(401);
+    scalablePushQueryMetrics.recordStatusCode(401);
+    scalablePushQueryMetrics.recordStatusCode(502);
 
     // When:
     final double total2XX = getMetricValue("-2XX-total");
@@ -271,12 +242,11 @@ public class PullQueryMetricsTest {
   @Test
   public void shouldRecordRowsReturned() {
     // Given:
-    pullMetrics.recordRowsReturned(12, KsqlConstants.QuerySourceType.NON_WINDOWED,
-        PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+    scalablePushQueryMetrics.recordRowsReturned(12, KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double detailedValue = getMetricValue("-rows-returned-total",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(detailedValue, equalTo(12.0));
@@ -285,24 +255,23 @@ public class PullQueryMetricsTest {
   @Test
   public void shouldRecordRowsProcessed() {
     // Given:
-    pullMetrics.recordRowsProcessed(1399, KsqlConstants.QuerySourceType.NON_WINDOWED,
-        PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+    scalablePushQueryMetrics.recordRowsProcessed(1399, KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // When:
     final double detailedValue = getMetricValue("-rows-processed-total",
-        KsqlConstants.QuerySourceType.NON_WINDOWED, PullPhysicalPlanType.KEY_LOOKUP, KsqlConstants.RoutingNodeType.SOURCE_NODE);
+        KsqlConstants.QuerySourceType.NON_WINDOWED, KsqlConstants.RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(detailedValue, equalTo(1399.0));
   }
 
   private double getMetricValue(final String metricName) {
-    final Metrics metrics = pullMetrics.getMetrics();
+    final Metrics metrics = scalablePushQueryMetrics.getMetrics();
     return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
-                "pull-query-requests" + metricName,
-                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "pull-query",
+                "scalable-push-query-requests" + metricName,
+                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "scalable-push-query",
                 CUSTOM_TAGS_WITH_SERVICE_ID)
         ).metricValue().toString()
     );
@@ -311,33 +280,31 @@ public class PullQueryMetricsTest {
   private double getMetricValue(
       final String metricName,
       final QuerySourceType sourceType,
-      final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
-    final Metrics metrics = pullMetrics.getMetrics();
+    final Metrics metrics = scalablePushQueryMetrics.getMetrics();
     final Map<String, String> tags = ImmutableMap.<String, String>builder()
         .putAll(CUSTOM_TAGS_WITH_SERVICE_ID)
         .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-        .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
         .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG, routingNodeType.name().toLowerCase())
         .build();
     return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
-                "pull-query-requests" + metricName,
-                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "pull-query",
+                "scalable-push-query-requests" + metricName,
+                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "scalable-push-query",
                 tags)
         ).metricValue().toString()
     );
   }
 
   private double getMetricValueLegacy(final String metricName) {
-    final Metrics metrics = pullMetrics.getMetrics();
+    final Metrics metrics = scalablePushQueryMetrics.getMetrics();
     return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
-                "pull-query-requests" + metricName,
-                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId()+ "pull-query",
+                "scalable-push-query-requests" + metricName,
+                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId()+ "scalable-push-query",
                 CUSTOM_TAGS)
         ).metricValue().toString()
     );

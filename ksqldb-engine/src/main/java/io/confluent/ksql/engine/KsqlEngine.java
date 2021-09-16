@@ -341,18 +341,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       );
     }
 
-    // Stream pull query overrides: start from earliest, use one  thread, and use a tight commit
-    // interval for responsiveness.
-    // Starting from earliest is semantically necessary.
-    // Using a single thread keeps these queries as lightweight as possible, since we are
-    // not counting them against the transient query limit.
-    // Setting the commit interval to 100ms to make the query results snappier.
-    // Since this is a "sit and wait", not a "fire and forget", query,
-    // we want to make sure people are going to see their results come back asap.
+    // Stream pull query overrides.
     final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(
         ImmutableMap.<String, Object>builder()
             .putAll(statementOrig.getSessionConfig().getOverrides())
+            // Starting from earliest is semantically necessary.
             .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+            // Using a single thread keeps these queries as lightweight as possible, since we are
+            // not counting them against the transient query limit.
             .put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
             // There's no point in EOS, since this query only produces side effects.
             .put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE)
@@ -383,7 +379,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         sourceTopicName
     );
 
-    return getEndOffsets(
+    return getEndOffsetsForStreamPullQuery(
         admin,
         topicDescription
     );
@@ -409,7 +405,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  private ImmutableMap<TopicPartition, Long> getEndOffsets(
+  private ImmutableMap<TopicPartition, Long> getEndOffsetsForStreamPullQuery(
       final Admin admin,
       final TopicDescription topicDescription) {
     final Map<TopicPartition, OffsetSpec> topicPartitions =
@@ -421,9 +417,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     final ListOffsetsResult listOffsetsResult = admin.listOffsets(
         topicPartitions,
-        new ListOffsetsOptions(
-            IsolationLevel.READ_UNCOMMITTED
-        )
+        // Since stream pull queries are always ALOS, it will read uncommitted,
+        // so we should do the same when checking end offsets.
+        new ListOffsetsOptions(IsolationLevel.READ_UNCOMMITTED)
     );
 
     try {

@@ -20,7 +20,6 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
@@ -69,16 +68,11 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import io.vertx.core.impl.ConcurrentHashSet;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -87,7 +81,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -95,13 +88,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.processor.PunctuationType;
-import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
-import org.apache.kafka.streams.processor.api.ProcessorSupplier;
-import org.apache.kafka.streams.processor.api.Record;
-import org.apache.kafka.streams.processor.internals.ProcessorContextImpl;
-import org.apache.kafka.streams.processor.internals.StreamTask;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
 
@@ -541,10 +527,7 @@ final class QueryBuilder {
       final KStream<?, GenericRow> kstream = ((KStreamHolder<?>) buildResult).getStream();
       // The list of "done partitions" is shared among all the stream threads and tasks.
       final ConcurrentHashSet<TopicPartition> donePartitions = new ConcurrentHashSet<>();
-      kstream.process(
-          (ProcessorSupplier<Object, GenericRow, Void, Void>) () ->
-              new TransientQuerySinkProcessor(queue, endOffsets, donePartitions)
-      );
+      kstream.process(TransientQuerySinkProcessor.supplier(queue, endOffsets, donePartitions));
 
     } else if (buildResult instanceof KTableHolder<?>) {
       final KTable<?, GenericRow> ktable = ((KTableHolder<?>) buildResult).getTable();
@@ -670,132 +653,5 @@ final class QueryBuilder {
     }
     valueList.add(value);
     properties.put(key, valueList);
-  }
-
-  private static class TransientQuerySinkProcessor implements
-      Processor<Object, GenericRow, Void, Void> {
-
-    private final TransientQueryQueue queue;
-    private final Optional<ImmutableMap<TopicPartition, Long>> endOffsets;
-    private final ConcurrentHashSet<TopicPartition> donePartitions;
-    private ProcessorContext<Void, Void> context;
-
-    TransientQuerySinkProcessor(
-        final TransientQueryQueue queue,
-        final Optional<ImmutableMap<TopicPartition, Long>> endOffsets,
-        final ConcurrentHashSet<TopicPartition> donePartitions) {
-
-      this.queue = queue;
-      this.endOffsets = endOffsets;
-      this.donePartitions = donePartitions;
-    }
-
-    @Override
-    public void init(final ProcessorContext<Void, Void> context) {
-      Processor.super.init(context);
-      this.context = context;
-      if (endOffsets.isPresent()) {
-        // registering a punctuation here is the easiest way to check
-        // if we're complete even if we don't see all records.
-        // The in-line check in process() is faster,
-        // but some records may be filtered out before reaching us.
-        context.schedule(
-            Duration.ofMillis(100),
-            PunctuationType.WALL_CLOCK_TIME,
-            timestamp -> checkCompletion()
-        );
-      }
-    }
-
-    @Override
-    public void process(final Record<Object, GenericRow> record) {
-      final Optional<TopicPartition> topicPartition =
-          context
-              .recordMetadata()
-              .map(m -> new TopicPartition(m.topic(), m.partition()));
-
-      final boolean alreadyDone =
-          topicPartition.isPresent() && donePartitions.contains(topicPartition.get());
-
-      // We ignore null values in streams as invalid data and drop the record.
-      // If we're already done with the current partition, we just drop the record.
-      if (record.value() != null && !alreadyDone) {
-        queue.acceptRow(null, record.value());
-      }
-
-      if (topicPartition.isPresent()) {
-        checkCompletion(topicPartition.get());
-      }
-    }
-
-    private void checkCompletion(final TopicPartition topicPartition) {
-      if (endOffsets.isPresent()) {
-        final ImmutableMap<TopicPartition, Long> endOffsetsMap = endOffsets.get();
-        if (endOffsetsMap.containsKey(topicPartition)) {
-          final Map<TopicPartition, OffsetAndMetadata> currentPositions = getCurrentPositions();
-          checkCompletion(topicPartition, currentPositions, endOffsetsMap.get(topicPartition));
-        }
-      }
-    }
-
-    private void checkCompletion() {
-      if (endOffsets.isPresent()) {
-        final Map<TopicPartition, OffsetAndMetadata> currentPositions =
-            getCurrentPositions();
-
-        for (final Entry<TopicPartition, Long> end : endOffsets.get().entrySet()) {
-          checkCompletion(
-              end.getKey(),
-              currentPositions,
-              end.getValue()
-          );
-        }
-        // if we're completely done with this query, then call the completion handler.
-        if (ImmutableSet.copyOf(donePartitions).equals(endOffsets.get().keySet())) {
-          queue.complete();
-        }
-      }
-    }
-
-    private void checkCompletion(final TopicPartition topicPartition,
-        final Map<TopicPartition, OffsetAndMetadata> currentPositions, final Long end) {
-      if (currentPositions.containsKey(topicPartition)) {
-        final OffsetAndMetadata current = currentPositions.get(topicPartition);
-        if (current != null && current.offset() >= end) {
-          donePartitions.add(topicPartition);
-        }
-      }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<TopicPartition, OffsetAndMetadata> getCurrentPositions() {
-      // It might make sense to actually propose adding the concept of getting the
-      // "current position" in the ProcessorContext, but for now we just expose it
-      // by reflection. Obviously, this code is pretty brittle.
-      try {
-        if (context.getClass().equals(ProcessorContextImpl.class)) {
-          final Field streamTask;
-          streamTask = ProcessorContextImpl.class.getDeclaredField("streamTask");
-          streamTask.setAccessible(true);
-          final StreamTask task = (StreamTask) streamTask.get(context);
-          final Method committableOffsetsAndMetadata =
-              StreamTask.class.getDeclaredMethod("committableOffsetsAndMetadata");
-          committableOffsetsAndMetadata.setAccessible(true);
-          return (Map<TopicPartition, OffsetAndMetadata>)
-              committableOffsetsAndMetadata.invoke(task);
-        } else {
-          // Specifically, this will break if you try to run this processor in a
-          // unit test with a mock processor. Both KafkaStreams and the TopologyTestDriver
-          // use a ProcessorContextImpl, which should be the only way this processor gets run.
-          throw new IllegalStateException(
-              "Expected only to run in the KafkaStreams or TopologyTestDriver runtimes."
-          );
-        }
-      } catch (final NoSuchFieldException | IllegalAccessException
-          | NoSuchMethodException | InvocationTargetException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
   }
 }

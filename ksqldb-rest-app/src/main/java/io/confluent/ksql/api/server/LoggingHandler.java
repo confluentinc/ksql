@@ -22,6 +22,7 @@ import io.confluent.ksql.api.auth.ApiUser;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
 import java.time.Clock;
@@ -87,9 +88,10 @@ public class LoggingHandler implements Handler<RoutingContext> {
       final String userAgent = Optional.ofNullable(
           routingContext.request().getHeader(HTTP_HEADER_USER_AGENT)).orElse("-");
       final String timestamp = Utils.formatRFC1123DateTime(clock.millis());
+      final SocketAddress socketAddress = routingContext.request().remoteAddress();
       final String message = String.format(
           "%s - %s [%s] \"%s %s %s\" %d %d \"-\" \"%s\" %d",
-          routingContext.request().remoteAddress().host(),
+          socketAddress == null ? "null" : socketAddress.host(),
           name,
           timestamp,
           method,

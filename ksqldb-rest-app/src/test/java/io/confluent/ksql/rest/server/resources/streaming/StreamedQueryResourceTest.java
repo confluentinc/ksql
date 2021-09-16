@@ -72,6 +72,7 @@ import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.PullQueryQueue;
@@ -129,6 +130,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.acl.AclOperation;
@@ -1071,6 +1073,11 @@ public class StreamedQueryResourceTest {
 
     @Override
     public void setLimitHandler(final LimitHandler limitHandler) {
+
+    }
+
+    @Override
+    public void setCompletionHandler(final CompletionHandler completionHandler) {
 
     }
 

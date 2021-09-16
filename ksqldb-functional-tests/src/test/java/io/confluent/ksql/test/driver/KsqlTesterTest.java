@@ -63,7 +63,6 @@ import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
 import io.confluent.ksql.test.util.KsqlTestFolder;
-import io.confluent.ksql.util.FakeKafkaClientSupplier;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -165,7 +164,6 @@ public class KsqlTesterTest {
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     this.engine = new KsqlEngine(
         serviceContext,
-        () -> new FakeKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         NoopProcessingLogContext.INSTANCE,
         metaStore,
         ServiceInfo.create(config),

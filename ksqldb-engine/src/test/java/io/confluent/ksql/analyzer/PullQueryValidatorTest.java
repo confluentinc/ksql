@@ -22,26 +22,46 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.util.ColumnExtractor;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryValidatorTest {
 
   private static final Expression AN_EXPRESSION = mock(Expression.class);
+  private static final Expression A_BAD_EXPRESSION = mock(Expression.class);
+  private static final ColumnName A_COLUMN_NAME = ColumnName.of("asdf");
+  private static final ColumnName A_BAD_COLUMN_NAME = ROWPARTITION_NAME;
+
+
 
   @Mock
   private Analysis analysis;
@@ -51,13 +71,29 @@ public class PullQueryValidatorTest {
   private Into into;
   @Mock
   private RefinementInfo refinementInfo;
+  @Mock
+  private KsqlConfig ksqlConfig;
+  @Mock
+  private SingleColumn singleColumn1;
+  @Mock
+  private SingleColumn singleColumn2;
+  @Mock
+  private ColumnReferenceExp columnReferenceExp;
+  @Mock
+  private UnqualifiedColumnReferenceExp unqualifiedColumnReferenceExp;
+  @Mock
+  private Expression expression1;
+  @Mock
+  private Expression expression2;
 
   private QueryValidator validator;
+
 
   @Before
   public void setUp() {
     validator = new PullQueryValidator();
-    when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
+    when(analysis.getRefinementInfo()).thenReturn(Optional.empty());
+    when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
   }
 
   @Test
@@ -180,4 +216,62 @@ public class PullQueryValidatorTest {
     // Then:
     assertThat(e.getMessage(), containsString("Pull queries don't support LIMIT clauses."));
   }
+
+
+  @Test
+  public void shouldThrowWhenSelectClauseContainsDisallowedColumns() {
+    // Given:
+    givenSelectClauseWithDisallowedColumnNames();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support ROWPARTITION or ROWOFFSET in SELECT clauses."));
+  }
+
+  @Test
+  public void shouldThrowWhenWhereClauseContainsDisallowedColumns() {
+    // Given:
+    givenColumnExtractorAndFaultyInput();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Pull queries don't support ROWPARTITION or ROWOFFSET in WHERE clauses."));
+  }
+
+  //todo: have .getSelectItems() return a set of mocked SingleColumns
+  //SingleColumn's getExpression() call should return null
+  //mock ColumnExtractor.extractColumns(badExpression) to return a set of column names of my choice
+  private void givenColumnExtractorAndFaultyInput() {
+
+
+  }
+
+  private void givenSelectClauseWithDisallowedColumnNames() {
+    when(analysis.getSelectItems()).thenReturn(ImmutableList.of(singleColumn1, singleColumn2));
+    when(singleColumn1.getExpression()).thenReturn(expression1);
+    when(singleColumn2.getExpression()).thenReturn(expression2);
+
+    Set<ColumnReferenceExp> cols = ImmutableSet.of(unqualifiedColumnReferenceExp);
+    Mockito.<Set<? extends ColumnReferenceExp>>when(ColumnExtractor.extractColumns(expression1)).thenReturn(ImmutableSet.of(unqualifiedColumnReferenceExp));
+    when(columnReferenceExp.getColumnName()).thenReturn(A_BAD_COLUMN_NAME);
+
+
+  }
+
+  private void givenWhereClauseWithDisallowedColumnNames() {
+    when(analysis.getWhereExpression()).thenReturn(Optional.of(A_BAD_EXPRESSION));
+  }
+
 }

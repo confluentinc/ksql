@@ -18,14 +18,21 @@ package io.confluent.ksql.analyzer;
 import static io.confluent.ksql.links.DocumentationLinks.PUSH_PULL_QUERY_DOC_LINK;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.util.ColumnExtractor;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class PullQueryValidator implements QueryValidator {
 
@@ -68,11 +75,11 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support EMIT clauses."
       ),
       Rule.of(
-          analysis -> !PullQueryValidator.disallowedColumnNameInSelectClause(analysis),
-          "Pull queries don't support ROWPARTITION or ROWOFFSET in select clauses"
+          analysis -> !disallowedColumnNameInSelectClause(analysis),
+          "Pull queries don't support ROWPARTITION or ROWOFFSET in SELECT clauses."
       ),
       Rule.of(
-          analysis -> !PullQueryValidator.disallowedColumnNameInWhereClause(analysis),
+          analysis -> !disallowedColumnNameInWhereClause(analysis),
           "Pull queries don't support ROWPARTITION or ROWOFFSET in WHERE clauses."
       )
   );
@@ -87,38 +94,45 @@ public class PullQueryValidator implements QueryValidator {
   }
 
   private static boolean disallowedColumnNameInSelectClause(final Analysis analysis) {
-    final ColumnReferenceExtractor columnReferenceExtractor = new ColumnReferenceExtractor();
-    analysis.getSelectItems()
-        .stream()
-        .map(SingleColumn.class::cast)
-        .map(SingleColumn::getExpression)
-        .forEach(col -> columnReferenceExtractor.process(col, null));
 
-    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(
-        analysis.getKsqlConfig());
+//    List<Expression> list = analysis.getSelectItems().stream().map(SingleColumn.class::cast).map(SingleColumn::getExpression).collect(Collectors.toList());
+//    for (Expression s : list) {
+//      Set<? extends ColumnReferenceExp> set = ColumnExtractor.extractColumns(s);
+//      System.out.println("hi");
+//    }
+//    return false;
 
-    return containsDisallowedColumnName(columnReferenceExtractor, pseudoColumnVersion);
+//    return analysis.getSelectItems()
+//        .stream()
+//        .map(SingleColumn.class::cast)
+//        .map(SingleColumn::getExpression)
+//        .map(ColumnExtractor::extractColumns)
+//        .flatMap(Collection::stream)
+//        .map(ColumnReferenceExp::getColumnName)
+//        .anyMatch(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()));
   }
 
   private static boolean disallowedColumnNameInWhereClause(final Analysis analysis) {
-    final ColumnReferenceExtractor columnReferenceExtractor = new ColumnReferenceExtractor();
-    final Optional<Expression> whereClause = analysis.getWhereExpression();
+    final Optional<Expression> expression = analysis.getWhereExpression();
 
-    whereClause.ifPresent(expression -> columnReferenceExtractor.process(expression, null));
+    if (!expression.isPresent()) {
+      return false;
+    }
 
-    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(
-        analysis.getKsqlConfig());
+//    Set<ColumnReferenceExp> set = ColumnExtractor.extractColumns(expression.get());
 
-    return containsDisallowedColumnName(columnReferenceExtractor, pseudoColumnVersion);
+    return ColumnExtractor.extractColumns(expression.get())
+        .stream()
+        .map(ColumnReferenceExp::getColumnName)
+        .anyMatch(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()));
   }
 
-  private static boolean containsDisallowedColumnName(
-      final ColumnReferenceExtractor columnReferenceExtractor,
-      final int pseudoColumnVersion
+  private static boolean disallowedInPullQueries(
+      final ColumnName columnName,
+      final KsqlConfig ksqlConfig
   ) {
-    return columnReferenceExtractor.getColumns()
-        .stream()
-        .anyMatch(col -> SystemColumns.disallowedForPullQueries(col, pseudoColumnVersion));
+    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+    return SystemColumns.disallowedForPullQueries(columnName, pseudoColumnVersion);
   }
 
   private static final class Rule {

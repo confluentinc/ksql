@@ -52,6 +52,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private final Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private final Metrics metricRegistry;
   static AtomicBoolean registeredNodeMetrics = new AtomicBoolean(false);
+  private static Map<String, String> customTags = new HashMap<>();
 
   public StorageUtilizationMetricsReporter() {
     this(MetricCollectors.getMetrics());
@@ -72,19 +73,24 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   public void configure(final Map<String, ?> map) {
   }
 
-  public static void configureShared(final File baseDir, final Metrics metricRegistry) {
+  public static void configureShared(
+      final File baseDir, 
+      final Metrics metricRegistry, 
+      final Map<String, String> configTags
+  ) {
     if (registeredNodeMetrics.getAndSet(true)) {
       return;
     }
+    customTags = ImmutableMap.copyOf(configTags);
     LOGGER.info("Adding node level storage usage gauges");
     final MetricName nodeAvailable =
-        metricRegistry.metricName("node_storage_free_bytes", METRIC_GROUP);
+        metricRegistry.metricName("node_storage_free_bytes", METRIC_GROUP, customTags);
     final MetricName nodeTotal =
-        metricRegistry.metricName("node_storage_total_bytes", METRIC_GROUP);
+        metricRegistry.metricName("node_storage_total_bytes", METRIC_GROUP, customTags);
     final MetricName nodeUsed =
-        metricRegistry.metricName("node_storage_used_bytes", METRIC_GROUP);
+        metricRegistry.metricName("node_storage_used_bytes", METRIC_GROUP, customTags);
     final MetricName nodePct =
-        metricRegistry.metricName("storage_utilization", METRIC_GROUP);
+        metricRegistry.metricName("storage_utilization", METRIC_GROUP, customTags);
 
     metricRegistry.addMetric(
         nodeAvailable,
@@ -162,6 +168,8 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       final String taskId,
       final String queryId
   ) {
+    final Map<String, String> queryMetricTags = getQueryMetricTags(queryId);
+    final Map<String, String> taskMetricTags = getTaskMetricTags(queryMetricTags, taskId);
     LOGGER.debug("Updating disk usage metrics");
     // if we haven't seen a task for this query yet
     if (!metricsSeen.containsKey(queryId)) {
@@ -169,7 +177,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
           metricRegistry.metricName(
           "query_storage_used_bytes",
           METRIC_GROUP,
-          ImmutableMap.of("query-id", queryId)),
+          queryMetricTags),
           (Gauge<BigInteger>) (config, now) -> computeQueryMetric(queryId)
       );
       metricsSeen.put(queryId, new HashMap<>());
@@ -182,7 +190,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         metricRegistry.metricName(
           "task_storage_used_bytes",
           METRIC_GROUP,
-          ImmutableMap.of("task-id", taskId, "query-id", queryId)
+          taskMetricTags
         ));
       // add to list of seen task metrics for this query
       metricsSeen.get(queryId).put(taskId, newMetric);
@@ -215,7 +223,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         metricRegistry.removeMetric(metricRegistry.metricName(
             "query_storage_used_bytes",
             METRIC_GROUP,
-            ImmutableMap.of("query-id", queryId))
+            getQueryMetricTags(queryId))
         );
       }
     }
@@ -244,6 +252,26 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     } else {
       throw new KsqlException("Missing query ID when reporting utilization metrics");
     }
+  }
+  
+  private Map<String, String> getQueryMetricTags(final String queryId) {
+    final Map<String, String> queryMetricTags = new HashMap<>(customTags);
+    queryMetricTags.put("query-id", queryId);
+    return ImmutableMap.copyOf(queryMetricTags);
+  }
+
+  private Map<String, String> getTaskMetricTags(
+      final Map<String, String> queryTags, 
+      final String taskId
+  ) {
+    final Map<String, String> taskMetricTags = new HashMap<>(queryTags);
+    taskMetricTags.put("task-id", taskId);
+    return ImmutableMap.copyOf((taskMetricTags));
+  }
+  
+  @VisibleForTesting
+  static void setTags(final Map<String, String> tags) {
+    customTags = tags;
   }
 
   @VisibleForTesting

@@ -19,7 +19,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -41,6 +40,10 @@ public class StorageUtilizationMetricsReporterTest {
   private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
   private static final String TASK_STORAGE_METRIC = "task_storage_used_bytes";
   private static final String QUERY_STORAGE_METRIC = "query_storage_used_bytes";
+  private static final Map<String, String> BASE_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id");
+  private static final Map<String, String> QUERY_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1");
+  private static final Map<String, String> TASK_ONE_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "t1");
+  private static final Map<String, String> TASK_TWO_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id", "query-id", "CTAS_TEST_1", "task-id", "t2");
 
   private StorageUtilizationMetricsReporter listener;
 
@@ -50,17 +53,11 @@ public class StorageUtilizationMetricsReporterTest {
   private ArgumentCaptor<MetricValueProvider<?>> metricValueProvider;
 
   @Before
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-  public void setUp() throws IOException {
+  public void setUp() {
     listener = new StorageUtilizationMetricsReporter(metrics);
     when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
-    when(metrics.metricName(any(), any())).thenAnswer(
-      a -> new MetricName(a.getArgument(0), a.getArgument(1), "", Collections.emptyMap()));
-    final File f = new File("/tmp/storage-test/");
-    f.getParentFile().mkdirs();
-    f.createNewFile();
-    listener.configureShared(f, metrics);
+    StorageUtilizationMetricsReporter.setTags(BASE_TAGS);
   }
 
   @After
@@ -69,18 +66,25 @@ public class StorageUtilizationMetricsReporterTest {
   }
 
   @Test
-  @SuppressFBWarnings("BX_UNBOXING_IMMEDIATELY_REBOXED")
-  public void shouldAddNodeMetricsOnConfigure() {
+  @SuppressFBWarnings({
+    "BX_UNBOXING_IMMEDIATELY_REBOXED", "" +
+    "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"
+  })
+  public void shouldAddNodeMetricsOnConfigure() throws IOException {
     // Given:
+    final File f = new File("/tmp/storage-test/");
+    f.getParentFile().mkdirs();
+    f.createNewFile();
+    listener.configureShared(f, metrics, BASE_TAGS);
 
     // When:
-    final Gauge<?> storageFreeGauge = verifyAndGetRegisteredMetric("node_storage_free_bytes", Collections.emptyMap());
+    final Gauge<?> storageFreeGauge = verifyAndGetRegisteredMetric("node_storage_free_bytes", BASE_TAGS);
     final Object storageFreeValue = storageFreeGauge.value(null, 0);
-    final Gauge<?> storageTotalGauge = verifyAndGetRegisteredMetric("node_storage_total_bytes", Collections.emptyMap());
+    final Gauge<?> storageTotalGauge = verifyAndGetRegisteredMetric("node_storage_total_bytes", BASE_TAGS);
     final Object storageTotalValue = storageTotalGauge.value(null, 0);
-    final Gauge<?> storageUsedGauge = verifyAndGetRegisteredMetric("node_storage_used_bytes", Collections.emptyMap());
+    final Gauge<?> storageUsedGauge = verifyAndGetRegisteredMetric("node_storage_used_bytes", BASE_TAGS);
     final Object storageUsedValue = storageUsedGauge.value(null, 0);
-    final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", Collections.emptyMap());
+    final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", BASE_TAGS);
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
 
     // Then:
@@ -112,10 +116,11 @@ public class StorageUtilizationMetricsReporterTest {
     );
 
     // When:
-    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
-    final Object taskValue = taskGauge.value(null, 0);
-    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, ImmutableMap.of("query-id", "CTAS_TEST_1"));
+
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, QUERY_TAGS);
     final Object queryValue = queryGauge.value(null, 0);
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS);
+    final Object taskValue = taskGauge.value(null, 0);
 
     // Then:
     assertThat(taskValue, equalTo(BigInteger.valueOf(2)));
@@ -130,7 +135,7 @@ public class StorageUtilizationMetricsReporterTest {
       KAFKA_METRIC_GROUP,
       KAFKA_METRIC_NAME,
       BigInteger.valueOf(2),
-      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID, "logical_cluster_id", "logical-id"))
     );
 
     // When:
@@ -138,13 +143,13 @@ public class StorageUtilizationMetricsReporterTest {
       KAFKA_METRIC_GROUP,
       KAFKA_METRIC_NAME,
       BigInteger.valueOf(15),
-      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID, "logical_cluster_id", "logical-id"))
     );
 
     // Then:
-    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS);
     final Object taskValue = taskGauge.value(null, 0);
-    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, ImmutableMap.of("query-id", "CTAS_TEST_1"));
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, QUERY_TAGS);
     final Object queryValue = queryGauge.value(null, 0);
 
     assertThat(taskValue, equalTo(BigInteger.valueOf(15)));
@@ -158,22 +163,23 @@ public class StorageUtilizationMetricsReporterTest {
       KAFKA_METRIC_GROUP,
       KAFKA_METRIC_NAME,
       BigInteger.valueOf(2),
-      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID))
+      ImmutableMap.of("task-id", "t1", "thread-id", THREAD_ID, "logical_cluster_id", "logical-id"))
     );
     listener.metricChange(mockMetric(
       KAFKA_METRIC_GROUP,
       KAFKA_METRIC_NAME,
       BigInteger.valueOf(5),
-      ImmutableMap.of("task-id", "t2", "thread-id", THREAD_ID))
+      ImmutableMap.of("task-id", "t2", "thread-id", THREAD_ID, "logical_cluster_id", "logical-id"))
     );
 
     // Then:
-    final Gauge<?> taskGaugeOne = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
-    final Object taskValueOne = taskGaugeOne.value(null, 0);
-    final Gauge<?> taskGaugeTwo = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t2", "query-id", "CTAS_TEST_1"));
-    final Object taskValueTwo = taskGaugeTwo.value(null, 0);
-    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, ImmutableMap.of("query-id", "CTAS_TEST_1"));
+    final Gauge<?> queryGauge = verifyAndGetRegisteredMetric(QUERY_STORAGE_METRIC, QUERY_TAGS);
     final Object queryValue = queryGauge.value(null, 0);
+    final Gauge<?> taskGaugeOne = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS);
+    final Object taskValueOne = taskGaugeOne.value(null, 0);
+    final Gauge<?> taskGaugeTwo = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_TWO_TAGS);
+    final Object taskValueTwo = taskGaugeTwo.value(null, 0);
+
 
     assertThat(taskValueOne, equalTo(BigInteger.valueOf(2)));
     assertThat(taskValueTwo, equalTo(BigInteger.valueOf(5)));
@@ -197,7 +203,7 @@ public class StorageUtilizationMetricsReporterTest {
     );
 
     // Then:
-    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "blahblah_4"));
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "blahblah_4", "logical_cluster_id", "logical-id"));
     final Object taskValue = taskGauge.value(null, 0);
     assertThat(taskValue, equalTo(BigInteger.valueOf(7)));
   }
@@ -216,8 +222,8 @@ public class StorageUtilizationMetricsReporterTest {
     listener.metricRemoval(metric);
 
     // Then:
-    verifyRemovedMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
-    verifyRemovedMetric(QUERY_STORAGE_METRIC, ImmutableMap.of("query-id", "CTAS_TEST_1"));
+    verifyRemovedMetric(QUERY_STORAGE_METRIC, QUERY_TAGS);
+    verifyRemovedMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS);
 
   }
 
@@ -235,7 +241,7 @@ public class StorageUtilizationMetricsReporterTest {
       BigInteger.valueOf(6),
       ImmutableMap.of("store-id", "s2", "task-id", "t1", "thread-id", THREAD_ID));
     listener.metricChange(metric);
-    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1"));
+    final Gauge<?> taskGauge = verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS);
     Object taskValue = taskGauge.value(null, 0);
     assertThat(taskValue, equalTo(BigInteger.valueOf(8)));
 
@@ -257,7 +263,7 @@ public class StorageUtilizationMetricsReporterTest {
       ImmutableMap.of("store-id", "s1", "task-id", "t1", "thread-id", THREAD_ID)));
 
     // Then:
-    assertThrows(AssertionError.class, () -> verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, ImmutableMap.of("task-id", "t1", "query-id", "CTAS_TEST_1")));
+    assertThrows(AssertionError.class, () -> verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS));
   }
 
   private KafkaMetric mockMetric(
@@ -272,7 +278,7 @@ public class StorageUtilizationMetricsReporterTest {
   private Gauge<?> verifyAndGetRegisteredMetric(final String name, final Map<String, String> tags) {
     verify(metrics).addMetric(
       argThat(
-        n -> n.name().equals(name) && n.tags().equals(tags)
+        n -> n.name().equals(name) && n.tags().entrySet().equals(tags.entrySet())
       ),
       metricValueProvider.capture()
     );

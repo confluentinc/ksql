@@ -61,6 +61,7 @@ public class PersistentQuerySaturationMetricsTest {
   private static final QueryId QUERY_ID1 = new QueryId("hootie");
   private static final QueryId QUERY_ID2 = new QueryId("hoo");
   private static final QueryId QUERY_ID3 = new QueryId("boom");
+  private static final Map<String, String> CUSTOM_TAGS = ImmutableMap.of("logical_cluster_id", "logical-id");
 
   @Mock
   private MetricsReporter reporter;
@@ -103,7 +104,8 @@ public class PersistentQuerySaturationMetricsTest {
         engine,
         reporter,
         WINDOW,
-        SAMPLE_MARGIN
+        SAMPLE_MARGIN,
+        CUSTOM_TAGS
     );
   }
 

@@ -63,7 +63,9 @@ public class ScalablePushQueryMetadataTest {
         blockingRowQueue,
         ResultType.STREAM,
         populator,
-        () -> { }
+        () -> { },
+        null,
+        null
     );
   }
 

@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -60,7 +61,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -231,8 +232,11 @@ final class EngineExecutor {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
     final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    // If we ever change how many hops a request can do, we'll need to update this for correct
+    // metrics.
     final RoutingNodeType routingNodeType = routingOptions.getIsSkipForwardRequest()
-        ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
+        ? KsqlConstants.RoutingNodeType.REMOTE_NODE : KsqlConstants.RoutingNodeType.SOURCE_NODE;
 
     PullPhysicalPlan plan = null;
 
@@ -254,9 +258,6 @@ final class EngineExecutor {
           shouldCancelRequests
       );
       final PullPhysicalPlan physicalPlan = plan;
-
-      // If we ever change how many hops a request can do, we'll need to update this for correct
-      // metrics.
 
       final PullQueryQueue pullQueryQueue = new PullQueryQueue();
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
@@ -325,19 +326,30 @@ final class EngineExecutor {
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
-      final Context context
+      final Context context,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    // If we ever change how many hops a request can do, we'll need to update this for correct
+    // metrics.
+    final RoutingNodeType routingNodeType = pushRoutingOptions.getHasBeenForwarded()
+        ? KsqlConstants.RoutingNodeType.REMOTE_NODE : KsqlConstants.RoutingNodeType.SOURCE_NODE;
+
+    PushPhysicalPlan plan = null;
+
     try {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
+      plan = buildScalablePushPhysicalPlan(
           logicalPlan,
           analysis,
           context,
           pushRoutingOptions
       );
+      final  PushPhysicalPlan physicalPlan = plan;
+
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
       final PushQueryMetadata.ResultType resultType =
@@ -348,7 +360,7 @@ final class EngineExecutor {
 
       final PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
-              physicalPlan.getOutputSchema(), transientQueryQueue);
+              physicalPlan.getOutputSchema(), transientQueryQueue, scalablePushQueryMetrics);
       final PushQueryPreparer preparer = () ->
           pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
@@ -357,7 +369,9 @@ final class EngineExecutor {
           transientQueryQueue,
           resultType,
           populator,
-          preparer
+          preparer,
+          physicalPlan.getSourceType(),
+          routingNodeType
       );
 
       return metadata;

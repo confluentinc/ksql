@@ -30,6 +30,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -62,6 +63,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -69,6 +72,13 @@ import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
@@ -102,6 +112,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
@@ -126,6 +137,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -147,6 +159,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         errorHandler,
         denyListPropertyValidator,
         pullQueryMetrics,
+        scalablePushQueryMetrics,
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
@@ -173,6 +186,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -197,6 +211,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.scalablePushQueryMetrics =
+        Objects.requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
@@ -525,7 +541,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, configured, pushRouting, routingOptions,
-            plannerOptions, context);
+            plannerOptions, context, scalablePushQueryMetrics);
     query.prepare();
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(

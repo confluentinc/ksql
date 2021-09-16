@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
@@ -66,6 +67,7 @@ import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
+import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -80,6 +82,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -172,7 +175,8 @@ final class QueryBuilder {
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones,
       final QueryMetadata.Listener listener,
-      final StreamsBuilder streamsBuilder
+      final StreamsBuilder streamsBuilder,
+      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -184,7 +188,8 @@ final class QueryBuilder {
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
+    final TransientQueryQueue queue =
+        buildTransientQueryQueue(buildResult, limit, excludeTombstones, endOffsets);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final TransientQueryMetadata.ResultType resultType = buildResult instanceof KTableHolder
@@ -513,17 +518,16 @@ final class QueryBuilder {
   private static TransientQueryQueue buildTransientQueryQueue(
       final Object buildResult,
       final OptionalInt limit,
-      final boolean excludeTombstones
+      final boolean excludeTombstones,
+      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets
   ) {
     final TransientQueryQueue queue = new TransientQueryQueue(limit);
 
     if (buildResult instanceof KStreamHolder<?>) {
       final KStream<?, GenericRow> kstream = ((KStreamHolder<?>) buildResult).getStream();
-
-      kstream
-          // Null value for a stream is invalid:
-          .filter((k, v) -> v != null)
-          .foreach((k, v) -> queue.acceptRow(null, v));
+      // The list of "done partitions" is shared among all the stream threads and tasks.
+      final ConcurrentHashSet<TopicPartition> donePartitions = new ConcurrentHashSet<>();
+      kstream.process(TransientQuerySinkProcessor.supplier(queue, endOffsets, donePartitions));
 
     } else if (buildResult instanceof KTableHolder<?>) {
       final KTable<?, GenericRow> ktable = ((KTableHolder<?>) buildResult).getTable();

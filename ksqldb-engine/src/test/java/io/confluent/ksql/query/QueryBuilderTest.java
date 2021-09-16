@@ -252,7 +252,8 @@ public class QueryBuilderTest {
         Optional.empty(),
         false,
         queryListener,
-        streamsBuilder
+        streamsBuilder,
+        Optional.empty()
     );
     queryMetadata.initialize();
 

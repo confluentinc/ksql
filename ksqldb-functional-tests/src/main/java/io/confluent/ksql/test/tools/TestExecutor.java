@@ -77,7 +77,6 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.StreamsConfig;
@@ -579,7 +578,6 @@ public class TestExecutor implements Closeable {
             engine,
             Collections.emptyMap(),
             Optional.empty()),
-        () -> Admin.create(BASE_CONFIG),
         new SequentialQueryIdGenerator(),
         KsqlConfig.empty(),
         Collections.emptyList()

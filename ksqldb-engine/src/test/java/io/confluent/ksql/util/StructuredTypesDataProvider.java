@@ -115,7 +115,11 @@ public class StructuredTypesDataProvider extends TestDataProvider {
       .build();
 
   public StructuredTypesDataProvider() {
-    super("STRUCTURED_TYPES", PHYSICAL_SCHEMA, ROWS);
+    this("STRUCTURED_TYPES");
+  }
+
+  public StructuredTypesDataProvider(final String namePrefix) {
+    super(namePrefix, PHYSICAL_SCHEMA, ROWS);
   }
 
   @SuppressWarnings("unchecked")

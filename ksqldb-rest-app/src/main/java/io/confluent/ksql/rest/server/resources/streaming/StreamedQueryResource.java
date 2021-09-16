@@ -83,7 +83,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
@@ -587,42 +586,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
         disconnectCheckInterval.toMillis(),
         OBJECT_MAPPER,
         connectionClosedFuture,
-        new StreamPullQueryCompletionCheck(ksqlEngine, streamPullQueryMetadata)
+        streamPullQueryMetadata.getEndOffsets().isEmpty()
     );
 
     return EndpointResponse.ok(queryStreamWriter);
-  }
-
-  private static final class StreamPullQueryCompletionCheck implements Supplier<Boolean> {
-
-    boolean complete = false;
-    long lastCheck = 0;
-    private final KsqlEngine ksqlEngine;
-    private final StreamPullQueryMetadata streamPullQueryMetadata;
-
-    private StreamPullQueryCompletionCheck(final KsqlEngine ksqlEngine,
-        final StreamPullQueryMetadata streamPullQueryMetadata) {
-      this.ksqlEngine = ksqlEngine;
-      this.streamPullQueryMetadata = streamPullQueryMetadata;
-    }
-
-    @Override
-    public Boolean get() {
-      if (complete) {
-        return true;
-      } else {
-        final long now = System.currentTimeMillis();
-        if (now - lastCheck > 100L) {
-          lastCheck = now;
-          final boolean completed =
-              ksqlEngine.passedEndOffsets(streamPullQueryMetadata);
-          complete = completed;
-          return completed;
-        } else {
-          return false;
-        }
-      }
-    }
   }
 
   private EndpointResponse handlePushQuery(

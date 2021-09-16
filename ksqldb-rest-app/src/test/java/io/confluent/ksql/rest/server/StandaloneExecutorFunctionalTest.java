@@ -48,8 +48,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.admin.Admin;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -121,7 +119,6 @@ public class StandaloneExecutorFunctionalTest {
         queryFile.toString(),
         ".",
         serviceContextFactory,
-        () -> EasyMock.mock(Admin.class),
         KafkaConfigStore::new,
         activeQuerySupplier -> versionChecker,
         StandaloneExecutor::new

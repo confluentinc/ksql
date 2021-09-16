@@ -137,7 +137,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,
-      final  SlidingWindowRateLimiter scalablePushBandRateLimiter,
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
@@ -655,7 +655,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
                     || state.equals(State.ERROR)
                     || state.equals(State.PENDING_ERROR)) {
                   recordErrorMetrics(responseBytes, startTimeNanos);
-                  optionalDecrementer.get().ifPresent(Decrementer::decrementAtMostOnce);
                 } else {
                   final boolean isWindowed = analysis
                       .getFrom()
@@ -689,6 +688,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
                                               routingNodeType);
                 }
                 pullBandRateLimiter.add(responseBytes);
+                // Decrement on happy or exception path
+                optionalDecrementer.get().ifPresent(Decrementer::decrementAtMostOnce);
               });
 
       return metricsCallback;

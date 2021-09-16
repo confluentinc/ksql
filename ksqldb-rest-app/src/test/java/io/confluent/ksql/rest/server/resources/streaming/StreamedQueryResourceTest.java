@@ -166,7 +166,8 @@ public class StreamedQueryResourceTest {
 
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
-      CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2"
+      CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2",
+      KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
@@ -245,10 +246,6 @@ public class StreamedQueryResourceTest {
   private StreamPullQueryMetadata streamPullQueryMetadata;
   @Mock
   private TransientQueryMetadata transientQueryMetadata;
-  @Mock
-  private TombstoneFactory tombstoneFactory;
-  @Mock
-  private QueryStreamWriter queryStreamWriter;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -379,7 +376,7 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldRateLimit() {
-    final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
+    final RateLimiter pullQueryRateLimiter = RateLimiter.create(3);
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -423,7 +420,7 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldRateLimitPullStreamQueries() {
+  public void shouldRateLimitStreamPullQueries() {
     final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
 
     testResource = new StreamedQueryResource(
@@ -506,11 +503,34 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldReachConcurrentLimit() {
+  public void shouldReachConcurrentLimitTablePullQuery() {
     // Given:
     when(rateLimiter.tryAcquire()).thenReturn(true);
     when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
+    // When:
+    final EndpointResponse response =
+        testResource.streamQuery(
+            securityContext,
+            new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+            new CompletableFuture<>(),
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder(),
+            context);
+
+    // Then:
+    assertThat(response.getStatus(), is(500));
+    assertThat(exception.getValue().getMessage(), containsString("concurrencyLimiter Error!"));
+  }
+
+  @Test
+  public void shouldReachConcurrentLimitStreamPullQuery() {
+    // Given:
+    when(rateLimiter.tryAcquire()).thenReturn(true);
+    when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
 
     // When:
     final EndpointResponse response =

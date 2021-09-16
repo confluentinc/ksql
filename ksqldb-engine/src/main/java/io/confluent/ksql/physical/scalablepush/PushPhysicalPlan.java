@@ -22,6 +22,7 @@ import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.List;
@@ -49,6 +50,7 @@ public class PushPhysicalPlan {
   private final ScalablePushRegistry scalablePushRegistry;
   private final PushDataSourceOperator dataSourceOperator;
   private final Context context;
+  private final QuerySourceType querySourceType;
   private volatile boolean closed = false;
   private long timer = -1;
 
@@ -59,7 +61,8 @@ public class PushPhysicalPlan {
       final QueryId queryId,
       final ScalablePushRegistry scalablePushRegistry,
       final PushDataSourceOperator dataSourceOperator,
-      final Context context
+      final Context context,
+      final QuerySourceType querySourceType
   ) {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -68,6 +71,7 @@ public class PushPhysicalPlan {
         Objects.requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.dataSourceOperator = dataSourceOperator;
     this.context = context;
+    this.querySourceType = Objects.requireNonNull(querySourceType, "querySourceType");
   }
 
   public BufferedPublisher<List<?>> execute() {
@@ -164,6 +168,10 @@ public class PushPhysicalPlan {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public Context getContext() {
     return context;
+  }
+
+  public QuerySourceType getSourceType() {
+    return querySourceType;
   }
 
   public static class Publisher extends BufferedPublisher<List<?>> {

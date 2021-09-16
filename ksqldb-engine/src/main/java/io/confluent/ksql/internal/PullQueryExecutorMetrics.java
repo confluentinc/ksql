@@ -20,8 +20,8 @@ import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
@@ -128,7 +128,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordLatency(
       final long startTimeNanos,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -156,7 +156,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordErrorRate(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -185,7 +185,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordResponseSize(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -222,7 +222,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordRowsReturned(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -245,7 +245,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
   public void recordRowsProcessed(
       final double value,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType
   ) {
@@ -654,7 +654,7 @@ public class PullQueryExecutorMetrics implements Closeable {
           final String groupName,
           final String description,
           final Map<String, String> metricsTags,
-          final MeasurableStat measureableStat
+          final MeasurableStat measurableStat
   ) {
     sensor.add(
         metrics.metricName(
@@ -663,7 +663,7 @@ public class PullQueryExecutorMetrics implements Closeable {
             description,
             metricsTags
         ),
-        measureableStat
+        measurableStat
     );
   }
 
@@ -671,9 +671,9 @@ public class PullQueryExecutorMetrics implements Closeable {
       final String sensorBaseName, final MetricsAdder metricsAdder) {
     final ImmutableMap.Builder<MetricsKey, Sensor> builder = ImmutableMap.builder();
 
-    for (final PullSourceType sourceType : PullSourceType.values()) {
+    for (final QuerySourceType sourceType : KsqlConstants.QuerySourceType.values()) {
       for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        for (final RoutingNodeType routingNodeType : RoutingNodeType.values()) {
+        for (final RoutingNodeType routingNodeType : KsqlConstants.RoutingNodeType.values()) {
           addSensorToMap(
               sensorBaseName,
               metricsAdder,
@@ -723,7 +723,7 @@ public class PullQueryExecutorMetrics implements Closeable {
   // Detailed metrics are broken down by multiple parameters represented by the following key.
   private static class MetricsKey {
 
-    private final PullSourceType sourceType;
+    private final QuerySourceType sourceType;
     private final PullPhysicalPlanType planType;
     private final RoutingNodeType routingNodeType;
 
@@ -738,7 +738,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     }
 
     MetricsKey(
-        final PullSourceType sourceType,
+        final QuerySourceType sourceType,
         final PullPhysicalPlanType planType,
         final RoutingNodeType routingNodeType
     ) {

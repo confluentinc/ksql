@@ -24,6 +24,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
@@ -36,6 +37,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -61,6 +64,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   private final PushRouting pushRouting;
   private final boolean isScalablePush;
   private final Context context;
+  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private final long startTimeNanos;
   private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
 
   private PushQueryPublisher(
@@ -78,6 +83,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     this.pushRouting = null;
     this.isScalablePush = false;
     this.context = null;
+    this.scalablePushQueryMetrics = null;
+    this.startTimeNanos = -1;
     this.scalablePushBandRateLimiter = null;
   }
 
@@ -89,6 +96,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context,
+      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final long startTimeNanos,
       final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
@@ -99,6 +108,9 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     this.pushRouting = requireNonNull(pushRouting, "pushRouting");
     this.isScalablePush = true;
     this.context = requireNonNull(context, "context");
+    this.scalablePushQueryMetrics =
+        requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
+    this.startTimeNanos = requireNonNull(startTimeNanos, "startTimeNanos");
     this.scalablePushBandRateLimiter =
         requireNonNull(scalablePushBandRateLimiter, "scalablePushBandRateLimiter");
   }
@@ -121,6 +133,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context,
+      final  Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final long startTimeNanos,
       final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
     return new PushQueryPublisher(
@@ -131,6 +145,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
         analysis,
         pushRouting,
         context,
+        scalablePushQueryMetrics,
+        startTimeNanos,
         scalablePushBandRateLimiter
     );
   }
@@ -151,11 +167,25 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
       final ImmutableAnalysis analysis =
           ksqlEngine.analyzeQueryWithNoOutputTopic(query.getStatement(), query.getStatementText());
-      final ScalablePushQueryMetadata pushQueryMetadata = ksqlEngine
-          .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
-              plannerOptions, context);
-      pushQueryMetadata.prepare();
-      queryMetadata = pushQueryMetadata;
+
+      ScalablePushQueryMetadata pushQueryMetadata = null;
+      try {
+        pushQueryMetadata = ksqlEngine
+            .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
+                plannerOptions, context, scalablePushQueryMetrics);
+
+        final ScalablePushQueryMetadata finalPushQueryMetadata = pushQueryMetadata;
+        pushQueryMetadata.onCompletionOrException((v, throwable) ->
+            scalablePushQueryMetrics.ifPresent(m -> recordMetrics(m, finalPushQueryMetadata)));
+        pushQueryMetadata.prepare();
+        queryMetadata = pushQueryMetadata;
+      } catch (Throwable t) {
+        if (pushQueryMetadata == null) {
+          scalablePushQueryMetrics.ifPresent(this::recordErrorMetrics);
+        }
+        throw t;
+      }
+
     } else {
       queryMetadata = ksqlEngine
           .executeTransientQuery(serviceContext, query, true);
@@ -170,6 +200,27 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     queryMetadata.start();
 
     subscriber.onSubscribe(subscription);
+  }
+
+
+  private void recordMetrics(
+      final ScalablePushQueryExecutorMetrics metrics, final ScalablePushQueryMetadata metadata) {
+
+    final QuerySourceType sourceType = metadata.getSourceType();
+    final RoutingNodeType routingNodeType = metadata.getRoutingNodeType();
+    // Note: we are not recording response size in this case because it is not
+    // accessible in the websocket endpoint.
+    metrics.recordLatency(startTimeNanos, sourceType, routingNodeType);
+//    metrics.recordRowsReturned(metadata.getTotalRowsReturned(),
+//        sourceType, routingNodeType);
+//    metrics.recordRowsProcessed(metadata.getTotalRowsProcessed(),
+//        sourceType, routingNodeType);
+  }
+
+  private void recordErrorMetrics(final ScalablePushQueryExecutorMetrics metrics) {
+    metrics.recordLatencyForError(startTimeNanos);
+    metrics.recordZeroRowsReturnedForError();
+    metrics.recordZeroRowsProcessedForError();
   }
 
   static class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {

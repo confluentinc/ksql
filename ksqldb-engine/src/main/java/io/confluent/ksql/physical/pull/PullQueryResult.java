@@ -19,8 +19,8 @@ import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -37,7 +37,7 @@ public class PullQueryResult {
   private final QueryId queryId;
   private final PullQueryQueue pullQueryQueue;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final PullSourceType sourceType;
+  private final QuerySourceType sourceType;
   private final PullPhysicalPlanType planType;
   private final RoutingNodeType routingNodeType;
   private final Supplier<Long> rowsProcessedSupplier;
@@ -55,7 +55,7 @@ public class PullQueryResult {
       final QueryId queryId,
       final PullQueryQueue pullQueryQueue,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final PullSourceType sourceType,
+      final QuerySourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType,
       final Supplier<Long> rowsProcessedSupplier
@@ -119,7 +119,7 @@ public class PullQueryResult {
     });
   }
 
-  public PullSourceType getSourceType() {
+  public QuerySourceType getSourceType() {
     return sourceType;
   }
 

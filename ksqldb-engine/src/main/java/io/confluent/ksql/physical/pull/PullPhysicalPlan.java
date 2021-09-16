@@ -27,6 +27,7 @@ import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +50,7 @@ public class PullPhysicalPlan {
   private final QueryId queryId;
   private final List<LookupConstraint> lookupConstraints;
   private final PullPhysicalPlanType pullPhysicalPlanType;
-  private final PullSourceType pullSourceType;
+  private final QuerySourceType querySourceType;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
 
@@ -59,7 +60,7 @@ public class PullPhysicalPlan {
       final QueryId queryId,
       final List<LookupConstraint> lookupConstraints,
       final PullPhysicalPlanType pullPhysicalPlanType,
-      final PullSourceType pullSourceType,
+      final QuerySourceType querySourceType,
       final Materialization mat,
       final DataSourceOperator dataSourceOperator
   ) {
@@ -69,7 +70,7 @@ public class PullPhysicalPlan {
     this.lookupConstraints = Objects.requireNonNull(lookupConstraints, "lookupConstraints");
     this.pullPhysicalPlanType = Objects.requireNonNull(pullPhysicalPlanType,
         "pullPhysicalPlanType");
-    this.pullSourceType = Objects.requireNonNull(pullSourceType, "pullSourceType");
+    this.querySourceType = Objects.requireNonNull(querySourceType, "pullSourceType");
     this.mat = Objects.requireNonNull(mat, "mat");
     this.dataSourceOperator = Objects.requireNonNull(
         dataSourceOperator, "dataSourceOperator");
@@ -144,8 +145,8 @@ public class PullPhysicalPlan {
     return pullPhysicalPlanType;
   }
 
-  public PullSourceType getSourceType() {
-    return pullSourceType;
+  public QuerySourceType getSourceType() {
+    return querySourceType;
   }
 
   public long getRowsReadFromDataSource() {
@@ -166,22 +167,5 @@ public class PullPhysicalPlan {
     RANGE_SCAN,
     TABLE_SCAN
   }
-
-  /**
-   * The types we consider for metrics purposes. These should only be added to. You can deprecate
-   * a field, but don't delete it or change its meaning
-   */
-  public enum PullSourceType {
-    NON_WINDOWED,
-    WINDOWED
-  }
-
-  /**
-   * The types we consider for metrics purposes. These should only be added to. You can deprecate
-   * a field, but don't delete it or change its meaning
-   */
-  public enum RoutingNodeType {
-    SOURCE_NODE,
-    REMOTE_NODE
-  }
 }
+

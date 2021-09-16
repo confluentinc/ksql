@@ -66,6 +66,9 @@ public class TransientQueryQueue implements BlockingRowQueue {
   @Override
   public void setLimitHandler(final LimitHandler limitHandler) {
     this.limitHandler = limitHandler;
+    if (passedLimit()) {
+      limitHandler.limitReached();
+    }
   }
 
   @Override

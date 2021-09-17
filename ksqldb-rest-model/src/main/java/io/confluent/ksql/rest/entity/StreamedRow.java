@@ -111,7 +111,7 @@ public final class StreamedRow {
   /**
    * Row returned from a push query.
    */
-  public static StreamedRow pushRow(final ProgressToken progressToken) {
+  public static StreamedRow progressToken(final ProgressToken progressToken) {
     return new StreamedRow(
         Optional.empty(),
         Optional.empty(),

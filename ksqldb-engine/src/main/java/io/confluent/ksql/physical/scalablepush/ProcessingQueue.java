@@ -59,16 +59,16 @@ public class ProcessingQueue {
    */
   public synchronized boolean offer(final TableRow tableRow) {
     if (closed) {
-      return true;
+      return false;
     } else if (rowQueue.size() < queueSizeLimit && !droppedRows) {
       rowQueue.offer(tableRow);
       newRowCallback.run();
       System.out.println("Accepting row. At limit: " + (rowQueue.size() >= queueSizeLimit));
-      return rowQueue.size() >= queueSizeLimit;
+      return true;
     }
     System.out.println("DROPPED ROWS " + (rowQueue.size() >= queueSizeLimit));
     droppedRows = true;
-    return true;
+    return false;
   }
 
   /**
@@ -119,5 +119,9 @@ public class ProcessingQueue {
 
   public QueryId getQueryId() {
     return queryId;
+  }
+
+  public synchronized boolean isAtLimit() {
+    return rowQueue.size() >= queueSizeLimit;
   }
 }

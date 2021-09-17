@@ -126,6 +126,18 @@ public class CatchupConsumer extends Consumer {
     }
   }
 
+  protected void afterOfferedRow(final ProcessingQueue processingQueue) {
+    // Since we handle only one request at a time, we can afford to block and wait for the request.
+    while (processingQueue.isAtLimit()) {
+      try {
+        System.out.println("Sleeping for a bit");
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
   private boolean checkNearEnd(KafkaConsumer<GenericKey, GenericRow> consumer) {
     if (isExplicitAssignmentMode()) {
       return false;

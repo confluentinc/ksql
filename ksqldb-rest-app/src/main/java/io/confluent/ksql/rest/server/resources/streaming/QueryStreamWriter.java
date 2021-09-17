@@ -175,10 +175,10 @@ class QueryStreamWriter implements StreamingOutput {
     return row.getKeyValue().value() == null
         ? StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()))
         : row.getProgressMetadata().isPresent() ?
-            StreamedRow.pushRow(
+            StreamedRow.progressToken(
                 new ProgressToken(row.getProgressMetadata().get().getStartToken(),
                     row.getProgressMetadata().get().getEndToken()))
-            : StreamedRow.pushRow(row.getKeyValue().value(), Optional.empty());
+            : StreamedRow.pushRow(row.getKeyValue().value());
   }
 
   private void outputException(final OutputStream out, final Throwable exception) {

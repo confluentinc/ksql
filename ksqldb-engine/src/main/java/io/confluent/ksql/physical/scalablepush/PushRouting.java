@@ -660,6 +660,7 @@ public class PushRouting implements AutoCloseable {
 
       Optional<RowMetadata> rowMetadata = progressToken.map(
           t -> new RowMetadata(t.getStartToken(), t.getEndToken()));
+      System.out.println("Outputting " + row.value() + " row metadata " + rowMetadata + " for query " + queryId);
       if (!transientQueryQueue.acceptRowNonBlocking(null, row.value(), rowMetadata)) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();

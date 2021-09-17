@@ -205,11 +205,11 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
         return rows.stream()
             .map(kv -> {
               if (kv.getProgressMetadata().isPresent()) {
-                return StreamedRow.pushRow(new ProgressToken(
+                return StreamedRow.progressToken(new ProgressToken(
                     kv.getProgressMetadata().get().getStartToken(),
                     kv.getProgressMetadata().get().getEndToken()));
               } else {
-                return StreamedRow.pushRow(kv.getKeyValue().value(), Optional.empty());
+                return StreamedRow.pushRow(kv.getKeyValue().value());
               }
             })
             .collect(Collectors.toCollection(Lists::newLinkedList));

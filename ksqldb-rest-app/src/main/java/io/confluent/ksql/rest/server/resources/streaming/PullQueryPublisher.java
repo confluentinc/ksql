@@ -196,7 +196,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         return null;
       } else {
         return rows.stream()
-            .map(kv -> StreamedRow.pushRow(kv.getKeyValue().value(), Optional.empty()))
+            .map(kv -> StreamedRow.pushRow(kv.getKeyValue().value()))
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

@@ -26,7 +26,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
-import io.confluent.ksql.rest.entity.QueryResponseRow;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
@@ -59,13 +58,13 @@ public final class KsqlTargetUtil {
     }
     try {
       final ProgressToken progressToken = deserialize(buff, ProgressToken.class);
-      return StreamedRow.pushRow(progressToken);
+      return StreamedRow.progressToken(progressToken);
     } catch (KsqlRestClientException e) {
       // Not a {@link KsqlErrorMessage}
     }
     try {
-      final QueryResponseRow row = deserialize(buff, QueryResponseRow.class);
-      return StreamedRow.pushRow(GenericRow.fromList(row.row), row.token);
+      final List<?> row = deserialize(buff, List.class);
+      return StreamedRow.pushRow(GenericRow.fromList(row));
     } catch (KsqlRestClientException e) {
       // Not a {@link List}
     }

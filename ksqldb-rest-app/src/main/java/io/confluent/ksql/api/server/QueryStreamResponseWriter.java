@@ -28,7 +28,7 @@ public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
-  QueryStreamResponseWriter writeRow(GenericRow row, Optional<String> token);
+  QueryStreamResponseWriter writeRow(GenericRow row);
 
   QueryStreamResponseWriter writeProgressToken(ProgressToken token);
 

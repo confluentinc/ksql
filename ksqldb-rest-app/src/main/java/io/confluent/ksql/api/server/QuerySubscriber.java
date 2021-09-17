@@ -65,7 +65,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
       queryStreamResponseWriter.writeProgressToken(new ProgressToken(
           row.getProgressMetadata().get().getStartToken(), row.getProgressMetadata().get().getEndToken()));
     } else {
-      queryStreamResponseWriter.writeRow(row.getKeyValue().value(), Optional.empty());
+      queryStreamResponseWriter.writeRow(row.getKeyValue().value());
     }
     tokens--;
     if (response.writeQueueFull()) {

@@ -80,6 +80,9 @@ public abstract class Consumer implements AutoCloseable {
   protected void initialize() {
   }
 
+  protected void afterOfferedRow(final ProcessingQueue queue) {
+  }
+
   public void newAssignment(final Collection<TopicPartition> tps) {
     newAssignment = true;
     topicPartitions.set(ImmutableSet.copyOf(tps));
@@ -197,7 +200,8 @@ public abstract class Consumer implements AutoCloseable {
           final GenericRow valueCopy = GenericRow.fromList(value.values());
           row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
         }
-        return queue.offer(row);
+        queue.offer(row);
+        afterOfferedRow(queue);
       } catch (final Throwable t) {
         LOG.error("Error while offering row", t);
       }

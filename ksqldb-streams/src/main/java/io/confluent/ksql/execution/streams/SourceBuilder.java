@@ -194,9 +194,14 @@ final class SourceBuilder extends SourceBuilderBase {
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
     private final int pseudoColumnVersion;
+    private final int numPseudoColumnsToMaterialize;
 
     AddPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.numPseudoColumnsToMaterialize = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+          .stream()
+          .filter(SystemColumns::mustBeMaterializedForTableJoins)
+          .count();
     }
 
     @Override
@@ -215,12 +220,7 @@ final class SourceBuilder extends SourceBuilderBase {
             return row;
           }
 
-          final int additionalCapacity = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
-              .stream()
-              .filter(SystemColumns::mustBeMaterializedForTableJoins)
-              .count();
-
-          row.ensureAdditionalCapacity(additionalCapacity);
+          row.ensureAdditionalCapacity(numPseudoColumnsToMaterialize);
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final int partition = processorContext.partition();

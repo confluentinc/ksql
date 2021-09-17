@@ -85,34 +85,6 @@ public class ScalablePushQueryMetricsTest {
   }
 
   @Test
-  public void shouldRecordNumberOfLocalRequests() {
-    // Given:
-    scalablePushQueryMetrics.recordLocalRequests(3);
-
-    // When:
-    final double value = getMetricValue("-local-count");
-    final double legacyValue = getMetricValueLegacy("-local-count");
-
-    // Then:
-    assertThat(value, equalTo(1.0));
-    assertThat(legacyValue, equalTo(1.0));
-  }
-
-  @Test
-  public void shouldRecordNumberOfRemoteRequests() {
-    // Given:
-    scalablePushQueryMetrics.recordRemoteRequests(3);
-
-    // When:
-    final double value = getMetricValue("-remote-count");
-    final double legacyValue = getMetricValueLegacy("-remote-count");
-
-    // Then:
-    assertThat(value, equalTo(1.0));
-    assertThat(legacyValue, equalTo(1.0));
-  }
-
-  @Test
   public void shouldRecordErrorRate() {
     // Given:
     scalablePushQueryMetrics.recordErrorRate(3, QuerySourceType.NON_WINDOWED,

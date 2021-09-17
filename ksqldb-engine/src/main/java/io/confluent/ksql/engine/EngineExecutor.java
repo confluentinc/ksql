@@ -236,7 +236,7 @@ final class EngineExecutor {
     // If we ever change how many hops a request can do, we'll need to update this for correct
     // metrics.
     final RoutingNodeType routingNodeType = routingOptions.getIsSkipForwardRequest()
-        ? KsqlConstants.RoutingNodeType.REMOTE_NODE : KsqlConstants.RoutingNodeType.SOURCE_NODE;
+        ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
 
     PullPhysicalPlan plan = null;
 
@@ -334,7 +334,7 @@ final class EngineExecutor {
     // If we ever change how many hops a request can do, we'll need to update this for correct
     // metrics.
     final RoutingNodeType routingNodeType = pushRoutingOptions.getHasBeenForwarded()
-        ? KsqlConstants.RoutingNodeType.REMOTE_NODE : KsqlConstants.RoutingNodeType.SOURCE_NODE;
+        ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
 
     PushPhysicalPlan plan = null;
 

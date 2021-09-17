@@ -152,7 +152,7 @@ public class ScalablePushQueryMetricsTest {
   @Test
   public void shouldRecordLatency() {
     // Given:
-    scalablePushQueryMetrics.recordLatency(3000, QuerySourceType.NON_WINDOWED,
+    scalablePushQueryMetrics.recordConnectionDuration(3000, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
 
     // When:
@@ -192,15 +192,15 @@ public class ScalablePushQueryMetricsTest {
   public void shouldRecordLatencyPercentiles() {
     // Given:
     when(time.nanoseconds()).thenReturn(600000000L);
-    scalablePushQueryMetrics.recordLatency(100000000L, QuerySourceType.NON_WINDOWED,
+    scalablePushQueryMetrics.recordConnectionDuration(100000000L, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
-    scalablePushQueryMetrics.recordLatency(200000000L, QuerySourceType.NON_WINDOWED,
+    scalablePushQueryMetrics.recordConnectionDuration(200000000L, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
-    scalablePushQueryMetrics.recordLatency(300000000L, QuerySourceType.NON_WINDOWED,
+    scalablePushQueryMetrics.recordConnectionDuration(300000000L, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
-    scalablePushQueryMetrics.recordLatency(400000000L, QuerySourceType.NON_WINDOWED,
+    scalablePushQueryMetrics.recordConnectionDuration(400000000L, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
-    scalablePushQueryMetrics.recordLatency(500000000L, QuerySourceType.NON_WINDOWED,
+    scalablePushQueryMetrics.recordConnectionDuration(500000000L, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
 
     // When:

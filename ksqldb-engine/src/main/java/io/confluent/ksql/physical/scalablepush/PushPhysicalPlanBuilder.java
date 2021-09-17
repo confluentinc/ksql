@@ -33,7 +33,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -170,7 +169,7 @@ public class PushPhysicalPlanBuilder {
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
 
     querySourceType = logicalNode.isWindowed()
-        ? KsqlConstants.QuerySourceType.WINDOWED : KsqlConstants.QuerySourceType.NON_WINDOWED;
+        ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
     return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId,
         expectingStartOfRegistryData);
   }

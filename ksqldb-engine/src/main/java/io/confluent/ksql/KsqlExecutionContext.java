@@ -185,7 +185,7 @@ public interface KsqlExecutionContext {
    * @param pushRouting The push routing object
    * @param pushRoutingOptions The options for routing
    * @param context The Vertx context of the request
-   * @param
+   * @param scalablePushQueryMetrics JMX metrics
    * @return A ScalablePushQueryMetadata object
    */
   ScalablePushQueryMetadata executeScalablePushQuery(

@@ -687,8 +687,7 @@ public final class KsqlRestApplication implements Executable {
         sharedClient
     );
   }
-
-  @SuppressWarnings("checkstyle:MethodLength")
+  @SuppressWarnings({"checkstyle:NCSS", "checkstyle:MethodLength"})
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
@@ -831,8 +830,8 @@ public final class KsqlRestApplication implements Executable {
         Time.SYSTEM))
         : Optional.empty();
 
-    final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics = ksqlConfig.getBoolean(
-        KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)
+    final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics =
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)
         ? Optional.of(new ScalablePushQueryExecutorMetrics(
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),

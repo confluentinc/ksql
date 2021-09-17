@@ -182,6 +182,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
   private boolean passedLimit() {
     return remaining != null && remaining.get() <= 0;
   }
+
   public long getTotalRowsQueued() {
     return totalRowsQueued.get();
   }

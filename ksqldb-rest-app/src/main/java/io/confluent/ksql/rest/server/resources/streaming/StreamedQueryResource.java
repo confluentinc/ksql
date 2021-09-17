@@ -383,7 +383,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
           metricsCallbackHolder.setCallback(
               initializeStreamMetricsCallback(
-                  pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics, refDecrementer));
+                  pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics,
+                  refDecrementer));
 
           final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
           final ConfiguredStatement<Query> configured = ConfiguredStatement

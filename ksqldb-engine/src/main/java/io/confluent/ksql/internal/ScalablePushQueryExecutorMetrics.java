@@ -56,8 +56,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private final List<Sensor> sensors;
   private final Sensor localRequestsSensor;
   private final Sensor remoteRequestsSensor;
-  private final Sensor latencySensor;
-  private final Map<MetricsKey, Sensor> latencySensorMap;
+  private final Sensor connectionDurationSensor;
+  private final Map<MetricsKey, Sensor> connectionDurationSensorMap;
   private final Sensor errorRateSensor;
   private final Map<MetricsKey, Sensor> errorRateSensorMap;
   private final Sensor requestSizeSensor;
@@ -96,8 +96,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
-    this.latencySensor = configureLatencySensor();
-    this.latencySensorMap = configureLatencySensorMap();
+    this.connectionDurationSensor = configureConnectionDurationSensor();
+    this.connectionDurationSensorMap = configureConnectionDurationSensorMap();
     this.errorRateSensor = configureErrorRateSensor();
     this.errorRateSensorMap = configureErrorSensorMap();
     this.requestSizeSensor = configureRequestSizeSensor();
@@ -124,27 +124,27 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     this.remoteRequestsSensor.record(value);
   }
 
-  public void recordLatency(
+  public void recordConnectionDuration(
       final long startTimeNanos,
       final QuerySourceType sourceType,
       final RoutingNodeType routingNodeType
   ) {
     final MetricsKey key = new MetricsKey(sourceType, routingNodeType);
-    innerRecordLatency(startTimeNanos, key);
+    innerRecordConnectionDuration(startTimeNanos, key);
   }
 
-  public void recordLatencyForError(final long startTimeNanos) {
+  public void recordConnectionDurationForError(final long startTimeNanos) {
     final MetricsKey key = new MetricsKey();
-    innerRecordLatency(startTimeNanos, key);
+    innerRecordConnectionDuration(startTimeNanos, key);
   }
 
-  private void innerRecordLatency(final long startTimeNanos, final MetricsKey key) {
-    // Record latency at microsecond scale
+  private void innerRecordConnectionDuration(final long startTimeNanos, final MetricsKey key) {
+    // Record connection duration at microsecond scale
     final long nowNanos = time.nanoseconds();
-    final double latency = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
-    this.latencySensor.record(latency);
-    if (latencySensorMap.containsKey(key)) {
-      latencySensorMap.get(key).record(latency);
+    final double connectionDuration = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
+    this.connectionDurationSensor.record(connectionDuration);
+    if (connectionDurationSensorMap.containsKey(key)) {
+      connectionDurationSensorMap.get(key).record(connectionDuration);
     } else {
       throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
@@ -396,9 +396,10 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureLatencySensor() {
+  private Sensor configureConnectionDurationSensor() {
     final Sensor sensor = metrics.sensor(
-        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-latency");
+        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-"
+            + SCALABLE_PUSH_REQUESTS + "-connectionDuration");
 
     // Legacy metrics
     addRequestMetricsToSensor(sensor, ksqlServiceIdLegacyPrefix, SCALABLE_PUSH_REQUESTS,
@@ -412,8 +413,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
-  private Map<MetricsKey, Sensor> configureLatencySensorMap() {
-    return configureSensorMap("latency", (sensor, tags, variantName) -> {
+  private Map<MetricsKey, Sensor> configureConnectionDurationSensorMap() {
+    return configureSensorMap("connectionDuration", (sensor, tags, variantName) -> {
       addRequestMetricsToSensor(
           sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS + "-detailed",
           tags, " - " + variantName);
@@ -429,7 +430,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   ) {
     addSensor(
         sensor,
-        metricNamePrefix + "-latency-avg",
+        metricNamePrefix + "-connection-duration-avg",
         servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
         "Average time for a scalable push query request" + descriptionSuffix,
         metricsTags,
@@ -437,7 +438,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     );
     addSensor(
         sensor,
-        metricNamePrefix + "-latency-max",
+        metricNamePrefix + "-connection-duration-max",
         servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
         "Max time for a scalable push query request" + descriptionSuffix,
         metricsTags,
@@ -445,7 +446,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     );
     addSensor(
         sensor,
-        metricNamePrefix + "-latency-min",
+        metricNamePrefix + "-connection-duration-min",
         servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
         "Min time for a scalable push query request" + descriptionSuffix,
         metricsTags,
@@ -467,25 +468,25 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
         new Percentile(metrics.metricName(
             metricNamePrefix + "-distribution-50",
             servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-            "Latency distribution" + descriptionSuffix,
+            "Connection duration distribution" + descriptionSuffix,
             metricsTags
         ), 50.0),
         new Percentile(metrics.metricName(
             metricNamePrefix + "-distribution-75",
             servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-            "Latency distribution" + descriptionSuffix,
+            "Connection duration distribution" + descriptionSuffix,
             metricsTags
         ), 75.0),
         new Percentile(metrics.metricName(
             metricNamePrefix + "-distribution-90",
             servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-            "Latency distribution" + descriptionSuffix,
+            "Connection duration distribution" + descriptionSuffix,
             metricsTags
         ), 90.0),
         new Percentile(metrics.metricName(
             metricNamePrefix + "-distribution-99",
             servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-            "Latency distribution" + descriptionSuffix,
+            "Connection duration distribution" + descriptionSuffix,
             metricsTags
         ), 99.0)
     ));

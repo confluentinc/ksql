@@ -210,7 +210,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     final RoutingNodeType routingNodeType = metadata.getRoutingNodeType();
     // Note: we are not recording response size in this case because it is not
     // accessible in the websocket endpoint.
-    metrics.recordLatency(startTimeNanos, sourceType, routingNodeType);
+    metrics.recordConnectionDuration(startTimeNanos, sourceType, routingNodeType);
     metrics.recordRowsReturned(metadata.getTotalRowsReturned(),
         sourceType, routingNodeType);
     metrics.recordRowsProcessed(metadata.getTotalRowsProcessed(),
@@ -218,7 +218,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   }
 
   private void recordErrorMetrics(final ScalablePushQueryExecutorMetrics metrics) {
-    metrics.recordLatencyForError(startTimeNanos);
+    metrics.recordConnectionDurationForError(startTimeNanos);
     metrics.recordZeroRowsReturnedForError();
     metrics.recordZeroRowsProcessedForError();
   }

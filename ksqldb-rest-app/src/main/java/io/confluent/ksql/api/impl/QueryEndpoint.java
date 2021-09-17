@@ -210,13 +210,13 @@ public class QueryEndpoint {
         metrics.recordRequestSize(requestBytes);
         if (r == null) {
           metrics.recordResponseSizeForError(responseBytes);
-          metrics.recordLatencyForError(startTimeNanos);
+          metrics.recordConnectionDurationForError(startTimeNanos);
           metrics.recordZeroRowsReturnedForError();
           metrics.recordZeroRowsProcessedForError();
         } else {
           metrics.recordResponseSize(responseBytes,
               r.getSourceType(), r.getRoutingNodeType());
-          metrics.recordLatency(startTimeNanos,
+          metrics.recordConnectionDuration(startTimeNanos,
               r.getSourceType(), r.getRoutingNodeType());
           metrics.recordRowsReturned(
               r.getTotalRowsReturned(),

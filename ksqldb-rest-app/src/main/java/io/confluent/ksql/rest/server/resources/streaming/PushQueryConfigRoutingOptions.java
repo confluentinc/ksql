@@ -41,15 +41,6 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   }
 
   @Override
-  public boolean getExpectingStartOfRegistryData() {
-    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS)) {
-      return (Boolean) requestProperties.get(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS);
-    }
-    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DEFAULT;
-  }
-
-  @Override
   public Optional<String> getToken() {
     if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_TOKEN)) {
       return Optional.of((String) requestProperties.get(

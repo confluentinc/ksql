@@ -33,26 +33,23 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
-  private final boolean expectingStartOfRegistryData;
   private final Optional<String> token;
 
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
       final QueryId queryId,
-      final boolean expectingStartOfRegistryData,
       final Optional<String> token
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
-    this.expectingStartOfRegistryData = expectingStartOfRegistryData;
     this.token = token;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue, expectingStartOfRegistryData, token);
+    scalablePushRegistry.register(processingQueue, token);
   }
 
   @Override

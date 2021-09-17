@@ -1,6 +1,5 @@
 package io.confluent.ksql.util;
 
-import com.google.common.base.Strings;
 import java.util.Optional;
 
 public class KeyValueMetadata<K, V> {

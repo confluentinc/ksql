@@ -380,10 +380,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
           // First thing, set the metrics callback so that it gets called, even if we hit an error
           final AtomicReference<StreamPullQueryMetadata> resultForMetrics =
               new AtomicReference<>(null);
-          final AtomicReference<Decrementer> decrementer = new AtomicReference<>(null);
+          final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
           metricsCallbackHolder.setCallback(
               initializeStreamMetricsCallback(
-                  pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics, decrementer));
+                  pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics, refDecrementer));
 
           final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
           final ConfiguredStatement<Query> configured = ConfiguredStatement
@@ -395,7 +395,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               configured,
               connectionClosedFuture,
               resultForMetrics,
-              decrementer
+              refDecrementer
           );
         }
         default:
@@ -550,12 +550,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ConfiguredStatement<Query> configured,
       final CompletableFuture<Void> connectionClosedFuture,
       final AtomicReference<StreamPullQueryMetadata> resultForMetrics,
-      final AtomicReference<Decrementer> decrementer) {
+      final AtomicReference<Decrementer> refDecrementer) {
 
     // Apply the same rate, bandwidth and concurrency limits as with table pull queries
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     pullBandRateLimiter.allow(KsqlQueryType.PULL);
-    decrementer.set(concurrencyLimiter.increment());
+    refDecrementer.set(concurrencyLimiter.increment());
 
     final StreamPullQueryMetadata streamPullQueryMetadata = ksqlEngine
         .createStreamPullQuery(

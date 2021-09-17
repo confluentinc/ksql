@@ -41,7 +41,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -615,7 +614,7 @@ class Analyzer {
 
       if (alias.text().equalsIgnoreCase(reservedToken.text())) {
         if (!expressionMatchesAlias(expression, alias)) {
-          throw new ParseFailedException("`" + reservedToken.text() + "` "
+          throw new KsqlException("`" + reservedToken.text() + "` "
               + "is a reserved column name. "
               + "You cannot use it as an alias for a column.");
         } else if (persistent) {

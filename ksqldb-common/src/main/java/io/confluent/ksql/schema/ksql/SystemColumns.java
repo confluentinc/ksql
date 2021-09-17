@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -28,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 public final class SystemColumns {
 
@@ -117,7 +117,7 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
-    Set<ColumnName> names = pseudoColumns
+    final Set<ColumnName> names = pseudoColumns
         .stream()
         .filter(col -> col.version <= pseudoColumnVersion)
         .map(col -> col.name)
@@ -155,12 +155,11 @@ public final class SystemColumns {
   }
 
   public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
-    final PseudoColumn column = pseudoColumns
+    return pseudoColumns
         .stream()
         .filter(col -> col.name.equals(columnName))
-        .findFirst().orElseThrow(IllegalArgumentException::new);
-
-    return column.name.equals(columnName);
+        .findFirst().orElseThrow(IllegalArgumentException::new)
+        .mustBeMaterializedForTableJoins;
   }
 
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
@@ -170,7 +169,7 @@ public final class SystemColumns {
   }
 
   @Immutable
-  private static class PseudoColumn {
+  private static final class PseudoColumn {
 
     final ColumnName name;
     final SqlType type;

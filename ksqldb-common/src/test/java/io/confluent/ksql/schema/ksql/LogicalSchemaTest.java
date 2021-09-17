@@ -59,7 +59,7 @@ import org.mockito.junit.MockitoRule;
 public class LogicalSchemaTest {
 
   @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
+  public final MockitoRule rule = MockitoJUnit.rule();
 
   private static final ColumnName K0 = ColumnName.of("k0");
   private static final ColumnName K1 = ColumnName.of("k1");

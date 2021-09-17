@@ -198,7 +198,8 @@ final class SourceBuilder extends SourceBuilderBase {
 
     AddPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
       this.pseudoColumnVersion = pseudoColumnVersion;
-      this.numPseudoColumnsToMaterialize = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+      this.numPseudoColumnsToMaterialize =
+          (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(SystemColumns::mustBeMaterializedForTableJoins)
           .count();

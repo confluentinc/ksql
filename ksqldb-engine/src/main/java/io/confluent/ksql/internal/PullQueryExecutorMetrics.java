@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -671,9 +671,9 @@ public class PullQueryExecutorMetrics implements Closeable {
       final String sensorBaseName, final MetricsAdder metricsAdder) {
     final ImmutableMap.Builder<MetricsKey, Sensor> builder = ImmutableMap.builder();
 
-    for (final QuerySourceType sourceType : KsqlConstants.QuerySourceType.values()) {
+    for (final QuerySourceType sourceType : QuerySourceType.values()) {
       for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        for (final RoutingNodeType routingNodeType : KsqlConstants.RoutingNodeType.values()) {
+        for (final RoutingNodeType routingNodeType : RoutingNodeType.values()) {
           addSensorToMap(
               sensorBaseName,
               metricsAdder,

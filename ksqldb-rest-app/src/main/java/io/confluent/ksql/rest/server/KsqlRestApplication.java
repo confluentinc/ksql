@@ -289,11 +289,7 @@ public final class KsqlRestApplication implements Executable {
       this.heartbeatResource = Optional.empty();
       this.clusterStatusResource = Optional.empty();
     }
-    if (lagReportingAgent.isPresent()) {
-      this.lagReportingResource = Optional.of(new LagReportingResource(lagReportingAgent.get()));
-    } else {
-      this.lagReportingResource = Optional.empty();
-    }
+    this.lagReportingResource = lagReportingAgent.map(LagReportingResource::new);
     this.healthCheckResource = HealthCheckResource.create(
         ksqlResource,
         serviceContext,
@@ -972,9 +968,7 @@ public final class KsqlRestApplication implements Executable {
           .threadPoolSize(restConfig.getInt(
               KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG));
 
-      if (lagReportingAgent.isPresent()) {
-        builder.addHostStatusListener(lagReportingAgent.get());
-      }
+      lagReportingAgent.ifPresent(builder::addHostStatusListener);
 
       return Optional.of(builder.build(ksqlEngine, serviceContext));
     }

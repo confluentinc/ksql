@@ -687,7 +687,8 @@ public final class KsqlRestApplication implements Executable {
         sharedClient
     );
   }
-  @SuppressWarnings({"checkstyle:NCSS", "checkstyle:MethodLength"})
+
+  @SuppressWarnings({"checkstyle:JavaNCSS", "checkstyle:MethodLength"})
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,

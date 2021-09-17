@@ -248,14 +248,6 @@ public class PullQueryMetricsFunctionalTest {
         "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';",
         Optional.empty());
 
-    for (MetricName metric: TestMetricsReporter.METRICS.keySet()) {
-      if (metric.name().startsWith("pull-query")) {
-        if ((Double)TestMetricsReporter.METRICS.get(metric).metricValue() > 0) {
-          System.out.println(metric + " , " + (Double)TestMetricsReporter.METRICS.get(metric).metricValue());
-        }
-      }
-    }
-
     // Then:
     assertThat(recordsReturnedTableMetric.metricValue(), is(1.0));
     assertThat((Double)latencyTableMetric.metricValue(), greaterThan(1.0));

@@ -26,6 +26,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Set;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 
 public final class SystemColumns {
 
@@ -157,6 +158,53 @@ public final class SystemColumns {
         .addAll(pseudoColumnNames(pseudoColumnVersion))
         .addAll(WINDOW_BOUNDS_COLUMN_NAMES)
         .build();
+  }
+
+  @Immutable
+  private static class PseudoColumn {
+
+    final ColumnName columnName;
+    final SqlType type;
+    final int version;
+    final boolean mustBeMaterializedForTableJoins;
+
+    private PseudoColumn(
+        final ColumnName columnName,
+        final SqlType type,
+        final int version,
+        final boolean mustBeMaterializedForTableJoins
+    ) {
+      this.columnName = columnName;
+      this.type = type;
+      this.version = version;
+      this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
+    }
+
+    private ColumnName getColumnName() {
+      return columnName;
+    }
+
+    private SqlType getType() {
+      return type;
+    }
+
+    private int getVersion() {
+      return version;
+    }
+
+    private boolean isMustBeMaterializedForTableJoins() {
+      return mustBeMaterializedForTableJoins;
+    }
+
+    private static PseudoColumn of(
+        final ColumnName columnName,
+        final SqlType type,
+        final int version,
+        final boolean mustBeMaterializedForTableJoins
+    ) {
+      return new PseudoColumn(columnName, type, version, mustBeMaterializedForTableJoins);
+    }
+
   }
 
 }

@@ -435,7 +435,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
                 final ScalablePushQueryMetadata r = resultForMetrics.get();
                 if (r == null) {
                   metrics.recordResponseSizeForError(responseBytes);
-                  metrics.recordLatencyForError(startTimeNanos);
+                  metrics.recordConnectionDurationForError(startTimeNanos);
                   metrics.recordZeroRowsReturnedForError();
                   metrics.recordZeroRowsProcessedForError();
                 } else {
@@ -446,7 +446,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
                       sourceType,
                       routingNodeType
                   );
-                  metrics.recordLatency(
+                  metrics.recordConnectionDuration(
                       startTimeNanos,
                       sourceType,
                       routingNodeType

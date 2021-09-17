@@ -55,7 +55,6 @@ public class KsqlServerMain {
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
       validateConfig(ksqlConfig);
-      QueryLogger.initialize();
       QueryLogger.configure(ksqlConfig);
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);

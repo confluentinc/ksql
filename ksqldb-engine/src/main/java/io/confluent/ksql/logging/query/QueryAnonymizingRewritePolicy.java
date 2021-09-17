@@ -26,6 +26,10 @@ import org.apache.log4j.spi.LoggingEvent;
 public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
   private static final QueryAnonymizer anonymizer = new QueryAnonymizer();
 
+  public QueryAnonymizer getAnonymizer() {
+    return anonymizer;
+  }
+
   @VisibleForTesting
   public String getNamespace() {
     return namespace;
@@ -49,7 +53,7 @@ public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
     this.anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
-  private QueryGuid buildGuids(final String query, final String anonymizedQuery) {
+  public QueryGuid buildGuids(final String query, final String anonymizedQuery) {
     return new QueryGuid(namespace, query, anonymizedQuery);
   }
 

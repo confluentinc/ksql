@@ -19,12 +19,16 @@ package io.confluent.ksql.test.rest;
 import static io.confluent.ksql.test.util.ThreadTestUtil.filterBuilder;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static java.util.Objects.requireNonNull;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.logging.query.QueryAnonymizingRewritePolicy;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
@@ -38,6 +42,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -49,6 +54,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -170,6 +176,16 @@ public class RestQueryTranslationTest {
     } else {
       thread.assertSameThreads();
     }
+  }
+
+  @Before
+  public void setUp() {
+    Map<?, ?> properties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED, true,
+        KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE, "cathouse.org.meowcluster");
+    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+
+    QueryLogger.configure(ksqlConfig);
   }
 
   @Test

@@ -13,9 +13,12 @@
 package io.confluent.ksql.logging.query;
 
 import io.confluent.common.logging.log4j.StructuredJsonLayout;
+import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.rewrite.RewriteAppender;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,17 +26,18 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryLoggerTest {
   @Mock public KsqlConfig config;
   private final TestAppender testAppender = new TestAppender();
+
+  private QueryAnonymizer anonymizer = new QueryAnonymizer();
 
   @Before
   public void setUp() throws Exception {
@@ -47,44 +51,26 @@ public class QueryLoggerTest {
     QueryLogger.getLogger().addAppender(consoleAppender);
 
     QueryLogger.addAppender(testAppender);
-    QueryLogger.initialize();
     QueryLogger.configure(config);
   }
 
   @Test
-  public void shouldConfigureNonAdditiveLogger() {
-    assertFalse(QueryLogger.getLogger().getAdditivity());
-  }
-
-  @Test
-  public void shouldAddRewriterBeforeExistingAppenders() {
-    // Given a QueryLogger configured elsewhere with a test appender
-    // then I have a log rewrite appender
-    final RewriteAppender rewriteAppender =
-        (RewriteAppender) QueryLogger.getLogger().getAllAppenders().nextElement();
-    assertThat(rewriteAppender, instanceOf(RewriteAppender.class));
-    // then I have my configured appender added to rewrite appender
-    assertNotNull(rewriteAppender.getAppender(testAppender.getName()));
-  }
-
-  @Test
-  public void createsPayloadsForAllLogLevels() {
-    // Given a logger
-    // when we log pairs message/query
+  public void anonymizesQueriesForAllLogLevels() {
     String message = "my message";
-    String query = "create table cat;";
+    String query = "DESCRIBE cat EXTENDED;";
+    String anonQuery = anonymizer.anonymize(query);
+
     QueryLogger.debug(message, query);
     QueryLogger.error(message, query);
     QueryLogger.info(message, query);
     QueryLogger.warn(message, query);
-    // they end up rewritten
     testAppender
         .getLog()
         .forEach(
             (e) -> {
               final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
               assertEquals(msg.getMessage(), message);
-              assertNotEquals(msg.getQuery(), query);
+              assertEquals(msg.getQuery(), anonQuery);
             });
   }
 
@@ -104,6 +90,37 @@ public class QueryLoggerTest {
               final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
               assertNotEquals(msg.getMessage(), message);
               assertNotEquals(msg.getQuery(), query);
+            });
+  }
+
+  @Test
+  public void shouldUseClusterNameAsNamespaceIfMissing() {
+    // Given:
+    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
+    when(config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("meowcluster");
+    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn("");
+    QueryLogger.configure(config);
+    assertEquals("meowcluster", QueryLogger.getNamespace());
+
+    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn(null);
+    QueryLogger.configure(config);
+    assertEquals("meowcluster", QueryLogger.getNamespace());
+  }
+
+  @Test
+  public void shouldContainAQueryID() {
+    String message = "my message";
+    String query = "DESCRIBE cat EXTENDED;";
+
+    QueryLogger.info(message, query);
+    testAppender
+        .getLog()
+        .forEach(
+            (e) -> {
+              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
+              final QueryGuid queryGuid = msg.getQueryIdentifier();
+              assertThat(queryGuid.getStructuralGuid(), not(isEmptyOrNullString()));
+              assertThat(queryGuid.getQueryGuid(), not(isEmptyOrNullString()));
             });
   }
 }

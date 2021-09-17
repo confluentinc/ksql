@@ -399,7 +399,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private Sensor configureConnectionDurationSensor() {
     final Sensor sensor = metrics.sensor(
         SCALABLE_PUSH_QUERY_METRIC_GROUP + "-"
-            + SCALABLE_PUSH_REQUESTS + "-connectionDuration");
+            + SCALABLE_PUSH_REQUESTS + "-connection-duration");
 
     // Legacy metrics
     addRequestMetricsToSensor(sensor, ksqlServiceIdLegacyPrefix, SCALABLE_PUSH_REQUESTS,
@@ -414,7 +414,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   }
 
   private Map<MetricsKey, Sensor> configureConnectionDurationSensorMap() {
-    return configureSensorMap("connectionDuration", (sensor, tags, variantName) -> {
+    return configureSensorMap("connection-duration", (sensor, tags, variantName) -> {
       addRequestMetricsToSensor(
           sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS + "-detailed",
           tags, " - " + variantName);

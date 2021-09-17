@@ -150,25 +150,25 @@ public class ScalablePushQueryMetricsTest {
   }
 
   @Test
-  public void shouldRecordLatency() {
+  public void shouldRecordConnectionDuration() {
     // Given:
     scalablePushQueryMetrics.recordConnectionDuration(3000, QuerySourceType.NON_WINDOWED,
         RoutingNodeType.SOURCE_NODE);
 
     // When:
-    final double avg = getMetricValue("-latency-avg");
-    final double max = getMetricValue("-latency-max");
-    final double min = getMetricValue("-latency-min");
+    final double avg = getMetricValue("-connection-duration-avg");
+    final double max = getMetricValue("-connection-duration-max");
+    final double min = getMetricValue("-connection-duration-min");
     final double total = getMetricValue("-total");
-    final double legacyAvg = getMetricValueLegacy("-latency-avg");
-    final double legacyMax = getMetricValueLegacy("-latency-max");
-    final double legacyMin = getMetricValueLegacy("-latency-min");
+    final double legacyAvg = getMetricValueLegacy("-connection-duration-avg");
+    final double legacyMax = getMetricValueLegacy("-connection-duration-max");
+    final double legacyMin = getMetricValueLegacy("-connection-duration-min");
     final double legacyTotal = getMetricValueLegacy("-total");
-    final double detailedAvg = getMetricValue("-detailed-latency-avg",
+    final double detailedAvg = getMetricValue("-detailed-connection-duration-avg",
         QuerySourceType.NON_WINDOWED, RoutingNodeType.SOURCE_NODE);
-    final double detailedMax = getMetricValue("-detailed-latency-max",
+    final double detailedMax = getMetricValue("-detailed-connection-duration-max",
         QuerySourceType.NON_WINDOWED, RoutingNodeType.SOURCE_NODE);
-    final double detailedMin = getMetricValue("-detailed-latency-min",
+    final double detailedMin = getMetricValue("-detailed-connection-duration-min",
         QuerySourceType.NON_WINDOWED, RoutingNodeType.SOURCE_NODE);
     final double detailedTotal = getMetricValue("-detailed-total",
         QuerySourceType.NON_WINDOWED, RoutingNodeType.SOURCE_NODE);
@@ -189,7 +189,7 @@ public class ScalablePushQueryMetricsTest {
   }
 
   @Test
-  public void shouldRecordLatencyPercentiles() {
+  public void shouldRecordConnectionDurationPercentiles() {
     // Given:
     when(time.nanoseconds()).thenReturn(600000000L);
     scalablePushQueryMetrics.recordConnectionDuration(100000000L, QuerySourceType.NON_WINDOWED,

@@ -83,20 +83,6 @@ public final class StreamedRow {
   /**
    * Row returned from a push query.
    */
-  public static StreamedRow pushRow(final GenericRow value, final Optional<String> token) {
-    return new StreamedRow(
-        Optional.empty(),
-        Optional.of(DataRow.row(value.values())),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty(),
-        Optional.empty()
-    );
-  }
-
-  /**
-   * Row returned from a push query.
-   */
   public static StreamedRow pushRow(final GenericRow value) {
     return new StreamedRow(
         Optional.empty(),

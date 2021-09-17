@@ -27,8 +27,7 @@ final class Output implements CliSpecificCommand {
   private static final String HELP = "output:" + System.lineSeparator()
       + "\tView the current output format." + System.lineSeparator()
       + System.lineSeparator()
-      + "output <format>;" + System.lineSeparator()
-      + System.lineSeparator()
+      + "output <format>:" + System.lineSeparator()
       + "\tSet the output format to <format> (valid formats: " + OutputFormat.VALID_FORMATS + ")"
       + System.lineSeparator()
       + System.lineSeparator()

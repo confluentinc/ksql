@@ -54,10 +54,9 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private static final int NUM_LATENCY_BUCKETS = 1000;
 
   private final List<Sensor> sensors;
-  private final Sensor localRequestsSensor;
-  private final Sensor remoteRequestsSensor;
   private final Sensor connectionDurationSensor;
   private final Map<MetricsKey, Sensor> connectionDurationSensorMap;
+  private final Sensor requestRateSensor;
   private final Sensor errorRateSensor;
   private final Map<MetricsKey, Sensor> errorRateSensorMap;
   private final Sensor requestSizeSensor;
@@ -70,9 +69,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private final Map<MetricsKey, Sensor> rowsReturnedSensorMap;
   private final Map<MetricsKey, Sensor> rowsProcessedSensorMap;
   private final Metrics metrics;
-  private final Map<String, String> legacyCustomMetricsTags;
   private final Map<String, String> customMetricsTags;
-  private final String ksqlServiceIdLegacyPrefix;
   private final String ksqlServicePrefix;
   private final Time time;
 
@@ -81,10 +78,6 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
       final Map<String, String> customMetricsTags,
       final Time time
   ) {
-    this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + ksqlServiceId;
-    this.legacyCustomMetricsTags =
-        Objects.requireNonNull(customMetricsTags, "customMetricsTags");
 
     this.ksqlServicePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX;
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
@@ -94,10 +87,9 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     this.time = Objects.requireNonNull(time, "time");
     this.metrics = MetricCollectors.getMetrics();
     this.sensors = new ArrayList<>();
-    this.localRequestsSensor = configureLocalRequestsSensor();
-    this.remoteRequestsSensor = configureRemoteRequestsSensor();
     this.connectionDurationSensor = configureConnectionDurationSensor();
     this.connectionDurationSensorMap = configureConnectionDurationSensorMap();
+    this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
     this.errorRateSensorMap = configureErrorSensorMap();
     this.requestSizeSensor = configureRequestSizeSensor();
@@ -114,14 +106,6 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   @Override
   public void close() {
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
-  }
-
-  public void recordLocalRequests(final double value) {
-    this.localRequestsSensor.record(value);
-  }
-
-  public void recordRemoteRequests(final double value) {
-    this.remoteRequestsSensor.record(value);
   }
 
   public void recordConnectionDuration(
@@ -143,6 +127,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     final long nowNanos = time.nanoseconds();
     final double connectionDuration = TimeUnit.NANOSECONDS.toMicros(nowNanos - startTimeNanos);
     this.connectionDurationSensor.record(connectionDuration);
+    this.requestRateSensor.record(1);
     if (connectionDurationSensorMap.containsKey(key)) {
       connectionDurationSensorMap.get(key).record(connectionDuration);
     } else {
@@ -267,56 +252,18 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
     return metrics;
   }
 
-  private Sensor configureLocalRequestsSensor() {
+  private Sensor configureRateSensor() {
     final Sensor sensor = metrics.sensor(
-        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-local");
-
-    // legacy
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-local-count",
-        ksqlServiceIdLegacyPrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Count of local scalable push query requests",
-        legacyCustomMetricsTags,
-        new CumulativeCount()
-    );
+        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-rate");
 
     // new metrics with ksql service id in tags
     addSensor(
         sensor,
-        SCALABLE_PUSH_REQUESTS + "-local-count",
+        SCALABLE_PUSH_REQUESTS + "-rate",
         ksqlServicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Count of local scalable push query requests",
+        "Rate of pull query requests",
         customMetricsTags,
-        new CumulativeCount()
-    );
-
-    sensors.add(sensor);
-    return sensor;
-  }
-
-  private Sensor configureRemoteRequestsSensor() {
-    final Sensor sensor = metrics.sensor(
-        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-remote");
-
-    // legacy
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-remote-count",
-        ksqlServiceIdLegacyPrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Count of remote scalable push query requests",
-        legacyCustomMetricsTags,
-        new CumulativeCount()
-    );
-
-    // new metrics with ksql service in tags
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-remote-count",
-        ksqlServicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Count of remote scalable push query requests",
-        customMetricsTags,
-        new CumulativeCount()
+        new Rate()
     );
 
     sensors.add(sensor);
@@ -326,23 +273,6 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private Sensor configureErrorRateSensor() {
     final Sensor sensor = metrics.sensor(
         SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-error-rate");
-    // legacy
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-error-rate",
-        ksqlServiceIdLegacyPrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Rate of erroneous scalable push query requests",
-        legacyCustomMetricsTags,
-        new Rate()
-    );
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-error-total",
-        ksqlServiceIdLegacyPrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Total number of erroneous scalable push query requests",
-        legacyCustomMetricsTags,
-        new CumulativeCount()
-    );
 
     // new metrics with ksql service id in tags
     addSensor(
@@ -401,10 +331,6 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
         SCALABLE_PUSH_QUERY_METRIC_GROUP + "-"
             + SCALABLE_PUSH_REQUESTS + "-connection-duration");
 
-    // Legacy metrics
-    addRequestMetricsToSensor(sensor, ksqlServiceIdLegacyPrefix, SCALABLE_PUSH_REQUESTS,
-        legacyCustomMetricsTags, "");
-
     // New metrics
     addRequestMetricsToSensor(
         sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS, customMetricsTags, "");
@@ -456,7 +382,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
         sensor,
         metricNamePrefix + "-total",
         servicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Total number of scalable push query request" + descriptionSuffix,
+        "Total number of scalable push query requests" + descriptionSuffix,
         metricsTags,
         new CumulativeCount()
     );
@@ -495,15 +421,6 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private Sensor configureRequestSizeSensor() {
     final Sensor sensor = metrics.sensor(
         SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-request-size");
-    // legacy
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-request-size",
-        ksqlServiceIdLegacyPrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Size in bytes of scalable push query request",
-        legacyCustomMetricsTags,
-        new CumulativeSum()
-    );
 
     // new metrics with ksql service id in tags
     addSensor(
@@ -522,15 +439,6 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private Sensor configureResponseSizeSensor() {
     final Sensor sensor = metrics.sensor(
         SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-response-size");
-    // legacy
-    addSensor(
-        sensor,
-        SCALABLE_PUSH_REQUESTS + "-response-size",
-        ksqlServiceIdLegacyPrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
-        "Size in bytes of scalable push query response",
-        legacyCustomMetricsTags,
-        new CumulativeSum()
-    );
 
     // new metrics with ksql service id in tags
     addSensor(

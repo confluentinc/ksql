@@ -229,19 +229,11 @@ public class QueryEndpoint {
       });
     });
 
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      scalablePushBandRateLimiter.add(responseBytes);
-    });
-
     final BlockingQueryPublisher publisher =
         new BlockingQueryPublisher(context, workerExecutor);
 
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
-
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      scalablePushBandRateLimiter.add(responseBytes);
-    });
 
     final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
         ksqlConfig,
@@ -253,7 +245,7 @@ public class QueryEndpoint {
         .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
             plannerOptions, context, scalablePushQueryMetrics);
     query.prepare();
-
+    resultForMetrics.set(query);
 
     publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);
 

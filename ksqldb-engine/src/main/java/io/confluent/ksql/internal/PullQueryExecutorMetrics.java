@@ -519,7 +519,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         sensor,
         metricNamePrefix + "-total",
         servicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Total number of pull query request" + descriptionSuffix,
+        "Total number of pull query requests" + descriptionSuffix,
         metricsTags,
         new CumulativeCount()
     );

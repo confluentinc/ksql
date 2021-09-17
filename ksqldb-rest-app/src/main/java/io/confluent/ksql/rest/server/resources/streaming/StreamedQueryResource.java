@@ -492,7 +492,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           request.getRequestProperties(),
           connectionClosedFuture,
           context,
-          scalablePushBandRateLimiter
+          scalablePushBandRateLimiter,
+          resultForMetrics
       );
     } else {
       // log validated statements for query anonymization
@@ -583,7 +584,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> requestProperties,
       final CompletableFuture<Void> connectionClosedFuture,
       final Context context,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
+      final AtomicReference<ScalablePushQueryMetadata> resultForMetrics
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
@@ -600,6 +602,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         .executeScalablePushQuery(analysis, serviceContext, configured, pushRouting, routingOptions,
             plannerOptions, context, scalablePushQueryMetrics);
     query.prepare();
+    resultForMetrics.set(query);
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

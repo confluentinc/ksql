@@ -31,4 +31,6 @@ public interface PushDataSourceOperator {
   boolean droppedRows();
 
   boolean hasError();
+
+  long getReturnedRowCount();
 }

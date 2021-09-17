@@ -61,7 +61,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
-import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -92,6 +91,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -367,11 +367,13 @@ final class EngineExecutor {
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
           transientQueryQueue,
+          scalablePushQueryMetrics,
           resultType,
           populator,
           preparer,
           physicalPlan.getSourceType(),
-          routingNodeType
+          routingNodeType,
+          physicalPlan::getRowsReadFromDataSource
       );
 
       return metadata;

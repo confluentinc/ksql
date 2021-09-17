@@ -29,7 +29,6 @@ import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.ProjectOperator;
 import io.confluent.ksql.physical.common.operators.SelectOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperator;
@@ -48,7 +47,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -230,7 +229,7 @@ public class PullPhysicalPlanBuilder {
     }
 
     querySourceType = logicalNode.isWindowed()
-        ? KsqlConstants.QuerySourceType.WINDOWED : KsqlConstants.QuerySourceType.NON_WINDOWED;
+        ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
     if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode, shouldCancelOperations);

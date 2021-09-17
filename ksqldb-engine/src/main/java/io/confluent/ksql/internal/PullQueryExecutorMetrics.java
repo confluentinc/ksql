@@ -672,9 +672,9 @@ public class PullQueryExecutorMetrics implements Closeable {
       final String sensorBaseName, final MetricsAdder metricsAdder) {
     final ImmutableMap.Builder<MetricsKey, Sensor> builder = ImmutableMap.builder();
 
-    for (final QuerySourceType sourceType : KsqlConstants.QuerySourceType.values()) {
+    for (final QuerySourceType sourceType : QuerySourceType.values()) {
       for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        for (final RoutingNodeType routingNodeType : KsqlConstants.RoutingNodeType.values()) {
+        for (final RoutingNodeType routingNodeType : RoutingNodeType.values()) {
           addSensorToMap(
               sensorBaseName,
               metricsAdder,

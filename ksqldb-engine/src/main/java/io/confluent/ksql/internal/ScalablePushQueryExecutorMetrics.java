@@ -19,9 +19,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -83,7 +83,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   ) {
     this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
-    this.legacyCustomMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
+    this.legacyCustomMetricsTags =
+        Objects.requireNonNull(customMetricsTags, "customMetricsTags");
 
     this.ksqlServicePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX;
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
@@ -380,7 +381,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
 
   private Sensor configureStatusCodeSensor(final String codeName) {
     final Sensor sensor = metrics.sensor(
-        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-" + codeName + "-total");
+        SCALABLE_PUSH_QUERY_METRIC_GROUP + "-"
+            + SCALABLE_PUSH_REQUESTS + "-" + codeName + "-total");
     addSensor(
         sensor,
         SCALABLE_PUSH_REQUESTS + "-" + codeName + "-total",
@@ -403,7 +405,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
         legacyCustomMetricsTags, "");
 
     // New metrics
-    addRequestMetricsToSensor(sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS, customMetricsTags, "");
+    addRequestMetricsToSensor(
+        sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS, customMetricsTags, "");
 
     sensors.add(sensor);
     return sensor;
@@ -411,7 +414,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
 
   private Map<MetricsKey, Sensor> configureLatencySensorMap() {
     return configureSensorMap("latency", (sensor, tags, variantName) -> {
-      addRequestMetricsToSensor(sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS + "-detailed",
+      addRequestMetricsToSensor(
+          sensor, ksqlServicePrefix, SCALABLE_PUSH_REQUESTS + "-detailed",
           tags, " - " + variantName);
     });
   }
@@ -603,8 +607,8 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
       final String sensorBaseName, final MetricsAdder metricsAdder) {
     final ImmutableMap.Builder<MetricsKey, Sensor> builder = ImmutableMap.builder();
 
-    for (final QuerySourceType sourceType : KsqlConstants.QuerySourceType.values()) {
-      for (final RoutingNodeType routingNodeType : KsqlConstants.RoutingNodeType.values()) {
+    for (final QuerySourceType sourceType : QuerySourceType.values()) {
+      for (final RoutingNodeType routingNodeType : RoutingNodeType.values()) {
         addSensorToMap(
             sensorBaseName,
             metricsAdder,
@@ -657,7 +661,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
 
     /**
      * Constructor representing an "unknown key" for situations in which we record metrics for an
-     * API call that didn't have a result (because it had an error instead)
+     * API call that didn't have a result (because it had an error instead).
      */
     MetricsKey() {
       this.sourceType = null;

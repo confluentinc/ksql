@@ -334,7 +334,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: MethodLength
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   private EndpointResponse handleQuery(final KsqlSecurityContext securityContext,
+      // CHECKSTYLE_RULES.ON: MethodLength
+      // CHECKSTYLE_RULES.ON: JavaNCSS
       final KsqlRequest request,
       final PreparedStatement<Query> statement,
       final CompletableFuture<Void> connectionClosedFuture,
@@ -421,10 +425,45 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
 
-      QueryLogger.info("Scalable push query created", statement.getStatementText());
+      // First thing, set the metrics callback so that it gets called, even if we hit an error
+      final AtomicReference<ScalablePushQueryMetadata> resultForMetrics =
+          new AtomicReference<>(null);
+      final MetricsCallback metricsCallback =
+          (statusCode, requestBytes, responseBytes, startTimeNanos) ->
+              scalablePushQueryMetrics.ifPresent(metrics -> {
+                metrics.recordStatusCode(statusCode);
+                metrics.recordRequestSize(requestBytes);
+                final ScalablePushQueryMetadata r = resultForMetrics.get();
+                if (r == null) {
+                  metrics.recordResponseSizeForError(responseBytes);
+                  metrics.recordLatencyForError(startTimeNanos);
+                  metrics.recordZeroRowsReturnedForError();
+                  metrics.recordZeroRowsProcessedForError();
+                } else {
+                  final QuerySourceType sourceType = r.getSourceType();
+                  final RoutingNodeType routingNodeType = r.getRoutingNodeType();
+                  metrics.recordResponseSize(
+                      responseBytes,
+                      sourceType,
+                      routingNodeType
+                  );
+                  metrics.recordLatency(
+                      startTimeNanos,
+                      sourceType,
+                      routingNodeType
+                  );
+                  metrics.recordRowsReturned(
+                      r.getTotalRowsReturned(),
+                      sourceType, routingNodeType);
+                  metrics.recordRowsProcessed(
+                      r.getTotalRowsProcessed(),
+                      sourceType, routingNodeType);
+                }
+                scalablePushBandRateLimiter.add(responseBytes);
+              });
+      metricsCallbackHolder.setCallback(metricsCallback);
 
-      metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) ->
-          scalablePushBandRateLimiter.add(responseBytes));
+      QueryLogger.info("Scalable push query created", statement.getStatementText());
 
       return handleScalablePushQuery(
           analysis,

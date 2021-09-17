@@ -121,6 +121,8 @@ public class ClientMutationIntegrationTest {
   private static final Format KEY_FORMAT = FormatFactory.JSON;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
+  private static final String TEST_TABLE = "TEST_TABLE";
+  private static final String NON_EXIST_TABLE = "NON_EXIST_TABLE";
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final PhysicalSchema AGG_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
@@ -179,6 +181,9 @@ public class ClientMutationIntegrationTest {
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
     );
+    makeKsqlRequest(
+        "CREATE TABLE " + TEST_TABLE + " (K STRING PRIMARY KEY, LONG BIGINT) WITH (KAFKA_TOPIC='"
+            + TEST_TABLE + "', VALUE_FORMAT='json', PARTITIONS=1);");
 
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
@@ -410,13 +415,42 @@ public class ClientMutationIntegrationTest {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.insertInto(AGG_TABLE, insertRow).get()
+        () -> client.insertInto(NON_EXIST_TABLE, insertRow).get()
     );
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Cannot insert values into an unknown stream/table"));
+  }
+
+  @Test
+  public void shouldInsertIntoTable() throws Exception {
+    // Given
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("auto.offset.reset", "earliest");
+
+    final KsqlObject insertRow = new KsqlObject()
+        .put("K", "my_key")
+        .put("LONG", 11L);
+
+    // When
+    final String query = "SELECT * from " + TEST_TABLE + " WHERE K='my_key' EMIT CHANGES LIMIT 1;";
+    StreamedQueryResult queryResult = client.streamQuery(query, properties).get();
+
+    final Row row = assertThatEventually(() -> {
+      // Potentially try inserting multiple times, in case the query wasn't started by the first time
+      try {
+        client.insertInto(TEST_TABLE, insertRow).get();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      return queryResult.poll(Duration.ofMillis(10));
+    }, is(notNullValue()));
+
+    // Then: a newly inserted row arrives
+    assertThat(row.getString("K"), is("my_key"));
+    assertThat(row.getLong("LONG"), is(11L));
   }
 
   @Test
@@ -494,13 +528,14 @@ public class ClientMutationIntegrationTest {
     // When
     final Exception e = assertThrows(
         ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.streamInserts(AGG_TABLE, new InsertsPublisher()).get()
+        () -> client.streamInserts(NON_EXIST_TABLE, new InsertsPublisher()).get()
     );
 
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(),
+        containsString("Cannot insert values into an unknown stream/table"));
   }
 
   @Test

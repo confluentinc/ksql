@@ -90,7 +90,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `ROWPARTITION`. Please remove or alias the column."
+        "message": "`ROWPARTITION` is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -104,7 +104,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `ROWPARTITION`. Please remove or alias the column."
+        "message": "`ROWPARTITION` is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {

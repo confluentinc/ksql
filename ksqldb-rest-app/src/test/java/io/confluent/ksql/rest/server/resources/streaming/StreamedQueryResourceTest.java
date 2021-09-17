@@ -131,9 +131,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -450,6 +450,7 @@ public class StreamedQueryResourceTest {
         .thenReturn(streamPullQueryMetadata);
     when(streamPullQueryMetadata.getTransientQueryMetadata()).thenReturn(transientQueryMetadata);
     when(transientQueryMetadata.getLogicalSchema()).thenReturn(schema);
+    when(streamPullQueryMetadata.getEndOffsets()).thenReturn(new ImmutableMap.Builder<TopicPartition, Long>().build());
 
     // When:
     testResource.streamQuery(

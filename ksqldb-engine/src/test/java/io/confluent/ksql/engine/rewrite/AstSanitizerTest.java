@@ -49,8 +49,11 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class AstSanitizerTest {
 
   private static final MetaStore META_STORE = MetaStoreFixture

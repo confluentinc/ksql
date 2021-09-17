@@ -41,6 +41,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -594,19 +595,42 @@ class Analyzer {
     }
 
     private void validateSelect(final SingleColumn column) {
-      final ColumnName columnName = column.getAlias()
-          .orElseThrow(IllegalStateException::new);
 
-      if (persistent) {
-        if (SystemColumns.isSystemColumn(columnName, ksqlConfig)) {
-          throw new KsqlException("Reserved column name in select: " + columnName + ". "
-              + "Please remove or alias the column.");
-        }
-      }
+      final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+
+      SystemColumns.systemColumnNames(pseudoColumnVersion)
+          .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
         throwOnUdafs(column.getExpression());
       }
+    }
+
+    private void checkForReservedToken(
+        final SingleColumn singleColumn,
+        final ColumnName reservedToken
+    ) {
+      final ColumnName alias = singleColumn.getAlias().orElseThrow(IllegalStateException::new);
+      final Expression expression = singleColumn.getExpression();
+
+      if (alias.text().equalsIgnoreCase(reservedToken.text())) {
+        if (!expressionMatchesAlias(expression, alias)) {
+          throw new ParseFailedException("`" + reservedToken.text() + "` "
+              + "is a reserved column name. "
+              + "You cannot use it as an alias for a column.");
+        } else if (persistent) {
+          throw new KsqlException("Reserved column name in select: "
+              + "`" + reservedToken.text() + "`. "
+              + "Please remove or alias the column.");
+        }
+
+      }
+    }
+
+    private boolean expressionMatchesAlias(final Expression expression, final ColumnName alias) {
+      final String text = expression.toString();
+      final String unqualifiedExpression = text.substring(text.indexOf(".") + 1);
+      return unqualifiedExpression.equalsIgnoreCase(alias.text());
     }
 
     private void throwOnUdafs(final Expression expression) {

@@ -138,12 +138,18 @@ public final class SystemColumns {
       value = "MS_EXPOSE_REP",
       justification = "SYSTEM_COLUMN_NAMES is ImmutableSet"
   )
-  private static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
+  public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
     return SYSTEM_COLUMN_NAMES_BY_VERSION.get(pseudoColumnVersion);
   }
 
   public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
     return MUST_BE_MATERIALIZED_FOR_TABLE_JOINS.contains(columnName);
+  }
+
+  public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }
 
   private static Set<ColumnName> buildColumns(final int pseudoColumnVersion) {
@@ -153,9 +159,4 @@ public final class SystemColumns {
         .build();
   }
 
-  private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
-  }
 }

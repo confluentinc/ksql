@@ -17,8 +17,6 @@ import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.rewrite.RewriteAppender;
-import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,11 +35,10 @@ public class QueryLoggerTest {
   @Mock public KsqlConfig config;
   private final TestAppender testAppender = new TestAppender();
 
-  private QueryAnonymizer anonymizer = new QueryAnonymizer();
+  private final QueryAnonymizer anonymizer = new QueryAnonymizer();
 
   @Before
   public void setUp() throws Exception {
-    // when
     when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
     when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE))
         .thenReturn("cathouse.org.meowcluster");
@@ -121,6 +118,33 @@ public class QueryLoggerTest {
               final QueryGuid queryGuid = msg.getQueryIdentifier();
               assertThat(queryGuid.getStructuralGuid(), not(isEmptyOrNullString()));
               assertThat(queryGuid.getQueryGuid(), not(isEmptyOrNullString()));
+            });
+  }
+
+  @Test
+  public void shouldPassThroughIfAnonymizerDisabled() {
+    // Given:
+    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(false);
+    QueryLogger.configure(config);
+
+    // When:
+    String message = "my message";
+    String query = "DESCRIBE cat EXTENDED;";
+    QueryLogger.info(message, query);
+
+    // Then:
+    testAppender
+        .getLog()
+        .forEach(
+            (e) -> {
+              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
+              assertEquals(msg.getMessage(), message);
+              assertEquals(msg.getQuery(), query);
+
+              // both guids are not the same
+              assertNotEquals(
+                  msg.getQueryIdentifier().getQueryGuid(),
+                  msg.getQueryIdentifier().getStructuralGuid());
             });
   }
 }

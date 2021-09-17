@@ -259,7 +259,7 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
+    LOG.info("Receid: " + request);
 
     throwIfNotConfigured();
 

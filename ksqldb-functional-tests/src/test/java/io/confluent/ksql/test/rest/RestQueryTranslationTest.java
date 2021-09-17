@@ -19,7 +19,6 @@ package io.confluent.ksql.test.rest;
 import static io.confluent.ksql.test.util.ThreadTestUtil.filterBuilder;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static java.util.Objects.requireNonNull;
-import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -27,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.logging.query.QueryAnonymizingRewritePolicy;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
@@ -176,16 +174,6 @@ public class RestQueryTranslationTest {
     } else {
       thread.assertSameThreads();
     }
-  }
-
-  @Before
-  public void setUp() {
-    Map<?, ?> properties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED, true,
-        KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE, "cathouse.org.meowcluster");
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
-
-    QueryLogger.configure(ksqlConfig);
   }
 
   @Test

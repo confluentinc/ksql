@@ -15,7 +15,6 @@ package io.confluent.ksql.logging.query;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
-import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
@@ -28,7 +27,10 @@ import org.apache.log4j.Logger;
 
 public final class QueryLogger {
   private static final Logger logger = LogManager.getLogger(QueryLogger.class);
-  private static QueryAnonymizingRewritePolicy rewritePolicy = null;
+  private static final QueryAnonymizer anonymizer = new QueryAnonymizer();
+
+  private static String namespace = "";
+  private static Boolean anonymizeQueries = true;
 
   private QueryLogger() {
 
@@ -36,7 +38,7 @@ public final class QueryLogger {
 
   @VisibleForTesting
   public static String getNamespace() {
-    return rewritePolicy.getNamespace();
+    return namespace;
   }
 
   public static void addAppender(final Appender appender) {
@@ -49,14 +51,21 @@ public final class QueryLogger {
   }
 
   public static void configure(final KsqlConfig config) {
-    rewritePolicy = new QueryAnonymizingRewritePolicy(config);
+    final String clusterNamespace =
+        config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE);
+    namespace =
+        clusterNamespace == null || clusterNamespace.isEmpty()
+            ? config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+            : clusterNamespace;
+    anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
   private static void log(final Level level, final Object message, final String query) {
     try {
-      final String anonymizedQuery = rewritePolicy.getAnonymizer().anonymize(query);
-      final QueryGuid queryGuids = rewritePolicy.buildGuids(query, anonymizedQuery);
-      logger.log(level, buildPayload(message, anonymizedQuery, queryGuids));
+      final String anonQuery = anonymizeQueries
+          ? anonymizer.anonymize(query) : query;
+      final QueryGuid queryGuids = buildGuids(query, anonQuery);
+      logger.log(level, buildPayload(message, anonQuery, queryGuids));
     } catch (ParsingException e) {
       if (logger.isDebugEnabled()) {
         Logger.getRootLogger()
@@ -69,12 +78,15 @@ public final class QueryLogger {
 
   private static void log(final Level level, final Object message, final Statement query) {
     final String queryString = SqlFormatter.formatSql(query);
-    final String anonymizedQuery = rewritePolicy.getAnonymizer().anonymize(queryString);
-    final QueryGuid queryGuids = rewritePolicy.buildGuids(queryString, anonymizedQuery);
-    logger.log(level, buildPayload(message, queryString, queryGuids));
+    log(level, message, queryString);
   }
 
-  private static QueryLoggerMessage buildPayload(final Object message, final String query, final QueryGuid guid) {
+  private static QueryGuid buildGuids(final String query, final String anonymizedQuery) {
+    return new QueryGuid(namespace, query, anonymizedQuery);
+  }
+
+  private static QueryLoggerMessage buildPayload(final Object message, final String query,
+      final QueryGuid guid) {
     return new QueryLoggerMessage(message, query, guid);
   }
 

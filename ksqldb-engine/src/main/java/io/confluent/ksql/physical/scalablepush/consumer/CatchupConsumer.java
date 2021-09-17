@@ -1,14 +1,19 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
+import io.confluent.ksql.physical.scalablepush.TokenUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -18,8 +23,9 @@ public class CatchupConsumer extends Consumer {
   private final Runnable ensureLatestIsRunning;
   private final Supplier<LatestConsumer> latestConsumerSupplier;
   private final CatchupCoordinator catchupCoordinator;
+  private final String token;
   private AtomicBoolean blocked = new AtomicBoolean(false);
-  private boolean noLatestMode = false;
+  private boolean explicitAssignmentMode = false;
 
   public CatchupConsumer(
       int partitions,
@@ -29,21 +35,31 @@ public class CatchupConsumer extends Consumer {
       KafkaConsumer<GenericKey, GenericRow> consumer,
       Runnable ensureLatestIsRunning,
       Supplier<LatestConsumer> latestConsumerSupplier,
-      CatchupCoordinator catchupCoordinator
+      CatchupCoordinator catchupCoordinator,
+      String token
   ) {
     super(partitions, topicName, windowed, logicalSchema, consumer);
     this.ensureLatestIsRunning = ensureLatestIsRunning;
     this.latestConsumerSupplier = latestConsumerSupplier;
     this.catchupCoordinator = catchupCoordinator;
+    this.token = token;
+  }
+
+  public void setExplicitAssignmentMode(boolean explicitAssignmentMode) {
+    this.explicitAssignmentMode = explicitAssignmentMode;
+  }
+
+  public boolean isExplicitAssignmentMode() {
+    return explicitAssignmentMode;
   }
 
   @Override
-  public boolean onEmptyRecords() {
+  protected boolean onEmptyRecords() {
     return checkCaughtUp(consumer, blocked);
   }
 
   @Override
-  public boolean afterCommit() {
+  protected boolean afterCommit() {
     if (checkNearEnd(consumer)) {
       return false;
     }
@@ -51,8 +67,8 @@ public class CatchupConsumer extends Consumer {
   }
 
   @Override
-  public void onNewAssignment() {
-    if (isNoLatestMode()) {
+  protected void onNewAssignment() {
+    if (!isExplicitAssignmentMode()) {
       return;
     }
     Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
@@ -61,7 +77,7 @@ public class CatchupConsumer extends Consumer {
     newAssignment = false;
   }
 
-  private Set<TopicPartition> waitForNewAssignmentFromLatestConsumer() {
+  protected Set<TopicPartition> waitForNewAssignmentFromLatestConsumer() {
     Set<TopicPartition> tps = this.topicPartitions.get();
     while (tps == null) {
       try {
@@ -75,19 +91,43 @@ public class CatchupConsumer extends Consumer {
   }
 
   @Override
-  public void afterFirstPoll() {
+  protected void afterFirstPoll() {
   }
 
-  public void setNoLatestMode(boolean noLatestMode) {
-    this.noLatestMode = noLatestMode;
-  }
+  @Override
+  protected void initialize() {
+    if (isExplicitAssignmentMode()) {
+      onNewAssignment();
+      Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(token));
+      for (TopicPartition tp : consumer.assignment()) {
+        consumer.seek(tp,
+            startingOffsets.containsKey(tp.partition()) ? startingOffsets.get(tp.partition())
+                : 0);
+      }
+    } else {
+      consumer.subscribe(ImmutableList.of(topicName),
+          new ConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsRevoked(Collection<TopicPartition> collection) {
+              System.out.println("CATCHUP: Revoked assignment" + collection);
+            }
 
-  public boolean isNoLatestMode() {
-    return noLatestMode;
+            @Override
+            public void onPartitionsAssigned(Collection<TopicPartition> collection) {
+              System.out.println("CATCHUP:  Got assignment " + collection);
+              newAssignment(collection);
+              Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(token));
+              for (TopicPartition tp : consumer.assignment()) {
+                consumer.seek(tp, startingOffsets.containsKey(tp.partition()) ? startingOffsets
+                    .get(tp.partition()) : 0);
+              }
+            }
+          });
+    }
   }
 
   private boolean checkNearEnd(KafkaConsumer<GenericKey, GenericRow> consumer) {
-    if (!isNoLatestMode()) {
+    if (isExplicitAssignmentMode()) {
       return false;
     }
     System.out.println("CHECKING Near end!!");
@@ -101,7 +141,7 @@ public class CatchupConsumer extends Consumer {
         this.topicPartitions.set(null);
         consumer.unsubscribe();
         ensureLatestIsRunning.run();
-        setNoLatestMode(false);
+        setExplicitAssignmentMode(true);
         onNewAssignment();
         return true;
       }

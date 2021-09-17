@@ -38,12 +38,12 @@ public abstract class Consumer implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
   private static final LogicalSchema EMPTY_SCHEMA = LogicalSchema.builder().build();
 
-  private final int partitions;
-  private final String topicName;
-  private final boolean windowed;
-  private final LogicalSchema logicalSchema;
+  protected final int partitions;
+  protected final String topicName;
+  protected final boolean windowed;
+  protected final LogicalSchema logicalSchema;
   protected KafkaConsumer<GenericKey, GenericRow> consumer;
-  private Map<TopicPartition, Long> currentPositions = new HashMap<>();
+  protected Map<TopicPartition, Long> currentPositions = new HashMap<>();
   protected volatile boolean newAssignment = false;
   protected final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
       = new ConcurrentHashMap<>();
@@ -69,13 +69,16 @@ public abstract class Consumer implements AutoCloseable {
   }
 
 
-  public abstract boolean onEmptyRecords();
+  protected abstract boolean onEmptyRecords();
 
-  public abstract boolean afterCommit();
+  protected abstract boolean afterCommit();
 
-  public abstract void onNewAssignment();
+  protected abstract void onNewAssignment();
 
-  public abstract void afterFirstPoll();
+  protected abstract void afterFirstPoll();
+
+  protected void initialize() {
+  }
 
   public void newAssignment(final Collection<TopicPartition> tps) {
     newAssignment = true;
@@ -94,8 +97,9 @@ public abstract class Consumer implements AutoCloseable {
     }
   }
 
-  public void start() {
+  public void run() {
     System.out.println("foo " + currentPositions);
+    initialize();
     while (true) {
       if (closed) {
         return;

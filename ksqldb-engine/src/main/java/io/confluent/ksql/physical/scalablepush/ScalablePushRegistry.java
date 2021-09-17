@@ -16,14 +16,12 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
-import io.confluent.ksql.physical.scalablepush.consumer.Consumer;
 import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
@@ -42,24 +40,17 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Serde;
@@ -138,7 +129,7 @@ public class ScalablePushRegistry {
     if (token.isPresent()) {
       executorServiceCatchup.submit(() -> {
             try {
-              runCatchup(processingQueue, token);
+              runCatchup(processingQueue, token.get());
             } catch (Throwable t) {
               t.printStackTrace();
             }
@@ -327,44 +318,28 @@ public class ScalablePushRegistry {
     return new ConsumerMetadata(numPartitions);
   }
 
+  private synchronized void catchupAssignmentUpdater(
+      final Collection<TopicPartition> newAssignment
+  ) {
+    for (CatchupConsumer catchupConsumer : catchupConsumers.values()) {
+      catchupConsumer.newAssignment(newAssignment);
+    }
+  }
+
   private void runLatest() {
     System.out.println("Starting Latest!");
     try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer(true);
         ConsumerMetadata consumerMetadata = getMetadata(consumer);
         LatestConsumer latestConsumer = new  LatestConsumer(consumerMetadata.getNumPartitions(),
-            ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer, catchupCoordinator)) {
+            ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer, catchupCoordinator,
+            this::catchupAssignmentUpdater)) {
       this.latestConsumer.set(latestConsumer);
       while (!latestPendingQueues.isEmpty()) {
         ProcessingQueue pq = latestPendingQueues.poll();
         latestConsumer.register(pq);
       }
 
-      // Initial wait time, giving client connections a chance to be made to avoid having to do
-      // any catchups.
-      try {
-        Thread.sleep(5000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-
-      consumer.subscribe(ImmutableList.of(ksqlTopic.getKafkaTopicName()),
-          new ConsumerRebalanceListener() {
-            @Override
-            public void onPartitionsRevoked(Collection<TopicPartition> collection) {
-              System.out.println("Revoked assignment" + collection + " from " + latestConsumer);
-            }
-
-            @Override
-            public void onPartitionsAssigned(Collection<TopicPartition> collection) {
-              System.out.println("Got assignment " + collection + " from " + latestConsumer);
-              latestConsumer.newAssignment(collection);
-              for (CatchupConsumer catchupConsumer : catchupConsumers.values()) {
-                catchupConsumer.newAssignment(collection);
-              }
-            }
-          });
-
-      latestConsumer.start();
+      latestConsumer.run();
     } finally {
       synchronized (this) {
         this.latestConsumer.set(null);
@@ -373,54 +348,29 @@ public class ScalablePushRegistry {
     }
   }
 
-  private void runCatchup(ProcessingQueue processingQueue, Optional<String> token) {
+  private void runCatchup(ProcessingQueue processingQueue, String token) {
     try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer(false);
         ConsumerMetadata consumerMetadata = getMetadata(consumer);
         CatchupConsumer catchupConsumer
             = new CatchupConsumer(consumerMetadata.getNumPartitions(),
             ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer,
-            this::startLatestIfNotRunning, latestConsumer::get, catchupCoordinator)) {
+            this::startLatestIfNotRunning, latestConsumer::get, catchupCoordinator,
+            token)) {
       catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
       catchupConsumer.register(processingQueue);
 
       synchronized (this) {
         if (latestConsumer.get() != null) {
           catchupConsumer.newAssignment(latestConsumer.get().getAssignment());
-          catchupConsumer.setNoLatestMode(false);
+          catchupConsumer.setExplicitAssignmentMode(true);
         } else {
-          catchupConsumer.setNoLatestMode(true);
+          catchupConsumer.setExplicitAssignmentMode(false);
         }
       }
-      if (!catchupConsumer.isNoLatestMode()) {
-        catchupConsumer.onNewAssignment();
-        Map<Integer, Long> startingOffsets = TokenUtils.parseToken(token);
-        for (TopicPartition tp : consumer.assignment()) {
-          consumer.seek(tp,
-              startingOffsets.containsKey(tp.partition()) ? startingOffsets.get(tp.partition())
-                  : 0);
-        }
-      } else {
-        consumer.subscribe(ImmutableList.of(ksqlTopic.getKafkaTopicName()),
-            new ConsumerRebalanceListener() {
-              @Override
-              public void onPartitionsRevoked(Collection<TopicPartition> collection) {
-                System.out.println("CATCHUP: Revoked assignment" + collection);
-              }
 
-              @Override
-              public void onPartitionsAssigned(Collection<TopicPartition> collection) {
-                System.out.println("CATCHUP:  Got assignment " + collection);
-                catchupConsumer.newAssignment(collection);
-                Map<Integer, Long> startingOffsets = TokenUtils.parseToken(token);
-                for (TopicPartition tp : consumer.assignment()) {
-                  consumer.seek(tp, startingOffsets.containsKey(tp.partition()) ? startingOffsets
-                      .get(tp.partition()) : 0);
-                }
-              }
-            });
-      }
-      catchupConsumer.start();
+      catchupConsumer.run();
       catchupConsumer.unregister(processingQueue);
+    } finally {
       catchupConsumers.remove(processingQueue.getQueryId());
     }
   }

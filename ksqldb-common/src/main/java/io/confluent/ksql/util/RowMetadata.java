@@ -1,11 +1,11 @@
 package io.confluent.ksql.util;
 
-public class ProgressMetadata {
+public class RowMetadata {
 
   private final String startToken;
   private final String endToken;
 
-  public ProgressMetadata(String startToken, String endToken) {
+  public RowMetadata(String startToken, String endToken) {
     this.startToken = startToken;
     this.endToken = endToken;
   }

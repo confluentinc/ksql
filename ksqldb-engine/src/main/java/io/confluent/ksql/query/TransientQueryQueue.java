@@ -19,10 +19,9 @@ import static io.confluent.ksql.util.KeyValue.keyValue;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.entity.ProgressToken;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
-import io.confluent.ksql.util.ProgressMetadata;
+import io.confluent.ksql.util.RowMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -147,7 +146,8 @@ public class TransientQueryQueue implements BlockingRowQueue {
    * @return If the row was accepted or discarded for an acceptable reason, false if it was rejected
    *     because the queue was full.
    */
-  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value, final Optional<ProgressToken> token) {
+  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value,
+      final Optional<RowMetadata> rowMetadata) {
     try {
       if (!callback.shouldQueue()) {
         return true;
@@ -155,7 +155,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
       final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
       final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row,
-          token.map(t -> new ProgressMetadata(t.getStartToken(), t.getEndToken())));
+          rowMetadata);
 
       if (!closed) {
         if (!rowQueue.offer(keyValueMetadata, 0, TimeUnit.MILLISECONDS)) {

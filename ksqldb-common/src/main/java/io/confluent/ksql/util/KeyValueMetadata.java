@@ -6,9 +6,9 @@ public class KeyValueMetadata<K, V> {
 
 
   private final KeyValue<K, V> keyValue;
-  private final Optional<ProgressMetadata> progressMetadata;
+  private final Optional<RowMetadata> progressMetadata;
 
-  public KeyValueMetadata(KeyValue<K, V> keyValue, Optional<ProgressMetadata> progressMetadata) {
+  public KeyValueMetadata(KeyValue<K, V> keyValue, Optional<RowMetadata> progressMetadata) {
     this.keyValue = keyValue;
     this.progressMetadata = progressMetadata;
   }
@@ -17,7 +17,7 @@ public class KeyValueMetadata<K, V> {
     return keyValue;
   }
 
-  public Optional<ProgressMetadata> getProgressMetadata() {
+  public Optional<RowMetadata> getProgressMetadata() {
     return progressMetadata;
   }
 }

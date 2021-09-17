@@ -40,6 +40,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.RowMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Collection;
@@ -553,16 +554,20 @@ public class PushRouting implements AutoCloseable {
           System.out.println("REMOTE UPDATE " + row.getProgressToken().get().getEndToken());
           offsetsTracker.updateFromToken(Optional.of(row.getProgressToken().get().getEndToken()));
         }
+        final Optional<RowMetadata> rowMetadata = progressToken.map(
+            t -> new RowMetadata(t.getStartToken(), t.getEndToken()));
         if (!transientQueryQueue.acceptRowNonBlocking(null,
-            GenericRow.genericRow(), progressToken)) {
+            GenericRow.genericRow(), rowMetadata)) {
           callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
           close();
           return;
         }
       }
       if (row.getRow().isPresent()) {
+        final Optional<RowMetadata> rowMetadata = row.getProgressToken().map(
+            t -> new RowMetadata(t.getStartToken(), t.getEndToken()));
         if (!transientQueryQueue.acceptRowNonBlocking(null,
-            GenericRow.fromList(row.getRow().get().getColumns()), row.getProgressToken())) {
+            GenericRow.fromList(row.getRow().get().getColumns()), rowMetadata)) {
            callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
           close();
           return;
@@ -653,7 +658,9 @@ public class PushRouting implements AutoCloseable {
         offsetsTracker.updateFromToken(Optional.of(row.token().get().getEndToken()));
       }
 
-      if (!transientQueryQueue.acceptRowNonBlocking(null, row.value(), progressToken)) {
+      Optional<RowMetadata> rowMetadata = progressToken.map(
+          t -> new RowMetadata(t.getStartToken(), t.getEndToken()));
+      if (!transientQueryQueue.acceptRowNonBlocking(null, row.value(), rowMetadata)) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();
         return;

@@ -93,16 +93,12 @@ public class ScalablePushQueryMetricsTest {
     // When:
     final double value = getMetricValue("-error-total");
     final double rate = getMetricValue("-error-rate");
-    final double legacyValue = getMetricValueLegacy("-error-total");
-    final double legacyRate = getMetricValueLegacy("-error-rate");
     final double detailedValue = getMetricValue("-detailed-error-total",
         QuerySourceType.NON_WINDOWED, RoutingNodeType.SOURCE_NODE);
 
     // Then:
     assertThat(value, equalTo(1.0));
     assertThat(rate, closeTo(0.03, 0.001));
-    assertThat(legacyValue, equalTo(1.0));
-    assertThat(legacyRate, closeTo(0.03, 0.001));
     assertThat(detailedValue, equalTo(1.0));
   }
 
@@ -132,10 +128,6 @@ public class ScalablePushQueryMetricsTest {
     final double max = getMetricValue("-connection-duration-max");
     final double min = getMetricValue("-connection-duration-min");
     final double total = getMetricValue("-total");
-    final double legacyAvg = getMetricValueLegacy("-connection-duration-avg");
-    final double legacyMax = getMetricValueLegacy("-connection-duration-max");
-    final double legacyMin = getMetricValueLegacy("-connection-duration-min");
-    final double legacyTotal = getMetricValueLegacy("-total");
     final double detailedAvg = getMetricValue("-detailed-connection-duration-avg",
         QuerySourceType.NON_WINDOWED, RoutingNodeType.SOURCE_NODE);
     final double detailedMax = getMetricValue("-detailed-connection-duration-max",
@@ -150,10 +142,6 @@ public class ScalablePushQueryMetricsTest {
     assertThat(min, is(3.0));
     assertThat(max, is(3.0));
     assertThat(total, is(1.0));
-    assertThat(legacyAvg, is(3.0));
-    assertThat(legacyMin, is(3.0));
-    assertThat(legacyMax, is(3.0));
-    assertThat(legacyTotal, is(1.0));
     assertThat(detailedAvg, is(3.0));
     assertThat(detailedMin, is(3.0));
     assertThat(detailedMax, is(3.0));
@@ -268,18 +256,6 @@ public class ScalablePushQueryMetricsTest {
                 "scalable-push-query-requests" + metricName,
                 ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "scalable-push-query",
                 tags)
-        ).metricValue().toString()
-    );
-  }
-
-  private double getMetricValueLegacy(final String metricName) {
-    final Metrics metrics = scalablePushQueryMetrics.getMetrics();
-    return Double.parseDouble(
-        metrics.metric(
-            metrics.metricName(
-                "scalable-push-query-requests" + metricName,
-                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId()+ "scalable-push-query",
-                CUSTOM_TAGS)
         ).metricValue().toString()
     );
   }

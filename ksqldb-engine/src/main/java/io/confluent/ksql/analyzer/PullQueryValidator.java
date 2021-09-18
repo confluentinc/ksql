@@ -30,9 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class PullQueryValidator implements QueryValidator {
 
@@ -94,22 +92,14 @@ public class PullQueryValidator implements QueryValidator {
   }
 
   private static boolean disallowedColumnNameInSelectClause(final Analysis analysis) {
-
-//    List<Expression> list = analysis.getSelectItems().stream().map(SingleColumn.class::cast).map(SingleColumn::getExpression).collect(Collectors.toList());
-//    for (Expression s : list) {
-//      Set<? extends ColumnReferenceExp> set = ColumnExtractor.extractColumns(s);
-//      System.out.println("hi");
-//    }
-//    return false;
-
-//    return analysis.getSelectItems()
-//        .stream()
-//        .map(SingleColumn.class::cast)
-//        .map(SingleColumn::getExpression)
-//        .map(ColumnExtractor::extractColumns)
-//        .flatMap(Collection::stream)
-//        .map(ColumnReferenceExp::getColumnName)
-//        .anyMatch(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()));
+    return analysis.getSelectItems()
+        .stream()
+        .map(SingleColumn.class::cast)
+        .map(SingleColumn::getExpression)
+        .map(ColumnExtractor::extractColumns)
+        .flatMap(Collection::stream)
+        .map(ColumnReferenceExp::getColumnName)
+        .anyMatch(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()));
   }
 
   private static boolean disallowedColumnNameInWhereClause(final Analysis analysis) {
@@ -118,8 +108,6 @@ public class PullQueryValidator implements QueryValidator {
     if (!expression.isPresent()) {
       return false;
     }
-
-//    Set<ColumnReferenceExp> set = ColumnExtractor.extractColumns(expression.get());
 
     return ColumnExtractor.extractColumns(expression.get())
         .stream()

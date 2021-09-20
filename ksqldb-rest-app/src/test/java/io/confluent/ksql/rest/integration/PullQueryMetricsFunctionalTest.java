@@ -17,9 +17,11 @@ package io.confluent.ksql.rest.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
@@ -33,8 +35,18 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpVersion;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import java.util.List;
 import java.util.Optional;
+import javax.ws.rs.HEAD;
+import kafka.server.TestMetricsReporter;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -48,13 +60,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Ignore
 public class PullQueryMetricsFunctionalTest {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryMetricsFunctionalTest.class);
+  private Vertx vertx;
+  private WebClient client;
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
@@ -93,6 +104,7 @@ public class PullQueryMetricsFunctionalTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+      .withProperty("auto.offset.reset", "earliest")
       .build();
 
   private Metrics metrics;
@@ -135,10 +147,18 @@ public class PullQueryMetricsFunctionalTest {
   @Before
   public void setUp() {
     metrics = ((KsqlEngine)REST_APP.getEngine()).getEngineMetrics().getMetrics();
+    vertx = Vertx.vertx();
+    client = createClient();
   }
 
   @After
   public void tearDown() {
+    if (client != null) {
+      client.close();
+    }
+    if (vertx != null) {
+      vertx.close();
+    }
   }
 
   @AfterClass
@@ -257,6 +277,149 @@ public class PullQueryMetricsFunctionalTest {
     assertThat((Double)responseSizeStreamMetric.metricValue(), greaterThan(1.0));
     assertThat(totalRequestsStreamMetric.metricValue(), is(1.0));
     assertThat((Double)requestDistributionStreamMetric.metricValue(), greaterThan(1.0));
+  }
+
+  @Test
+  public void shouldVerifyMetricsHttp2() {
+    // Given:
+    final MetricName recordsReturnedTable = new MetricName(
+        "pull-query-requests-rows-returned-total",
+        "_confluent-ksql-pull-query",
+        "Number of rows returned - non_windowed-key_lookup-source_node",
+        TABLE_TAGS
+    );
+    final KafkaMetric recordsReturnedTableMetric = TestMetricsReporter.METRICS.get(recordsReturnedTable);
+
+    final MetricName latencyTable = new MetricName(
+        "pull-query-requests-detailed-latency-min",
+        "_confluent-ksql-pull-query",
+        "Min time for a pull query request - non_windowed-key_lookup-source_node",
+        TABLE_TAGS
+    );
+    final KafkaMetric latencyTableMetric = TestMetricsReporter.METRICS.get(latencyTable);
+
+    final MetricName responseSizeTable = new MetricName(
+        "pull-query-requests-detailed-response-size",
+        "_confluent-ksql-pull-query",
+        "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
+        TABLE_TAGS
+    );
+    final KafkaMetric responseSizeTableMetric = TestMetricsReporter.METRICS.get(responseSizeTable);
+
+    final MetricName totalRequestsTable = new MetricName(
+        "pull-query-requests-detailed-total",
+        "_confluent-ksql-pull-query",
+        "Total number of pull query request - non_windowed-key_lookup-source_node",
+        TABLE_TAGS
+    );
+    final KafkaMetric totalRequestsTableMetric = TestMetricsReporter.METRICS.get(totalRequestsTable);
+
+    final MetricName requestDistributionTable = new MetricName(
+        "pull-query-requests-detailed-distribution-90",
+        "_confluent-ksql-pull-query",
+        "Latency distribution - non_windowed-key_lookup-source_node",
+        TABLE_TAGS
+    );
+    final KafkaMetric requestDistributionTableMetric = TestMetricsReporter.METRICS.get(requestDistributionTable);
+
+
+    final MetricName recordsReturnedStream = new MetricName(
+        "pull-query-requests-rows-returned-total",
+        "_confluent-ksql-pull-query",
+        "Number of rows returned - non_windowed_stream-unknown-source_node",
+        STREAMS_TAGS
+    );
+    final KafkaMetric recordsReturnedStreamMetric = TestMetricsReporter.METRICS.get(recordsReturnedStream);
+
+    final MetricName latencyStream = new MetricName(
+        "pull-query-requests-detailed-latency-min",
+        "_confluent-ksql-pull-query",
+        "Min time for a pull query request - non_windowed_stream-unknown-source_node",
+        STREAMS_TAGS
+    );
+    final KafkaMetric latencyStreamMetric = TestMetricsReporter.METRICS.get(latencyStream);
+
+    final MetricName responseSizeStream = new MetricName(
+        "pull-query-requests-detailed-response-size",
+        "_confluent-ksql-pull-query",
+        "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
+        STREAMS_TAGS
+    );
+    final KafkaMetric responseSizeStreamMetric = TestMetricsReporter.METRICS.get(responseSizeStream);
+
+    final MetricName totalRequestsStream = new MetricName(
+        "pull-query-requests-detailed-total",
+        "_confluent-ksql-pull-query",
+        "Total number of pull query request - non_windowed_stream-unknown-source_node",
+        STREAMS_TAGS
+    );
+    final KafkaMetric totalRequestsStreamMetric = TestMetricsReporter.METRICS.get(totalRequestsStream);
+
+    final MetricName requestDistributionStream = new MetricName(
+        "pull-query-requests-detailed-distribution-90",
+        "_confluent-ksql-pull-query",
+        "Latency distribution - non_windowed_stream-unknown-source_node",
+        TABLE_TAGS
+    );
+    final KafkaMetric requestDistributionStreamMetric = TestMetricsReporter.METRICS.get(requestDistributionStream);
+
+    final String sqlTable = "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
+    final String sqlStream = "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';";
+    // When:
+    QueryResponse queryResponse1 = executeQuery(sqlTable);
+    assertThat(queryResponse1.rows, hasSize(1));
+
+    QueryResponse queryResponse2 = executeQuery(sqlStream);
+    assertThat(queryResponse2.rows, hasSize(1));
+
+    // Then:
+    assertThat(recordsReturnedTableMetric.metricValue(), is(2.0));
+    assertThat((Double)latencyTableMetric.metricValue(), greaterThan(1.0));
+    assertThat((Double)responseSizeTableMetric.metricValue(), greaterThan(1.0));
+    assertThat(totalRequestsTableMetric.metricValue(), is(2.0));
+    assertThat((Double)requestDistributionTableMetric.metricValue(), greaterThan(1.0));
+
+    assertThat(recordsReturnedStreamMetric.metricValue(), is(1.0));
+    assertThat((Double)latencyStreamMetric.metricValue(), greaterThan(1.0));
+    assertThat((Double)responseSizeStreamMetric.metricValue(), greaterThan(1.0));
+    assertThat(totalRequestsStreamMetric.metricValue(), is(2.0));
+    assertThat((Double)requestDistributionStreamMetric.metricValue(), greaterThan(1.0));
+  }
+
+  private QueryResponse executeQuery(final String sql) {
+    return executeQueryWithVariables(sql, new JsonObject());
+  }
+
+  private QueryResponse executeQueryWithVariables(final String sql, final JsonObject variables) {
+    JsonObject properties = new JsonObject();
+    JsonObject requestBody = new JsonObject()
+        .put("sql", sql).put("properties", properties).put("sessionVariables", variables);
+    HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
+    return new QueryResponse(response.bodyAsString());
+  }
+
+  private WebClient createClient() {
+    WebClientOptions options = new WebClientOptions().
+        setProtocolVersion(HttpVersion.HTTP_2).setHttp2ClearTextUpgrade(false)
+        .setDefaultHost("localhost").setDefaultPort(REST_APP.getListeners().get(0).getPort());
+    return WebClient.create(vertx, options);
+  }
+
+  private HttpResponse<Buffer> sendRequest(final String uri, final Buffer requestBody) {
+    return sendRequest(client, uri, requestBody);
+  }
+
+  private HttpResponse<Buffer> sendRequest(final WebClient client, final String uri,
+                                           final Buffer requestBody) {
+    VertxCompletableFuture<HttpResponse<Buffer>> requestFuture = new VertxCompletableFuture<>();
+    client
+        .post(uri)
+        .sendBuffer(requestBody, requestFuture);
+    try {
+      return requestFuture.get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
   
 }

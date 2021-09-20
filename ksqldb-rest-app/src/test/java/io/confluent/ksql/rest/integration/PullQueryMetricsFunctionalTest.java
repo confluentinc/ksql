@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -108,7 +109,21 @@ public class PullQueryMetricsFunctionalTest {
         + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
 
-    waitForTableRows();
+    TEST_HARNESS.verifyAvailableUniqueRows(
+        AGG_TABLE,
+        5,
+        KEY_FORMAT,
+        VALUE_FORMAT,
+        AGGREGATE_SCHEMA
+    );
+
+    TEST_HARNESS.verifyAvailableUniqueRows(
+        PAGE_VIEW_TOPIC,
+        5,
+        KEY_FORMAT,
+        VALUE_FORMAT,
+        AGGREGATE_SCHEMA
+    );
   }
 
   @Before
@@ -238,15 +253,19 @@ public class PullQueryMetricsFunctionalTest {
     final KafkaMetric requestDistributionStreamMetric = TestMetricsReporter.METRICS.get(requestDistributionStream);
 
     // When:
-    RestIntegrationTestUtil.makeQueryRequest(
+    final List<StreamedRow> tableRows = RestIntegrationTestUtil.makeQueryRequest(
         REST_APP,
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         Optional.empty());
 
-    RestIntegrationTestUtil.makeQueryRequest(
+    assertThat(tableRows.size(), is(2));
+
+    final List<StreamedRow> streamRows = RestIntegrationTestUtil.makeQueryRequest(
         REST_APP,
         "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';",
         Optional.empty());
+
+    assertThat(streamRows.size(), is(2));
 
     // Then:
     assertThat(recordsReturnedTableMetric.metricValue(), is(1.0));
@@ -261,15 +280,5 @@ public class PullQueryMetricsFunctionalTest {
     assertThat(totalRequestsStreamMetric.metricValue(), is(1.0));
     assertThat((Double)requestDistributionStreamMetric.metricValue(), greaterThan(1.0));
   }
-
-  private static void waitForTableRows() {
-    TEST_HARNESS.verifyAvailableUniqueRows(
-        AGG_TABLE,
-        5,
-        KEY_FORMAT,
-        VALUE_FORMAT,
-        AGGREGATE_SCHEMA
-    );
-  }
-
+  
 }

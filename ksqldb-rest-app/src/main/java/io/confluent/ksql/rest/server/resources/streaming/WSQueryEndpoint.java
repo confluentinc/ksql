@@ -49,7 +49,6 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -77,10 +76,6 @@ public class WSQueryEndpoint {
   private final CommandQueue commandQueue;
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
-  private final QueryPublisher pushQueryPublisher;
-  private final ScalablePushQueryPublisher scalablePushQueryPublisher;
-  private final IPullQueryPublisher pullQueryPublisher;
-  private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
@@ -118,71 +113,12 @@ public class WSQueryEndpoint {
       final Optional<LocalCommands> localCommands,
       final PushRouting pushRouting
   ) {
-    this(
-        ksqlConfig,
-        statementParser,
-        ksqlEngine,
-        commandQueue,
-        exec,
-        WSQueryEndpoint::startPushQueryPublisher,
-        WSQueryEndpoint::startScalablePushQueryPublisher,
-        WSQueryEndpoint::startPullQueryPublisher,
-        WSQueryEndpoint::startPrintPublisher,
-        activenessRegistrar,
-        commandQueueCatchupTimeout,
-        authorizationValidator,
-        errorHandler,
-        denyListPropertyValidator,
-        pullQueryMetrics,
-        routingFilterFactory,
-        rateLimiter,
-        pullConcurrencyLimiter,
-        pullBandRateLimiter,
-        scalablePushBandRateLimiter,
-        routing,
-        localCommands,
-        pushRouting
-    );
-  }
-
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  WSQueryEndpoint(
-      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-      final KsqlConfig ksqlConfig,
-      final StatementParser statementParser,
-      final KsqlEngine ksqlEngine,
-      final CommandQueue commandQueue,
-      final ListeningScheduledExecutorService exec,
-      final QueryPublisher pushQueryPublisher,
-      final ScalablePushQueryPublisher scalablePushQueryPublisher,
-      final IPullQueryPublisher pullQueryPublisher,
-      final PrintTopicPublisher topicPublisher,
-      final ActivenessRegistrar activenessRegistrar,
-      final Duration commandQueueCatchupTimeout,
-      final Optional<KsqlAuthorizationValidator> authorizationValidator,
-      final Errors errorHandler,
-      final DenyListPropertyValidator denyListPropertyValidator,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter,
-      final ConcurrencyLimiter pullConcurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
-      final HARouting routing,
-      final Optional<LocalCommands> localCommands,
-      final PushRouting pushRouting
-  ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue =
         Objects.requireNonNull(commandQueue, "commandQueue");
     this.exec = Objects.requireNonNull(exec, "exec");
-    this.pushQueryPublisher = Objects.requireNonNull(pushQueryPublisher, "pushQueryPublisher");
-    this.scalablePushQueryPublisher
-        = Objects.requireNonNull(scalablePushQueryPublisher, "scalablePushQueryPublisher");
-    this.pullQueryPublisher = Objects.requireNonNull(pullQueryPublisher, "pullQueryPublisher");
-    this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.commandQueueCatchupTimeout =
@@ -344,13 +280,12 @@ public class WSQueryEndpoint {
 
       switch (dataSourceType) {
         case KTABLE: {
-          pullQueryPublisher.start(
+          new PullQueryPublisher(
               ksqlEngine,
               info.securityContext.getServiceContext(),
               exec,
               configured,
               analysis,
-              streamSubscriber,
               pullQueryMetrics,
               startTimeNanos,
               routingFilterFactory,
@@ -358,7 +293,7 @@ public class WSQueryEndpoint {
               pullConcurrencyLimiter,
               pullBandRateLimiter,
               routing
-          );
+          ).subscribe(streamSubscriber);
           return;
         }
         case KSTREAM: {
@@ -380,7 +315,7 @@ public class WSQueryEndpoint {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
 
-      scalablePushQueryPublisher.start(
+      PushQueryPublisher.createScalablePushQueryPublisher(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,
@@ -388,18 +323,16 @@ public class WSQueryEndpoint {
           analysis,
           pushRouting,
           context,
-          streamSubscriber,
           scalablePushBandRateLimiter
-      );
+      ).subscribe(streamSubscriber);
     } else {
-      pushQueryPublisher.start(
+      PushQueryPublisher.createPushQueryPublisher(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,
           configured,
-          streamSubscriber,
           localCommands
-      );
+      ).subscribe(streamSubscriber);
     }
   }
 
@@ -416,156 +349,9 @@ public class WSQueryEndpoint {
 
     attachCloseHandler(info.websocket, topicSubscriber);
 
-    topicPublisher.start(
-        exec,
-        info.securityContext.getServiceContext(),
-        ksqlConfig.getKsqlStreamConfigProps(),
-        printTopic,
-        topicSubscriber
-    );
-  }
-
-  private static void startPushQueryPublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber,
-      final Optional<LocalCommands> localCommands
-  ) {
-    PushQueryPublisher.createPublisher(
-        ksqlEngine,
-        serviceContext,
-        exec,
-        query,
-        localCommands
-    ).subscribe(streamSubscriber);
-  }
-
-  private static void startScalablePushQueryPublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final ImmutableAnalysis analysis,
-      final PushRouting pushRouting,
-      final Context context,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter
-  ) {
-    PushQueryPublisher.createScalablePublisher(
-        ksqlEngine,
-        serviceContext,
-        exec,
-        query,
-        analysis,
-        pushRouting,
-        context,
-        scalablePushBandRateLimiter
-    ).subscribe(streamSubscriber);
-  }
-
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  private static void startPullQueryPublisher(
-      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final ImmutableAnalysis analysis,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long startTimeNanos,
-      final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter,
-      final ConcurrencyLimiter pullConcurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final HARouting routing
-  ) {
-    new PullQueryPublisher(
-        ksqlEngine,
-        serviceContext,
-        exec,
-        query,
-        analysis,
-        pullQueryMetrics,
-        startTimeNanos,
-        routingFilterFactory,
-        rateLimiter,
-        pullConcurrencyLimiter,
-        pullBandRateLimiter,
-        routing
-    ).subscribe(streamSubscriber);
-  }
-
-  private static void startPrintPublisher(
-      final ListeningScheduledExecutorService exec,
-      final ServiceContext serviceContext,
-      final Map<String, Object> ksqlStreamConfigProps,
-      final PrintTopic printTopic,
-      final WebSocketSubscriber<String> topicSubscriber
-  ) {
-    new PrintPublisher(exec, serviceContext, ksqlStreamConfigProps, printTopic)
+    new PrintPublisher(exec, info.securityContext.getServiceContext(),
+        ksqlConfig.getKsqlStreamConfigProps(), printTopic)
         .subscribe(topicSubscriber);
-  }
-
-  interface QueryPublisher {
-
-    void start(
-        KsqlEngine ksqlEngine,
-        ServiceContext serviceContext,
-        ListeningScheduledExecutorService exec,
-        ConfiguredStatement<Query> query,
-        WebSocketSubscriber<StreamedRow> subscriber,
-        Optional<LocalCommands> localCommands);
-
-  }
-
-  interface ScalablePushQueryPublisher {
-
-    void start(
-        KsqlEngine ksqlEngine,
-        ServiceContext serviceContext,
-        ListeningScheduledExecutorService exec,
-        ConfiguredStatement<Query> query,
-        ImmutableAnalysis analysis,
-        PushRouting pushRouting,
-        Context context,
-        WebSocketSubscriber<StreamedRow> subscriber,
-        SlidingWindowRateLimiter scalablePushBandRateLimiter);
-
-  }
-
-  interface IPullQueryPublisher {
-
-    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-    void start(
-        // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-        KsqlEngine ksqlEngine,
-        ServiceContext serviceContext,
-        ListeningScheduledExecutorService exec,
-        ConfiguredStatement<Query> query,
-        ImmutableAnalysis analysis,
-        WebSocketSubscriber<StreamedRow> subscriber,
-        Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-        long startTimeNanos,
-        RoutingFilterFactory routingFilterFactory,
-        RateLimiter rateLimiter,
-        ConcurrencyLimiter pullConcurrencyLimiter,
-        SlidingWindowRateLimiter pullBandRateLimiter,
-        HARouting routing
-        );
-
-  }
-
-  interface PrintTopicPublisher {
-
-    void start(
-        ListeningScheduledExecutorService exec,
-        ServiceContext serviceContext,
-        Map<String, Object> consumerProperties,
-        PrintTopic printTopic,
-        WebSocketSubscriber<String> subscriber);
   }
 
   private static final class RequestContext {

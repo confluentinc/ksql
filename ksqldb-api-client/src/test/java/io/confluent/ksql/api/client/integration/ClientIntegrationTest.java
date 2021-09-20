@@ -33,7 +33,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -42,17 +44,14 @@ import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.Client.HttpResponse;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
 import io.confluent.ksql.api.client.ConnectorType;
-import io.confluent.ksql.api.client.ExecuteStatementResult;
-import io.confluent.ksql.api.client.InsertAck;
-import io.confluent.ksql.api.client.InsertsPublisher;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
@@ -86,6 +85,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -101,18 +101,16 @@ import java.nio.file.Paths;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -169,12 +167,8 @@ public class ClientIntegrationTest {
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
   private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.sourceName();
 
-  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider(
-      "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
-  private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
-  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
-
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
+  private static final String PULL_QUERY_ON_STREAM = "SELECT * FROM " + TEST_STREAM + ";";
   private static final String PULL_QUERY_ON_TABLE =
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
@@ -187,18 +181,6 @@ public class ClientIntegrationTest {
   private static final KsqlArray PULL_QUERY_EXPECTED_ROW = new KsqlArray()
       .add(new KsqlObject().put("F1", new KsqlArray().add("a")))
       .add(1);
-
-  private static final KsqlObject COMPLEX_FIELD_VALUE = new KsqlObject()
-      .put("DECIMAL", new BigDecimal("1.1"))
-      .put("STRUCT", new KsqlObject().put("F1", "foo").put("F2", 3))
-      .put("ARRAY_ARRAY", new KsqlArray().add(new KsqlArray().add("bar")))
-      .put("ARRAY_STRUCT", new KsqlArray().add(new KsqlObject().put("F1", "x")))
-      .put("ARRAY_MAP", new KsqlArray().add(new KsqlObject().put("k", 10)))
-      .put("MAP_ARRAY", new KsqlObject().put("k", new KsqlArray().add("e1").add("e2")))
-      .put("MAP_MAP", new KsqlObject().put("k1", new KsqlObject().put("k2", 5)))
-      .put("MAP_STRUCT", new KsqlObject().put("k", new KsqlObject().put("F1", "baz")));
-  private static final KsqlObject EXPECTED_COMPLEX_FIELD_VALUE = COMPLEX_FIELD_VALUE.copy()
-      .put("DECIMAL", 1.1d); // Expect raw decimal value, whereas put(BigDecimal) serializes as string to avoid loss of precision
 
   protected static final String EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC =
       "The ksqlDB server accepted the statement issued via executeStatement(), but the response "
@@ -237,11 +219,10 @@ public class ClientIntegrationTest {
 
   @BeforeClass
   public static void setUpClass() throws Exception {
-    TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
+    TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
-    RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
@@ -279,9 +260,9 @@ public class ClientIntegrationTest {
   }
 
   private static void writeConnectConfigs(final String path, final Map<String, String> configs) throws Exception {
-    try (PrintWriter out = new PrintWriter(new OutputStreamWriter(
+    try (final PrintWriter out = new PrintWriter(new OutputStreamWriter(
         new FileOutputStream(path, true), StandardCharsets.UTF_8))) {
-      for (Map.Entry<String, String> entry : configs.entrySet()) {
+      for (final Map.Entry<String, String> entry : configs.entrySet()) {
         out.println(entry.getKey() + "=" + entry.getValue());
       }
     }
@@ -369,6 +350,103 @@ public class ClientIntegrationTest {
     }
 
     assertThat(streamedQueryResult.isComplete(), is(false));
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnStreamAsync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult =
+        client.streamQuery(
+            PULL_QUERY_ON_STREAM,
+            ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+        ).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    shouldReceiveRows(
+        streamedQueryResult,
+        6,
+        rows -> verifyStreamRows(rows, 6),
+        true
+    );
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnStreamSync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        PULL_QUERY_ON_STREAM,
+        ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+    ).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    final List<Row> results = new LinkedList<>();
+    Row row;
+    while (true) {
+      row = streamedQueryResult.poll();
+      if (row == null) {
+        break;
+      } else {
+        results.add(row);
+      }
+    }
+
+    verifyStreamRows(results, 6);
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnEmptyStreamSync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        "SELECT * FROM " + EMPTY_TEST_STREAM + ";",
+        ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+    ).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    final List<Row> results = new LinkedList<>();
+    Row row;
+    while (true) {
+      row = streamedQueryResult.poll();
+      if (row == null) {
+        break;
+      } else {
+        results.add(row);
+      }
+    }
+
+    verifyStreamRows(results, 0);
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldRejectPullQueryOnStreamByDefault() {
+    // When
+    final CompletableFuture<StreamedQueryResult> future = client.streamQuery(PULL_QUERY_ON_STREAM);
+    final ExecutionException exception = assertThrows(ExecutionException.class, future::get);
+
+    assertThat(exception.getCause(), instanceOf(KsqlClientException.class));
+    assertThat(exception.getMessage(), containsString(
+        "Received 400 response from server:"
+            + " Pull queries on streams are disabled."
+            + " To create a push query on the stream, add EMIT CHANGES to the end."
+            + " To enable pull queries on streams,"
+            + " set the ksql.query.pull.stream.enabled config to 'true'.\n"
+            + "Statement: SELECT * FROM STRUCTURED_TYPES_KSTREAM;."
+    ));
   }
 
   @Test
@@ -477,7 +555,7 @@ public class ClientIntegrationTest {
     assertThatEventually(streamedQueryResult::isComplete, is(true));
 
     // When
-    TestSubscriber<Row> subscriber = subscribeAndWait(streamedQueryResult);
+    final TestSubscriber<Row> subscriber = subscribeAndWait(streamedQueryResult);
     assertThat(subscriber.getValues(), hasSize(0));
     subscriber.getSub().request(PUSH_QUERY_LIMIT_NUM_ROWS);
 
@@ -617,296 +695,18 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldInsertInto() throws Exception {
-    // Given
-    final KsqlObject insertRow = new KsqlObject()
-        .put("k", new KsqlObject().put("F1", new KsqlArray().add("my_key"))) // Column names are case-insensitive
-        .put("str", "HELLO") // Column names are case-insensitive
-        .put("`LONG`", 100L) // Backticks may be used to preserve case-sensitivity
-        .put("\"DEC\"", new BigDecimal("13.31")) // Double quotes may also be used to preserve case-sensitivity
-        .put("BYTES_", new byte[]{0, 1, 2})
-        .put("ARRAY", new KsqlArray().add("v1").add("v2"))
-        .put("MAP", new KsqlObject().put("some_key", "a_value").put("another_key", ""))
-        .put("STRUCT", new KsqlObject().put("f1", 12)) // Nested field names are case-insensitive
-        .put("COMPLEX", COMPLEX_FIELD_VALUE)
-        .put("TIMESTAMP", "1970-01-01T00:00:00.001")
-        .put("DATE", "1970-01-01")
-        .put("TIME", "00:00:01");
+  public void shouldExecutePlainHttpRequests() throws Exception {
+    final HttpResponse response = client.buildRequest("GET", "/info").send().get();
+    assertThat(response.status(), is(200));
+    final Map<String, Map<String, Object>> info = response.bodyAsMap();
 
-    // When
-    client.insertInto(EMPTY_TEST_STREAM.toLowerCase(), insertRow).get(); // Stream name is case-insensitive
+    final ServerInfo serverInfo = client.serverInfo().get();
+    final Map<String, Object> innerMap = info.get("KsqlServerInfo");
 
-    // Then: should receive new row
-    final String query = "SELECT * FROM " + EMPTY_TEST_STREAM + " EMIT CHANGES LIMIT 1;";
-    final List<Row> rows = client.executeQuery(query).get();
-
-    // Verify inserted row is as expected
-    assertThat(rows, hasSize(1));
-    assertThat(rows.get(0).getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key"))));
-    assertThat(rows.get(0).getString("STR"), is("HELLO"));
-    assertThat(rows.get(0).getLong("LONG"), is(100L));
-    assertThat(rows.get(0).getDecimal("DEC"), is(new BigDecimal("13.31")));
-    assertThat(rows.get(0).getBytes("BYTES_"), is(new byte[]{0, 1, 2}));
-    assertThat(rows.get(0).getKsqlArray("ARRAY"), is(new KsqlArray().add("v1").add("v2")));
-    assertThat(rows.get(0).getKsqlObject("MAP"), is(new KsqlObject().put("some_key", "a_value").put("another_key", "")));
-    assertThat(rows.get(0).getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 12)));
-    assertThat(rows.get(0).getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
-    assertThat(rows.get(0).getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
-    assertThat(rows.get(0).getString("DATE"), is("1970-01-01"));
-    assertThat(rows.get(0).getString("TIME"), is("00:00:01"));
-  }
-
-  @Test
-  public void shouldHandleErrorResponseFromInsertInto() {
-    // Given
-    final KsqlObject insertRow = new KsqlObject()
-        .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key")))
-        .put("LONG", 11L);
-
-    // When
-    final Exception e = assertThrows(
-        ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.insertInto(AGG_TABLE, insertRow).get()
-    );
-
-    // Then
-    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
-  }
-
-  @Test
-  public void shouldStreamQueryWithProperties() throws Exception {
-    // Given
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("auto.offset.reset", "latest");
-    final String sql = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
-
-    final KsqlObject insertRow = new KsqlObject()
-        .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldStreamQueryWithProperties")))
-        .put("STR", "Value_shouldStreamQueryWithProperties")
-        .put("LONG", 2000L)
-        .put("DEC", new BigDecimal("12.34"))
-        .put("BYTES_", new byte[]{0, 1, 2})
-        .put("ARRAY", new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties"))
-        .put("MAP", new KsqlObject().put("test_name", "shouldStreamQueryWithProperties"))
-        .put("STRUCT", new KsqlObject().put("F1", 4))
-        .put("COMPLEX", COMPLEX_FIELD_VALUE)
-        .put("TIMESTAMP", "1970-01-01T00:00:00.001")
-        .put("DATE", "1970-01-01")
-        .put("TIME", "00:00:00");
-
-    // When
-    final StreamedQueryResult queryResult = client.streamQuery(sql, properties).get();
-
-    // Then: a newly inserted row arrives
-    final Row row = assertThatEventually(() -> {
-      // Potentially try inserting multiple times, in case the query wasn't started by the first time
-      try {
-        client.insertInto(TEST_STREAM, insertRow).get();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-      return queryResult.poll(Duration.ofMillis(10));
-    }, is(notNullValue()));
-
-    assertThat(row.getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldStreamQueryWithProperties"))));
-    assertThat(row.getString("STR"), is("Value_shouldStreamQueryWithProperties"));
-    assertThat(row.getLong("LONG"), is(2000L));
-    assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
-    assertThat(row.getBytes("BYTES_"), is(new byte[]{0, 1, 2}));
-    assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldStreamQueryWithProperties").add("v2_shouldStreamQueryWithProperties")));
-    assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldStreamQueryWithProperties")));
-    assertThat(row.getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 4)));
-    assertThat(row.getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
-    assertThat(row.getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
-    assertThat(row.getString("DATE"), is("1970-01-01"));
-    assertThat(row.getString("TIME"), is("00:00"));
-  }
-
-  @Test
-  public void shouldExecuteQueryWithProperties() {
-    // Given
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("auto.offset.reset", "latest");
-    final String sql = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT 1;";
-
-    final KsqlObject insertRow = new KsqlObject()
-        .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldExecuteQueryWithProperties")))
-        .put("STR", "Value_shouldExecuteQueryWithProperties")
-        .put("LONG", 2000L)
-        .put("DEC", new BigDecimal("12.34"))
-        .put("BYTES_", new byte[]{0, 1, 2})
-        .put("ARRAY", new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties"))
-        .put("MAP", new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties"))
-        .put("STRUCT", new KsqlObject().put("F1", 4))
-        .put("COMPLEX", COMPLEX_FIELD_VALUE)
-        .put("TIMESTAMP", "1970-01-01T00:00:00.001")
-        .put("DATE", "1970-01-01")
-        .put("TIME", "00:00:00");
-
-    // When
-    final BatchedQueryResult queryResult = client.executeQuery(sql, properties);
-
-    // Then: a newly inserted row arrives
-
-    // Wait for row to arrive
-    final AtomicReference<Row> rowRef = new AtomicReference<>();
-    new Thread(() -> {
-      try {
-        final List<Row> rows = queryResult.get();
-        assertThat(rows, hasSize(1));
-        rowRef.set(rows.get(0));
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }).start();
-
-    // Insert a new row
-    final Row row = assertThatEventually(() -> {
-      // Potentially try inserting multiple times, in case the query wasn't started by the first time
-      try {
-        client.insertInto(TEST_STREAM, insertRow).get();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-      return rowRef.get();
-    }, is(notNullValue()));
-
-    // Verify received row
-    assertThat(row.getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key_shouldExecuteQueryWithProperties"))));
-    assertThat(row.getString("STR"), is("Value_shouldExecuteQueryWithProperties"));
-    assertThat(row.getLong("LONG"), is(2000L));
-    assertThat(row.getDecimal("DEC"), is(new BigDecimal("12.34")));
-    assertThat(row.getBytes("BYTES_"), is(new byte[]{0, 1, 2}));
-    assertThat(row.getKsqlArray("ARRAY"), is(new KsqlArray().add("v1_shouldExecuteQueryWithProperties").add("v2_shouldExecuteQueryWithProperties")));
-    assertThat(row.getKsqlObject("MAP"), is(new KsqlObject().put("test_name", "shouldExecuteQueryWithProperties")));
-    assertThat(row.getKsqlObject("STRUCT"), is(new KsqlObject().put("F1", 4)));
-    assertThat(row.getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
-    assertThat(row.getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
-    assertThat(row.getString("DATE"), is("1970-01-01"));
-    assertThat(row.getString("TIME"), is("00:00"));
-  }
-
-  @Test
-  public void shouldStreamInserts() throws Exception {
-    // Given
-    final InsertsPublisher insertsPublisher = new InsertsPublisher();
-    final int numRows = 5;
-
-    // When
-    final AcksPublisher acksPublisher = client.streamInserts(EMPTY_TEST_STREAM_2, insertsPublisher).get();
-
-    TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
-    assertThat(acksSubscriber.getValues(), hasSize(0));
-    acksSubscriber.getSub().request(numRows);
-
-    for (int i = 0; i < numRows; i++) {
-      insertsPublisher.accept(new KsqlObject()
-          .put("K", new KsqlObject().put("F1", new KsqlArray().add("my_key_" + i)))
-          .put("STR", "TEST_" + i)
-          .put("LONG", i)
-          .put("DEC", new BigDecimal("13.31"))
-          .put("BYTES_", new byte[]{0, 1, 2})
-          .put("ARRAY", new KsqlArray().add("v_" + i))
-          .put("MAP", new KsqlObject().put("k_" + i, "v_" + i))
-          .put("COMPLEX", COMPLEX_FIELD_VALUE)
-          .put("TIMESTAMP", "1970-01-01T00:00:00.001")
-          .put("DATE", "1970-01-01")
-          .put("TIME", "00:00"));
-    }
-
-    // Then
-    assertThatEventually(acksSubscriber::getValues, hasSize(numRows));
-    for (int i = 0; i < numRows; i++) {
-      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
-    }
-    assertThat(acksSubscriber.getError(), is(nullValue()));
-    assertThat(acksSubscriber.isCompleted(), is(false));
-
-    assertThat(acksPublisher.isComplete(), is(false));
-    assertThat(acksPublisher.isFailed(), is(false));
-
-    // Then: should receive new rows
-    final String query = "SELECT * FROM " + EMPTY_TEST_STREAM_2 + " EMIT CHANGES LIMIT " + numRows + ";";
-    final List<Row> rows = client.executeQuery(query).get();
-
-    // Verify inserted rows are as expected
-    assertThat(rows, hasSize(numRows));
-    for (int i = 0; i < numRows; i++) {
-      assertThat(rows.get(i).getKsqlObject("K"), is(new KsqlObject().put("F1", new KsqlArray().add("my_key_" + i))));
-      assertThat(rows.get(i).getString("STR"), is("TEST_" + i));
-      assertThat(rows.get(i).getLong("LONG"), is(Long.valueOf(i)));
-      assertThat(rows.get(i).getDecimal("DEC"), is(new BigDecimal("13.31")));
-      assertThat(rows.get(i).getBytes("BYTES_"), is(new byte[]{0, 1, 2}));
-      assertThat(rows.get(i).getKsqlArray("ARRAY"), is(new KsqlArray().add("v_" + i)));
-      assertThat(rows.get(i).getKsqlObject("MAP"), is(new KsqlObject().put("k_" + i, "v_" + i)));
-      assertThat(rows.get(i).getKsqlObject("COMPLEX"), is(EXPECTED_COMPLEX_FIELD_VALUE));
-      assertThat(rows.get(i).getString("TIMESTAMP"), is("1970-01-01T00:00:00.001"));
-      assertThat(rows.get(i).getString("DATE"), is("1970-01-01"));
-      assertThat(rows.get(i).getString("TIME"), is("00:00"));
-    }
-
-    // When: end connection
-    insertsPublisher.complete();
-
-    // Then
-    assertThatEventually(acksSubscriber::isCompleted, is(true));
-    assertThat(acksSubscriber.getError(), is(nullValue()));
-
-    assertThat(acksPublisher.isComplete(), is(true));
-    assertThat(acksPublisher.isFailed(), is(false));
-  }
-
-  @Test
-  public void shouldHandleErrorResponseFromStreamInserts() {
-    // When
-    final Exception e = assertThrows(
-        ExecutionException.class, // thrown from .get() when the future completes exceptionally
-        () -> client.streamInserts(AGG_TABLE, new InsertsPublisher()).get()
-    );
-
-    // Then
-    assertThat(e.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
-  }
-
-  @Test
-  public void shouldExecuteDdlDmlStatements() throws Exception {
-    // Given
-    final String streamName = TEST_STREAM + "_COPY";
-    final String csas = "create stream " + streamName + " as select * from " + TEST_STREAM + " emit changes;";
-
-    final int numInitialStreams = 3;
-    final int numInitialQueries = 1;
-    verifyNumStreams(numInitialStreams);
-    verifyNumQueries(numInitialQueries);
-
-    // When: create stream, start persistent query
-    final ExecuteStatementResult csasResult = client.executeStatement(csas).get();
-
-    // Then
-    verifyNumStreams(numInitialStreams + 1);
-    verifyNumQueries(numInitialQueries + 1);
-    assertThat(csasResult.queryId(), is(Optional.of(findQueryIdForSink(streamName))));
-
-    // When: terminate persistent query
-    final String queryId = csasResult.queryId().get();
-    final ExecuteStatementResult terminateResult =
-        client.executeStatement("terminate " + queryId + ";").get();
-
-    // Then
-    verifyNumQueries(numInitialQueries);
-    assertThat(terminateResult.queryId(), is(Optional.empty()));
-
-    // When: drop stream
-    final ExecuteStatementResult dropStreamResult =
-        client.executeStatement("drop stream " + streamName + ";").get();
-
-    // Then
-    verifyNumStreams(numInitialStreams);
-    assertThat(dropStreamResult.queryId(), is(Optional.empty()));
+    assertThat(innerMap.get("version"), is(serverInfo.getServerVersion()));
+    assertThat(innerMap.get("ksqlServiceId"), is(serverInfo.getKsqlServiceId()));
+    assertThat(innerMap.get("kafkaClusterId"), is(serverInfo.getKafkaClusterId()));
+    assertThat(innerMap.get("serverStatus"), is("RUNNING"));
   }
 
   @Test
@@ -1004,8 +804,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat("" + streams, streams, containsInAnyOrder(
         streamForProvider(TEST_DATA_PROVIDER),
-        streamForProvider(EMPTY_TEST_DATA_PROVIDER),
-        streamForProvider(EMPTY_TEST_DATA_PROVIDER_2)
+        streamForProvider(EMPTY_TEST_DATA_PROVIDER)
     ));
   }
 
@@ -1030,7 +829,6 @@ public class ClientIntegrationTest {
     assertThat("" + topics, topics, containsInAnyOrder(
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
-        topicInfo(EMPTY_TEST_TOPIC_2),
         topicInfo(AGG_TABLE),
         topicInfo("connect-config")
     ));
@@ -1044,7 +842,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(queries, hasItem(allOf(
             hasProperty("queryType", is(QueryType.PERSISTENT)),
-            hasProperty("id", is("CTAS_" + AGG_TABLE + "_5")),
+            hasProperty("id", startsWith("CTAS_" + AGG_TABLE)),
             hasProperty("sql", is(
                     "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
                             + "  " + TEST_STREAM + ".K K,\n"
@@ -1077,7 +875,7 @@ public class ClientIntegrationTest {
     assertThat(description.valueFormat(), is("JSON"));
     assertThat(description.readQueries(), hasSize(1));
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
-    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
+    assertThat(description.readQueries().get(0).getId(), startsWith("CTAS_" + AGG_TABLE));
     assertThat(description.readQueries().get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".K K,\n"
@@ -1173,7 +971,7 @@ public class ClientIntegrationTest {
     assertThatEventually(() -> {
       try {
         return client.listConnectors().get().size();
-      } catch (InterruptedException | ExecutionException e) {
+      } catch (final InterruptedException | ExecutionException e) {
         return null;
       }
     }, is(0));
@@ -1189,7 +987,7 @@ public class ClientIntegrationTest {
         () -> {
           try {
             return (client.describeConnector("FOO").get()).state();
-          } catch (InterruptedException | ExecutionException e) {
+          } catch (final InterruptedException | ExecutionException e) {
             return null;
           }
         },
@@ -1208,7 +1006,7 @@ public class ClientIntegrationTest {
         () -> {
           try {
             return (client.describeConnector("FOO").get()).state();
-          } catch (InterruptedException | ExecutionException e) {
+          } catch (final InterruptedException | ExecutionException e) {
             return null;
           }
         },
@@ -1223,26 +1021,6 @@ public class ClientIntegrationTest {
     return Client.create(clientOptions, vertx);
   }
 
-  private void verifyNumStreams(final int numStreams) {
-    assertThatEventually(() -> {
-      try {
-        return client.listStreams().get().size();
-      } catch (Exception e) {
-        return -1;
-      }
-    }, is(numStreams));
-  }
-
-  private void verifyNumQueries(final int numQueries) {
-    assertThatEventually(() -> {
-      try {
-        return client.listQueries().get().size();
-      } catch (Exception e) {
-        return -1;
-      }
-    }, is(numQueries));
-  }
-
   private void givenConnectorExists() {
     // Make sure we are starting from a clean slate before creating a new connector.
     cleanupConnectors();
@@ -1253,7 +1031,7 @@ public class ClientIntegrationTest {
         () -> {
           try {
             return ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors().size();
-          } catch (AssertionError e) {
+          } catch (final AssertionError e) {
             return 0;
           }},
         is(1)
@@ -1270,21 +1048,12 @@ public class ClientIntegrationTest {
     );
   }
 
-  private String findQueryIdForSink(final String sinkName) throws Exception {
-    final List<String> queryIds = client.listQueries().get().stream()
-        .filter(q -> q.getSink().equals(Optional.of(sinkName)))
-        .map(QueryInfo::getId)
-        .collect(Collectors.toList());
-    assertThat(queryIds, hasSize(1));
-    return queryIds.get(0);
-  }
-
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
   private static void verifyNumActiveQueries(final int numQueries) {
-    KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
+    final KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
     assertThatEventually(engine::numberOfLiveQueries, is(numQueries));
   }
 
@@ -1309,10 +1078,19 @@ public class ClientIntegrationTest {
   }
 
   private static void verifyStreamRows(final List<Row> rows, final int numRows) {
-    assertThat(rows, hasSize(numRows));
-    for (int i = 0; i < numRows; i++) {
+    for (int i = 0; i < Math.min(numRows, rows.size()); i++) {
       verifyStreamRowWithIndex(rows.get(i), i);
     }
+    if (rows.size() < numRows) {
+      fail("Expected " + numRows + " but only got " + rows.size());
+    } else if (rows.size() > numRows) {
+      final List<Row> extra = rows.subList(numRows, rows.size());
+      fail("Expected " + numRows + " but got " + rows.size() + ". The extra rows were: " + extra);
+    }
+
+    // not strictly necessary after the other checks, but just to specify the invariant
+    assertThat(rows, hasSize(numRows));
+
   }
 
   private static void verifyStreamRowWithIndex(final Row row, final int index) {

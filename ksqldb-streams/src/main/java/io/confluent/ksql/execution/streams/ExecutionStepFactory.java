@@ -139,6 +139,7 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
+      final Formats stateStoreFormats,
       final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -148,7 +149,8 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(pseudoColumnVersion)
+        pseudoColumnVersion,
+        stateStoreFormats
     );
   }
 

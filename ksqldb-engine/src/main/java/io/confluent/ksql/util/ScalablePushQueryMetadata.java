@@ -20,6 +20,7 @@ import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -109,6 +110,11 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   @Override
   public void setLimitHandler(final LimitHandler limitHandler) {
     rowQueue.setLimitHandler(limitHandler);
+  }
+
+  @Override
+  public void setCompletionHandler(final CompletionHandler completionHandler) {
+    rowQueue.setCompletionHandler(completionHandler);
   }
 
   @Override

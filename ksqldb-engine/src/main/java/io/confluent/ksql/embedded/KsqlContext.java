@@ -56,7 +56,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.Admin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +84,6 @@ public class KsqlContext implements AutoCloseable {
     final ServiceInfo serviceInfo = ServiceInfo.create(ksqlConfig);
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
-        () -> Admin.create(ksqlConfig.getKsqlAdminClientConfigProps()),
         processingLogContext,
         functionRegistry,
         serviceInfo,

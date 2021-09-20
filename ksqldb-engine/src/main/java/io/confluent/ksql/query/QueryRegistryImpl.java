@@ -16,6 +16,7 @@
 package io.confluent.ksql.query;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.config.SessionConfig;
@@ -54,6 +55,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
 
@@ -66,31 +68,31 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Map<SourceName, QueryId> createAsQueries;
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
-  private final QueryExecutorFactory executorFactory;
+  private final QueryBuilderFactory queryBuilderFactory;
   private final List<SharedKafkaStreamsRuntime> streams;
   private final boolean sandbox;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
-    this(eventListeners, QueryExecutor::new);
+    this(eventListeners, QueryBuilder::new);
   }
 
   QueryRegistryImpl(
       final Collection<QueryEventListener> eventListeners,
-      final QueryExecutorFactory executorFactory
+      final QueryBuilderFactory queryBuilderFactory
   ) {
     this.persistentQueries = new ConcurrentHashMap<>();
     this.allLiveQueries = new ConcurrentHashMap<>();
     this.createAsQueries = new ConcurrentHashMap<>();
     this.insertQueries = new ConcurrentHashMap<>();
     this.eventListeners = Objects.requireNonNull(eventListeners);
-    this.executorFactory = Objects.requireNonNull(executorFactory);
+    this.queryBuilderFactory = Objects.requireNonNull(queryBuilderFactory);
     this.streams = new ArrayList<>();
     this.sandbox = false;
   }
 
   // Used to construct a sandbox
   private QueryRegistryImpl(final QueryRegistryImpl original) {
-    executorFactory = original.executorFactory;
+    queryBuilderFactory = original.queryBuilderFactory;
     persistentQueries = new ConcurrentHashMap<>();
     allLiveQueries = new ConcurrentHashMap<>();
     createAsQueries = new ConcurrentHashMap<>();
@@ -151,9 +153,10 @@ public class QueryRegistryImpl implements QueryRegistry {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
-      final boolean excludeTombstones) {
+      final boolean excludeTombstones,
+      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor = executorFactory.create(
+    final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
           processingLogContext,
           serviceContext,
@@ -161,7 +164,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           streams,
           !sandbox);
 
-    final TransientQueryMetadata query = executor.buildTransientQuery(
+    final TransientQueryMetadata query = queryBuilder.buildTransientQuery(
         statementText,
         queryId,
         sources,
@@ -172,7 +175,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         windowInfo,
         excludeTombstones,
         new ListenerImpl(),
-        new StreamsBuilder()
+        new StreamsBuilder(),
+        endOffsets
     );
     registerTransientQuery(serviceContext, metaStore, query);
     return query;
@@ -194,7 +198,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final Optional<String> runtimeId) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor = executorFactory.create(
+    final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
           processingLogContext,
           serviceContext,
@@ -207,7 +211,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     final PersistentQueryMetadata query;
 
     if (runtimeId.isPresent()) {
-      query = executor.buildPersistentQueryInSharedRuntime(
+      query = queryBuilder.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
           persistentQueryType,
           statementText,
@@ -220,7 +224,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           () -> ImmutableList.copyOf(getPersistentQueries().values())
       );
     } else {
-      query = executor.buildPersistentQueryInDedicatedRuntime(
+      query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
           persistentQueryType,
           statementText,
@@ -333,8 +337,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       unregisterQuery(oldQuery);
     }
 
-    // Initialize the query before it's exposed to other threads via the map/sets.
-    persistentQuery.initialize();
+    // If the old query was sandboxed, then the stop() won't stop the streams and will cause
+    // the initialize() to fail because the stream is still running. Let's initialize the
+    // query only when it is a new query or the old query is not sandboxed.
+    if (oldQuery == null || !sandbox) {
+      // Initialize the query before it's exposed to other threads via the map/sets.
+      persistentQuery.initialize();
+    }
     persistentQueries.put(queryId, persistentQuery);
     switch (persistentQuery.getPersistentQueryType()) {
       case CREATE_SOURCE:
@@ -418,8 +427,8 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @FunctionalInterface
-  interface QueryExecutorFactory {
-    QueryExecutor create(
+  interface QueryBuilderFactory {
+    QueryBuilder create(
         SessionConfig config,
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,

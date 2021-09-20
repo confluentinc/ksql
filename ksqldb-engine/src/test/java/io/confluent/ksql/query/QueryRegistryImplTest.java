@@ -25,7 +25,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryError.Type;
-import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
+import io.confluent.ksql.query.QueryRegistryImpl.QueryBuilderFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,7 +34,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -51,15 +50,13 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
-import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
-  private static final SourceName SINK = SourceName.of("source");
-
   @Mock
   private SessionConfig config;
   @Mock
@@ -73,9 +70,9 @@ public class QueryRegistryImplTest {
   @Mock
   private QueryEventListener sandboxListener;
   @Mock
-  private QueryExecutor executor;
+  private QueryBuilder queryBuilder;
   @Mock
-  private QueryExecutorFactory executorFactory;
+  private QueryBuilderFactory executorFactory;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -104,7 +101,7 @@ public class QueryRegistryImplTest {
   @Before
   public void setup() {
     rule.strictness(Strictness.WARN);
-    when(executorFactory.create(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(executor);
+    when(executorFactory.create(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(queryBuilder);
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());
     registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory);
@@ -471,10 +468,10 @@ public class QueryRegistryImplTest {
   ) {
     givenCreate(registry, id, "source", Optional.of("sink1"), CREATE_AS);
     if (!sharedRuntimes) {
-      verify(executor).buildPersistentQueryInDedicatedRuntime(
+      verify(queryBuilder).buildPersistentQueryInDedicatedRuntime(
           any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any());
     } else {
-      verify(executor).buildPersistentQueryInSharedRuntime(
+      verify(queryBuilder).buildPersistentQueryInSharedRuntime(
           any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
     }
     return queryListenerCaptor.getValue();
@@ -506,11 +503,11 @@ public class QueryRegistryImplTest {
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
     when(query.getPersistentQueryType()).thenReturn(persistentQueryType);
     if (sharedRuntimes) {
-      when(executor.buildPersistentQueryInSharedRuntime(
+      when(queryBuilder.buildPersistentQueryInSharedRuntime(
           any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     } else {
-      when(executor.buildPersistentQueryInDedicatedRuntime(
+      when(queryBuilder.buildPersistentQueryInDedicatedRuntime(
           any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     }
@@ -539,8 +536,8 @@ public class QueryRegistryImplTest {
     final QueryId queryId = new QueryId(id);
     final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
     when(query.getQueryId()).thenReturn(queryId);
-    when(executor.buildTransientQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any())
+    when(queryBuilder.buildTransientQuery(
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any())
     ).thenReturn(query);
     registry.createTransientQuery(
         config,
@@ -555,7 +552,8 @@ public class QueryRegistryImplTest {
         mock(LogicalSchema.class),
         OptionalInt.of(123),
         Optional.empty(),
-        false
+        false,
+        Optional.empty()
     );
     return query;
   }

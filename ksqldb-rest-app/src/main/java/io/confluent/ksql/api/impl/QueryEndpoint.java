@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
-import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -56,9 +55,11 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
@@ -152,10 +153,12 @@ public class QueryEndpoint {
               metricsCallbackHolder
           );
         case KSTREAM:
-          throw new KsqlStatementException(
-              "Pull queries are not supported on streams."
-                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
-              statement.getStatementText()
+          return createStreamPullQueryPublisher(
+              analysis,
+              context,
+              serviceContext,
+              statement,
+              workerExecutor
           );
         default:
           throw new KsqlStatementException(
@@ -200,11 +203,15 @@ public class QueryEndpoint {
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
 
+    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
+      scalablePushBandRateLimiter.add(responseBytes);
+    });
+
     final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
         ksqlConfig,
         statement.getSessionConfig().getOverrides());
 
-    scalablePushBandRateLimiter.allow();
+    scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
@@ -239,6 +246,36 @@ public class QueryEndpoint {
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
     publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false, false);
+
+    return publisher;
+  }
+
+  private QueryPublisher createStreamPullQueryPublisher(
+      final ImmutableAnalysis analysis,
+      final Context context,
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final WorkerExecutor workerExecutor
+  ) {
+    // Limits and metrics will be in follow-on PRs.
+
+    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
+
+    final StreamPullQueryMetadata metadata =
+        ksqlEngine.createStreamPullQuery(
+            serviceContext,
+            analysis,
+            statement,
+            true
+        );
+
+    localCommands.ifPresent(lc -> lc.write(metadata.getTransientQueryMetadata()));
+
+    publisher.setQueryHandle(
+        new KsqlQueryHandle(metadata.getTransientQueryMetadata()),
+        false,
+        false
+    );
 
     return publisher;
   }
@@ -293,7 +330,7 @@ public class QueryEndpoint {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = pullConcurrencyLimiter.increment();
-    pullBandRateLimiter.allow();
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
 
     try {
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(

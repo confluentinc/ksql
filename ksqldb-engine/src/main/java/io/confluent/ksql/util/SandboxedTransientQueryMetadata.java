@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import java.util.Collection;
 import java.util.List;
@@ -64,6 +65,11 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
     }
 
     public void setLimitHandler(final LimitHandler limitHandler) {
+      throwUseException();
+    }
+
+    @Override
+    public void setCompletionHandler(final CompletionHandler completionHandler) {
       throwUseException();
     }
 

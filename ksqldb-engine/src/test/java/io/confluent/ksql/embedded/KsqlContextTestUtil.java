@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
-import org.easymock.EasyMock;
 
 public final class KsqlContextTestUtil {
 
@@ -69,7 +68,6 @@ public final class KsqlContextTestUtil {
 
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
-        () -> EasyMock.mock(Admin.class),
         ProcessingLogContext.create(),
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),

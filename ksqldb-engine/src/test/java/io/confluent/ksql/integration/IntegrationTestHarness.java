@@ -133,7 +133,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   /**
    * Ensure topics with the given {@code topicNames} exist.
    *
-   * <p>Topics will be creates, if they do not already exist, with a single partition and replica.
+   * <p>Topics will be created, if they do not already exist, with a single partition and replica.
    *
    * @param topicNames the names of the topics to create.
    */
@@ -144,7 +144,7 @@ public final class IntegrationTestHarness extends ExternalResource {
   /**
    * Ensure topics with the given {@code topicNames} exist.
    *
-   * <p>Topics will be creates, if they do not already exist, with the specified
+   * <p>Topics will be created, if they do not already exist, with the specified
    * {@code partitionCount}.
    *
    * @param topicNames the names of the topics to create.

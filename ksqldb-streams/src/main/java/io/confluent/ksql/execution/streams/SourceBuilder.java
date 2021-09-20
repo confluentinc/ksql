@@ -26,14 +26,12 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
+import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -164,12 +162,7 @@ final class SourceBuilder extends SourceBuilderBase {
   private static PhysicalSchema getPhysicalSchemaWithPseudoColumnsToMaterialize(
       final SourceStep<?> streamSource) {
 
-    final FormatInfo formatInfo = streamSource.getFormats().getKeyFormat();
-    final SerdeFeatures serdeFeatures = streamSource.getFormats().getKeyFeatures();
-
-    final Formats format = of(
-        KeyFormat.nonWindowed(formatInfo, serdeFeatures),
-        streamSource.getFormats().getValueFormat());
+    final Formats format = ((TableSource) streamSource).getStateStoreFormats();
 
     final LogicalSchema withPseudoCols = streamSource.getSourceSchema()
         .withPseudoColumnsToMaterialize(streamSource.getPseudoColumnVersion());
@@ -178,17 +171,6 @@ final class SourceBuilder extends SourceBuilderBase {
         withPseudoCols,
         format.getKeyFeatures(),
         format.getValueFeatures()
-    );
-  }
-
-  //todo: put this logic into TableSource and WindowedTableSource
-  private static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
-
-    return Formats.of(
-        keyFormat.getFormatInfo(),
-        valueFormat,
-        keyFormat.getFeatures(),
-        SerdeFeatures.of()
     );
   }
 

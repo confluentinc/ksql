@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpVersion;
 import java.io.Closeable;
 import java.net.URI;
 import java.net.URL;
@@ -70,7 +71,8 @@ public final class KsqlRestClient implements Closeable {
         clientProps,
         creds,
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
-            new HttpClientOptions(), Optional.empty())
+            new HttpClientOptions(), Optional.of(
+                new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
     );
   }
 
@@ -195,6 +197,19 @@ public final class KsqlRestClient implements Closeable {
     return target.postQueryRequestStreamed(ksql, Optional.ofNullable(commandSeqNum));
   }
 
+  @VisibleForTesting
+  public CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>>
+      makeQueryRequestStreamedAsync(
+      final String ksql,
+      final Map<String, ?> properties
+  ) {
+    KsqlTarget targetHttp2 = targetHttp2();
+    if (!properties.isEmpty()) {
+      targetHttp2 = targetHttp2.properties(properties);
+    }
+    return targetHttp2.postQueryRequestStreamedAsync(ksql, properties);
+  }
+
   public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
       final Long commandSeqNum) {
     return makeQueryRequest(ksql, commandSeqNum, null, Collections.emptyMap());
@@ -239,6 +254,10 @@ public final class KsqlRestClient implements Closeable {
 
   private KsqlTarget target() {
     return client.target(getServerAddress());
+  }
+
+  private KsqlTarget targetHttp2() {
+    return client.targetHttp2(getServerAddress());
   }
 
   private static List<URI> parseServerAddresses(final String serverAddresses) {

@@ -15,21 +15,10 @@
 
 package io.confluent.ksql.query;
 
-/**
- * A {@code LimitQueueCallback} that does not apply a limit.
- */
-public class UnlimitedQueueCallback implements LimitQueueCallback {
+public interface CompletionHandler {
 
-  @Override
-  public void setLimitHandler(final LimitHandler limitHandler) {
-  }
-
-  @Override
-  public boolean shouldQueue() {
-    return true;
-  }
-
-  @Override
-  public void onQueued() {
-  }
+  /**
+   * Fired when the query is complete
+   */
+  void complete();
 }

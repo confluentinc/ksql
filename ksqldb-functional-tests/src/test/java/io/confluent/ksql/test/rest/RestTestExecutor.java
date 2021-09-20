@@ -84,6 +84,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
@@ -98,6 +100,7 @@ public class RestTestExecutor implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
+  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(30);
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
   private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
@@ -164,9 +167,6 @@ public class RestTestExecutor implements Closeable {
       if (!testCase.expectedError().isPresent()
           && testCase.getExpectedResponses().size() > statements.admin.size()) {
         waitForPersistentQueriesToProcessInputs();
-        if (waitForQueryHeaderToProduceInput) {
-          waitForRunningPushQueries(statements.queries);
-        }
       }
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
@@ -570,10 +570,34 @@ public class RestTestExecutor implements Closeable {
    * pull queries.
    */
   private void waitForPersistentQueriesToProcessInputs() {
+    // First wait for the queries to be in the RUNNING state
+    boolean allRunning = false;
+    final long queryRunningThreshold = System.currentTimeMillis()
+        + MAX_QUERY_RUNNING_CHECK.toMillis();
+    while (System.currentTimeMillis() < queryRunningThreshold) {
+      boolean notReady = false;
+      for (PersistentQueryMetadata persistentQueryMetadata : engine.getPersistentQueries()) {
+        if (persistentQueryMetadata.getState() != State.RUNNING) {
+          notReady = true;
+        }
+      }
+      if (notReady) {
+        threadYield();
+      } else {
+        allRunning = true;
+        break;
+      }
+    }
+    if (!allRunning) {
+      throw new AssertionError("Timed out while trying to wait for queries to begin running");
+    }
+
+    // Collect all application ids
     List<String> queryApplicationIds = engine.getPersistentQueries().stream()
         .map(QueryMetadata::getQueryApplicationId)
         .collect(Collectors.toList());
 
+    // Collect all possible source topic names for each application id
     Map<String, Set<String>> possibleTopicNamesByAppId = engine.getPersistentQueries().stream()
         .collect(Collectors.toMap(
             QueryMetadata::getQueryApplicationId,
@@ -595,6 +619,8 @@ public class RestTestExecutor implements Closeable {
     // Every topic is either internal or not, so we expect to match exactly half of them.
     int expectedTopics = possibleTopicNames.size() / 2;
 
+    // Find the intersection of possible topic names and real topic names, and wait until the
+    // expected number are all there
     final Set<String> topics = new HashSet<>();
     boolean foundTopics = false;
     final long topicThreshold = System.currentTimeMillis() + MAX_TOPIC_NAME_LOOKUP.toMillis();
@@ -692,47 +718,6 @@ public class RestTestExecutor implements Closeable {
       }
     }
     return topics;
-  }
-
-
-private void waitForRunningPushQueries(
-      final List<String> queries
-  ) {
-    for (int i = 0; i != queries.size(); ++i) {
-      final String queryStatement = queries.get(i);
-      waitForRunningPush(queryStatement);
-    }
-  }
-
-  private void waitForRunningPush(
-      final String querySql
-  ) {
-    // Make sure push queries are ready to run if they're counting on running before data is
-    // produced.  This is most relevant for scalable push queries since their underlying
-    // persistent queries must be ready. If they're not, we'll get an error.
-
-    if (!(querySql.contains("EMIT CHANGES"))) {
-      // Not a scalable push query, so not needed
-      return;
-    }
-
-    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
-    while (System.currentTimeMillis() < threshold) {
-      final RestResponse<StreamPublisher<StreamedRow>> resp
-          = restClient.makeQueryRequestStreamed(querySql, null);
-      if (resp.isErroneous()) {
-        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
-        LOG.info("Server responded with an error code to a scalable push query. "
-            + "This could be because the persistent query hasn't started yet"
-            + System.lineSeparator() + errorMessage);
-        threadYield();
-      } else {
-        resp.getResponse().close();
-        threadYield();
-        return;
-      }
-    }
-    LOG.info("Timed out waiting for non error");
   }
 
   private static void threadYield() {

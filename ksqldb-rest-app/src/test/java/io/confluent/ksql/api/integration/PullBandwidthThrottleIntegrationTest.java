@@ -96,7 +96,7 @@ public class PullBandwidthThrottleIntegrationTest {
             .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS)
             .around(REST_APP);
-    private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for queries.";
+    private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for pull queries.";
 
     @BeforeClass
     public static void setUpClass() {

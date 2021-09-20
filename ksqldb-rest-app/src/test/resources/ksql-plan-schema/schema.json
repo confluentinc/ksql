@@ -794,10 +794,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "stateStoreFormats" : {
+          "$ref" : "#/definitions/Formats"
         }
       },
       "title" : "tableSourceV2",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "stateStoreFormats" ]
     },
     "WindowedTableSource" : {
       "type" : "object",

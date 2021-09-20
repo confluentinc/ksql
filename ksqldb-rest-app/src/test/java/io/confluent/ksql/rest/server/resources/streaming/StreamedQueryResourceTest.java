@@ -52,8 +52,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
+import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -107,6 +107,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
@@ -130,9 +131,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -165,7 +166,8 @@ public class StreamedQueryResourceTest {
 
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
-      CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2"
+      CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2",
+      KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
@@ -240,6 +242,10 @@ public class StreamedQueryResourceTest {
   private AliasedDataSource mockAliasedDataSource;
   @Mock
   private DataSource mockDataSource;
+  @Mock
+  private StreamPullQueryMetadata streamPullQueryMetadata;
+  @Mock
+  private TransientQueryMetadata transientQueryMetadata;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -370,7 +376,7 @@ public class StreamedQueryResourceTest {
 
   @Test
   public void shouldRateLimit() {
-    final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
+    final RateLimiter pullQueryRateLimiter = RateLimiter.create(3);
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -398,6 +404,53 @@ public class StreamedQueryResourceTest {
         .thenReturn(pullQueryResult);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
+    // When:
+    testResource.streamQuery(
+        securityContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+        new CompletableFuture<>(),
+        Optional.empty(),
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder(),
+        context);
+
+    // Then:
+    assertThrows(KsqlException.class, () -> PullQueryExecutionUtil.checkRateLimit(pullQueryRateLimiter));
+  }
+
+  @Test
+  public void shouldRateLimitStreamPullQueries() {
+    final RateLimiter pullQueryRateLimiter = RateLimiter.create(1);
+
+    testResource = new StreamedQueryResource(
+        mockKsqlEngine,
+        ksqlRestConfig,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        Optional.of(authorizationValidator),
+        errorsHandler,
+        denyListPropertyValidator,
+        Optional.empty(),
+        routingFilterFactory,
+        pullQueryRateLimiter,
+        concurrencyLimiter,
+        pullBandRateLimiter,
+        scalablePushBandRateLimiter,
+        haRouting,
+        pushRouting,
+        Optional.empty()
+    );
+    testResource.configure(VALID_CONFIG);
+
+    when(mockKsqlEngine.createStreamPullQuery(any(), any(), any(), anyBoolean()))
+        .thenReturn(streamPullQueryMetadata);
+    when(streamPullQueryMetadata.getTransientQueryMetadata()).thenReturn(transientQueryMetadata);
+    when(transientQueryMetadata.getLogicalSchema()).thenReturn(schema);
+    when(streamPullQueryMetadata.getEndOffsets()).thenReturn(new ImmutableMap.Builder<TopicPartition, Long>().build());
 
     // When:
     testResource.streamQuery(
@@ -451,11 +504,34 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldReachConcurrentLimit() {
+  public void shouldReachConcurrentLimitTablePullQuery() {
     // Given:
     when(rateLimiter.tryAcquire()).thenReturn(true);
     when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+
+    // When:
+    final EndpointResponse response =
+        testResource.streamQuery(
+            securityContext,
+            new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+            new CompletableFuture<>(),
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder(),
+            context);
+
+    // Then:
+    assertThat(response.getStatus(), is(500));
+    assertThat(exception.getValue().getMessage(), containsString("concurrencyLimiter Error!"));
+  }
+
+  @Test
+  public void shouldReachConcurrentLimitStreamPullQuery() {
+    // Given:
+    when(rateLimiter.tryAcquire()).thenReturn(true);
+    when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
 
     // When:
     final EndpointResponse response =

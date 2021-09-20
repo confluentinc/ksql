@@ -27,6 +27,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A queue of rows for transient queries.
@@ -42,6 +43,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
   private LimitHandler limitHandler;
   private CompletionHandler completionHandler;
   private Runnable queuedCallback;
+  private AtomicLong totalRowsQueued = new AtomicLong(0);
 
   public TransientQueryQueue(final OptionalInt limit) {
     this(limit, BLOCKING_QUEUE_CAPACITY, 100);
@@ -118,6 +120,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
       while (!closed) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
           onQueued();
+          totalRowsQueued.incrementAndGet();
           break;
         }
       }
@@ -178,5 +181,9 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
   private boolean passedLimit() {
     return remaining != null && remaining.get() <= 0;
+  }
+
+  public long getTotalRowsQueued() {
+    return totalRowsQueued.get();
   }
 }

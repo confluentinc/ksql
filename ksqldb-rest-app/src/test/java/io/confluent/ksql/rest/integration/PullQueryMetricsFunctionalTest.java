@@ -50,7 +50,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
-@Ignore
+@Ignore 
 public class PullQueryMetricsFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();

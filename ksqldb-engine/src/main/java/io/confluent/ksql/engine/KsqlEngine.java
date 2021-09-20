@@ -104,6 +104,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
+  private final KsqlConfig ksqlConfig;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -173,6 +174,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+    this.ksqlConfig = ksqlConfig;
 
     cleanupService.startAsync();
   }

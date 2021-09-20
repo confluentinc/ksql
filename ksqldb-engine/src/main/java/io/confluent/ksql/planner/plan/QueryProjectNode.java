@@ -89,7 +89,7 @@ public class QueryProjectNode extends ProjectNode {
       final boolean isScalablePush
   ) {
     super(id, source);
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.queryPlannerOptions = Objects.requireNonNull(queryPlannerOptions, "queryPlannerOptions");

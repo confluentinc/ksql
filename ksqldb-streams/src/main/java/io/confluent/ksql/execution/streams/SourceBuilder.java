@@ -113,7 +113,9 @@ final class SourceBuilder extends SourceBuilderBase {
       // re-partitioned topic will be used for any subsequent state stores, in lieu
       // of the original source topic, thus avoiding the issues above.
       // See https://github.com/confluentinc/ksql/issues/6650.
-      // This intermittent transformValues() call is unneccessary in this case,
+      // This intermittent transformValues() call is unnecessary in this case,
+      // i.e., it could be combined with the subsequent transformValues() call
+      // into a single transformValues() call,
       // it is included to keep KStreams topologies consistent and simplify code
       maybeMaterialized = source.transformValues(
           new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
@@ -245,11 +247,16 @@ final class SourceBuilder extends SourceBuilderBase {
 
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
+    private final int pseudoColumnsToAdd;
 
     AddRemainingPseudoAndKeyCols(
         final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+          .stream()
+          .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
+          .count();
     }
 
     @Override
@@ -270,13 +277,7 @@ final class SourceBuilder extends SourceBuilderBase {
 
           final Collection<?> keyColumns = keyGenerator.apply(key);
 
-          //remove pseudocolumns we previously materialized so we can add them back in correct order
-
           //ensure extra capacity equal to number of pseudoColumns which we haven't materialized
-          final int pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
-              .stream()
-              .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
-              .count();
 
           row.ensureAdditionalCapacity(pseudoColumnsToAdd);
 

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -60,31 +62,25 @@ public final class SystemColumns {
       WINDOWEND_NAME
   );
 
-  private static final PseudoColumn ROWTIME = PseudoColumn.of(
-      ROWTIME_NAME,
-      ROWTIME_TYPE,
-      ROWTIME_PSEUDOCOLUMN_VERSION,
-      false
-  );
-
-  private static final PseudoColumn ROWPARTITION = PseudoColumn.of(
-      ROWPARTITION_NAME,
-      ROWPARTITION_TYPE,
-      ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
-      true
-  );
-
-  private static final PseudoColumn ROWOFFSET = PseudoColumn.of(
-      ROWOFFSET_NAME,
-      ROWOFFSET_TYPE,
-      ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
-      true
-  );
-
   private static final List<PseudoColumn> pseudoColumns = ImmutableList.of(
-      ROWTIME,
-      ROWPARTITION,
-      ROWOFFSET
+      PseudoColumn.of(
+          ROWTIME_NAME,
+          ROWTIME_TYPE,
+          ROWTIME_PSEUDOCOLUMN_VERSION,
+          false
+      ),
+      PseudoColumn.of(
+          ROWPARTITION_NAME,
+          ROWPARTITION_TYPE,
+          ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true
+      ),
+      PseudoColumn.of(
+          ROWOFFSET_NAME,
+          ROWOFFSET_TYPE,
+          ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true
+      )
   );
 
   private SystemColumns() {
@@ -104,9 +100,12 @@ public final class SystemColumns {
 
   @VisibleForTesting
   static boolean isPseudoColumn(final ColumnName columnName, final int pseudoColumnVersion) {
+    validatePseudoColumnVersion(pseudoColumnVersion);
+
     return pseudoColumns
         .stream()
-        .anyMatch(col -> col.name.equals(columnName) && col.version <= pseudoColumnVersion);
+        .filter(col -> col.version <= pseudoColumnVersion)
+        .anyMatch(col -> col.name.equals(columnName));
   }
 
   public static boolean isPseudoColumn(
@@ -117,18 +116,14 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
-    final Set<ColumnName> names = pseudoColumns
+
+    validatePseudoColumnVersion(pseudoColumnVersion);
+
+    return pseudoColumns
         .stream()
         .filter(col -> col.version <= pseudoColumnVersion)
         .map(col -> col.name)
         .collect(Collectors.toSet());
-
-    if (names.isEmpty()) {
-      throw new KsqlException(
-          "Provided pseudoColumnVersion has no corresponding columns defined");
-    }
-
-    return names;
   }
 
   public static Set<ColumnName> pseudoColumnNames(final KsqlConfig ksqlConfig) {
@@ -144,16 +139,24 @@ public final class SystemColumns {
   }
 
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
+
+    validatePseudoColumnVersion(pseudoColumnVersion);
+
     return Stream.concat(
         WINDOW_BOUNDS_COLUMN_NAMES.stream(),
-        pseudoColumns
-            .stream()
-            .filter(col -> col.version <= pseudoColumnVersion)
-            .map(col -> col.name)
+        pseudoColumnNames(pseudoColumnVersion).stream()
     )
         .collect(Collectors.toSet());
   }
 
+  /**
+   * Checks if a given ColumnName is associated with a pseudo column that must be materialized
+   * for table joins
+   * @param columnName the pseudo column name provided
+   * @return true if the name is associated with a pseudo column that must be materialized for
+   * table joins, otherwise false
+   * @throws IllegalArgumentException when column name is not associated with a pseudo column
+   */
   public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {
     return pseudoColumns
         .stream()
@@ -166,6 +169,13 @@ public final class SystemColumns {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
         ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
         : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+  }
+
+  private static void validatePseudoColumnVersion(final int pseudoColumnVersionNumber) {
+    if (pseudoColumnVersionNumber < LEGACY_PSEUDOCOLUMN_VERSION_NUMBER
+        || pseudoColumnVersionNumber > CURRENT_PSEUDOCOLUMN_VERSION_NUMBER) {
+      throw new KsqlException("Invalid pseudoColumnVersionNumber provided");
+    }
   }
 
   @Immutable
@@ -182,8 +192,8 @@ public final class SystemColumns {
         final int version,
         final boolean mustBeMaterializedForTableJoins
     ) {
-      this.name = name;
-      this.type = type;
+      this.name = requireNonNull(name, "name");
+      this.type = requireNonNull(type, "type");
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
     }

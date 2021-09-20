@@ -73,7 +73,7 @@ public class DataSourceNode extends PlanNode {
       final KsqlConfig ksqlConfig
   ) {
     super(id, dataSource.getDataSourceType(), Optional.of(alias));
-    this.ksqlConfig = requireNonNull(ksqlConfig);
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.dataSource = requireNonNull(dataSource, "dataSource");
     this.schema = buildSchema(dataSource, ksqlConfig);
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");

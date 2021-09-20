@@ -42,7 +42,7 @@ public final class SourceSchemas {
       final Map<SourceName, LogicalSchema> sourceSchemas,
       final KsqlConfig ksqlConfig) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
-    this.ksqlConfig = requireNonNull(ksqlConfig);
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
 
     // This will fail
     if (sourceSchemas.isEmpty()) {

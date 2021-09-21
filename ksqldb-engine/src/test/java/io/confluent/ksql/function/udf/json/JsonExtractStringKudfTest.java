@@ -105,4 +105,13 @@ public class JsonExtractStringKudfTest {
         .parallel()
         .forEach(idx -> shouldExtractJsonField());
   }
+
+  @Test
+  public void shouldParseCorrectlyDifferentPathsOnSameInstance() {
+    final String thing1 = udf.extract(JSON_DOC, "$.thing1");
+    assertThat(thing1, is("{\"thing2\":\"hello\"}"));
+
+    final String array = udf.extract(JSON_DOC, "$.array.1");
+    assertThat(array, is("102"));
+  }
 }

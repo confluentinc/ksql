@@ -49,9 +49,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Ignore 
 public class PullQueryMetricsFunctionalTest {
+
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryMetricsFunctionalTest.class);
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
@@ -268,6 +272,26 @@ public class PullQueryMetricsFunctionalTest {
         Optional.empty());
 
     assertThat(streamRows.size(), is(2));
+
+    LOG.info("************* Table metrics:");
+    for (MetricName metricName : TestMetricsReporter.METRICS.keySet()) {
+      if (metricName.name().startsWith("pull-query")
+          && metricName.tags().containsValue("non_windowed")
+          && metricName.tags().containsValue("key_lookup")
+          && metricName.tags().containsValue("source_node")) {
+        LOG.info("----> [" + metricName + " ] " + TestMetricsReporter.METRICS.get(metricName).metricValue());
+      }
+    }
+
+    LOG.info("*************** Stream metrics:");
+    for (MetricName metricName : TestMetricsReporter.METRICS.keySet()) {
+      if (metricName.name().startsWith("pull-query")
+          && metricName.tags().containsValue("non_windowed_stream")
+          && metricName.tags().containsValue("unknown")
+          && metricName.tags().containsValue("source_node")) {
+        LOG.info("----> [" + metricName + " ] " + TestMetricsReporter.METRICS.get(metricName).metricValue());
+      }
+    }
 
     // Then:
     assertThat(recordsReturnedTableMetric.metricValue(), is(1.0));

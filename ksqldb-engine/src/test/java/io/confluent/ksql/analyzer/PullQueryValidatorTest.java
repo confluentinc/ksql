@@ -29,7 +29,6 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -62,7 +61,7 @@ public class PullQueryValidatorTest {
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
-  private SingleColumn singleColumn1;
+  private SingleColumn singleColumn;
   @Mock
   private ColumnReferenceExp columnReferenceExp;
 
@@ -210,7 +209,7 @@ public class PullQueryValidatorTest {
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString("Pull queries don't support ROWPARTITION or ROWOFFSET in SELECT clauses."));
+      assertThat(e.getMessage(), containsString("Pull queries don't support `ROWPARTITION` in SELECT clauses."));
     }
   }
 
@@ -227,7 +226,7 @@ public class PullQueryValidatorTest {
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString("Pull queries don't support ROWPARTITION or ROWOFFSET in WHERE clauses."));
+      assertThat(e.getMessage(), containsString("Pull queries don't support `ROWPARTITION` in WHERE clauses."));
     }
   }
 
@@ -235,8 +234,8 @@ public class PullQueryValidatorTest {
       MockedStatic<ColumnExtractor> columnExtractor
   ) {
     givenColumnExtractionOfDisallowedColumns(columnExtractor);
-    when(analysis.getSelectItems()).thenReturn(ImmutableList.of(singleColumn1));
-    when(singleColumn1.getExpression()).thenReturn(AN_EXPRESSION);
+    when(analysis.getSelectItems()).thenReturn(ImmutableList.of(singleColumn));
+    when(singleColumn.getExpression()).thenReturn(AN_EXPRESSION);
   }
 
   private void givenWhereClauseWithDisallowedColumnNames(

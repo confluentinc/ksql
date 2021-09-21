@@ -28,9 +28,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import org.checkerframework.checker.nullness.Opt;
 
 public class PullQueryValidator implements QueryValidator {
 
@@ -41,12 +42,12 @@ public class PullQueryValidator implements QueryValidator {
 
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
-          analysis -> !analysis.getInto().isPresent(),
-          "Pull queries don't support output to sinks."
-      ),
-      Rule.of(
           analysis -> !analysis.isJoin(),
           "Pull queries don't support JOIN clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getInto().isPresent(),
+          "Pull queries don't support output to sinks."
       ),
       Rule.of(
           analysis -> !analysis.getWindowExpression().isPresent(),
@@ -73,12 +74,10 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support EMIT clauses."
       ),
       Rule.of(
-          analysis -> !disallowedColumnNameInSelectClause(analysis),
-          "Pull queries don't support ROWPARTITION or ROWOFFSET in SELECT clauses."
+          PullQueryValidator::disallowedColumnNameInSelectClause
       ),
       Rule.of(
-          analysis -> !disallowedColumnNameInWhereClause(analysis),
-          "Pull queries don't support ROWPARTITION or ROWOFFSET in WHERE clauses."
+          PullQueryValidator::disallowedColumnNameInWhereClause
       )
   );
 
@@ -91,8 +90,8 @@ public class PullQueryValidator implements QueryValidator {
     }
   }
 
-  private static boolean disallowedColumnNameInSelectClause(final Analysis analysis) {
-    return analysis.getSelectItems()
+  private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {
+    Optional<ColumnName> disallowed =  analysis.getSelectItems()
         .stream()
         .filter(col -> col instanceof SingleColumn) //filter out select *
         .map(SingleColumn.class::cast)
@@ -100,20 +99,36 @@ public class PullQueryValidator implements QueryValidator {
         .map(ColumnExtractor::extractColumns)
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
-        .anyMatch(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()));
+        .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
+        .findFirst();
+
+    if (disallowed.isPresent()) {
+      String message = "Pull queries don't support " + disallowed.get() + " in SELECT clauses.";
+      return Optional.of(message);
+    }
+
+    return Optional.empty();
   }
 
-  private static boolean disallowedColumnNameInWhereClause(final Analysis analysis) {
+  private static Optional<String> disallowedColumnNameInWhereClause(final Analysis analysis) {
     final Optional<Expression> expression = analysis.getWhereExpression();
 
     if (!expression.isPresent()) {
-      return false;
+      return Optional.empty();
     }
 
-    return ColumnExtractor.extractColumns(expression.get())
+    Optional<ColumnName> disallowed = ColumnExtractor.extractColumns(expression.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
-        .anyMatch(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()));
+        .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
+        .findFirst();
+
+    if (disallowed.isPresent()) {
+      String message = "Pull queries don't support " + disallowed.get() + " in WHERE clauses.";
+      return Optional.of(message);
+    }
+
+    return Optional.empty();
   }
 
   private static boolean disallowedInPullQueries(
@@ -126,23 +141,31 @@ public class PullQueryValidator implements QueryValidator {
 
   private static final class Rule {
 
-    private final Predicate<Analysis> condition;
-    private final String failureMsg;
+    private final Function<Analysis, Optional<String>> potentialErrorMessage;
 
     private static Rule of(final Predicate<Analysis> condition, final String failureMsg) {
       return new Rule(condition, failureMsg);
     }
 
+    private static Rule of(final Function<Analysis, Optional<String>> function) {
+      return new Rule(function);
+    }
+
     private Rule(final Predicate<Analysis> condition, final String failureMsg) {
-      this.condition = Objects.requireNonNull(condition, "condition");
-      this.failureMsg = Objects.requireNonNull(failureMsg, "failureMsg");
+      this.potentialErrorMessage = (analysis) ->
+          !condition.test(analysis) ? Optional.of(failureMsg) : Optional.empty();
+    }
+
+    private Rule(final Function<Analysis, Optional<String>> function) {
+      this.potentialErrorMessage = function;
     }
 
     public void check(final Analysis analysis) {
-      if (!condition.test(analysis)) {
-        throw new KsqlException(failureMsg);
+      Optional<String> exceptionMessage = potentialErrorMessage.apply(analysis);
+
+      if (exceptionMessage.isPresent()) {
+        throw new KsqlException(exceptionMessage.get());
       }
     }
   }
-
 }

@@ -94,6 +94,7 @@ public class PullQueryValidator implements QueryValidator {
   private static boolean disallowedColumnNameInSelectClause(final Analysis analysis) {
     return analysis.getSelectItems()
         .stream()
+        .filter(col -> col instanceof SingleColumn) //filter out select *
         .map(SingleColumn.class::cast)
         .map(SingleColumn::getExpression)
         .map(ColumnExtractor::extractColumns)

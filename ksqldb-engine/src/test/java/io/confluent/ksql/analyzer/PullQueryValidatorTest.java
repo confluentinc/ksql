@@ -50,7 +50,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PullQueryValidatorTest {
 
   private static final Expression AN_EXPRESSION = mock(Expression.class);
-  private static final ColumnName A_BAD_COLUMN_NAME = ROWPARTITION_NAME;
 
   @Mock
   private Analysis analysis;
@@ -251,7 +250,7 @@ public class PullQueryValidatorTest {
       MockedStatic<ColumnExtractor> columnExtractor) {
     columnExtractor.when(() -> ColumnExtractor.extractColumns(AN_EXPRESSION))
         .thenReturn(ImmutableSet.of(columnReferenceExp));
-    when(columnReferenceExp.getColumnName()).thenReturn(A_BAD_COLUMN_NAME);
+    when(columnReferenceExp.getColumnName()).thenReturn(ROWPARTITION_NAME);
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 

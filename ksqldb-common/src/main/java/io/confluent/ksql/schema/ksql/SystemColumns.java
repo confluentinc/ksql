@@ -150,11 +150,11 @@ public final class SystemColumns {
   }
 
   /**
-   * Checks if a given ColumnName is associated with a pseudo column that must be materialized
-   * for table joins
+   * Checks if a given ColumnName is associated with a pseudo column that must be materialized for
+   * table joins
+   *
    * @param columnName the pseudo column name provided
-   * @return true if the name is associated with a pseudo column that must be materialized for
-   * table joins, otherwise false
+   * @return if the name is associated with a pseudo column that must be materialized for table
    * @throws IllegalArgumentException when column name is not associated with a pseudo column
    */
   public static boolean mustBeMaterializedForTableJoins(final ColumnName columnName) {

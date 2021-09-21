@@ -54,8 +54,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+@RunWith(MockitoJUnitRunner.class)
 public class LogicalSchemaTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");

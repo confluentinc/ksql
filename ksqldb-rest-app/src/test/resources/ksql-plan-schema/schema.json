@@ -591,10 +591,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "streamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "pseudoColumnVersion" ]
     },
     "WindowedStreamSource" : {
       "type" : "object",
@@ -622,10 +625,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "windowedStreamSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "pseudoColumnVersion" ]
     },
     "StreamStreamJoin" : {
       "type" : "object",
@@ -766,10 +772,13 @@
         },
         "forceChangelog" : {
           "type" : "boolean"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "tableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "pseudoColumnVersion" ]
     },
     "TableSource" : {
       "type" : "object",
@@ -794,10 +803,16 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
+        },
+        "stateStoreFormats" : {
+          "$ref" : "#/definitions/Formats"
         }
       },
       "title" : "tableSourceV2",
-      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "sourceSchema", "pseudoColumnVersion", "stateStoreFormats" ]
     },
     "WindowedTableSource" : {
       "type" : "object",
@@ -825,10 +840,13 @@
         },
         "sourceSchema" : {
           "type" : "string"
+        },
+        "pseudoColumnVersion" : {
+          "type" : "integer"
         }
       },
       "title" : "windowedTableSourceV1",
-      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema" ]
+      "required" : [ "@type", "properties", "topicName", "formats", "windowInfo", "sourceSchema", "pseudoColumnVersion" ]
     },
     "TableAggregate" : {
       "type" : "object",

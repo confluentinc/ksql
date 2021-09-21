@@ -49,17 +49,14 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+@RunWith(MockitoJUnitRunner.class)
 public class LogicalSchemaTest {
-
-  @Rule
-  public MockitoRule rule = MockitoJUnit.rule();
 
   private static final ColumnName K0 = ColumnName.of("k0");
   private static final ColumnName K1 = ColumnName.of("k1");

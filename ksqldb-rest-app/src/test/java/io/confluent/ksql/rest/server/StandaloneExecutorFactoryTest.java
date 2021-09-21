@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.apache.kafka.clients.admin.Admin;
-import org.easymock.EasyMock;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -97,7 +95,6 @@ public class StandaloneExecutorFactoryTest {
         QUERIES_FILE,
         INSTALL_DIR,
         serviceContextFactory,
-        () -> EasyMock.mock(Admin.class),
         configStoreFactory,
         activeQuerySupplier -> versionChecker,
         constructor

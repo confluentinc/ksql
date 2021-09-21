@@ -27,7 +27,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -55,6 +54,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
   private static final String STREAMS_THREAD_METRICS_GROUP = "stream-thread-metrics";
   private static final String THREAD_ID = "thread-id";
   private static final String QUERY_ID = "query-id";
+  private static Map<String, String> customTags = new HashMap<>();
 
   private final Map<String, KafkaStreamsSaturation> perKafkaStreamsStats = new HashMap<>();
   private final KsqlEngine engine;
@@ -67,9 +67,10 @@ public class PersistentQuerySaturationMetrics implements Runnable {
       final KsqlEngine engine,
       final MetricsReporter reporter,
       final Duration window,
-      final Duration sampleMargin
+      final Duration sampleMargin, 
+      final Map<String, String> customTags
   ) {
-    this(Instant::now, engine, reporter, window, sampleMargin);
+    this(Instant::now, engine, reporter, window, sampleMargin, customTags);
   }
 
   @VisibleForTesting
@@ -78,13 +79,15 @@ public class PersistentQuerySaturationMetrics implements Runnable {
       final KsqlEngine engine,
       final MetricsReporter reporter,
       final Duration window,
-      final Duration sampleMargin
+      final Duration sampleMargin,
+      final Map<String, String> customTags
   ) {
     this.time =  Objects.requireNonNull(time, "time");
     this.engine = Objects.requireNonNull(engine, "engine");
     this.reporter = Objects.requireNonNull(reporter, "reporter");
     this.window = Objects.requireNonNull(window, "window");
     this.sampleMargin = Objects.requireNonNull(sampleMargin, "sampleMargin");
+    this.customTags = Objects.requireNonNull(customTags, "customTags");
   }
 
   @Override
@@ -158,10 +161,16 @@ public class PersistentQuerySaturationMetrics implements Runnable {
                 now,
                 NODE_QUERY_SATURATION,
                 saturation,
-                Collections.emptyMap()
+                customTags
             )
         )
     );
+  }
+  
+  private static Map<String, String> getTags(final String key, final String value) {
+    final Map<String, String> newTags = new HashMap<>(customTags);
+    newTags.put(key, value);
+    return newTags;
   }
 
   private static final class KafkaStreamsSaturation {
@@ -190,7 +199,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
               now,
               QUERY_THREAD_SATURATION,
               saturation,
-              ImmutableMap.of(THREAD_ID, name)
+              getTags(THREAD_ID, name)
           )
       ));
     }
@@ -207,7 +216,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
                 now,
                 QUERY_SATURATION,
                 saturation,
-                ImmutableMap.of(QUERY_ID, queryId.toString())
+               getTags(QUERY_ID, queryId.toString())
             )
         ));
       }

@@ -120,7 +120,7 @@ public class PullQueryValidator implements QueryValidator {
       final KsqlConfig ksqlConfig
   ) {
     final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
-    return SystemColumns.disallowedForPullQueries(columnName, pseudoColumnVersion);
+    return SystemColumns.isDisallowedInPullQueries(columnName, pseudoColumnVersion);
   }
 
   private static final class Rule {

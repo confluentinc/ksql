@@ -11,7 +11,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `ROWTIME`. Please remove or alias the column."
+        "message": "`ROWTIME` is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -22,7 +22,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `WINDOWSTART`. Please remove or alias the column."
+        "message": "`WINDOWSTART` is a reserved column name. You cannot use it as an alias for a column."
       }
     },
     {
@@ -33,7 +33,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Reserved column name in select: `WINDOWEND`. Please remove or alias the column."
+        "message": "`WINDOWEND` is a reserved column name. You cannot use it as an alias for a column."
       }
     }
   ]

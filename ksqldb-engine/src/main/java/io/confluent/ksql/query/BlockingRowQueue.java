@@ -41,6 +41,12 @@ public interface BlockingRowQueue {
   void setLimitHandler(LimitHandler limitHandler);
 
   /**
+   * Sets a handler that will be called when the query completes.
+   * Replaces any previous handler.
+   */
+  void setCompletionHandler(CompletionHandler completionHandler);
+
+  /**
    * Sets the callback that will be called any time a new row is accepted into the queue.
    *
    * @param callback the callback.

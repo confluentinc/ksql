@@ -131,10 +131,19 @@ public class PullQueryResult {
     return routingNodeType;
   }
 
+  /**
+   * @return Number of rows returned to user
+   */
   public long getTotalRowsReturned() {
     return pullQueryQueue.getTotalRowsQueued();
   }
 
+  /**
+   * Number of rows read from the underlying data store. This does not need to match
+   * the number of rows returned to the user as rows can get filtered out based on the
+   * WHERE clause conditions.
+   * @return Number of rows read from the data store
+   */
   public long getTotalRowsProcessed() {
     return rowsProcessedSupplier.get();
   }

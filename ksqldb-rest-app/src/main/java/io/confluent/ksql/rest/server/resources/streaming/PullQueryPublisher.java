@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -109,7 +110,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = concurrencyLimiter.increment();
-    pullBandRateLimiter.allow();
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
 
     PullQueryResult result = null;
     try {

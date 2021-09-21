@@ -90,7 +90,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueryExecutorTest {
+public class QueryBuilderTest {
 
   private static final String STATEMENT_TEXT = "KSQL STATEMENT";
   private static final QueryId QUERY_ID = new QueryId("queryid");
@@ -183,7 +183,7 @@ public class QueryExecutorTest {
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 
-  private QueryExecutor queryBuilder;
+  private QueryBuilder queryBuilder;
   private final Stacker stacker = new Stacker();
   private List<SharedKafkaStreamsRuntime> sharedKafkaStreamsRuntimes;
 
@@ -219,7 +219,7 @@ public class QueryExecutorTest {
     when(kstream.filter(any())).thenReturn(kstream);
     sharedKafkaStreamsRuntimes = new ArrayList<>();
 
-    queryBuilder = new QueryExecutor(
+    queryBuilder = new QueryBuilder(
         config,
         processingLogContext,
         serviceContext,
@@ -252,7 +252,8 @@ public class QueryExecutorTest {
         Optional.empty(),
         false,
         queryListener,
-        streamsBuilder
+        streamsBuilder,
+        Optional.empty()
     );
     queryMetadata.initialize();
 

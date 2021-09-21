@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStore;
@@ -37,7 +38,6 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.io.File;
 import java.util.Optional;
 import org.junit.Test;
-import org.mockito.Mock;
 
 /**
  * DO NOT ADD NEW TESTS TO THIS FILE
@@ -49,11 +49,9 @@ import org.mockito.Mock;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerFunctionalTest {
 
-  @Mock
-  private KsqlConfig ksqlConfig;
-
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+  private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final QueryAnalyzer queryAnalyzer =
       new QueryAnalyzer(metaStore, "prefix-~", ksqlConfig);
 

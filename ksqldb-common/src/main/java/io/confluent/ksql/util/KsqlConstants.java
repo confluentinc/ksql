@@ -49,7 +49,8 @@ public final class KsqlConstants {
 
   public enum KsqlQueryType {
     PERSISTENT,
-    PUSH
+    PUSH,
+    PULL
   }
 
   public enum PersistentQueryType {

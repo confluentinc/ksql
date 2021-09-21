@@ -594,19 +594,48 @@ class Analyzer {
     }
 
     private void validateSelect(final SingleColumn column) {
-      final ColumnName columnName = column.getAlias()
-          .orElseThrow(IllegalStateException::new);
 
-      if (persistent) {
-        if (SystemColumns.isSystemColumn(columnName, ksqlConfig)) {
-          throw new KsqlException("Reserved column name in select: " + columnName + ". "
-              + "Please remove or alias the column.");
-        }
-      }
+      final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+
+      SystemColumns.systemColumnNames(pseudoColumnVersion)
+          .forEach(col -> checkForReservedToken(column, col));
 
       if (!analysis.getGroupBy().isPresent()) {
         throwOnUdafs(column.getExpression());
       }
+    }
+
+    private void checkForReservedToken(
+        final SingleColumn singleColumn,
+        final ColumnName reservedToken
+    ) {
+      final ColumnName alias = singleColumn.getAlias().orElseThrow(IllegalStateException::new);
+      final Expression expression = singleColumn.getExpression();
+
+      if (alias.text().equalsIgnoreCase(reservedToken.text())) {
+
+        //if a column's alias matches a reserved token but not the expression text, it means that
+        //the user has explicitly tried to alias a column as a reserved token, so throw this message
+        if (!expressionMatchesAlias(expression, alias)) {
+          throw new KsqlException("`" + reservedToken.text() + "` "
+              + "is a reserved column name. "
+              + "You cannot use it as an alias for a column.");
+
+        //if an unaliased column matches a reserved token (ie a user issued SELECT ROWTIME FROM x)
+        //we can't allow the query if it is persistent. If it is transient, allow it.
+        } else if (persistent) {
+          throw new KsqlException("Reserved column name in select: "
+              + "`" + reservedToken.text() + "`. "
+              + "Please remove or alias the column.");
+        }
+
+      }
+    }
+
+    private boolean expressionMatchesAlias(final Expression expression, final ColumnName alias) {
+      final String text = expression.toString();
+      final String unqualifiedExpression = text.substring(text.indexOf(".") + 1);
+      return unqualifiedExpression.equalsIgnoreCase(alias.text());
     }
 
     private void throwOnUdafs(final Expression expression) {

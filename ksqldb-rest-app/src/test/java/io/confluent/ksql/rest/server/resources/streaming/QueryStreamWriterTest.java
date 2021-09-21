@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -77,9 +78,12 @@ public class QueryStreamWriterTest {
   private ArgumentCaptor<StreamsUncaughtExceptionHandler> ehCapture;
   @Captor
   private ArgumentCaptor<LimitHandler> limitHandlerCapture;
+  @Captor
+  private ArgumentCaptor<CompletionHandler> completionHandlerCapture;
   private QueryStreamWriter writer;
   private ByteArrayOutputStream out;
   private LimitHandler limitHandler;
+  private CompletionHandler completionHandler;
   private ObjectMapper objectMapper;
 
   @Before
@@ -156,15 +160,14 @@ public class QueryStreamWriterTest {
         queryMetadata,
         1000,
         objectMapper,
-        new CompletableFuture<>(),
-        () -> true
+        new CompletableFuture<>()
     );
 
     out = new ByteArrayOutputStream();
 
-    verify(queryMetadata).setLimitHandler(limitHandlerCapture.capture());
-    limitHandler = limitHandlerCapture.getValue();
-
+    verify(queryMetadata).setCompletionHandler(completionHandlerCapture.capture());
+    completionHandler = completionHandlerCapture.getValue();
+    completionHandler.complete();
     // When:
     writer.write(out);
 

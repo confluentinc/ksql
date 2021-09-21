@@ -455,6 +455,33 @@ public class ClientImpl implements Client {
     );
   }
 
+  @Override
+  public HttpRequest buildRequest(final String method, final String path) {
+    return new HttpRequestImpl(method, path, this);
+  }
+
+  CompletableFuture<HttpResponse> send(
+      final HttpMethod method,
+      final String path,
+      final Map<String, Object> payload
+  ) {
+    final CompletableFuture<HttpResponse> cf = new CompletableFuture<>();
+
+    final JsonObject jsonPayload = new JsonObject(payload)
+        .put("sessionVariables", sessionVariables);
+
+    makeRequest(
+        path,
+        jsonPayload.toBuffer(),
+        cf,
+        response -> handleResponse(response, cf),
+        true,
+        method
+    );
+
+    return cf;
+  }
+
   private <T extends CompletableFuture<?>> void makeGetRequest(
       final String path,
       final JsonObject requestBody,
@@ -596,6 +623,16 @@ public class ClientImpl implements Client {
     } else {
       handleErrorResponse(response, cf);
     }
+  }
+
+  static void handleResponse(
+      final HttpClientResponse httpResponse,
+      final CompletableFuture<HttpResponse> cf
+  ) {
+    httpResponse.bodyHandler(
+        buffer -> cf.complete(new HttpResponseImpl(httpResponse.statusCode(), buffer.getBytes()))
+    );
+    httpResponse.exceptionHandler(cf::completeExceptionally);
   }
 
   private static <T extends CompletableFuture<?>> void handleErrorResponse(

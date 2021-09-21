@@ -68,7 +68,7 @@ public final class SystemColumns {
           ROWTIME_TYPE,
           ROWTIME_PSEUDOCOLUMN_VERSION,
           false,
-          true
+          false
       ),
       PseudoColumn.of(
           ROWPARTITION_NAME,

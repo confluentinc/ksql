@@ -431,6 +431,66 @@
       "outputs": [
         {"topic": "test_topic", "timestamp": 1234, "key": {"F1": "key"}, "value": {"ID": 10}}
       ]
+    },
+    {
+      "name": "verify INSERT VALUES fails for ROWPARTITION (matching types)",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (ROWPARTITION) VALUES (5);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Inserting into column `ROWPARTITION` is not allowed.",
+        "status": 400
+      }
+    },
+    {
+      "name": "verify INSERT VALUES fails for ROWOFFSET (matching types)",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (ROWOFFSET) VALUES (5);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Inserting into column `ROWOFFSET` is not allowed.",
+        "status": 400
+      }
+    },
+    {
+      "name": "verify INSERT VALUES fails for ROWPARTITION (non-matching types)",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (ROWPARTITION) VALUES ('abc');"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Inserting into column `ROWPARTITION` is not allowed.",
+        "status": 400
+      }
+    },
+    {
+      "name": "verify INSERT VALUES fails for ROWOFFSET (non-matching types)",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO input (ROWOFFSET) VALUES ('abc);"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Inserting into column `ROWOFFSET` is not allowed.",
+        "status": 400
+      }
     }
   ]
 }

@@ -67,10 +67,11 @@ public class GenericRecordFactoryTest {
   private KsqlConfig ksqlConfig;
 
   //fixme: why is config not mocked yet here?
-  private final GenericRecordFactory recordFactory = new GenericRecordFactory(ksqlConfig, functions, clock::get);
+  private GenericRecordFactory recordFactory;
 
   @Before
   public void setUp() {
+    recordFactory = new GenericRecordFactory(ksqlConfig, functions, clock::get);
     clock.set(0L);
   }
 
@@ -364,14 +365,34 @@ public class GenericRecordFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnInsertDisallowedColumn() {
+  public void shouldThrowOnInsertPartition() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(KEY, SqlTypes.STRING)
         .valueColumn(COL0, SqlTypes.STRING)
         .build();
     final Expression exp = new StringLiteral("a");
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> recordFactory.build(
+        ImmutableList.of(SystemColumns.ROWTIME_NAME, KEY, SystemColumns.ROWPARTITION_NAME),
+        ImmutableList.of(new LongLiteral(1L), exp, exp), schema, DataSourceType.KSTREAM
+    ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Inserting into column `ROWPARTITION` is not allowed."));
+  }
+
+  @Test
+  public void shouldThrowOnInsertRowoffset() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(KEY, SqlTypes.STRING)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .build();
+    final Expression exp = new StringLiteral("a");
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
 
     // When:
     final KsqlException e = assertThrows(KsqlException.class, () -> recordFactory.build(

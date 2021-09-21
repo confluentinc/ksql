@@ -68,6 +68,21 @@
           {"row":{"columns":[2,"a2"]}}
         ]}
       ]
+    },
+    {
+      "name": "disallowed column in pull query select clause- ROWPARTITION",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM S1 (mykey INT KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT mykey, myvalue, ROWPARTITION FROM S1;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Pull queries don't support `ROWPARTITION` in SELECT clauses.",
+        "status": 400
+      }
     }
   ]
 }

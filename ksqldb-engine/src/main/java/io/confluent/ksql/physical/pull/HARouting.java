@@ -63,7 +63,8 @@ public final class HARouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
 
-  private final ExecutorService executorService;
+  private final ExecutorService coordinatorExecutorService;
+  private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
@@ -87,16 +88,26 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.executorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
-        new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
+    // Split the thread pool in two between coordinator and router
+    int coordinatorExecutorServiceSize =
+        Math.max(1, ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG) / 2);
+    int routerExecutorServiceSize =
+        Math.max(1, ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
+            - coordinatorExecutorServiceSize);
+    this.coordinatorExecutorService = Executors.newFixedThreadPool(
+        coordinatorExecutorServiceSize,
+        new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
+    this.routerExecutorService = Executors.newFixedThreadPool(
+        routerExecutorServiceSize,
+        new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.routeQuery = Objects.requireNonNull(routeQuery);
   }
 
   @Override
   public void close() {
-    executorService.shutdown();
+    coordinatorExecutorService.shutdown();
+    routerExecutorService.shutdown();
   }
 
   public CompletableFuture<Void> handlePullQuery(
@@ -143,7 +154,7 @@ public final class HARouting implements AutoCloseable {
         .collect(Collectors.toList());
 
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-    executorService.submit(() -> {
+    coordinatorExecutorService.submit(() -> {
       try {
         executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions, outputSchema,
             queryId, locations, pullQueryQueue);
@@ -189,7 +200,7 @@ public final class HARouting implements AutoCloseable {
       final Map<KsqlNode, Future<RoutingResult>> futures = new LinkedHashMap<>();
       for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
-        futures.put(node, executorService.submit(
+        futures.put(node, routerExecutorService.submit(
             () -> routeQuery.routeQuery(
                 node, entry.getValue(), statement, serviceContext, routingOptions,
                 pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue)
@@ -462,4 +473,6 @@ public final class HARouting implements AutoCloseable {
     SUCCESS,
     STANDBY_FALLBACK
   }
+
+  private static class Alan1 { }
 }

@@ -268,9 +268,15 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
-  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
+  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 50;
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
-      "Size of thread pool used for sending/executing pull queries";
+      "Size of thread pool used for coordinating pull queries";
+
+  public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG
+      = "ksql.query.pull.router.thread.pool.size";
+  public static final Integer KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT = 50;
+  public static final String KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC =
+      "Size of thread pool used for routing pull queries";
 
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED
       = "ksql.query.pull.table.scan.enabled";
@@ -948,6 +954,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC
         )
         .define(
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED,

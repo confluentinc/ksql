@@ -88,17 +88,11 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    // Split the thread pool in two between coordinator and router
-    int coordinatorExecutorServiceSize =
-        Math.max(1, ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG) / 2);
-    int routerExecutorServiceSize =
-        Math.max(1, ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
-            - coordinatorExecutorServiceSize);
     this.coordinatorExecutorService = Executors.newFixedThreadPool(
-        coordinatorExecutorServiceSize,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
         new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
     this.routerExecutorService = Executors.newFixedThreadPool(
-        routerExecutorServiceSize,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG),
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.routeQuery = Objects.requireNonNull(routeQuery);
@@ -473,6 +467,4 @@ public final class HARouting implements AutoCloseable {
     SUCCESS,
     STANDBY_FALLBACK
   }
-
-  private static class Alan1 { }
 }

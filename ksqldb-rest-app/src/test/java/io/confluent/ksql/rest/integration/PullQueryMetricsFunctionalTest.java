@@ -94,7 +94,7 @@ public class PullQueryMetricsFunctionalTest {
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
       .build();
 
-  private static Metrics metrics;
+  private Metrics metrics;
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);

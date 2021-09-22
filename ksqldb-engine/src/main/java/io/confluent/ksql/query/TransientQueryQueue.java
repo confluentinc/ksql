@@ -125,7 +125,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
           onQueued();
           totalRowsQueued.incrementAndGet();
-          break;
+          break; 
         }
       }
     } catch (final InterruptedException e) {

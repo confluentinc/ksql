@@ -94,7 +94,6 @@ public class PullQueryValidator implements QueryValidator {
 
   private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {
 
-    //build a collection here and use joining
     final String disallowedColumns =  analysis.getSelectItems()
         .stream()
         .filter(col -> col instanceof SingleColumn) //filter out select *
@@ -105,7 +104,7 @@ public class PullQueryValidator implements QueryValidator {
         .map(ColumnReferenceExp::getColumnName)
         .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
         .map(Name::toString)
-        .collect(Collectors.joining(",\n"));
+        .collect(Collectors.joining(", "));
 
     if (disallowedColumns.length() != 0) {
       final String message = "Pull queries don't support the following columns in SELECT clauses: "
@@ -128,7 +127,7 @@ public class PullQueryValidator implements QueryValidator {
         .map(ColumnReferenceExp::getColumnName)
         .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
         .map(Name::toString)
-        .collect(Collectors.joining(",\n"));
+        .collect(Collectors.joining(", "));
 
     if (disallowedColumns.length() != 0) {
       final String message = "Pull queries don't support the following columns in WHERE clauses: "

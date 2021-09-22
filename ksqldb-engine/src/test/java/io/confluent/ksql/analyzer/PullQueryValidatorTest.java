@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.analyzer;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -64,6 +65,8 @@ public class PullQueryValidatorTest {
   private SingleColumn singleColumn;
   @Mock
   private ColumnReferenceExp columnReferenceExp;
+  @Mock
+  private ColumnReferenceExp columnReferenceExp2;
 
   private QueryValidator validator;
 
@@ -209,7 +212,7 @@ public class PullQueryValidatorTest {
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString("Pull queries don't support the following columns in SELECT clauses: `ROWPARTITION`\n"));
+      assertThat(e.getMessage(), containsString("Pull queries don't support the following columns in SELECT clauses: `ROWPARTITION`, `ROWOFFSET`"));
     }
   }
 
@@ -226,7 +229,8 @@ public class PullQueryValidatorTest {
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString("Pull queries don't support the following columns in WHERE clauses: `ROWPARTITION`\n"));
+      assertThat(e.getMessage(), containsString(
+          "Pull queries don't support the following columns in WHERE clauses: `ROWPARTITION`, `ROWOFFSET`"));
     }
   }
 
@@ -248,8 +252,9 @@ public class PullQueryValidatorTest {
   private void givenColumnExtractionOfDisallowedColumns(
       MockedStatic<ColumnExtractor> columnExtractor) {
     columnExtractor.when(() -> ColumnExtractor.extractColumns(AN_EXPRESSION))
-        .thenReturn(ImmutableSet.of(columnReferenceExp));
+        .thenReturn(ImmutableSet.of(columnReferenceExp, columnReferenceExp2));
     when(columnReferenceExp.getColumnName()).thenReturn(ROWPARTITION_NAME);
+    when(columnReferenceExp2.getColumnName()).thenReturn(ROWOFFSET_NAME);
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 

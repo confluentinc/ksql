@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.checkerframework.checker.nullness.Opt;
 
 public class PullQueryValidator implements QueryValidator {
 
@@ -91,7 +90,7 @@ public class PullQueryValidator implements QueryValidator {
   }
 
   private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {
-    Optional<ColumnName> disallowed =  analysis.getSelectItems()
+    final Optional<ColumnName> disallowed =  analysis.getSelectItems()
         .stream()
         .filter(col -> col instanceof SingleColumn) //filter out select *
         .map(SingleColumn.class::cast)
@@ -103,7 +102,8 @@ public class PullQueryValidator implements QueryValidator {
         .findFirst();
 
     if (disallowed.isPresent()) {
-      String message = "Pull queries don't support " + disallowed.get() + " in SELECT clauses.";
+      final String message =
+          "Pull queries don't support " + disallowed.get() + " in SELECT clauses.";
       return Optional.of(message);
     }
 
@@ -117,14 +117,15 @@ public class PullQueryValidator implements QueryValidator {
       return Optional.empty();
     }
 
-    Optional<ColumnName> disallowed = ColumnExtractor.extractColumns(expression.get())
+    final Optional<ColumnName> disallowed = ColumnExtractor.extractColumns(expression.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
         .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
         .findFirst();
 
     if (disallowed.isPresent()) {
-      String message = "Pull queries don't support " + disallowed.get() + " in WHERE clauses.";
+      final String message =
+          "Pull queries don't support " + disallowed.get() + " in WHERE clauses.";
       return Optional.of(message);
     }
 
@@ -161,7 +162,7 @@ public class PullQueryValidator implements QueryValidator {
     }
 
     public void check(final Analysis analysis) {
-      Optional<String> exceptionMessage = potentialErrorMessage.apply(analysis);
+      final Optional<String> exceptionMessage = potentialErrorMessage.apply(analysis);
 
       if (exceptionMessage.isPresent()) {
         throw new KsqlException(exceptionMessage.get());

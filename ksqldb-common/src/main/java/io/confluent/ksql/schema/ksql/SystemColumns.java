@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -153,8 +154,8 @@ public final class SystemColumns {
   }
 
   /**
-   * Checks if a given ColumnName is associated with a pseudo column that must be materialized for
-   * table joins
+   * Checks if a given pseudo column name is associated with a pseudo column
+   * that must be materialized for table joins
    *
    * @param columnName the pseudo column name provided
    * @return if the name is associated with a pseudo column that must be materialized for table
@@ -168,20 +169,11 @@ public final class SystemColumns {
         .mustBeMaterializedForTableJoins;
   }
 
-  /**
-   * Checks if a given ColumnName is associated with a pseudo column that is disallowed
-   * for INSERT VALUES operations
-   *
-   * @param columnName the pseudo column name provided
-   * @return if the name is associated with a pseudo column that is disallowed for INSERT VALUES
-   * @throws IllegalArgumentException when column name is not associated with a pseudo column
-   */
   public static boolean isDisallowedForInsertValues(final ColumnName columnName) {
     return pseudoColumns
         .stream()
         .filter(col -> col.name.equals(columnName))
-        .findFirst().orElseThrow(IllegalArgumentException::new)
-        .isDisallowedForInsertValues;
+        .anyMatch(col -> col.isDisallowedForInsertValues);
   }
 
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {

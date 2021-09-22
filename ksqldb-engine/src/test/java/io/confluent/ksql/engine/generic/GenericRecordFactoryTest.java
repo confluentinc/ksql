@@ -54,8 +54,6 @@ import org.mockito.junit.MockitoRule;
 @RunWith(MockitoJUnitRunner.class)
 public class GenericRecordFactoryTest {
 
-  @Rule public MockitoRule rule = MockitoJUnit.rule();
-
   private static final ColumnName KEY = ColumnName.of("K0");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
@@ -66,13 +64,12 @@ public class GenericRecordFactoryTest {
   @Mock
   private KsqlConfig ksqlConfig;
 
-  //fixme: why is config not mocked yet here?
   private GenericRecordFactory recordFactory;
 
   @Before
   public void setUp() {
-    recordFactory = new GenericRecordFactory(ksqlConfig, functions, clock::get);
     clock.set(0L);
+    recordFactory = new GenericRecordFactory(ksqlConfig, functions, clock::get);
   }
 
   @Test
@@ -365,7 +362,7 @@ public class GenericRecordFactoryTest {
   }
 
   @Test
-  public void shouldThrowOnInsertPartition() {
+  public void shouldThrowOnInsertRowpartition() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(KEY, SqlTypes.STRING)

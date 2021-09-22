@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -148,27 +149,25 @@ public class PullQueryValidator implements QueryValidator {
 
   private static final class Rule {
 
-    private final Function<Analysis, Optional<String>> potentialErrorMessage;
+    private final Function<Analysis, Optional<String>> potentialErrorMessageGenerator;
 
     private static Rule of(final Predicate<Analysis> condition, final String failureMsg) {
-      return new Rule(condition, failureMsg);
+      Function<Analysis, Optional<String>> potentialErrorMessageGenerator = (analysis) ->
+          !condition.test(analysis) ? Optional.of(failureMsg) : Optional.empty();
+
+      return new Rule(potentialErrorMessageGenerator);
     }
 
     private static Rule of(final Function<Analysis, Optional<String>> function) {
       return new Rule(function);
     }
 
-    private Rule(final Predicate<Analysis> condition, final String failureMsg) {
-      this.potentialErrorMessage = (analysis) ->
-          !condition.test(analysis) ? Optional.of(failureMsg) : Optional.empty();
-    }
-
     private Rule(final Function<Analysis, Optional<String>> function) {
-      this.potentialErrorMessage = function;
+      this.potentialErrorMessageGenerator = Objects.requireNonNull(function);
     }
 
     public void check(final Analysis analysis) {
-      final Optional<String> exceptionMessage = potentialErrorMessage.apply(analysis);
+      final Optional<String> exceptionMessage = potentialErrorMessageGenerator.apply(analysis);
 
       if (exceptionMessage.isPresent()) {
         throw new KsqlException(exceptionMessage.get());

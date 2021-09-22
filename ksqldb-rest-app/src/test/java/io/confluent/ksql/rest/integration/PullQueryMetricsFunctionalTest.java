@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -33,26 +34,23 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
-import org.apache.kafka.common.metrics.MetricsReporter;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Ignore 
 public class PullQueryMetricsFunctionalTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(PullQueryMetricsFunctionalTest.class);
@@ -93,9 +91,10 @@ public class PullQueryMetricsFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KsqlConfig.METRIC_REPORTER_CLASSES_CONFIG, TestMetricsReporter.class.getName())
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
       .build();
+
+  private static Metrics metrics;
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
@@ -130,10 +129,13 @@ public class PullQueryMetricsFunctionalTest {
         VALUE_FORMAT,
         AGGREGATE_SCHEMA
     );
+    Configurator.setLevel("io.confluent.ksql.rest.integration.PullQueryMetricsFunctionalTest", Level.INFO);
+
   }
 
   @Before
   public void setUp() {
+    metrics = ((KsqlEngine)REST_APP.getEngine()).getEngineMetrics().getMetrics();
   }
 
   @After
@@ -144,36 +146,6 @@ public class PullQueryMetricsFunctionalTest {
   public static void classTearDown() {
   }
 
-  public static class TestMetricsReporter implements MetricsReporter {
-    static final ConcurrentHashMap<MetricName, KafkaMetric> METRICS = new ConcurrentHashMap<>();
-
-    @Override
-    public void init(final List<KafkaMetric> metrics) {
-      for (final KafkaMetric metric : metrics) {
-        METRICS.put(metric.metricName(), metric);
-      }
-    }
-
-    @Override
-    public void metricChange(final KafkaMetric metric) {
-      METRICS.put(metric.metricName(), metric);
-    }
-
-    @Override
-    public void metricRemoval(final KafkaMetric metric) {
-      METRICS.remove(metric.metricName());
-    }
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    public void configure(final Map<String, ?> configs) {
-    }
-  }
-
-  @Test
   public void shouldVerifyMetrics() {
 
     // Given:
@@ -183,7 +155,7 @@ public class PullQueryMetricsFunctionalTest {
         "Number of rows returned - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric recordsReturnedTableMetric = TestMetricsReporter.METRICS.get(recordsReturnedTable);
+    final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
 
     final MetricName latencyTable = new MetricName(
         "pull-query-requests-detailed-latency-min",
@@ -191,7 +163,7 @@ public class PullQueryMetricsFunctionalTest {
         "Min time for a pull query request - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric latencyTableMetric = TestMetricsReporter.METRICS.get(latencyTable);
+    final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);
 
     final MetricName responseSizeTable = new MetricName(
         "pull-query-requests-detailed-response-size",
@@ -199,7 +171,7 @@ public class PullQueryMetricsFunctionalTest {
         "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric responseSizeTableMetric = TestMetricsReporter.METRICS.get(responseSizeTable);
+    final KafkaMetric responseSizeTableMetric = metrics.metric(responseSizeTable);
 
     final MetricName totalRequestsTable = new MetricName(
         "pull-query-requests-detailed-total",
@@ -207,7 +179,7 @@ public class PullQueryMetricsFunctionalTest {
         "Total number of pull query request - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric totalRequestsTableMetric = TestMetricsReporter.METRICS.get(totalRequestsTable);
+    final KafkaMetric totalRequestsTableMetric = metrics.metric(totalRequestsTable);
 
     final MetricName requestDistributionTable = new MetricName(
         "pull-query-requests-detailed-distribution-90",
@@ -215,7 +187,7 @@ public class PullQueryMetricsFunctionalTest {
         "Latency distribution - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric requestDistributionTableMetric = TestMetricsReporter.METRICS.get(requestDistributionTable);
+    final KafkaMetric requestDistributionTableMetric = metrics.metric(requestDistributionTable);
 
 
     final MetricName recordsReturnedStream = new MetricName(
@@ -224,7 +196,7 @@ public class PullQueryMetricsFunctionalTest {
         "Number of rows returned - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric recordsReturnedStreamMetric = TestMetricsReporter.METRICS.get(recordsReturnedStream);
+    final KafkaMetric recordsReturnedStreamMetric = metrics.metric(recordsReturnedStream);
 
     final MetricName latencyStream = new MetricName(
         "pull-query-requests-detailed-latency-min",
@@ -232,7 +204,7 @@ public class PullQueryMetricsFunctionalTest {
         "Min time for a pull query request - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric latencyStreamMetric = TestMetricsReporter.METRICS.get(latencyStream);
+    final KafkaMetric latencyStreamMetric = metrics.metric(latencyStream);
 
     final MetricName responseSizeStream = new MetricName(
         "pull-query-requests-detailed-response-size",
@@ -240,7 +212,7 @@ public class PullQueryMetricsFunctionalTest {
         "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric responseSizeStreamMetric = TestMetricsReporter.METRICS.get(responseSizeStream);
+    final KafkaMetric responseSizeStreamMetric = metrics.metric(responseSizeStream);
 
     final MetricName totalRequestsStream = new MetricName(
         "pull-query-requests-detailed-total",
@@ -248,7 +220,7 @@ public class PullQueryMetricsFunctionalTest {
         "Total number of pull query request - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric totalRequestsStreamMetric = TestMetricsReporter.METRICS.get(totalRequestsStream);
+    final KafkaMetric totalRequestsStreamMetric = metrics.metric(totalRequestsStream);
 
     final MetricName requestDistributionStream = new MetricName(
         "pull-query-requests-detailed-distribution-90",
@@ -256,7 +228,7 @@ public class PullQueryMetricsFunctionalTest {
         "Latency distribution - non_windowed_stream-unknown-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric requestDistributionStreamMetric = TestMetricsReporter.METRICS.get(requestDistributionStream);
+    final KafkaMetric requestDistributionStreamMetric = metrics.metric(requestDistributionStream);
 
     // When:
     final List<StreamedRow> tableRows = RestIntegrationTestUtil.makeQueryRequest(
@@ -274,22 +246,26 @@ public class PullQueryMetricsFunctionalTest {
     assertThat(streamRows.size(), is(2));
 
     LOG.info("************* Table metrics:");
-    for (MetricName metricName : TestMetricsReporter.METRICS.keySet()) {
+    System.out.println("************* Table metrics:");
+    for (MetricName metricName : metrics.metrics().keySet()) {
       if (metricName.name().startsWith("pull-query")
           && metricName.tags().containsValue("non_windowed")
           && metricName.tags().containsValue("key_lookup")
           && metricName.tags().containsValue("source_node")) {
-        LOG.info("----> [" + metricName + " ] " + TestMetricsReporter.METRICS.get(metricName).metricValue());
+        LOG.info("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
+        System.out.println("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
       }
     }
 
     LOG.info("*************** Stream metrics:");
-    for (MetricName metricName : TestMetricsReporter.METRICS.keySet()) {
+    System.out.println("*************** Stream metrics:");
+    for (MetricName metricName : metrics.metrics().keySet()) {
       if (metricName.name().startsWith("pull-query")
           && metricName.tags().containsValue("non_windowed_stream")
           && metricName.tags().containsValue("unknown")
           && metricName.tags().containsValue("source_node")) {
-        LOG.info("----> [" + metricName + " ] " + TestMetricsReporter.METRICS.get(metricName).metricValue());
+        LOG.info("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
+        System.out.println("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
       }
     }
 

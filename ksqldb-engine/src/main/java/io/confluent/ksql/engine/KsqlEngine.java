@@ -234,6 +234,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return cleanupService;
   }
 
+  @VisibleForTesting
+  public KsqlEngineMetrics getEngineMetrics() {
+    return engineMetrics;
+  }
+
   @Override
   public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
     return new SandboxedExecutionContext(primaryContext, serviceContext);

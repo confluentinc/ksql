@@ -5,6 +5,18 @@ tagline: ksqlDB High Availability Pull Queries
 description: Instructions on how to set up high availability pull queries
 ---
 
+HA Configuration Reference
+--------------------------
+
+The required configs for using high availability are summarized here:
+
+- [`ksql.advertised.listener`](../reference/server-configuration.md#ksqladvertisedlistener)
+- [`ksql.streams.num.standby.replicas`](../reference/server-configuration.md#ksqlstreamsnumstandbyreplicas)
+- [`ksql.query.pull.enable.standby.reads`](../reference/server-configuration.md#ksqlquerypullenablestandbyreads)
+- [`ksql.heartbeat.enable`](../reference/server-configuration.md#ksqlheartbeatenable)
+- [`ksql.lag.reporting.enable`](../reference/server-configuration.md#ksqllagreportingenable)
+
+
 High Availability for Pull Queries
 ----------------------------------
 
@@ -21,10 +33,10 @@ ksql.advertised.listener=http://host1.example.com:8088
 ```
 
 The latter configuration is the url propagated to other nodes for inter-node requests, so
-it must be reachable from other hosts/pods in the cluster. This is critical to making a
+it must be reachable from other hosts/pods in the cluster. Inter-node requests are critical in a
 multi-node cluster and can be read about more [here](installation/server-config/index.md#configuring-listeners-of-a-ksqldb-cluster).
 
-While waiting for a failed node to restart is one possibility, it make take more downtime than you
+While waiting for a failed node to restart is one possibility, it may incur more downtime than you
 want and it may not be possible if there is a more serious failure. The other possibility is to have
 replicas of the data, ready to go when they're needed. Fortunately, {{ site.kstreams }} provides a
 mechanism to do this:
@@ -65,8 +77,8 @@ This will cause the request to only consider standbys that are within 100 messag
 host.
 
 With these configurations, you should be able to introduce as much redundancy as you require and
-ensure that your pull queries succeed with controlled lag and low latency. 
+ensure that your pull queries succeed with controlled lag and low latency.
 
 !!! note 
-   {{ site.ccloud }} is configured with HA enabled by default on clusters 8 CSUs or more.
+    {{ site.ccloud }} is configured with HA enabled by default on clusters 8 CSUs or more.
  

@@ -209,7 +209,7 @@ public class PullQueryValidatorTest {
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString("Pull queries don't support `ROWPARTITION` in SELECT clauses."));
+      assertThat(e.getMessage(), containsString("Pull queries don't support the following columns in SELECT clauses: `ROWPARTITION`\n"));
     }
   }
 
@@ -226,7 +226,7 @@ public class PullQueryValidatorTest {
       );
 
       // Then:
-      assertThat(e.getMessage(), containsString("Pull queries don't support `ROWPARTITION` in WHERE clauses."));
+      assertThat(e.getMessage(), containsString("Pull queries don't support the following columns in WHERE clauses: `ROWPARTITION`\n"));
     }
   }
 

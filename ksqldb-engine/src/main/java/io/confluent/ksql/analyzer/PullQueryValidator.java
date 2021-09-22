@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class PullQueryValidator implements QueryValidator {
 
@@ -90,7 +92,9 @@ public class PullQueryValidator implements QueryValidator {
   }
 
   private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {
-    final Optional<ColumnName> disallowed =  analysis.getSelectItems()
+
+    //build a collection here and use joining
+    final String disallowedColumns =  analysis.getSelectItems()
         .stream()
         .filter(col -> col instanceof SingleColumn) //filter out select *
         .map(SingleColumn.class::cast)
@@ -99,11 +103,12 @@ public class PullQueryValidator implements QueryValidator {
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
         .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
-        .findFirst();
+        .map(Name::toString)
+        .collect(Collectors.joining(",\n"));
 
-    if (disallowed.isPresent()) {
-      final String message =
-          "Pull queries don't support " + disallowed.get() + " in SELECT clauses.";
+    if (disallowedColumns.length() != 0) {
+      final String message = "Pull queries don't support the following columns in SELECT clauses: "
+          + disallowedColumns + "\n";
       return Optional.of(message);
     }
 
@@ -117,15 +122,16 @@ public class PullQueryValidator implements QueryValidator {
       return Optional.empty();
     }
 
-    final Optional<ColumnName> disallowed = ColumnExtractor.extractColumns(expression.get())
+    final String disallowedColumns = ColumnExtractor.extractColumns(expression.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
         .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
-        .findFirst();
+        .map(Name::toString)
+        .collect(Collectors.joining(",\n"));
 
-    if (disallowed.isPresent()) {
-      final String message =
-          "Pull queries don't support " + disallowed.get() + " in WHERE clauses.";
+    if (disallowedColumns.length() != 0) {
+      final String message = "Pull queries don't support the following columns in WHERE clauses: "
+          + disallowedColumns + "\n";
       return Optional.of(message);
     }
 

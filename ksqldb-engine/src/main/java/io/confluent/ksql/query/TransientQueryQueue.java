@@ -123,13 +123,8 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
       while (!closed) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-          LOG.info(String.format("----> Stream Adding row to queue"));
           onQueued();
-          LOG.info(String.format("----> Stream Current number of rows added %d",
-                                 totalRowsQueued.get()));
           totalRowsQueued.incrementAndGet();
-          LOG.info(String.format("----> Stream Incremented number of rows added %d",
-                                 totalRowsQueued.get()));
           break;
         }
       }

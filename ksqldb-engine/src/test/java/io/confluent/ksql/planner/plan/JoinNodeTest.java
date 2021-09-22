@@ -134,7 +134,6 @@ public class JoinNodeTest {
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final ValueFormat OTHER_FORMAT = ValueFormat
       .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
-  private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
@@ -190,6 +189,8 @@ public class JoinNodeTest {
   private Expression expression1;
   @Mock
   private Expression expression2;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
@@ -231,6 +232,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldBuildSourceNode() {
+    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)).thenReturn("abc");
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
@@ -244,6 +246,7 @@ public class JoinNodeTest {
 
   @Test
   public void shouldHaveLeftJoin() {
+    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)).thenReturn("abc");
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final Topology topology = builder.build();
@@ -255,6 +258,7 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowOnPartitionMismatch() {
     // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)).thenReturn("abc");
     setupTopicClientExpectations(1, 2);
 
     // When:

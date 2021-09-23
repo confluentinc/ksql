@@ -151,7 +151,7 @@ public class PullQueryValidator implements QueryValidator {
     private final Function<Analysis, Optional<String>> potentialErrorMessageGenerator;
 
     private static Rule of(final Predicate<Analysis> condition, final String failureMsg) {
-      Function<Analysis, Optional<String>> potentialErrorMessageGenerator = (analysis) ->
+      final Function<Analysis, Optional<String>> potentialErrorMessageGenerator = (analysis) ->
           !condition.test(analysis) ? Optional.of(failureMsg) : Optional.empty();
 
       return new Rule(potentialErrorMessageGenerator);
@@ -162,7 +162,8 @@ public class PullQueryValidator implements QueryValidator {
     }
 
     private Rule(final Function<Analysis, Optional<String>> function) {
-      this.potentialErrorMessageGenerator = Objects.requireNonNull(function);
+      this.potentialErrorMessageGenerator =
+          Objects.requireNonNull(function, "potentialErrorMessageGenerator");
     }
 
     public void check(final Analysis analysis) {

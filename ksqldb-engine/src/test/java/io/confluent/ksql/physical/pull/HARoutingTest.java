@@ -116,6 +116,8 @@ public class HARoutingTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private SimpleKsqlClient ksqlClient;
+  @Mock
+  private CompletableFuture<Void> disconnect;
 
   private KsqlPartitionLocation location1;
   private KsqlPartitionLocation location2;
@@ -173,8 +175,8 @@ public class HARoutingTest {
       queue.acceptRow(PQ_ROW1);
       return null;
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        i -> {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
@@ -190,7 +192,7 @@ public class HARoutingTest {
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(
         serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
-        pullQueryQueue);
+        pullQueryQueue, disconnect);
     future.get();
 
     // Then:
@@ -208,8 +210,8 @@ public class HARoutingTest {
     doAnswer(i -> {
       throw new StandbyFallbackException("Error!");
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        new Answer() {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(new Answer() {
           private int count = 0;
 
           public Object answer(InvocationOnMock i) {
@@ -238,12 +240,13 @@ public class HARoutingTest {
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan,
-        statement, routingOptions, logicalSchema, queryId, pullQueryQueue);
+        statement, routingOptions, logicalSchema, queryId, pullQueryQueue, disconnect);
     future.get();
 
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
-    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
+    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(),
+        any());
 
     assertThat(pullQueryQueue.size(), is(2));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW2));
@@ -255,8 +258,8 @@ public class HARoutingTest {
       throws InterruptedException, ExecutionException {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        i -> {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
           throw new RuntimeException("Network error!");
         }
     );
@@ -268,11 +271,12 @@ public class HARoutingTest {
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan,
-        statement, routingOptions, logicalSchema, queryId, pullQueryQueue);
+        statement, routingOptions, logicalSchema, queryId, pullQueryQueue, disconnect);
     future.get();
 
     // Then:
-    verify(ksqlClient, times(1)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
+    verify(ksqlClient, times(1)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(),
+        any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location2)), any(), any());
 
     assertThat(pullQueryQueue.size(), is(1));
@@ -286,8 +290,8 @@ public class HARoutingTest {
     doAnswer(i -> {
       throw new StandbyFallbackException("Error1!");
     }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        new Answer() {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(new Answer() {
           private int count = 0;
 
           public Object answer(InvocationOnMock i) {
@@ -316,14 +320,16 @@ public class HARoutingTest {
         ExecutionException.class,
         () -> {
           CompletableFuture<Void> future = haRouting.handlePullQuery(serviceContext,
-              pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId, pullQueryQueue);
+              pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId, pullQueryQueue,
+              disconnect);
           future.get();
         }
     );
 
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
-    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
+    verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(),
+        any());
 
     assertThat(e.getCause().getMessage(), containsString("Exhausted standby hosts to try."));
   }
@@ -338,7 +344,7 @@ public class HARoutingTest {
     final Exception e = assertThrows(
         MaterializationException.class,
         () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
-            logicalSchema, queryId, pullQueryQueue)
+            logicalSchema, queryId, pullQueryQueue, disconnect)
     );
 
     // Then:
@@ -357,7 +363,7 @@ public class HARoutingTest {
     final Exception e = assertThrows(
         MaterializationException.class,
         () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
-            logicalSchema, queryId, pullQueryQueue)
+            logicalSchema, queryId, pullQueryQueue, disconnect)
     );
 
     // Then:
@@ -369,7 +375,7 @@ public class HARoutingTest {
   public void shouldNotRouteToFilteredHost() throws InterruptedException, ExecutionException {
     // Given:
     location1 = new PartitionLocation(Optional.empty(), 1, ImmutableList.of(badNode, node1));
-    when(ksqlClient.makeQueryRequest(any(), any(), any(), any(), any()))
+    when(ksqlClient.makeQueryRequest(any(), any(), any(), any(), any(), any()))
         .then(invocationOnMock -> RestResponse.successful(200, 2));
     locate(location1, location2, location3, location4);
 
@@ -381,20 +387,21 @@ public class HARoutingTest {
         routingOptions,
         logicalSchema,
         queryId,
-        pullQueryQueue);
+        pullQueryQueue,
+        disconnect);
     fut.get();
 
     // Then:
     verify(ksqlClient, never())
-        .makeQueryRequest(eq(badNode.location()), any(), any(), any(), any());
+        .makeQueryRequest(eq(badNode.location()), any(), any(), any(), any(), any());
   }
 
   @Test
   public void forwardingError_errorRow() {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        i -> {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
@@ -410,7 +417,7 @@ public class HARoutingTest {
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(
         serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
-        pullQueryQueue);
+        pullQueryQueue, disconnect);
     final Exception e = assertThrows(
         ExecutionException.class,
         future::get
@@ -425,8 +432,8 @@ public class HARoutingTest {
   public void forwardingError_authError() {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        i -> {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
@@ -439,7 +446,7 @@ public class HARoutingTest {
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(
         serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
-        pullQueryQueue);
+        pullQueryQueue, disconnect);
     final Exception e = assertThrows(
         ExecutionException.class,
         future::get
@@ -454,8 +461,8 @@ public class HARoutingTest {
   public void forwardingError_noRows() {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        i -> {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
@@ -468,7 +475,7 @@ public class HARoutingTest {
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(
         serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
-        pullQueryQueue);
+        pullQueryQueue, disconnect);
     final Exception e = assertThrows(
         ExecutionException.class,
         future::get
@@ -484,8 +491,8 @@ public class HARoutingTest {
   public void forwardingError_invalidSchema() {
     // Given:
     locate(location2);
-    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any())).thenAnswer(
-        i -> {
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
@@ -501,7 +508,7 @@ public class HARoutingTest {
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(
         serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
-        pullQueryQueue);
+        pullQueryQueue, disconnect);
     final Exception e = assertThrows(
         ExecutionException.class,
         future::get

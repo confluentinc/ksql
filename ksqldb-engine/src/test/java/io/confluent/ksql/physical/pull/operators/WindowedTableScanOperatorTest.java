@@ -18,6 +18,7 @@ import io.confluent.ksql.util.IteratorUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -38,6 +39,8 @@ public class WindowedTableScanOperatorTest {
   private MaterializedWindowedTable windowedTable;
   @Mock
   private DataSourceNode logicalNode;
+  @Mock
+  private CompletableFuture<Void> shouldCancelOperations;
   @Mock
   private WindowedRow WINDOWED_ROW1;
   @Mock
@@ -61,7 +64,7 @@ public class WindowedTableScanOperatorTest {
         Optional.empty(), 3, ImmutableList.of(node3)));
 
     final WindowedTableScanOperator lookupOperator =
-        new WindowedTableScanOperator(materialization, logicalNode);
+        new WindowedTableScanOperator(materialization, logicalNode, shouldCancelOperations);
     when(materialization.windowed()).thenReturn(windowedTable);
     when(windowedTable.get(1, Range.all(), Range.all()))
         .thenReturn(IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2));
@@ -80,5 +83,39 @@ public class WindowedTableScanOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(5L));
+  }
+
+  @Test
+  public void shouldCancel() {
+    //Given:
+    final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 1, ImmutableList.of(node1)));
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 2, ImmutableList.of(node2)));
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 3, ImmutableList.of(node3)));
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 3, ImmutableList.of(node3)));
+
+    final WindowedTableScanOperator lookupOperator =
+        new WindowedTableScanOperator(materialization, logicalNode, shouldCancelOperations);
+    when(materialization.windowed()).thenReturn(windowedTable);
+    when(windowedTable.get(1, Range.all(), Range.all()))
+        .thenReturn(IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2));
+    when(windowedTable.get(2, Range.all(), Range.all()))
+        .thenReturn(IteratorUtil.of());
+    when(windowedTable.get(3, Range.all(), Range.all()))
+        .thenReturn(IteratorUtil.of(WINDOWED_ROW3, WINDOWED_ROW2, WINDOWED_ROW4));
+    lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
+    lookupOperator.open();
+
+    //Then:
+    assertThat(lookupOperator.next(), is(WINDOWED_ROW1));
+    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
+    when(shouldCancelOperations.isDone()).thenReturn(true);
+    assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(2L));
   }
 }

@@ -139,6 +139,7 @@ public final class OldApiUtils {
           routingContext.request().connection().closeHandler(v -> {
             // Close the OutputStream on close of the HTTP connection
             try {
+              streamingOutput.close();
               ros.close();
             } catch (IOException e) {
               promise.fail(e);

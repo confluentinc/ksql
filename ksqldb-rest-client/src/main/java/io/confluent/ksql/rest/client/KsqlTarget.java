@@ -186,7 +186,8 @@ public final class KsqlTarget {
       final String ksql,
       final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
-      final Consumer<List<StreamedRow>> rowConsumer
+      final Consumer<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     final AtomicInteger rowCount = new AtomicInteger(0);
     return post(
@@ -198,7 +199,8 @@ public final class KsqlTarget {
           rowCount.addAndGet(streamedRows.size());
           return streamedRows;
         },
-        rowConsumer);
+        rowConsumer,
+        shouldCloseConnection);
   }
 
   public RestResponse<List<StreamedRow>> postQueryRequest(
@@ -266,10 +268,11 @@ public final class KsqlTarget {
       final Object jsonEntity,
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> mapper,
-      final Consumer<T> chunkHandler
+      final Consumer<T> chunkHandler,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeRequestSync(HttpMethod.POST, path, jsonEntity, responseSupplier, mapper,
-        chunkHandler);
+        chunkHandler, shouldCloseConnection);
   }
 
   private <T> CompletableFuture<RestResponse<T>> executeRequestAsync(
@@ -300,7 +303,8 @@ public final class KsqlTarget {
       final Object requestBody,
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> chunkMapper,
-      final Consumer<T> chunkHandler
+      final Consumer<T> chunkHandler,
+      final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
@@ -321,6 +325,10 @@ public final class KsqlTarget {
             log.error("Error while handling end", t);
             vcf.completeExceptionally(t);
           }
+        });
+        shouldCloseConnection.handle((v, t) -> {
+          resp.request().connection().close();
+          return null;
         });
       });
   }

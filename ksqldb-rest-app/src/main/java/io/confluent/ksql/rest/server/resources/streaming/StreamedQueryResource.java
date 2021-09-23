@@ -317,10 +317,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
             statement.getClass().getName()));
       }
     } catch (final TopicAuthorizationException e) {
+      log.error("Cannot access Kafka topic", e);
       return errorHandler.accessDeniedFromKafkaResponse(e);
     } catch (final KsqlStatementException e) {
+      log.error("Cannot execute statement", e);
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
+      log.error("Error executing pull query", e);
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     }
   }
@@ -469,15 +472,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     // Only check the rate limit at the forwarding host
     Decrementer decrementer = null;
-    if (!isAlreadyForwarded) {
-      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-      decrementer = concurrencyLimiter.increment();
-    }
-    pullBandRateLimiter.allow(KsqlQueryType.PULL);
-
-    final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
-
     try {
+      if (!isAlreadyForwarded) {
+        PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+        decrementer = concurrencyLimiter.increment();
+      }
+      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+
+      final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,
@@ -503,7 +505,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
       return EndpointResponse.ok(pullQueryStreamWriter);
     } catch (final Throwable t) {
-      optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      if (decrementer != null) {
+        decrementer.decrementAtMostOnce();
+      }
       throw t;
     }
   }
@@ -731,14 +735,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);
-  }
-
-  private static String writeValueAsString(final Object object) {
-    try {
-      return OBJECT_MAPPER.writeValueAsString(object);
-    } catch (final JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private EndpointResponse handlePrintTopic(

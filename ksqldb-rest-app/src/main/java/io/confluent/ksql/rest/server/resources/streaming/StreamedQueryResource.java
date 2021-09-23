@@ -317,13 +317,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
             statement.getClass().getName()));
       }
     } catch (final TopicAuthorizationException e) {
-      log.error("Cannot access Kafka topic", e);
       return errorHandler.accessDeniedFromKafkaResponse(e);
-    } catch (final KsqlStatementException e) {
-      log.error("Cannot execute statement", e);
+    } catch (final KsqlStatementException e) {;
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      log.error("Error executing pull query", e);
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     }
   }

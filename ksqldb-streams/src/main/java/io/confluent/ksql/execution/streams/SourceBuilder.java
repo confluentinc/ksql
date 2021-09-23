@@ -110,7 +110,11 @@ final class SourceBuilder extends SourceBuilderBase {
       // we do not need to force a materialization at this source step since the
       // re-partitioned topic will be used for any subsequent state stores, in lieu
       // of the original source topic, thus avoiding the issues above.
-      // See https://github.com/confluentinc/ksql/issues/6650
+      // See https://github.com/confluentinc/ksql/issues/6650.
+      // This intermittent transformValues() call is unnecessary in this case,
+      // i.e., it could be combined with the subsequent transformValues() call
+      // into a single transformValues() call,
+      // it is included to keep KStreams topologies consistent and simplify code
       maybeMaterialized = source.transformValues(
           new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
     }
@@ -174,9 +178,15 @@ final class SourceBuilder extends SourceBuilderBase {
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
     private final int pseudoColumnVersion;
+    private final int numPseudoColumnsToMaterialize;
 
     AddPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.numPseudoColumnsToMaterialize =
+          (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+          .stream()
+          .filter(SystemColumns::mustBeMaterializedForTableJoins)
+          .count();
     }
 
     @Override
@@ -195,12 +205,7 @@ final class SourceBuilder extends SourceBuilderBase {
             return row;
           }
 
-          final int additionalCapacity = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
-              .stream()
-              .filter(SystemColumns::mustBeMaterializedForTableJoins)
-              .count();
-
-          row.ensureAdditionalCapacity(additionalCapacity);
+          row.ensureAdditionalCapacity(numPseudoColumnsToMaterialize);
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final int partition = processorContext.partition();
@@ -224,11 +229,16 @@ final class SourceBuilder extends SourceBuilderBase {
 
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
+    private final int pseudoColumnsToAdd;
 
     AddRemainingPseudoAndKeyCols(
         final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
+          .stream()
+          .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
+          .count();
     }
 
     @Override
@@ -249,13 +259,7 @@ final class SourceBuilder extends SourceBuilderBase {
 
           final Collection<?> keyColumns = keyGenerator.apply(key);
 
-          //remove pseudocolumns we previously materialized so we can add them back in correct order
-
           //ensure extra capacity equal to number of pseudoColumns which we haven't materialized
-          final int pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
-              .stream()
-              .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
-              .count();
 
           row.ensureAdditionalCapacity(pseudoColumnsToAdd);
 

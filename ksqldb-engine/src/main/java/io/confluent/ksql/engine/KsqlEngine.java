@@ -104,6 +104,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
+  private final KsqlConfig ksqlConfig;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -173,6 +174,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
 
     cleanupService.startAsync();
   }
@@ -541,7 +543,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Query query,
       final String queryText) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "");
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig);
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

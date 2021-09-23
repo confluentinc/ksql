@@ -37,19 +37,23 @@ public final class KsqlParserTestUtil {
   @SuppressWarnings("unchecked")
   public static <T extends Statement> PreparedStatement<T> buildSingleAst(
       final String sql,
-      final MetaStore metaStore
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig
   ) {
-    final List<PreparedStatement<?>> statements = buildAst(sql, metaStore);
+    final List<PreparedStatement<?>> statements = buildAst(sql, metaStore, ksqlConfig);
     assertThat(statements, hasSize(1));
     return (PreparedStatement<T>)statements.get(0);
   }
 
-  public static List<PreparedStatement<?>> buildAst(final String sql, final MetaStore metaStore) {
+  public static List<PreparedStatement<?>> buildAst(
+      final String sql,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig) {
     return KSQL_PARSER.parse(sql).stream()
         .map(parsed -> KSQL_PARSER.prepare(parsed, metaStore))
         .map(prepared -> PreparedStatement.of(
             prepared.getStatementText(),
-            AstSanitizer.sanitize(prepared.getStatement(), metaStore)))
+            AstSanitizer.sanitize(prepared.getStatement(), metaStore, ksqlConfig)))
         .collect(Collectors.toList());
   }
 }

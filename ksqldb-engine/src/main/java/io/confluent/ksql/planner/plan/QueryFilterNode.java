@@ -131,8 +131,9 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     // Compiling expression into byte code/interpreting the expression
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        source.getSchema().withoutPseudoAndKeyColsInValue(),
-        addAdditionalColumnsToIntermediateSchema, isWindowed);
+        source.getSchema().withoutPseudoAndKeyColsInValue(ksqlConfig),
+        addAdditionalColumnsToIntermediateSchema, isWindowed,
+        ksqlConfig);
     compiledWhereClause = getExpressionEvaluator(
         rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig, queryPlannerOptions);
   }
@@ -420,7 +421,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
       final Optional<Column> col = schema.findColumn(node.getColumnName());
       if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
         keyColumns.add(node);
-      } else if (SystemColumns.isSystemColumn(node.getColumnName())) {
+      } else if (SystemColumns.isSystemColumn(node.getColumnName(), ksqlConfig)) {
         systemColumns.add(node);
       }
       return null;

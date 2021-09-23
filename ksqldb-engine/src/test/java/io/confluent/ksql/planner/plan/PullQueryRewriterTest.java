@@ -8,15 +8,20 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryRewriterTest {
+
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private MetaStore metaStore;
 
@@ -48,7 +53,7 @@ public class PullQueryRewriterTest {
 
   private Expression getWhereExpression(final String table, String expression) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore)
+        .buildSingleAst("SELECT * FROM " + table + " WHERE " + expression + ";", metaStore, ksqlConfig)
         .getStatement();
 
     assertThat(statement.getWhere().isPresent(), is(true));

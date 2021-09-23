@@ -23,6 +23,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -35,9 +36,13 @@ import java.util.stream.Collectors;
 public final class SourceSchemas {
 
   private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
+  private final KsqlConfig ksqlConfig;
 
-  SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
+  SourceSchemas(
+      final Map<SourceName, LogicalSchema> sourceSchemas,
+      final KsqlConfig ksqlConfig) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
 
     // This will fail
     if (sourceSchemas.isEmpty()) {
@@ -95,7 +100,8 @@ public final class SourceSchemas {
   boolean matchesNonValueField(final Optional<SourceName> source, final ColumnName column) {
     if (!source.isPresent()) {
       return sourceSchemas.values().stream()
-          .anyMatch(schema -> SystemColumns.isPseudoColumn(column) || schema.isKeyColumn(column));
+          .anyMatch(schema ->
+              SystemColumns.isPseudoColumn(column, ksqlConfig) || schema.isKeyColumn(column));
     }
 
     final SourceName sourceName = source.get();
@@ -104,6 +110,6 @@ public final class SourceSchemas {
       throw new IllegalArgumentException("Unknown source: " + sourceName);
     }
 
-    return sourceSchema.isKeyColumn(column) || SystemColumns.isPseudoColumn(column);
+    return sourceSchema.isKeyColumn(column) || SystemColumns.isPseudoColumn(column, ksqlConfig);
   }
 }

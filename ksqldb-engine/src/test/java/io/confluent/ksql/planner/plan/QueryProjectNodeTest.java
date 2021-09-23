@@ -126,7 +126,7 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -151,7 +151,7 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true);
+    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -303,7 +303,7 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
-    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false),
+    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false, ksqlConfig),
         is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(

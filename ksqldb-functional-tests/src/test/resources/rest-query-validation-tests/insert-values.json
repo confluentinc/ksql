@@ -439,9 +439,7 @@
       },
       "statements": [
         "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO input (id VALUES (5);",
-        "INSERT INTO input (val) VALUES ('abc');",
-        "INSERT INTO input (ROWPARTITION) VALUES (5);"
+        "INSERT INTO input (id, val, ROWPARTITION) VALUES (1, 'hello', 5);"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
@@ -456,7 +454,7 @@
       },
       "statements": [
         "CREATE STREAM input (id INT KEY, val STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO input (ROWOFFSET) VALUES (5);"
+        "INSERT INTO input (id, val, ROWOFFSET) VALUES (1, 'hello', 5);"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",

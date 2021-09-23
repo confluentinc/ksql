@@ -157,13 +157,17 @@ public class PullQueryValidator implements QueryValidator {
       return new Rule(potentialErrorMessageGenerator);
     }
 
-    private static Rule of(final Function<Analysis, Optional<String>> function) {
-      return new Rule(function);
+    private static Rule of(
+        final Function<Analysis, Optional<String>> potentialErrorMessageGenerator) {
+      return new Rule(potentialErrorMessageGenerator);
     }
 
-    private Rule(final Function<Analysis, Optional<String>> function) {
+    private Rule(final Function<Analysis, Optional<String>> potentialErrorMessageGenerator) {
       this.potentialErrorMessageGenerator =
-          Objects.requireNonNull(function, "potentialErrorMessageGenerator");
+          Objects.requireNonNull(
+              potentialErrorMessageGenerator,
+              "potentialErrorMessageGenerator"
+          );
     }
 
     public void check(final Analysis analysis) {

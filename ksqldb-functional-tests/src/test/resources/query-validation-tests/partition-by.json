@@ -237,6 +237,7 @@
       }
     },
     {
+      "comments": "Should be changed to expect new schema after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "only key column - select star - with join on keys",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -254,10 +255,10 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT"}
         ]
-      },
-      "comments": "Should be changed to expect new schema after rowpartition.rowoffset.enabled feature flag is removed"
+      }
     },
     {
+      "comments": "Should be changed to expect new schema after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "only key column - select star - with join on value columns",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -275,10 +276,10 @@
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT"}
         ]
-      },
-      "comments": "Should be changed to expect new schema after rowpartition.rowoffset.enabled feature flag is removed"
+      }
     },
     {
+      "comments": "Should be deleted after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "only key column - select star - with join on keys - ROWOFFSET/ROWPARTITION enabled",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
@@ -302,6 +303,7 @@
       }
     },
     {
+      "comments": "Should be deleted after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "only key column - select star - with join on value columns - ROWOFFSET/ROWPARTITION enabled",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true

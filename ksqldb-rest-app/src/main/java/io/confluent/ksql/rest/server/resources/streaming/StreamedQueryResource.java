@@ -592,7 +592,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
               final PullQueryResult r = resultForMetrics.get();
               if (r == null) {
-                log.info("----> Table record error metrics");
                 recordErrorMetrics(pullQueryMetrics, responseBytes, startTimeNanos);
               } else {
                 final PullSourceType sourceType = r.getSourceType();
@@ -610,8 +609,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
                     planType,
                     routingNodeType
                 );
-                log.info(String.format("----> Table record metric totalRowsQueued = %d",
-                                       r.getTotalRowsReturned()));
                 metrics.recordRowsReturned(
                     r.getTotalRowsReturned(),
                     sourceType, planType, routingNodeType);
@@ -645,7 +642,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
               if (m == null || state == null
                   || state.equals(State.ERROR)
                   || state.equals(State.PENDING_ERROR)) {
-                log.info("----> Stream record error metrics");
                 recordErrorMetrics(pullQueryMetrics, responseBytes, startTimeNanos);
               } else {
                 final boolean isWindowed = analysis
@@ -674,8 +670,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
                     m.getTransientQueryMetadata().getRowQueue();
                 // The rows read from the underlying data source equal the rows read by the user
                 // since the WHERE condition is pushed to the data source
-                log.info(String.format("----> Stream record metric totalRowsQueued = %s",
-                                       rowQueue.getTotalRowsQueued()));
                 metrics.recordRowsReturned(rowQueue.getTotalRowsQueued(), sourceType, planType,
                                            routingNodeType);
                 metrics.recordRowsProcessed(rowQueue.getTotalRowsQueued(), sourceType, planType,

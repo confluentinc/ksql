@@ -28,15 +28,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A queue of rows for transient queries.
  */
 public class TransientQueryQueue implements BlockingRowQueue {
-
-  private static final Logger LOG = LoggerFactory.getLogger(TransientQueryQueue.class);
 
   public static final int BLOCKING_QUEUE_CAPACITY = 500;
 
@@ -125,7 +121,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
           onQueued();
           totalRowsQueued.incrementAndGet();
-          break; 
+          break;
         }
       }
     } catch (final InterruptedException e) {

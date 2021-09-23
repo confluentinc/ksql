@@ -38,14 +38,13 @@ import java.util.Optional;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.slf4j.Logger;
@@ -129,8 +128,6 @@ public class PullQueryMetricsFunctionalTest {
         VALUE_FORMAT,
         AGGREGATE_SCHEMA
     );
-    Configurator.setLevel("io.confluent.ksql.rest.integration.PullQueryMetricsFunctionalTest", Level.INFO);
-
   }
 
   @Before
@@ -146,6 +143,7 @@ public class PullQueryMetricsFunctionalTest {
   public static void classTearDown() {
   }
 
+  @Test
   public void shouldVerifyMetrics() {
 
     // Given:
@@ -244,30 +242,6 @@ public class PullQueryMetricsFunctionalTest {
         Optional.empty());
 
     assertThat(streamRows.size(), is(2));
-
-    LOG.info("************* Table metrics:");
-    System.out.println("************* Table metrics:");
-    for (MetricName metricName : metrics.metrics().keySet()) {
-      if (metricName.name().startsWith("pull-query")
-          && metricName.tags().containsValue("non_windowed")
-          && metricName.tags().containsValue("key_lookup")
-          && metricName.tags().containsValue("source_node")) {
-        LOG.info("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
-        System.out.println("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
-      }
-    }
-
-    LOG.info("*************** Stream metrics:");
-    System.out.println("*************** Stream metrics:");
-    for (MetricName metricName : metrics.metrics().keySet()) {
-      if (metricName.name().startsWith("pull-query")
-          && metricName.tags().containsValue("non_windowed_stream")
-          && metricName.tags().containsValue("unknown")
-          && metricName.tags().containsValue("source_node")) {
-        LOG.info("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
-        System.out.println("----> [" + metricName + " ] " + metrics.metrics().get(metricName).metricValue());
-      }
-    }
 
     // Then:
     assertThat(recordsReturnedTableMetric.metricValue(), is(1.0));

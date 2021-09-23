@@ -227,7 +227,6 @@ public class PullQueryExecutorMetrics implements Closeable {
       final RoutingNodeType routingNodeType
   ) {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
-    System.out.println("---> Metrics: Record rows returned, value = " + value);
     if (rowsReturnedSensorMap.containsKey(key)) {
       rowsReturnedSensorMap.get(key).record(value);
     } else {

@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -43,13 +41,16 @@ import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.util.Objects.requireNonNull;
 
 @SuppressWarnings("UnstableApiUsage")
 final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
@@ -104,10 +105,23 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
     scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
 
-    final ScalablePushQueryMetadata pushQueryMetadata = ksqlEngine
-        .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
-            plannerOptions, context, scalablePushQueryMetrics);
-    pushQueryMetadata.prepare();
+    ScalablePushQueryMetadata pushQueryMetadata = null;
+    try {
+      pushQueryMetadata = ksqlEngine
+              .executeScalablePushQuery(analysis, serviceContext, query, pushRouting,
+                      routingOptions, plannerOptions, context, scalablePushQueryMetrics);
+
+      final ScalablePushQueryMetadata finalPushQueryMetadata = pushQueryMetadata;
+      pushQueryMetadata.onCompletionOrException((v, throwable) ->
+              scalablePushQueryMetrics.ifPresent(
+                      m -> recordMetrics(m, finalPushQueryMetadata, startTimeNanos)));
+      pushQueryMetadata.prepare();
+    } catch (Throwable t) {
+      if (pushQueryMetadata == null) {
+        scalablePushQueryMetrics.ifPresent(m -> recordErrorMetrics(m, startTimeNanos));
+      }
+      throw t;
+    }
 
     return new PushQueryPublisher(exec, pushQueryMetadata);
   }
@@ -125,8 +139,9 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   }
 
 
-  private void recordMetrics(
-      final ScalablePushQueryExecutorMetrics metrics, final ScalablePushQueryMetadata metadata) {
+  private static void recordMetrics(
+          final ScalablePushQueryExecutorMetrics metrics, final ScalablePushQueryMetadata metadata,
+          final long startTimeNanos) {
 
     final QuerySourceType sourceType = metadata.getSourceType();
     final RoutingNodeType routingNodeType = metadata.getRoutingNodeType();
@@ -139,7 +154,8 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
         sourceType, routingNodeType);
   }
 
-  private void recordErrorMetrics(final ScalablePushQueryExecutorMetrics metrics) {
+  private static void recordErrorMetrics(
+          final ScalablePushQueryExecutorMetrics metrics, final long startTimeNanos) {
     metrics.recordConnectionDurationForError(startTimeNanos);
     metrics.recordZeroRowsReturnedForError();
     metrics.recordZeroRowsProcessedForError();

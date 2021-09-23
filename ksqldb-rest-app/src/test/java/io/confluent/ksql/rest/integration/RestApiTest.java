@@ -36,7 +36,6 @@ import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -103,7 +102,6 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -497,6 +495,42 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
     assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
+  }
+
+  @Test
+  public void shouldExecutePullQueryThatReturnsStreamOverRestV1AndIgnoreReset() {
+    // When:
+    final KsqlRequest request =
+        new KsqlRequest(
+            "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + ";",
+            ImmutableMap.of("auto.offset.reset", "lastest"), // should get ignored
+            ImmutableMap.of(),
+            null
+        );
+
+    final String response = RestIntegrationTestUtil.rawRestRequest(REST_APP, HTTP_1_1, POST,
+            "/query", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+            Optional.empty())
+        .body()
+        .toString();
+
+    // Then:
+
+    assertThat(
+        response.replaceFirst("queryId\":\"transient_[^\"]*\"", "queryId\":\"XYZ\""),
+        equalTo(
+            "[{\"header\":{\"queryId\":\"XYZ\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},\n"
+                + "{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},\n"
+                + "{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},\n"
+                + "{\"row\":{\"columns\":[\"USER_4\",\"PAGE_3\",3]}},\n"
+                + "{\"row\":{\"columns\":[\"USER_3\",\"PAGE_4\",4]}},\n"
+                + "{\"row\":{\"columns\":[\"USER_0\",\"PAGE_5\",5]}},\n"
+                + "{\"row\":{\"columns\":[\"USER_2\",\"PAGE_5\",6]}},\n"
+                + "{\"row\":{\"columns\":[\"USER_3\",\"PAGE_5\",7]}},\n"
+                + "\n"
+                + "]\n"
+    )
+    );
   }
 
   @Test

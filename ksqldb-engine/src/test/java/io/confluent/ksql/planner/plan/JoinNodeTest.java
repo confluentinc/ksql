@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -135,9 +136,16 @@ public class JoinNodeTest {
   private static final ValueFormat OTHER_FORMAT = ValueFormat
       .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
 
-  private static KsqlConfig ksqlConfig;
   private StreamsBuilder builder;
   private JoinNode joinNode;
+
+  private static final KsqlConfig ksqlConfig;
+
+  static {
+    final Properties props = new Properties();
+    props.put(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true);
+    ksqlConfig = new KsqlConfig(props);
+  }
 
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
@@ -199,10 +207,6 @@ public class JoinNodeTest {
     final ServiceContext serviceContext = mock(ServiceContext.class);
     when(serviceContext.getTopicClient())
         .thenReturn(mockKafkaTopicClient);
-
-    final Properties props = new Properties();
-    props.put(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true);
-    ksqlConfig = new KsqlConfig(props);
 
     when(planBuildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(planBuildContext.getServiceContext()).thenReturn(serviceContext);

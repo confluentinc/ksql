@@ -174,7 +174,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
-    this.ksqlConfig = ksqlConfig;
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
 
     cleanupService.startAsync();
   }
@@ -316,12 +316,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  /**
-   * Unlike the other queries, stream pull queries are split into create and wait because the three
-   * API endpoints all need to do different stuff before, in the middle of, and after these two
-   * phases. One of them actually needs to wait on the pull query in a callback after starting the
-   * query, so splitting it into two method calls was the most practical choice.
-   */
   public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,
       final ImmutableAnalysis analysis,

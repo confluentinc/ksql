@@ -26,7 +26,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -143,8 +142,6 @@ public final class SystemColumns {
 
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
 
-    validatePseudoColumnVersion(pseudoColumnVersion);
-
     return Stream.concat(
         WINDOW_BOUNDS_COLUMN_NAMES.stream(),
         pseudoColumnNames(pseudoColumnVersion).stream()
@@ -153,8 +150,8 @@ public final class SystemColumns {
   }
 
   /**
-   * Checks if a given pseudo column name is associated with a pseudo column
-   * that must be materialized for table joins
+   * Checks if a given pseudo column name is associated with a pseudo column that must be
+   * materialized for table joins
    *
    * @param columnName the pseudo column name provided
    * @return if the name is associated with a pseudo column that must be materialized for table
@@ -184,7 +181,7 @@ public final class SystemColumns {
   private static void validatePseudoColumnVersion(final int pseudoColumnVersionNumber) {
     if (pseudoColumnVersionNumber < LEGACY_PSEUDOCOLUMN_VERSION_NUMBER
         || pseudoColumnVersionNumber > CURRENT_PSEUDOCOLUMN_VERSION_NUMBER) {
-      throw new KsqlException("Invalid pseudoColumnVersionNumber provided");
+      throw new IllegalArgumentException("Invalid pseudoColumnVersionNumber provided");
     }
   }
 
@@ -217,7 +214,6 @@ public final class SystemColumns {
         final int version,
         final boolean mustBeMaterializedForTableJoins,
         final boolean isDisallowedForInsertValues
-
     ) {
       return new PseudoColumn(
           name,

@@ -36,10 +36,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -69,9 +69,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -134,7 +134,8 @@ public class JoinNodeTest {
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final ValueFormat OTHER_FORMAT = ValueFormat
       .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
-  private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
+
+  private static KsqlConfig ksqlConfig;
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
@@ -198,6 +199,10 @@ public class JoinNodeTest {
     final ServiceContext serviceContext = mock(ServiceContext.class);
     when(serviceContext.getTopicClient())
         .thenReturn(mockKafkaTopicClient);
+
+    final Properties props = new Properties();
+    props.put(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true);
+    ksqlConfig = new KsqlConfig(props);
 
     when(planBuildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(planBuildContext.getServiceContext()).thenReturn(serviceContext);

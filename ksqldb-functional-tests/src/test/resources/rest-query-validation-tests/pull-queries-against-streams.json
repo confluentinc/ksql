@@ -241,12 +241,12 @@
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
-        "CREATE STREAM S1 (mykey INT KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT mykey, myvalue, ROWOFFSET FROM S1;"
+        "CREATE TABLE T1 (mykey INT PRIMARY KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT mykey, myvalue, ROWOFFSET, ROWPARTITION FROM T1;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support `ROWOFFSET` in SELECT clauses.",
+        "message": "Pull queries don't support the following columns in SELECT clauses: `ROWOFFSET`, `ROWPARTITION`",
         "status": 400
       }
     },
@@ -256,12 +256,12 @@
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
-        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT * FROM S1 WHERE mykey < 1 AND ROWPARTITION != 2;"
+        "CREATE TABLE T1 (MYKEY INT PRIMARY KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM T1 WHERE mykey < 1 AND ROWPARTITION != 2 AND ROWOFFSET > 3;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support `ROWPARTITION` in WHERE clauses.",
+        "message": "Pull queries don't support the following columns in WHERE clauses: `ROWPARTITION`, `ROWOFFSET`",
         "status": 400
       }
     }

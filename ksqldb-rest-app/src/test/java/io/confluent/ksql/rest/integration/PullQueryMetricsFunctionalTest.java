@@ -141,7 +141,7 @@ public class PullQueryMetricsFunctionalTest {
 
   @AfterClass
   public static void classTearDown() {
-  } 
+  }
 
   @Test
   public void shouldVerifyMetrics() {

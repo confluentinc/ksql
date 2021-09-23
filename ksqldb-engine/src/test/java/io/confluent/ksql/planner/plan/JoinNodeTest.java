@@ -26,6 +26,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -118,17 +119,24 @@ public class JoinNodeTest {
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
   private static final SourceName RIGHT2_ALIAS = SourceName.of("right2");
   private static final SourceName SINK = SourceName.of("sink");
+  private static final KsqlConfig ksqlConfig;
+
+  static {
+    final Properties props = new Properties();
+    props.put(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, false);
+    ksqlConfig = new KsqlConfig(props);
+  }
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
-      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
   );
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
-      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
   );
 
   private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
-      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat
@@ -138,14 +146,6 @@ public class JoinNodeTest {
 
   private StreamsBuilder builder;
   private JoinNode joinNode;
-
-  private static final KsqlConfig ksqlConfig;
-
-  static {
-    final Properties props = new Properties();
-    props.put(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true);
-    ksqlConfig = new KsqlConfig(props);
-  }
 
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
@@ -647,14 +647,10 @@ public class JoinNodeTest {
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .build()
     ));
@@ -675,14 +671,10 @@ public class JoinNodeTest {
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .valueColumn(SYNTH_KEY, SqlTypes.BIGINT)
         .build()

@@ -147,7 +147,10 @@ public class HARoutingTest {
     location3 = new PartitionLocation(Optional.empty(), 3, ImmutableList.of(node1, node2));
     location4 = new PartitionLocation(Optional.empty(), 4, ImmutableList.of(node2, node1));
     // We require at least two threads, one for the orchestrator, and the other for the partitions.
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)).thenReturn(2);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG))
+        .thenReturn(1);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG))
+        .thenReturn(1);
 
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
     haRouting = new HARouting(

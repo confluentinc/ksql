@@ -140,6 +140,10 @@ public final class OldApiUtils {
             // Close the OutputStream on close of the HTTP connection
             try {
               streamingOutput.close();
+            } catch (final Throwable t) {
+              promise.fail(t);
+            }
+            try {
               ros.close();
             } catch (IOException e) {
               promise.fail(e);

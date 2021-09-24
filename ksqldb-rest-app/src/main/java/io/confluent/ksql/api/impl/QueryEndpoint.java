@@ -49,7 +49,7 @@ import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigPlannerO
 import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigRoutingOptions;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
-import io.confluent.ksql.rest.util.PullQueryMetricsUtil;
+import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.schema.ksql.Column;
@@ -293,7 +293,7 @@ public class QueryEndpoint {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<StreamPullQueryMetadata> resultForMetrics = new AtomicReference<>(null);
     final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
-    metricsCallbackHolder.setCallback(PullQueryMetricsUtil.initializeStreamMetricsCallback(
+    metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullStreamMetricsCallback(
         pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics, refDecrementer));
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
@@ -333,7 +333,7 @@ public class QueryEndpoint {
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
-    metricsCallbackHolder.setCallback(PullQueryMetricsUtil.initializeTableMetricsCallback(
+    metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullTableMetricsCallback(
         pullQueryMetrics, pullBandRateLimiter, resultForMetrics));
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
         ksqlConfig,

@@ -31,7 +31,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 
-public class PullQueryMetricsUtil {
+public final class PullQueryMetricsUtil {
+
+  private PullQueryMetricsUtil() {
+  }
 
   public static MetricsCallback initializeTableMetricsCallback(
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
@@ -139,7 +142,6 @@ public class PullQueryMetricsUtil {
 
     return metricsCallback;
   }
-
 
   private static void recordErrorMetrics(
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,

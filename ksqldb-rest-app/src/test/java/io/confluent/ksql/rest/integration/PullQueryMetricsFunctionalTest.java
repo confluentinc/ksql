@@ -105,6 +105,76 @@ public class PullQueryMetricsFunctionalTest {
       .withProperty("auto.offset.reset", "earliest")
       .build();
 
+  private static final MetricName recordsReturnedTable = new MetricName(
+      "pull-query-requests-rows-returned-total",
+      "_confluent-ksql-pull-query",
+      "Number of rows returned - non_windowed-key_lookup-source_node",
+      TABLE_TAGS
+  );
+
+  private static final MetricName latencyTable = new MetricName(
+      "pull-query-requests-detailed-latency-min",
+      "_confluent-ksql-pull-query",
+      "Min time for a pull query request - non_windowed-key_lookup-source_node",
+      TABLE_TAGS
+  );
+
+  private static final MetricName responseSizeTable = new MetricName(
+      "pull-query-requests-detailed-response-size",
+      "_confluent-ksql-pull-query",
+      "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
+      TABLE_TAGS
+  );
+
+  private static final MetricName totalRequestsTable = new MetricName(
+      "pull-query-requests-detailed-total",
+      "_confluent-ksql-pull-query",
+      "Total number of pull query request - non_windowed-key_lookup-source_node",
+      TABLE_TAGS
+  );
+
+  private static final MetricName requestDistributionTable = new MetricName(
+      "pull-query-requests-detailed-distribution-90",
+      "_confluent-ksql-pull-query",
+      "Latency distribution - non_windowed-key_lookup-source_node",
+      TABLE_TAGS
+  );
+
+  private static final MetricName recordsReturnedStream = new MetricName(
+      "pull-query-requests-rows-returned-total",
+      "_confluent-ksql-pull-query",
+      "Number of rows returned - non_windowed_stream-unknown-source_node",
+      STREAMS_TAGS
+  );
+
+  private static final MetricName latencyStream = new MetricName(
+      "pull-query-requests-detailed-latency-min",
+      "_confluent-ksql-pull-query",
+      "Min time for a pull query request - non_windowed_stream-unknown-source_node",
+      STREAMS_TAGS
+  );
+
+  private static final MetricName responseSizeStream = new MetricName(
+      "pull-query-requests-detailed-response-size",
+      "_confluent-ksql-pull-query",
+      "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
+      STREAMS_TAGS
+  );
+
+  private static final MetricName totalRequestsStream = new MetricName(
+      "pull-query-requests-detailed-total",
+      "_confluent-ksql-pull-query",
+      "Total number of pull query request - non_windowed_stream-unknown-source_node",
+      STREAMS_TAGS
+  );
+
+  private static final MetricName requestDistributionStream = new MetricName(
+      "pull-query-requests-detailed-distribution-90",
+      "_confluent-ksql-pull-query",
+      "Latency distribution - non_windowed_stream-unknown-source_node",
+      TABLE_TAGS
+  );
+
   private Metrics metrics;
 
   @ClassRule
@@ -167,85 +237,16 @@ public class PullQueryMetricsFunctionalTest {
   public void shouldVerifyMetrics() {
 
     // Given:
-    final MetricName recordsReturnedTable = new MetricName(
-        "pull-query-requests-rows-returned-total",
-        "_confluent-ksql-pull-query",
-        "Number of rows returned - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
-
-    final MetricName latencyTable = new MetricName(
-        "pull-query-requests-detailed-latency-min",
-        "_confluent-ksql-pull-query",
-        "Min time for a pull query request - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);
-
-    final MetricName responseSizeTable = new MetricName(
-        "pull-query-requests-detailed-response-size",
-        "_confluent-ksql-pull-query",
-        "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric responseSizeTableMetric = metrics.metric(responseSizeTable);
-
-    final MetricName totalRequestsTable = new MetricName(
-        "pull-query-requests-detailed-total",
-        "_confluent-ksql-pull-query",
-        "Total number of pull query request - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric totalRequestsTableMetric = metrics.metric(totalRequestsTable);
-
-    final MetricName requestDistributionTable = new MetricName(
-        "pull-query-requests-detailed-distribution-90",
-        "_confluent-ksql-pull-query",
-        "Latency distribution - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric requestDistributionTableMetric = metrics.metric(requestDistributionTable);
 
-
-    final MetricName recordsReturnedStream = new MetricName(
-        "pull-query-requests-rows-returned-total",
-        "_confluent-ksql-pull-query",
-        "Number of rows returned - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric recordsReturnedStreamMetric = metrics.metric(recordsReturnedStream);
-
-    final MetricName latencyStream = new MetricName(
-        "pull-query-requests-detailed-latency-min",
-        "_confluent-ksql-pull-query",
-        "Min time for a pull query request - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric latencyStreamMetric = metrics.metric(latencyStream);
-
-    final MetricName responseSizeStream = new MetricName(
-        "pull-query-requests-detailed-response-size",
-        "_confluent-ksql-pull-query",
-        "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric responseSizeStreamMetric = metrics.metric(responseSizeStream);
-
-    final MetricName totalRequestsStream = new MetricName(
-        "pull-query-requests-detailed-total",
-        "_confluent-ksql-pull-query",
-        "Total number of pull query request - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric totalRequestsStreamMetric = metrics.metric(totalRequestsStream);
-
-    final MetricName requestDistributionStream = new MetricName(
-        "pull-query-requests-detailed-distribution-90",
-        "_confluent-ksql-pull-query",
-        "Latency distribution - non_windowed_stream-unknown-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric requestDistributionStreamMetric = metrics.metric(requestDistributionStream);
 
     // When:
@@ -280,93 +281,24 @@ public class PullQueryMetricsFunctionalTest {
   @Test
   public void shouldVerifyMetricsHttp2() {
     // Given:
-    final MetricName recordsReturnedTable = new MetricName(
-        "pull-query-requests-rows-returned-total",
-        "_confluent-ksql-pull-query",
-        "Number of rows returned - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
-
-    final MetricName latencyTable = new MetricName(
-        "pull-query-requests-detailed-latency-min",
-        "_confluent-ksql-pull-query",
-        "Min time for a pull query request - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);
-
-    final MetricName responseSizeTable = new MetricName(
-        "pull-query-requests-detailed-response-size",
-        "_confluent-ksql-pull-query",
-        "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric responseSizeTableMetric = metrics.metric(responseSizeTable);
-
-    final MetricName totalRequestsTable = new MetricName(
-        "pull-query-requests-detailed-total",
-        "_confluent-ksql-pull-query",
-        "Total number of pull query request - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric totalRequestsTableMetric = metrics.metric(totalRequestsTable);
-
-    final MetricName requestDistributionTable = new MetricName(
-        "pull-query-requests-detailed-distribution-90",
-        "_confluent-ksql-pull-query",
-        "Latency distribution - non_windowed-key_lookup-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric requestDistributionTableMetric = metrics.metric(requestDistributionTable);
 
-
-    final MetricName recordsReturnedStream = new MetricName(
-        "pull-query-requests-rows-returned-total",
-        "_confluent-ksql-pull-query",
-        "Number of rows returned - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric recordsReturnedStreamMetric = metrics.metric(recordsReturnedStream);
-
-    final MetricName latencyStream = new MetricName(
-        "pull-query-requests-detailed-latency-min",
-        "_confluent-ksql-pull-query",
-        "Min time for a pull query request - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric latencyStreamMetric = metrics.metric(latencyStream);
-
-    final MetricName responseSizeStream = new MetricName(
-        "pull-query-requests-detailed-response-size",
-        "_confluent-ksql-pull-query",
-        "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric responseSizeStreamMetric = metrics.metric(responseSizeStream);
-
-    final MetricName totalRequestsStream = new MetricName(
-        "pull-query-requests-detailed-total",
-        "_confluent-ksql-pull-query",
-        "Total number of pull query request - non_windowed_stream-unknown-source_node",
-        STREAMS_TAGS
-    );
     final KafkaMetric totalRequestsStreamMetric = metrics.metric(totalRequestsStream);
-
-    final MetricName requestDistributionStream = new MetricName(
-        "pull-query-requests-detailed-distribution-90",
-        "_confluent-ksql-pull-query",
-        "Latency distribution - non_windowed_stream-unknown-source_node",
-        TABLE_TAGS
-    );
     final KafkaMetric requestDistributionStreamMetric = metrics.metric(requestDistributionStream);
 
-    final String sqlTable = "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
-    final String sqlStream = "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';";
     // When:
+    final String sqlTable = "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
     QueryResponse queryResponse1 = executeQuery(sqlTable);
     assertThat(queryResponse1.rows, hasSize(1));
 
+    final String sqlStream = "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';";
     QueryResponse queryResponse2 = executeQuery(sqlStream);
     assertThat(queryResponse2.rows, hasSize(1));
 

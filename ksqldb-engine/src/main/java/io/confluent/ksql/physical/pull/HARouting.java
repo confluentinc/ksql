@@ -376,6 +376,12 @@ public final class HARouting implements AutoCloseable {
       if (ksqlException != null) {
         throw ksqlException;
       }
+      // If the exception was caused by closing the connection, we consider this intentional and
+      // just return.
+      if (shouldCancelRequests.isDone()) {
+        LOG.warn("Connection canceled, so returning");
+        return;
+      }
       // If we get some kind of unknown error, we assume it's network or other error from the
       // KsqlClient and try standbys
       throw new StandbyFallbackException(String.format(

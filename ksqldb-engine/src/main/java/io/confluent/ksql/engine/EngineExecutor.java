@@ -601,7 +601,7 @@ final class EngineExecutor {
         query,
         sink,
         metaStore,
-        ksqlConfig
+        ksqlConfig.cloneWithPropertyOverwrite(statement.getSessionConfig().getOverrides())
     );
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),

@@ -138,7 +138,7 @@ public class QueryEndpoint {
 
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText(), properties);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
       switch (dataSourceType) {
@@ -169,7 +169,11 @@ public class QueryEndpoint {
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(),
+              statement.getStatementText(),
+              statement.getSessionConfig().getOverrides()
+          );
       return createScalablePushQueryPublisher(
           analysis,
           context,

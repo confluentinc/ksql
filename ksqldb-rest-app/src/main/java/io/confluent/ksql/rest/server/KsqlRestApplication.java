@@ -44,7 +44,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.internal.JmxDataPointsReporter;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.internal.StorageUtilizationMetricsReporter;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -199,7 +199,7 @@ public final class KsqlRestApplication implements Executable {
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter pullQueryRateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
@@ -242,7 +242,7 @@ public final class KsqlRestApplication implements Executable {
       final Vertx vertx,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter pullQueryRateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
@@ -827,9 +827,9 @@ public final class KsqlRestApplication implements Executable {
         Time.SYSTEM))
         : Optional.empty();
 
-    final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics =
+    final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics =
         ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)
-        ? Optional.of(new ScalablePushQueryExecutorMetrics(
+        ? Optional.of(new ScalablePushQueryMetrics(
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
         Time.SYSTEM))

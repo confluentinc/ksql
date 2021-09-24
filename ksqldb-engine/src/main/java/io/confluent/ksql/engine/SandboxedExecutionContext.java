@@ -20,7 +20,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -209,7 +209,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
       final Context context,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     return EngineExecutor.create(
         engineContext,

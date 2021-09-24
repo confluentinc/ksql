@@ -22,7 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
@@ -91,7 +91,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final ImmutableAnalysis analysis,
       final PushRouting pushRouting,
       final Context context,
-      final  Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final  Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final long startTimeNanos,
       final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
@@ -140,7 +140,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
 
   private static void recordMetrics(
-          final ScalablePushQueryExecutorMetrics metrics, final ScalablePushQueryMetadata metadata,
+          final ScalablePushQueryMetrics metrics, final ScalablePushQueryMetadata metadata,
           final long startTimeNanos) {
 
     final QuerySourceType sourceType = metadata.getSourceType();
@@ -155,7 +155,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   }
 
   private static void recordErrorMetrics(
-          final ScalablePushQueryExecutorMetrics metrics, final long startTimeNanos) {
+          final ScalablePushQueryMetrics metrics, final long startTimeNanos) {
     metrics.recordConnectionDurationForError(startTimeNanos);
     metrics.recordZeroRowsReturnedForError();
     metrics.recordZeroRowsProcessedForError();

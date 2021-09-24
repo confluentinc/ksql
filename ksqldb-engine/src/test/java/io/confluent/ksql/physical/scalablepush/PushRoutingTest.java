@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.physical.scalablepush.PushRouting.RoutingResult;
@@ -87,7 +87,7 @@ public class PushRoutingTest {
   @Mock
   private TransientQueryQueue transientQueryQueueMock;
   @Mock
-  private Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
 
   private Vertx vertx;
   private Context context;

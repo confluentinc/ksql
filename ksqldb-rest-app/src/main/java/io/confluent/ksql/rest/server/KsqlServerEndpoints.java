@@ -32,7 +32,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -90,7 +90,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
@@ -118,7 +118,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,

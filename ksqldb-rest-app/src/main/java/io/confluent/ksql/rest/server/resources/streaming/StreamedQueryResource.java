@@ -32,7 +32,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -111,7 +111,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
@@ -136,7 +136,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -185,7 +185,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,

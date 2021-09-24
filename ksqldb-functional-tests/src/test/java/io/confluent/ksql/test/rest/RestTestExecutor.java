@@ -664,6 +664,7 @@ public class RestTestExecutor implements Closeable {
             }));
 
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
+    int printOuts = 0;
     mainloop:
     while (System.currentTimeMillis() < threshold) {
       for (String queryApplicationId : queryApplicationIds) {
@@ -678,7 +679,10 @@ public class RestTestExecutor implements Closeable {
 
         for (final TopicPartition tp : topicPartitions) {
             if (!currentOffsets.containsKey(tp) && endOffsets.get(tp) > 0) {
-              LOG.info("Haven't committed offsets yet for " + tp + " end offset " + endOffsets.get(tp));
+              if (printOuts++ % 10 == 0) {
+                LOG.info("Haven't committed offsets yet for " + tp + " end offset "
+                    + endOffsets.get(tp));
+              }
               threadYield();
               continue mainloop;
             }
@@ -689,8 +693,10 @@ public class RestTestExecutor implements Closeable {
           final long currentOffset = entry.getValue();
           final long endOffset = endOffsets.get(tp);
           if (currentOffset < endOffset) {
-            LOG.info("Offsets are not caught up current: " + currentOffsets + " end: "
-                + endOffsets);
+            if (printOuts++ % 10 == 0) {
+              LOG.info("Offsets are not caught up current: " + currentOffsets + " end: "
+                  + endOffsets);
+            }
             threadYield();
             continue mainloop;
           }
@@ -723,7 +729,7 @@ public class RestTestExecutor implements Closeable {
   private static void threadYield() {
     try {
       // More reliable than Thread.yield
-      Thread.sleep(10);
+      Thread.sleep(5);
     } catch (final InterruptedException e) {
       // ignore
     }

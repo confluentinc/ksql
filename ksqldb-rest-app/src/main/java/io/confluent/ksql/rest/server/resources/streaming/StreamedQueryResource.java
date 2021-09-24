@@ -318,7 +318,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       }
     } catch (final TopicAuthorizationException e) {
       return errorHandler.accessDeniedFromKafkaResponse(e);
-    } catch (final KsqlStatementException e) {;
+    } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return errorHandler.generateResponse(e, Errors.badRequest(e));

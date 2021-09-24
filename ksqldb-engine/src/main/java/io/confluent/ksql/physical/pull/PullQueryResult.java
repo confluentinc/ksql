@@ -101,6 +101,11 @@ public class PullQueryResult {
       future.completeExceptionally(t);
       throw t;
     }
+    // Register the error metric
+    onException(t ->
+        pullQueryMetrics.ifPresent(metrics ->
+            metrics.recordErrorRate(1, sourceType, planType, routingNodeType))
+    );
   }
 
   public void stop() {
@@ -114,8 +119,6 @@ public class PullQueryResult {
 
   public void onException(final Consumer<Throwable> consumer) {
     future.exceptionally(t -> {
-      pullQueryMetrics.ifPresent(metrics ->
-          metrics.recordErrorRate(1, sourceType, planType, routingNodeType));
       consumer.accept(t);
       return null;
     });

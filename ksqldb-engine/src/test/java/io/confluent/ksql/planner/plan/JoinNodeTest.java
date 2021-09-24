@@ -26,6 +26,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,10 +37,11 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -69,9 +71,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -117,23 +119,31 @@ public class JoinNodeTest {
   private static final SourceName RIGHT_ALIAS = SourceName.of("right");
   private static final SourceName RIGHT2_ALIAS = SourceName.of("right2");
   private static final SourceName SINK = SourceName.of("sink");
+  private static final KsqlConfig ksqlConfig;
+
+  static {
+    final Properties props = new Properties();
+    props.put(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, false);
+    ksqlConfig = new KsqlConfig(props);
+  }
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = prependAlias(
-      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+      LEFT_ALIAS, LEFT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
   );
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = prependAlias(
-      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+      RIGHT_ALIAS, RIGHT_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
   );
 
   private static final LogicalSchema RIGHT2_NODE_SCHEMA = prependAlias(
-      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false)
+      RIGHT2_ALIAS, RIGHT2_SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
   );
 
   private static final ValueFormat VALUE_FORMAT = ValueFormat
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
   private static final ValueFormat OTHER_FORMAT = ValueFormat
       .of(FormatInfo.of(FormatFactory.DELIMITED.name()), SerdeFeatures.of());
+
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
@@ -189,8 +199,6 @@ public class JoinNodeTest {
   private Expression expression1;
   @Mock
   private Expression expression2;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
@@ -232,7 +240,6 @@ public class JoinNodeTest {
 
   @Test
   public void shouldBuildSourceNode() {
-    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)).thenReturn("abc");
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
@@ -246,7 +253,6 @@ public class JoinNodeTest {
 
   @Test
   public void shouldHaveLeftJoin() {
-    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)).thenReturn("abc");
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final Topology topology = builder.build();
@@ -258,7 +264,6 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowOnPartitionMismatch() {
     // Given:
-    when(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)).thenReturn("abc");
     setupTopicClientExpectations(1, 2);
 
     // When:
@@ -642,14 +647,10 @@ public class JoinNodeTest {
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .build()
     ));
@@ -670,14 +671,10 @@ public class JoinNodeTest {
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_C0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_L1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(LEFT_ALIAS.text() + "_leftKey"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_C0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_R1"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWTIME"), SqlTypes.BIGINT)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWPARTITION"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of(RIGHT_ALIAS.text() + "_rightKey"), SqlTypes.BIGINT)
         .valueColumn(SYNTH_KEY, SqlTypes.BIGINT)
         .build()

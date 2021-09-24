@@ -175,7 +175,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
 
     cleanupService.startAsync();
   }

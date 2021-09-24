@@ -634,8 +634,6 @@ final class EngineExecutor {
       oldPlanInfo = Optional.empty();
     }
 
-
-
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,
@@ -643,16 +641,6 @@ final class EngineExecutor {
         queryId,
         oldPlanInfo
     );
-    //
-    //    try {
-    //      final PhysicalPlan old = persistentQueryMetadata.get().getPhysicalPlan();
-    //      persistentQueryMetadata.get().getPhysicalPlan().validateUpgrade(
-    //      physicalPlan.getPhysicalPlan());
-    //
-    //    } catch (KsqlException e) {
-    //
-    //    }
-    //use old physical plan here if I can
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }
 

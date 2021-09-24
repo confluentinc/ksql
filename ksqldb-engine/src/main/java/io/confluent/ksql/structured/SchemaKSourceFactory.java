@@ -91,7 +91,7 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
-    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+    final int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
 
     final WindowedStreamSource step = ExecutionStepFactory.streamSourceWindowed(
         contextStacker,
@@ -120,7 +120,7 @@ public final class SchemaKSourceFactory {
       throw new IllegalArgumentException("windowed");
     }
 
-    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+    final int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
 
     final StreamSource step = ExecutionStepFactory.streamSource(
         contextStacker,
@@ -147,7 +147,7 @@ public final class SchemaKSourceFactory {
     final WindowInfo windowInfo = dataSource.getKsqlTopic().getKeyFormat().getWindowInfo()
         .orElseThrow(IllegalArgumentException::new);
 
-    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+    final int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
 
     final SourceStep<KTableHolder<Windowed<GenericKey>>> step =
         ExecutionStepFactory.tableSourceWindowed(
@@ -182,9 +182,10 @@ public final class SchemaKSourceFactory {
 
     final SourceStep<KTableHolder<GenericKey>> step;
 
-    int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
+    final int pseudoColumnVersionToUse = determinePseudoColumnVersionToUse(buildContext);
 
-    //if old query has any v1 table steps, use v1 table steps
+    // If the old query has a v1 table step, continue to use it.
+    // See https://github.com/confluentinc/ksql/pull/7990
     boolean useOldExecutionStepVersion = false;
     if (buildContext.getPlanInfo().isPresent()) {
       final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSourceSet();
@@ -198,7 +199,7 @@ public final class SchemaKSourceFactory {
           + "version 1. Something has gone very wrong");
     }
 
-    //when feature flag is removed, remove getBoolean() from condition
+    // When feature flag is removed, remove getBoolean() from condition
     if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
         && !useOldExecutionStepVersion) {
       step = ExecutionStepFactory.tableSource(
@@ -232,8 +233,8 @@ public final class SchemaKSourceFactory {
 
   private static int determinePseudoColumnVersionToUse(final PlanBuildContext buildContext) {
 
-    //assume statement is CREATE OR REPLACE if this is present, as it indicates that there was
-    //an existing query with the same ID. if it wasn't COR, it will fail later
+    // Assume statement is CREATE OR REPLACE if this is present, as it indicates that there was
+    // an existing query with the same ID. if it wasn't COR, it will fail later
     if (buildContext.getPlanInfo().isPresent()) {
       final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSourceSet();
 

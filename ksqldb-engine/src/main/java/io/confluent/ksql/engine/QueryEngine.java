@@ -74,7 +74,7 @@ class QueryEngine {
       final SessionConfig config,
       final MetaStore metaStore,
       final QueryId queryId,
-      final Optional<PlanInfo> oldPlanToMaybeUse
+      final Optional<PlanInfo> oldPlan
   ) {
 
     final StreamsBuilder builder = new StreamsBuilder();
@@ -88,6 +88,6 @@ class QueryEngine {
         metaStore
     );
 
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId, oldPlanToMaybeUse);
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode, queryId, oldPlan);
   }
 }

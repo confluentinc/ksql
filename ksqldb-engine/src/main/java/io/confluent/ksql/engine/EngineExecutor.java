@@ -187,7 +187,8 @@ final class EngineExecutor {
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
-      return ExecuteResult.of(ddlResult.get());
+      throw new IllegalArgumentException(
+          "The Stream or Table already exists but statement is using IF NOT EXISTS.");
     }
 
     // Do not execute the plan (found on new CST commands or commands read from the command topic)

@@ -1404,15 +1404,16 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(parsed.get(1));
 
     // When:
-    ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext, ConfiguredStatement.
-            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-    );
+    final IllegalArgumentException e = assertThrows(
+          IllegalArgumentException.class,
+          () -> ksqlEngine.execute(
+          serviceContext, ConfiguredStatement.
+              of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+          )
+      );
 
     // Then:
-    assertThat(executeResult.getQuery(), is(Optional.empty()));
-    assertThat(executeResult.getCommandResult(),
-        is(Optional.of("Cannot add table `FOO`: A table with the same name already exists.")));
+    assertThat(e.getMessage(), containsString("already exists"));
   }
 
   @Test
@@ -1524,15 +1525,16 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(parsed.get(1));
 
     // When:
-    ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext, ConfiguredStatement.
-            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    final IllegalArgumentException e = assertThrows(
+        IllegalArgumentException.class,
+        () -> ksqlEngine.execute(
+            serviceContext, ConfiguredStatement.
+                of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+        )
     );
 
     // Then:
-    assertThat(executeResult.getQuery(), is(Optional.empty()));
-    assertThat(executeResult.getCommandResult(),
-        is(Optional.of("Cannot add stream `FOO`: A stream with the same name already exists.")));
+    assertThat(e.getMessage(), containsString("already exists"));
   }
 
   @Test

@@ -15,24 +15,6 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.internal.ScalablePushQueryMetrics;
-import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
-import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
-import io.confluent.ksql.util.ReservedInternalTopics;
-import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.utils.Time;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.Map;
-
 import static io.confluent.ksql.util.KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG;
 import static io.confluent.ksql.util.KsqlConstants.KSQL_QUERY_SOURCE_TAG;
 import static io.confluent.ksql.util.KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG;
@@ -43,6 +25,23 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import io.confluent.ksql.util.ReservedInternalTopics;
+import java.util.Map;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.utils.Time;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ScalablePushQueryMetricsTest {

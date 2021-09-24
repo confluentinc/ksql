@@ -72,6 +72,10 @@ public class TableScanOperator extends AbstractPhysicalOperator
 
   @Override
   public Object next() {
+    if (shouldCancelOperations.isDone()) {
+      return null;
+    }
+
     while (!resultIterator.hasNext()) {
       // Exhausted resultIterator
       if (partitionLocationIterator.hasNext()) {
@@ -85,10 +89,6 @@ public class TableScanOperator extends AbstractPhysicalOperator
       }
       resultIterator = mat.nonWindowed()
           .get(nextLocation.getPartition());
-    }
-
-    if (shouldCancelOperations.isDone()) {
-      return null;
     }
 
     returnedRows++;

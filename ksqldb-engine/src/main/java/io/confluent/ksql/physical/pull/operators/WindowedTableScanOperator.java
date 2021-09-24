@@ -73,6 +73,10 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
 
   @Override
   public Object next() {
+    if (shouldCancelOperations.isDone()) {
+      return null;
+    }
+
     while (!resultIterator.hasNext()) {
       // Exhausted resultIterator
       if (partitionLocationIterator.hasNext()) {
@@ -86,10 +90,6 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       }
       resultIterator = mat.windowed()
           .get(nextLocation.getPartition(), Range.all(), Range.all());
-    }
-
-    if (shouldCancelOperations.isDone()) {
-      return null;
     }
 
     returnedRows++;

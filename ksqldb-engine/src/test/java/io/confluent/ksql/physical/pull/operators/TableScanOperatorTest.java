@@ -100,8 +100,6 @@ public class TableScanOperatorTest {
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
     when(nonWindowedTable.get(1)).thenReturn(IteratorUtil.of(ROW1_1, ROW1_2));
-    when(nonWindowedTable.get(2)).thenReturn(IteratorUtil.of());
-    when(nonWindowedTable.get(3)).thenReturn(IteratorUtil.of(ROW3_1, ROW3_2));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);

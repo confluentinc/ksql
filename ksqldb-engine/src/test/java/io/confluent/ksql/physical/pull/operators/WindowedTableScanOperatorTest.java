@@ -103,10 +103,6 @@ public class WindowedTableScanOperatorTest {
     when(materialization.windowed()).thenReturn(windowedTable);
     when(windowedTable.get(1, Range.all(), Range.all()))
         .thenReturn(IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2));
-    when(windowedTable.get(2, Range.all(), Range.all()))
-        .thenReturn(IteratorUtil.of());
-    when(windowedTable.get(3, Range.all(), Range.all()))
-        .thenReturn(IteratorUtil.of(WINDOWED_ROW3, WINDOWED_ROW2, WINDOWED_ROW4));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
 

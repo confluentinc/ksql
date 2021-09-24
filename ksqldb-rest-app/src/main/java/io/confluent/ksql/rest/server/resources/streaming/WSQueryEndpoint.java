@@ -388,7 +388,7 @@ public class WSQueryEndpoint {
           );
           queryMetadata.getTransientQueryMetadata().start();
 
-          streamSubscriber.onSubscribe(subscription);
+          streamSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);
           return;
         }
         default:

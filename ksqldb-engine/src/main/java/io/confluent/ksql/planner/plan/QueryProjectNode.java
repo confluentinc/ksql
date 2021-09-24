@@ -74,7 +74,9 @@ public class QueryProjectNode extends ProjectNode {
   private final boolean isScalablePush;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
+  private final KsqlConfig ksqlConfig;
 
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public QueryProjectNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -87,6 +89,7 @@ public class QueryProjectNode extends ProjectNode {
       final boolean isScalablePush
   ) {
     super(id, source);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.queryPlannerOptions = Objects.requireNonNull(queryPlannerOptions, "queryPlannerOptions");
@@ -99,7 +102,8 @@ public class QueryProjectNode extends ProjectNode {
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
           source.getSchema(),
           addAdditionalColumnsToIntermediateSchema,
-          isWindowed
+          isWindowed,
+          ksqlConfig
       );
     this.compiledSelectExpressions = isSelectStar
         ? ImmutableList.of()
@@ -165,7 +169,7 @@ public class QueryProjectNode extends ProjectNode {
 
     if (isSelectStar()) {
       outputSchema = buildPullQuerySelectStarSchema(
-          parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
+          parentSchema.withoutPseudoAndKeyColsInValue(ksqlConfig), isWindowed);
     } else {
       final List<SelectExpression> projects = projection.selectItems().stream()
           .map(SingleColumn.class::cast)
@@ -196,7 +200,7 @@ public class QueryProjectNode extends ProjectNode {
   private boolean shouldAddAdditionalColumnsInSchema() {
 
     final boolean hasSystemColumns = analysis.getSelectColumnNames().stream().anyMatch(
-        SystemColumns::isSystemColumn
+        columnName -> SystemColumns.isSystemColumn(columnName, ksqlConfig)
     );
 
     final boolean hasKeyColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
@@ -247,7 +251,7 @@ public class QueryProjectNode extends ProjectNode {
 
     // Copy meta & key columns into the value schema as SelectValueMapper expects it:
     final LogicalSchema schema = parentSchema
-        .withPseudoAndKeyColsInValue(isWindowed);
+        .withPseudoAndKeyColsInValue(isWindowed, ksqlConfig);
 
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, metaStore);

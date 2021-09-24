@@ -21,6 +21,7 @@ import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
+import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWSTART_NAME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
@@ -43,13 +44,18 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+@RunWith(MockitoJUnitRunner.class)
 public class LogicalSchemaTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
@@ -66,6 +72,9 @@ public class LogicalSchemaTest {
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
       .build();
+
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -109,18 +118,18 @@ public class LogicalSchemaTest {
         .addEqualityGroup(
             aSchema,
             aSchema
-                .withPseudoAndKeyColsInValue(false)
+                .withPseudoAndKeyColsInValue(false, ksqlConfig)
                 .withoutPseudoAndKeyColsInValue(),
 
             aSchema
-                .withPseudoAndKeyColsInValue(true)
+                .withPseudoAndKeyColsInValue(true, ksqlConfig)
                 .withoutPseudoAndKeyColsInValue()
         )
         .addEqualityGroup(
-            aSchema.withPseudoAndKeyColsInValue(true)
+            aSchema.withPseudoAndKeyColsInValue(true, ksqlConfig)
         )
         .addEqualityGroup(
-            aSchema.withPseudoAndKeyColsInValue(false)
+            aSchema.withPseudoAndKeyColsInValue(false, ksqlConfig)
         )
         .testEquals();
   }
@@ -182,7 +191,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetMetaColumnFromValueIfAdded() {
     // Given:
-    final LogicalSchema schema = SOME_SCHEMA.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema schema = SOME_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // Then:
     assertThat(schema.findValueColumn(ROWTIME_NAME),
@@ -205,7 +214,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetKeyColumnFromValueIfAdded() {
     // Given:
-    final LogicalSchema schema = SOME_SCHEMA.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema schema = SOME_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // Then:
     assertThat(schema.findValueColumn(K0),
@@ -395,7 +404,7 @@ public class LogicalSchemaTest {
         .build();
 
     // When:
-    final LogicalSchema result = schema.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema result = schema.withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -450,7 +459,7 @@ public class LogicalSchemaTest {
 
     // When:
     final LogicalSchema result = schema
-        .withPseudoAndKeyColsInValue(true);
+        .withPseudoAndKeyColsInValue(true, ksqlConfig);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -506,10 +515,10 @@ public class LogicalSchemaTest {
         .keyColumn(K0, INTEGER)
         .valueColumn(F1, BIGINT)
         .build()
-        .withPseudoAndKeyColsInValue(false);
+        .withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // When:
-    final LogicalSchema result = schema.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema result = schema.withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // Then:
     assertThat(result, is(schema));
@@ -527,7 +536,7 @@ public class LogicalSchemaTest {
         .build();
 
     // When:
-    final LogicalSchema result = ksqlSchema.withPseudoAndKeyColsInValue(false);
+    final LogicalSchema result = ksqlSchema.withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
@@ -578,7 +587,7 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-        .withPseudoAndKeyColsInValue(false);
+        .withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // When
     final LogicalSchema result = schema.withoutPseudoAndKeyColsInValue();
@@ -600,7 +609,7 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-        .withPseudoAndKeyColsInValue(true);
+        .withPseudoAndKeyColsInValue(true, ksqlConfig);
 
     // When
     final LogicalSchema result = schema.withoutPseudoAndKeyColsInValue();
@@ -691,7 +700,7 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .build()
-        .withPseudoAndKeyColsInValue(false);
+        .withPseudoAndKeyColsInValue(false, ksqlConfig);
 
     // When
     final LogicalSchema result = schema.withKeyColsOnly();
@@ -706,7 +715,7 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldMatchMetaColumnName() {
-    assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME), is(true));
+    assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME, ROWTIME_PSEUDOCOLUMN_VERSION), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));
   }
 
@@ -720,7 +729,7 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldMatchKeyColumnName() {
-    assertThat(SystemColumns.isPseudoColumn(K0), is(false));
+    assertThat(SystemColumns.isPseudoColumn(K0, ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(false));
     assertThat(SOME_SCHEMA.isKeyColumn(K0), is(true));
   }
 
@@ -728,14 +737,14 @@ public class LogicalSchemaTest {
   public void shouldNotMatchValueColumnsAsBeingMetaOrKeyColumns() {
     SOME_SCHEMA.value().forEach(column ->
     {
-      assertThat(SystemColumns.isPseudoColumn(column.name()), is(false));
+      assertThat(SystemColumns.isPseudoColumn(column.name(), ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(false));
       assertThat(SOME_SCHEMA.isKeyColumn(column.name()), is(false));
     });
   }
 
   @Test
   public void shouldNotMatchRandomColumnNameAsBeingMetaOrKeyColumns() {
-    assertThat(SystemColumns.isPseudoColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
+    assertThat(SystemColumns.isPseudoColumn(ColumnName.of("well_this_ain't_in_the_schema"), ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION), is(false));
     assertThat(SOME_SCHEMA.isKeyColumn(ColumnName.of("well_this_ain't_in_the_schema")), is(false));
   }
 

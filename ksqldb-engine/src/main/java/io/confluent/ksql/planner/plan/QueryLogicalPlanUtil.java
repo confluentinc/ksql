@@ -16,6 +16,7 @@
 package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
 
 final class QueryLogicalPlanUtil {
 
@@ -31,12 +32,13 @@ final class QueryLogicalPlanUtil {
   static LogicalSchema buildIntermediateSchema(
       final LogicalSchema schema,
       final boolean addAdditionalColumnsToIntermediateSchema,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final KsqlConfig ksqlConfig
   ) {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, ksqlConfig);
     }
   }
 }

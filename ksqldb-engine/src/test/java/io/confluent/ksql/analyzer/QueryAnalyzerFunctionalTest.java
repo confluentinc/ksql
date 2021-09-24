@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStore;
@@ -30,6 +31,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -49,8 +51,9 @@ public class QueryAnalyzerFunctionalTest {
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
+  private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~");
+      new QueryAnalyzer(metaStore, "prefix-~", ksqlConfig);
 
   @Test
   public void shouldAnalyseTableFunctions() {
@@ -95,7 +98,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldHandleValueFormat() {
     // Given:
     final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create stream s with(value_format='delimited') as select * from test1;", metaStore);
+        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ksqlConfig);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -108,6 +111,6 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   private Query givenQuery(final String sql) {
-    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ksqlConfig).getStatement();
   }
 }

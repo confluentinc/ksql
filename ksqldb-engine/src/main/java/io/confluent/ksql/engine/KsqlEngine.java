@@ -67,6 +67,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.io.Closeable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -79,15 +80,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListOffsetsOptions;
 import org.apache.kafka.clients.admin.ListOffsetsResult;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
@@ -108,11 +106,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final KsqlConfig ksqlConfig;
-  private final Admin persistentAdminClient;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
-      final Supplier<Admin> adminSupplier,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final ServiceInfo serviceInfo,
@@ -131,7 +127,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
         ),
-        adminSupplier,
         queryIdGenerator,
         ksqlConfig,
         queryEventListeners
@@ -145,7 +140,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String serviceId,
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
-      final Supplier<Admin> adminSupplier,
       final QueryIdGenerator queryIdGenerator,
       final KsqlConfig ksqlConfig,
       final List<QueryEventListener> queryEventListeners
@@ -181,8 +175,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
-    this.ksqlConfig = ksqlConfig;
-    this.persistentAdminClient = adminSupplier.get();
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
 
     cleanupService.startAsync();
   }
@@ -242,6 +235,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @VisibleForTesting
   QueryCleanupService getCleanupService() {
     return cleanupService;
+  }
+
+  @VisibleForTesting
+  public KsqlEngineMetrics getEngineMetrics() {
+    return engineMetrics;
   }
 
   @Override
@@ -314,7 +312,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     try {
       final TransientQueryMetadata query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeTransientQuery(statement, excludeTombstones);
+          .executeTransientQuery(statement, excludeTombstones, Optional.empty());
       return query;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -324,12 +322,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  /**
-   * Unlike the other queries, stream pull queries are split into create and wait because the three
-   * API endpoints all need to do different stuff before, in the middle of, and after these two
-   * phases. One of them actually needs to wait on the pull query in a callback after starting the
-   * query, so splitting it into two method calls was the most practical choice.
-   */
   public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,
       final ImmutableAnalysis analysis,
@@ -351,28 +343,24 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       );
     }
 
-    // Stream pull query overrides: start from earliest, use one  thread, and use a tight commit
-    // interval for responsiveness.
+    // Stream pull query overrides.
+    final Map<String, Object> overrides =
+        new HashMap<>(statementOrig.getSessionConfig().getOverrides());
     // Starting from earliest is semantically necessary.
+    overrides.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     // Using a single thread keeps these queries as lightweight as possible, since we are
     // not counting them against the transient query limit.
-    // Setting the commit interval to 100ms to make the query results snappier.
-    // Since this is a "sit and wait", not a "fire and forget", query,
-    // we want to make sure people are going to see their results come back asap.
-    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(
-        ImmutableMap.<String, Object>builder()
-            .putAll(statementOrig.getSessionConfig().getOverrides())
-            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            .put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
-            .put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100)
-            .build()
-    );
+    overrides.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    // There's no point in EOS, since this query only produces side effects.
+    overrides.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE);
+
+    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(overrides);
+    final ImmutableMap<TopicPartition, Long> endOffsets =
+        getQueryInputEndOffsets(analysis, serviceContext.getAdminClient());
+
     final TransientQueryMetadata transientQueryMetadata = EngineExecutor
         .create(primaryContext, serviceContext, statement.getSessionConfig())
-        .executeTransientQuery(statement, excludeTombstones);
-
-    final ImmutableMap<TopicPartition, Long> endOffsets =
-        getQueryInputEndOffsets(analysis, statement, serviceContext.getAdminClient());
+        .executeTransientQuery(statement, excludeTombstones, Optional.of(endOffsets));
 
     QueryLogger.info(
         "Streaming stream pull query results '{}'",
@@ -382,35 +370,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return new StreamPullQueryMetadata(transientQueryMetadata, endOffsets);
   }
 
-  public boolean passedEndOffsets(final StreamPullQueryMetadata streamPullQueryMetadata) {
-
-    try {
-      final ListConsumerGroupOffsetsResult result =
-          persistentAdminClient.listConsumerGroupOffsets(
-              streamPullQueryMetadata.getTransientQueryMetadata().getQueryApplicationId()
-          );
-
-      final Map<TopicPartition, OffsetAndMetadata> metadataMap =
-          result.partitionsToOffsetAndMetadata().get();
-
-      final Map<TopicPartition, Long> endOffsets = streamPullQueryMetadata.getEndOffsets();
-
-      for (final Map.Entry<TopicPartition, Long> entry : endOffsets.entrySet()) {
-        final OffsetAndMetadata offsetAndMetadata = metadataMap.get(entry.getKey());
-        if (offsetAndMetadata == null || offsetAndMetadata.offset() < entry.getValue()) {
-          log.debug("SPQ waiting on " + entry + " at " + offsetAndMetadata);
-          return false;
-        }
-      }
-      return true;
-    } catch (final ExecutionException | InterruptedException e) {
-      throw new KsqlException(e);
-    }
-  }
-
   private ImmutableMap<TopicPartition, Long> getQueryInputEndOffsets(
       final ImmutableAnalysis analysis,
-      final ConfiguredStatement<Query> statement,
       final Admin admin) {
 
     final String sourceTopicName = analysis.getFrom().getDataSource().getKafkaTopicName();
@@ -419,21 +380,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         sourceTopicName
     );
 
-    final Object processingGuarantee = statement
-        .getSessionConfig()
-        .getConfig(true)
-        .getKsqlStreamConfigProps()
-        .get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
-
-    final IsolationLevel isolationLevel =
-        StreamsConfig.AT_LEAST_ONCE.equals(processingGuarantee)
-            ? IsolationLevel.READ_UNCOMMITTED
-            : IsolationLevel.READ_COMMITTED;
-
-    return getEndOffsets(
+    return getEndOffsetsForStreamPullQuery(
         admin,
-        topicDescription,
-        isolationLevel
+        topicDescription
     );
   }
 
@@ -457,10 +406,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  private ImmutableMap<TopicPartition, Long> getEndOffsets(
+  private ImmutableMap<TopicPartition, Long> getEndOffsetsForStreamPullQuery(
       final Admin admin,
-      final TopicDescription topicDescription,
-      final IsolationLevel isolationLevel) {
+      final TopicDescription topicDescription) {
     final Map<TopicPartition, OffsetSpec> topicPartitions =
         topicDescription
             .partitions()
@@ -470,9 +418,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     final ListOffsetsResult listOffsetsResult = admin.listOffsets(
         topicPartitions,
-        new ListOffsetsOptions(
-            isolationLevel
-        )
+        // Since stream pull queries are always ALOS, it will read uncommitted,
+        // so we should do the same when checking end offsets.
+        new ListOffsetsOptions(IsolationLevel.READ_UNCOMMITTED)
     );
 
     try {
@@ -557,7 +505,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     try {
       cleanupService.stopAsync().awaitTerminated(30, TimeUnit.SECONDS);
-    } catch (TimeoutException e) {
+    } catch (final TimeoutException e) {
       log.warn("Timed out while closing cleanup service. "
               + "External resources for the following applications may be orphaned: {}",
           cleanupService.pendingApplicationIds()
@@ -566,7 +514,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
-    persistentAdminClient.close();
   }
 
   @Override
@@ -601,7 +548,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Query query,
       final String queryText) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "");
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig);
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

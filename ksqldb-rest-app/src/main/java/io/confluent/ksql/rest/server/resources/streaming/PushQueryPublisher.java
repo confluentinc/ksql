@@ -53,35 +53,33 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
   private static final Logger log = LoggerFactory.getLogger(PushQueryPublisher.class);
 
-  private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
-  private final ConfiguredStatement<Query> query;
-  private final Optional<LocalCommands> localCommands;
   private final ListeningScheduledExecutorService exec;
-  private final PushRouting pushRouting;
-  private final boolean isScalablePush;
-  private final Context context;
-  private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
+  private final PushQueryMetadata queryMetadata;
 
   private PushQueryPublisher(
+      final ListeningScheduledExecutorService exec,
+      final PushQueryMetadata queryMetadata
+  ) {
+    this.exec = exec;
+    this.queryMetadata = queryMetadata;
+  }
+
+  public static PushQueryPublisher createPushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
       final Optional<LocalCommands> localCommands
   ) {
-    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
-    this.exec = requireNonNull(exec, "exec");
-    this.query = requireNonNull(query, "query");
-    this.localCommands = requireNonNull(localCommands, "localCommands");
-    this.pushRouting = null;
-    this.isScalablePush = false;
-    this.context = null;
-    this.scalablePushBandRateLimiter = null;
+    final TransientQueryMetadata queryMetadata =
+        ksqlEngine.executeTransientQuery(serviceContext, query, true);
+
+    localCommands.ifPresent(lc -> lc.write(queryMetadata));
+
+    return new PushQueryPublisher(exec, queryMetadata);
   }
 
-  private PushQueryPublisher(
+  public static PushQueryPublisher createScalablePushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -91,77 +89,26 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       final Context context,
       final SlidingWindowRateLimiter scalablePushBandRateLimiter
   ) {
-    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
-    this.exec = requireNonNull(exec, "exec");
-    this.query = requireNonNull(query, "query");
-    this.localCommands = Optional.empty();
-    this.pushRouting = requireNonNull(pushRouting, "pushRouting");
-    this.isScalablePush = true;
-    this.context = requireNonNull(context, "context");
-    this.scalablePushBandRateLimiter =
-        requireNonNull(scalablePushBandRateLimiter, "scalablePushBandRateLimiter");
-  }
-
-  public static PushQueryPublisher createPublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final Optional<LocalCommands> localCommands
-  ) {
-    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands);
-  }
-
-  public static PushQueryPublisher createScalablePublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final ImmutableAnalysis analysis,
-      final PushRouting pushRouting,
-      final Context context,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter
-  ) {
-    return new PushQueryPublisher(
-        ksqlEngine,
-        serviceContext,
-        exec,
-        query,
-        analysis,
-        pushRouting,
-        context,
-        scalablePushBandRateLimiter
+    final PushRoutingOptions routingOptions = new PushQueryConfigRoutingOptions(
+        ImmutableMap.of()
     );
+
+    final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
+        query.getSessionConfig().getConfig(false),
+        query.getSessionConfig().getOverrides());
+
+    scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
+
+    final ScalablePushQueryMetadata pushQueryMetadata = ksqlEngine
+        .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
+            plannerOptions, context);
+    pushQueryMetadata.prepare();
+
+    return new PushQueryPublisher(exec, pushQueryMetadata);
   }
 
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final PushQueryMetadata queryMetadata;
-    if (isScalablePush) {
-      final PushRoutingOptions routingOptions = new PushQueryConfigRoutingOptions(
-          ImmutableMap.of()
-      );
-
-      final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
-              query.getSessionConfig().getConfig(false),
-              query.getSessionConfig().getOverrides());
-
-      scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
-
-      final ImmutableAnalysis analysis =
-          ksqlEngine.analyzeQueryWithNoOutputTopic(query.getStatement(), query.getStatementText());
-      final ScalablePushQueryMetadata pushQueryMetadata = ksqlEngine
-          .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
-              plannerOptions, context);
-      pushQueryMetadata.prepare();
-      queryMetadata = pushQueryMetadata;
-    } else {
-      queryMetadata = ksqlEngine
-          .executeTransientQuery(serviceContext, query, true);
-
-      localCommands.ifPresent(lc -> lc.write((TransientQueryMetadata) queryMetadata));
-    }
 
     final PushQuerySubscription subscription =
         new PushQuerySubscription(exec, subscriber, queryMetadata);
@@ -186,6 +133,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       this.queryMetadata = requireNonNull(queryMetadata, "queryMetadata");
 
       queryMetadata.setLimitHandler(this::setDone);
+      queryMetadata.setCompletionHandler(this::setDone);
       queryMetadata.setUncaughtExceptionHandler(
           e -> {
             setError(e);

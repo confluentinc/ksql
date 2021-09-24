@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKSourceFactory;
 import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -51,14 +52,16 @@ public class DataSourceNode extends PlanNode {
   private final SchemaKStreamFactory schemaKStreamFactory;
   private final LogicalSchema schema;
   private final boolean isWindowed;
+  private final KsqlConfig ksqlConfig;
 
   public DataSourceNode(
       final PlanNodeId id,
       final DataSource dataSource,
       final SourceName alias,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final KsqlConfig ksqlConfig
   ) {
-    this(id, dataSource, alias, SchemaKSourceFactory::buildSource, isWindowed);
+    this(id, dataSource, alias, SchemaKSourceFactory::buildSource, isWindowed, ksqlConfig);
   }
 
   DataSourceNode(
@@ -66,11 +69,13 @@ public class DataSourceNode extends PlanNode {
       final DataSource dataSource,
       final SourceName alias,
       final SchemaKStreamFactory schemaKStreamFactory,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final KsqlConfig ksqlConfig
   ) {
     super(id, dataSource.getDataSourceType(), Optional.of(alias));
-    this.schema = buildSchema(dataSource);
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.dataSource = requireNonNull(dataSource, "dataSource");
+    this.schema = buildSchema(dataSource, ksqlConfig);
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
     this.isWindowed = isWindowed;
   }
@@ -130,7 +135,7 @@ public class DataSourceNode extends PlanNode {
     }
 
     // Note: the 'value' columns include the key columns at this point:
-    return orderColumns(getSchema().value(), getSchema());
+    return orderColumns(getSchema().value(), getSchema(), ksqlConfig);
   }
 
   @Override
@@ -175,7 +180,7 @@ public class DataSourceNode extends PlanNode {
 
     final ColumnName columnName = columnRef.getColumnName();
 
-    if (SystemColumns.isPseudoColumn(columnName)) {
+    if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
       return false;
     }
 
@@ -188,12 +193,16 @@ public class DataSourceNode extends PlanNode {
         .isPresent();
   }
 
-  private static LogicalSchema buildSchema(final DataSource dataSource) {
+  private static LogicalSchema buildSchema(
+      final DataSource dataSource,
+      final KsqlConfig ksqlConfig
+  ) {
     // DataSourceNode copies implicit and key fields into the value schema
     // It users a KS valueMapper to add the key fields
     // and a KS transformValues to add the implicit fields
     return dataSource.getSchema()
-        .withPseudoAndKeyColsInValue(dataSource.getKsqlTopic().getKeyFormat().isWindowed());
+        .withPseudoAndKeyColsInValue(
+            dataSource.getKsqlTopic().getKeyFormat().isWindowed(), ksqlConfig);
   }
 
   @Immutable

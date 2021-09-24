@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -108,6 +109,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -372,7 +374,8 @@ final class EngineExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeTransientQuery(
       final ConfiguredStatement<Query> statement,
-      final boolean excludeTombstones
+      final boolean excludeTombstones,
+      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty(), engineContext.getMetaStore());
@@ -397,7 +400,8 @@ final class EngineExecutor {
         outputNode.getSchema(),
         outputNode.getLimit(),
         outputNode.getWindowInfo(),
-        excludeTombstones
+        excludeTombstones,
+        endOffsets
     );
   }
 

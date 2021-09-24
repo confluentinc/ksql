@@ -164,7 +164,8 @@ public class PullPhysicalPlan {
     // Could be one or more keys
     KEY_LOOKUP,
     RANGE_SCAN,
-    TABLE_SCAN
+    TABLE_SCAN,
+    UNKNOWN
   }
 
   /**
@@ -173,7 +174,9 @@ public class PullPhysicalPlan {
    */
   public enum PullSourceType {
     NON_WINDOWED,
-    WINDOWED
+    WINDOWED,
+    NON_WINDOWED_STREAM,
+    WINDOWED_STREAM
   }
 
   /**

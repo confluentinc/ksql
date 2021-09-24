@@ -58,7 +58,6 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
@@ -80,7 +79,8 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedStreamSource(
@@ -90,7 +90,7 @@ public final class ExecutionStepFactory {
         windowInfo,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
@@ -99,7 +99,8 @@ public final class ExecutionStepFactory {
       final LogicalSchema sourceSchema,
       final String topicName,
       final Formats formats,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSource(
@@ -108,7 +109,7 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
@@ -117,7 +118,8 @@ public final class ExecutionStepFactory {
       final LogicalSchema sourceSchema,
       final String topicName,
       final Formats formats,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSourceV1(
@@ -127,7 +129,7 @@ public final class ExecutionStepFactory {
         timestampColumn,
         sourceSchema,
         Optional.of(true),
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 
@@ -137,7 +139,8 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final Optional<TimestampColumn> timestampColumn,
-      final Formats stateStoreFormats
+      final Formats stateStoreFormats,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSource(
@@ -146,7 +149,7 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER,
+        pseudoColumnVersion,
         stateStoreFormats
     );
   }
@@ -157,7 +160,8 @@ public final class ExecutionStepFactory {
       final String topicName,
       final Formats formats,
       final WindowInfo windowInfo,
-      final Optional<TimestampColumn> timestampColumn
+      final Optional<TimestampColumn> timestampColumn,
+      final int pseudoColumnVersion
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedTableSource(
@@ -167,7 +171,7 @@ public final class ExecutionStepFactory {
         windowInfo,
         timestampColumn,
         sourceSchema,
-        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
+        OptionalInt.of(pseudoColumnVersion)
     );
   }
 

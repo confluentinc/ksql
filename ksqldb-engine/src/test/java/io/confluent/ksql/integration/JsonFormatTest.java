@@ -57,8 +57,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.admin.Admin;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -105,7 +103,6 @@ public class JsonFormatTest {
 
     ksqlEngine = new KsqlEngine(
         serviceContext,
-        () -> EasyMock.mock(Admin.class),
         ProcessingLogContext.create(),
         functionRegistry,
         ServiceInfo.create(ksqlConfig),

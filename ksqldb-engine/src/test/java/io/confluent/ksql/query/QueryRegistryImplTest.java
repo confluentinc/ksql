@@ -34,7 +34,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -51,15 +50,13 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
-import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
-  private static final SourceName SINK = SourceName.of("source");
-
   @Mock
   private SessionConfig config;
   @Mock
@@ -540,7 +537,7 @@ public class QueryRegistryImplTest {
     final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
     when(query.getQueryId()).thenReturn(queryId);
     when(queryBuilder.buildTransientQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any())
     ).thenReturn(query);
     registry.createTransientQuery(
         config,
@@ -555,7 +552,8 @@ public class QueryRegistryImplTest {
         mock(LogicalSchema.class),
         OptionalInt.of(123),
         Optional.empty(),
-        false
+        false,
+        Optional.empty()
     );
     return query;
   }

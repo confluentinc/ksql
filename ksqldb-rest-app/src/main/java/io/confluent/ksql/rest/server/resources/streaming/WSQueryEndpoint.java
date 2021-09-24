@@ -22,7 +22,6 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AG
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
-import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -44,6 +43,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.resources.streaming.PushQueryPublisher.PushQuerySubscription;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
@@ -52,6 +52,7 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -297,11 +298,30 @@ public class WSQueryEndpoint {
           return;
         }
         case KSTREAM: {
-          throw new KsqlStatementException(
-              "Pull queries are not supported on streams."
-                  + PullQueryValidator.PULL_QUERY_SYNTAX_HELP,
-              statement.getStatementText()
+          final StreamPullQueryMetadata queryMetadata =
+              ksqlEngine.createStreamPullQuery(
+                  info.securityContext.getServiceContext(),
+                  analysis,
+                  configured,
+                  true
+              );
+
+          localCommands.ifPresent(lc -> lc.write(queryMetadata.getTransientQueryMetadata()));
+
+          final PushQuerySubscription subscription =
+              new PushQuerySubscription(exec,
+                  streamSubscriber,
+                  queryMetadata.getTransientQueryMetadata()
+              );
+
+          log.info(
+              "Running query {}",
+              queryMetadata.getTransientQueryMetadata().getQueryId().toString()
           );
+          queryMetadata.getTransientQueryMetadata().start();
+
+          streamSubscriber.onSubscribe(subscription);
+          return;
         }
         default:
           throw new KsqlStatementException(
@@ -315,7 +335,7 @@ public class WSQueryEndpoint {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
 
-      PushQueryPublisher.createScalablePublisher(
+      PushQueryPublisher.createScalablePushQueryPublisher(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,
@@ -326,7 +346,7 @@ public class WSQueryEndpoint {
           scalablePushBandRateLimiter
       ).subscribe(streamSubscriber);
     } else {
-      PushQueryPublisher.createPublisher(
+      PushQueryPublisher.createPushQueryPublisher(
           ksqlEngine,
           info.securityContext.getServiceContext(),
           exec,

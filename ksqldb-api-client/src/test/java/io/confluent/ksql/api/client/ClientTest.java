@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.awaitLatch;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -595,7 +596,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromInsertInto() {
     // Given
-    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    KsqlApiException exception = new KsqlApiException("Invalid target name", ERROR_CODE_BAD_STATEMENT);
     testEndpoints.setCreateInsertsSubscriberException(exception);
 
     // When
@@ -607,7 +608,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Invalid target name"));
   }
 
   @Test
@@ -671,7 +672,7 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldHandleErrorResponseFromStreamInserts() {
     // Given
-    KsqlApiException exception = new KsqlApiException("Cannot insert into a table", ERROR_CODE_BAD_REQUEST);
+    KsqlApiException exception = new KsqlApiException("Invalid target name", ERROR_CODE_BAD_STATEMENT);
     testEndpoints.setCreateInsertsSubscriberException(exception);
 
     // When
@@ -683,7 +684,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Cannot insert into a table"));
+    assertThat(e.getCause().getMessage(), containsString("Invalid target name"));
   }
 
   @Test

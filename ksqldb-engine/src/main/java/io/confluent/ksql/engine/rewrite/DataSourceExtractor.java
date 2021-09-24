@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.List;
@@ -44,11 +45,13 @@ class DataSourceExtractor {
   private final Set<AliasedDataSource> allSources = new HashSet<>();
   private final Set<ColumnName> allColumns = new HashSet<>();
   private final Set<ColumnName> clashingColumns = new HashSet<>();
+  private final KsqlConfig ksqlConfig;
 
   private boolean isJoin = false;
 
-  DataSourceExtractor(final MetaStore metaStore) {
+  DataSourceExtractor(final MetaStore metaStore, final KsqlConfig ksqlConfig) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   public void extractDataSources(final AstNode node) {
@@ -68,7 +71,7 @@ class DataSourceExtractor {
       return false;
     }
 
-    if (SystemColumns.isPseudoColumn(name)) {
+    if (SystemColumns.isPseudoColumn(name, ksqlConfig)) {
       return true;
     }
 
@@ -77,13 +80,17 @@ class DataSourceExtractor {
 
   public List<SourceName> getSourcesFor(final ColumnName columnName) {
     return allSources.stream()
-        .filter(aliased -> hasColumn(columnName, aliased))
+        .filter(aliased -> hasColumn(columnName, aliased, ksqlConfig))
         .map(AliasedDataSource::getAlias)
         .collect(Collectors.toList());
   }
 
-  private static boolean hasColumn(final ColumnName columnName, final AliasedDataSource aliased) {
-    if (SystemColumns.isPseudoColumn(columnName)) {
+  private static boolean hasColumn(
+      final ColumnName columnName,
+      final AliasedDataSource aliased,
+      final KsqlConfig ksqlConfig
+  ) {
+    if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
       return true;
     }
 

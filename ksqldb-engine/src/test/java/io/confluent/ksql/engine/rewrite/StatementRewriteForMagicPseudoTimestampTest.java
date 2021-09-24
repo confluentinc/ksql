@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
@@ -48,12 +49,15 @@ public class StatementRewriteForMagicPseudoTimestampTest {
   @Mock
   private PartialStringToTimestampParser parser;
   private MetaStore metaStore;
-  private StatementRewriteForMagicPseudoTimestamp rewritter;
+  private StatementRewriteForMagicPseudoTimestamp rewriter;
+
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
-    rewritter = new StatementRewriteForMagicPseudoTimestamp(parser);
+    rewriter = new StatementRewriteForMagicPseudoTimestamp(parser);
 
     when(parser.parse(any()))
         .thenReturn(A_TIMESTAMP)
@@ -67,7 +71,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME = '2017-01-01T00:44:00.000';");
 
     // When:
-    rewritter.rewrite(predicate);
+    rewriter.rewrite(predicate);
 
     // Then:
     verify(parser).parse("2017-01-01T00:44:00.000");
@@ -80,7 +84,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME > 10.25;");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten, is(predicate));
@@ -93,7 +97,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME > '2017-01-01T00:00:00.000';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten.toString(), is(String.format("(ORDERS.ROWTIME > %d)", A_TIMESTAMP)));
@@ -106,7 +110,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where WINDOWSTART > '2017-01-01T00:00:00.000';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten.toString(), is(String.format("(WINDOWSTART > %d)", A_TIMESTAMP)));
@@ -119,7 +123,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where WINDOWEND > '2017-01-01T00:00:00.000';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten.toString(), is(String.format("(WINDOWEND > %d)", A_TIMESTAMP)));
@@ -132,7 +136,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where '2017-01-01T00:00:00.000' < ROWTIME;");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten.toString(), is(String.format("(%d < ORDERS.ROWTIME)", A_TIMESTAMP)));
@@ -145,7 +149,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME BETWEEN '2017-01-01' AND '2017-02-01';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(
@@ -161,7 +165,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where WINDOWSTART BETWEEN '2017-01-01' AND '2017-02-01';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(
@@ -177,7 +181,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where WINDOWEND BETWEEN '2017-01-01' AND '2017-02-01';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(
@@ -193,7 +197,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where WINDOWSTART BETWEEN '2017-01-01' AND 1236987;");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(
@@ -209,7 +213,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where WINDOWEND BETWEEN 1236987 AND '2017-01-01';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(
@@ -225,7 +229,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME BETWEEN 123456 AND 147258;");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten, is(predicate));
@@ -238,7 +242,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ORDERS.ROWTIME > '2017-01-01T00:00:00.000';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten.toString(), is(String.format("(ORDERS.ROWTIME > %d)", A_TIMESTAMP)));
@@ -251,7 +255,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME = foo('2017-01-01');");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     verify(parser, never()).parse(any());
@@ -265,7 +269,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where ROWTIME > '2017-01-01' AND ORDERTIME = '2017-01-01';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     assertThat(rewritten.toString(),
@@ -280,7 +284,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where foo(ROWTIME) = '2017-01-01';");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     verify(parser, never()).parse(any());
@@ -294,7 +298,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
         "SELECT * FROM orders where '2017-01-01' + 10000 > ROWTIME;");
 
     // When:
-    final Expression rewritten = rewritter.rewrite(predicate);
+    final Expression rewritten = rewriter.rewrite(predicate);
 
     // Then:
     verify(parser, never()).parse(any());
@@ -310,7 +314,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     // When:
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> rewritter.rewrite(predicate)
+        () -> rewriter.rewrite(predicate)
     );
 
     // Then:
@@ -319,7 +323,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
   private Expression getPredicate(final String querySql) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst(querySql, metaStore)
+        .buildSingleAst(querySql, metaStore, ksqlConfig)
         .getStatement();
 
     return statement.getWhere().get();

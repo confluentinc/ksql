@@ -146,7 +146,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
@@ -718,7 +717,8 @@ public final class KsqlRestApplication implements Executable {
 
     StorageUtilizationMetricsReporter.configureShared(
       new File(stateDir), 
-            MetricCollectors.getMetrics()
+        MetricCollectors.getMetrics(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
 
     final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1,
@@ -728,7 +728,6 @@ public final class KsqlRestApplication implements Executable {
     );
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
-        () -> Admin.create(ksqlConfig.getKsqlAdminClientConfigProps()),
         processingLogContext,
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),
@@ -736,13 +735,14 @@ public final class KsqlRestApplication implements Executable {
         new KsqlConfig(restConfig.getKsqlConfigProperties()),
         Collections.emptyList()
     );
-
+    
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
         ksqlEngine,
         new JmxDataPointsReporter(
             MetricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
         Duration.ofMinutes(5),
-        Duration.ofSeconds(30)
+        Duration.ofSeconds(30),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
     executorService.scheduleAtFixedRate(
         saturation,

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.query;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Interface for building and managing queries.
@@ -75,7 +77,8 @@ public interface QueryRegistry {
       LogicalSchema schema,
       OptionalInt limit,
       Optional<WindowInfo> windowInfo,
-      boolean excludeTombstones
+      boolean excludeTombstones,
+      Optional<ImmutableMap<TopicPartition, Long>> endOffsets
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 

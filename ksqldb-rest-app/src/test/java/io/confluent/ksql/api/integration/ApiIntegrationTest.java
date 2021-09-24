@@ -514,7 +514,8 @@ public class ApiIntegrationTest {
         .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because stream name is invalid
-    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: " + target);
+    shouldRejectInsertRequest(target, row,
+        "Cannot insert values into an unknown stream/table: " + target);
   }
 
   @Test
@@ -533,7 +534,8 @@ public class ApiIntegrationTest {
         .put("COMPLEX", COMPLEX_FIELD_VALUE);
 
     // Then: request fails because stream name is invalid
-    shouldRejectInsertRequest(target, row, "Cannot insert values into an unknown stream: `" + TEST_STREAM.toLowerCase() + "`");
+    shouldRejectInsertRequest(target, row,
+        "Cannot insert values into an unknown stream/table: `" + TEST_STREAM.toLowerCase() + "`");
   }
 
   @Test

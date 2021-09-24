@@ -12,42 +12,33 @@
 
 package io.confluent.ksql.logging.query;
 
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
+import io.confluent.ksql.util.QueryGuid;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
-import org.apache.log4j.rewrite.RewriteAppender;
 
 public final class QueryLogger {
   private static final Logger logger = LogManager.getLogger(QueryLogger.class);
-  private static final RewriteAppender rewriteAppender = new RewriteAppender();
+  private static final QueryAnonymizer anonymizer = new QueryAnonymizer();
+
+  private static String namespace = "";
+  private static Boolean anonymizeQueries = true;
 
   private QueryLogger() {
 
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static void initialize() {
-    logger.setAdditivity(false);
-
-    final Enumeration enumeration = logger.getAllAppenders();
-    final ArrayList<Appender> list = Collections.list(enumeration);
-    logger.addAppender(rewriteAppender);
-    for (Appender a : list) {
-      if (a != rewriteAppender) {
-        logger.removeAppender(a);
-        rewriteAppender.addAppender(a);
-      }
-    }
+  @VisibleForTesting
+  public static String getNamespace() {
+    return namespace;
   }
 
   public static void addAppender(final Appender appender) {
@@ -60,13 +51,21 @@ public final class QueryLogger {
   }
 
   public static void configure(final KsqlConfig config) {
-    rewriteAppender.setRewritePolicy(new QueryAnonymizingRewritePolicy(config));
+    final String clusterNamespace =
+        config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE);
+    namespace =
+        clusterNamespace == null || clusterNamespace.isEmpty()
+            ? config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+            : clusterNamespace;
+    anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
   private static void log(final Level level, final Object message, final String query) {
     try {
-      DefaultKsqlParser.getParseTree(query);
-      logger.log(level, buildPayload(message, query));
+      final String anonQuery = anonymizeQueries
+          ? anonymizer.anonymize(query) : query;
+      final QueryGuid queryGuids = buildGuids(query, anonQuery);
+      logger.log(level, buildPayload(message, anonQuery, queryGuids));
     } catch (ParsingException e) {
       if (logger.isDebugEnabled()) {
         Logger.getRootLogger()
@@ -78,11 +77,17 @@ public final class QueryLogger {
   }
 
   private static void log(final Level level, final Object message, final Statement query) {
-    logger.log(level, buildPayload(message, SqlFormatter.formatSql(query)));
+    final String queryString = SqlFormatter.formatSql(query);
+    log(level, message, queryString);
   }
 
-  private static QueryLoggerMessage buildPayload(final Object message, final String query) {
-    return new QueryLoggerMessage(message, query);
+  private static QueryGuid buildGuids(final String query, final String anonymizedQuery) {
+    return new QueryGuid(namespace, query, anonymizedQuery);
+  }
+
+  private static QueryLoggerMessage buildPayload(final Object message, final String query,
+      final QueryGuid guid) {
+    return new QueryLoggerMessage(message, query, guid);
   }
 
   public static void debug(final Object message, final String query) {

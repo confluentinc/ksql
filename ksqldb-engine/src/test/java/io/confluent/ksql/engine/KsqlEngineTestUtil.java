@@ -42,8 +42,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.admin.Admin;
-import org.mockito.Mockito;
 
 public final class KsqlEngineTestUtil {
 
@@ -60,7 +58,6 @@ public final class KsqlEngineTestUtil {
         "test_instance_",
         metaStore,
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
-        () -> Mockito.mock(Admin.class),
         new SequentialQueryIdGenerator(),
         new KsqlConfig(Collections.emptyMap()),
         Collections.emptyList()
@@ -80,7 +77,6 @@ public final class KsqlEngineTestUtil {
         "test_instance_",
         metaStore,
         engineMetricsFactory,
-        () -> Mockito.mock(Admin.class),
         queryIdGenerator,
         ksqlConfig,
         Collections.emptyList()

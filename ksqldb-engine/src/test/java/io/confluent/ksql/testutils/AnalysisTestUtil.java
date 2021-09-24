@@ -43,7 +43,7 @@ public final class AnalysisTestUtil {
       final String queryStr,
       final MetaStore metaStore
   ) {
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore);
+    final Analyzer analyzer = new Analyzer(queryStr, metaStore, ksqlConfig);
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -55,10 +55,11 @@ public final class AnalysisTestUtil {
 
     private final Analysis analysis;
 
-    private Analyzer(final String queryStr, final MetaStore metaStore) {
+    private Analyzer(
+        final String queryStr, final MetaStore metaStore, final KsqlConfig ksqlConfig) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "");
-      final Statement statement = parseStatement(queryStr, metaStore);
+          metaStore, "", ksqlConfig);
+      final Statement statement = parseStatement(queryStr, metaStore, ksqlConfig);
       final Query query = statement instanceof QueryContainer
           ? ((QueryContainer) statement).getQuery()
           : (Query) statement;
@@ -72,10 +73,11 @@ public final class AnalysisTestUtil {
 
     private static Statement parseStatement(
         final String queryStr,
-        final MetaStore metaStore
+        final MetaStore metaStore,
+        final KsqlConfig ksqlConfig
     ) {
       final List<PreparedStatement<?>> statements =
-          KsqlParserTestUtil.buildAst(queryStr, metaStore);
+          KsqlParserTestUtil.buildAst(queryStr, metaStore, ksqlConfig);
       assertThat(statements, hasSize(1));
       return statements.get(0).getStatement();
     }

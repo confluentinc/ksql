@@ -1416,6 +1416,44 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateTableWithCreateOrReplaceOnSandbox() {
+    // Given:
+    final ConfiguredStatement<?> oldQuery =
+        configuredStatement("CREATE TABLE FOO AS SELECT * FROM TEST2;");
+    final ConfiguredStatement<?> newQuery =
+        configuredStatement("CREATE OR REPLACE TABLE FOO AS SELECT * FROM TEST2;");
+
+    final QueryId oldQueryId = ksqlEngine.execute(serviceContext, oldQuery).getQuery()
+        .get().getQueryId();
+
+    sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // When:
+    ExecuteResult executeResult = sandbox.execute(sandboxServiceContext, newQuery);
+
+    // Then:
+    assertThat(executeResult.getQuery().get().getQueryId(), is(oldQueryId));
+  }
+
+  @Test
+  public void shouldNotThrowWhenExecutingDuplicateTableWithCreateOrReplace() {
+    // Given:
+    final ConfiguredStatement<?> oldQuery =
+        configuredStatement("CREATE TABLE FOO AS SELECT * FROM TEST2;");
+    final ConfiguredStatement<?> newQuery =
+        configuredStatement("CREATE OR REPLACE TABLE FOO AS SELECT * FROM TEST2;");
+
+    final QueryId oldQueryId = ksqlEngine.execute(serviceContext, oldQuery).getQuery()
+        .get().getQueryId();
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(sandboxServiceContext, newQuery);
+
+    // Then:
+    assertThat(executeResult.getQuery().get().getQueryId(), is(oldQueryId));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateTable() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
@@ -2030,5 +2068,10 @@ public class KsqlEngineTest {
             )));
 
     sandbox = ksqlEngine.createSandbox(serviceContext);
+  }
+
+  private ConfiguredStatement<?> configuredStatement(final String statement) {
+    return ConfiguredStatement.of(ksqlEngine.prepare(ksqlEngine.parse(statement).get(0)),
+        SessionConfig.of(KSQL_CONFIG, new HashMap<>()));
   }
 }

@@ -403,18 +403,6 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void testReservedRowTimeAlias() {
-    // When:
-    final Exception e = assertThrows(
-        ParseFailedException.class,
-        () -> KsqlParserTestUtil.buildSingleAst("SELECT C1 as ROWTIME FROM test1 t1;", metaStore)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("'ROWTIME' is a reserved column name. You cannot use it as an alias for a column."));
-  }
-
-  @Test
   public void shouldThrowOnNonAlphanumericSourceName() {
     // When:
     final Exception e = assertThrows(

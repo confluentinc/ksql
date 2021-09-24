@@ -16,7 +16,7 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
@@ -40,7 +40,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final LogicalSchema logicalSchema;
   private final QueryId queryId;
   private final BlockingRowQueue rowQueue;
-  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
   private final PushQueryPreparer pushQueryPreparer;
@@ -60,7 +60,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
       final LogicalSchema logicalSchema,
       final QueryId queryId,
       final BlockingRowQueue blockingRowQueue,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final ResultType resultType,
       final PushQueryQueuePopulator pushQueryQueuePopulator,
       final PushQueryPreparer pushQueryPreparer,

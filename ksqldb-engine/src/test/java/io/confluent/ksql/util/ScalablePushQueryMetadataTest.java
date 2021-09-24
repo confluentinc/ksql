@@ -21,7 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -55,7 +55,7 @@ public class ScalablePushQueryMetadataTest {
   @Mock
   private Consumer<Throwable> errorCallback;
   @Mock
-  private Optional<ScalablePushQueryExecutorMetrics> metrics;
+  private Optional<ScalablePushQueryMetrics> metrics;
 
   private ScalablePushQueryMetadata query;
 

@@ -34,7 +34,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -327,7 +327,7 @@ final class EngineExecutor {
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
       final Context context,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
 

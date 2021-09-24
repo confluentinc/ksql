@@ -29,7 +29,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -84,7 +84,7 @@ public class QueryEndpoint {
   private final KsqlRestConfig ksqlRestConfig;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
-  private final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
@@ -102,7 +102,7 @@ public class QueryEndpoint {
       final KsqlRestConfig ksqlRestConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandLimiter,
@@ -200,7 +200,7 @@ public class QueryEndpoint {
       final WorkerExecutor workerExecutor,
       final Map<String, Object> requestProperties,
       final MetricsCallbackHolder metricsCallbackHolder,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
 
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error

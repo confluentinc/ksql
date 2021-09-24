@@ -20,7 +20,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.SourceName;
@@ -196,7 +196,7 @@ public interface KsqlExecutionContext {
       PushRoutingOptions pushRoutingOptions,
       QueryPlannerOptions queryPlannerOptions,
       Context context,
-      Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   );
 
   /**

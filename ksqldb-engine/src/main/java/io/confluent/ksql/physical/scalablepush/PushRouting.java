@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.internal.ScalablePushQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
@@ -102,7 +102,7 @@ public class PushRouting implements AutoCloseable {
       final PushRoutingOptions pushRoutingOptions,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     final Set<KsqlNode> hosts = getInitialHosts(pushPhysicalPlan, statement, pushRoutingOptions);
 
@@ -161,7 +161,7 @@ public class PushRouting implements AutoCloseable {
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
       final boolean dynamicallyAddedNode,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     final Map<KsqlNode, CompletableFuture<RoutingResult>> futureMap = new LinkedHashMap<>();
     for (final KsqlNode node : hosts) {
@@ -241,7 +241,7 @@ public class PushRouting implements AutoCloseable {
       final TransientQueryQueue transientQueryQueue,
       final CompletableFuture<Void> callback,
       final boolean dynamicallyAddedNode,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     if (node.isLocal()) {
       LOG.debug("Query {} id {} executed locally at host {} at timestamp {}.",
@@ -344,7 +344,7 @@ public class PushRouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     pushPhysicalPlan.getContext().runOnContext(v ->
         checkForNewHosts(serviceContext, pushPhysicalPlan, statement, outputSchema,
@@ -358,7 +358,7 @@ public class PushRouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
-      final Optional<ScalablePushQueryExecutorMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     VertxUtils.checkContext(pushPhysicalPlan.getContext());
     if (pushConnectionsHandle.isClosed()) {

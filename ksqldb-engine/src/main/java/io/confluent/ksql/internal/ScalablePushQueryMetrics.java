@@ -23,14 +23,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.ReservedInternalTopics;
-import java.io.Closeable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -45,8 +37,17 @@ import org.apache.kafka.common.metrics.stats.Percentiles.BucketSizing;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.utils.Time;
 
+import java.io.Closeable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-public class ScalablePushQueryExecutorMetrics implements Closeable {
+public class ScalablePushQueryMetrics implements Closeable {
 
   private static final String SCALABLE_PUSH_QUERY_METRIC_GROUP = "scalable-push-query";
   private static final String SCALABLE_PUSH_REQUESTS = "scalable-push-query-requests";
@@ -73,7 +74,7 @@ public class ScalablePushQueryExecutorMetrics implements Closeable {
   private final String ksqlServicePrefix;
   private final Time time;
 
-  public ScalablePushQueryExecutorMetrics(
+  public ScalablePushQueryMetrics(
       final String ksqlServiceId,
       final Map<String, String> customMetricsTags,
       final Time time

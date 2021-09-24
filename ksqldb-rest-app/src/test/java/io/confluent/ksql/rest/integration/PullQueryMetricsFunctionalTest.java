@@ -43,6 +43,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -50,6 +51,7 @@ import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore
 public class PullQueryMetricsFunctionalTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(PullQueryMetricsFunctionalTest.class);

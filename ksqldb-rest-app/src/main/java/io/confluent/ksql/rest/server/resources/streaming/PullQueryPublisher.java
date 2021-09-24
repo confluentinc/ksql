@@ -103,13 +103,16 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         query.getSessionConfig().getOverrides()
     );
 
-    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-    final Decrementer decrementer = concurrencyLimiter.increment();
-    pullBandRateLimiter.allow();
-
     PullQueryResult result = null;
+    Decrementer decrementer = null;
     try {
-      result = ksqlEngine.executePullQuery(
+      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+      decrementer = concurrencyLimiter.increment();
+      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+      final Decrementer finalDecrementer = decrementer;
+
+      result = ksqlEngine.executeTablePullQuery(
+          analysis,
           serviceContext,
           query,
           routing,
@@ -121,7 +124,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
       final PullQueryResult finalResult = result;
       result.onCompletionOrException((v, throwable) -> {
-        decrementer.decrementAtMostOnce();
+        finalDecrementer.decrementAtMostOnce();
 
         pullQueryMetrics.ifPresent(m -> {
           recordMetrics(m, Optional.of(finalResult));
@@ -133,7 +136,9 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
       subscriber.onSubscribe(subscription);
     } catch (Throwable t) {
-      decrementer.decrementAtMostOnce();
+      if (decrementer != null) {
+        decrementer.decrementAtMostOnce();
+      }
 
       if (result == null) {
         pullQueryMetrics.ifPresent(m -> recordMetrics(m, Optional.empty()));

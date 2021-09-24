@@ -118,7 +118,6 @@ public class PullQueryResult {
       LOG.error("Error closing pull query queue", t);
     }
     future.complete(null);
-    shouldCancelRequests.complete(null);
   }
 
   public void onException(final Consumer<Throwable> consumer) {

@@ -123,6 +123,8 @@ public class PullQueryStreamWriter implements StreamingOutput {
     } catch (Throwable e) {
       LOG.error("Exception occurred while writing to connection stream: ", e);
       outputException(output, e);
+    } finally {
+      close();
     }
   }
 
@@ -251,6 +253,10 @@ public class PullQueryStreamWriter implements StreamingOutput {
   @Override
   public int getWriteTimeoutMs() {
     return WRITE_TIMEOUT_MS;
+  }
+
+  public boolean isClosed() {
+    return closed.get();
   }
 
   private boolean isCompletedOrHasException() {

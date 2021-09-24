@@ -63,7 +63,8 @@ public final class HARouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
 
-  private final ExecutorService executorService;
+  private final ExecutorService coordinatorExecutorService;
+  private final ExecutorService routerExecutorService;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
@@ -87,16 +88,20 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.executorService = Executors.newFixedThreadPool(
+    this.coordinatorExecutorService = Executors.newFixedThreadPool(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
-        new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
+        new ThreadFactoryBuilder().setNameFormat("pull-query-coordinator-%d").build());
+    this.routerExecutorService = Executors.newFixedThreadPool(
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG),
+        new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.routeQuery = Objects.requireNonNull(routeQuery);
   }
 
   @Override
   public void close() {
-    executorService.shutdown();
+    coordinatorExecutorService.shutdown();
+    routerExecutorService.shutdown();
   }
 
   public CompletableFuture<Void> handlePullQuery(
@@ -106,7 +111,8 @@ public final class HARouting implements AutoCloseable {
       final RoutingOptions routingOptions,
       final LogicalSchema outputSchema,
       final QueryId queryId,
-      final PullQueryQueue pullQueryQueue
+      final PullQueryQueue pullQueryQueue,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
     final List<KsqlPartitionLocation> allLocations = pullPhysicalPlan.getMaterialization().locator()
         .locate(
@@ -143,10 +149,10 @@ public final class HARouting implements AutoCloseable {
         .collect(Collectors.toList());
 
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-    executorService.submit(() -> {
+    coordinatorExecutorService.submit(() -> {
       try {
         executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions, outputSchema,
-            queryId, locations, pullQueryQueue);
+            queryId, locations, pullQueryQueue, shouldCancelRequests);
         completableFuture.complete(null);
       } catch (Throwable t) {
         completableFuture.completeExceptionally(t);
@@ -164,7 +170,8 @@ public final class HARouting implements AutoCloseable {
       final LogicalSchema outputSchema,
       final QueryId queryId,
       final List<KsqlPartitionLocation> locations,
-      final PullQueryQueue pullQueryQueue
+      final PullQueryQueue pullQueryQueue,
+      final CompletableFuture<Void> shouldCancelRequests
   ) throws InterruptedException {
     // The remaining partition locations to retrieve without error
     List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
@@ -189,10 +196,11 @@ public final class HARouting implements AutoCloseable {
       final Map<KsqlNode, Future<RoutingResult>> futures = new LinkedHashMap<>();
       for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
-        futures.put(node, executorService.submit(
+        futures.put(node, routerExecutorService.submit(
             () -> routeQuery.routeQuery(
                 node, entry.getValue(), statement, serviceContext, routingOptions,
-                pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue)
+                pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue,
+                shouldCancelRequests)
         ));
       }
 
@@ -250,6 +258,7 @@ public final class HARouting implements AutoCloseable {
     return groupedByHost;
   }
 
+  @SuppressWarnings("ParameterNumber")
   @VisibleForTesting
   interface RouteQuery {
     RoutingResult routeQuery(
@@ -262,10 +271,12 @@ public final class HARouting implements AutoCloseable {
         PullPhysicalPlan pullPhysicalPlan,
         LogicalSchema outputSchema,
         QueryId queryId,
-        PullQueryQueue pullQueryQueue
+        PullQueryQueue pullQueryQueue,
+        CompletableFuture<Void> shouldCancelRequests
     );
   }
 
+  @SuppressWarnings("ParameterNumber")
   @VisibleForTesting
   static RoutingResult executeOrRouteQuery(
       final KsqlNode node,
@@ -277,7 +288,8 @@ public final class HARouting implements AutoCloseable {
       final PullPhysicalPlan pullPhysicalPlan,
       final LogicalSchema outputSchema,
       final QueryId queryId,
-      final PullQueryQueue pullQueryQueue
+      final PullQueryQueue pullQueryQueue,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
     final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory = (rawRow, schema) ->
         new PullQueryRow(rawRow, schema, Optional.ofNullable(
@@ -308,7 +320,7 @@ public final class HARouting implements AutoCloseable {
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, locations, statement, serviceContext, pullQueryQueue, rowFactory,
-            outputSchema);
+            outputSchema, shouldCancelRequests);
         return RoutingResult.SUCCESS;
       } catch (StandbyFallbackException e) {
         LOG.warn("Error forwarding query to node {}. Falling back to standby state which may "
@@ -330,7 +342,8 @@ public final class HARouting implements AutoCloseable {
       final ServiceContext serviceContext,
       final PullQueryQueue pullQueryQueue,
       final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
-      final LogicalSchema outputSchema
+      final LogicalSchema outputSchema,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
 
     // Specify the partitions we specifically want to read.  This will prevent reading unintended
@@ -353,7 +366,8 @@ public final class HARouting implements AutoCloseable {
               statement.getStatementText(),
               statement.getSessionConfig().getOverrides(),
               requestProperties,
-              streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema)
+              streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema),
+              shouldCancelRequests
           );
     } catch (Exception e) {
       // If we threw some explicit exception, then let it bubble up. All of the row handling is
@@ -361,6 +375,12 @@ public final class HARouting implements AutoCloseable {
       final KsqlException ksqlException = causedByKsqlException(e);
       if (ksqlException != null) {
         throw ksqlException;
+      }
+      // If the exception was caused by closing the connection, we consider this intentional and
+      // just return.
+      if (shouldCancelRequests.isDone()) {
+        LOG.warn("Connection canceled, so returning");
+        return;
       }
       // If we get some kind of unknown error, we assume it's network or other error from the
       // KsqlClient and try standbys

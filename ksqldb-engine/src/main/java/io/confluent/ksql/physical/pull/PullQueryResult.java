@@ -44,6 +44,7 @@ public class PullQueryResult {
   private final PullPhysicalPlanType planType;
   private final RoutingNodeType routingNodeType;
   private final Supplier<Long> rowsProcessedSupplier;
+  private final CompletableFuture<Void> shouldCancelRequests;
 
   // This future is used to keep track of all of the callbacks since we allow for adding them both
   // before and after the pull query has been started.  When the pull query has completed, it will
@@ -61,7 +62,8 @@ public class PullQueryResult {
       final PullSourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType,
-      final Supplier<Long> rowsProcessedSupplier
+      final Supplier<Long> rowsProcessedSupplier,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
     this.schema = schema;
     this.populator = populator;
@@ -72,6 +74,7 @@ public class PullQueryResult {
     this.planType = planType;
     this.routingNodeType = routingNodeType;
     this.rowsProcessedSupplier = rowsProcessedSupplier;
+    this.shouldCancelRequests = shouldCancelRequests;
   }
 
   public LogicalSchema getSchema() {
@@ -115,6 +118,7 @@ public class PullQueryResult {
       LOG.error("Error closing pull query queue", t);
     }
     future.complete(null);
+    shouldCancelRequests.complete(null);
   }
 
   public void onException(final Consumer<Throwable> consumer) {

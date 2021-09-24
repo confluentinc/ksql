@@ -309,6 +309,7 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
+        resp.exceptionHandler(vcf::completeExceptionally);
         resp.handler(buff -> {
           try {
             chunkHandler.accept(chunkMapper.apply(buff));

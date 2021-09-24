@@ -45,8 +45,6 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import java.util.List;
 import java.util.Optional;
-import javax.ws.rs.HEAD;
-import kafka.server.TestMetricsReporter;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
@@ -113,7 +111,7 @@ public class PullQueryMetricsFunctionalTest {
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(60);
+  public final Timeout timeout = Timeout.seconds(560);
 
   @BeforeClass
   public static void setUpClass() {
@@ -288,7 +286,7 @@ public class PullQueryMetricsFunctionalTest {
         "Number of rows returned - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric recordsReturnedTableMetric = TestMetricsReporter.METRICS.get(recordsReturnedTable);
+    final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
 
     final MetricName latencyTable = new MetricName(
         "pull-query-requests-detailed-latency-min",
@@ -296,7 +294,7 @@ public class PullQueryMetricsFunctionalTest {
         "Min time for a pull query request - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric latencyTableMetric = TestMetricsReporter.METRICS.get(latencyTable);
+    final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);
 
     final MetricName responseSizeTable = new MetricName(
         "pull-query-requests-detailed-response-size",
@@ -304,7 +302,7 @@ public class PullQueryMetricsFunctionalTest {
         "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric responseSizeTableMetric = TestMetricsReporter.METRICS.get(responseSizeTable);
+    final KafkaMetric responseSizeTableMetric = metrics.metric(responseSizeTable);
 
     final MetricName totalRequestsTable = new MetricName(
         "pull-query-requests-detailed-total",
@@ -312,7 +310,7 @@ public class PullQueryMetricsFunctionalTest {
         "Total number of pull query request - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric totalRequestsTableMetric = TestMetricsReporter.METRICS.get(totalRequestsTable);
+    final KafkaMetric totalRequestsTableMetric = metrics.metric(totalRequestsTable);
 
     final MetricName requestDistributionTable = new MetricName(
         "pull-query-requests-detailed-distribution-90",
@@ -320,7 +318,7 @@ public class PullQueryMetricsFunctionalTest {
         "Latency distribution - non_windowed-key_lookup-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric requestDistributionTableMetric = TestMetricsReporter.METRICS.get(requestDistributionTable);
+    final KafkaMetric requestDistributionTableMetric = metrics.metric(requestDistributionTable);
 
 
     final MetricName recordsReturnedStream = new MetricName(
@@ -329,7 +327,7 @@ public class PullQueryMetricsFunctionalTest {
         "Number of rows returned - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric recordsReturnedStreamMetric = TestMetricsReporter.METRICS.get(recordsReturnedStream);
+    final KafkaMetric recordsReturnedStreamMetric = metrics.metric(recordsReturnedStream);
 
     final MetricName latencyStream = new MetricName(
         "pull-query-requests-detailed-latency-min",
@@ -337,7 +335,7 @@ public class PullQueryMetricsFunctionalTest {
         "Min time for a pull query request - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric latencyStreamMetric = TestMetricsReporter.METRICS.get(latencyStream);
+    final KafkaMetric latencyStreamMetric = metrics.metric(latencyStream);
 
     final MetricName responseSizeStream = new MetricName(
         "pull-query-requests-detailed-response-size",
@@ -345,7 +343,7 @@ public class PullQueryMetricsFunctionalTest {
         "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric responseSizeStreamMetric = TestMetricsReporter.METRICS.get(responseSizeStream);
+    final KafkaMetric responseSizeStreamMetric = metrics.metric(responseSizeStream);
 
     final MetricName totalRequestsStream = new MetricName(
         "pull-query-requests-detailed-total",
@@ -353,7 +351,7 @@ public class PullQueryMetricsFunctionalTest {
         "Total number of pull query request - non_windowed_stream-unknown-source_node",
         STREAMS_TAGS
     );
-    final KafkaMetric totalRequestsStreamMetric = TestMetricsReporter.METRICS.get(totalRequestsStream);
+    final KafkaMetric totalRequestsStreamMetric = metrics.metric(totalRequestsStream);
 
     final MetricName requestDistributionStream = new MetricName(
         "pull-query-requests-detailed-distribution-90",
@@ -361,7 +359,7 @@ public class PullQueryMetricsFunctionalTest {
         "Latency distribution - non_windowed_stream-unknown-source_node",
         TABLE_TAGS
     );
-    final KafkaMetric requestDistributionStreamMetric = TestMetricsReporter.METRICS.get(requestDistributionStream);
+    final KafkaMetric requestDistributionStreamMetric = metrics.metric(requestDistributionStream);
 
     final String sqlTable = "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
     final String sqlStream = "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';";
@@ -379,7 +377,7 @@ public class PullQueryMetricsFunctionalTest {
     assertThat(totalRequestsTableMetric.metricValue(), is(2.0));
     assertThat((Double)requestDistributionTableMetric.metricValue(), greaterThan(1.0));
 
-    assertThat(recordsReturnedStreamMetric.metricValue(), is(1.0));
+    assertThat(recordsReturnedStreamMetric.metricValue(), is(2.0));
     assertThat((Double)latencyStreamMetric.metricValue(), greaterThan(1.0));
     assertThat((Double)responseSizeStreamMetric.metricValue(), greaterThan(1.0));
     assertThat(totalRequestsStreamMetric.metricValue(), is(2.0));

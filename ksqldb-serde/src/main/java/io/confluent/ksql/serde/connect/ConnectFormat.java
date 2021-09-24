@@ -57,7 +57,7 @@ public abstract class ConnectFormat implements Format {
     return new ConnectFormatSchemaTranslator(
         this,
         formatProperties,
-        ConnectSchemaUtil::toKsqlSchema
+        new ConnectKsqlSchemaTranslator()
     );
   }
 

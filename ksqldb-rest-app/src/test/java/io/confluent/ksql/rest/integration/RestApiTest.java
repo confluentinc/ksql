@@ -503,7 +503,7 @@ public class RestApiTest {
     final KsqlRequest request =
         new KsqlRequest(
             "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + ";",
-            ImmutableMap.of("auto.offset.reset", "lastest"), // should get ignored
+            ImmutableMap.of("auto.offset.reset", "latest"), // should get ignored
             ImmutableMap.of(),
             null
         );

@@ -433,7 +433,7 @@
       ]
     },
     {
-      "name": "verify INSERT VALUES fails for ROWPARTITION (matching types)",
+      "name": "verify INSERT VALUES fails for ROWPARTITION",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },
@@ -448,7 +448,7 @@
       }
     },
     {
-      "name": "verify INSERT VALUES fails for ROWOFFSET (matching types)",
+      "name": "verify INSERT VALUES fails for ROWOFFSET",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },

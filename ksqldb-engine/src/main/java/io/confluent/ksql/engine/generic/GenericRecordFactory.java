@@ -82,8 +82,7 @@ public class GenericRecordFactory {
         throw new KsqlException("Column name " + col + " does not exist.");
       }
 
-      if (SystemColumns.isSystemColumn(col, config)
-          && SystemColumns.isDisallowedForInsertValues(col)) {
+      if (SystemColumns.isDisallowedForInsertValues(col, config)) {
         throw new KsqlException("Inserting into column " + col + " is not allowed.");
       }
     }

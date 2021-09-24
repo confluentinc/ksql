@@ -165,9 +165,13 @@ public final class SystemColumns {
         .mustBeMaterializedForTableJoins;
   }
 
-  public static boolean isDisallowedForInsertValues(final ColumnName columnName) {
+  public static boolean isDisallowedForInsertValues(
+      final ColumnName columnName,
+      final KsqlConfig ksqlConfig
+  ) {
     return pseudoColumns
         .stream()
+        .filter(col -> col.version <= getPseudoColumnVersionFromConfig(ksqlConfig))
         .filter(col -> col.name.equals(columnName))
         .anyMatch(col -> col.isDisallowedForInsertValues);
   }

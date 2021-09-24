@@ -328,11 +328,13 @@ public class QueryEndpoint {
         statement.getSessionConfig().getOverrides()
     );
 
-    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-    final Decrementer decrementer = pullConcurrencyLimiter.increment();
-    pullBandRateLimiter.allow(KsqlQueryType.PULL);
-
+    Decrementer decrementer = null;
     try {
+      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+      decrementer = pullConcurrencyLimiter.increment();
+      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+      final Decrementer finalDecrementer = decrementer;
+
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,
@@ -346,7 +348,7 @@ public class QueryEndpoint {
 
       resultForMetrics.set(result);
       result.onCompletionOrException((v, throwable) -> {
-        decrementer.decrementAtMostOnce();
+        finalDecrementer.decrementAtMostOnce();
       });
 
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
@@ -355,7 +357,9 @@ public class QueryEndpoint {
 
       return publisher;
     } catch (Throwable t) {
-      decrementer.decrementAtMostOnce();
+      if (decrementer != null) {
+        decrementer.decrementAtMostOnce();
+      }
       throw t;
     }
   }

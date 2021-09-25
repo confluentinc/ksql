@@ -507,21 +507,24 @@ final class EngineExecutor {
         .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
   }
 
+  private SourceName getSourceName(final ConfiguredStatement<?> statement) {
+    if (statement.getStatement() instanceof CreateStream && ((CreateStream) statement.getStatement()).isNotExists()) {
+      return ((CreateStream) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTable && ((CreateTable) statement.getStatement()).isNotExists()) {
+      return ((CreateTable) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateAsSelect && ((CreateAsSelect) statement.getStatement()).isNotExists()) {
+      return ((CreateAsSelect) statement.getStatement()).getName();
+    }
+    return null;
+  }
+
   // Known to be non-empty
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 
-      SourceName sourceName = null;
-      if (statement.getStatement() instanceof CreateStream && ((CreateStream) statement.getStatement()).isNotExists()) {
-        sourceName = ((CreateStream) statement.getStatement()).getName();
-      } else if (statement.getStatement() instanceof CreateTable && ((CreateTable) statement.getStatement()).isNotExists()) {
-        sourceName = ((CreateTable) statement.getStatement()).getName();
-      } else if (statement.getStatement() instanceof CreateAsSelect && ((CreateAsSelect) statement.getStatement()).isNotExists()) {
-        sourceName= ((CreateAsSelect) statement.getStatement()).getName();
-      }
-
+      final SourceName sourceName = getSourceName(statement);
       if (sourceName != null && engineContext.getMetaStore().getSource(sourceName) != null) {
         return new KsqlPlanV1(statement.getStatementText(), Optional.empty(), Optional.empty());
       }

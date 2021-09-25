@@ -50,6 +50,7 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -513,10 +514,12 @@ final class EngineExecutor {
       throwOnNonExecutableStatement(statement);
 
       SourceName sourceName = null;
-      if (statement.getStatement() instanceof CreateStream) {
+      if (statement.getStatement() instanceof CreateStream && ((CreateStream) statement.getStatement()).isNotExists()) {
         sourceName = ((CreateStream) statement.getStatement()).getName();
-      } else if (statement.getStatement() instanceof CreateTable) {
+      } else if (statement.getStatement() instanceof CreateTable && ((CreateTable) statement.getStatement()).isNotExists()) {
         sourceName = ((CreateTable) statement.getStatement()).getName();
+      } else if (statement.getStatement() instanceof CreateAsSelect && ((CreateAsSelect) statement.getStatement()).isNotExists()) {
+        sourceName= ((CreateAsSelect) statement.getStatement()).getName();
       }
 
       if (sourceName != null && engineContext.getMetaStore().getSource(sourceName) != null) {

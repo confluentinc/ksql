@@ -1511,27 +1511,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotThrowWhenExecutingDuplicateStreamWithIfNotExists() {
-    // Given:
-    final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
-            + "CREATE STREAM IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
-
-    givenStatementAlreadyExecuted(parsed.get(0));
-
-    final PreparedStatement<?> prepared = prepare(parsed.get(1));
-
-    // When:
-    ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext, ConfiguredStatement.
-            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-    );
-
-    // Then:
-    assertThat(executeResult.getCommandResult(), is(Optional.empty()));
-  }
-
-  @Test
   public void shouldThrowWhenExecutingDuplicateStream() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(

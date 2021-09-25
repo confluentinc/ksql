@@ -300,7 +300,6 @@ public class DdlCommandExecTest {
     // Given:
     final CreateTableCommand cmd = buildCreateTable(
         SourceName.of("t1"),
-        false,
         null
     );
 
@@ -315,7 +314,7 @@ public class DdlCommandExecTest {
   @Test
   public void shouldAddSourceTable() {
     // Given:
-    final CreateTableCommand cmd = buildCreateTable(TABLE_NAME, false, true);
+    final CreateTableCommand cmd = buildCreateTable(TABLE_NAME, true);
 
     // When:
     cmdExec.execute(SQL_TEXT, cmd, true, ImmutableSet.of(TABLE_NAME));
@@ -332,11 +331,11 @@ public class DdlCommandExecTest {
   public void shouldThrowOnDropTableWhenConstraintExist() {
     // Given:
     final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"),
-        false, false);
+        false);
     final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"),
-        false, false);
+        false);
     final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"),
-        false, false);
+        false);
     cmdExec.execute(SQL_TEXT, table1, true, Collections.emptySet());
     cmdExec.execute(SQL_TEXT, table2, true, Collections.singleton(SourceName.of("t1")));
     cmdExec.execute(SQL_TEXT, table3, true, Collections.singleton(SourceName.of("t1")));
@@ -529,12 +528,11 @@ public class DdlCommandExecTest {
 
     // When:
     givenCreateStream(SCHEMA2, false);
-    final DdlCommandResult result =cmdExec.execute(SQL_TEXT, createStream,
-        false, NO_QUERY_SOURCES);
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES));
 
     // Then:
-    assertThat("Expected successful execution", result.isSuccess());
-    assertThat(result.getMessage(), containsString("A stream with the same name already exists"));
+    assertThat(e.getMessage(), containsString("A stream with the same name already exists"));
   }
 
   @Test
@@ -545,12 +543,11 @@ public class DdlCommandExecTest {
 
     // When:
     givenCreateTable();
-    final DdlCommandResult result =cmdExec.execute(SQL_TEXT, createTable,
-        false, NO_QUERY_SOURCES);
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES));
 
     // Then:
-    assertThat("Expected successful execution", result.isSuccess());
-    assertThat(result.getMessage(), containsString("A table with the same name already exists"));
+    assertThat(e.getMessage(), containsString("A table with the same name already exists"));
   }
 
   private void givenDropSourceCommand(final SourceName name) {
@@ -629,12 +626,11 @@ public class DdlCommandExecTest {
   }
 
   private void givenCreateTable() {
-    createTable = buildCreateTable(TABLE_NAME, false, false);
+    createTable = buildCreateTable(TABLE_NAME, false);
   }
 
   private CreateTableCommand buildCreateTable(
       final SourceName sourceName,
-      final boolean allowReplace,
       final Boolean isSource
   ) {
     return new CreateTableCommand(
@@ -649,7 +645,7 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(allowReplace),
+        Optional.of(false),
         Optional.ofNullable(isSource)
     );
   }

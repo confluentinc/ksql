@@ -239,10 +239,6 @@ public interface KsqlExecutionContext {
       return new ExecuteResult(Optional.empty(), Optional.of(commandResult));
     }
 
-    public static ExecuteResult empty() {
-      return new ExecuteResult(Optional.empty(), Optional.empty());
-    }
-
     public Optional<QueryMetadata> getQuery() {
       return query;
     }

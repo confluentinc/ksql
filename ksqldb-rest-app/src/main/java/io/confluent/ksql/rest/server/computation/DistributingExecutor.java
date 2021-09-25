@@ -193,7 +193,6 @@ public class DistributingExecutor {
     }
   }
 
-
   private void checkAuthorization(
       final ConfiguredStatement<?> configured,
       final KsqlSecurityContext userSecurityContext,

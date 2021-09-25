@@ -60,16 +60,14 @@ public final class CreateSourceFactory {
   private final SerdeFeaturessSupplier valueSerdeFeaturesSupplier;
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
-  private final MetaStore metaStore;
 
-  public CreateSourceFactory(final ServiceContext serviceContext, final MetaStore metaStore) {
+  public CreateSourceFactory(final ServiceContext serviceContext) {
     this(
         serviceContext,
         (s, f, e, k) -> SerdeFeaturesFactory.buildKeyFeatures(s, f),
         SerdeFeaturesFactory::buildValueFeatures,
         new GenericKeySerDe(),
-        new GenericRowSerDe(),
-        metaStore
+        new GenericRowSerDe()
     );
   }
 
@@ -79,9 +77,7 @@ public final class CreateSourceFactory {
       final SerdeFeaturessSupplier keySerdeFeaturesSupplier,
       final SerdeFeaturessSupplier valueSerdeFeaturesSupplier,
       final KeySerdeFactory keySerdeFactory,
-      final ValueSerdeFactory valueSerdeFactory,
-      final MetaStore metaStore
-  ) {
+      final ValueSerdeFactory valueSerdeFactory) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.keySerdeFeaturesSupplier =
         requireNonNull(keySerdeFeaturesSupplier, "keySerdeFeaturesSupplier");
@@ -89,7 +85,6 @@ public final class CreateSourceFactory {
         requireNonNull(valueSerdeFeaturesSupplier, "valueSerdeFeaturesSupplier");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
-    this.metaStore = requireNonNull(metaStore);
   }
 
   // This method is called by CREATE_AS statements
@@ -117,14 +112,6 @@ public final class CreateSourceFactory {
     final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
-    final DataSource dataSource = metaStore.getSource(sourceName);
-
-    if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
-      final String sourceType = dataSource.getDataSourceType().getKsqlType();
-      throw new KsqlException(
-          String.format("Cannot add stream '%s': A %s with the same name already exists",
-             sourceName.text(), sourceType.toLowerCase()));
-    }
 
     return new CreateStreamCommand(
         sourceName,
@@ -161,14 +148,7 @@ public final class CreateSourceFactory {
     final CreateSourceProperties props = statement.getProperties();
     final String topicName = ensureTopicExists(props, serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements(), ksqlConfig);
-    final DataSource dataSource = metaStore.getSource(sourceName);
 
-    if (dataSource != null && !statement.isOrReplace() && !statement.isNotExists()) {
-      final String sourceType = dataSource.getDataSourceType().getKsqlType();
-      throw new KsqlException(
-          String.format("Cannot add table '%s': A %s with the same name already exists",
-              sourceName.text(), sourceType.toLowerCase()));
-    }
     if (schema.key().isEmpty()) {
       final boolean usingSchemaInference = props.getValueSchemaId().isPresent();
 

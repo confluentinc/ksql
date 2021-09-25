@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class ConfiguredKsqlPlan {
 

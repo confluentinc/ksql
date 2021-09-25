@@ -144,12 +144,19 @@ public class DistributingExecutor {
       commandQueue.waitForCommandConsumer();
 
       commandId = commandIdAssigner.getCommandId(statement.getStatement());
-      final Command command = validatedCommandFactory.create(
+      final Optional<Command> command = validatedCommandFactory.create(
           injected,
           executionContext.createSandbox(executionContext.getServiceContext())
       );
+      if (!command.isPresent()) {
+        transactionalProducer.abortTransaction();
+        if (commandId != null) {
+          commandQueue.abortCommand(commandId);
+        }
+        return StatementExecutorResponse.handled(Optional.empty());
+      }
       final QueuedCommandStatus queuedCommandStatus =
-          commandQueue.enqueueCommand(commandId, command, transactionalProducer);
+          commandQueue.enqueueCommand(commandId, command.get(), transactionalProducer);
 
       transactionalProducer.commitTransaction();
       final CommandStatus commandStatus = queuedCommandStatus
@@ -173,12 +180,6 @@ public class DistributingExecutor {
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic.",
           statement.getStatementText()), e);
-    } catch (IllegalArgumentException e) {
-      transactionalProducer.abortTransaction();
-      if (commandId != null) {
-        commandQueue.abortCommand(commandId);
-      }
-      return StatementExecutorResponse.handled(Optional.empty());
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
       if (commandId != null) {

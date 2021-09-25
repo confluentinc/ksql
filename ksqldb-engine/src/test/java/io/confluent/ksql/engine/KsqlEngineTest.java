@@ -1404,16 +1404,13 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(parsed.get(1));
 
     // When:
-    final IllegalArgumentException e = assertThrows(
-          IllegalArgumentException.class,
-          () -> ksqlEngine.execute(
-          serviceContext, ConfiguredStatement.
-              of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-          )
-      );
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
 
     // Then:
-    assertThat(e.getMessage(), containsString("already exists"));
+    assertThat(executeResult.getCommandResult(), is(Optional.empty()));
   }
 
   @Test
@@ -1525,16 +1522,13 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(parsed.get(1));
 
     // When:
-    final IllegalArgumentException e = assertThrows(
-        IllegalArgumentException.class,
-        () -> ksqlEngine.execute(
-            serviceContext, ConfiguredStatement.
-                of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-        )
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("already exists"));
+    assertThat(executeResult.getCommandResult(), is(Optional.empty()));
   }
 
   @Test

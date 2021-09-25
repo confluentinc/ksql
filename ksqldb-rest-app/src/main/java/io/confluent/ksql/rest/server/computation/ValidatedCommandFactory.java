@@ -46,7 +46,7 @@ public final class ValidatedCommandFactory {
    * @param context The KSQL engine snapshot to validate the command against.
    * @return A validated command, which is safe to enqueue onto the command topic.
    */
-  public Command create(
+  public Optional<Command> create(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext context) {
     return create(statement, context.getServiceContext(), context);
@@ -60,7 +60,7 @@ public final class ValidatedCommandFactory {
    * @return A validated command, which is safe to enqueue onto the command topic.
    */
   @SuppressWarnings("MethodMayBeStatic") // Not static to allow dependency injection
-  public Command create(
+  public Optional<Command> create(
       final ConfiguredStatement<? extends Statement> statement,
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
@@ -78,7 +78,10 @@ public final class ValidatedCommandFactory {
    * @param command the command to test.
    * @return the passed in command.
    */
-  private static Command ensureDeserializable(final Command command) {
+  private static Optional<Command> ensureDeserializable(final Optional<Command> command) {
+    if (!command.isPresent()) {
+      return command;
+    }
     try {
       final String json = PlanJsonMapper.INSTANCE.get().writeValueAsString(command);
       PlanJsonMapper.INSTANCE.get().readValue(json, Command.class);
@@ -92,17 +95,17 @@ public final class ValidatedCommandFactory {
     }
   }
 
-  private static Command createCommand(
+  private static Optional<Command> createCommand(
       final ConfiguredStatement<? extends Statement> statement,
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
     if (statement.getStatementText().equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
-      return Command.of(statement);
+      return Optional.of(Command.of(statement));
     }
 
     if (statement.getStatement() instanceof TerminateQuery) {
-      return createForTerminateQuery(statement, context);
+      return Optional.of(createForTerminateQuery(statement, context));
     }
 
     return createForPlannedQuery(statement, serviceContext, context);
@@ -138,18 +141,21 @@ public final class ValidatedCommandFactory {
     return Command.of(statement);
   }
 
-  private static Command createForPlannedQuery(
+  private static Optional<Command> createForPlannedQuery(
       final ConfiguredStatement<? extends Statement> statement,
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
     final KsqlPlan plan = context.plan(serviceContext, statement);
+    if (!plan.getQueryPlan().isPresent() && !plan.getDdlCommand().isPresent()) {
+      return Optional.empty();
+    }
 
     final ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
         .of(plan, statement.getSessionConfig());
 
     context.execute(serviceContext, configuredPlan);
 
-    return Command.of(configuredPlan);
+    return Optional.of(Command.of(configuredPlan));
   }
 }

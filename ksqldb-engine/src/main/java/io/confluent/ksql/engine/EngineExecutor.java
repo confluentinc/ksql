@@ -185,12 +185,6 @@ final class EngineExecutor {
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
         executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
 
-    // Return if the source to create already exists.
-    if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
-      throw new IllegalArgumentException(
-          "The Stream or Table already exists but statement is using IF NOT EXISTS.");
-    }
-
     // Do not execute the plan (found on new CST commands or commands read from the command topic)
     // for source tables if the feature is disabled. CST will still be read-only, but no query
     // must be executed.

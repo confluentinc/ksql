@@ -512,6 +512,17 @@ final class EngineExecutor {
     try {
       throwOnNonExecutableStatement(statement);
 
+      SourceName sourceName = null;
+      if (statement.getStatement() instanceof CreateStream) {
+        sourceName = ((CreateStream) statement.getStatement()).getName();
+      } else if (statement.getStatement() instanceof CreateTable) {
+        sourceName = ((CreateTable) statement.getStatement()).getName();
+      }
+
+      if (sourceName != null && engineContext.getMetaStore().getSource(sourceName) != null) {
+        return new KsqlPlanV1(statement.getStatementText(), Optional.empty(), Optional.empty());
+      }
+
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
         final boolean isSourceStream = statement.getStatement() instanceof CreateStream
             && ((CreateStream) statement.getStatement()).isSource();

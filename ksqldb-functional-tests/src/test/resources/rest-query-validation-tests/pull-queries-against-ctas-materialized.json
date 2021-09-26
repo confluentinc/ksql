@@ -809,7 +809,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support ROWPARTITION or ROWOFFSET in SELECT clauses.",
+        "message": "Pull queries don't support the following columns in SELECT clauses: `ROWOFFSET`, `ROWPARTITION`",
         "status": 400
       }
     },
@@ -828,7 +828,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support ROWPARTITION or ROWOFFSET in WHERE clauses.",
+        "message": "Pull queries don't support the following columns in WHERE clauses: `ROWOFFSET`, `ROWPARTITION`",
         "status": 400
       }
     }

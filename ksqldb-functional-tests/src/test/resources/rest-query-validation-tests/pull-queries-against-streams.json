@@ -241,8 +241,8 @@
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
-        "CREATE TABLE T1 (mykey INT PRIMARY KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT mykey, myvalue, ROWOFFSET, ROWPARTITION FROM T1;"
+        "CREATE STREAM S1 (mykey INT KEY, myvalue INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT mykey, myvalue, ROWOFFSET, ROWPARTITION FROM S1;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
@@ -256,8 +256,8 @@
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
-        "CREATE TABLE T1 (MYKEY INT PRIMARY KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT * FROM T1 WHERE mykey < 1 AND ROWPARTITION != 2 AND ROWOFFSET > 3;"
+        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1 WHERE mykey < 1 AND ROWPARTITION != 2 AND ROWOFFSET > 3;"
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",

@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -47,6 +48,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import java.util.List;
 import java.util.Optional;
+import javax.ws.rs.HEAD;
 import javax.ws.rs.core.MediaType;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -62,11 +64,8 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
-
+@Ignore
 public class PullQueryMetricsFunctionalTest {
-
-  private Vertx vertx;
-  private WebClient client;
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
@@ -179,13 +178,15 @@ public class PullQueryMetricsFunctionalTest {
       TABLE_TAGS
   );
 
-  private Metrics metrics;
-
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
   @Rule
   public final Timeout timeout = Timeout.seconds(60);
+
+  private Vertx vertx;
+  private WebClient client;
+  private Metrics metrics;
 
   @BeforeClass
   public static void setUpClass() {

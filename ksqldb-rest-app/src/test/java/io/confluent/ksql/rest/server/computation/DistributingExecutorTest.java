@@ -155,6 +155,7 @@ public class DistributingExecutorTest {
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(validatedCommandFactory.create(any(), any())).thenReturn(command);
+    when(command.isPresent()).thenReturn(true);
     when(queue.createTransactionalProducer()).thenReturn(transactionalProducer);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
@@ -192,6 +193,26 @@ public class DistributingExecutorTest {
     );
     inOrder.verify(transactionalProducer).commitTransaction();
     inOrder.verify(transactionalProducer).close();
+  }
+
+  @Test
+  public void shouldHandleCommandNotPresent() {
+    when(command.isPresent()).thenReturn(false);
+
+    // When:
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, validatedCommandFactory);
+    inOrder.verify(transactionalProducer).initTransactions();
+    inOrder.verify(transactionalProducer).beginTransaction();
+    inOrder.verify(queue).waitForCommandConsumer();
+    inOrder.verify(validatedCommandFactory).create(
+        CONFIGURED_STATEMENT,
+        sandboxContext
+    );
+    inOrder.verify(transactionalProducer).abortTransaction();
+    inOrder.verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
   }
 
   @Test

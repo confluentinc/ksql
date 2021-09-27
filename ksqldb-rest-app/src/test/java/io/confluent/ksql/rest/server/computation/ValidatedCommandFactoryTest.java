@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.engine.QueryPlan;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
@@ -62,6 +63,33 @@ public class ValidatedCommandFactoryTest {
       "DROP TABLE Bob",
       new DropSourceCommand(SourceName.of("BOB"))
   );
+
+  private static final KsqlPlan EMPTY_PLAN = new KsqlPlan() {
+    @Override
+    public Optional<DdlCommand> getDdlCommand() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<QueryPlan> getQueryPlan() {
+      return Optional.empty();
+    }
+
+    @Override
+    public String getStatementText() {
+      return "CREATE STREAM FOO IF NOT EXISTS";
+    }
+
+    @Override
+    public KsqlPlan withoutQuery() {
+      return null;
+    }
+
+    @Override
+    public Optional<KsqlConstants.PersistentQueryType> getPersistentQueryType() {
+      return Optional.empty();
+    }
+  };
 
   @Mock
   private KsqlExecutionContext executionContext;
@@ -100,7 +128,7 @@ public class ValidatedCommandFactoryTest {
     final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Command.of(configuredStatement)));
+    assertThat(command, is(Optional.of(Command.of(configuredStatement))));
   }
 
   @Test
@@ -151,7 +179,7 @@ public class ValidatedCommandFactoryTest {
     final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Command.of(configuredStatement)));
+    assertThat(command, is(Optional.of(Command.of(configuredStatement))));
   }
 
   @Test
@@ -189,7 +217,7 @@ public class ValidatedCommandFactoryTest {
     final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Command.of(configuredStatement)));
+    assertThat(command, is(Optional.of(Command.of(configuredStatement))));
   }
 
   @Test
@@ -217,7 +245,21 @@ public class ValidatedCommandFactoryTest {
     final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
+    assertThat(command, is(Optional.of(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides))))));
+  }
+
+  @Test
+  public void shouldNotCreateCommandForInvalidIfNotExists() {
+    // Given:
+    configuredStatement = configuredStatement("CREATE STREAM FOO IF NOT EXISTS", plannedQuery);
+    when(executionContext.plan(any(), any())).thenReturn(EMPTY_PLAN);
+    when(executionContext.getServiceContext()).thenReturn(serviceContext);
+
+    // When:
+    final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Optional.empty()));
   }
 
   @Test

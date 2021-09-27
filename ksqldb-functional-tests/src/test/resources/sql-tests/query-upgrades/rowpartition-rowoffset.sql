@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------------------------
---@test: upgrade pseudocolumn version
+--@test: upgrade query across pseudocolumn versions
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 SET 'ksql.rowpartition.rowoffset.enabled' = 'false';
@@ -29,7 +29,7 @@ INSERT INTO a (id, col1, col2) VALUES (1, 1, 1);
 ASSERT VALUES c (id, rp, ro) VALUES (1, 0, 0);
 
 ----------------------------------------------------------------------------------------------------
---@test: upgrade pseudocolumn version using old execution step of table
+--@test: upgrade table across pseudocolumn versions
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.create.or.replace.enabled' = 'true';
 SET 'ksql.rowpartition.rowoffset.enabled' = 'false';

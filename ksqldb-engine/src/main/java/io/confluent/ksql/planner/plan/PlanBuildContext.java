@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Objects;
 import java.util.Optional;
 
 /**

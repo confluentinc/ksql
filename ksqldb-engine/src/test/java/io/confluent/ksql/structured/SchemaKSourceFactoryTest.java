@@ -437,8 +437,6 @@ public class SchemaKSourceFactoryTest {
     assertValidSchema(result);
   }
 
-
-
   @Test
   public void shouldThrowOnV1TableSourceWithPseudoColumnVersionGreaterThanZero() {
     // Given:

@@ -67,6 +67,7 @@ public final class SystemColumns {
           ROWTIME_TYPE,
           ROWTIME_PSEUDOCOLUMN_VERSION,
           false,
+          false,
           false
       ),
       PseudoColumn.of(
@@ -74,12 +75,14 @@ public final class SystemColumns {
           ROWPARTITION_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
           true,
+          true,
           true
       ),
       PseudoColumn.of(
           ROWOFFSET_NAME,
           ROWOFFSET_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true,
           true,
           true
       )
@@ -176,6 +179,15 @@ public final class SystemColumns {
         .anyMatch(col -> col.isDisallowedForInsertValues);
   }
 
+  public static boolean isDisallowedInScalablePushQueries(
+      final ColumnName columnName
+  ) {
+    return pseudoColumns
+        .stream()
+        .filter(col -> col.name.equals(columnName))
+        .anyMatch(col -> col.isDisallowedInScalablePushQueries);
+  }
+
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
         ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
@@ -197,19 +209,22 @@ public final class SystemColumns {
     final int version;
     final boolean mustBeMaterializedForTableJoins;
     final boolean isDisallowedForInsertValues;
+    final boolean isDisallowedInScalablePushQueries;
 
     private PseudoColumn(
         final ColumnName name,
         final SqlType type,
         final int version,
         final boolean mustBeMaterializedForTableJoins,
-        final boolean isDisallowedForInsertValues
+        final boolean isDisallowedForInsertValues,
+        final boolean isDisallowedInScalablePushQueries
     ) {
       this.name = requireNonNull(name, "name");
       this.type = requireNonNull(type, "type");
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
       this.isDisallowedForInsertValues = isDisallowedForInsertValues;
+      this. isDisallowedInScalablePushQueries = isDisallowedInScalablePushQueries;
     }
 
     private static PseudoColumn of(
@@ -217,14 +232,17 @@ public final class SystemColumns {
         final SqlType type,
         final int version,
         final boolean mustBeMaterializedForTableJoins,
-        final boolean isDisallowedForInsertValues
+        final boolean isDisallowedForInsertValues,
+        final boolean isDisallowedInScalablePushQueries
+
     ) {
       return new PseudoColumn(
           name,
           type,
           version,
           mustBeMaterializedForTableJoins,
-          isDisallowedForInsertValues
+          isDisallowedForInsertValues,
+          isDisallowedInScalablePushQueries
       );
     }
   }

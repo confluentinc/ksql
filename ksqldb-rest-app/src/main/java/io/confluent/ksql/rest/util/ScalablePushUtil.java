@@ -16,15 +16,21 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -82,7 +88,45 @@ public final class ScalablePushUtil {
         // Must be reading from "latest"
         && isLatest
         // We only handle a single sink source at the moment from a CTAS/CSAS
-        && upstreamQueries.size() == 1;
+        && upstreamQueries.size() == 1
+        // ROWPARTITION and ROWOFFSET are not currently supported in SPQs
+        && !containsPartitionOrOffset(query, ksqlConfig);
+  }
+
+  private static boolean containsPartitionOrOffset(final Query query, final KsqlConfig ksqlConfig) {
+    //if the flag is not enabled, these are user columns and can be used in SPQs
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
+      return false;
+    }
+    return containsPartitionOrOffsetInWhereClause(query)
+        && containsPartitionOrOffsetInSelectClause(query);
+  }
+
+  private static boolean containsPartitionOrOffsetInWhereClause(final Query query) {
+
+    final Optional<Expression> whereClause = query.getWhere();
+    if (!whereClause.isPresent()) {
+      return false;
+    }
+
+    return ColumnExtractor.extractColumns(whereClause.get())
+        .stream()
+        .map(ColumnReferenceExp::getColumnName)
+        .anyMatch(SystemColumns::isDisallowedInScalablePushQueries);
+  }
+
+  private static boolean containsPartitionOrOffsetInSelectClause(
+      final Query query
+  ) {
+    return query.getSelect().getSelectItems()
+        .stream()
+        .filter(col -> col instanceof SingleColumn) //filter out select *
+        .map(SingleColumn.class::cast)
+        .map(SingleColumn::getExpression)
+        .map(ColumnExtractor::extractColumns)
+        .flatMap(Collection::stream)
+        .map(ColumnReferenceExp::getColumnName)
+        .anyMatch(SystemColumns::isDisallowedInScalablePushQueries);
   }
 
   /**

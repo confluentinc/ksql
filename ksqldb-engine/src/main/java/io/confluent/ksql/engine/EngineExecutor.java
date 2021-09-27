@@ -50,7 +50,6 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
-import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -507,25 +506,30 @@ final class EngineExecutor {
         .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
   }
 
-  private SourceName getSourceName(final ConfiguredStatement<?> statement) {
-    if (statement.getStatement() instanceof CreateStream && ((CreateStream) statement.getStatement()).isNotExists()) {
-      return ((CreateStream) statement.getStatement()).getName();
-    } else if (statement.getStatement() instanceof CreateTable && ((CreateTable) statement.getStatement()).isNotExists()) {
-      return ((CreateTable) statement.getStatement()).getName();
-    } else if (statement.getStatement() instanceof CreateAsSelect && ((CreateAsSelect) statement.getStatement()).isNotExists()) {
-      return ((CreateAsSelect) statement.getStatement()).getName();
+  private Optional<SourceName> getSourceNameIfIsNotExists(final ConfiguredStatement<?> statement) {
+    if (statement.getStatement() instanceof CreateStream
+        && ((CreateStream) statement.getStatement()).isNotExists()) {
+      return Optional.ofNullable(((CreateStream) statement.getStatement()).getName());
+    } else if (statement.getStatement() instanceof CreateTable
+        && ((CreateTable) statement.getStatement()).isNotExists()) {
+      return Optional.ofNullable(((CreateTable) statement.getStatement()).getName());
+    } else if (statement.getStatement() instanceof CreateAsSelect
+        && ((CreateAsSelect) statement.getStatement()).isNotExists()) {
+      return Optional.ofNullable(((CreateAsSelect) statement.getStatement()).getName());
     }
-    return null;
+    return Optional.empty();
   }
 
   // Known to be non-empty
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 
-      final SourceName sourceName = getSourceName(statement);
-      if (sourceName != null && engineContext.getMetaStore().getSource(sourceName) != null) {
+      final Optional<SourceName> sourceName = getSourceNameIfIsNotExists(statement);
+      if (sourceName.isPresent()
+          && engineContext.getMetaStore().getSource(sourceName.get()) != null) {
         return new KsqlPlanV1(statement.getStatementText(), Optional.empty(), Optional.empty());
       }
 

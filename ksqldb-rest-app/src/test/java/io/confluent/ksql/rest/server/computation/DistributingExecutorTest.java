@@ -130,7 +130,7 @@ public class DistributingExecutorTest {
   @Mock
   private Producer<CommandId, Command> transactionalProducer;
   @Mock
-  private Command command;
+  private Optional<Command> command;
   @Mock
   private Errors errorHandler;
   @Mock
@@ -187,7 +187,7 @@ public class DistributingExecutorTest {
     );
     inOrder.verify(queue).enqueueCommand(
         IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()),
-        command,
+        command.get(),
         transactionalProducer
     );
     inOrder.verify(transactionalProducer).commitTransaction();

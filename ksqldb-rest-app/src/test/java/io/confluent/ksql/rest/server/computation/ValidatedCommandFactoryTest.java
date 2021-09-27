@@ -24,7 +24,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
@@ -98,7 +97,7 @@ public class ValidatedCommandFactoryTest {
     );
 
     // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
+    final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
     assertThat(command, is(Command.of(configuredStatement)));
@@ -149,7 +148,7 @@ public class ValidatedCommandFactoryTest {
     givenTerminate();
 
     // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
+    final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
     assertThat(command, is(Command.of(configuredStatement)));
@@ -187,7 +186,7 @@ public class ValidatedCommandFactoryTest {
     givenTerminateAll();
 
     // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
+    final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
     assertThat(command, is(Command.of(configuredStatement)));
@@ -215,7 +214,7 @@ public class ValidatedCommandFactoryTest {
     givenPlannedQuery();
 
     // When:
-    final Command command = commandFactory.create(configuredStatement, executionContext);
+    final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
     assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));

@@ -181,7 +181,7 @@ public class PullQueryMetricsFunctionalTest {
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(560);
+  public final Timeout timeout = Timeout.seconds(60);
 
   @BeforeClass
   public static void setUpClass() {

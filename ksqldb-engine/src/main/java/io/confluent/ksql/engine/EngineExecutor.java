@@ -602,7 +602,7 @@ final class EngineExecutor {
         sink,
         metaStore,
         ksqlConfig,
-        statement.getSessionConfig()
+        statement.getSessionConfig().getConfig(true)
     );
 
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(

@@ -57,14 +57,14 @@ class QueryEngine {
       final Optional<Sink> sink,
       final MetaStore metaStore,
       final KsqlConfig config,
-      final SessionConfig sessionConfig
+      final KsqlConfig configWithOverrides
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
 
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore,
             outputPrefix,
-            config.cloneWithPropertyOverwrite(sessionConfig.getOverrides())
+            configWithOverrides
         );
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);

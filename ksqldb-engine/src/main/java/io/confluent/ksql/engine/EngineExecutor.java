@@ -513,8 +513,11 @@ final class EngineExecutor {
     } else if (statement.getStatement() instanceof CreateTable
         && ((CreateTable) statement.getStatement()).isNotExists()) {
       return Optional.ofNullable(((CreateTable) statement.getStatement()).getName());
-    } else if (statement.getStatement() instanceof CreateAsSelect
-        && ((CreateAsSelect) statement.getStatement()).isNotExists()) {
+    } else if (statement.getStatement() instanceof CreateTableAsSelect
+        && ((CreateTableAsSelect) statement.getStatement()).isNotExists()) {
+      return Optional.ofNullable(((CreateAsSelect) statement.getStatement()).getName());
+    } else if (statement.getStatement() instanceof CreateStreamAsSelect
+        && ((CreateStreamAsSelect) statement.getStatement()).isNotExists()) {
       return Optional.ofNullable(((CreateAsSelect) statement.getStatement()).getName());
     }
     return Optional.empty();

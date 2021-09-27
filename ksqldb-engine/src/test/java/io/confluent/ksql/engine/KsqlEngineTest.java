@@ -1393,27 +1393,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotThrowWhenExecutingDuplicateTableWithIfNotExists() {
-    // Given:
-    final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
-            + "CREATE TABLE IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
-
-    givenStatementAlreadyExecuted(parsed.get(0));
-
-    final PreparedStatement<?> prepared = prepare(parsed.get(1));
-
-    // When:
-    ExecuteResult executeResult = ksqlEngine.execute(
-        serviceContext, ConfiguredStatement.
-            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-    );
-
-    // Then:
-    assertThat(executeResult.getCommandResult(), is(Optional.empty()));
-  }
-
-  @Test
   public void shouldNotThrowWhenExecutingDuplicateTableWithCreateOrReplaceOnSandbox() {
     // Given:
     final ConfiguredStatement<?> oldQuery =

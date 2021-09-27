@@ -206,31 +206,8 @@ public class QueryEndpoint {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<ScalablePushQueryMetadata> resultForMetrics =
         new AtomicReference<>(null);
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      scalablePushQueryMetrics.ifPresent(metrics -> {
-        final ScalablePushQueryMetadata r = resultForMetrics.get();
-        metrics.recordStatusCode(statusCode);
-        metrics.recordRequestSize(requestBytes);
-        if (r == null) {
-          metrics.recordResponseSizeForError(responseBytes);
-          metrics.recordConnectionDurationForError(startTimeNanos);
-          metrics.recordZeroRowsReturnedForError();
-          metrics.recordZeroRowsProcessedForError();
-        } else {
-          metrics.recordResponseSize(responseBytes,
-              r.getSourceType(), r.getRoutingNodeType());
-          metrics.recordConnectionDuration(startTimeNanos,
-              r.getSourceType(), r.getRoutingNodeType());
-          metrics.recordRowsReturned(
-              r.getTotalRowsReturned(),
-              r.getSourceType(), r.getRoutingNodeType());
-          metrics.recordRowsProcessed(
-              r.getTotalRowsProcessed(),
-              r.getSourceType(), r.getRoutingNodeType());
-        }
-        scalablePushBandRateLimiter.add(responseBytes);
-      });
-    });
+    metricsCallbackHolder.setCallback(QueryMetricsUtil.initializeScalablePushMetricsCallback(
+            scalablePushQueryMetrics, scalablePushBandRateLimiter, resultForMetrics));
 
     final BlockingQueryPublisher publisher =
         new BlockingQueryPublisher(context, workerExecutor);

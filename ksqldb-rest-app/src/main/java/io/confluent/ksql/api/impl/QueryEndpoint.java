@@ -49,8 +49,8 @@ import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigPlannerO
 import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigRoutingOptions;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
-import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;

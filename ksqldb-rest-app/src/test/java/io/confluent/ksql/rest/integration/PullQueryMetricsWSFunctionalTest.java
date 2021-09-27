@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -23,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -31,13 +31,16 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
-import java.util.List;
 import java.util.Optional;
+import javax.ws.rs.core.MediaType;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -46,7 +49,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
-public class PullQueryMetricsFunctionalTest {
+public class PullQueryMetricsWSFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
@@ -56,6 +59,7 @@ public class PullQueryMetricsFunctionalTest {
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final String AN_AGG_KEY = "USER_1";
   private static final String A_STREAM_KEY = "PAGE_1";
+  private static final Credentials SUPER_USER = VALID_USER1;
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
@@ -102,13 +106,6 @@ public class PullQueryMetricsFunctionalTest {
       TABLE_TAGS
   );
 
-  private static final MetricName responseSizeTable = new MetricName(
-      "pull-query-requests-detailed-response-size",
-      "_confluent-ksql-pull-query",
-      "Size in bytes of pull query response - non_windowed-key_lookup-source_node",
-      TABLE_TAGS
-  );
-
   private static final MetricName totalRequestsTable = new MetricName(
       "pull-query-requests-detailed-total",
       "_confluent-ksql-pull-query",
@@ -134,13 +131,6 @@ public class PullQueryMetricsFunctionalTest {
       "pull-query-requests-detailed-latency-min",
       "_confluent-ksql-pull-query",
       "Min time for a pull query request - non_windowed_stream-unknown-source_node",
-      STREAMS_TAGS
-  );
-
-  private static final MetricName responseSizeStream = new MetricName(
-      "pull-query-requests-detailed-response-size",
-      "_confluent-ksql-pull-query",
-      "Size in bytes of pull query response - non_windowed_stream-unknown-source_node",
       STREAMS_TAGS
   );
 
@@ -200,48 +190,53 @@ public class PullQueryMetricsFunctionalTest {
     metrics = ((KsqlEngine)REST_APP.getEngine()).getEngineMetrics().getMetrics();
   }
 
-  @Test
-  public void shouldVerifyMetrics() {
+  @After
+  public void tearDown() {
+  }
 
+  @AfterClass
+  public static void classTearDown() {
+  }
+
+  @Test
+  public void shouldVerifyMetricsWS() {
     // Given:
     final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
     final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);
-    final KafkaMetric responseSizeTableMetric = metrics.metric(responseSizeTable);
     final KafkaMetric totalRequestsTableMetric = metrics.metric(totalRequestsTable);
     final KafkaMetric requestDistributionTableMetric = metrics.metric(requestDistributionTable);
 
     final KafkaMetric recordsReturnedStreamMetric = metrics.metric(recordsReturnedStream);
     final KafkaMetric latencyStreamMetric = metrics.metric(latencyStream);
-    final KafkaMetric responseSizeStreamMetric = metrics.metric(responseSizeStream);
     final KafkaMetric totalRequestsStreamMetric = metrics.metric(totalRequestsStream);
     final KafkaMetric requestDistributionStreamMetric = metrics.metric(requestDistributionStream);
 
     // When:
-    final List<StreamedRow> tableRows = RestIntegrationTestUtil.makeQueryRequest(
-        REST_APP,
+    RestIntegrationTestUtil.makeWsRequest(
+        REST_APP.getWsListener(),
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        Optional.empty());
+        Optional.of(MediaType.APPLICATION_JSON),
+        Optional.of(MediaType.APPLICATION_JSON),
+        Optional.of(SUPER_USER)
+    );
 
-    assertThat(tableRows.size(), is(2));
-
-    final List<StreamedRow> streamRows = RestIntegrationTestUtil.makeQueryRequest(
-        REST_APP,
+    RestIntegrationTestUtil.makeWsRequest(
+        REST_APP.getWsListener(),
         "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';",
-        Optional.empty());
-
-    assertThat(streamRows.size(), is(2));
+        Optional.of(MediaType.APPLICATION_JSON),
+        Optional.of(MediaType.APPLICATION_JSON),
+        Optional.of(SUPER_USER)
+    );
 
     // Then:
     assertThat(recordsReturnedTableMetric.metricValue(), is(1.0));
-    assertThat((Double)latencyTableMetric.metricValue(), greaterThan(1.0));
-    assertThat((Double)responseSizeTableMetric.metricValue(), greaterThan(1.0));
+    assertThat((Double) latencyTableMetric.metricValue(), greaterThan(1.0));
     assertThat(totalRequestsTableMetric.metricValue(), is(1.0));
-    assertThat((Double)requestDistributionTableMetric.metricValue(), greaterThan(1.0));
+    assertThat((Double) requestDistributionTableMetric.metricValue(), greaterThan(1.0));
 
     assertThat(recordsReturnedStreamMetric.metricValue(), is(1.0));
-    assertThat((Double)latencyStreamMetric.metricValue(), greaterThan(1.0));
-    assertThat((Double)responseSizeStreamMetric.metricValue(), greaterThan(1.0));
+    assertThat((Double) latencyStreamMetric.metricValue(), greaterThan(1.0));
     assertThat(totalRequestsStreamMetric.metricValue(), is(1.0));
-    assertThat((Double)requestDistributionStreamMetric.metricValue(), greaterThan(1.0));
+    assertThat((Double) requestDistributionStreamMetric.metricValue(), greaterThan(1.0));
   }
 }

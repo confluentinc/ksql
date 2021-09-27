@@ -601,12 +601,15 @@ final class EngineExecutor {
         query,
         sink,
         metaStore,
-        ksqlConfig.cloneWithPropertyOverwrite(statement.getSessionConfig().getOverrides())
+        ksqlConfig,
+        statement.getSessionConfig()
     );
+
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)
     );
+
     final QueryId queryId = QueryIdUtil.buildId(
         statement.getStatement(),
         engineContext,

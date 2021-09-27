@@ -53,7 +53,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
 
   public void onSubscribe(final Flow.Subscription subscription,
                           final MetricsCallbackHolder metricsCallbackHolder,
-                          long startTimeNanos) {
+                          final long startTimeNanos) {
     this.subscription = subscription;
     subscription.request(1);
     metricsCallbackHolderOptional = Optional.of(metricsCallbackHolder);

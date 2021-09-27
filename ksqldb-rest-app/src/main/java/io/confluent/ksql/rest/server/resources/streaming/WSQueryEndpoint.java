@@ -309,57 +309,12 @@ public class WSQueryEndpoint {
           return;
         }
         case KSTREAM: {
-          MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
+          final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
           final AtomicReference<StreamPullQueryMetadata> resultForMetrics =
               new AtomicReference<>(null);
           final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
-          metricsCallbackHolder.setCallback(
-              (statusCode, requestBytes, responseBytes, startTimeNs) ->
-                  pullQueryMetrics.ifPresent(metrics -> {
-
-                    final StreamPullQueryMetadata m = resultForMetrics.get();
-                    final KafkaStreams.State state = m == null ? null : m.getTransientQueryMetadata()
-                        .getKafkaStreams().state();
-
-                    if (m == null || state == null
-                        || state.equals(State.ERROR)
-                        || state.equals(State.PENDING_ERROR)) {
-                      metrics.recordLatencyForError(startTimeNs);
-                      metrics.recordZeroRowsReturnedForError();
-                      metrics.recordZeroRowsProcessedForError();
-                    } else {
-                      final boolean isWindowed = analysis
-                          .getFrom()
-                          .getDataSource()
-                          .getKsqlTopic()
-                          .getKeyFormat().isWindowed();
-                      final PullSourceType sourceType = isWindowed
-                          ? PullSourceType.WINDOWED_STREAM : PullSourceType.NON_WINDOWED_STREAM;
-                      // There is no WHERE clause constraint information in the persistent logical plan
-                      final PullPhysicalPlanType planType = PullPhysicalPlanType.UNKNOWN;
-                      final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
-                      metrics.recordLatency(
-                          startTimeNanos,
-                          sourceType,
-                          planType,
-                          routingNodeType
-                      );
-                      final TransientQueryQueue rowQueue = (TransientQueryQueue)
-                          m.getTransientQueryMetadata().getRowQueue();
-                      // The rows read from the underlying data source equal the rows read by the user
-                      // since the WHERE condition is pushed to the data source
-                      metrics.recordRowsReturned(rowQueue.getTotalRowsQueued(), sourceType, planType,
-                                                 routingNodeType);
-                      metrics.recordRowsProcessed(rowQueue.getTotalRowsQueued(), sourceType, planType,
-                                                  routingNodeType);
-                    }
-                    // Decrement on happy or exception path
-                    final Decrementer decrementer = refDecrementer.get();
-                    if (decrementer != null) {
-                      decrementer.decrementAtMostOnce();
-                    }
-                  })
-          );
+          initializeStreamMetrics(metricsCallbackHolder, resultForMetrics, refDecrementer,
+                                  analysis, startTimeNanos);
 
           PullQueryExecutionUtil.checkRateLimit(rateLimiter);
           pullBandRateLimiter.allow(KsqlQueryType.PULL);
@@ -422,6 +377,62 @@ public class WSQueryEndpoint {
           localCommands
       ).subscribe(streamSubscriber);
     }
+  }
+
+  private void initializeStreamMetrics(
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final AtomicReference<StreamPullQueryMetadata> resultForMetrics,
+      final AtomicReference<Decrementer> refDecrementer,
+      final ImmutableAnalysis analysis,
+      final long startTimeNanos) {
+
+    metricsCallbackHolder.setCallback(
+        (statusCode, requestBytes, responseBytes, startTimeNs) ->
+        pullQueryMetrics.ifPresent(metrics -> {
+
+          final StreamPullQueryMetadata m = resultForMetrics.get();
+          final KafkaStreams.State state = m == null ? null : m.getTransientQueryMetadata()
+              .getKafkaStreams().state();
+
+          if (m == null || state == null
+              || state.equals(State.ERROR)
+              || state.equals(State.PENDING_ERROR)) {
+            metrics.recordLatencyForError(startTimeNs);
+            metrics.recordZeroRowsReturnedForError();
+            metrics.recordZeroRowsProcessedForError();
+          } else {
+            final boolean isWindowed = analysis
+                .getFrom()
+                .getDataSource()
+                .getKsqlTopic()
+                .getKeyFormat().isWindowed();
+            final PullSourceType sourceType = isWindowed
+                ? PullSourceType.WINDOWED_STREAM : PullSourceType.NON_WINDOWED_STREAM;
+            // There is no WHERE clause constraint information in the persistent logical plan
+            final PullPhysicalPlanType planType = PullPhysicalPlanType.UNKNOWN;
+            final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
+            metrics.recordLatency(
+                startTimeNanos,
+                sourceType,
+                planType,
+                routingNodeType
+            );
+            final TransientQueryQueue rowQueue = (TransientQueryQueue)
+                m.getTransientQueryMetadata().getRowQueue();
+            // The rows read from the underlying data source equal the rows read by the user
+            // since the WHERE condition is pushed to the data source
+            metrics.recordRowsReturned(rowQueue.getTotalRowsQueued(), sourceType, planType,
+                                       routingNodeType);
+            metrics.recordRowsProcessed(rowQueue.getTotalRowsQueued(), sourceType, planType,
+                                        routingNodeType);
+          }
+          // Decrement on happy or exception path
+          final Decrementer decrementer = refDecrementer.get();
+          if (decrementer != null) {
+            decrementer.decrementAtMostOnce();
+          }
+        })
+    );
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {

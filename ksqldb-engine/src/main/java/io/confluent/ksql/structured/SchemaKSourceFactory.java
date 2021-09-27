@@ -194,12 +194,11 @@ public final class SchemaKSourceFactory {
           .anyMatch(executionStep -> executionStep instanceof TableSourceV1);
     }
 
-    if (useOldExecutionStepVersion && pseudoColumnVersionToUse != 0) {
+    if (useOldExecutionStepVersion
+        && pseudoColumnVersionToUse != SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER) {
       throw new IllegalStateException("TableSourceV2 was released in conjunction with pseudocolumn"
           + "version 1. Something has gone very wrong");
     }
-
-    // When feature flag is removed, remove getBoolean() from condition
     if (buildContext.getKsqlConfig().getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
         && !useOldExecutionStepVersion) {
       step = ExecutionStepFactory.tableSource(

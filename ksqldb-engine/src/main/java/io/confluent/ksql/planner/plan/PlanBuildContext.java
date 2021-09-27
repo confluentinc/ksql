@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -33,19 +34,6 @@ public final class PlanBuildContext {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final Optional<PlanInfo> planInfo;
-
-  public static PlanBuildContext of(
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry
-  ) {
-    return new PlanBuildContext(
-        ksqlConfig,
-        serviceContext,
-        functionRegistry,
-        Optional.empty()
-    );
-  }
 
   public static PlanBuildContext of(
       final KsqlConfig ksqlConfig,
@@ -67,7 +55,7 @@ public final class PlanBuildContext {
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
-    this.planInfo = planInfo;
+    this.planInfo = requireNonNull(planInfo, "planInfo");
   }
 
   public ServiceContext getServiceContext() {
@@ -91,7 +79,8 @@ public final class PlanBuildContext {
     return of(
         newConfig,
         serviceContext,
-        functionRegistry
+        functionRegistry,
+        Optional.empty()
     );
   }
 

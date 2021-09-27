@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,7 +50,8 @@ public class PlanBuildContextTest {
     runtimeBuildContext = PlanBuildContext.of(
         ksqlConfig,
         serviceContext,
-        functionRegistry
+        functionRegistry,
+        Optional.empty()
     );
   }
 

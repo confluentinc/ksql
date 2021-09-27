@@ -57,7 +57,7 @@ public class PhysicalPlanBuilder {
   public PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final QueryId queryId,
-      final Optional<PlanInfo> oldPlanToMaybeUse
+      final Optional<PlanInfo> oldPlanInfo
   ) {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
@@ -66,7 +66,7 @@ public class PhysicalPlanBuilder {
         ksqlConfig,
         serviceContext,
         functionRegistry,
-        oldPlanToMaybeUse
+        oldPlanInfo
     );
 
     final SchemaKStream<?> resultStream = outputNode.buildStream(buildContext);

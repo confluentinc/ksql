@@ -62,7 +62,10 @@ class QueryEngine {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
 
     final QueryAnalyzer queryAnalyzer =
-        new QueryAnalyzer(metaStore, outputPrefix, config.cloneWithPropertyOverwrite(sessionConfig.getOverrides()));
+        new QueryAnalyzer(metaStore,
+            outputPrefix,
+            config.cloneWithPropertyOverwrite(sessionConfig.getOverrides())
+        );
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 

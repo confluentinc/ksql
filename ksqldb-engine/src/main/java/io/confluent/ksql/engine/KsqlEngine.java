@@ -28,7 +28,6 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -550,7 +549,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String queryText,
       final Map<String, Object> configOverrides) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig.cloneWithPropertyOverwrite(configOverrides));
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
+        getMetaStore(),
+        "",
+        ksqlConfig.cloneWithPropertyOverwrite(configOverrides)
+    );
+
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

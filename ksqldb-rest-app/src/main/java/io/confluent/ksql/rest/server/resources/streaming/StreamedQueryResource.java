@@ -414,7 +414,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
           .analyzeQueryWithNoOutputTopic(
               statement.getStatement(),
               statement.getStatementText(),
-              request.getConfigOverrides()
+              configProperties
           );
 
       QueryLogger.info("Scalable push query created", statement.getStatementText());

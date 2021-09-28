@@ -275,7 +275,11 @@ public class WSQueryEndpoint {
     if (query.isPullQuery()) {
 
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              configured.getStatement(),
+              configured.getStatementText(),
+              configured.getSessionConfig().getOverrides()
+          );
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
@@ -333,7 +337,11 @@ public class WSQueryEndpoint {
         statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
 
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              configured.getStatement(),
+              configured.getStatementText(),
+              configured.getSessionConfig().getOverrides()
+          );
 
       PushQueryPublisher.createScalablePushQueryPublisher(
           ksqlEngine,

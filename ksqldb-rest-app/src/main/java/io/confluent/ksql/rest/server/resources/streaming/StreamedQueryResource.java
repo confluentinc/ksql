@@ -332,7 +332,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(), statement.getStatementText(), configProperties);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
@@ -403,7 +404,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
             configProperties)) {
 
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(),
+              statement.getStatementText(),
+              configProperties
+          );
 
       QueryLogger.info("Scalable push query created", statement.getStatementText());
 

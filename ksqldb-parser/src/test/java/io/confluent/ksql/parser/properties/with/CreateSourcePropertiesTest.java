@@ -20,8 +20,10 @@ import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPERTY;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -47,6 +49,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -494,6 +497,25 @@ public class CreateSourcePropertiesTest {
     // When / Then:
     assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("KAFKA"));
     assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+  }
+
+  @Test
+  public void shouldGetKeyAndValueSchemaIdFromFormat() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .put(KEY_SCHEMA_ID, new IntegerLiteral(123))
+            .put(VALUE_SCHEMA_ID, new IntegerLiteral(456))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        hasEntry(ConnectFormat.KEY_SCHEMA_ID, "123"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        hasEntry(ConnectFormat.VALUE_SCHEMA_ID, "456"));
   }
 
   @Test

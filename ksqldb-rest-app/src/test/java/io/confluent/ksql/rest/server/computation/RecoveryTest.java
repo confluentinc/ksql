@@ -702,6 +702,16 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverIfNotExists() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+        "CREATE STREAM IF NOT EXISTS B AS SELECT * FROM A;",
+        "CREATE STREAM IF NOT EXISTS B AS SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+
+  @Test
   public void shouldRecoverDropWithSourceConstraintsFromOldMetastore() {
     // Verify that an upgrade will not be affected if DROP commands are not in order.
 

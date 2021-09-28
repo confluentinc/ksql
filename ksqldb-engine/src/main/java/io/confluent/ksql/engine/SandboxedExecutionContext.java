@@ -122,7 +122,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public KsqlPlan plan(
+  public Optional<KsqlPlan> plan(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
@@ -138,11 +138,15 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredKsqlPlan ksqlPlan
   ) {
+    if (!ksqlPlan.getPlan().isPresent()) {
+      return ExecuteResult.of("not to execute");
+    }
+
     final ExecuteResult result = EngineExecutor.create(
         engineContext,
         serviceContext,
         ksqlPlan.getConfig()
-    ).execute(ksqlPlan.getPlan());
+    ).execute(ksqlPlan.getPlan().get());
 
     // Having a streams running in a sandboxed environment is not necessary
     result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());

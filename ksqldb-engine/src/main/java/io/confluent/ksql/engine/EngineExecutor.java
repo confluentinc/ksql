@@ -526,39 +526,14 @@ final class EngineExecutor {
   // Known to be non-empty
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @SuppressWarnings("OptionalGetWithoutIsPresent")
-  KsqlPlan plan(final ConfiguredStatement<?> statement) {
+  Optional<KsqlPlan> plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
 
       final Optional<SourceName> sourceName = getSourceNameIfIsNotExists(statement);
       if (sourceName.isPresent()
           && engineContext.getMetaStore().getSource(sourceName.get()) != null) {
-        return new KsqlPlan() {
-          @Override
-          public Optional<DdlCommand> getDdlCommand() {
-            return Optional.empty();
-          }
-
-          @Override
-          public Optional<QueryPlan> getQueryPlan() {
-            return Optional.empty();
-          }
-
-          @Override
-          public String getStatementText() {
-            return null;
-          }
-
-          @Override
-          public KsqlPlan withoutQuery() {
-            return null;
-          }
-
-          @Override
-          public Optional<KsqlConstants.PersistentQueryType> getPersistentQueryType() {
-            return Optional.empty();
-          }
-        };
+        return Optional.empty();
       }
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
@@ -574,7 +549,7 @@ final class EngineExecutor {
         }
 
         if (isSourceTable) {
-          return sourceTablePlan(statement);
+          return Optional.of(sourceTablePlan(statement));
         } else {
           final DdlCommand ddlCommand = engineContext.createDdlCommand(
               statement.getStatementText(),
@@ -582,9 +557,9 @@ final class EngineExecutor {
               config
           );
 
-          return KsqlPlan.ddlPlanCurrent(
+          return Optional.of(KsqlPlan.ddlPlanCurrent(
               statement.getStatementText(),
-              ddlCommand);
+              ddlCommand));
         }
       }
 
@@ -621,11 +596,11 @@ final class EngineExecutor {
           engineContext.getQueryRegistry().getAllLiveQueries()
       );
 
-      return KsqlPlan.queryPlanCurrent(
+      return Optional.of(KsqlPlan.queryPlanCurrent(
           statement.getStatementText(),
           ddlCommand,
           queryPlan
-      );
+      ));
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

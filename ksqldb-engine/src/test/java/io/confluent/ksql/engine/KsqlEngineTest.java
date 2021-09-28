@@ -1477,6 +1477,27 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldGetEmptyPlanFor() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream foo as select * from test1;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    Optional<KsqlPlan> plan = ksqlEngine.plan(
+        serviceContext,
+        configuredStatement("CREATE STREAM IF NOT EXISTS FOO AS SELECT * FROM UNKNOWN;")
+    );
+
+    // Then:
+    assertThat("should not be present", !plan.isPresent());
+  }
+
+  @Test
   public void shouldNotThrowWhenPreparingDuplicateStream() {
     // Given:
     final ParsedStatement stmt = ksqlEngine.parse(

@@ -261,7 +261,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public KsqlPlan plan(
+  public Optional<KsqlPlan> plan(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
@@ -273,9 +273,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
     try {
+      if (!plan.getPlan().isPresent()) {
+        return ExecuteResult.of("should not execute");
+      }
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
-          .execute(plan.getPlan());
+          .execute(plan.getPlan().get());
       return result;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -283,7 +286,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(
           e.getMessage(),
-          plan.getPlan().getStatementText(),
+          plan.getPlan().get().getStatementText(),
           e.getCause()
       );
     }

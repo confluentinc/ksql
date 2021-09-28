@@ -146,8 +146,8 @@ public final class ValidatedCommandFactory {
       final ServiceContext serviceContext,
       final KsqlExecutionContext context
   ) {
-    final KsqlPlan plan = context.plan(serviceContext, statement);
-    if (!plan.getQueryPlan().isPresent() && !plan.getDdlCommand().isPresent()) {
+    final Optional<KsqlPlan> plan = context.plan(serviceContext, statement);
+    if (!plan.isPresent()) {
       return Optional.empty();
     }
 

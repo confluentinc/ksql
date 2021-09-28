@@ -412,7 +412,7 @@ public class SchemaRegisterInjectorTest {
         SessionConfig.of(config, ImmutableMap.of())
     );
     when(executionSandbox.plan(any(), eq(statement)))
-        .thenReturn(ksqlPlan);
+        .thenReturn(Optional.of(ksqlPlan));
     when(ksqlPlan.getDdlCommand())
         .thenReturn(Optional.of(ddlCommand));
   }

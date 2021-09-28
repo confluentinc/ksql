@@ -40,10 +40,10 @@ public class ConfiguredKsqlPlanTest {
   public void testEquality() {
     new EqualsTester()
         .addEqualityGroup(
-            ConfiguredKsqlPlan.of(plan, config),
-            ConfiguredKsqlPlan.of(plan, config)
+            ConfiguredKsqlPlan.of(java.util.Optional.of(plan), config),
+            ConfiguredKsqlPlan.of(java.util.Optional.of(plan), config)
         )
-        .addEqualityGroup(ConfiguredKsqlPlan.of(plan2, config2))
+        .addEqualityGroup(ConfiguredKsqlPlan.of(java.util.Optional.of(plan2), config2))
         .testEquals();
   }
 }

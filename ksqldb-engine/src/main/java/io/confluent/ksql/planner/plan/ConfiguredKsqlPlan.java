@@ -18,28 +18,29 @@ package io.confluent.ksql.planner.plan;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class ConfiguredKsqlPlan {
 
-  private final KsqlPlan plan;
+  private final Optional<KsqlPlan> plan;
   private final SessionConfig config;
 
   public static ConfiguredKsqlPlan of(
-      final KsqlPlan plan,
+      final Optional<KsqlPlan> plan,
       final SessionConfig config
   ) {
     return new ConfiguredKsqlPlan(plan, config);
   }
 
   private ConfiguredKsqlPlan(
-      final KsqlPlan plan,
+      final Optional<KsqlPlan> plan,
       final SessionConfig config
   ) {
     this.plan = Objects.requireNonNull(plan, "plan");
     this.config = Objects.requireNonNull(config, "config");
   }
 
-  public KsqlPlan getPlan() {
+  public Optional<KsqlPlan> getPlan() {
     return plan;
   }
 

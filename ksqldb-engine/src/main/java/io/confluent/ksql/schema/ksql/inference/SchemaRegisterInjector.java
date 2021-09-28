@@ -24,6 +24,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.protobuf.AbstractKafkaProtobufSerializer;
 import io.confluent.kafka.serializers.subject.DefaultReferenceSubjectNameStrategy;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
@@ -51,6 +52,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.acl.AclOperation;
 
 public class SchemaRegisterInjector implements Injector {
@@ -120,11 +122,16 @@ public class SchemaRegisterInjector implements Injector {
 
     try {
       final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
-      createSourceCommand = (CreateSourceCommand)
-          executionContext.createSandbox(sandboxServiceContext)
-              .plan(sandboxServiceContext, cas)
-              .getDdlCommand()
-              .get();
+      final Optional<KsqlPlan> plan = executionContext.createSandbox(sandboxServiceContext)
+              .plan(sandboxServiceContext, cas);
+      if (!plan.isPresent()) {
+        return;
+      }
+
+      createSourceCommand = (CreateSourceCommand) plan
+          .get()
+          .getDdlCommand()
+          .get();
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Could not determine output schema for query due to error: "

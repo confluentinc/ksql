@@ -198,8 +198,9 @@ public interface KsqlExecutionContext {
 
   /**
    * Computes a plan for executing a DDL/DML statement using the supplied service context.
+   * @return ksql plan if there should be something to execute
    */
-  KsqlPlan plan(ServiceContext serviceContext, ConfiguredStatement<?> statement);
+  Optional<KsqlPlan> plan(ServiceContext serviceContext, ConfiguredStatement<?> statement);
 
   /**
    * Executes a KSQL plan using the supplied service context.

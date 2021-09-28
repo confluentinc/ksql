@@ -307,14 +307,16 @@
       ],
       "inputs": [
         {"topic": "test_topic_1", "timestamp": 12345, "key": "x", "value": {"id": 100}},
-        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 101}}
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 101}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 102}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`I1_K` STRING, `I1_ID` INTEGER, `I2_K` STRING, `I2_ID` INTEGER, `I1_ROWPARTITION` INTEGER, `I2_ROWOFFSET` BIGINT"}},
-          {"row":{"columns":["x", 100, "x", 101, 0, 0]}},
+          {"header":{"schema":"`I1_K` STRING, `I1_ID` INTEGER, `I2_K` STRING, `I2_ID` INTEGER, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT"}},
+          {"row":{"columns":["x", 100, "x", 101, 2, 0]}},
+          {"row":{"columns":["x", 100, "x", 102, 2, 1]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

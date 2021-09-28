@@ -47,7 +47,7 @@ questions.
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
-    <version>5.3.6-SNAPSHOT</version>
+    <version>5.3.7-SNAPSHOT</version>
   </parent>
 
   <artifactId>ksql-benchmark</artifactId>

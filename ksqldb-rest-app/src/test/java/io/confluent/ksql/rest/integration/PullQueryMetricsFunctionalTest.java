@@ -43,11 +43,13 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
+@Ignore
 public class PullQueryMetricsFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();

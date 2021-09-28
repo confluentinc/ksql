@@ -46,11 +46,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
+@Ignore
 public class PullQueryMetricsWSFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();

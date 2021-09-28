@@ -50,11 +50,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 
+@Ignore
 public class PullQueryMetricsHttp2FunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
@@ -228,7 +230,7 @@ public class PullQueryMetricsHttp2FunctionalTest {
   }
 
   @Test
-  public void shouldVerifyMetricsHttp() {
+  public void shouldVerifyMetrics() {
     // Given:
     final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
     final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);

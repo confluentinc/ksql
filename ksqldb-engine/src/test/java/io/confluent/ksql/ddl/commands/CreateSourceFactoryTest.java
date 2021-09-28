@@ -192,12 +192,15 @@ public class CreateSourceFactoryTest {
         .thenReturn(SerdeFeatures.of());
     when(valOptionsSupplier.build(any(), any(), any(), any()))
         .thenReturn(SerdeFeatures.of());
-
+    when(metaStore.getSource(SOME_NAME)).thenReturn(ksqlStream);
+    when(ksqlStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(metaStore.getSource(TABLE_NAME)).thenReturn(ksqlTable);
+    when(ksqlTable.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     givenCommandFactories();
   }
 
   private void givenCommandFactories() {
-    createSourceFactory = new CreateSourceFactory(serviceContext);
+    createSourceFactory = new CreateSourceFactory(serviceContext, metaStore);
   }
 
   private void givenCommandFactoriesWithMocks() {
@@ -206,7 +209,8 @@ public class CreateSourceFactoryTest {
         keyOptionsSupplier,
         valOptionsSupplier,
         keySerdeFactory,
-        valueSerdeFactory
+        valueSerdeFactory,
+        metaStore
     );
   }
 
@@ -1068,6 +1072,41 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(e.getMessage(),
         containsString("Tables require a PRIMARY KEY. Please define the PRIMARY KEY."));
+  }
+
+  @Test
+  public void shouldThrowIfTableExists() {
+    //Given
+    final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
+        TableElements.of(
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
+            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, false, withProperties, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createTableCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot add table 'table_bob': A table with the same name already exists"));
+  }
+
+  @Test
+  public void shouldThrowIfStreamExists() {
+    // Given:
+    final CreateStream ddlStatement =
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, false, withProperties, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createStreamCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot add stream 'bob': A stream with the same name already exists"));
   }
 
   private void givenProperty(final String name, final Literal value) {

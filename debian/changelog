@@ -1,3 +1,9 @@
+confluent-ksqldb (0.22.0-rc2) unstable; urgency=medium
+
+  * Release version 0.22.0-rc2
+
+ -- Confluent Packaging <packages@confluent.io>  Tue, 28 Sep 2021 01:21:44 +0000
+
 confluent-ksqldb (0.1~SNAPSHOT-1) unstable; urgency=low
 
   * Initial release.

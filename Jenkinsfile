@@ -12,4 +12,3 @@ dockerfile {
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
 }
-

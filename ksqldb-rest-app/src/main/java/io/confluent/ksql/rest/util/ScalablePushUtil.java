@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
@@ -31,7 +32,8 @@ import java.util.Set;
 
 public final class ScalablePushUtil {
 
-  private static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
+  @VisibleForTesting
+  static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
   private static String LATEST_VALUE = "latest";
 
   private ScalablePushUtil() {
@@ -45,8 +47,8 @@ public final class ScalablePushUtil {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED) &&
-        !Boolean.TRUE.equals(overrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED))) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)
+        && !Boolean.TRUE.equals(overrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED))) {
       return false;
     }
     if (! (statement instanceof Query)) {

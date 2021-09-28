@@ -53,8 +53,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.test.TestRecord;
 
 /**
- * {@code AssertExecutor} handles the assertion statements for the Sql-based
- * testing tool.
+ * {@code AssertExecutor} handles the assertion statements for the Sql-based testing tool.
  */
 public final class AssertExecutor {
 
@@ -100,6 +99,18 @@ public final class AssertExecutor {
           CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
           CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
       )).add(new SourceProperty(
+          ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getProperties()
+              .get(CommonCreateConfigs.VALUE_SCHEMA_ID),
+          (cs, cfg) -> cs.getProperties().getValueSchemaId().map(String::valueOf).orElse(null),
+          "value schema id",
+          CommonCreateConfigs.VALUE_SCHEMA_ID))
+      .add(new SourceProperty(
+          ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties()
+              .get(CommonCreateConfigs.KEY_SCHEMA_ID),
+          (cs, cfg) -> cs.getProperties().getKeySchemaId().map(String::valueOf).orElse(null),
+          "key schema id",
+          CommonCreateConfigs.KEY_SCHEMA_ID))
+      .add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFeatures(),
           (cs, cfg) -> cs.getProperties().getValueSerdeFeatures(),
           "value serde features",
@@ -275,6 +286,7 @@ public final class AssertExecutor {
 
   @VisibleForTesting
   static final class SourceProperty {
+
     final Function<DataSource, Object> extractSource;
     final BiFunction<CreateSource, KsqlConfig, Object> extractStatement;
     final String propertyName;
@@ -299,6 +311,11 @@ public final class AssertExecutor {
     ) {
       final Object expected = extractStatement.apply(statement, config);
       final Object actual = extractSource.apply(dataSource);
+
+      if (actual == null && expected == null) {
+        return;
+      }
+
       if (!actual.equals(expected)) {
         throw new KsqlException(
             String.format(

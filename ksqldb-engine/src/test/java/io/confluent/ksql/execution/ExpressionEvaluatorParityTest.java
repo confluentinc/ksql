@@ -65,6 +65,8 @@ public class ExpressionEvaluatorParityTest {
   private static final String STREAM_NAME = "ORDERS";
   private static final long ORDER_ID = 10;
   private static final long ROW_TIME = 20000;
+  private static final long ROWPARTITION = 5;
+  private static final long ROWOFFSET = 100;
   private static final long ORDER_TIME = 100;
   private static final String ITEM_ID = "item_id_0";
   private static final long ITEM_ITEM_ID = 890;
@@ -109,7 +111,7 @@ public class ExpressionEvaluatorParityTest {
     final Map<String, Double> map = ImmutableMap.of("abc", 6.75d, "def", 9.5d);
     // Note key isn't included first since it's assumed that it's provided as a value
     ordersRow = GenericRow.genericRow(ORDER_ID, ITEM_ID, itemInfo, ORDER_UNITS,
-        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ORDER_TIME);
+        doubleArray, map, null, TIMESTAMP, TIME, DATE, BYTES, ROW_TIME, ROWPARTITION, ROWOFFSET, ORDER_TIME);
   }
 
   @After

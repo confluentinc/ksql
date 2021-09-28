@@ -253,7 +253,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
         ]
       }
     },
@@ -274,7 +274,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_X INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT,L_ROWPARTITION INT, L_ROWOFFSET BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
         ]
       }
     },

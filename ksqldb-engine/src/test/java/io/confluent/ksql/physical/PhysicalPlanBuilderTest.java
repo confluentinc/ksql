@@ -195,7 +195,7 @@ public class PhysicalPlanBuilderTest {
     Assert.assertEquals(lines[1],
         "\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: INSERTQUERY_1.Project");
     Assert.assertEquals(lines[2],
-        "\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING | Logger: INSERTQUERY_1.KsqlTopic.Source");
+        "\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWPARTITION INTEGER, ROWOFFSET BIGINT, ROWKEY STRING | Logger: INSERTQUERY_1.KsqlTopic.Source");
     assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
     final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
         queryMetadataList.get(1);
@@ -227,7 +227,7 @@ public class PhysicalPlanBuilderTest {
         "> [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 INTEGER"));
 
     assertThat(lines[2], containsString(
-        "> [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 INTEGER, ROWTIME BIGINT, ROWKEY STRING"));
+        "> [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 INTEGER, ROWTIME BIGINT, ROWPARTITION INTEGER, ROWOFFSET BIGINT, ROWKEY STRING"));
   }
 
   @Test

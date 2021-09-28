@@ -11,5 +11,6 @@ dockerfile {
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
+    nodeLabel = 'docker-debian-jdk8'
 }
 

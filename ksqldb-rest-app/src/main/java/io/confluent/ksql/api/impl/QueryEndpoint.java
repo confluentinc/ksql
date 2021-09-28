@@ -173,7 +173,7 @@ public class QueryEndpoint {
           .analyzeQueryWithNoOutputTopic(
               statement.getStatement(),
               statement.getStatementText(),
-              statement.getSessionConfig().getOverrides()
+              properties
           );
       return createScalablePushQueryPublisher(
           analysis,

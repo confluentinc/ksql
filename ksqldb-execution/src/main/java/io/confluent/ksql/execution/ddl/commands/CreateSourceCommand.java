@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -95,9 +94,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
   }
 
   private static void validate(final LogicalSchema schema, final boolean windowed) {
-    if (schema.valueContainsAny(SystemColumns.windowBoundsColumnNames())) {
-      throw new IllegalArgumentException("Schema contains system columns in value schema");
-    }
 
     if (windowed && schema.key().isEmpty()) {
       throw new KsqlException("Windowed sources require a key column.");

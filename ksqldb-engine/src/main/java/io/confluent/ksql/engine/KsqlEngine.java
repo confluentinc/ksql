@@ -67,6 +67,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.io.Closeable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -236,6 +237,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return cleanupService;
   }
 
+  @VisibleForTesting
+  public KsqlEngineMetrics getEngineMetrics() {
+    return engineMetrics;
+  }
+
   @Override
   public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
     return new SandboxedExecutionContext(primaryContext, serviceContext);
@@ -316,12 +322,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
-  /**
-   * Unlike the other queries, stream pull queries are split into create and wait because the three
-   * API endpoints all need to do different stuff before, in the middle of, and after these two
-   * phases. One of them actually needs to wait on the pull query in a callback after starting the
-   * query, so splitting it into two method calls was the most practical choice.
-   */
   public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,
       final ImmutableAnalysis analysis,
@@ -344,18 +344,17 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     // Stream pull query overrides.
-    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(
-        ImmutableMap.<String, Object>builder()
-            .putAll(statementOrig.getSessionConfig().getOverrides())
-            // Starting from earliest is semantically necessary.
-            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            // Using a single thread keeps these queries as lightweight as possible, since we are
-            // not counting them against the transient query limit.
-            .put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
-            // There's no point in EOS, since this query only produces side effects.
-            .put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE)
-            .build()
-    );
+    final Map<String, Object> overrides =
+        new HashMap<>(statementOrig.getSessionConfig().getOverrides());
+    // Starting from earliest is semantically necessary.
+    overrides.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    // Using a single thread keeps these queries as lightweight as possible, since we are
+    // not counting them against the transient query limit.
+    overrides.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    // There's no point in EOS, since this query only produces side effects.
+    overrides.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE);
+
+    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(overrides);
     final ImmutableMap<TopicPartition, Long> endOffsets =
         getQueryInputEndOffsets(analysis, serviceContext.getAdminClient());
 

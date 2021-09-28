@@ -133,6 +133,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       this.queryMetadata = requireNonNull(queryMetadata, "queryMetadata");
 
       queryMetadata.setLimitHandler(this::setDone);
+      queryMetadata.setCompletionHandler(this::setDone);
       queryMetadata.setUncaughtExceptionHandler(
           e -> {
             setError(e);

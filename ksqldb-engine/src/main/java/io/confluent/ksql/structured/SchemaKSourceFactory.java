@@ -96,7 +96,7 @@ public final class SchemaKSourceFactory {
         Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
         dataSource.getTimestampColumn(),
-        getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+        SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
     );
 
     return schemaKStream(
@@ -122,7 +122,7 @@ public final class SchemaKSourceFactory {
         dataSource.getKafkaTopicName(),
         Formats.from(dataSource.getKsqlTopic()),
         dataSource.getTimestampColumn(),
-        getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+        SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
     );
 
     return schemaKStream(
@@ -149,7 +149,7 @@ public final class SchemaKSourceFactory {
         Formats.from(dataSource.getKsqlTopic()),
         windowInfo,
         dataSource.getTimestampColumn(),
-        getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+        SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
       );
 
     return schemaKTable(
@@ -182,7 +182,7 @@ public final class SchemaKSourceFactory {
           Formats.from(dataSource.getKsqlTopic()),
           dataSource.getTimestampColumn(),
           InternalFormats.of(keyFormat, Formats.from(dataSource.getKsqlTopic()).getValueFormat()),
-          getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+          SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
       );
 
     } else {
@@ -192,7 +192,7 @@ public final class SchemaKSourceFactory {
           dataSource.getKafkaTopicName(),
           Formats.from(dataSource.getKsqlTopic()),
           dataSource.getTimestampColumn(),
-          getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
+          SystemColumns.getPseudoColumnVersionFromConfig(buildContext.getKsqlConfig())
       );
     }
 
@@ -243,10 +243,5 @@ public final class SchemaKSourceFactory {
         buildContext.getFunctionRegistry()
     ).resolve(step, dataSource.getSchema());
   }
-
-  private static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        ? SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
-  }
+  
 }

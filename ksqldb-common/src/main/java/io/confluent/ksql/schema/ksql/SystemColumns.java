@@ -26,7 +26,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,6 +67,7 @@ public final class SystemColumns {
           ROWTIME_TYPE,
           ROWTIME_PSEUDOCOLUMN_VERSION,
           false,
+          false,
           false
       ),
       PseudoColumn.of(
@@ -75,14 +75,16 @@ public final class SystemColumns {
           ROWPARTITION_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
           true,
-          true
+          true,
+          false
       ),
       PseudoColumn.of(
           ROWOFFSET_NAME,
           ROWOFFSET_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
           true,
-          true
+          true,
+          false
       )
   );
 
@@ -143,8 +145,6 @@ public final class SystemColumns {
 
   public static Set<ColumnName> systemColumnNames(final int pseudoColumnVersion) {
 
-    validatePseudoColumnVersion(pseudoColumnVersion);
-
     return Stream.concat(
         WINDOW_BOUNDS_COLUMN_NAMES.stream(),
         pseudoColumnNames(pseudoColumnVersion).stream()
@@ -153,8 +153,8 @@ public final class SystemColumns {
   }
 
   /**
-   * Checks if a given ColumnName is associated with a pseudo column that must be materialized for
-   * table joins
+   * Checks if a given pseudo column name is associated with a pseudo column that must be
+   * materialized for table joins
    *
    * @param columnName the pseudo column name provided
    * @return if the name is associated with a pseudo column that must be materialized for table
@@ -168,10 +168,15 @@ public final class SystemColumns {
         .mustBeMaterializedForTableJoins;
   }
 
-  public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+  public static boolean isDisallowedForInsertValues(
+      final ColumnName columnName,
+      final KsqlConfig ksqlConfig
+  ) {
+    return pseudoColumns
+        .stream()
+        .filter(col -> col.version <= getPseudoColumnVersionFromConfig(ksqlConfig))
+        .filter(col -> col.name.equals(columnName))
+        .anyMatch(col -> col.isDisallowedForInsertValues);
   }
 
   public static boolean isDisallowedInPullQueries(
@@ -185,10 +190,16 @@ public final class SystemColumns {
         .anyMatch(col -> col.name.equals(columnName));
   }
 
+  public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
+  }
+
   private static void validatePseudoColumnVersion(final int pseudoColumnVersionNumber) {
     if (pseudoColumnVersionNumber < LEGACY_PSEUDOCOLUMN_VERSION_NUMBER
         || pseudoColumnVersionNumber > CURRENT_PSEUDOCOLUMN_VERSION_NUMBER) {
-      throw new KsqlException("Invalid pseudoColumnVersionNumber provided");
+      throw new IllegalArgumentException("Invalid pseudoColumnVersionNumber provided");
     }
   }
 
@@ -199,6 +210,7 @@ public final class SystemColumns {
     final SqlType type;
     final int version;
     final boolean mustBeMaterializedForTableJoins;
+    final boolean isDisallowedForInsertValues;
     final boolean isDisallowedInPullQueries;
 
     private PseudoColumn(
@@ -206,12 +218,14 @@ public final class SystemColumns {
         final SqlType type,
         final int version,
         final boolean mustBeMaterializedForTableJoins,
+        final boolean isDisallowedForInsertValues,
         final boolean isDisallowedInPullQueries
     ) {
       this.name = requireNonNull(name, "name");
       this.type = requireNonNull(type, "type");
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
+      this.isDisallowedForInsertValues = isDisallowedForInsertValues;
       this.isDisallowedInPullQueries = isDisallowedInPullQueries;
     }
 
@@ -220,6 +234,7 @@ public final class SystemColumns {
         final SqlType type,
         final int version,
         final boolean mustBeMaterializedForTableJoins,
+        final boolean isDisallowedForInsertValues,
         final boolean isDisallowedInPullQueries
     ) {
       return new PseudoColumn(
@@ -227,6 +242,7 @@ public final class SystemColumns {
           type,
           version,
           mustBeMaterializedForTableJoins,
+          isDisallowedForInsertValues,
           isDisallowedInPullQueries
       );
     }

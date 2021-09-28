@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.RateLimiter;
@@ -469,15 +468,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     // Only check the rate limit at the forwarding host
     Decrementer decrementer = null;
-    if (!isAlreadyForwarded) {
-      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-      decrementer = concurrencyLimiter.increment();
-    }
-    pullBandRateLimiter.allow(KsqlQueryType.PULL);
-
-    final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
-
     try {
+      if (!isAlreadyForwarded) {
+        PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+        decrementer = concurrencyLimiter.increment();
+      }
+      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+
+      final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,
@@ -503,7 +501,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
       return EndpointResponse.ok(pullQueryStreamWriter);
     } catch (final Throwable t) {
-      optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      if (decrementer != null) {
+        decrementer.decrementAtMostOnce();
+      }
       throw t;
     }
   }
@@ -731,14 +731,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return EndpointResponse.ok(queryStreamWriter);
-  }
-
-  private static String writeValueAsString(final Object object) {
-    try {
-      return OBJECT_MAPPER.writeValueAsString(object);
-    } catch (final JsonProcessingException e) {
-      throw new RuntimeException(e);
-    }
   }
 
   private EndpointResponse handlePrintTopic(

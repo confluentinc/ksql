@@ -47,6 +47,10 @@ public final class CommonCreateConfigs {
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
   public static final String KEY_DELIMITER_PROPERTY = "KEY_DELIMITER";
 
+  // Schema Props:
+  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
+  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
+
   public static void addToConfigDef(
       final ConfigDef configDef,
       final boolean topicNameRequired
@@ -131,9 +135,9 @@ public final class CommonCreateConfigs {
             ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::parse)),
             Importance.LOW,
             "The delimiter to use when KEY_FORMAT='DELIMITED'. Supports single "
-              + "character to be a delimiter, defaults to ','. For space and tab delimited values "
-              + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character. Also see " + VALUE_DELIMITER_PROPERTY)
+                + "character to be a delimiter, defaults to ','. For space and tab delimited "
+                + "values you must use the special values 'SPACE' or 'TAB', not an actual space "
+                + "or tab character. Also see " + VALUE_DELIMITER_PROPERTY)
         .define(
             VALUE_DELIMITER_PROPERTY,
             ConfigDef.Type.STRING,
@@ -141,9 +145,9 @@ public final class CommonCreateConfigs {
             ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::parse)),
             Importance.LOW,
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
-              + "character to be a delimiter, defaults to ','. For space and tab delimited values "
-              + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character. Also see " + KEY_DELIMITER_PROPERTY)
+                + "character to be a delimiter, defaults to ','. For space and tab delimited "
+                + "values you must use the special values 'SPACE' or 'TAB', not an actual space "
+                + "or tab character. Also see " + KEY_DELIMITER_PROPERTY)
         .define(
             KEY_FORMAT_PROPERTY,
             ConfigDef.Type.STRING,
@@ -156,7 +160,19 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.HIGH,
-            "The format of the serialized key and value");
+            "The format of the serialized key and value")
+        .define(
+            KEY_SCHEMA_ID,
+            ConfigDef.Type.INT,
+            null,
+            Importance.LOW,
+            "Undocumented feature"
+        ).define(
+            VALUE_SCHEMA_ID,
+            ConfigDef.Type.INT,
+            null,
+            Importance.LOW,
+            "Undocumented feature");
   }
 
   public static void validateKeyValueFormats(final Map<String, Object> configs) {

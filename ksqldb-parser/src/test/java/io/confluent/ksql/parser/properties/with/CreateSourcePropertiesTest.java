@@ -280,8 +280,8 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
-            .put(CreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
+            .put(CommonCreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
+            .put(CommonCreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
             .build());
 
     // Then:

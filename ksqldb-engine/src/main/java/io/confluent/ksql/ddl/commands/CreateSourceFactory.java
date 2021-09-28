@@ -123,7 +123,7 @@ public final class CreateSourceFactory {
       final String sourceType = dataSource.getDataSourceType().getKsqlType();
       throw new KsqlException(
           String.format("Cannot add stream '%s': A %s with the same name already exists",
-              sourceName.text(), sourceType.toLowerCase()));
+             sourceName.text(), sourceType.toLowerCase()));
     }
 
     return new CreateStreamCommand(

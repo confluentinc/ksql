@@ -228,7 +228,7 @@ public class PullQueryMetricsHttp2FunctionalTest {
   }
 
   @Test
-  public void shouldVerifyMetricsHttp2() {
+  public void shouldVerifyMetricsHttp() {
     // Given:
     final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
     final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -35,6 +36,7 @@ import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.MediaType;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
@@ -152,6 +154,9 @@ public class PullQueryMetricsWSFunctionalTest {
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
   @Rule
+  public final Retry retry = Retry.of(5, AssertionError.class, 3, TimeUnit.SECONDS);
+
+  @Rule
   public final Timeout timeout = Timeout.seconds(60);
 
   private Metrics metrics;
@@ -199,7 +204,7 @@ public class PullQueryMetricsWSFunctionalTest {
   }
 
   @Test
-  public void shouldVerifyMetricsWS() {
+  public void shouldVerifyMetrics() {
     // Given:
     final KafkaMetric recordsReturnedTableMetric = metrics.metric(recordsReturnedTable);
     final KafkaMetric latencyTableMetric = metrics.metric(latencyTable);

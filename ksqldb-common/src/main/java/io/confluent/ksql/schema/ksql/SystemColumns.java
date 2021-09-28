@@ -76,7 +76,7 @@ public final class SystemColumns {
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
           true,
           true,
-          false
+          true
       ),
       PseudoColumn.of(
           ROWOFFSET_NAME,
@@ -84,7 +84,7 @@ public final class SystemColumns {
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
           true,
           true,
-          false
+          true
       )
   );
 

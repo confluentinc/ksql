@@ -404,7 +404,7 @@
       }
     },
     {
-      "name": "PARTITION BY ROWOFFSET - buggy?",
+      "name": "PARTITION BY ROWOFFSET",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },
@@ -432,7 +432,7 @@
       }
     },
     {
-      "name": "PARTITION BY ROWPARTITION - buggy?",
+      "name": "PARTITION BY ROWPARTITION",
       "comments": "Not the most useful PARTITION BY!",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true

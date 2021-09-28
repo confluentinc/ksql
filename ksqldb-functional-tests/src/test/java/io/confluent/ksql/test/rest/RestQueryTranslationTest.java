@@ -108,6 +108,7 @@ public class RestQueryTranslationTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 

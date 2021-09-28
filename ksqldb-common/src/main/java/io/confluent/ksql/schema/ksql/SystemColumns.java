@@ -163,7 +163,15 @@ public final class SystemColumns {
   }
 
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return getPseudoColumnVersionFromConfig(ksqlConfig, false);
+  }
+
+  public static int getPseudoColumnVersionFromConfig(
+      final KsqlConfig ksqlConfig,
+      final boolean forPullOrScalablePushQuery
+  ) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        && !forPullOrScalablePushQuery
         ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
         : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }

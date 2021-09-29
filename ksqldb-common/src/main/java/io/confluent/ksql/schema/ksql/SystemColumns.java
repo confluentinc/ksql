@@ -179,7 +179,7 @@ public final class SystemColumns {
         .anyMatch(col -> col.isDisallowedForInsertValues);
   }
 
-  public static boolean isDisallowedInPullQueries(
+  public static boolean isDisallowedInPullOrScalablePushQueries(
       final ColumnName columnName,
       final int psuedoColumnVersion
   ) {

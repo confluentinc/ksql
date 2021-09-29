@@ -26,8 +26,11 @@ import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.concurrent.impl.FutureConvertersImpl.P;
 
 /**
  * Represents a physical plan for a scalable push query. The execution of the plan is done async
@@ -71,7 +74,13 @@ public class PushPhysicalPlan {
   }
 
   public BufferedPublisher<List<?>> execute() {
+    return subscribeAndExecute(Optional.empty());
+  }
+
+  // for testing only
+  BufferedPublisher<List<?>> subscribeAndExecute(final Optional<Subscriber<List<?>>> subscriber) {
     final Publisher publisher = new Publisher(context);
+    subscriber.ifPresent(publisher::subscribe);
     context.runOnContext(v -> open(publisher));
     return publisher;
   }

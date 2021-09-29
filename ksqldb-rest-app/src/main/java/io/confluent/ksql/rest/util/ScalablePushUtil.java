@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
@@ -29,11 +28,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 public final class ScalablePushUtil {
 
-  @VisibleForTesting
-  static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
   private static String LATEST_VALUE = "latest";
 
   private ScalablePushUtil() {
@@ -99,15 +97,16 @@ public final class ScalablePushUtil {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
-    if (overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)) {
-      return LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG));
+    if (overrides.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(overrides.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
     } else if (overrides.containsKey(
-        KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG)) {
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
       return LATEST_VALUE.equals(
-          overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG));
-    } else if (ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG).isPresent()) {
+          overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    } else if (ksqlConfig.getKsqlStreamConfigProp(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).isPresent()) {
       return LATEST_VALUE.equals(
-          ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG).orElse(null));
+          ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).orElse(null));
     } else {
       // Implicitly assume latest since this is the default for push queries in ksqlDB.
       return true;

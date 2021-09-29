@@ -66,6 +66,28 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Cannot delete topic for read-only source: INPUT"
       }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE SOURCE ... statements for source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add stream 'INPUT': CREATE OR REPLACE is not supported on source streams or tables."
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE ... statements for source streams",
+      "statements": [
+        "CREATE SOURCE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE STREAM INPUT (K STRING KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add stream 'INPUT': CREATE OR REPLACE is not supported on source streams or tables."
+      }
     }
   ]
 }

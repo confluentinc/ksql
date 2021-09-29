@@ -31,6 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -126,6 +127,8 @@ public final class CreateSourceFactory {
              sourceName.text(), sourceType.toLowerCase()));
     }
 
+    throwIfCreateOrReplaceOnSourceStreamOrTable(statement, dataSource);
+
     return new CreateStreamCommand(
         sourceName,
         schema,
@@ -185,6 +188,8 @@ public final class CreateSourceFactory {
       );
     }
 
+    throwIfCreateOrReplaceOnSourceStreamOrTable(statement, dataSource);
+
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
 
@@ -198,6 +203,22 @@ public final class CreateSourceFactory {
         Optional.of(statement.isOrReplace()),
         Optional.of(statement.isSource())
     );
+  }
+
+  private void throwIfCreateOrReplaceOnSourceStreamOrTable(
+      final CreateSource createSource,
+      final DataSource existingSource
+  ) {
+    if (createSource.isOrReplace()) {
+      final String createSourceType = (createSource instanceof CreateStream) ? "stream" : "table";
+
+      if (createSource.isSource() || (existingSource != null && existingSource.isSource())) {
+        throw new KsqlException(
+            String.format("Cannot add %s '%s': CREATE OR REPLACE is not supported on "
+                    + "source streams or tables.",
+                createSourceType, createSource.getName().text()));
+      }
+    }
   }
 
   private Formats buildFormats(

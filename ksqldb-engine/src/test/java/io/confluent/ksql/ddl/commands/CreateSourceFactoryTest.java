@@ -1141,6 +1141,99 @@ public class CreateSourceFactoryTest {
         containsString("Cannot add table 'table_bob': A table with the same name already exists"));
   }
 
+  @Test
+  public void shouldThrowInCreateStreamOrReplaceSource() {
+    // Given:
+    final CreateStream ddlStatement =
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, true, false, withProperties, true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createStreamCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString(
+            "Cannot add stream 'bob': CREATE OR REPLACE is not supported on "
+                + "source streams or tables."));
+  }
+
+  @Test
+  public void shouldThrowInCreateStreamOrReplaceOnSourceStreams() {
+    // Given:
+    final SourceName existingStreamName = SourceName.of("existingStreamName");
+    final KsqlStream existingStream = mock(KsqlStream.class);
+
+    when(existingStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(existingStream.isSource()).thenReturn(true);
+    when(metaStore.getSource(existingStreamName)).thenReturn(existingStream);
+
+    final CreateStream ddlStatement =
+        new CreateStream(existingStreamName,
+            STREAM_ELEMENTS, true, false, withProperties, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createStreamCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString(
+            "Cannot add stream 'existingStreamName': CREATE OR REPLACE is not supported on "
+                + "source streams or tables."));
+  }
+
+  @Test
+  public void shouldThrowInCreateTableOrReplaceSource() {
+    // Given:
+    final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
+        TableElements.of(
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
+            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+        true, false, withProperties, true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createTableCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString(
+            "Cannot add table 'table_bob': CREATE OR REPLACE is not supported on "
+                + "source streams or tables."));
+  }
+
+  @Test
+  public void shouldThrowInCreateStreamOrReplaceOnSourceTables() {
+    // Given:
+    final SourceName existingTableName = SourceName.of("existingTableName");
+    final KsqlTable existingTable = mock(KsqlTable.class);
+
+    when(existingTable.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+    when(existingTable.isSource()).thenReturn(true);
+    when(metaStore.getSource(existingTableName)).thenReturn(existingTable);
+
+    final CreateTable ddlStatement = new CreateTable(existingTableName,
+        TableElements.of(
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
+            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+        true, false, withProperties, false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createTableCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString(
+            "Cannot add table 'existingTableName': CREATE OR REPLACE is not supported on "
+                + "source streams or tables."));
+  }
+
   private void givenProperty(final String name, final Literal value) {
     givenProperties(ImmutableMap.of(name, value));
   }

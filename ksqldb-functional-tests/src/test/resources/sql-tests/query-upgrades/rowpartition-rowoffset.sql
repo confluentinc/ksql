@@ -94,7 +94,7 @@ SET 'ksql.rowpartition.rowoffset.enabled' = 'true';
 CREATE OR REPLACE TABLE b AS SELECT id, col1, ROWOFFSET AS ro FROM a WHERE col1 > 0 EMIT CHANGES;
 
 ----------------------------------------------------------------------------------------------------
---@test: should fail on CREATE OR REPLACE of an old query with ROWPARTITION in WHERE clause
+--@test: should fail on CREATE OR REPLACE of a legacy query with ROWPARTITION in WHERE clause
 --@expected.error: io.confluent.ksql.util.KsqlStatementException
 --@expected.message: Invalid Predicate: Cannot find the select field in the available fields. field: `ROWPARTITION`
 ----------------------------------------------------------------------------------------------------
@@ -112,7 +112,7 @@ SET 'ksql.rowpartition.rowoffset.enabled' = 'true';
 CREATE OR REPLACE TABLE b AS SELECT id, col1 FROM a WHERE col1 > ROWPARTITION EMIT CHANGES;
 
 ----------------------------------------------------------------------------------------------------
---@test: should fail on CREATE OR REPLACE of an old query with ROWOFFSET in WHERE clause
+--@test: should fail on CREATE OR REPLACE of a legacy query with ROWOFFSET in WHERE clause
 --@expected.error: io.confluent.ksql.util.KsqlStatementException
 --@expected.message: Invalid Predicate: Cannot find the select field in the available fields. field: `ROWOFFSET`
 ----------------------------------------------------------------------------------------------------

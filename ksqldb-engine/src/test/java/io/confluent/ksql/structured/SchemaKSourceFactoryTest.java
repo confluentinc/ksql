@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
+import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -24,8 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
-import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
-import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.context.QueryContext;

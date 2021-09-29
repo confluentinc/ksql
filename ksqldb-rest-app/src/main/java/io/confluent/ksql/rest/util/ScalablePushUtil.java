@@ -105,9 +105,12 @@ public final class ScalablePushUtil {
         KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG)) {
       return LATEST_VALUE.equals(
           overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG));
-    } else {
+    } else if (ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG).isPresent()) {
       return LATEST_VALUE.equals(
           ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG).orElse(null));
+    } else {
+      // Implicitly assume latest since this is the default for push queries in ksqlDB.
+      return true;
     }
   }
 

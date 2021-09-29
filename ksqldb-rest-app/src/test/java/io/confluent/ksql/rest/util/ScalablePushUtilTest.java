@@ -169,9 +169,35 @@ public class ScalablePushUtilTest {
 
 
   @Test
-  public void isScalablePushQuery_false_noLatest() {
+  public void isScalablePushQuery_true_noLatest() {
     // When:
     expectIsSQP();
+
+    // Then:
+    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+        ImmutableMap.of()),
+        equalTo(true));
+  }
+
+  @Test
+  public void isScalablePushQuery_true_configLatest() {
+    // When:
+    expectIsSQP();
+    when(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG))
+        .thenReturn(Optional.of("latest"));
+
+    // Then:
+    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+        ImmutableMap.of()),
+        equalTo(true));
+  }
+
+  @Test
+  public void isScalablePushQuery_false_configNotLatest() {
+    // When:
+    expectIsSQP();
+    when(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG))
+        .thenReturn(Optional.of("earliest"));
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,

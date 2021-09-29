@@ -30,7 +30,6 @@ import java.util.Optional;
 import org.reactivestreams.Subscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.concurrent.impl.FutureConvertersImpl.P;
 
 /**
  * Represents a physical plan for a scalable push query. The execution of the plan is done async

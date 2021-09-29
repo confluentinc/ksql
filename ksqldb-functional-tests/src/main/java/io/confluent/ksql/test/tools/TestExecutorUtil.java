@@ -169,7 +169,7 @@ public final class TestExecutorUtil {
       return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
           .map(p -> ConfiguredKsqlPlan.of(
-              Optional.ofNullable(p),
+              p,
               SessionConfig.of(ksqlConfig, testCase.properties())))
           .map(PlannedStatement::new)
           .iterator();
@@ -379,7 +379,7 @@ public final class TestExecutorUtil {
         plan
     );
 
-    final Optional<List<DataSource>> dataSources = plan.getPlan().get().getQueryPlan()
+    final Optional<List<DataSource>> dataSources = plan.getPlan().getQueryPlan()
         .map(queryPlan -> getSources(queryPlan.getSources(), executionContext.getMetaStore()));
 
     return new ExecuteResultAndSources(executeResult, dataSources);
@@ -493,7 +493,7 @@ public final class TestExecutorUtil {
 
       return new PlannedStatement(
           ConfiguredKsqlPlan.of(
-              Optional.ofNullable(rewritePlan(plan)),
+              rewritePlan(plan),
               reformatted.getSessionConfig())
       );
     }

@@ -506,21 +506,26 @@ final class EngineExecutor {
         .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
   }
 
-  private Optional<SourceName> getSourceNameIfIsNotExists(final ConfiguredStatement<?> statement) {
+  private boolean shouldGeneratePlan(final ConfiguredStatement<?> statement) {
+    SourceName sourceName = null;
     if (statement.getStatement() instanceof CreateStream
         && ((CreateStream) statement.getStatement()).isNotExists()) {
-      return Optional.ofNullable(((CreateStream) statement.getStatement()).getName());
+      sourceName = ((CreateStream) statement.getStatement()).getName();
     } else if (statement.getStatement() instanceof CreateTable
         && ((CreateTable) statement.getStatement()).isNotExists()) {
-      return Optional.ofNullable(((CreateTable) statement.getStatement()).getName());
+      sourceName = ((CreateTable) statement.getStatement()).getName();
     } else if (statement.getStatement() instanceof CreateTableAsSelect
         && ((CreateTableAsSelect) statement.getStatement()).isNotExists()) {
-      return Optional.ofNullable(((CreateAsSelect) statement.getStatement()).getName());
+      sourceName = ((CreateAsSelect) statement.getStatement()).getName();
     } else if (statement.getStatement() instanceof CreateStreamAsSelect
         && ((CreateStreamAsSelect) statement.getStatement()).isNotExists()) {
-      return Optional.ofNullable(((CreateAsSelect) statement.getStatement()).getName());
+      sourceName = ((CreateAsSelect) statement.getStatement()).getName();
     }
-    return Optional.empty();
+    if (sourceName != null) {
+      return engineContext.getMetaStore().getSource(sourceName) == null;
+    } else {
+      return true;
+    }
   }
 
   // Known to be non-empty
@@ -530,9 +535,7 @@ final class EngineExecutor {
     try {
       throwOnNonExecutableStatement(statement);
 
-      final Optional<SourceName> sourceName = getSourceNameIfIsNotExists(statement);
-      if (sourceName.isPresent()
-          && engineContext.getMetaStore().getSource(sourceName.get()) != null) {
+      if (!shouldGeneratePlan(statement)) {
         return Optional.empty();
       }
 

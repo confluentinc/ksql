@@ -232,7 +232,7 @@ public class ValidatedCommandFactoryTest {
     verify(executionContext).plan(serviceContext, configuredStatement);
     verify(executionContext).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(Optional.of(A_PLAN), SessionConfig.of(config, overrides))
+        ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides))
     );
   }
 
@@ -246,7 +246,7 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(command,
-        is(Optional.of(Command.of(ConfiguredKsqlPlan.of(Optional.of(A_PLAN), SessionConfig.of(config, overrides))))));
+        is(Optional.of(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides))))));
   }
 
   @Test

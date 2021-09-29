@@ -234,7 +234,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
     final ConfiguredKsqlPlan configured = ConfiguredKsqlPlan.of(
-        Optional.ofNullable(plan),
+        plan,
         SessionConfig.of(mergedConfig, command.getOverwriteProperties())
     );
     putStatus(

@@ -138,10 +138,10 @@ public class Command {
 
   public static Command of(final ConfiguredKsqlPlan configuredPlan) {
     return new Command(
-        configuredPlan.getPlan().get().getStatementText(),
+        configuredPlan.getPlan().getStatementText(),
         configuredPlan.getConfig().getOverrides(),
         configuredPlan.getConfig().getConfig(false).getAllConfigPropsWithSecretsObfuscated(),
-        Optional.of(configuredPlan.getPlan().get()),
+        Optional.of(configuredPlan.getPlan()),
         Optional.of(VERSION),
         VERSION
     );

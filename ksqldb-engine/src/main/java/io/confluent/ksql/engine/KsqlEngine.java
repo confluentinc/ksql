@@ -271,14 +271,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
+  public ExecuteResult execute(
+      final ServiceContext serviceContext,
+      final ConfiguredKsqlPlan plan) {
     try {
-      if (!plan.getPlan().isPresent()) {
-        return ExecuteResult.of("should not execute");
-      }
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
-          .execute(plan.getPlan().get());
+          .execute(plan.getPlan());
       return result;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -286,7 +285,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(
           e.getMessage(),
-          plan.getPlan().get().getStatementText(),
+          plan.getPlan().getStatementText(),
           e.getCause()
       );
     }
@@ -297,13 +296,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
-    return execute(
+    final Optional<KsqlPlan> ksqlPlan = plan(serviceContext, statement);
+    return ksqlPlan.map(plan -> execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(
-            plan(serviceContext, statement),
-            statement.getSessionConfig()
-        )
-    );
+        ConfiguredKsqlPlan.of(plan, statement.getSessionConfig())
+    )).orElseGet(() -> ExecuteResult.of("Should not execute an empty statement."
+        + " This should only be because of a redundant IF NOT EXISTS"));
   }
 
   @Override

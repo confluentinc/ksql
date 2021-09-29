@@ -138,15 +138,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredKsqlPlan ksqlPlan
   ) {
-    if (!ksqlPlan.getPlan().isPresent()) {
-      return ExecuteResult.of("not to execute");
-    }
-
     final ExecuteResult result = EngineExecutor.create(
         engineContext,
         serviceContext,
         ksqlPlan.getConfig()
-    ).execute(ksqlPlan.getPlan().get());
+    ).execute(ksqlPlan.getPlan());
 
     // Having a streams running in a sandboxed environment is not necessary
     result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
@@ -158,9 +154,12 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
-    return execute(
+    final Optional<KsqlPlan> ksqlPlan = plan(serviceContext, statement);
+    return ksqlPlan.map(plan -> execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(plan(serviceContext, statement), statement.getSessionConfig())
+        ConfiguredKsqlPlan.of(plan, statement.getSessionConfig())
+    )).orElseGet(() ->  ExecuteResult.of("Should not execute an empty statement."
+        + " This should only be because of a redundant IF NOT EXISTS")
     );
   }
 

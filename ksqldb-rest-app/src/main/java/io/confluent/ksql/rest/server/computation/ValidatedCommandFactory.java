@@ -152,7 +152,7 @@ public final class ValidatedCommandFactory {
     }
 
     final ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
-        .of(plan, statement.getSessionConfig());
+        .of(plan.get(), statement.getSessionConfig());
 
     context.execute(serviceContext, configuredPlan);
 

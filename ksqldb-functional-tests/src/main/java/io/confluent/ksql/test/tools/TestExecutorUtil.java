@@ -168,7 +168,9 @@ public final class TestExecutorUtil {
     ) {
       return testCase.getExpectedTopology().get().getPlan().get()
           .stream()
-          .map(p -> ConfiguredKsqlPlan.of(p, SessionConfig.of(ksqlConfig, testCase.properties())))
+          .map(p -> ConfiguredKsqlPlan.of(
+              Optional.ofNullable(p),
+              SessionConfig.of(ksqlConfig, testCase.properties())))
           .map(PlannedStatement::new)
           .iterator();
     }
@@ -377,7 +379,7 @@ public final class TestExecutorUtil {
         plan
     );
 
-    final Optional<List<DataSource>> dataSources = plan.getPlan().getQueryPlan()
+    final Optional<List<DataSource>> dataSources = plan.getPlan().get().getQueryPlan()
         .map(queryPlan -> getSources(queryPlan.getSources(), executionContext.getMetaStore()));
 
     return new ExecuteResultAndSources(executeResult, dataSources);
@@ -486,15 +488,17 @@ public final class TestExecutorUtil {
       final ConfiguredStatement<?> reformatted =
           new SqlFormatInjector(executionContext).inject(withSchema);
 
-      final KsqlPlan plan = executionContext
+      final Optional<KsqlPlan> plan = executionContext
           .plan(executionContext.getServiceContext(), reformatted);
 
       return new PlannedStatement(
-          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+          ConfiguredKsqlPlan.of(
+              Optional.ofNullable(rewritePlan(plan)),
+              reformatted.getSessionConfig())
       );
     }
 
-    private static KsqlPlan rewritePlan(final KsqlPlan plan) {
+    private static KsqlPlan rewritePlan(final Optional<KsqlPlan> plan) {
       try {
         final String serialized = PLAN_MAPPER.writeValueAsString(plan);
         return PLAN_MAPPER.readValue(serialized, KsqlPlan.class);

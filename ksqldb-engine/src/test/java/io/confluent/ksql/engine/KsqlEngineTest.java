@@ -1477,7 +1477,7 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldGetEmptyPlanFor() {
+  public void shouldGetEmptyPlanForIfNotExists() {
     // Given:
     KsqlEngineTestUtil.execute(
         serviceContext,
@@ -1490,7 +1490,7 @@ public class KsqlEngineTest {
     // When:
     Optional<KsqlPlan> plan = ksqlEngine.plan(
         serviceContext,
-        configuredStatement("CREATE STREAM IF NOT EXISTS FOO AS SELECT * FROM UNKNOWN;")
+        configuredStatement("CREATE STREAM IF NOT EXISTS FOO AS SELECT * FROM test1;")
     );
 
     // Then:

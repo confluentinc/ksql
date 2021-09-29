@@ -232,7 +232,7 @@ public class ValidatedCommandFactoryTest {
     verify(executionContext).plan(serviceContext, configuredStatement);
     verify(executionContext).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides))
+        ConfiguredKsqlPlan.of(Optional.of(A_PLAN), SessionConfig.of(config, overrides))
     );
   }
 
@@ -245,14 +245,15 @@ public class ValidatedCommandFactoryTest {
     final Optional<Command> command = commandFactory.create(configuredStatement, executionContext);
 
     // Then:
-    assertThat(command, is(Optional.of(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides))))));
+    assertThat(command,
+        is(Optional.of(Command.of(ConfiguredKsqlPlan.of(Optional.of(A_PLAN), SessionConfig.of(config, overrides))))));
   }
 
   @Test
   public void shouldNotCreateCommandForInvalidIfNotExists() {
     // Given:
     configuredStatement = configuredStatement("CREATE STREAM FOO IF NOT EXISTS", plannedQuery);
-    when(executionContext.plan(any(), any())).thenReturn(EMPTY_PLAN);
+    when(executionContext.plan(any(), any())).thenReturn(Optional.of(EMPTY_PLAN));
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
 
     // When:
@@ -292,7 +293,7 @@ public class ValidatedCommandFactoryTest {
 
   private void givenPlannedQuery() {
     configuredStatement = configuredStatement("CREATE STREAM", plannedQuery);
-    when(executionContext.plan(any(), any())).thenReturn(A_PLAN);
+    when(executionContext.plan(any(), any())).thenReturn(Optional.of(A_PLAN));
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
   }
 
@@ -300,7 +301,7 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("CREATE STREAM", plannedQuery);
     final KsqlPlan planThatFailsToDeserialize = KsqlPlan
         .ddlPlanCurrent("some sql", new UnDeserializableCommand());
-    when(executionContext.plan(any(), any())).thenReturn(planThatFailsToDeserialize);
+    when(executionContext.plan(any(), any())).thenReturn(Optional.of(planThatFailsToDeserialize));
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
   }
 

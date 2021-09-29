@@ -336,7 +336,7 @@ public class InteractiveStatementExecutorTest {
         plannedCommand.getOriginalProperties());
     verify(mockEngine).execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(plan, SessionConfig.of(expectedConfig, emptyMap()))
+        ConfiguredKsqlPlan.of(Optional.of(plan), SessionConfig.of(expectedConfig, emptyMap()))
     );
   }
 
@@ -432,7 +432,7 @@ public class InteractiveStatementExecutorTest {
     verify(mockConfig).overrideBreakingConfigsWithOriginalValues(savedConfigs);
     verify(mockEngine).execute(
         any(),
-        eq(ConfiguredKsqlPlan.of(plan, SessionConfig.of(mergedConfig, emptyMap())))
+        eq(ConfiguredKsqlPlan.of(Optional.of(plan), SessionConfig.of(mergedConfig, emptyMap())))
     );
   }
 
@@ -695,7 +695,7 @@ public class InteractiveStatementExecutorTest {
     private final ConfiguredKsqlPlan plan;
 
     ConfiguredKsqlPlanMatcher(final KsqlPlan ksqlPlan) {
-      plan = ConfiguredKsqlPlan.of(ksqlPlan, SessionConfig.of(ksqlConfig, emptyMap()));
+      plan = ConfiguredKsqlPlan.of(Optional.ofNullable(ksqlPlan), SessionConfig.of(ksqlConfig, emptyMap()));
     }
 
     @Override
@@ -1018,7 +1018,7 @@ public class InteractiveStatementExecutorTest {
     final PreparedStatement<?> prepared = statementParser.parseSingleStatement(sql);
     final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, emptyMap());
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared, sessionConfig);
-    final KsqlPlan plan = ksqlEngine.plan(serviceContext, configured);
-    return new Command(sql, Collections.emptyMap(), originalProperties, Optional.of(plan));
+    final Optional<KsqlPlan> plan = ksqlEngine.plan(serviceContext, configured);
+    return new Command(sql, Collections.emptyMap(), originalProperties, plan);
   }
 }

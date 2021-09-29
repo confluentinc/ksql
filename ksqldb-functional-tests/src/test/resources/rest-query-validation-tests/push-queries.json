@@ -380,7 +380,7 @@
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
-        "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 2;"
+        "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
@@ -403,7 +403,7 @@
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
-        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 2;"
+        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},

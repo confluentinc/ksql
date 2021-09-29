@@ -188,7 +188,7 @@ public final class SchemaKSourceFactory {
     // See https://github.com/confluentinc/ksql/pull/7990
     boolean useOldExecutionStepVersion = false;
     if (buildContext.getPlanInfo().isPresent()) {
-      final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSourceSet();
+      final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSources();
       useOldExecutionStepVersion = sourceSteps
           .stream()
           .anyMatch(executionStep -> executionStep instanceof TableSourceV1);
@@ -235,7 +235,7 @@ public final class SchemaKSourceFactory {
     // Assume statement is CREATE OR REPLACE if this is present, as it indicates that there was
     // an existing query with the same ID. if it wasn't COR, it will fail later
     if (buildContext.getPlanInfo().isPresent()) {
-      final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSourceSet();
+      final Set<ExecutionStep<?>> sourceSteps = buildContext.getPlanInfo().get().getSources();
 
       return sourceSteps.stream()
           .map(SourceStep.class::cast)

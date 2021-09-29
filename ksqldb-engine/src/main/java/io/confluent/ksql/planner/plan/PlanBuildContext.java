@@ -79,7 +79,7 @@ public final class PlanBuildContext {
         newConfig,
         serviceContext,
         functionRegistry,
-        Optional.empty()
+        planInfo
     );
   }
 

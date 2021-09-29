@@ -71,7 +71,7 @@ public class PlanInfo {
     return new PlanInfo(allSources.merge(other.allSources));
   }
 
-  public Set<ExecutionStep<?>> getSourceSet() {
+  public Set<ExecutionStep<?>> getSources() {
     return allSources.sourceSet;
   }
 

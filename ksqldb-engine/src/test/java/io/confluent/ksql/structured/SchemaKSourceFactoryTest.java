@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
+import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
+import static io.confluent.ksql.schema.ksql.SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -252,10 +254,10 @@ public class SchemaKSourceFactoryTest {
   }
 
   @Test
-  public void shouldReplaceOldNonWindowedStreamSourceWithMatchingPseudoColumnVersion() {
+  public void shouldReplaceNonWindowedStreamSourceWithMatchingPseudoColumnVersion() {
     // Given:
     givenNonWindowedStream();
-    givenExistingQueryWithOldPseudoColumnVersion(windowedStreamSource);
+    givenExistingQueryWithOldPseudoColumnVersion(streamSource);
     givenOnNewPseudoColumnVersion();
 
     // When:
@@ -266,7 +268,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((StreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((StreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -284,12 +286,12 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((StreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((StreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
   @Test
-  public void shouldReplaceOldWindowedStreamSourceWithMatchingPseudoColumnVersion() {
+  public void shouldReplaceWindowedStreamSourceWithMatchingPseudoColumnVersion() {
     // Given:
     givenWindowedStream();
     givenExistingQueryWithOldPseudoColumnVersion(windowedStreamSource);
@@ -303,7 +305,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((WindowedStreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((WindowedStreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -321,7 +323,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((WindowedStreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((WindowedStreamSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -339,13 +341,16 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((TableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((TableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
-  //this state shouldn't exist in normal use, testing for completeness
+  // TableSourceV2s should never contain have a pseudoColumnVersion equal to
+  // LEGACY_PSEUDOCOLUMN_VERSION_NUMBER in real usage, as TableSourceV2 was
+  // released alongside pseudocolumn version 1. However, this test aims to ensure
+  // we are able to upgrade TableSourceV2 while preserving old pseudocolumn versions in the future
   @Test
-  public void shouldReplaceOldWTableSourceV2WithMatchingPseudoColumnVersion() {
+  public void shouldReplaceTableSourceV2WithMatchingPseudoColumnVersion() {
     // Given:
     givenNonWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(tableSource);
@@ -359,7 +364,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((TableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((TableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -377,7 +382,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((TableSourceV1) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((TableSourceV1) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -396,7 +401,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((TableSourceV1) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((TableSourceV1) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -415,7 +420,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((WindowedTableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((WindowedTableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -433,7 +438,7 @@ public class SchemaKSourceFactoryTest {
     );
 
     // Then:
-    assertThat(((WindowedTableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
+    assertThat(((WindowedTableSource) result.getSourceStep()).getPseudoColumnVersion(), equalTo(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER));
     assertValidSchema(result);
   }
 
@@ -442,7 +447,7 @@ public class SchemaKSourceFactoryTest {
     // Given:
     givenNonWindowedTable();
     givenExistingQueryWithOldPseudoColumnVersion(tableSourceV1);
-    when(tableSourceV1.getPseudoColumnVersion()).thenReturn(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
+    when(tableSourceV1.getPseudoColumnVersion()).thenReturn(CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
 
     // When:
     final Exception e = assertThrows(
@@ -487,8 +492,8 @@ public class SchemaKSourceFactoryTest {
 
   private void givenExistingQueryWithOldPseudoColumnVersion(SourceStep<?> step) {
     when(buildContext.getPlanInfo()).thenReturn(Optional.of(planInfo));
-    when(planInfo.getSourceSet()).thenReturn(ImmutableSet.of(step));
-    when(step.getPseudoColumnVersion()).thenReturn(SystemColumns.LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
+    when(planInfo.getSources()).thenReturn(ImmutableSet.of(step));
+    when(step.getPseudoColumnVersion()).thenReturn(LEGACY_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
   private void givenOnNewPseudoColumnVersion() {

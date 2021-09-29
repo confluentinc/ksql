@@ -76,34 +76,6 @@
       }
     },
     {
-      "name": "verify ROWPARTITION is not queryable with feature disabled",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": false
-      },
-      "statements": [
-        "CREATE STREAM input (id INT KEY, val INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT ROWPARTITION FROM input EMIT CHANGES;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "SELECT column 'ROWPARTITION' cannot be resolved."
-      }
-    },
-    {
-      "name": "verify ROWOFFSET is not queryable with feature disabled",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": false
-      },
-      "statements": [
-        "CREATE STREAM input (id INT KEY, val INTEGER) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM output AS SELECT ROWOFFSET FROM input EMIT CHANGES;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "SELECT column 'ROWOFFSET' cannot be resolved."
-      }
-    },
-    {
       "comments": "Should be removed after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "create ROWOFFSET and ROWPARTITION sink user columns as STRINGs- ROWOFFSET/ROWPARTITION enabled",
       "properties": {
@@ -167,12 +139,13 @@
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
-        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO input (id, val, rowpartition) VALUES (1, 2, 3);"
+        "CREATE STREAM a (id INT KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM b (id INT KEY) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "INSERT INTO a SELECT id, ROWPARTITION from b EMIT CHANGES;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to insert values into 'INPUT'. Inserting into column `ROWPARTITION` is not allowed."
+        "message": "Reserved column name in select: `ROWPARTITION`. Please remove or alias the column."
       }
     },
     {
@@ -181,12 +154,13 @@
         "ksql.rowpartition.rowoffset.enabled": true
       },
       "statements": [
-        "CREATE STREAM input (id INT KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "INSERT INTO input (id, val, rowoffset) VALUES (1, 2, 3);"
+        "CREATE STREAM a (id INT KEY, val BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM b (id INT KEY) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "INSERT INTO a SELECT id, ROWOFFSET from b EMIT CHANGES;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to insert values into 'INPUT'. Inserting into column `ROWOFFSET` is not allowed."
+        "message": "Reserved column name in select: `ROWOFFSET`. Please remove or alias the column."
       }
     },
     {

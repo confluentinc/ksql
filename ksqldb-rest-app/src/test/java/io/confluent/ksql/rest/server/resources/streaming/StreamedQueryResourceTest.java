@@ -267,7 +267,7 @@ public class StreamedQueryResourceTest {
     when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
     when(errorsHandler.generateResponse(exception.capture(), any()))
         .thenReturn(EndpointResponse.failed(500));
-    when(mockKsqlEngine.analyzeQueryWithNoOutputTopic(any(), any())).thenReturn(mockAnalysis);
+    when(mockKsqlEngine.analyzeQueryWithNoOutputTopic(any(), any(), any())).thenReturn(mockAnalysis);
     when(mockAnalysis.getFrom()).thenReturn(mockAliasedDataSource);
     when(mockAliasedDataSource.getDataSource()).thenReturn(mockDataSource);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);

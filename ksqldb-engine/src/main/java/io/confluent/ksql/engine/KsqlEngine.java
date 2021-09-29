@@ -546,9 +546,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
       final Query query,
-      final String queryText) {
+      final String queryText,
+      final Map<String, Object> configOverrides) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig);
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
+        getMetaStore(),
+        "",
+        ksqlConfig.cloneWithPropertyOverwrite(configOverrides)
+    );
+
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

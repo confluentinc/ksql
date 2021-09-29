@@ -378,10 +378,48 @@ final class EngineExecutor {
 
       return metadata;
     } catch (final Exception e) {
+      if (plan == null) {
+        scalablePushQueryMetrics.ifPresent(m -> m.recordErrorRateForNoResult(1));
+      } else {
+        final PushPhysicalPlan pushPhysicalPlan = plan;
+        scalablePushQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
+                pushPhysicalPlan.getSourceType(),
+                routingNodeType
+        ));
+      }
+
+      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
+      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
+
+      // do not include the statement text in the default logs as it may contain sensitive
+      // information - the exception which is returned to the user below will contain
+      // the contents of the query
+      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
+        final StackTraceElement loc = Iterables
+                .getLast(Throwables.getCausalChain(e))
+                .getStackTrace()[0];
+        LOG.error("Failure to execute push query V2 {} {}, not logging the error message since it "
+                        + "contains the query string, which may contain sensitive information. If you "
+                        + "see this LOG message, please submit a GitHub ticket and we will scrub "
+                        + "the statement text from the error at {}",
+                pushRoutingOptions.debugString(),
+                queryPlannerOptions.debugString(),
+                loc);
+      } else {
+        LOG.error("Failure to execute push query V2. {} {}",
+                pushRoutingOptions.debugString(),
+                queryPlannerOptions.debugString(),
+                e);
+      }
+      LOG.debug("Failed push query V2 text {}, {}", statement.getStatementText(), e);
+
       throw new KsqlStatementException(
-          e.getMessage(),
-          statement.getStatementText(),
-          e
+              e.getMessage() == null
+                      ? "Server Error" + Arrays.toString(e.getStackTrace())
+                      : e.getMessage(),
+              statement.getStatementText(),
+              e
       );
     }
   }

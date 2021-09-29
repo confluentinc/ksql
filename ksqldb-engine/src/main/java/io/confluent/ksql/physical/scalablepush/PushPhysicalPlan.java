@@ -175,7 +175,7 @@ public class PushPhysicalPlan {
   }
 
   public long getRowsReadFromDataSource() {
-    return dataSourceOperator.getReturnedRowCount();
+    return dataSourceOperator.getRowsReadCount();
   }
 
   public static class Publisher extends BufferedPublisher<List<?>> {

@@ -227,7 +227,8 @@ public class QueryEndpoint {
     query.prepare();
     resultForMetrics.set(query);
 
-    publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);
+    publisher.setQueryHandle(
+            new KsqlScalablePushQueryHandle(query, scalablePushQueryMetrics), false, true);
 
     return publisher;
   }
@@ -499,6 +500,66 @@ public class QueryEndpoint {
     @Override
     public QueryId getQueryId() {
       return result.getQueryId();
+    }
+  }
+
+  private static class KsqlScalablePushQueryHandle implements QueryHandle {
+
+    private final ScalablePushQueryMetadata scalablePushQueryMetadata;
+    private final Optional<ScalablePushQueryMetrics>  scalablePushQueryMetrics;
+    private final CompletableFuture<Void> future = new CompletableFuture<>();
+
+    KsqlScalablePushQueryHandle(final ScalablePushQueryMetadata scalablePushQueryMetadata,
+                        final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics) {
+      this.scalablePushQueryMetadata = Objects.requireNonNull(scalablePushQueryMetadata);
+      this.scalablePushQueryMetrics = Objects.requireNonNull(scalablePushQueryMetrics);
+    }
+
+    @Override
+    public List<String> getColumnNames() {
+      return colNamesFromSchema(scalablePushQueryMetadata.getLogicalSchema().columns());
+    }
+
+    @Override
+    public List<String> getColumnTypes() {
+      return colTypesFromSchema(scalablePushQueryMetadata.getLogicalSchema().columns());
+    }
+
+    @Override
+    public void start() {
+      try {
+        scalablePushQueryMetadata.start();
+        scalablePushQueryMetadata.onException(future::completeExceptionally);
+        scalablePushQueryMetadata.onCompletion(future::complete);
+      } catch (Exception e) {
+        scalablePushQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(
+                1,
+                scalablePushQueryMetadata.getSourceType(),
+                scalablePushQueryMetadata.getRoutingNodeType()));
+      }
+    }
+
+    @Override
+    public void stop() {
+      scalablePushQueryMetadata.close();
+    }
+
+    @Override
+    public BlockingRowQueue getQueue() {
+      return scalablePushQueryMetadata.getRowQueue();
+    }
+
+    @Override
+    public void onException(final Consumer<Throwable> onException) {
+      future.exceptionally(t -> {
+        onException.accept(t);
+        return null;
+      });
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return scalablePushQueryMetadata.getQueryId();
     }
   }
 }

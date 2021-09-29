@@ -541,6 +541,12 @@ public final class KsqlRestApplication implements Executable {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
 
+    try {
+      scalablePushQueryMetrics.ifPresent(ScalablePushQueryMetrics::close);
+    } catch (final Exception e) {
+      log.error("Exception while waiting for scalable push query metrics to close", e);
+    }
+
     localCommands.ifPresent(lc -> {
       try {
         lc.close();

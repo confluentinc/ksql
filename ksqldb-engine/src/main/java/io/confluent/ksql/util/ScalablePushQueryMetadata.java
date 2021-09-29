@@ -166,6 +166,10 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
     });
   }
 
+  public void onCompletion(final Consumer<Void> consumer) {
+    runningFuture.thenAccept(consumer);
+  }
+
   public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
     runningFuture.handle((v, t) -> {
       biConsumer.accept(v, t);

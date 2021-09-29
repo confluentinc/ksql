@@ -85,6 +85,34 @@ public class ScalablePushQueryMetricsTest {
   }
 
   @Test
+  public void shouldRecordNumberOfLocalRequests() {
+    // Given:
+    scalablePushQueryMetrics.recordLocalRequests(3);
+
+    // When:
+    final double value = getMetricValue("-local-count");
+    final double rate = getMetricValue("-local-rate");
+
+    // Then:
+    assertThat(value, equalTo(1.0));
+    assertThat(rate, closeTo(0.03, 0.001));
+  }
+
+  @Test
+  public void shouldRecordNumberOfRemoteRequests() {
+    // Given:
+    scalablePushQueryMetrics.recordRemoteRequests(3);
+
+    // When:
+    final double value = getMetricValue("-remote-count");
+    final double rate = getMetricValue("-remote-rate");
+
+    // Then:
+    assertThat(value, equalTo(1.0));
+    assertThat(rate, closeTo(0.03, 0.001));
+  }
+
+  @Test
   public void shouldRecordErrorRate() {
     // Given:
     scalablePushQueryMetrics.recordErrorRate(3, QuerySourceType.NON_WINDOWED,

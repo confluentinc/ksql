@@ -47,4 +47,12 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     }
     return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT;
   }
+
+  @Override
+  public boolean getIsDebugRequest() {
+    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_DEBUG_REQUEST)) {
+      return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
+    }
+    return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
+  }
 }

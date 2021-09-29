@@ -129,7 +129,7 @@ public class PullQueryResult {
   }
 
   public void onCompletion(final Consumer<Void> consumer) {
-    future.thenAccept(consumer::accept);
+    future.thenAccept(consumer);
   }
 
   public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {

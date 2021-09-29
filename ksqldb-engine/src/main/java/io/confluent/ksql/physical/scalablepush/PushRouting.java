@@ -247,6 +247,8 @@ public class PushRouting implements AutoCloseable {
       LOG.debug("Query {} id {} executed locally at host {} at timestamp {}.",
           statement.getStatementText(), pushPhysicalPlan.getQueryId(), node.location(),
           System.currentTimeMillis());
+      scalablePushQueryMetrics
+              .ifPresent(metrics -> metrics.recordLocalRequests(1));
       final AtomicReference<BufferedPublisher<List<?>>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
@@ -277,6 +279,8 @@ public class PushRouting implements AutoCloseable {
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
           statement.getStatementText(), node.location(), System.currentTimeMillis());
+      scalablePushQueryMetrics
+              .ifPresent(metrics -> metrics.recordRemoteRequests(1));
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
           = new AtomicReference<>(null);
       final CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture

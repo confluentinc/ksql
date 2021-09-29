@@ -34,7 +34,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final ProcessingQueue processingQueue;
   private final boolean expectingStartOfRegistryData;
 
-  private long returnedRows = 0;
+  private long rowsRead = 0;
 
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
@@ -55,7 +55,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
 
   @Override
   public Object next() {
-    returnedRows++;
+    rowsRead++;
     return processingQueue.poll();
   }
 
@@ -106,7 +106,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   }
 
   @Override
-  public long getReturnedRowCount() {
-    return returnedRows;
+  public long getRowsReadCount() {
+    return rowsRead;
   }
 }

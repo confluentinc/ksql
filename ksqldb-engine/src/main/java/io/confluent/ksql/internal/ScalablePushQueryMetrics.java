@@ -54,6 +54,8 @@ public class ScalablePushQueryMetrics implements Closeable {
   private static final int NUM_LATENCY_BUCKETS = 1000;
 
   private final List<Sensor> sensors;
+  private final Sensor localRequestsSensor;
+  private final Sensor remoteRequestsSensor;
   private final Sensor connectionDurationSensor;
   private final Map<MetricsKey, Sensor> connectionDurationSensorMap;
   private final Sensor requestRateSensor;
@@ -87,6 +89,8 @@ public class ScalablePushQueryMetrics implements Closeable {
     this.time = Objects.requireNonNull(time, "time");
     this.metrics = MetricCollectors.getMetrics();
     this.sensors = new ArrayList<>();
+    this.localRequestsSensor = configureLocalRequestsSensor();
+    this.remoteRequestsSensor = configureRemoteRequestsSensor();
     this.connectionDurationSensor = configureConnectionDurationSensor();
     this.connectionDurationSensorMap = configureConnectionDurationSensorMap();
     this.requestRateSensor = configureRateSensor();
@@ -106,6 +110,14 @@ public class ScalablePushQueryMetrics implements Closeable {
   @Override
   public void close() {
     sensors.forEach(sensor -> metrics.removeSensor(sensor.name()));
+  }
+
+  public void recordLocalRequests(final double value) {
+    this.localRequestsSensor.record(value);
+  }
+
+  public void recordRemoteRequests(final double value) {
+    this.remoteRequestsSensor.record(value);
   }
 
   public void recordConnectionDuration(
@@ -250,6 +262,57 @@ public class ScalablePushQueryMetrics implements Closeable {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Metrics getMetrics() {
     return metrics;
+  }
+
+  private Sensor configureLocalRequestsSensor() {
+    final Sensor sensor = metrics.sensor(
+            SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-local");
+
+    // new metrics with ksql service id in tags
+    addSensor(
+            sensor,
+            SCALABLE_PUSH_REQUESTS + "-local-count",
+            ksqlServicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
+            "Count of local scalable push query requests",
+            customMetricsTags,
+            new CumulativeCount()
+    );
+    addSensor(
+            sensor,
+            SCALABLE_PUSH_REQUESTS + "-local-rate",
+            ksqlServicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
+            "Rate of local scalable push query requests",
+            customMetricsTags,
+            new Rate()
+    );
+    sensors.add(sensor);
+    return sensor;
+  }
+
+  private Sensor configureRemoteRequestsSensor() {
+    final Sensor sensor = metrics.sensor(
+            SCALABLE_PUSH_QUERY_METRIC_GROUP + "-" + SCALABLE_PUSH_REQUESTS + "-remote");
+
+    // new metrics with ksql service in tags
+    addSensor(
+            sensor,
+            SCALABLE_PUSH_REQUESTS + "-remote-count",
+            ksqlServicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
+            "Count of remote scalable push query requests",
+            customMetricsTags,
+            new CumulativeCount()
+    );
+    addSensor(
+            sensor,
+            SCALABLE_PUSH_REQUESTS + "-remote-rate",
+            ksqlServicePrefix + SCALABLE_PUSH_QUERY_METRIC_GROUP,
+            "Rate of remote scalable push query requests",
+            customMetricsTags,
+            new Rate()
+    );
+
+    sensors.add(sensor);
+    return sensor;
   }
 
   private Sensor configureRateSensor() {

@@ -84,6 +84,7 @@ nav:
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
+      - High availability for pull queries: operate-and-deploy/high-availability-pull-queries.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - Performance Guidelines: operate-and-deploy/performance-guidelines.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md

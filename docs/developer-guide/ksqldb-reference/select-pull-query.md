@@ -10,14 +10,15 @@ keywords: ksqlDB, select, pull query
 
 ```sql
 SELECT select_expr [, ...]
-  FROM table
+  FROM from_item
   [ WHERE where_condition ]
   [ AND window_bounds ];
 ```
 
 ## Description
 
-Pulls the current value from the materialized view and terminates. The result
+Pulls the current value from the from_item and terminates. The from_item can be either
+ a materialized view or a stream. The result
 of this statement is not persisted in a {{ site.ak }} topic and is printed out
 only in the console. Pull queries run with predictably low latency because 
 materialized views are incrementally updated as new events arrive.
@@ -30,6 +31,7 @@ the API responds with a single response.
 -   Pull queries are expressed using a strict subset of ANSI SQL.
 -   You can issue a pull query against any table that was created by a 
     [CREATE TABLE AS SELECT](create-table-as-select.md) statement.
+-   You can issue a pull query against any stream.    
 -   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](create-table.md) statement.
 -   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
 
@@ -100,7 +102,24 @@ If you want to look up the students whose ranks lie in the range `(4, 8)`:
 
 ```sql
 SELECT * FROM TOP_TEN_RANKS
-  WHERE ID > 4 AND ID < 8;
+  WHERE RANK > 4 AND RANK < 8;
+```
+
+#### STREAM
+Pull queries against a stream.
+
+First, create a stream named `STUDENTS` by using a [CREATE STREAM](create-stream.md) statement:
+
+```sql
+CREATE STREAM STUDENTS (ID STRING KEY, SCORE INT) 
+  WITH (kafka_topic='students_topic', value_format='JSON', partitions=4);
+```
+
+If you want to look up students with ranks greater than `5` you can issue the query:
+
+```sql
+SELECT * FROM STUDENTS
+  WHERE rank > 5;
 ```
 
 #### INNER JOIN
@@ -128,12 +147,8 @@ SELECT * FROM INNER_JOIN [ WHERE where_condition ];
 
 #### WINDOW
 
-Pull queries against a windowed table `NUMBER_OF_TESTS` created by aggregating a stream `STUDENTS`:
-
-```sql
-CREATE STREAM STUDENTS (ID STRING KEY, SCORE INT) 
-  WITH (kafka_topic='students_topic', value_format='JSON', partitions=4);
-```
+Pull queries against a windowed table `NUMBER_OF_TESTS` created by aggregating the stream `STUDENTS` 
+created above:
 
 ```sql
 CREATE TABLE NUMBER_OF_TESTS AS 

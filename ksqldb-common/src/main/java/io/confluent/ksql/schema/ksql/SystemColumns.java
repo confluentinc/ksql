@@ -224,7 +224,7 @@ public final class SystemColumns {
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
       this.isDisallowedForInsertValues = isDisallowedForInsertValues;
-      this. isDisallowedInScalablePushQueries = isDisallowedInScalablePushQueries;
+      this.isDisallowedInScalablePushQueries = isDisallowedInScalablePushQueries;
     }
 
     private static PseudoColumn of(
@@ -234,7 +234,6 @@ public final class SystemColumns {
         final boolean mustBeMaterializedForTableJoins,
         final boolean isDisallowedForInsertValues,
         final boolean isDisallowedInScalablePushQueries
-
     ) {
       return new PseudoColumn(
           name,

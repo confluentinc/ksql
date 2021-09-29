@@ -90,16 +90,17 @@ public final class ScalablePushUtil {
         // We only handle a single sink source at the moment from a CTAS/CSAS
         && upstreamQueries.size() == 1
         // ROWPARTITION and ROWOFFSET are not currently supported in SPQs
-        && !containsPartitionOrOffset(query, ksqlConfig);
+        && !containsDisallowedColumns(query, ksqlConfig);
   }
 
-  private static boolean containsPartitionOrOffset(final Query query, final KsqlConfig ksqlConfig) {
+  private static boolean containsDisallowedColumns(final Query query, final KsqlConfig ksqlConfig) {
     //if the flag is not enabled, these are user columns and can be used in SPQs
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
       return false;
     }
+
     return containsPartitionOrOffsetInWhereClause(query)
-        && containsPartitionOrOffsetInSelectClause(query);
+        || containsPartitionOrOffsetInSelectClause(query);
   }
 
   private static boolean containsPartitionOrOffsetInWhereClause(final Query query) {

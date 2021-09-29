@@ -70,7 +70,7 @@
       ]
     },
     {
-      "name": "disallowed column in pull query select clause- ROWPARTITION",
+      "name": "should not allow pull query with ROWPARTITION in SELECT clause",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },

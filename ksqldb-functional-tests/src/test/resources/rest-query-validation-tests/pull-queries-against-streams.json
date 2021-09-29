@@ -236,7 +236,7 @@
       ]
     },
     {
-      "name": "disallowed column in pull query select clause- ROWOFFSET",
+      "name": "should not allow pull query with ROWPARTITION in SELECT clause",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },
@@ -251,7 +251,7 @@
       }
     },
     {
-      "name": "disallowed column in pull query WHERE clause",
+      "name": "should not allow pull query with ROWPARTITION in WHERE clause",
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
       },

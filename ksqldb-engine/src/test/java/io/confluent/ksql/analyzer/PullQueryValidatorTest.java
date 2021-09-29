@@ -30,6 +30,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
+import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -73,7 +74,6 @@ public class PullQueryValidatorTest {
   @Before
   public void setUp() {
     validator = new PullQueryValidator();
-    when(analysis.getRefinementInfo()).thenReturn(Optional.empty());
     when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
   }
 

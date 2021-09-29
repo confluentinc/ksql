@@ -795,7 +795,7 @@
       ]
     },
     {
-      "name": "disallowed pseudocolumn in SELECT clause- materialized table",
+      "name": "should not allow pull query with ROWPARTITION in SELECT clause",
       "statements": [
         "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
         "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
@@ -814,7 +814,7 @@
       }
     },
     {
-      "name": "disallowed pseudocolumn in WHERE clause- materialized table",
+      "name": "should not allow pull query with ROWPARTITION in WHERE clause",
       "statements": [
         "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
         "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",

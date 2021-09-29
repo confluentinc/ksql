@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
@@ -31,7 +32,8 @@ import java.util.Set;
 
 public final class ScalablePushUtil {
 
-  private static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
+  @VisibleForTesting
+  static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
   private static String LATEST_VALUE = "latest";
 
   private ScalablePushUtil() {
@@ -45,7 +47,7 @@ public final class ScalablePushUtil {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)) {
+    if (!isPushV2Enabled(ksqlConfig, overrides)) {
       return false;
     }
     if (! (statement instanceof Query)) {
@@ -62,10 +64,7 @@ public final class ScalablePushUtil {
     final SourceName sourceName = sourceFinder.getSourceName().get();
     final Set<QueryId> upstreamQueries = ksqlEngine.getQueriesWithSink(sourceName);
     // See if the config or override have set the stream to be "latest"
-    final boolean isLatest = overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-        ? LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG))
-        : LATEST_VALUE.equals(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-            .orElse(null));
+    final boolean isLatest = isLatest(ksqlConfig, overrides);
     // Cannot be a pull query, i.e. must be a push
     return !query.isPullQuery()
         // Group by is not supported
@@ -83,6 +82,33 @@ public final class ScalablePushUtil {
         && isLatest
         // We only handle a single sink source at the moment from a CTAS/CSAS
         && upstreamQueries.size() == 1;
+  }
+
+  private static boolean isPushV2Enabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)) {
+      return Boolean.TRUE.equals(overrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED));
+    } else {
+      return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED);
+    }
+  }
+
+  private static boolean isLatest(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG));
+    } else if (overrides.containsKey(
+        KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(
+          overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG));
+    } else {
+      return LATEST_VALUE.equals(
+          ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG).orElse(null));
+    }
   }
 
   /**

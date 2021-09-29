@@ -82,7 +82,6 @@ public class ScalablePushUtilTest {
   public void isScalablePushQuery_true_enabledWithOverride() {
     // When:
     expectIsSQP();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(false);
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,

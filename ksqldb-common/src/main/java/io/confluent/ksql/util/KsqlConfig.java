@@ -288,7 +288,7 @@ public class KsqlConfig extends AbstractConfig {
       = "ksql.query.pull.stream.enabled";
   public static final String KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC =
       "Config to enable pull queries on streams";
-  public static final boolean KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT = false;
+  public static final boolean KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_RANGE_SCAN_ENABLED
       = "ksql.query.pull.range.scan.enabled";

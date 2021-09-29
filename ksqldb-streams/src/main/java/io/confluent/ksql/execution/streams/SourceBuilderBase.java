@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.Collection;
 import java.util.function.Function;
@@ -91,11 +92,14 @@ abstract class SourceBuilderBase {
         planInfo
     );
 
+    final LogicalSchema stateStoreSchema = source.getSourceSchema()
+        .withPseudoColumnsToMaterialize(source.getPseudoColumnVersion());
+
     return KTableHolder.materialized(
         ktable,
         buildSchema(source, false),
         ExecutionKeyFactory.unwindowed(buildContext),
-        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
+        MaterializationInfo.builder(stateStoreName, stateStoreSchema)
     );
   }
 

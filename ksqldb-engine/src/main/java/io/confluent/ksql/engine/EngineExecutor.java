@@ -400,9 +400,9 @@ final class EngineExecutor {
                 .getLast(Throwables.getCausalChain(e))
                 .getStackTrace()[0];
         LOG.error("Failure to execute push query V2 {} {}, not logging the error message since it "
-                        + "contains the query string, which may contain sensitive information. If you "
-                        + "see this LOG message, please submit a GitHub ticket and we will scrub "
-                        + "the statement text from the error at {}",
+                        + "contains the query string, which may contain sensitive information."
+                        + " If you see this LOG message, please submit a GitHub ticket and"
+                        + " we will scrub the statement text from the error at {}",
                 pushRoutingOptions.debugString(),
                 queryPlannerOptions.debugString(),
                 loc);

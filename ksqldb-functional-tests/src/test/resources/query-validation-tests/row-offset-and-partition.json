@@ -455,28 +455,6 @@
       }
     },
     {
-      "name": "AVG UDAF with ROWOFFSET",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
-      "statements": [
-        "CREATE TABLE input (i INT PRIMARY KEY, val INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE output AS SELECT i, avg(ROWOFFSET) AS roa FROM input GROUP BY i;"
-      ],
-      "inputs": [
-        {"topic":  "test_topic", "key": 1, "value": {"val": -1}},
-        {"topic":  "test_topic", "key": 2, "value": {"val": -1}},
-        {"topic":  "test_topic", "key": 3, "value": {"val": -1}},
-        {"topic":  "test_topic", "key": 4, "value": {"val": -1}}
-      ],
-      "outputs": [
-        {"topic":  "OUTPUT", "key": 1, "value": {"ROA": 0.0}},
-        {"topic":  "OUTPUT", "key": 2, "value": {"ROA": 1.0}},
-        {"topic":  "OUTPUT", "key": 3, "value": {"ROA": 2.0}},
-        {"topic":  "OUTPUT", "key": 4, "value": {"ROA": 3.0}}
-      ]
-    },
-    {
       "comments": "should be removed with feature flag, as this is duplicated in the partition-by QTTs",
       "name": "only key column - select star - with join on keys",
       "properties": {

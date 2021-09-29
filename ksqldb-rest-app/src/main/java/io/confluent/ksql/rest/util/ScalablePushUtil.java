@@ -65,10 +65,11 @@ public final class ScalablePushUtil {
     final SourceName sourceName = sourceFinder.getSourceName().get();
     final Set<QueryId> upstreamQueries = ksqlEngine.getQueriesWithSink(sourceName);
     // See if the config or override have set the stream to be "latest"
-    final boolean isLatest = overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-        ? LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG))
-        : LATEST_VALUE.equals(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-            .orElse(null));
+    final boolean isLatest = LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG))
+        || LATEST_VALUE.equals(
+            overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG))
+        || LATEST_VALUE.equals(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG)
+        .orElse(null));
     // Cannot be a pull query, i.e. must be a push
     return !query.isPullQuery()
         // Group by is not supported

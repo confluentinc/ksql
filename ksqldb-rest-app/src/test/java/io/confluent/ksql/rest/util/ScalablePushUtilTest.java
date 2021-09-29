@@ -181,6 +181,31 @@ public class ScalablePushUtilTest {
   }
 
   @Test
+  public void isScalablePushQuery_true_latestConfig() {
+    // When:
+    expectIsSQP();
+    when(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG))
+        .thenReturn(Optional.of("latest"));
+
+    // Then:
+    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+        ImmutableMap.of()),
+        equalTo(true));
+  }
+
+  @Test
+  public void isScalablePushQuery_true_streamsOverride() {
+    // When:
+    expectIsSQP();
+
+    // Then:
+    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+        ImmutableMap.of(
+            KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        equalTo(true));
+  }
+
+  @Test
   public void isScalablePushQuery_false_wrongUpstreamQueries_None() {
     // When:
     expectIsSQP();

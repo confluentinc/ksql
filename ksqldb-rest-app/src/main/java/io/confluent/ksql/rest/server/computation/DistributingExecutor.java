@@ -18,12 +18,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -91,6 +98,30 @@ public class DistributingExecutor {
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
+  private Optional<SourceName> shouldGeneratePlan(final KsqlExecutionContext executionContext,
+                                     final ConfiguredStatement<?> statement) {
+    SourceName sourceName = null;
+    if (statement.getStatement() instanceof CreateStream
+        && ((CreateStream) statement.getStatement()).isNotExists()) {
+      sourceName = ((CreateStream) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTable
+        && ((CreateTable) statement.getStatement()).isNotExists()) {
+      sourceName = ((CreateTable) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTableAsSelect
+        && ((CreateTableAsSelect) statement.getStatement()).isNotExists()) {
+      sourceName = ((CreateTableAsSelect) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateStreamAsSelect
+        && ((CreateStreamAsSelect) statement.getStatement()).isNotExists()) {
+      sourceName = ((CreateStreamAsSelect) statement.getStatement()).getName();
+    }
+    if (sourceName != null && executionContext.getMetaStore().getSource(sourceName) != null) {
+      return Optional.of(sourceName);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+
   /**
    * The transactional protocol for sending a command to the command topic is to
    * initTransaction(), beginTransaction(), wait for commandRunner to finish processing all previous
@@ -121,6 +152,15 @@ public class DistributingExecutor {
           executionContext.getMetaStore(),
           (InsertInto) injected.getStatement()
       );
+    }
+
+    if (shouldGeneratePlan(executionContext, statement).isPresent()) {
+      return StatementExecutorResponse.handled(Optional.of(
+          new WarningEntity(injected.getStatementText(),
+          "Cannot add `"
+              + shouldGeneratePlan(executionContext, statement).get()
+              + "`: An entity with the same name already exists."
+          )));
     }
 
     checkAuthorization(injected, securityContext, executionContext);

@@ -169,3 +169,15 @@ stream named `s1`.
 ```sql
 SELECT STRUCT(f1 := v1, f2 := v2) FROM s1;
 ```
+
+### Pull queries with pseudo columns
+
+You can use the `ROWTIME` pseudo column within pull queries. Below
+is an example of issuing a pull query with `ROWTIME` in both the
+`SELECT` and `WHERE` clauses.
+
+```sql
+SELECT name, ROWTIME FROM users WHERE ROWTIME > 50000;
+```
+
+However, this is disallowed for `ROWPARTITION` and `ROWOFFSET`.

@@ -74,7 +74,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source streams or tables."
+        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source tables."
       }
     },
     {
@@ -85,7 +85,29 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source streams or tables."
+        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source tables."
+      }
+    },
+    {
+      "name": "rejects CREATE OR REPLACE SOURCE ... statements on existing non-source tables",
+      "statements": [
+        "CREATE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE OR REPLACE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot add table 'INPUT': CREATE OR REPLACE is not supported on source tables."
+      }
+    },
+    {
+      "name": "rejects ALTER ... statements on existing source streams",
+      "statements": [
+        "CREATE SOURCE TABLE INPUT (K INT PRIMARY KEY, text STRING) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "ALTER TABLE INPUT ADD COLUMN newCol INT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot alter table 'INPUT': ALTER operations are not supported on source tables."
       }
     }
   ]

@@ -1156,7 +1156,7 @@ public class CreateSourceFactoryTest {
     assertThat(e.getMessage(),
         containsString(
             "Cannot add stream 'bob': CREATE OR REPLACE is not supported on "
-                + "source streams or tables."));
+                + "source streams."));
   }
 
   @Test
@@ -1182,7 +1182,7 @@ public class CreateSourceFactoryTest {
     assertThat(e.getMessage(),
         containsString(
             "Cannot add stream 'existingStreamName': CREATE OR REPLACE is not supported on "
-                + "source streams or tables."));
+                + "source streams."));
   }
 
   @Test
@@ -1203,7 +1203,7 @@ public class CreateSourceFactoryTest {
     assertThat(e.getMessage(),
         containsString(
             "Cannot add table 'table_bob': CREATE OR REPLACE is not supported on "
-                + "source streams or tables."));
+                + "source tables."));
   }
 
   @Test
@@ -1231,7 +1231,7 @@ public class CreateSourceFactoryTest {
     assertThat(e.getMessage(),
         containsString(
             "Cannot add table 'existingTableName': CREATE OR REPLACE is not supported on "
-                + "source streams or tables."));
+                + "source tables."));
   }
 
   private void givenProperty(final String name, final Literal value) {

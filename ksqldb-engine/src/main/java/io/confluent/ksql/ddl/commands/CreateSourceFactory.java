@@ -214,9 +214,10 @@ public final class CreateSourceFactory {
 
       if (createSource.isSource() || (existingSource != null && existingSource.isSource())) {
         throw new KsqlException(
-            String.format("Cannot add %s '%s': CREATE OR REPLACE is not supported on "
-                    + "source streams or tables.",
-                createSourceType, createSource.getName().text()));
+            String.format("Cannot add %s '%s': CREATE OR REPLACE is not supported on source %s.",
+                createSourceType,
+                createSource.getName().text(),
+                createSourceType + "s"));
       }
     }
   }

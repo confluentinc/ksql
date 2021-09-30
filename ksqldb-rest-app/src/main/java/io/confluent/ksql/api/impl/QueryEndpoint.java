@@ -29,6 +29,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -49,6 +50,7 @@ import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigRoutingO
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -82,6 +84,7 @@ public class QueryEndpoint {
   private final KsqlRestConfig ksqlRestConfig;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
@@ -99,6 +102,7 @@ public class QueryEndpoint {
       final KsqlRestConfig ksqlRestConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandLimiter,
@@ -112,6 +116,7 @@ public class QueryEndpoint {
     this.ksqlRestConfig = ksqlRestConfig;
     this.routingFilterFactory = routingFilterFactory;
     this.pullQueryMetrics = pullQueryMetrics;
+    this.scalablePushQueryMetrics = scalablePushQueryMetrics;
     this.rateLimiter = rateLimiter;
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.pullBandRateLimiter = pullBandLimiter;
@@ -138,7 +143,8 @@ public class QueryEndpoint {
 
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(), statement.getStatementText(), properties);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
       switch (dataSourceType) {
@@ -158,7 +164,9 @@ public class QueryEndpoint {
               context,
               serviceContext,
               statement,
-              workerExecutor
+              workerExecutor,
+              pullQueryMetrics,
+              metricsCallbackHolder
           );
         default:
           throw new KsqlStatementException(
@@ -169,7 +177,11 @@ public class QueryEndpoint {
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(),
+              statement.getStatementText(),
+              properties
+          );
       return createScalablePushQueryPublisher(
           analysis,
           context,
@@ -177,7 +189,8 @@ public class QueryEndpoint {
           statement,
           workerExecutor,
           requestProperties,
-          metricsCallbackHolder
+          metricsCallbackHolder,
+          scalablePushQueryMetrics
       );
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
@@ -191,21 +204,21 @@ public class QueryEndpoint {
       final ConfiguredStatement<Query> statement,
       final WorkerExecutor workerExecutor,
       final Map<String, Object> requestProperties,
-      final MetricsCallbackHolder metricsCallbackHolder
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+
   ) {
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      scalablePushBandRateLimiter.add(responseBytes);
-    });
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    final AtomicReference<ScalablePushQueryMetadata> resultForMetrics =
+        new AtomicReference<>(null);
+    metricsCallbackHolder.setCallback(QueryMetricsUtil.initializeScalablePushMetricsCallback(
+            scalablePushQueryMetrics, scalablePushBandRateLimiter, resultForMetrics));
 
     final BlockingQueryPublisher publisher =
         new BlockingQueryPublisher(context, workerExecutor);
 
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
-
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      scalablePushBandRateLimiter.add(responseBytes);
-    });
 
     final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
         ksqlConfig,
@@ -215,11 +228,12 @@ public class QueryEndpoint {
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, statement, pushRouting, routingOptions,
-            plannerOptions, context);
+            plannerOptions, context, scalablePushQueryMetrics);
     query.prepare();
+    resultForMetrics.set(query);
 
-
-    publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);
+    publisher.setQueryHandle(
+            new KsqlScalablePushQueryHandle(query, scalablePushQueryMetrics), false, true);
 
     return publisher;
   }
@@ -255,9 +269,19 @@ public class QueryEndpoint {
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
-      final WorkerExecutor workerExecutor
+      final WorkerExecutor workerExecutor,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
-    // Limits and metrics will be in follow-on PRs.
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    final AtomicReference<StreamPullQueryMetadata> resultForMetrics = new AtomicReference<>(null);
+    final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
+    metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullStreamMetricsCallback(
+        pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics, refDecrementer));
+
+    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
+    refDecrementer.set(pullConcurrencyLimiter.increment());
 
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
@@ -269,6 +293,7 @@ public class QueryEndpoint {
             true
         );
 
+    resultForMetrics.set(metadata);
     localCommands.ifPresent(lc -> lc.write(metadata.getTransientQueryMetadata()));
 
     publisher.setQueryHandle(
@@ -291,32 +316,8 @@ public class QueryEndpoint {
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      pullQueryMetrics.ifPresent(metrics -> {
-        final PullQueryResult r = resultForMetrics.get();
-        metrics.recordStatusCode(statusCode);
-        metrics.recordRequestSize(requestBytes);
-        if (r == null) {
-          metrics.recordResponseSizeForError(responseBytes);
-          metrics.recordLatencyForError(startTimeNanos);
-          metrics.recordZeroRowsReturnedForError();
-          metrics.recordZeroRowsProcessedForError();
-        } else {
-          metrics.recordResponseSize(responseBytes,
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordLatency(startTimeNanos,
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordRowsReturned(
-              r.getTotalRowsReturned(),
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordRowsProcessed(
-              r.getTotalRowsProcessed(),
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-        }
-        pullBandRateLimiter.add(responseBytes);
-      });
-    });
-
+    metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullTableMetricsCallback(
+        pullQueryMetrics, pullBandRateLimiter, resultForMetrics));
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
         ksqlConfig,
         statement.getSessionConfig().getOverrides(),
@@ -504,6 +505,66 @@ public class QueryEndpoint {
     @Override
     public QueryId getQueryId() {
       return result.getQueryId();
+    }
+  }
+
+  private static class KsqlScalablePushQueryHandle implements QueryHandle {
+
+    private final ScalablePushQueryMetadata scalablePushQueryMetadata;
+    private final Optional<ScalablePushQueryMetrics>  scalablePushQueryMetrics;
+    private final CompletableFuture<Void> future = new CompletableFuture<>();
+
+    KsqlScalablePushQueryHandle(final ScalablePushQueryMetadata scalablePushQueryMetadata,
+                        final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics) {
+      this.scalablePushQueryMetadata = Objects.requireNonNull(scalablePushQueryMetadata);
+      this.scalablePushQueryMetrics = Objects.requireNonNull(scalablePushQueryMetrics);
+    }
+
+    @Override
+    public List<String> getColumnNames() {
+      return colNamesFromSchema(scalablePushQueryMetadata.getLogicalSchema().columns());
+    }
+
+    @Override
+    public List<String> getColumnTypes() {
+      return colTypesFromSchema(scalablePushQueryMetadata.getLogicalSchema().columns());
+    }
+
+    @Override
+    public void start() {
+      try {
+        scalablePushQueryMetadata.start();
+        scalablePushQueryMetadata.onException(future::completeExceptionally);
+        scalablePushQueryMetadata.onCompletion(future::complete);
+      } catch (Exception e) {
+        scalablePushQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(
+                1,
+                scalablePushQueryMetadata.getSourceType(),
+                scalablePushQueryMetadata.getRoutingNodeType()));
+      }
+    }
+
+    @Override
+    public void stop() {
+      scalablePushQueryMetadata.close();
+    }
+
+    @Override
+    public BlockingRowQueue getQueue() {
+      return scalablePushQueryMetadata.getRowQueue();
+    }
+
+    @Override
+    public void onException(final Consumer<Throwable> onException) {
+      future.exceptionally(t -> {
+        onException.accept(t);
+        return null;
+      });
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return scalablePushQueryMetadata.getQueryId();
     }
   }
 }

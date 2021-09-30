@@ -22,7 +22,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
-import io.confluent.ksql.api.server.MetricsCallback;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
@@ -31,19 +30,16 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
-import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -59,6 +55,7 @@ import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -85,8 +82,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +103,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
@@ -132,6 +128,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -153,6 +150,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         errorHandler,
         denyListPropertyValidator,
         pullQueryMetrics,
+        scalablePushQueryMetrics,
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
@@ -179,6 +177,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -203,6 +202,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.scalablePushQueryMetrics =
+        Objects.requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
@@ -324,7 +325,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: MethodLength
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   private EndpointResponse handleQuery(final KsqlSecurityContext securityContext,
+      // CHECKSTYLE_RULES.ON: MethodLength
+      // CHECKSTYLE_RULES.ON: JavaNCSS
       final KsqlRequest request,
       final PreparedStatement<Query> statement,
       final CompletableFuture<Void> connectionClosedFuture,
@@ -338,7 +343,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(), statement.getStatementText(), configProperties);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
@@ -357,7 +363,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         case KTABLE: {
           // First thing, set the metrics callback so that it gets called, even if we hit an error
           final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
-          metricsCallbackHolder.setCallback(initializeTableMetricsCallback(
+          metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullTableMetricsCallback(
               pullQueryMetrics, pullBandRateLimiter, resultForMetrics));
 
           final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
@@ -381,7 +387,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               new AtomicReference<>(null);
           final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
           metricsCallbackHolder.setCallback(
-              initializeStreamMetricsCallback(
+              QueryMetricsUtil.initializePullStreamMetricsCallback(
                   pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics,
                   refDecrementer));
 
@@ -407,14 +413,20 @@ public class StreamedQueryResource implements KsqlConfigurable {
     } else if (ScalablePushUtil
         .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
+      // First thing, set the metrics callback so that it gets called, even if we hit an error
+      final AtomicReference<ScalablePushQueryMetadata> resultForMetrics =
+              new AtomicReference<>(null);
+      metricsCallbackHolder.setCallback(QueryMetricsUtil.initializeScalablePushMetricsCallback(
+              scalablePushQueryMetrics, scalablePushBandRateLimiter, resultForMetrics));
 
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(),
+              statement.getStatementText(),
+              configProperties
+          );
 
       QueryLogger.info("Scalable push query created", statement.getStatementText());
-
-      metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) ->
-          scalablePushBandRateLimiter.add(responseBytes));
 
       return handleScalablePushQuery(
           analysis,
@@ -424,7 +436,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           request.getRequestProperties(),
           connectionClosedFuture,
           context,
-          scalablePushBandRateLimiter
+          scalablePushBandRateLimiter,
+          resultForMetrics
       );
     } else {
       // log validated statements for query anonymization
@@ -516,7 +529,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> requestProperties,
       final CompletableFuture<Void> connectionClosedFuture,
       final Context context,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
+      final AtomicReference<ScalablePushQueryMetadata> resultForMetrics
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
@@ -531,8 +545,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, configured, pushRouting, routingOptions,
-            plannerOptions, context);
+            plannerOptions, context, scalablePushQueryMetrics);
     query.prepare();
+    resultForMetrics.set(query);
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,
@@ -577,126 +592,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     );
 
     return EndpointResponse.ok(queryStreamWriter);
-  }
-
-  private static MetricsCallback initializeTableMetricsCallback(
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final AtomicReference<PullQueryResult> resultForMetrics) {
-
-    final MetricsCallback metricsCallback =
-        (statusCode, requestBytes, responseBytes, startTimeNanos) ->
-            pullQueryMetrics.ifPresent(metrics -> {
-              metrics.recordStatusCode(statusCode);
-              metrics.recordRequestSize(requestBytes);
-
-              final PullQueryResult r = resultForMetrics.get();
-              if (r == null) {
-                recordErrorMetrics(pullQueryMetrics, responseBytes, startTimeNanos);
-              } else {
-                final PullSourceType sourceType = r.getSourceType();
-                final PullPhysicalPlanType planType = r.getPlanType();
-                final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
-                metrics.recordResponseSize(
-                    responseBytes,
-                    sourceType,
-                    planType,
-                    routingNodeType
-                );
-                metrics.recordLatency(
-                    startTimeNanos,
-                    sourceType,
-                    planType,
-                    routingNodeType
-                );
-                metrics.recordRowsReturned(
-                    r.getTotalRowsReturned(),
-                    sourceType, planType, routingNodeType);
-                metrics.recordRowsProcessed(
-                    r.getTotalRowsProcessed(),
-                    sourceType, planType, routingNodeType);
-              }
-              pullBandRateLimiter.add(responseBytes);
-            });
-
-    return metricsCallback;
-  }
-
-  private static MetricsCallback initializeStreamMetricsCallback(
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final ImmutableAnalysis analysis,
-      final AtomicReference<StreamPullQueryMetadata> resultForMetrics,
-      final AtomicReference<Decrementer> refDecrementer) {
-
-    final MetricsCallback metricsCallback =
-        (statusCode, requestBytes, responseBytes, startTimeNanos) ->
-            pullQueryMetrics.ifPresent(metrics -> {
-              metrics.recordStatusCode(statusCode);
-              metrics.recordRequestSize(requestBytes);
-
-              final StreamPullQueryMetadata m = resultForMetrics.get();
-              final KafkaStreams.State state = m == null ? null : m.getTransientQueryMetadata()
-                  .getKafkaStreams().state();
-
-              if (m == null || state == null
-                  || state.equals(State.ERROR)
-                  || state.equals(State.PENDING_ERROR)) {
-                recordErrorMetrics(pullQueryMetrics, responseBytes, startTimeNanos);
-              } else {
-                final boolean isWindowed = analysis
-                    .getFrom()
-                    .getDataSource()
-                    .getKsqlTopic()
-                    .getKeyFormat().isWindowed();
-                final PullSourceType sourceType = isWindowed
-                    ? PullSourceType.WINDOWED_STREAM : PullSourceType.NON_WINDOWED_STREAM;
-                // There is no WHERE clause constraint information in the persistent logical plan
-                final PullPhysicalPlanType planType = PullPhysicalPlanType.UNKNOWN;
-                final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
-                metrics.recordResponseSize(
-                    responseBytes,
-                    sourceType,
-                    planType,
-                    routingNodeType
-                );
-                metrics.recordLatency(
-                    startTimeNanos,
-                    sourceType,
-                    planType,
-                    routingNodeType
-                );
-                final TransientQueryQueue rowQueue = (TransientQueryQueue)
-                    m.getTransientQueryMetadata().getRowQueue();
-                // The rows read from the underlying data source equal the rows read by the user
-                // since the WHERE condition is pushed to the data source
-                metrics.recordRowsReturned(rowQueue.getTotalRowsQueued(), sourceType, planType,
-                                           routingNodeType);
-                metrics.recordRowsProcessed(rowQueue.getTotalRowsQueued(), sourceType, planType,
-                                            routingNodeType);
-              }
-              pullBandRateLimiter.add(responseBytes);
-              // Decrement on happy or exception path
-              final Decrementer decrementer = refDecrementer.get();
-              if (decrementer != null) {
-                decrementer.decrementAtMostOnce();
-              }
-            });
-
-    return metricsCallback;
-  }
-
-
-  private static void recordErrorMetrics(
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long responseBytes,
-      final long startTimeNanos) {
-    pullQueryMetrics.ifPresent(metrics -> {
-      metrics.recordResponseSizeForError(responseBytes);
-      metrics.recordLatencyForError(startTimeNanos);
-      metrics.recordZeroRowsReturnedForError();
-      metrics.recordZeroRowsProcessedForError();
-    });
   }
 
   private EndpointResponse handlePushQuery(

@@ -179,17 +179,27 @@ public final class SystemColumns {
         .anyMatch(col -> col.isDisallowedForInsertValues);
   }
 
-  public static boolean isDisallowedInScalablePushQueries(
-      final ColumnName columnName
+  public static boolean isDisallowedInPullOrScalablePushQueries(
+      final ColumnName columnName,
+      final int pseudoColumnVersion
   ) {
     return pseudoColumns
         .stream()
-        .filter(col -> col.name.equals(columnName))
-        .anyMatch(col -> col.isDisallowedInScalablePushQueries);
+        .filter(col -> col.version <= pseudoColumnVersion)
+        .filter(col -> col.isDisallowedInPullAndScalablePushQueries)
+        .anyMatch(col -> col.name.equals(columnName));
   }
 
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
+    return getPseudoColumnVersionFromConfig(ksqlConfig, false);
+  }
+
+  public static int getPseudoColumnVersionFromConfig(
+      final KsqlConfig ksqlConfig,
+      final boolean forPullOrScalablePushQuery
+  ) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
+        && !forPullOrScalablePushQuery
         ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
         : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }
@@ -209,7 +219,7 @@ public final class SystemColumns {
     final int version;
     final boolean mustBeMaterializedForTableJoins;
     final boolean isDisallowedForInsertValues;
-    final boolean isDisallowedInScalablePushQueries;
+    final boolean isDisallowedInPullAndScalablePushQueries;
 
     private PseudoColumn(
         final ColumnName name,
@@ -217,14 +227,14 @@ public final class SystemColumns {
         final int version,
         final boolean mustBeMaterializedForTableJoins,
         final boolean isDisallowedForInsertValues,
-        final boolean isDisallowedInScalablePushQueries
+        final boolean isDisallowedInPullAndScalablePushQueries
     ) {
       this.name = requireNonNull(name, "name");
       this.type = requireNonNull(type, "type");
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
       this.isDisallowedForInsertValues = isDisallowedForInsertValues;
-      this.isDisallowedInScalablePushQueries = isDisallowedInScalablePushQueries;
+      this.isDisallowedInPullAndScalablePushQueries = isDisallowedInPullAndScalablePushQueries;
     }
 
     private static PseudoColumn of(
@@ -233,7 +243,7 @@ public final class SystemColumns {
         final int version,
         final boolean mustBeMaterializedForTableJoins,
         final boolean isDisallowedForInsertValues,
-        final boolean isDisallowedInScalablePushQueries
+        final boolean isDisallowedInPullAndScalablePushQueries
     ) {
       return new PseudoColumn(
           name,
@@ -241,7 +251,7 @@ public final class SystemColumns {
           version,
           mustBeMaterializedForTableJoins,
           isDisallowedForInsertValues,
-          isDisallowedInScalablePushQueries
+          isDisallowedInPullAndScalablePushQueries
       );
     }
   }

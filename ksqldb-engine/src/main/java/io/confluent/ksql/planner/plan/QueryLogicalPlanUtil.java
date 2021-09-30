@@ -38,7 +38,7 @@ final class QueryLogicalPlanUtil {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed, ksqlConfig);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, ksqlConfig, true);
     }
   }
 }

@@ -32,6 +32,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -89,6 +90,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final ServerMetadataResource serverMetadataResource;
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
@@ -116,6 +118,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,
@@ -143,6 +146,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.serverMetadataResource = Objects.requireNonNull(serverMetadataResource);
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+    this.scalablePushQueryMetrics = Objects.requireNonNull(scalablePushQueryMetrics);
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter);
@@ -167,8 +171,8 @@ public class KsqlServerEndpoints implements Endpoints {
       try {
         return new QueryEndpoint(
             ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, pullConcurrencyLimiter, pullBandRateLimiter, scalablePushBandRateLimiter,
-            routing, pushRouting, localCommands)
+            scalablePushQueryMetrics, rateLimiter, pullConcurrencyLimiter, pullBandRateLimiter,
+            scalablePushBandRateLimiter, routing, pushRouting, localCommands)
             .createQueryPublisher(
                 sql,
                 properties,

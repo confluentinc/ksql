@@ -32,7 +32,7 @@ public class MetricsCallbackHolder {
     this.callbackRef.set(callback);
   }
 
-  void reportMetrics(final int statusCode, final long requestBytes, final long responseBytes,
+  public void reportMetrics(final int statusCode, final long requestBytes, final long responseBytes,
       final long startTimeNanos) {
     final MetricsCallback callback = callbackRef.get();
     if (callback != null) {

@@ -34,10 +34,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 public final class ScalablePushUtil {
 
-  private static String STREAMS_AUTO_OFFSET_RESET_CONFIG = "auto.offset.reset";
   private static String LATEST_VALUE = "latest";
 
   private ScalablePushUtil() {
@@ -51,7 +51,7 @@ public final class ScalablePushUtil {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overrides
   ) {
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)) {
+    if (!isPushV2Enabled(ksqlConfig, overrides)) {
       return false;
     }
     if (! (statement instanceof Query)) {
@@ -68,10 +68,7 @@ public final class ScalablePushUtil {
     final SourceName sourceName = sourceFinder.getSourceName().get();
     final Set<QueryId> upstreamQueries = ksqlEngine.getQueriesWithSink(sourceName);
     // See if the config or override have set the stream to be "latest"
-    final boolean isLatest = overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-        ? LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG))
-        : LATEST_VALUE.equals(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG)
-            .orElse(null));
+    final boolean isLatest = isLatest(ksqlConfig, overrides);
     // Cannot be a pull query, i.e. must be a push
     return !query.isPullQuery()
         // Group by is not supported
@@ -99,26 +96,36 @@ public final class ScalablePushUtil {
       return false;
     }
 
-    return containsPartitionOrOffsetInWhereClause(query)
-        || containsPartitionOrOffsetInSelectClause(query);
+    return containsPartitionOrOffsetInWhereClause(query, ksqlConfig)
+        || containsPartitionOrOffsetInSelectClause(query, ksqlConfig);
   }
 
-  private static boolean containsPartitionOrOffsetInWhereClause(final Query query) {
+  private static boolean containsPartitionOrOffsetInWhereClause(
+      final Query query,
+      final KsqlConfig ksqlConfig
+  ) {
 
     final Optional<Expression> whereClause = query.getWhere();
     if (!whereClause.isPresent()) {
       return false;
     }
 
+    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+
     return ColumnExtractor.extractColumns(whereClause.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
-        .anyMatch(SystemColumns::isDisallowedInScalablePushQueries);
+        .anyMatch(name ->
+            SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));
   }
 
   private static boolean containsPartitionOrOffsetInSelectClause(
-      final Query query
+      final Query query,
+      final KsqlConfig ksqlConfig
   ) {
+
+    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+
     return query.getSelect().getSelectItems()
         .stream()
         .filter(col -> col instanceof SingleColumn) //filter out select *
@@ -127,7 +134,38 @@ public final class ScalablePushUtil {
         .map(ColumnExtractor::extractColumns)
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
-        .anyMatch(SystemColumns::isDisallowedInScalablePushQueries);
+        .anyMatch(name ->
+            SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));  }
+
+  private static boolean isPushV2Enabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)) {
+      return Boolean.TRUE.equals(overrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED));
+    } else {
+      return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED);
+    }
+  }
+
+  private static boolean isLatest(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(overrides.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    } else if (overrides.containsKey(
+        KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
+      return LATEST_VALUE.equals(
+          overrides.get(KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+    } else if (ksqlConfig.getKsqlStreamConfigProp(
+        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).isPresent()) {
+      return LATEST_VALUE.equals(
+          ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).orElse(null));
+    } else {
+      // Implicitly assume latest since this is the default for push queries in ksqlDB.
+      return true;
+    }
   }
 
   /**

@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -455,7 +456,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
-      final Context context
+      final Context context,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     final ScalablePushQueryMetadata query = EngineExecutor
         .create(primaryContext, serviceContext, statement.getSessionConfig())
@@ -465,7 +467,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             pushRouting,
             pushRoutingOptions,
             queryPlannerOptions,
-            context);
+            context,
+            scalablePushQueryMetrics);
     return query;
   }
 
@@ -546,9 +549,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
       final Query query,
-      final String queryText) {
+      final String queryText,
+      final Map<String, Object> configOverrides) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig);
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
+        getMetaStore(),
+        "",
+        ksqlConfig.cloneWithPropertyOverwrite(configOverrides)
+    );
+
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

@@ -135,7 +135,8 @@ public final class ScalablePushUtil {
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
         .anyMatch(name ->
-            SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));  }
+            SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));
+  }
 
   private static boolean isPushV2Enabled(
       final KsqlConfig ksqlConfig,

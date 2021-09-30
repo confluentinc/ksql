@@ -84,6 +84,29 @@
       ]
     },
     {
+      "name": "explicit ROWPARTITION and ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT ROWPARTITION, ROWOFFSET, * FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `K` STRING, `ID` INTEGER"}},
+          {"row":{"columns":[0, 0, "11", 100]}},
+          {"row":{"columns":[0, 1, "11", 101]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "non-windowed stream - STRING key",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -273,6 +296,32 @@
       ]
     },
     {
+      "name": "join with ROWPARTITION and ROWOFFSET",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT_1 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_2', value_format='JSON');",
+        "SELECT *, I1.ROWPARTITION, I2.ROWOFFSET FROM INPUT_1 I1 JOIN INPUT_2 I2 WITHIN 60 SECONDS ON I1.K = I2.K EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic_1", "timestamp": 12345, "key": "x", "value": {"id": 100}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 101}},
+        {"topic": "test_topic_2", "timestamp": 12365, "key": "x", "value": {"id": 102}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`I1_K` STRING, `I1_ID` INTEGER, `I2_K` STRING, `I2_ID` INTEGER, `I1_ROWPARTITION` INTEGER, `I2_ROWOFFSET` BIGINT"}},
+          {"row":{"columns":["x", 100, "x", 101, 2, 0]}},
+          {"row":{"columns":["x", 100, "x", 102, 2, 1]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
       "name": "join on STRING key",
       "statements": [
         "CREATE STREAM INPUT_1 (K STRING KEY, ID INT) WITH (kafka_topic='test_topic_1', value_format='JSON');",
@@ -416,6 +465,37 @@
         {"query": [
           {"header":{"schema":"`ROWTIME` BIGINT, `S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
           {"row":{"columns":[0, 1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed join - with rowpartition/rowoffset",
+      "properties": {
+        "ksql.rowpartition.rowoffset.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
+        "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
+        "SELECT ROWPARTITION, ROWOFFSET, * FROM OUTPUT EMIT CHANGES LIMIT 3;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
+        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
+          {"row":{"columns":[0, 0, 1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
+          {"row":{"columns":[0, 1, 1, 0, 2000, 0, 2000, 2, 1, 0, 2000, 4]}},
+          {"row":{"columns":[0, 2, 1, 2000, 4000, 2000, 4000, 3, 1, 2000, 4000, 5]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

@@ -97,6 +97,7 @@ public class DistributingExecutor {
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private Optional<StatementExecutorResponse> checkIfNotExistsResponse(
       final KsqlExecutionContext executionContext,
       final ConfiguredStatement<?> statement
@@ -145,6 +146,7 @@ public class DistributingExecutor {
    * If a new transactional producer is initialized while the current transaction is incomplete,
    * the old producer will be fenced off and unable to continue with its transaction.
    */
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   public StatementExecutorResponse execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
@@ -171,6 +173,7 @@ public class DistributingExecutor {
         executionContext,
         statement
     );
+
     if (response.isPresent()) {
       return response.get();
     }

@@ -795,11 +795,11 @@
       ]
     },
     {
-      "name": "should not allow pull query with ROWPARTITION/ROWOFFSET in SELECT clause",
+      "name": "should not allow pull query with disallowed pseudocolumn in SELECT clause",
       "statements": [
         "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
         "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
-        "SELECT *, ROWPARTITION, ROWOFFSET FROM QUERYABLE_USERS WHERE ID=2;"
+        "SELECT *, ROWPARTITION FROM QUERYABLE_USERS WHERE ID=2;"
       ],
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
@@ -809,16 +809,16 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support the following columns in SELECT clauses: `ROWPARTITION`, `ROWOFFSET`",
+        "message": "Pull queries don't support the following columns in SELECT clauses: `ROWPARTITION`",
         "status": 400
       }
     },
     {
-      "name": "should not allow pull query with ROWPARTITION/ROWOFFSET in WHERE clause",
+      "name": "should not allow pull query with disallowed pseudocolumn in WHERE clause",
       "statements": [
         "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
         "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
-        "SELECT ID, USERTIMESTAMP FROM QUERYABLE_USERS WHERE ID = 2 AND ROWPARTITION < 3 AND USERTIMESTAMP > 50 AND ROWOFFSET < 3;"
+        "SELECT ID, USERTIMESTAMP FROM QUERYABLE_USERS WHERE ID = 2 AND USERTIMESTAMP > 50 AND ROWOFFSET < 3;"
       ],
       "properties": {
         "ksql.rowpartition.rowoffset.enabled": true
@@ -828,7 +828,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries don't support the following columns in WHERE clauses: `ROWOFFSET`, `ROWPARTITION`",
+        "message": "Pull queries don't support the following columns in WHERE clauses: `ROWOFFSET`",
         "status": 400
       }
     }

@@ -356,10 +356,7 @@ public class ClientIntegrationTest {
   public void shouldStreamPullQueryOnStreamAsync() throws Exception {
     // When
     final StreamedQueryResult streamedQueryResult =
-        client.streamQuery(
-            PULL_QUERY_ON_STREAM,
-            ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
-        ).get();
+        client.streamQuery(PULL_QUERY_ON_STREAM).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
@@ -377,10 +374,7 @@ public class ClientIntegrationTest {
   @Test
   public void shouldStreamPullQueryOnStreamSync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(
-        PULL_QUERY_ON_STREAM,
-        ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
-    ).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_STREAM).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
@@ -407,9 +401,7 @@ public class ClientIntegrationTest {
   public void shouldStreamPullQueryOnEmptyStreamSync() throws Exception {
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(
-        "SELECT * FROM " + EMPTY_TEST_STREAM + ";",
-        ImmutableMap.of(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
-    ).get();
+        "SELECT * FROM " + EMPTY_TEST_STREAM + ";").get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
@@ -430,23 +422,6 @@ public class ClientIntegrationTest {
     verifyStreamRows(results, 0);
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-  }
-
-  @Test
-  public void shouldRejectPullQueryOnStreamByDefault() {
-    // When
-    final CompletableFuture<StreamedQueryResult> future = client.streamQuery(PULL_QUERY_ON_STREAM);
-    final ExecutionException exception = assertThrows(ExecutionException.class, future::get);
-
-    assertThat(exception.getCause(), instanceOf(KsqlClientException.class));
-    assertThat(exception.getMessage(), containsString(
-        "Received 400 response from server:"
-            + " Pull queries on streams are disabled."
-            + " To create a push query on the stream, add EMIT CHANGES to the end."
-            + " To enable pull queries on streams,"
-            + " set the ksql.query.pull.stream.enabled config to 'true'.\n"
-            + "Statement: SELECT * FROM STRUCTURED_TYPES_KSTREAM;."
-    ));
   }
 
   @Test

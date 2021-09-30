@@ -19,24 +19,26 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallback;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 
-public final class PullQueryMetricsUtil {
+public final class QueryMetricsUtil {
 
-  private PullQueryMetricsUtil() {
+  private QueryMetricsUtil() {
   }
 
-  public static MetricsCallback initializeTableMetricsCallback(
+  public static MetricsCallback initializePullTableMetricsCallback(
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final SlidingWindowRateLimiter pullBandRateLimiter,
       final AtomicReference<PullQueryResult> resultForMetrics) {
@@ -51,7 +53,7 @@ public final class PullQueryMetricsUtil {
               if (r == null) {
                 recordErrorMetrics(pullQueryMetrics, responseBytes, startTimeNanos);
               } else {
-                final PullSourceType sourceType = r.getSourceType();
+                final QuerySourceType sourceType = r.getSourceType();
                 final PullPhysicalPlanType planType = r.getPlanType();
                 final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
                 metrics.recordResponseSize(
@@ -79,7 +81,7 @@ public final class PullQueryMetricsUtil {
     return metricsCallback;
   }
 
-  public static MetricsCallback initializeStreamMetricsCallback(
+  public static MetricsCallback initializePullStreamMetricsCallback(
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final SlidingWindowRateLimiter pullBandRateLimiter,
       final ImmutableAnalysis analysis,
@@ -106,8 +108,8 @@ public final class PullQueryMetricsUtil {
                     .getDataSource()
                     .getKsqlTopic()
                     .getKeyFormat().isWindowed();
-                final PullSourceType sourceType = isWindowed
-                    ? PullSourceType.WINDOWED_STREAM : PullSourceType.NON_WINDOWED_STREAM;
+                final QuerySourceType sourceType = isWindowed
+                    ? QuerySourceType.WINDOWED_STREAM : QuerySourceType.NON_WINDOWED_STREAM;
                 // There is no WHERE clause constraint information in the persistent logical plan
                 final PullPhysicalPlanType planType = PullPhysicalPlanType.UNKNOWN;
                 final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
@@ -139,6 +141,48 @@ public final class PullQueryMetricsUtil {
                 decrementer.decrementAtMostOnce();
               }
             });
+
+    return metricsCallback;
+  }
+
+  public static MetricsCallback initializeScalablePushMetricsCallback(
+          final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
+          final SlidingWindowRateLimiter scalablePushBandRateLimiter,
+          final AtomicReference<ScalablePushQueryMetadata> resultForMetrics) {
+
+    final MetricsCallback metricsCallback =
+            (statusCode, requestBytes, responseBytes, startTimeNanos) ->
+                    scalablePushQueryMetrics.ifPresent(metrics -> {
+                      metrics.recordStatusCode(statusCode);
+                      metrics.recordRequestSize(requestBytes);
+                      final ScalablePushQueryMetadata r = resultForMetrics.get();
+                      if (r == null) {
+                        metrics.recordResponseSizeForError(responseBytes);
+                        metrics.recordConnectionDurationForError(startTimeNanos);
+                        metrics.recordZeroRowsReturnedForError();
+                        metrics.recordZeroRowsProcessedForError();
+                      } else {
+                        final QuerySourceType sourceType = r.getSourceType();
+                        final RoutingNodeType routingNodeType = r.getRoutingNodeType();
+                        metrics.recordResponseSize(
+                                responseBytes,
+                                sourceType,
+                                routingNodeType
+                        );
+                        metrics.recordConnectionDuration(
+                                startTimeNanos,
+                                sourceType,
+                                routingNodeType
+                        );
+                        metrics.recordRowsReturned(
+                                r.getTotalRowsReturned(),
+                                sourceType, routingNodeType);
+                        metrics.recordRowsProcessed(
+                                r.getTotalRowsProcessed(),
+                                sourceType, routingNodeType);
+                      }
+                      scalablePushBandRateLimiter.add(responseBytes);
+                    });
 
     return metricsCallback;
   }

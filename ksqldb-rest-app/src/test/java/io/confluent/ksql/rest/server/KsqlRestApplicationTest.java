@@ -495,6 +495,7 @@ public class KsqlRestApplicationTest {
         vertx,
         denyListPropertyValidator,
         Optional.empty(),
+        Optional.empty(),
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,

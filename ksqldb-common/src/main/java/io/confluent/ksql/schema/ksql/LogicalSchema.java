@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -365,29 +366,34 @@ public final class LogicalSchema {
 
     int valueIndex = nonPseudoAndKeyCols.size();
 
-    final List<Column> pseudoColumns = new ArrayList<>();
+    final List<Pair<ColumnName, SqlType>> pseudoColumns = new ArrayList<>();
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
-      pseudoColumns.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, 0));
+      pseudoColumns.add(Pair.of(ROWTIME_NAME, ROWTIME_TYPE));
     }
 
     if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
-      pseudoColumns.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, 0));
-      pseudoColumns.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, 0));
+      pseudoColumns.add(Pair.of(ROWPARTITION_NAME, ROWPARTITION_TYPE));
+      pseudoColumns.add(Pair.of(ROWOFFSET_NAME, ROWOFFSET_TYPE));
     }
 
-    final List<Column> toAddToBuilder = pseudoColumns
-        .stream()
-        .filter(col ->
-            !(SystemColumns.isDisallowedInPullOrScalablePushQueries(col.name(), pseudoColumnVersion)
-                && isPullOrScalablePushQuery)
-        )
-        .collect(Collectors.toList());
+    final List<Column> toAddToBuilder = new ArrayList<>();
 
-    for (Column column : toAddToBuilder) {
-      final Column columnWithIndex = Column.of(column.name(), column.type(), column.namespace(), valueIndex++);
-      builder.add(columnWithIndex);
+    //if query is pull or scalable push, need to check if column is disallowed
+    if(isPullOrScalablePushQuery) {
+      for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
+        if(!SystemColumns.isDisallowedInPullOrScalablePushQueries(pair.left, pseudoColumnVersion)) {
+          toAddToBuilder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
+        }
+      }
+    } else {
+      for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
+        toAddToBuilder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
+      }
     }
+
+
+    builder.addAll(toAddToBuilder);
 
     for (final Column c : key) {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));

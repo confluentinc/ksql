@@ -186,7 +186,7 @@ public final class SystemColumns {
     return pseudoColumns
         .stream()
         .filter(col -> col.version <= psuedoColumnVersion)
-        .filter(col -> col.isDisallowedInPullQueries)
+        .filter(col -> col.isDisallowedInPullAndScalablePushQueries)
         .anyMatch(col -> col.name.equals(columnName));
   }
 
@@ -219,7 +219,7 @@ public final class SystemColumns {
     final int version;
     final boolean mustBeMaterializedForTableJoins;
     final boolean isDisallowedForInsertValues;
-    final boolean isDisallowedInPullQueries;
+    final boolean isDisallowedInPullAndScalablePushQueries;
 
     private PseudoColumn(
         final ColumnName name,
@@ -227,14 +227,14 @@ public final class SystemColumns {
         final int version,
         final boolean mustBeMaterializedForTableJoins,
         final boolean isDisallowedForInsertValues,
-        final boolean isDisallowedInPullQueries
+        final boolean isDisallowedInPullAndScalablePushQueries
     ) {
       this.name = requireNonNull(name, "name");
       this.type = requireNonNull(type, "type");
       this.version = version;
       this.mustBeMaterializedForTableJoins = mustBeMaterializedForTableJoins;
       this.isDisallowedForInsertValues = isDisallowedForInsertValues;
-      this.isDisallowedInPullQueries = isDisallowedInPullQueries;
+      this.isDisallowedInPullAndScalablePushQueries = isDisallowedInPullAndScalablePushQueries;
     }
 
     private static PseudoColumn of(
@@ -243,7 +243,7 @@ public final class SystemColumns {
         final int version,
         final boolean mustBeMaterializedForTableJoins,
         final boolean isDisallowedForInsertValues,
-        final boolean isDisallowedInPullQueries
+        final boolean isDisallowedInPullAndScalablePushQueries
     ) {
       return new PseudoColumn(
           name,
@@ -251,7 +251,7 @@ public final class SystemColumns {
           version,
           mustBeMaterializedForTableJoins,
           isDisallowedForInsertValues,
-          isDisallowedInPullQueries
+          isDisallowedInPullAndScalablePushQueries
       );
     }
   }

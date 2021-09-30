@@ -160,6 +160,7 @@ public class QueryProjectNodeTest {
     // Given:
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ALIAS));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -175,7 +176,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    assertThat(INPUT_SCHEMA, is(projectNode.getIntermediateSchema()));
+    assertThat(INPUT_SCHEMA.withoutPseudoAndKeyColsInValue(),
+        is(projectNode.getIntermediateSchema()));
   }
 
   @Test
@@ -183,6 +185,7 @@ public class QueryProjectNodeTest {
     // Given:
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(K)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(K));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -219,6 +222,8 @@ public class QueryProjectNodeTest {
         .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
         .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
         .add((new SingleColumn(K_REF, Optional.of(K)))).build();
+    when(analysis.getSelectColumnNames()).thenReturn(
+        ImmutableSet.of(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWEND_NAME, K));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(
@@ -257,6 +262,8 @@ public class QueryProjectNodeTest {
         .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
         .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
         .add((new SingleColumn(COL0_REF, Optional.of(COL0)))).build();
+    when(analysis.getSelectColumnNames()).thenReturn(
+        ImmutableSet.of(SystemColumns.WINDOWSTART_NAME, SystemColumns.WINDOWEND_NAME, COL0));
 
     // When:
     final QueryProjectNode projectNode = new QueryProjectNode(

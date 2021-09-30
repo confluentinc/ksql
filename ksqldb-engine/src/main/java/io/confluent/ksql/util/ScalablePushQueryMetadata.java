@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
@@ -24,8 +25,13 @@ import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public class ScalablePushQueryMetadata implements PushQueryMetadata {
@@ -34,9 +40,14 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final LogicalSchema logicalSchema;
   private final QueryId queryId;
   private final BlockingRowQueue rowQueue;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
   private final PushQueryPreparer pushQueryPreparer;
+  private final QuerySourceType sourceType;
+  private final RoutingNodeType routingNodeType;
+  private final Supplier<Long> rowsProcessedSupplier;
+
 
   // Future for the start of the connections, which creates a handle
   private CompletableFuture<PushConnectionsHandle> startFuture = new CompletableFuture<>();
@@ -49,16 +60,25 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
       final LogicalSchema logicalSchema,
       final QueryId queryId,
       final BlockingRowQueue blockingRowQueue,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final ResultType resultType,
       final PushQueryQueuePopulator pushQueryQueuePopulator,
-      final PushQueryPreparer pushQueryPreparer
+      final PushQueryPreparer pushQueryPreparer,
+      final QuerySourceType sourceType,
+      final RoutingNodeType routingNodeType,
+      final Supplier<Long> rowsProcessedSupplier
   ) {
     this.logicalSchema = logicalSchema;
     this.queryId = queryId;
     this.rowQueue = blockingRowQueue;
+    this.scalablePushQueryMetrics = scalablePushQueryMetrics;
     this.resultType = resultType;
     this.pushQueryQueuePopulator = pushQueryQueuePopulator;
     this.pushQueryPreparer = pushQueryPreparer;
+    this.sourceType = sourceType;
+    this.routingNodeType = routingNodeType;
+    this.rowsProcessedSupplier = rowsProcessedSupplier;
+
   }
 
   /**
@@ -139,8 +159,37 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   public void onException(final Consumer<Throwable> consumer) {
     runningFuture.exceptionally(t -> {
+      scalablePushQueryMetrics.ifPresent(metrics ->
+          metrics.recordErrorRate(1, sourceType, routingNodeType));
       consumer.accept(t);
       return null;
     });
+  }
+
+  public void onCompletion(final Consumer<Void> consumer) {
+    runningFuture.thenAccept(consumer);
+  }
+
+  public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
+    runningFuture.handle((v, t) -> {
+      biConsumer.accept(v, t);
+      return null;
+    });
+  }
+
+  public QuerySourceType getSourceType() {
+    return sourceType;
+  }
+
+  public RoutingNodeType getRoutingNodeType() {
+    return routingNodeType;
+  }
+
+  public long getTotalRowsReturned() {
+    return rowQueue.size();
+  }
+
+  public long getTotalRowsProcessed() {
+    return rowsProcessedSupplier.get();
   }
 }

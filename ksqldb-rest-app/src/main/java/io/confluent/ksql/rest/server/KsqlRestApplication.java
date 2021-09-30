@@ -44,6 +44,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.internal.JmxDataPointsReporter;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.internal.StorageUtilizationMetricsReporter;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -198,6 +199,7 @@ public final class KsqlRestApplication implements Executable {
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RateLimiter pullQueryRateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
@@ -240,6 +242,7 @@ public final class KsqlRestApplication implements Executable {
       final Vertx vertx,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter pullQueryRateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
@@ -286,11 +289,7 @@ public final class KsqlRestApplication implements Executable {
       this.heartbeatResource = Optional.empty();
       this.clusterStatusResource = Optional.empty();
     }
-    if (lagReportingAgent.isPresent()) {
-      this.lagReportingResource = Optional.of(new LagReportingResource(lagReportingAgent.get()));
-    } else {
-      this.lagReportingResource = Optional.empty();
-    }
+    this.lagReportingResource = lagReportingAgent.map(LagReportingResource::new);
     this.healthCheckResource = HealthCheckResource.create(
         ksqlResource,
         serviceContext,
@@ -299,6 +298,8 @@ public final class KsqlRestApplication implements Executable {
         this.commandRunner);
     MetricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.scalablePushQueryMetrics =
+        requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
     log.debug("ksqlDB API server instance created");
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.pullQueryRateLimiter = requireNonNull(pullQueryRateLimiter, "pullQueryRateLimiter");
@@ -349,6 +350,7 @@ public final class KsqlRestApplication implements Executable {
         errorHandler,
         denyListPropertyValidator,
         pullQueryMetrics,
+        scalablePushQueryMetrics,
         routingFilterFactory,
         pullQueryRateLimiter,
         pullConcurrencyLimiter,
@@ -378,6 +380,7 @@ public final class KsqlRestApplication implements Executable {
           serverMetadataResource,
           wsQueryEndpoint,
           pullQueryMetrics,
+          scalablePushQueryMetrics,
           pullQueryRateLimiter,
           pullConcurrencyLimiter,
           pullBandRateLimiter,
@@ -538,6 +541,12 @@ public final class KsqlRestApplication implements Executable {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
 
+    try {
+      scalablePushQueryMetrics.ifPresent(ScalablePushQueryMetrics::close);
+    } catch (final Exception e) {
+      log.error("Exception while waiting for scalable push query metrics to close", e);
+    }
+
     localCommands.ifPresent(lc -> {
       try {
         lc.close();
@@ -681,7 +690,7 @@ public final class KsqlRestApplication implements Executable {
     );
   }
 
-  @SuppressWarnings("checkstyle:MethodLength")
+  @SuppressWarnings({"checkstyle:JavaNCSS", "checkstyle:MethodLength"})
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
@@ -824,6 +833,13 @@ public final class KsqlRestApplication implements Executable {
         Time.SYSTEM))
         : Optional.empty();
 
+    final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics =
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)
+        ? Optional.of(new ScalablePushQueryMetrics(
+        ksqlEngine.getServiceId(),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
+        Time.SYSTEM))
+        : Optional.empty();
 
     final HARouting pullQueryRouting = new HARouting(
         routingFilterFactory, pullQueryMetrics, ksqlConfig);
@@ -843,6 +859,7 @@ public final class KsqlRestApplication implements Executable {
         errorHandler,
         denyListPropertyValidator,
         pullQueryMetrics,
+        scalablePushQueryMetrics,
         routingFilterFactory,
         pullQueryRateLimiter,
         pullQueryConcurrencyLimiter,
@@ -923,6 +940,7 @@ public final class KsqlRestApplication implements Executable {
         vertx,
         denyListPropertyValidator,
         pullQueryMetrics,
+        scalablePushQueryMetrics,
         routingFilterFactory,
         pullQueryRateLimiter,
         pullQueryConcurrencyLimiter,
@@ -956,9 +974,7 @@ public final class KsqlRestApplication implements Executable {
           .threadPoolSize(restConfig.getInt(
               KsqlRestConfig.KSQL_HEARTBEAT_THREAD_POOL_SIZE_CONFIG));
 
-      if (lagReportingAgent.isPresent()) {
-        builder.addHostStatusListener(lagReportingAgent.get());
-      }
+      lagReportingAgent.ifPresent(builder::addHostStatusListener);
 
       return Optional.of(builder.build(ksqlEngine, serviceContext));
     }

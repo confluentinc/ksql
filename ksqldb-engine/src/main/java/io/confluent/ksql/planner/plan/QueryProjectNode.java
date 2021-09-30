@@ -100,7 +100,7 @@ public class QueryProjectNode extends ProjectNode {
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.outputSchema = buildOutputSchema(metaStore);
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-          source.getSchema(),
+          source.getSchema().withoutPseudoAndKeyColsInValue(),
           addAdditionalColumnsToIntermediateSchema,
           isWindowed,
           ksqlConfig

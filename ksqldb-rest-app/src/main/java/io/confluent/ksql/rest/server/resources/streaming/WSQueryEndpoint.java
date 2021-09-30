@@ -22,19 +22,26 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AG
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
@@ -46,11 +53,13 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.PushQueryPublisher.PushQuerySubscription;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -62,8 +71,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,6 +94,7 @@ public class WSQueryEndpoint {
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
@@ -105,6 +118,7 @@ public class WSQueryEndpoint {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
@@ -130,6 +144,8 @@ public class WSQueryEndpoint {
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.scalablePushQueryMetrics =
+        Objects.requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
     this.routingFilterFactory = Objects.requireNonNull(
         routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
@@ -275,7 +291,11 @@ public class WSQueryEndpoint {
     if (query.isPullQuery()) {
 
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              configured.getStatement(),
+              configured.getStatementText(),
+              configured.getSessionConfig().getOverrides()
+          );
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
 
@@ -298,6 +318,17 @@ public class WSQueryEndpoint {
           return;
         }
         case KSTREAM: {
+          final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
+          final AtomicReference<StreamPullQueryMetadata> resultForMetrics =
+              new AtomicReference<>(null);
+          final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
+          initializeStreamMetrics(metricsCallbackHolder, resultForMetrics, refDecrementer,
+                                  analysis, startTimeNanos);
+
+          PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+          pullBandRateLimiter.allow(KsqlQueryType.PULL);
+          refDecrementer.set(pullConcurrencyLimiter.increment());
+
           final StreamPullQueryMetadata queryMetadata =
               ksqlEngine.createStreamPullQuery(
                   info.securityContext.getServiceContext(),
@@ -306,6 +337,7 @@ public class WSQueryEndpoint {
                   true
               );
 
+          resultForMetrics.set(queryMetadata);
           localCommands.ifPresent(lc -> lc.write(queryMetadata.getTransientQueryMetadata()));
 
           final PushQuerySubscription subscription =
@@ -320,7 +352,7 @@ public class WSQueryEndpoint {
           );
           queryMetadata.getTransientQueryMetadata().start();
 
-          streamSubscriber.onSubscribe(subscription);
+          streamSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);
           return;
         }
         default:
@@ -333,7 +365,11 @@ public class WSQueryEndpoint {
         statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
 
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(configured.getStatement(), configured.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              configured.getStatement(),
+              configured.getStatementText(),
+              configured.getSessionConfig().getOverrides()
+          );
 
       PushQueryPublisher.createScalablePushQueryPublisher(
           ksqlEngine,
@@ -343,6 +379,8 @@ public class WSQueryEndpoint {
           analysis,
           pushRouting,
           context,
+          scalablePushQueryMetrics,
+          startTimeNanos,
           scalablePushBandRateLimiter
       ).subscribe(streamSubscriber);
     } else {
@@ -354,6 +392,62 @@ public class WSQueryEndpoint {
           localCommands
       ).subscribe(streamSubscriber);
     }
+  }
+
+  private void initializeStreamMetrics(
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final AtomicReference<StreamPullQueryMetadata> resultForMetrics,
+      final AtomicReference<Decrementer> refDecrementer,
+      final ImmutableAnalysis analysis,
+      final long startTimeNanos) {
+
+    metricsCallbackHolder.setCallback(
+        (statusCode, requestBytes, responseBytes, startTimeNs) ->
+        pullQueryMetrics.ifPresent(metrics -> {
+
+          final StreamPullQueryMetadata m = resultForMetrics.get();
+          final KafkaStreams.State state = m == null ? null : m.getTransientQueryMetadata()
+              .getKafkaStreams().state();
+
+          if (m == null || state == null
+              || state.equals(State.ERROR)
+              || state.equals(State.PENDING_ERROR)) {
+            metrics.recordLatencyForError(startTimeNs);
+            metrics.recordZeroRowsReturnedForError();
+            metrics.recordZeroRowsProcessedForError();
+          } else {
+            final boolean isWindowed = analysis
+                .getFrom()
+                .getDataSource()
+                .getKsqlTopic()
+                .getKeyFormat().isWindowed();
+            final PullSourceType sourceType = isWindowed
+                ? PullSourceType.WINDOWED_STREAM : PullSourceType.NON_WINDOWED_STREAM;
+            // There is no WHERE clause constraint information in the persistent logical plan
+            final PullPhysicalPlanType planType = PullPhysicalPlanType.UNKNOWN;
+            final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;
+            metrics.recordLatency(
+                startTimeNanos,
+                sourceType,
+                planType,
+                routingNodeType
+            );
+            final TransientQueryQueue rowQueue = (TransientQueryQueue)
+                m.getTransientQueryMetadata().getRowQueue();
+            // The rows read from the underlying data source equal the rows read by the user
+            // since the WHERE condition is pushed to the data source
+            metrics.recordRowsReturned(rowQueue.getTotalRowsQueued(), sourceType, planType,
+                                       routingNodeType);
+            metrics.recordRowsProcessed(rowQueue.getTotalRowsQueued(), sourceType, planType,
+                                        routingNodeType);
+          }
+          // Decrement on happy or exception path
+          final Decrementer decrementer = refDecrementer.get();
+          if (decrementer != null) {
+            decrementer.decrementAtMostOnce();
+          }
+        })
+    );
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {

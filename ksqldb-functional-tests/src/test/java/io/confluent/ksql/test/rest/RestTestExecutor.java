@@ -32,13 +32,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
@@ -59,14 +57,16 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
-import io.vertx.core.Context;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -84,14 +84,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
-import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,6 +102,9 @@ public class RestTestExecutor implements Closeable {
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
   private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
+  private static final String QUERY_KEY = "query";
+  private static final String ROW_KEY = "row";
+  private static final String COLUMNS_KEY = "columns";
 
   private final KsqlExecutionContext engine;
   private final KsqlRestClient restClient;
@@ -181,7 +182,9 @@ public class RestTestExecutor implements Closeable {
           .build();
 
       verifyOutput(testCase);
-      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements());
+      final boolean verifyOrder = testCase.getOutputConditions().isPresent()
+        && testCase.getOutputConditions().get().getVerifyOrder();
+      verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements(), verifyOrder);
 
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
@@ -449,7 +452,8 @@ public class RestTestExecutor implements Closeable {
   private static void verifyResponses(
       final List<RqttResponse> actualResponses,
       final List<Response> expectedResponses,
-      final List<String> statements
+      final List<String> statements,
+      final boolean verifyOrder
   ) {
     assertThat(
         "Not enough responses",
@@ -466,7 +470,7 @@ public class RestTestExecutor implements Closeable {
       final Object expectedPayload = expectedResponse.values().iterator().next();
 
       final RqttResponse actualResponse = actualResponses.get(idx);
-      actualResponse.verify(expectedType, expectedPayload, statements, idx);
+      actualResponse.verify(expectedType, expectedPayload, statements, idx, verifyOrder);
     }
   }
 
@@ -729,13 +733,34 @@ public class RestTestExecutor implements Closeable {
     }
   }
 
+  private static void verifyResponseFields(final LinkedHashMap<Object, Integer> actualRecords, final LinkedHashMap<Object, Integer> expectedRecords, final HashMap<Object, String> pathIndex){
+    for (final Object actualKey : actualRecords.keySet()){
+      if (!expectedRecords.containsKey(actualKey)){
+        final String reason = pathIndex.get(actualKey);
+        if (expectedRecords.size() == 1){
+          final Object expectedKey = expectedRecords.keySet().iterator().next();
+          assertThat(reason, actualKey, is(expectedKey));
+        } else {
+          assertThat(reason, actualKey, is(""));
+        }
+      } else if (!actualRecords.get(actualKey).equals(expectedRecords.get(actualKey))){
+        final String reason = "Uneven occurrence of expected vs actual for row " + actualKey;
+        assertThat(reason, actualRecords.get(actualKey), is(expectedRecords.get(actualKey)));
+      }
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static void matchResponseFields(
       final Map<String, Object> actual,
       final Map<String, Object> expected,
       final List<String> statements,
       final int idx,
-      final String path
+      final String path,
+      final HashMap<Object, Integer> actualRecords,
+      final HashMap<Object, Integer> expectedRecords,
+      final HashMap<Object, String> pathIndex,
+      final boolean verifyOrder
   ) {
     // Expected does not need to include everything, only keys that need to be tested:
     for (final Entry<String, Object> e : expected.entrySet()) {
@@ -759,7 +784,11 @@ public class RestTestExecutor implements Closeable {
             (Map<String, Object>) expectedValue,
             statements,
             idx,
-            newPath
+            newPath,
+            actualRecords,
+            expectedRecords,
+            pathIndex,
+            verifyOrder
         );
       } else {
         if (operator == MatchOperator.STARTS_WITH) {
@@ -768,7 +797,14 @@ public class RestTestExecutor implements Closeable {
           assertThat("Response mismatch at " + newPath,
               (String) actualValue, startsWith((String) expectedValue));
         } else {
-          assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+          final String reason = "Response mismatch at " + newPath;
+          if (!verifyOrder && newPath.contains(QUERY_KEY) && newPath.contains(ROW_KEY) && expectedKey.equalsIgnoreCase(COLUMNS_KEY)){
+            actualRecords.merge(actualValue, 1, Integer::sum);
+            expectedRecords.merge(expectedValue, 1, Integer::sum);
+            pathIndex.put(actualValue, reason);
+          } else {
+            assertThat(reason, actualValue, is(expectedValue));
+          }
         }
       }
     }
@@ -790,7 +826,8 @@ public class RestTestExecutor implements Closeable {
         String expectedType,
         Object expectedPayload,
         List<String> statements,
-        int idx
+        int idx,
+        boolean verifyOrder
     );
   }
 
@@ -812,7 +849,8 @@ public class RestTestExecutor implements Closeable {
         final String expectedType,
         final Object expectedPayload,
         final List<String> statements,
-        final int idx
+        final int idx,
+        final boolean verifyOrder
     ) {
       assertThat("Expected admin response", expectedType, is("admin"));
       assertThat("Admin payload should be JSON object", expectedPayload, is(instanceOf(Map.class)));
@@ -821,7 +859,11 @@ public class RestTestExecutor implements Closeable {
 
       final Map<String, Object> actualPayload = asJson(entity, PAYLOAD_TYPE);
 
-      matchResponseFields(actualPayload, expected, statements, idx, "responses[" + idx + "]->admin");
+      final LinkedHashMap<Object, Integer> actualRecords = new LinkedHashMap<>();
+      final LinkedHashMap<Object, Integer> expectedRecords = new LinkedHashMap<>();
+      final HashMap<Object, String> pathIndex = new HashMap<>();
+      matchResponseFields(actualPayload, expected, statements, idx, "responses[" + idx + "]->admin", actualRecords, expectedRecords, pathIndex, verifyOrder);
+      verifyResponseFields(actualRecords, expectedRecords, pathIndex);
     }
   }
 
@@ -846,7 +888,8 @@ public class RestTestExecutor implements Closeable {
         final String expectedType,
         final Object expectedPayload,
         final List<String> statements,
-        final int idx
+        final int idx,
+        final boolean verifyOrder
     ) {
       assertThat("Expected query response", expectedType, is("query"));
       assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
@@ -870,6 +913,9 @@ public class RestTestExecutor implements Closeable {
           hasSize(expectedRows.size())
       );
 
+      final LinkedHashMap<Object, Integer> actualRecords = new LinkedHashMap<>();
+      final LinkedHashMap<Object, Integer> expectedRecords = new LinkedHashMap<>();
+      final HashMap<Object, String> pathIndex = new HashMap<>();
       for (int i = 0; i != rows.size(); ++i) {
         assertThat(
             "Each row should be JSON object",
@@ -880,8 +926,11 @@ public class RestTestExecutor implements Closeable {
         final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
         final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
         matchResponseFields(actual, expected, statements, idx,
-            "responses[" + idx + "]->query[" + i + "]");
+          "responses[" + idx + "]->query[" + i + "]",
+          actualRecords, expectedRecords, pathIndex, verifyOrder);
       }
+
+      verifyResponseFields(actualRecords, expectedRecords, pathIndex);
     }
   }
 

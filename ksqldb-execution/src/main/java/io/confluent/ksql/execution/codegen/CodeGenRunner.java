@@ -45,6 +45,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -319,10 +320,16 @@ public class CodeGenRunner {
 
     private void addRequiredColumn(final ColumnName columnName) {
       final Column column = schema.findValueColumn(columnName)
-          .orElseThrow(() -> new KsqlException(
-              "Cannot find the select field in the available fields."
-                  + " field: " + columnName
-                  + ", schema: " + schema.value()));
+          .orElseThrow(() -> SystemColumns.isPseudoColumn(columnName, ksqlConfig)
+              ? new KsqlException(
+              "If this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
+                  + " ksqlDB after the original query was issued are not available"
+                  + " for use in CREATE OR REPLACE")
+
+              : new KsqlException(
+                  "Cannot find the select field in the available fields."
+                      + " field: " + columnName
+                      + ", schema: " + schema.value()));
 
       spec.addParameter(
           column.name(),

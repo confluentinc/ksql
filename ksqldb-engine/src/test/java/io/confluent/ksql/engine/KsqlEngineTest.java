@@ -569,6 +569,39 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldFailDropStreamWhenMultipleStreamsAreReadingTheTable() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;"
+            + "create stream foo as select * from bar;"
+            + "create stream foo2 as select * from bar;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot drop BAR.\n"
+            + "The following streams and/or tables read from this source: [FOO, FOO2].\n"
+            + "You need to drop them before dropping BAR.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
+  @Test
   public void shouldFailDropStreamWhenAnInsertQueryIsWritingTheStream() {
     // Given:
     KsqlEngineTestUtil.execute(
@@ -631,6 +664,44 @@ public class KsqlEngineTest {
         "Cannot drop BAR.\n"
             + "The following queries read from this source: [INSERTQUERY_2].\n"
             + "The following queries write into this source: [].\n"
+            + "You need to terminate them before dropping BAR.")));
+    assertThat(e, statementText(is("drop stream bar;")));
+  }
+
+  @Test
+  public void shouldFailDropStreamWhenMultipleInsertQueriesAreReadingAndWritingTheStream() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from test1;"
+            + "create stream foo as select * from test1;"
+            + "create stream foo2 as select * from test1;"
+            + "insert into foo select * from bar;"
+            + "insert into foo2 select * from bar;"
+            + "insert into bar select * from foo;"
+            + "insert into bar select * from foo2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final KsqlStatementException e = assertThrows(
+        KsqlStatementException.class,
+        () -> KsqlEngineTestUtil.execute(
+            serviceContext,
+            ksqlEngine,
+            "drop stream bar;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        )
+    );
+
+    // Then:
+    assertThat(e, rawMessage(is(
+        "Cannot drop BAR.\n"
+            + "The following queries read from this source: [INSERTQUERY_3, INSERTQUERY_4].\n"
+            + "The following queries write into this source: [INSERTQUERY_5, INSERTQUERY_6].\n"
             + "You need to terminate them before dropping BAR.")));
     assertThat(e, statementText(is("drop stream bar;")));
   }

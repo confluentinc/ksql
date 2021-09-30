@@ -17,7 +17,7 @@ SELECT select_expr [, ...]
 
 ## Description
 
-Pulls the current value from the from_item and terminates. The from_item can be either
+Pulls the current value from the `from_item` and terminates. The `from_item` can be either
  a materialized view or a stream. The result
 of this statement is not persisted in a {{ site.ak }} topic and is printed out
 only in the console. Pull queries run with predictably low latency because 

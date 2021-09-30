@@ -145,7 +145,7 @@ public class ExpressionEvaluatorParityTest {
   public void shouldDoComparisons_null() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
     assertOrdersError("1 = null",
-        compileTime("Unexpected error generating code for Test. expression:(1 = null)"),
+        compileTime("Unexpected error generating code for Test. expression: (1 = null)"),
         compileTime("Invalid expression: Comparison with NULL not supported: INTEGER = NULL"));
     assertOrders("ORDERID = 1", false);
     assertOrders("ITEMID > 'a'", false);

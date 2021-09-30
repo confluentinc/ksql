@@ -160,7 +160,7 @@ Since: 0.20.0
 LEAST(col1, col2...)
 ```
 
-The highest non-null value among a variable number of comparable columns.
+The lowest non-null value among a variable number of comparable columns.
 If comparing columns of different numerical types, use [CAST](#cast) to first
 cast them to be of the same type.
 

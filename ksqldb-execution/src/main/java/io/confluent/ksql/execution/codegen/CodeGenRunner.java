@@ -319,24 +319,33 @@ public class CodeGenRunner {
     }
 
     private void addRequiredColumn(final ColumnName columnName) {
-      final String informationAboutPseudoColumns =
-          SystemColumns.isPseudoColumn(columnName, ksqlConfig)
-              ? "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
-              + " ksqlDB after the original query was issued are not available"
-              + " for use in CREATE OR REPLACE"
-              : "";
-
       final Column column = schema.findValueColumn(columnName)
-          .orElseThrow(() -> new KsqlException(
-                  "Cannot find the select field in the available fields."
-                      + " field: " + columnName
-                      + ", schema: " + schema.value() + informationAboutPseudoColumns));
+          .orElseThrow(() -> new KsqlException(fieldNotFoundErrorMessage(columnName, ksqlConfig)));
 
       spec.addParameter(
           column.name(),
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
           column.index()
       );
+    }
+
+    private String fieldNotFoundErrorMessage(
+        final ColumnName columnName,
+        final KsqlConfig ksqlConfig
+    ) {
+      final String cannotFindFieldMessage =
+          "Cannot find the select field in the available fields."
+              + " field: " + columnName
+              + ", schema: " + schema.value();
+
+      if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
+        return cannotFindFieldMessage +
+            "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
+            + " ksqlDB after the original query was issued are not available"
+            + " for use in CREATE OR REPLACE";
+      }
+
+      return cannotFindFieldMessage;
     }
   }
 }

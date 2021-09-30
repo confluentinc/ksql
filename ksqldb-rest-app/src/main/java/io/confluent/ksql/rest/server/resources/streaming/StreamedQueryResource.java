@@ -30,6 +30,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -53,8 +54,8 @@ import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
-import io.confluent.ksql.rest.util.PullQueryMetricsUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -102,6 +103,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
@@ -126,6 +128,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -147,6 +150,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         errorHandler,
         denyListPropertyValidator,
         pullQueryMetrics,
+        scalablePushQueryMetrics,
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
@@ -173,6 +177,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Errors errorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
@@ -197,6 +202,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.scalablePushQueryMetrics =
+        Objects.requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
@@ -318,7 +325,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: MethodLength
+  // CHECKSTYLE_RULES.OFF: JavaNCSS
   private EndpointResponse handleQuery(final KsqlSecurityContext securityContext,
+      // CHECKSTYLE_RULES.ON: MethodLength
+      // CHECKSTYLE_RULES.ON: JavaNCSS
       final KsqlRequest request,
       final PreparedStatement<Query> statement,
       final CompletableFuture<Void> connectionClosedFuture,
@@ -352,7 +363,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         case KTABLE: {
           // First thing, set the metrics callback so that it gets called, even if we hit an error
           final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
-          metricsCallbackHolder.setCallback(PullQueryMetricsUtil.initializeTableMetricsCallback(
+          metricsCallbackHolder.setCallback(QueryMetricsUtil.initializePullTableMetricsCallback(
               pullQueryMetrics, pullBandRateLimiter, resultForMetrics));
 
           final SessionConfig sessionConfig = SessionConfig.of(ksqlConfig, configProperties);
@@ -376,7 +387,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               new AtomicReference<>(null);
           final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
           metricsCallbackHolder.setCallback(
-              PullQueryMetricsUtil.initializeStreamMetricsCallback(
+              QueryMetricsUtil.initializePullStreamMetricsCallback(
                   pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics,
                   refDecrementer));
 
@@ -402,6 +413,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     } else if (ScalablePushUtil
         .isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
+      // First thing, set the metrics callback so that it gets called, even if we hit an error
+      final AtomicReference<ScalablePushQueryMetadata> resultForMetrics =
+              new AtomicReference<>(null);
+      metricsCallbackHolder.setCallback(QueryMetricsUtil.initializeScalablePushMetricsCallback(
+              scalablePushQueryMetrics, scalablePushBandRateLimiter, resultForMetrics));
 
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(
@@ -412,9 +428,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
       QueryLogger.info("Scalable push query created", statement.getStatementText());
 
-      metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) ->
-          scalablePushBandRateLimiter.add(responseBytes));
-
       return handleScalablePushQuery(
           analysis,
           securityContext.getServiceContext(),
@@ -423,7 +436,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           request.getRequestProperties(),
           connectionClosedFuture,
           context,
-          scalablePushBandRateLimiter
+          scalablePushBandRateLimiter,
+          resultForMetrics
       );
     } else {
       // log validated statements for query anonymization
@@ -515,7 +529,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> requestProperties,
       final CompletableFuture<Void> connectionClosedFuture,
       final Context context,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter
+      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
+      final AtomicReference<ScalablePushQueryMetadata> resultForMetrics
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
@@ -530,8 +545,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(analysis, serviceContext, configured, pushRouting, routingOptions,
-            plannerOptions, context);
+            plannerOptions, context, scalablePushQueryMetrics);
     query.prepare();
+    resultForMetrics.set(query);
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

@@ -339,8 +339,8 @@ public class CodeGenRunner {
               + ", schema: " + schema.value();
 
       if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
-        return cannotFindFieldMessage +
-            "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
+        return cannotFindFieldMessage
+            + "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
             + " ksqlDB after the original query was issued are not available"
             + " for use in CREATE OR REPLACE";
       }

@@ -96,6 +96,15 @@ generally processed in time order.
 
 By default, `ROWTIME` is populated from the corresponding {{ site.ak }} message timestamp. Set `TIMESTAMP` in
 the `WITH` clause to populate `ROWTIME` from a column in the {{ site.ak }} message key or value.
+
+### ROWPARTITION and ROWOFFSET
+
+Like `ROWTIME`, `ROWPARTITION` and `ROWOFFSET` are pseudo columns. They represent the
+partition and offset of the *source* topic. For example, if issuing a push query
+with `ROWPARTITION` or `ROWOFFSET` in the SELECT clause on a stream or table backed
+by topic x, the push query's projection will contain the partition and offset information
+of the underlying records in topic x.
+
 ### Table properties
 
 Specify details about your table by using the WITH clause, which supports the

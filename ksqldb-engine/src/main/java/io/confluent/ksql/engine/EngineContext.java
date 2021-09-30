@@ -258,12 +258,12 @@ final class EngineContext {
               + "You need to terminate them before dropping %s.",
           sourceName.text(),
           sourceQueries.stream()
-              .sorted()
               .map(QueryId::toString)
+              .sorted()
               .collect(Collectors.joining(", ")),
           sinkQueries.stream()
-              .sorted()
               .map(QueryId::toString)
+              .sorted()
               .collect(Collectors.joining(", ")),
           sourceName.text()
       ));

@@ -380,14 +380,11 @@
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
-        "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 3;"
+        "SELECT * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
@@ -396,8 +393,6 @@
         {"query": [
           {"header":{"schema":"`S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
           {"row":{"columns":[1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
-          {"row":{"columns":[1, 0, 2000, 0, 2000, 2, 1, 0, 2000, 4]}},
-          {"row":{"columns":[1, 2000, 4000, 2000, 4000, 3, 1, 2000, 4000, 5]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -408,14 +403,11 @@
         "CREATE STREAM S1 (K INT KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECONDS');",
         "CREATE STREAM S2 (K INT KEY, ID bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT * FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.K = S2.K;",
-        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 3;"
+        "SELECT ROWTIME, * FROM OUTPUT EMIT CHANGES LIMIT 1;"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 1, "value": {"ID": 1}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 2}, "timestamp": 1000, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"ID": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"ID": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
+        {"topic": "right_topic", "key": 1, "value": {"ID": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
@@ -424,8 +416,6 @@
         {"query": [
           {"header":{"schema":"`ROWTIME` BIGINT, `S1_K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_ID` BIGINT, `S2_K` INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_ID` BIGINT"}},
           {"row":{"columns":[0, 1, 0, 2000, 0, 2000, 1, 1, 0, 2000, 4]}},
-          {"row":{"columns":[1000, 1, 0, 2000, 0, 2000, 2, 1, 0, 2000, 4]}},
-          {"row":{"columns":[2000, 1, 2000, 4000, 2000, 4000, 3, 1, 2000, 4000, 5]}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]

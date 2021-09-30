@@ -387,7 +387,7 @@ public final class LogicalSchema {
       }
     } else {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
-        Column.of(pair.left, pair.right, VALUE, valueIndex++);
+        builder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
       }
     }
 

@@ -133,7 +133,7 @@ CREATE STREAM pageviews (
 -- keyless stream, with value columns loaded from Schema Registry:
 CREATE STREAM pageviews WITH (
     KAFKA_TOPIC = 'keyless-pageviews-topic',
-    VALUE_FORMAT = 'JSON'
+    VALUE_FORMAT = 'JSON_SR'
   );
 
 -- keyed stream, with value columns loaded from Schema Registry:
@@ -141,6 +141,6 @@ CREATE STREAM pageviews (
     page_id BIGINT KEY
   ) WITH (
     KAFKA_TOPIC = 'keyed-pageviews-topic',
-    VALUE_FORMAT = 'JSON'
+    VALUE_FORMAT = 'JSON_SR'
   );
 ```

@@ -97,8 +97,10 @@ public class DistributingExecutor {
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
-  private Optional<StatementExecutorResponse> checkIfNotExistsResponse(final KsqlExecutionContext executionContext,
-                                                                       final ConfiguredStatement<?> statement) {
+  private Optional<StatementExecutorResponse> checkIfNotExistsResponse(
+      final KsqlExecutionContext executionContext,
+      final ConfiguredStatement<?> statement
+  ) {
     SourceName sourceName = null;
     String type = "";
     if (statement.getStatement() instanceof CreateStream
@@ -118,7 +120,8 @@ public class DistributingExecutor {
       type = "stream";
       sourceName = ((CreateStreamAsSelect) statement.getStatement()).getName();
     }
-    if (sourceName != null && executionContext.getMetaStore().getSource(sourceName) != null) {
+    if (sourceName != null
+        && executionContext.getMetaStore().getSource(sourceName) != null) {
       return Optional.of(StatementExecutorResponse.handled(Optional.of(
           new WarningEntity(statement.getStatementText(),
               String.format("Cannot add %s %s: A %s with the same name already exists.",
@@ -164,7 +167,10 @@ public class DistributingExecutor {
       );
     }
 
-    final Optional<StatementExecutorResponse> response = checkIfNotExistsResponse(executionContext, statement);
+    final Optional<StatementExecutorResponse> response = checkIfNotExistsResponse(
+        executionContext,
+        statement
+    );
     if (response.isPresent()) {
       return response.get();
     }

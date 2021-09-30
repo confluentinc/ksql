@@ -37,8 +37,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.TransientQueryQueue;
@@ -60,6 +58,8 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -421,8 +421,8 @@ public class WSQueryEndpoint {
                 .getDataSource()
                 .getKsqlTopic()
                 .getKeyFormat().isWindowed();
-            final PullSourceType sourceType = isWindowed
-                ? PullSourceType.WINDOWED_STREAM : PullSourceType.NON_WINDOWED_STREAM;
+            final QuerySourceType sourceType = isWindowed
+                ? QuerySourceType.WINDOWED_STREAM : QuerySourceType.NON_WINDOWED_STREAM;
             // There is no WHERE clause constraint information in the persistent logical plan
             final PullPhysicalPlanType planType = PullPhysicalPlanType.UNKNOWN;
             final RoutingNodeType routingNodeType = RoutingNodeType.SOURCE_NODE;

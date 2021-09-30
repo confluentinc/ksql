@@ -1,0 +1,57 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000001 (topics: [left_topic])
+      --> KTABLE-SOURCE-0000000002
+    Source: KSTREAM-SOURCE-0000000007 (topics: [right_topic])
+      --> KTABLE-SOURCE-0000000008
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-SOURCE-0000000008 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000009
+      <-- KSTREAM-SOURCE-0000000007
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_Left-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000009 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000010
+      <-- KTABLE-SOURCE-0000000008
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasLeft
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: KTABLE-TRANSFORMVALUES-0000000010 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000009
+    Processor: PrependAliasLeft (stores: [])
+      --> KTABLE-JOINTHIS-0000000013
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+    Processor: PrependAliasRight (stores: [])
+      --> KTABLE-JOINOTHER-0000000014
+      <-- KTABLE-TRANSFORMVALUES-0000000010
+    Processor: KTABLE-JOINOTHER-0000000014 (stores: [KafkaTopic_Left-Reduce])
+      --> KTABLE-MERGE-0000000012
+      <-- PrependAliasRight
+    Processor: KTABLE-JOINTHIS-0000000013 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-MERGE-0000000012
+      <-- PrependAliasLeft
+    Processor: KTABLE-MERGE-0000000012 (stores: [])
+      --> WhereFilter-ApplyPredicate
+      <-- KTABLE-JOINTHIS-0000000013, KTABLE-JOINOTHER-0000000014
+    Processor: WhereFilter-ApplyPredicate (stores: [])
+      --> WhereFilter-Filter
+      <-- KTABLE-MERGE-0000000012
+    Processor: WhereFilter-Filter (stores: [])
+      --> WhereFilter-PostProcess
+      <-- WhereFilter-ApplyPredicate
+    Processor: WhereFilter-PostProcess (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000018
+      <-- WhereFilter-Filter
+    Processor: KTABLE-TRANSFORMVALUES-0000000018 (stores: [Project-Last])
+      --> KTABLE-TOSTREAM-0000000019
+      <-- WhereFilter-PostProcess
+    Processor: KTABLE-TOSTREAM-0000000019 (stores: [])
+      --> KSTREAM-SINK-0000000020
+      <-- KTABLE-TRANSFORMVALUES-0000000018
+    Sink: KSTREAM-SINK-0000000020 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000019
+

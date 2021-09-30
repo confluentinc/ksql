@@ -319,17 +319,18 @@ public class CodeGenRunner {
     }
 
     private void addRequiredColumn(final ColumnName columnName) {
-      final Column column = schema.findValueColumn(columnName)
-          .orElseThrow(() -> SystemColumns.isPseudoColumn(columnName, ksqlConfig)
-              ? new KsqlException(
-              "If this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
-                  + " ksqlDB after the original query was issued are not available"
-                  + " for use in CREATE OR REPLACE")
+      final String informationAboutPseudoColumns =
+          SystemColumns.isPseudoColumn(columnName, ksqlConfig)
+              ? "\nIf this is a CREATE OR REPLACE query, pseudocolumns added in newer versions of"
+              + " ksqlDB after the original query was issued are not available"
+              + " for use in CREATE OR REPLACE"
+              : "";
 
-              : new KsqlException(
+      final Column column = schema.findValueColumn(columnName)
+          .orElseThrow(() -> new KsqlException(
                   "Cannot find the select field in the available fields."
                       + " field: " + columnName
-                      + ", schema: " + schema.value()));
+                      + ", schema: " + schema.value() + informationAboutPseudoColumns));
 
       spec.addParameter(
           column.name(),

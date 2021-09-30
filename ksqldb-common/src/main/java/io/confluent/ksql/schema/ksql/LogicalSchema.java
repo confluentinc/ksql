@@ -348,7 +348,7 @@ public final class LogicalSchema {
   private LogicalSchema rebuildWithPseudoAndKeyColsInValue(
       final boolean windowedKey,
       final int pseudoColumnVersion,
-      final boolean isPullOrScalablePushQuery
+      final boolean forPullOrScalablePushQuery
   ) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
@@ -380,21 +380,18 @@ public final class LogicalSchema {
     final List<Column> toAddToBuilder = new ArrayList<>();
 
     //if query is pull or scalable push, need to check if column is disallowed
-    if (isPullOrScalablePushQuery) {
+    if (forPullOrScalablePushQuery) {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
         if (!SystemColumns.isDisallowedInPullOrScalablePushQueries(
             pair.left, pseudoColumnVersion)) {
-          toAddToBuilder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
+          builder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
         }
       }
     } else {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
-        toAddToBuilder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
+        Column.of(pair.left, pair.right, VALUE, valueIndex++);
       }
     }
-
-
-    builder.addAll(toAddToBuilder);
 
     for (final Column c : key) {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));

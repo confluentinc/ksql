@@ -378,6 +378,8 @@ public class CommandRunner implements Closeable {
 
     clusterTerminator.terminateCluster(deleteTopicList);
     LOG.info("The KSQL server was terminated.");
+    closeEarly();
+    LOG.debug("The KSQL command runner was closed.");
   }
 
   private List<QueuedCommand> checkForIncompatibleCommands(final List<QueuedCommand> commands) {

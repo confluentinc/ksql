@@ -23,8 +23,10 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
@@ -38,6 +40,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -49,6 +52,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -104,6 +108,7 @@ public class RestQueryTranslationTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -164,8 +169,10 @@ public class RestQueryTranslationTest {
           .excludeTerminated()
           // There is a pool of ksql worker threads that grows over time, but is capped.
           .nameMatches(name -> !name.startsWith("ksql-workers"))
-          // There is a pool for HARouting worker threads that grows over time, but is capped to 100
-          .nameMatches(name -> !name.startsWith("pull-query-executor"))
+          // There are two pools for HARouting worker threads that grows over time,
+          // but they are capped to 100
+          .nameMatches(name -> !name.startsWith("pull-query-coordinator"))
+          .nameMatches(name -> !name.startsWith("pull-query-router"))
           .build()));
     } else {
       thread.assertSameThreads();

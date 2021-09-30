@@ -157,13 +157,46 @@ public final class LogicalSchema {
     return withPseudoAndKeyColsInValue(windowed, CURRENT_PSEUDOCOLUMN_VERSION_NUMBER);
   }
 
+  /**
+   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
+   *
+   * <p>Similar to the above implementation, but determines the version to use by looking at the
+   * config
+   *
+   * @param windowed indicates that the source is windowed
+   * @param ksqlConfig the config to utilize for finding the version number
+   * @return the new schema.
+   */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed,
       final KsqlConfig ksqlConfig
   ) {
     return withPseudoAndKeyColsInValue(
         windowed,
-        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig)
+        ksqlConfig,
+        false
+    );
+  }
+
+  /**
+   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
+   *
+   * <p>Similar to the above implementation, but determines the version to use by looking at the
+   * config and whether or not the calling context is a pull or scalable push query.
+   *
+   * @param windowed indicates that the source is windowed
+   * @param ksqlConfig the config to utilize for finding the version number
+   * @param forPullOrScalablePushQuery whether this is a pull or scalable push query schema
+   * @return the new schema.
+   */
+  public LogicalSchema withPseudoAndKeyColsInValue(
+      final boolean windowed,
+      final KsqlConfig ksqlConfig,
+      final boolean forPullOrScalablePushQuery
+  ) {
+    return withPseudoAndKeyColsInValue(
+        windowed,
+        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig, forPullOrScalablePushQuery)
     );
   }
 

@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigPlannerO
 import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigRoutingOptions;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
+import io.confluent.ksql.rest.util.PullQueryMetricsUtil;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.schema.ksql.Column;
@@ -138,7 +139,8 @@ public class QueryEndpoint {
 
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(), statement.getStatementText(), properties);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
       switch (dataSourceType) {
@@ -158,7 +160,9 @@ public class QueryEndpoint {
               context,
               serviceContext,
               statement,
-              workerExecutor
+              workerExecutor,
+              pullQueryMetrics,
+              metricsCallbackHolder
           );
         default:
           throw new KsqlStatementException(
@@ -169,7 +173,11 @@ public class QueryEndpoint {
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
       final ImmutableAnalysis analysis = ksqlEngine
-          .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
+          .analyzeQueryWithNoOutputTopic(
+              statement.getStatement(),
+              statement.getStatementText(),
+              properties
+          );
       return createScalablePushQueryPublisher(
           analysis,
           context,
@@ -255,9 +263,19 @@ public class QueryEndpoint {
       final Context context,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
-      final WorkerExecutor workerExecutor
+      final WorkerExecutor workerExecutor,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
-    // Limits and metrics will be in follow-on PRs.
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    final AtomicReference<StreamPullQueryMetadata> resultForMetrics = new AtomicReference<>(null);
+    final AtomicReference<Decrementer> refDecrementer = new AtomicReference<>(null);
+    metricsCallbackHolder.setCallback(PullQueryMetricsUtil.initializeStreamMetricsCallback(
+        pullQueryMetrics, pullBandRateLimiter, analysis, resultForMetrics, refDecrementer));
+
+    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    pullBandRateLimiter.allow(KsqlQueryType.PULL);
+    refDecrementer.set(pullConcurrencyLimiter.increment());
 
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
@@ -269,6 +287,7 @@ public class QueryEndpoint {
             true
         );
 
+    resultForMetrics.set(metadata);
     localCommands.ifPresent(lc -> lc.write(metadata.getTransientQueryMetadata()));
 
     publisher.setQueryHandle(
@@ -291,32 +310,8 @@ public class QueryEndpoint {
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
-    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
-      pullQueryMetrics.ifPresent(metrics -> {
-        final PullQueryResult r = resultForMetrics.get();
-        metrics.recordStatusCode(statusCode);
-        metrics.recordRequestSize(requestBytes);
-        if (r == null) {
-          metrics.recordResponseSizeForError(responseBytes);
-          metrics.recordLatencyForError(startTimeNanos);
-          metrics.recordZeroRowsReturnedForError();
-          metrics.recordZeroRowsProcessedForError();
-        } else {
-          metrics.recordResponseSize(responseBytes,
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordLatency(startTimeNanos,
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordRowsReturned(
-              r.getTotalRowsReturned(),
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordRowsProcessed(
-              r.getTotalRowsProcessed(),
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-        }
-        pullBandRateLimiter.add(responseBytes);
-      });
-    });
-
+    metricsCallbackHolder.setCallback(PullQueryMetricsUtil.initializeTableMetricsCallback(
+        pullQueryMetrics, pullBandRateLimiter, resultForMetrics));
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
         ksqlConfig,
         statement.getSessionConfig().getOverrides(),
@@ -328,11 +323,13 @@ public class QueryEndpoint {
         statement.getSessionConfig().getOverrides()
     );
 
-    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-    final Decrementer decrementer = pullConcurrencyLimiter.increment();
-    pullBandRateLimiter.allow(KsqlQueryType.PULL);
-
+    Decrementer decrementer = null;
     try {
+      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+      decrementer = pullConcurrencyLimiter.increment();
+      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+      final Decrementer finalDecrementer = decrementer;
+
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,
@@ -346,7 +343,7 @@ public class QueryEndpoint {
 
       resultForMetrics.set(result);
       result.onCompletionOrException((v, throwable) -> {
-        decrementer.decrementAtMostOnce();
+        finalDecrementer.decrementAtMostOnce();
       });
 
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
@@ -355,7 +352,9 @@ public class QueryEndpoint {
 
       return publisher;
     } catch (Throwable t) {
-      decrementer.decrementAtMostOnce();
+      if (decrementer != null) {
+        decrementer.decrementAtMostOnce();
+      }
       throw t;
     }
   }

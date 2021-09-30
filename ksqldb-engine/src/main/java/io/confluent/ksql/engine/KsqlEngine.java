@@ -67,6 +67,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.io.Closeable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -174,7 +175,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
 
     cleanupService.startAsync();
   }
@@ -234,6 +235,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @VisibleForTesting
   QueryCleanupService getCleanupService() {
     return cleanupService;
+  }
+
+  @VisibleForTesting
+  public KsqlEngineMetrics getEngineMetrics() {
+    return engineMetrics;
   }
 
   @Override
@@ -338,18 +344,17 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     // Stream pull query overrides.
-    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(
-        ImmutableMap.<String, Object>builder()
-            .putAll(statementOrig.getSessionConfig().getOverrides())
-            // Starting from earliest is semantically necessary.
-            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            // Using a single thread keeps these queries as lightweight as possible, since we are
-            // not counting them against the transient query limit.
-            .put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
-            // There's no point in EOS, since this query only produces side effects.
-            .put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE)
-            .build()
-    );
+    final Map<String, Object> overrides =
+        new HashMap<>(statementOrig.getSessionConfig().getOverrides());
+    // Starting from earliest is semantically necessary.
+    overrides.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    // Using a single thread keeps these queries as lightweight as possible, since we are
+    // not counting them against the transient query limit.
+    overrides.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1);
+    // There's no point in EOS, since this query only produces side effects.
+    overrides.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.AT_LEAST_ONCE);
+
+    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(overrides);
     final ImmutableMap<TopicPartition, Long> endOffsets =
         getQueryInputEndOffsets(analysis, serviceContext.getAdminClient());
 
@@ -541,9 +546,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   public ImmutableAnalysis analyzeQueryWithNoOutputTopic(
       final Query query,
-      final String queryText) {
+      final String queryText,
+      final Map<String, Object> configOverrides) {
 
-    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(getMetaStore(), "", ksqlConfig);
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
+        getMetaStore(),
+        "",
+        ksqlConfig.cloneWithPropertyOverwrite(configOverrides)
+    );
+
     final Analysis analysis;
     try {
       analysis = queryAnalyzer.analyze(query, Optional.empty());

@@ -109,6 +109,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -245,10 +246,14 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, false);
 
+      // This is a cancel signal that is used to stop both local operations and requests
+      final CompletableFuture<Void> shouldCancelRequests = new CompletableFuture<>();
+
       plan = buildPullPhysicalPlan(
           logicalPlan,
           analysis,
-          queryPlannerOptions
+          queryPlannerOptions,
+          shouldCancelRequests
       );
       final PullPhysicalPlan physicalPlan = plan;
 
@@ -259,10 +264,11 @@ final class EngineExecutor {
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue);
+          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
-          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource);
+          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
+          shouldCancelRequests);
       if (startImmediately) {
         result.start();
       }
@@ -603,12 +609,15 @@ final class EngineExecutor {
         query,
         sink,
         metaStore,
-        ksqlConfig
+        ksqlConfig,
+        statement.getSessionConfig().getConfig(true)
     );
+
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)
     );
+
     final QueryId queryId = QueryIdUtil.buildId(
         statement.getStatement(),
         engineContext,
@@ -677,14 +686,16 @@ final class EngineExecutor {
   private PullPhysicalPlan buildPullPhysicalPlan(
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
-      final QueryPlannerOptions queryPlannerOptions
+      final QueryPlannerOptions queryPlannerOptions,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
         analysis,
-        queryPlannerOptions
+        queryPlannerOptions,
+        shouldCancelRequests
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }

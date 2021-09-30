@@ -110,6 +110,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
         containsString("header"),
@@ -131,6 +132,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     verify(pullQueryQueue).putSentinelRow(END_ROW);
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
@@ -149,6 +151,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     verify(pullQueryQueue).putSentinelRow(END_ROW);
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
@@ -170,6 +173,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     verify(pullQueryQueue).putSentinelRow(END_ROW);
     final List<String> lines = getOutput(out);
     assertThat(lines, hasItems(
@@ -194,6 +198,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     verify(pullQueryQueue).putSentinelRow(END_ROW);
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
@@ -217,6 +222,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     verify(pullQueryQueue).putSentinelRow(END_ROW);
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
@@ -243,6 +249,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     verify(pullQueryQueue).putSentinelRow(END_ROW);
     final List<String> lines = getOutput(out);
     assertThat(lines, contains(
@@ -267,6 +274,7 @@ public class PullQueryStreamWriterTest {
     writer.write(out);
 
     // Then:
+    assertThat(writer.isClosed(), is (true));
     final List<String> lines = getOutput(out);
     assertThat(lines.size(), is(2));
     assertThat(lines, contains(

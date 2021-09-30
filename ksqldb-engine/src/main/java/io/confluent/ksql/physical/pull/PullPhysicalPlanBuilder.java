@@ -53,6 +53,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -67,6 +68,7 @@ public class PullPhysicalPlanBuilder {
   private final ProcessingLogContext processingLogContext;
   private final Stacker contextStacker;
   private final PersistentQueryMetadata persistentQueryMetadata;
+  private final CompletableFuture<Void> shouldCancelOperations;
   private final QueryId queryId;
   private final Materialization mat;
   private final QueryPlannerOptions queryPlannerOptions;
@@ -80,12 +82,15 @@ public class PullPhysicalPlanBuilder {
       final ProcessingLogContext processingLogContext,
       final PersistentQueryMetadata persistentQueryMetadata,
       final ImmutableAnalysis analysis,
-      final QueryPlannerOptions queryPlannerOptions
+      final QueryPlannerOptions queryPlannerOptions,
+      final CompletableFuture<Void> shouldCancelOperations
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
     this.persistentQueryMetadata = Objects.requireNonNull(
         persistentQueryMetadata, "persistentQueryMetadata");
+    this.shouldCancelOperations =  Objects.requireNonNull(shouldCancelOperations,
+        "shouldCancelOperations");
     this.contextStacker = new Stacker();
     queryId = uniqueQueryId();
     mat = this.persistentQueryMetadata
@@ -227,9 +232,9 @@ public class PullPhysicalPlanBuilder {
         ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
     if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
       if (!logicalNode.isWindowed()) {
-        return new TableScanOperator(mat, logicalNode);
+        return new TableScanOperator(mat, logicalNode, shouldCancelOperations);
       } else {
-        return new WindowedTableScanOperator(mat, logicalNode);
+        return new WindowedTableScanOperator(mat, logicalNode, shouldCancelOperations);
       }
     }
 

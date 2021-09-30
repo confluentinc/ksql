@@ -29,8 +29,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PullQueryResult {
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryResult.class);
 
   private final LogicalSchema schema;
   private final PullQueryQueuePopulator populator;
@@ -41,6 +44,7 @@ public class PullQueryResult {
   private final PullPhysicalPlanType planType;
   private final RoutingNodeType routingNodeType;
   private final Supplier<Long> rowsProcessedSupplier;
+  private final CompletableFuture<Void> shouldCancelRequests;
 
   // This future is used to keep track of all of the callbacks since we allow for adding them both
   // before and after the pull query has been started.  When the pull query has completed, it will
@@ -58,7 +62,8 @@ public class PullQueryResult {
       final PullSourceType sourceType,
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType,
-      final Supplier<Long> rowsProcessedSupplier
+      final Supplier<Long> rowsProcessedSupplier,
+      final CompletableFuture<Void> shouldCancelRequests
   ) {
     this.schema = schema;
     this.populator = populator;
@@ -69,6 +74,7 @@ public class PullQueryResult {
     this.planType = planType;
     this.routingNodeType = routingNodeType;
     this.rowsProcessedSupplier = rowsProcessedSupplier;
+    this.shouldCancelRequests = shouldCancelRequests;
   }
 
   public LogicalSchema getSchema() {
@@ -87,22 +93,36 @@ public class PullQueryResult {
   public void start() {
     Preconditions.checkState(!started, "Should only start once");
     started = true;
-    final CompletableFuture<Void> f = populator.run();
-    f.exceptionally(t -> {
+    try {
+      final CompletableFuture<Void> f = populator.run();
+      f.exceptionally(t -> {
+        future.completeExceptionally(t);
+        return null;
+      });
+      f.thenAccept(future::complete);
+    } catch (final Throwable t) {
       future.completeExceptionally(t);
-      return null;
-    });
-    f.thenAccept(future::complete);
+      throw t;
+    }
+    // Register the error metric
+    onException(t ->
+        pullQueryMetrics.ifPresent(metrics ->
+            metrics.recordErrorRate(1, sourceType, planType, routingNodeType))
+    );
   }
 
   public void stop() {
-    pullQueryQueue.close();
+    try {
+      pullQueryQueue.close();
+    } catch (final Throwable t) {
+      LOG.error("Error closing pull query queue", t);
+    }
+    future.complete(null);
+    shouldCancelRequests.complete(null);
   }
 
   public void onException(final Consumer<Throwable> consumer) {
     future.exceptionally(t -> {
-      pullQueryMetrics.ifPresent(metrics ->
-          metrics.recordErrorRate(1, sourceType, planType, routingNodeType));
       consumer.accept(t);
       return null;
     });

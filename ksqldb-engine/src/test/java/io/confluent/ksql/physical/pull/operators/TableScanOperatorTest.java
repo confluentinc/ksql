@@ -17,6 +17,7 @@ import io.confluent.ksql.util.IteratorUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -36,6 +37,8 @@ public class TableScanOperatorTest {
   private MaterializedTable nonWindowedTable;
   @Mock
   private DataSourceNode logicalNode;
+  @Mock
+  private CompletableFuture<Void> shouldCancelOperations;
   @Mock
   private Row ROW1_1;
   @Mock
@@ -59,7 +62,7 @@ public class TableScanOperatorTest {
         Optional.empty(), 3, ImmutableList.of(node3)));
 
     final TableScanOperator lookupOperator
-        = new TableScanOperator(materialization, logicalNode);
+        = new TableScanOperator(materialization, logicalNode, shouldCancelOperations);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
     when(nonWindowedTable.get(1)).thenReturn(IteratorUtil.of(ROW1_1, ROW1_2));
@@ -77,5 +80,37 @@ public class TableScanOperatorTest {
     assertThat(lookupOperator.next(), is(ROW3_2));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(4L));
+  }
+
+  @Test
+  public void shouldCancel() {
+    //Given:
+    final List<KsqlPartitionLocation> singleKeyPartitionLocations = new ArrayList<>();
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 1, ImmutableList.of(node1)));
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 2, ImmutableList.of(node2)));
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 3, ImmutableList.of(node3)));
+    singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
+        Optional.empty(), 3, ImmutableList.of(node3)));
+
+    final TableScanOperator lookupOperator
+        = new TableScanOperator(materialization, logicalNode, shouldCancelOperations);
+    when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
+
+    when(nonWindowedTable.get(1)).thenReturn(IteratorUtil.of(ROW1_1, ROW1_2));
+
+
+    lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
+    lookupOperator.open();
+
+    //Then:
+    assertThat(lookupOperator.next(), is(ROW1_1));
+    assertThat(lookupOperator.next(), is(ROW1_2));
+    when(shouldCancelOperations.isDone()).thenReturn(true);
+    assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(2L));
   }
 }

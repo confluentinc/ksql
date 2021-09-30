@@ -377,8 +377,6 @@ public final class LogicalSchema {
       pseudoColumns.add(Pair.of(ROWOFFSET_NAME, ROWOFFSET_TYPE));
     }
 
-    final List<Column> toAddToBuilder = new ArrayList<>();
-
     //if query is pull or scalable push, need to check if column is disallowed
     if (forPullOrScalablePushQuery) {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {

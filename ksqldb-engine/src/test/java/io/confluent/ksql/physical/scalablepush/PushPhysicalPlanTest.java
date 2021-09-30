@@ -12,13 +12,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,9 +74,8 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false);
 
-    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
-    publisher.subscribe(subscriber);
+    pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     context.owner().setPeriodic(50, timerId -> {
       if (runnableCaptor.getValue() == null) {
@@ -102,9 +101,8 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false, false, true);
 
-    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
-    publisher.subscribe(subscriber);
+    pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     context.owner().setPeriodic(50, timerId -> {
       if (runnableCaptor.getValue() == null) {
@@ -135,9 +133,8 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.hasError()).thenReturn(false, false, true);
 
-    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
-    publisher.subscribe(subscriber);
+    pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     context.owner().setPeriodic(50, timerId -> {
       if (runnableCaptor.getValue() == null) {
@@ -168,9 +165,8 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     doThrow(new RuntimeException("Error on open")).when(root).open();
 
-    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
-    publisher.subscribe(subscriber);
+    pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     while (subscriber.getError() == null) {
       Thread.sleep(100);
@@ -186,9 +182,8 @@ public class PushPhysicalPlanTest {
     when(pushDataSourceOperator.droppedRows()).thenReturn(false);
     doThrow(new RuntimeException("Error on next")).when(root).next();
 
-    final BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
     final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
-    publisher.subscribe(subscriber);
+    pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     while (subscriber.getError() == null) {
       Thread.sleep(100);

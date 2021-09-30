@@ -380,9 +380,10 @@ public final class LogicalSchema {
     final List<Column> toAddToBuilder = new ArrayList<>();
 
     //if query is pull or scalable push, need to check if column is disallowed
-    if(isPullOrScalablePushQuery) {
+    if (isPullOrScalablePushQuery) {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
-        if(!SystemColumns.isDisallowedInPullOrScalablePushQueries(pair.left, pseudoColumnVersion)) {
+        if (!SystemColumns.isDisallowedInPullOrScalablePushQueries(
+            pair.left, pseudoColumnVersion)) {
           toAddToBuilder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
         }
       }

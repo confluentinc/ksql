@@ -239,7 +239,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldNotInitTransactionWhenCommandRunnerWarningPresent() {
     // When:
-
+    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
 
     // Then:
     assertThrows(

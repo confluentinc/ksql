@@ -249,7 +249,7 @@
         {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "R_ROWTIME": 12, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
       ],
       "post": {
         "sources": [
@@ -270,7 +270,7 @@
         {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "R_ROWTIME": 12, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
+        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
       ],
       "post": {
         "sources": [

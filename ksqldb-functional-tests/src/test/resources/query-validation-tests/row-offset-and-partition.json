@@ -325,52 +325,6 @@
       }
     },
     {
-      "comments": "should be removed with feature flag, as this is duplicated in the partition-by QTTs",
-      "name": "only key column - select star - with join on keys",
-      "statements": [
-        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.A = R.X PARTITION BY L.B;"
-      ],
-      "inputs": [
-        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 11},
-        {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12},
-        {"topic": "RIGHT", "key": 0, "value": {"Y": -1, "Z": -2}, "timestamp": 12}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}},
-        {"topic": "OUTPUT", "key": 1, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 1, "L_A": 0, "R_X": 0, "R_Y": -1, "L_C": 2, "R_Z": -2}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "L_B INT KEY, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, L_A INT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
-        ]
-      }
-    },
-    {
-      "comments": "should be removed with feature flag, as this is duplicated in the partition-by QTTs",
-      "name": "only key column - select star - with join on value columns",
-      "statements": [
-        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
-        "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM L JOIN R WITHIN 10 SECONDS ON L.B = R.Y PARTITION BY A;"
-      ],
-      "inputs": [
-        {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 11},
-        {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12},
-        {"topic": "RIGHT", "key": -1, "value": {"Y": 1, "Z": -2}, "timestamp": 12}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 0, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}},
-        {"topic": "OUTPUT", "key": 0, "value": {"L_ROWTIME": 11, "L_ROWPARTITION": 0, "L_ROWOFFSET": 0, "R_ROWTIME": 12, "R_ROWPARTITION": 0, "R_ROWOFFSET": 1, "R_X": -1, "L_B": 1, "R_Y": 1, "L_C": 2, "R_Z": -2}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C INT, L_ROWTIME BIGINT, L_ROWPARTITION INT, L_ROWOFFSET BIGINT, R_Y INT, R_Z INT, R_ROWTIME BIGINT, R_ROWPARTITION INT, R_ROWOFFSET BIGINT, R_X INT"}
-        ]
-      }
-    },
-    {
       "name": "GROUP BY ROWPARTITION",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT) WITH (kafka_topic='LEFT', value_format='JSON');",

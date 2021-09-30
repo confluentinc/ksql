@@ -29,7 +29,6 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -98,24 +97,35 @@ public class DistributingExecutor {
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
-  private Optional<SourceName> shouldGeneratePlan(final KsqlExecutionContext executionContext,
-                                     final ConfiguredStatement<?> statement) {
+  private Optional<StatementExecutorResponse> checkIfNotExistsResponse(final KsqlExecutionContext executionContext,
+                                                                       final ConfiguredStatement<?> statement) {
     SourceName sourceName = null;
+    String type = "";
     if (statement.getStatement() instanceof CreateStream
         && ((CreateStream) statement.getStatement()).isNotExists()) {
+      type = "stream";
       sourceName = ((CreateStream) statement.getStatement()).getName();
     } else if (statement.getStatement() instanceof CreateTable
         && ((CreateTable) statement.getStatement()).isNotExists()) {
+      type = "table";
       sourceName = ((CreateTable) statement.getStatement()).getName();
     } else if (statement.getStatement() instanceof CreateTableAsSelect
         && ((CreateTableAsSelect) statement.getStatement()).isNotExists()) {
+      type = "table";
       sourceName = ((CreateTableAsSelect) statement.getStatement()).getName();
     } else if (statement.getStatement() instanceof CreateStreamAsSelect
         && ((CreateStreamAsSelect) statement.getStatement()).isNotExists()) {
+      type = "stream";
       sourceName = ((CreateStreamAsSelect) statement.getStatement()).getName();
     }
     if (sourceName != null && executionContext.getMetaStore().getSource(sourceName) != null) {
-      return Optional.of(sourceName);
+      return Optional.of(StatementExecutorResponse.handled(Optional.of(
+          new WarningEntity(statement.getStatementText(),
+              String.format("Cannot add %s %s: A %s with the same name already exists.",
+                  type,
+                  sourceName,
+                  type)
+          ))));
     } else {
       return Optional.empty();
     }
@@ -154,13 +164,9 @@ public class DistributingExecutor {
       );
     }
 
-    if (shouldGeneratePlan(executionContext, statement).isPresent()) {
-      return StatementExecutorResponse.handled(Optional.of(
-          new WarningEntity(injected.getStatementText(),
-          "Cannot add `"
-              + shouldGeneratePlan(executionContext, statement).get()
-              + "`: An entity with the same name already exists."
-          )));
+    final Optional<StatementExecutorResponse> response = checkIfNotExistsResponse(executionContext, statement);
+    if (response.isPresent()) {
+      return response.get();
     }
 
     checkAuthorization(injected, securityContext, executionContext);

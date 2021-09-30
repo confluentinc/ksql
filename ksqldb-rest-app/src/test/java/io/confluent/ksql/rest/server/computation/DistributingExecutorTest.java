@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -56,6 +57,8 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -236,7 +239,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldNotInitTransactionWhenCommandRunnerWarningPresent() {
     // When:
-    when(commandRunnerWarning.get()).thenReturn(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_INCOMPATIBLE_COMMANDS_ERROR_MESSAGE);
+
 
     // Then:
     assertThrows(
@@ -435,5 +438,34 @@ public class DistributingExecutorTest {
 
     // Then:
     verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
+  }
+
+  @Test
+  public void shouldNotEnqueueRedundantIfNotExists() {
+    // Given:
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new CreateStream(
+            SourceName.of("TEST"),
+            TableElements.of(),
+            false,
+            true,
+            CreateSourceProperties.from(ImmutableMap.of(
+                CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
+                CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
+            )),
+            false
+        ));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("TEST"));
+
+    // When:
+    final StatementExecutorResponse response = distributor.execute(configured, executionContext, securityContext);
+
+    // Then:
+    assertThat("Should be present", response.getEntity().isPresent());
+    assertThat(((WarningEntity) response.getEntity().get()).getMessage(), containsString(""));
   }
 }

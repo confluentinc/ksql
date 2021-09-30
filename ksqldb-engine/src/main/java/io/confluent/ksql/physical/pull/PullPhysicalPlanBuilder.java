@@ -29,7 +29,6 @@ import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.ProjectOperator;
 import io.confluent.ksql.physical.common.operators.SelectOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperator;
@@ -48,6 +47,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -75,7 +75,7 @@ public class PullPhysicalPlanBuilder {
 
   private List<LookupConstraint> lookupConstraints;
   private PullPhysicalPlanType pullPhysicalPlanType;
-  private PullSourceType pullSourceType;
+  private QuerySourceType querySourceType;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
@@ -160,7 +160,7 @@ public class PullPhysicalPlanBuilder {
         queryId,
         lookupConstraints,
         pullPhysicalPlanType,
-        pullSourceType,
+        querySourceType,
         mat,
         dataSourceOperator);
   }
@@ -228,8 +228,8 @@ public class PullPhysicalPlanBuilder {
       }
     }
 
-    pullSourceType = logicalNode.isWindowed()
-        ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
+    querySourceType = logicalNode.isWindowed()
+        ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
     if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode, shouldCancelOperations);

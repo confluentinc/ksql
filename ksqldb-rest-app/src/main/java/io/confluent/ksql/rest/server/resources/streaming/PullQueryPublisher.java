@@ -33,8 +33,6 @@ import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -44,6 +42,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -155,7 +155,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private void recordMetrics(
       final PullQueryExecutorMetrics metrics, final PullQueryResult result) {
 
-    final PullSourceType sourceType = result.getSourceType();
+    final QuerySourceType sourceType = result.getSourceType();
     final PullPhysicalPlanType planType = result.getPlanType();
     final RoutingNodeType routingNodeType = result.getRoutingNodeType();
     // Note: we are not recording response size in this case because it is not

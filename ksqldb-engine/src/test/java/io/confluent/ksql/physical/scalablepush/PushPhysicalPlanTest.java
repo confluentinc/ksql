@@ -14,6 +14,7 @@ import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayList;
@@ -45,6 +46,8 @@ public class PushPhysicalPlanTest {
   private ScalablePushRegistry scalablePushRegistry;
   @Mock
   private PushDataSourceOperator pushDataSourceOperator;
+  @Mock
+  private QuerySourceType querySourceType;
   @Captor
   private ArgumentCaptor<Runnable> runnableCaptor;
 
@@ -67,7 +70,7 @@ public class PushPhysicalPlanTest {
   @Test
   public void shouldPublishRows() throws InterruptedException {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
-        scalablePushRegistry, pushDataSourceOperator, context);
+        scalablePushRegistry, pushDataSourceOperator, context, querySourceType);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false);
 
@@ -95,7 +98,7 @@ public class PushPhysicalPlanTest {
   @Test
   public void shouldStopOnDroppedRows() throws InterruptedException {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
-        scalablePushRegistry, pushDataSourceOperator, context);
+        scalablePushRegistry, pushDataSourceOperator, context, querySourceType);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false, false, true);
 
@@ -128,7 +131,7 @@ public class PushPhysicalPlanTest {
   @Test
   public void shouldStopOnHasError() throws InterruptedException {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
-        scalablePushRegistry, pushDataSourceOperator, context);
+        scalablePushRegistry, pushDataSourceOperator, context, querySourceType);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.hasError()).thenReturn(false, false, true);
 
@@ -161,7 +164,7 @@ public class PushPhysicalPlanTest {
   @Test
   public void shouldThrowErrorOnOpen() throws InterruptedException {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
-        scalablePushRegistry, pushDataSourceOperator, context);
+        scalablePushRegistry, pushDataSourceOperator, context, querySourceType);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     doThrow(new RuntimeException("Error on open")).when(root).open();
 
@@ -178,7 +181,7 @@ public class PushPhysicalPlanTest {
   @Test
   public void shouldThrowErrorOnNext() throws InterruptedException {
     final PushPhysicalPlan pushPhysicalPlan = new PushPhysicalPlan(root, logicalSchema, queryId,
-        scalablePushRegistry, pushDataSourceOperator, context);
+        scalablePushRegistry, pushDataSourceOperator, context, querySourceType);
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false);
     doThrow(new RuntimeException("Error on next")).when(root).next();

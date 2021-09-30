@@ -36,6 +36,7 @@ import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -62,7 +63,6 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -93,6 +93,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -233,6 +234,9 @@ final class EngineExecutor {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
     final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    // If we ever change how many hops a request can do, we'll need to update this for correct
+    // metrics.
     final RoutingNodeType routingNodeType = routingOptions.getIsSkipForwardRequest()
         ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
 
@@ -256,9 +260,6 @@ final class EngineExecutor {
           shouldCancelRequests
       );
       final PullPhysicalPlan physicalPlan = plan;
-
-      // If we ever change how many hops a request can do, we'll need to update this for correct
-      // metrics.
 
       final PullQueryQueue pullQueryQueue = new PullQueryQueue();
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
@@ -327,19 +328,30 @@ final class EngineExecutor {
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
       final QueryPlannerOptions queryPlannerOptions,
-      final Context context
+      final Context context,
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
+
+    // If we ever change how many hops a request can do, we'll need to update this for correct
+    // metrics.
+    final RoutingNodeType routingNodeType = pushRoutingOptions.getHasBeenForwarded()
+        ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
+
+    PushPhysicalPlan plan = null;
+
     try {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
+      plan = buildScalablePushPhysicalPlan(
           logicalPlan,
           analysis,
           context,
           pushRoutingOptions
       );
+      final  PushPhysicalPlan physicalPlan = plan;
+
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
       final PushQueryMetadata.ResultType resultType =
@@ -350,24 +362,66 @@ final class EngineExecutor {
 
       final PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
-              physicalPlan.getOutputSchema(), transientQueryQueue);
+              physicalPlan.getOutputSchema(), transientQueryQueue, scalablePushQueryMetrics);
       final PushQueryPreparer preparer = () ->
           pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
           transientQueryQueue,
+          scalablePushQueryMetrics,
           resultType,
           populator,
-          preparer
+          preparer,
+          physicalPlan.getSourceType(),
+          routingNodeType,
+          physicalPlan::getRowsReadFromDataSource
       );
 
       return metadata;
     } catch (final Exception e) {
+      if (plan == null) {
+        scalablePushQueryMetrics.ifPresent(m -> m.recordErrorRateForNoResult(1));
+      } else {
+        final PushPhysicalPlan pushPhysicalPlan = plan;
+        scalablePushQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
+                pushPhysicalPlan.getSourceType(),
+                routingNodeType
+        ));
+      }
+
+      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
+      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
+
+      // do not include the statement text in the default logs as it may contain sensitive
+      // information - the exception which is returned to the user below will contain
+      // the contents of the query
+      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
+        final StackTraceElement loc = Iterables
+                .getLast(Throwables.getCausalChain(e))
+                .getStackTrace()[0];
+        LOG.error("Failure to execute push query V2 {} {}, not logging the error message since it "
+                        + "contains the query string, which may contain sensitive information."
+                        + " If you see this LOG message, please submit a GitHub ticket and"
+                        + " we will scrub the statement text from the error at {}",
+                pushRoutingOptions.debugString(),
+                queryPlannerOptions.debugString(),
+                loc);
+      } else {
+        LOG.error("Failure to execute push query V2. {} {}",
+                pushRoutingOptions.debugString(),
+                queryPlannerOptions.debugString(),
+                e);
+      }
+      LOG.debug("Failed push query V2 text {}, {}", statement.getStatementText(), e);
+
       throw new KsqlStatementException(
-          e.getMessage(),
-          statement.getStatementText(),
-          e
+              e.getMessage() == null
+                      ? "Server Error" + Arrays.toString(e.getStackTrace())
+                      : e.getMessage(),
+              statement.getStatementText(),
+              e
       );
     }
   }

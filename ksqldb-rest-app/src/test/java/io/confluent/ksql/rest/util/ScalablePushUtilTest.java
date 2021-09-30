@@ -1,6 +1,5 @@
 package io.confluent.ksql.rest.util;
 
-import static io.confluent.ksql.rest.util.ScalablePushUtil.STREAMS_AUTO_OFFSET_RESET_CONFIG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
@@ -25,6 +24,7 @@ import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -61,7 +61,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(true));
   }
 
@@ -73,7 +73,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -85,7 +85,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest",
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
             KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)),
         equalTo(true));
   }
@@ -100,7 +100,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -113,7 +113,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -125,7 +125,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -139,7 +139,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -151,7 +151,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -163,15 +163,41 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
 
   @Test
-  public void isScalablePushQuery_false_noLatest() {
+  public void isScalablePushQuery_true_noLatest() {
     // When:
     expectIsSQP();
+
+    // Then:
+    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+        ImmutableMap.of()),
+        equalTo(true));
+  }
+
+  @Test
+  public void isScalablePushQuery_true_configLatest() {
+    // When:
+    expectIsSQP();
+    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+        .thenReturn(Optional.of("latest"));
+
+    // Then:
+    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+        ImmutableMap.of()),
+        equalTo(true));
+  }
+
+  @Test
+  public void isScalablePushQuery_false_configNotLatest() {
+    // When:
+    expectIsSQP();
+    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+        .thenReturn(Optional.of("earliest"));
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
@@ -183,7 +209,7 @@ public class ScalablePushUtilTest {
   public void isScalablePushQuery_true_latestConfig() {
     // When:
     expectIsSQP();
-    when(ksqlConfig.getKsqlStreamConfigProp(STREAMS_AUTO_OFFSET_RESET_CONFIG))
+    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
         .thenReturn(Optional.of("latest"));
 
     // Then:
@@ -200,7 +226,7 @@ public class ScalablePushUtilTest {
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
         ImmutableMap.of(
-            KsqlConfig.KSQL_STREAMS_PREFIX + STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+            KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(true));
   }
 
@@ -213,7 +239,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 
@@ -226,7 +252,7 @@ public class ScalablePushUtilTest {
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-        ImmutableMap.of(STREAMS_AUTO_OFFSET_RESET_CONFIG, "latest")),
+        ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
         equalTo(false));
   }
 }

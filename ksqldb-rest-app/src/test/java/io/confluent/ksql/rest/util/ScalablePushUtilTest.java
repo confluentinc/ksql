@@ -150,11 +150,10 @@ public class ScalablePushUtilTest {
   }
 
   @Test
-  public void shouldMakeCompatibleQueryScalablePush() {
+  public void isScalablePushQuery_true() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
       expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenSelectClause(ColumnName.of("AnAllowedColumnName"), columnExtractor);
 
       // When:
@@ -168,17 +167,6 @@ public class ScalablePushUtilTest {
       // Then:
       assert(isScalablePush);
     }
-  }
-
-  @Test
-  public void isScalablePushQuery_true() {
-    // When:
-    expectIsSPQ();
-
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(true));
   }
 
   @Test

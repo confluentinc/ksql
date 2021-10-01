@@ -1,10 +1,9 @@
 package io.confluent.ksql.rest.util;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -13,46 +12,33 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.ColumnExtractor;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.OutputRefinement;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Select;
-import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Select;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -77,26 +63,14 @@ public class ScalablePushUtilTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
-  private QueryId queryId;
-  @Mock
-  private RefinementInfo refinementInfo;
-  @Mock
   private Select select;
-
-  private Table table;
-  private Set<QueryId> queries;
-
-  @Before
-  public void setup() {
-    queries = ImmutableSet.of(queryId);
-    table = new Table(Optional.empty(), SourceName.of("asdf"));
-  }
 
   @Test
   public void shouldNotMakeQueryWithRowpartitionInSelectClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      givenScalablePushQuery();
+      expectIsSPQ();
+      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenSelectClause(SystemColumns.ROWPARTITION_NAME, columnExtractor);
 
       // When:
@@ -116,7 +90,8 @@ public class ScalablePushUtilTest {
   public void shouldNotMakeQueryWithRowoffsetInSelectClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      givenScalablePushQuery();
+      expectIsSPQ();
+      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenSelectClause(SystemColumns.ROWOFFSET_NAME, columnExtractor);
 
       // When:
@@ -136,7 +111,8 @@ public class ScalablePushUtilTest {
   public void shouldNotMakeQueryWithRowpartitionInWhereClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      givenScalablePushQuery();
+      expectIsSPQ();
+      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenWhereClause(SystemColumns.ROWPARTITION_NAME, columnExtractor);
 
       // When:
@@ -156,7 +132,8 @@ public class ScalablePushUtilTest {
   public void shouldNotMakeQueryWithRowoffsetInWhereClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      givenScalablePushQuery();
+      expectIsSPQ();
+      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenWhereClause(SystemColumns.ROWOFFSET_NAME, columnExtractor);
 
       // When:
@@ -176,7 +153,8 @@ public class ScalablePushUtilTest {
   public void shouldMakeCompatibleQueryScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      givenScalablePushQuery();
+      expectIsSPQ();
+      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenSelectClause(ColumnName.of("AnAllowedColumnName"), columnExtractor);
 
       // When:
@@ -195,7 +173,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_true() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
@@ -206,7 +184,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_configDisabled() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(false);
 
     // Then:
@@ -219,7 +197,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_true_enabledWithOverride() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
@@ -231,7 +209,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_hasGroupBy() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(query.getGroupBy())
         .thenReturn(
             Optional.of(new GroupBy(Optional.empty(), ImmutableList.of(new IntegerLiteral(1)))));
@@ -245,7 +223,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_hasWindow() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(query.getWindow()).thenReturn(Optional.of(new WindowExpression("foo",
         new TumblingWindowExpression(new WindowTimeClause(1, TimeUnit.MILLISECONDS)))));
 
@@ -258,7 +236,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_hasHaving() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(query.getHaving()).thenReturn(Optional.of(new IntegerLiteral(1)));
 
     // Then:
@@ -270,7 +248,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_hasPartitionBy() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(query.getPartitionBy())
         .thenReturn(Optional.of(
             new PartitionBy(Optional.empty(), ImmutableList.of(new IntegerLiteral(1)))));
@@ -284,7 +262,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_hasNoRefinement() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(query.getRefinement()).thenReturn(Optional.empty());
 
     // Then:
@@ -296,7 +274,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_hasWrongRefinement() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(query.getRefinement()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
 
     // Then:
@@ -309,7 +287,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_true_noLatest() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
@@ -320,7 +298,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_true_configLatest() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
         .thenReturn(Optional.of("latest"));
 
@@ -333,7 +311,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_configNotLatest() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
         .thenReturn(Optional.of("earliest"));
 
@@ -346,7 +324,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_true_latestConfig() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
         .thenReturn(Optional.of("latest"));
 
@@ -359,7 +337,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_true_streamsOverride() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
 
     // Then:
     assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
@@ -371,7 +349,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_wrongUpstreamQueries_None() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
         ImmutableSet.of());
 
@@ -384,7 +362,7 @@ public class ScalablePushUtilTest {
   @Test
   public void isScalablePushQuery_false_wrongUpstreamQueries_Two() {
     // When:
-    expectIsSQP();
+    expectIsSPQ();
     when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
         ImmutableSet.of(new QueryId("A"), new QueryId("B")));
 
@@ -394,8 +372,10 @@ public class ScalablePushUtilTest {
         equalTo(false));
   }
 
-  private void expectIsSQP() {
+  private void expectIsSPQ() {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(true);
+    // to avoid static mocking of ColumnExtractor for each class
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
     when(query.getGroupBy()).thenReturn(Optional.empty());
     when(query.getWindow()).thenReturn(Optional.empty());
     when(query.getHaving()).thenReturn(Optional.empty());
@@ -406,19 +386,6 @@ public class ScalablePushUtilTest {
         .thenReturn(new AliasedRelation(new Table(SourceName.of("Foo")), SourceName.of("blah")));
     when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
         ImmutableSet.of(new QueryId("a")));
-  }
-
-  private void givenScalablePushQuery() {
-    when(query.getFrom()).thenReturn(table);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
-    when(ksqlEngine.getQueriesWithSink(any())).thenReturn(queries);
-    when(query.isPullQuery()).thenReturn(false);
-    when(query.getGroupBy()).thenReturn(Optional.empty());
-    when(query.getWindow()).thenReturn(Optional.empty());
-    when(query.getHaving()).thenReturn(Optional.empty());
-    when(query.getPartitionBy()).thenReturn(Optional.empty());
-    when(query.getRefinement()).thenReturn(Optional.of(refinementInfo));
-    when(refinementInfo.getOutputRefinement()).thenReturn(OutputRefinement.CHANGES);
   }
 
   private void givenSelectClause(

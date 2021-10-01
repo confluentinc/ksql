@@ -18,12 +18,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
+import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -91,6 +97,45 @@ public class DistributingExecutor {
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  private Optional<StatementExecutorResponse> checkIfNotExistsResponse(
+      final KsqlExecutionContext executionContext,
+      final ConfiguredStatement<?> statement
+  ) {
+    SourceName sourceName = null;
+    String type = "";
+    if (statement.getStatement() instanceof CreateStream
+        && ((CreateStream) statement.getStatement()).isNotExists()) {
+      type = "stream";
+      sourceName = ((CreateStream) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTable
+        && ((CreateTable) statement.getStatement()).isNotExists()) {
+      type = "table";
+      sourceName = ((CreateTable) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateTableAsSelect
+        && ((CreateTableAsSelect) statement.getStatement()).isNotExists()) {
+      type = "table";
+      sourceName = ((CreateTableAsSelect) statement.getStatement()).getName();
+    } else if (statement.getStatement() instanceof CreateStreamAsSelect
+        && ((CreateStreamAsSelect) statement.getStatement()).isNotExists()) {
+      type = "stream";
+      sourceName = ((CreateStreamAsSelect) statement.getStatement()).getName();
+    }
+    if (sourceName != null
+        && executionContext.getMetaStore().getSource(sourceName) != null) {
+      return Optional.of(StatementExecutorResponse.handled(Optional.of(
+          new WarningEntity(statement.getStatementText(),
+              String.format("Cannot add %s %s: A %s with the same name already exists.",
+                  type,
+                  sourceName,
+                  type)
+          ))));
+    } else {
+      return Optional.empty();
+    }
+  }
+
+
   /**
    * The transactional protocol for sending a command to the command topic is to
    * initTransaction(), beginTransaction(), wait for commandRunner to finish processing all previous
@@ -101,6 +146,7 @@ public class DistributingExecutor {
    * If a new transactional producer is initialized while the current transaction is incomplete,
    * the old producer will be fenced off and unable to continue with its transaction.
    */
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   public StatementExecutorResponse execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,
@@ -121,6 +167,15 @@ public class DistributingExecutor {
           executionContext.getMetaStore(),
           (InsertInto) injected.getStatement()
       );
+    }
+
+    final Optional<StatementExecutorResponse> response = checkIfNotExistsResponse(
+        executionContext,
+        statement
+    );
+
+    if (response.isPresent()) {
+      return response.get();
     }
 
     checkAuthorization(injected, securityContext, executionContext);

@@ -58,6 +58,8 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.Format;
@@ -69,6 +71,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -655,6 +658,16 @@ class Analyzer {
     }
 
     public void validate() {
+
+      if (containsUserColumnsWithSameNameAsNewPseudoColumns(analysis, ksqlConfig)) {
+        throw new KsqlException("You cannot query a stream or table that "
+            + "has user columns with the same name as new pseudocolumns.\n"
+            + "To allow for new queries on this source, downgrade your ksql"
+            + "version to a release before the conflicting pseudocolumns"
+            + "were introduced."
+        );
+      }
+
       final String kafkaSources = analysis.getAllDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
                   .equals(KafkaFormat.NAME))
@@ -677,6 +690,19 @@ class Analyzer {
             + " This format does not yet support GROUP BY."
             + System.lineSeparator() + KAFKA_VALUE_FORMAT_LIMITATION_DETAILS);
       }
+    }
+
+    private boolean containsUserColumnsWithSameNameAsNewPseudoColumns(
+        final Analysis analysis,
+        final KsqlConfig ksqlConfig
+        ) {
+      return analysis.getAllDataSources().stream()
+          .map(AliasedDataSource::getDataSource)
+          .map(DataSource::getSchema)
+          .map(LogicalSchema::value)
+          .flatMap(Collection::stream)
+          .map(Column::name)
+          .anyMatch(name -> SystemColumns.isPseudoColumn(name, ksqlConfig));
     }
 
     private void captureReferencedSourceColumns(final Expression exp) {

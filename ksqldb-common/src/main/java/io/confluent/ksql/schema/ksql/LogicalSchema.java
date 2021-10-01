@@ -224,10 +224,7 @@ public final class LogicalSchema {
 
   public LogicalSchema withoutPseudoAndKeyColsInValue(final KsqlConfig ksqlConfig) {
     return withoutPseudoAndKeyColsInValue(
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
-        : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER
-    );
+        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
   /**

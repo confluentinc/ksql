@@ -181,11 +181,11 @@ public final class SystemColumns {
 
   public static boolean isDisallowedInPullOrScalablePushQueries(
       final ColumnName columnName,
-      final int psuedoColumnVersion
+      final int pseudoColumnVersion
   ) {
     return pseudoColumns
         .stream()
-        .filter(col -> col.version <= psuedoColumnVersion)
+        .filter(col -> col.version <= pseudoColumnVersion)
         .filter(col -> col.isDisallowedInPullAndScalablePushQueries)
         .anyMatch(col -> col.name.equals(columnName));
   }

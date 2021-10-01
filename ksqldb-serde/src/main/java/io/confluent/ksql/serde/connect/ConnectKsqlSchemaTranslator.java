@@ -36,6 +36,9 @@ public final class ConnectKsqlSchemaTranslator {
 
   private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
 
+  private static final ConnectSchemaTranslationPolicies DEFAULT_POLICY =
+      ConnectSchemaTranslationPolicies.of(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME);
+
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST);
 
@@ -59,7 +62,15 @@ public final class ConnectKsqlSchemaTranslator {
   public static final Schema OPTIONAL_TIME_SCHEMA = Time.builder().optional().build();
   public static final Schema OPTIONAL_DATE_SCHEMA = Date.builder().optional().build();
 
-  public ConnectKsqlSchemaTranslator() {}
+  private final ConnectSchemaTranslationPolicies policies;
+
+  public ConnectKsqlSchemaTranslator() {
+    this(DEFAULT_POLICY);
+  }
+
+  public ConnectKsqlSchemaTranslator(ConnectSchemaTranslationPolicies policies) {
+    this.policies = policies;
+  }
 
   /**
    * Ensures all schema types are optional.
@@ -158,7 +169,16 @@ public final class ConnectKsqlSchemaTranslator {
     for (final Field field : schema.fields()) {
       try {
         final Schema fieldSchema = toKsqlFieldSchema(field.schema());
-        schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+        if (policies.enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME)) {
+          schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+        } else if (policies.enabled(ConnectSchemaTranslationPolicy.LOWERCASE_FIELD_NAME)) {
+          schemaBuilder.field(field.name().toLowerCase(), fieldSchema);
+        } else if (policies.enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME)) {
+          schemaBuilder.field(field.name(), fieldSchema);
+        } else {
+          // Default to uppercase
+          schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+        }
       } catch (final UnsupportedTypeException e) {
         log.error("Error inferring schema at field {}: {}", field.name(), e.getMessage());
       }

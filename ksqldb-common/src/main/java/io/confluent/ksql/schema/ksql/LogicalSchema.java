@@ -40,6 +40,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.Pair;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -141,7 +143,7 @@ public final class LogicalSchema {
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed, final int pseudoColumnVersion) {
-    return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion);
+    return rebuildWithPseudoAndKeyColsInValue(windowed, pseudoColumnVersion, false);
   }
 
   /**
@@ -194,9 +196,10 @@ public final class LogicalSchema {
       final KsqlConfig ksqlConfig,
       final boolean forPullOrScalablePushQuery
   ) {
-    return withPseudoAndKeyColsInValue(
+    return rebuildWithPseudoAndKeyColsInValue(
         windowed,
-        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig, forPullOrScalablePushQuery)
+        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig),
+        forPullOrScalablePushQuery
     );
   }
 
@@ -343,7 +346,10 @@ public final class LogicalSchema {
    * @return the LogicalSchema created, with the corresponding pseudo and key columns included
    */
   private LogicalSchema rebuildWithPseudoAndKeyColsInValue(
-      final boolean windowedKey, final int pseudoColumnVersion) {
+      final boolean windowedKey,
+      final int pseudoColumnVersion,
+      final boolean forPullOrScalablePushQuery
+  ) {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
@@ -360,13 +366,29 @@ public final class LogicalSchema {
 
     int valueIndex = nonPseudoAndKeyCols.size();
 
+    final List<Pair<ColumnName, SqlType>> pseudoColumns = new ArrayList<>();
+
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
-      builder.add(Column.of(ROWTIME_NAME, ROWTIME_TYPE, VALUE, valueIndex++));
+      pseudoColumns.add(Pair.of(ROWTIME_NAME, ROWTIME_TYPE));
     }
 
     if (pseudoColumnVersion >= ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
-      builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
-      builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
+      pseudoColumns.add(Pair.of(ROWPARTITION_NAME, ROWPARTITION_TYPE));
+      pseudoColumns.add(Pair.of(ROWOFFSET_NAME, ROWOFFSET_TYPE));
+    }
+
+    //if query is pull or scalable push, need to check if column is disallowed
+    if (forPullOrScalablePushQuery) {
+      for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
+        if (!SystemColumns.isDisallowedInPullOrScalablePushQueries(
+            pair.left, pseudoColumnVersion)) {
+          builder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
+        }
+      }
+    } else {
+      for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
+        builder.add(Column.of(pair.left, pair.right, VALUE, valueIndex++));
+      }
     }
 
     for (final Column c : key) {

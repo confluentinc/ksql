@@ -591,6 +591,25 @@ public class CommandRunnerTest {
     inOrder.verify(executor).awaitTermination(anyLong(), any());
     inOrder.verify(commandStore).close();
   }
+  
+  @Test
+  public void shouldCloseEarlyOnTerminate() throws InterruptedException {
+    // Given:
+    when(commandStore.getNewCommands(any())).thenReturn(Collections.singletonList(queuedCommand1));
+    when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
+
+    // When:
+    commandRunner.start();
+    verify(commandStore, never()).close();
+    final Runnable threadTask = getThreadTask();
+    threadTask.run();
+    
+    // Then:
+    final InOrder inOrder = inOrder(executor, commandStore);
+    inOrder.verify(commandStore).wakeup();
+    inOrder.verify(executor).awaitTermination(anyLong(), any());
+    inOrder.verify(commandStore).close();
+  }
 
   @Test
   public void shouldCloseEarlyWhenOffsetOutOfRangeException() throws Exception {

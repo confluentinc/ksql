@@ -90,14 +90,14 @@ public final class ScalablePushUtil {
         && !containsDisallowedColumns(query, ksqlConfig);
   }
 
-  public static boolean containsDisallowedColumns(final Query query, final KsqlConfig ksqlConfig) {
+  private static boolean containsDisallowedColumns(final Query query, final KsqlConfig ksqlConfig) {
     //if the flag is not enabled, these are user columns and can be used in SPQs
     if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)) {
       return false;
     }
 
     return containsDisallowedColumnsInWhereClause(query, ksqlConfig)
-        || containsPartitionOrOffsetInSelectClause(query, ksqlConfig);
+        || containsDisallowedColumnsInSelectClause(query, ksqlConfig);
   }
 
   // this code is a duplicate of what's in PullQueryValidator, but this is intended as
@@ -121,7 +121,7 @@ public final class ScalablePushUtil {
             SystemColumns.isDisallowedInPullOrScalablePushQueries(name, pseudoColumnVersion));
   }
 
-  private static boolean containsPartitionOrOffsetInSelectClause(
+  private static boolean containsDisallowedColumnsInSelectClause(
       final Query query,
       final KsqlConfig ksqlConfig
   ) {

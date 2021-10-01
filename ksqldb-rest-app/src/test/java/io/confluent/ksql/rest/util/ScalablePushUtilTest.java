@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -64,6 +65,12 @@ public class ScalablePushUtilTest {
   private KsqlEngine ksqlEngine;
   @Mock
   private Select select;
+
+  @Before
+  public void setUp() {
+    // Otherwise we'd need to mock static ColumnExtractor in each passing test to avoid NPEs
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
+  }
 
   @Test
   public void shouldNotMakeQueryWithRowpartitionInSelectClauseScalablePush() {
@@ -363,7 +370,6 @@ public class ScalablePushUtilTest {
   private void expectIsSPQ() {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(true);
     // to avoid static mocking of ColumnExtractor for each class
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
     when(query.getGroupBy()).thenReturn(Optional.empty());
     when(query.getWindow()).thenReturn(Optional.empty());
     when(query.getHaving()).thenReturn(Optional.empty());

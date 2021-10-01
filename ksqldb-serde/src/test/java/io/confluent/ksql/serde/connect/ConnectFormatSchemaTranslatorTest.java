@@ -54,7 +54,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ConnectFormatSchemaTranslatorTest {
 
   @Mock
-  private Function<Schema, Schema> connectKsqlTranslator;
+  private ConnectKsqlSchemaTranslator connectKsqlTranslator;
   @Mock
   private ParsedSchema parsedSchema;
   @Mock
@@ -72,7 +72,7 @@ public class ConnectFormatSchemaTranslatorTest {
 
   @Before
   public void setUp() {
-    when(connectKsqlTranslator.apply(any())).thenReturn(transformedSchema);
+    when(connectKsqlTranslator.toKsqlSchema(any())).thenReturn(transformedSchema);
     when(connectSchema.type()).thenReturn(Type.STRUCT);
 
     when(format.getConnectSchemaTranslator(any())).thenReturn(innerTranslator);
@@ -93,7 +93,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toColumns(parsedSchema, SerdeFeatures.of(), false);
 
     // Then:
-    verify(connectKsqlTranslator).apply(connectSchema);
+    verify(connectKsqlTranslator).toKsqlSchema(connectSchema);
   }
 
   @Test
@@ -157,7 +157,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), false);
 
     // Then:
-    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+    verify(connectKsqlTranslator).toKsqlSchema(SchemaBuilder.struct()
         .field("ROWVAL", connectSchema)
         .build());
   }
@@ -171,7 +171,7 @@ public class ConnectFormatSchemaTranslatorTest {
     translator.toColumns(parsedSchema, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), true);
 
     // Then:
-    verify(connectKsqlTranslator).apply(SchemaBuilder.struct()
+    verify(connectKsqlTranslator).toKsqlSchema(SchemaBuilder.struct()
         .field("ROWKEY", connectSchema)
         .build());
   }

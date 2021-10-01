@@ -21,7 +21,7 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -32,42 +32,42 @@ import org.apache.kafka.connect.data.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ConnectSchemaUtil {
+public final class ConnectKsqlSchemaTranslator {
 
   private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
 
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST);
 
-  private static final Map<Type, Function<Schema, Schema>> CONNECT_TO_KSQL =
-      ImmutableMap.<Type, Function<Schema, Schema>>builder()
-      .put(Type.INT8, s -> Schema.OPTIONAL_INT32_SCHEMA)
-      .put(Type.INT16, s -> Schema.OPTIONAL_INT32_SCHEMA)
-      .put(Type.INT32, ConnectSchemaUtil::convertInt32Schema)
-      .put(Type.INT64, ConnectSchemaUtil::convertInt64Schema)
-      .put(Type.FLOAT32, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .put(Type.FLOAT64, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .put(Type.STRING, s -> Schema.OPTIONAL_STRING_SCHEMA)
-      .put(Type.BOOLEAN, s -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .put(Type.BYTES, ConnectSchemaUtil::toKsqlBytesSchema)
-      .put(Type.ARRAY, ConnectSchemaUtil::toKsqlArraySchema)
-      .put(Type.MAP, ConnectSchemaUtil::toKsqlMapSchema)
-      .put(Type.STRUCT, ConnectSchemaUtil::toKsqlStructSchema)
-      .build();
+  private final Map<Type, BiFunction<ConnectKsqlSchemaTranslator, Schema, Schema>> connectToSql =
+      ImmutableMap.<Type, BiFunction<ConnectKsqlSchemaTranslator, Schema, Schema>>builder()
+          .put(Type.INT8, (instance, s) -> Schema.OPTIONAL_INT32_SCHEMA)
+          .put(Type.INT16, (instance, s) -> Schema.OPTIONAL_INT32_SCHEMA)
+          .put(Type.INT32, (instance, s) -> this.convertInt32Schema(s))
+          .put(Type.INT64, (instance, s) -> instance.convertInt64Schema(s))
+          .put(Type.FLOAT32, (instance, s) -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(Type.FLOAT64, (instance, s) -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(Type.STRING, (instance, s) -> Schema.OPTIONAL_STRING_SCHEMA)
+          .put(Type.BOOLEAN, (instance, s) -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+          .put(Type.BYTES, (instance, s) -> instance.toKsqlBytesSchema(s))
+          .put(Type.ARRAY, (instance, s) -> instance.toKsqlArraySchema(s))
+          .put(Type.MAP, (instance, s) -> instance.toKsqlMapSchema(s))
+          .put(Type.STRUCT, (instance, s) -> instance.toKsqlStructSchema(s))
+          .build();
 
   public static final Schema OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build();
   public static final Schema OPTIONAL_TIME_SCHEMA = Time.builder().optional().build();
   public static final Schema OPTIONAL_DATE_SCHEMA = Date.builder().optional().build();
 
-  private ConnectSchemaUtil() {
-  }
+  public ConnectKsqlSchemaTranslator() {}
 
   /**
    * Ensures all schema types are optional.
+   *
    * @param schema the source schema.
    * @return the ksql compatible schema.
    */
-  public static Schema toKsqlSchema(final Schema schema) {
+  public Schema toKsqlSchema(final Schema schema) {
     try {
       final Schema rowSchema = toKsqlFieldSchema(schema);
       if (rowSchema.type() != Schema.Type.STRUCT) {
@@ -87,17 +87,18 @@ public final class ConnectSchemaUtil {
     }
   }
 
-  private static Schema toKsqlFieldSchema(final Schema schema) {
-    final Function<Schema, Schema> handler = CONNECT_TO_KSQL.get(schema.type());
+  private Schema toKsqlFieldSchema(final Schema schema) {
+    final BiFunction<ConnectKsqlSchemaTranslator, Schema, Schema> handler = connectToSql.get(
+        schema.type());
     if (handler == null) {
       throw new UnsupportedTypeException(
           String.format("Unsupported type: %s", schema.type().getName()));
     }
 
-    return handler.apply(schema);
+    return handler.apply(this, schema);
   }
 
-  private static void checkMapKeyType(final Schema.Type type) {
+  private void checkMapKeyType(final Schema.Type type) {
     switch (type) {
       case INT8:
       case INT16:
@@ -111,7 +112,7 @@ public final class ConnectSchemaUtil {
     }
   }
 
-  private static Schema convertInt64Schema(final Schema schema) {
+  private Schema convertInt64Schema(final Schema schema) {
     if (schema.name() == Timestamp.LOGICAL_NAME) {
       return OPTIONAL_TIMESTAMP_SCHEMA;
     } else {
@@ -119,7 +120,7 @@ public final class ConnectSchemaUtil {
     }
   }
 
-  private static Schema convertInt32Schema(final Schema schema) {
+  private Schema convertInt32Schema(final Schema schema) {
     if (schema.name() == Time.LOGICAL_NAME) {
       return OPTIONAL_TIME_SCHEMA;
     } else if (schema.name() == Date.LOGICAL_NAME) {
@@ -129,7 +130,7 @@ public final class ConnectSchemaUtil {
     }
   }
 
-  private static Schema toKsqlBytesSchema(final Schema schema) {
+  private Schema toKsqlBytesSchema(final Schema schema) {
     if (DecimalUtil.isDecimal(schema)) {
       return schema;
     } else {
@@ -137,7 +138,7 @@ public final class ConnectSchemaUtil {
     }
   }
 
-  private static Schema toKsqlMapSchema(final Schema schema) {
+  private Schema toKsqlMapSchema(final Schema schema) {
     final Schema keySchema = toKsqlFieldSchema(schema.keySchema());
     checkMapKeyType(keySchema.type());
     return SchemaBuilder.map(
@@ -146,13 +147,13 @@ public final class ConnectSchemaUtil {
     ).optional().build();
   }
 
-  private static Schema toKsqlArraySchema(final Schema schema) {
+  private Schema toKsqlArraySchema(final Schema schema) {
     return SchemaBuilder.array(
         toKsqlFieldSchema(schema.valueSchema())
     ).optional().build();
   }
 
-  private static Schema toKsqlStructSchema(final Schema schema) {
+  private Schema toKsqlStructSchema(final Schema schema) {
     final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
     for (final Field field : schema.fields()) {
       try {
@@ -166,6 +167,7 @@ public final class ConnectSchemaUtil {
   }
 
   private static class UnsupportedTypeException extends RuntimeException {
+
     UnsupportedTypeException(final String error) {
       super(error);
     }

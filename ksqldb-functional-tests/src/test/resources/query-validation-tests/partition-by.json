@@ -237,7 +237,6 @@
       }
     },
     {
-      "comments": "Should be changed to expect new schema after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "only key column - select star - with join on keys",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -258,7 +257,6 @@
       }
     },
     {
-      "comments": "Should be changed to expect new schema after rowpartition.rowoffset.enabled feature flag is removed",
       "name": "only key column - select star - with join on value columns",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -279,11 +277,7 @@
       }
     },
     {
-      "comments": "Should be removed with rowpartition.rowoffset.enabled feature flag",
       "name": "only key column - select star - with join on keys - ROWOFFSET/ROWPARTITION enabled",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
@@ -303,11 +297,7 @@
       }
     },
     {
-      "comments": "Should be removed with rowpartition.rowoffset.enabled feature flag",
       "name": "only key column - select star - with join on value columns - ROWOFFSET/ROWPARTITION enabled",
-      "properties": {
-        "ksql.rowpartition.rowoffset.enabled": true
-      },
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
         "CREATE STREAM R (X INT KEY, Y INT, Z INT) WITH (kafka_topic='RIGHT', value_format='JSON');",

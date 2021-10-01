@@ -31,6 +31,8 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.PlanInfo;
+import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
@@ -683,12 +685,24 @@ final class EngineExecutor {
         && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
       throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
     }
+    final Optional<PersistentQueryMetadata> persistentQueryMetadata =
+        engineContext.getQueryRegistry().getPersistentQuery(queryId);
+
+    final Optional<PlanInfo> oldPlanInfo;
+
+    if (persistentQueryMetadata.isPresent()) {
+      final ExecutionStep<?> oldPlan = persistentQueryMetadata.get().getPhysicalPlan();
+      oldPlanInfo = Optional.of(oldPlan.extractPlanInfo(new PlanInfoExtractor()));
+    } else {
+      oldPlanInfo = Optional.empty();
+    }
 
     final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         config,
         metaStore,
-        queryId
+        queryId,
+        oldPlanInfo
     );
     return new ExecutorPlans(logicalPlan, physicalPlan);
   }

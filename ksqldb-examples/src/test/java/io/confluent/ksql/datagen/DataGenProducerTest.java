@@ -32,7 +32,7 @@ public class DataGenProducerTest {
   }
 
   @Test
-  public void shouldThrowIfTimetampColumnDoesNotExist() throws IOException {
+  public void shouldThrowIfTimestampColumnDoesNotExist() throws IOException {
     // When
     final IllegalArgumentException illegalArgumentException = assertThrows(
         IllegalArgumentException.class,
@@ -46,7 +46,7 @@ public class DataGenProducerTest {
   }
 
   @Test
-  public void shouldThrowIfTimetampColumnTypeNotLong() throws IOException {
+  public void shouldThrowIfTimestampColumnTypeNotLong() throws IOException {
     // When
     final IllegalArgumentException illegalArgumentException = assertThrows(
         IllegalArgumentException.class,

@@ -20,18 +20,6 @@
       ]
     },
     {
-      "name": "disabled by default",
-      "statements": [
-        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "SELECT * FROM S1;"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Pull queries on streams are disabled. To create a push query on the stream, add EMIT CHANGES to the end. To enable pull queries on streams, set the ksql.query.pull.stream.enabled config to 'true'.",
-        "status": 400
-      }
-    },
-    {
       "name": "error on GROUP BY",
       "statements": [
         "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",

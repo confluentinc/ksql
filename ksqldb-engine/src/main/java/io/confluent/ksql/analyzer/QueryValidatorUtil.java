@@ -17,14 +17,17 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class QueryValidatorUtil {
+public final class QueryValidatorUtil {
 
   private QueryValidatorUtil() {
 
@@ -34,23 +37,23 @@ public class QueryValidatorUtil {
 
     final KsqlConfig ksqlConfig = analysis.getKsqlConfig();
 
-    boolean hasDisallowedPseudoColumns = analysis.getAllDataSources()
+    final String disallowedNames = analysis.getAllDataSources()
         .stream()
         .map(AliasedDataSource::getDataSource)
         .map(DataSource::getSchema)
         .map(LogicalSchema::value)
         .flatMap(Collection::stream)
         .map(Column::name)
-        .anyMatch(name -> SystemColumns.isPseudoColumn(name, ksqlConfig));
+        .filter(name -> SystemColumns.isPseudoColumn(name, ksqlConfig))
+        .map(ColumnName::toString)
+        .collect(Collectors.joining(", "));
 
-    if (hasDisallowedPseudoColumns) {
-      throw new KsqlException("You cannot query a stream or table that "
-          + "has user columns with the same name as new pseudocolumns.\n"
-          + "To allow for new queries on this source, downgrade your ksql "
-          + "version to a release before the conflicting pseudocolumns "
-          + "were introduced."
+    if (disallowedNames.length() > 0) {
+      throw new KsqlException(
+          "Your stream/table has columns with the same name as newly introduced pseudocolumns in"
+              + " ksqlDB, and cannot be queried as a result. The conflicting names are: "
+              + disallowedNames + ".\n"
       );
     }
   }
-
 }

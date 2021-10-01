@@ -37,7 +37,7 @@ CREATE OR REPLACE TABLE b AS SELECT id, col1 FROM a WHERE col1 > ROWOFFSET EMIT 
 ----------------------------------------------------------------------------------------------------
 --@test: should fail to query existing streams with user column named the same as a pseudocolumn - different type
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: You cannot query a stream or table that has user columns with the same name as new pseudocolumns.
+--@expected.message: Your stream/table has columns with the same name as newly introduced pseudocolumns in ksqlDB, and cannot be queried as a result.
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.rowpartition.rowoffset.enabled' = 'false';
 
@@ -50,7 +50,7 @@ CREATE STREAM b AS SELECT ROWOFFSET AS ro FROM a;
 ----------------------------------------------------------------------------------------------------
 --@test: should fail to query existing streams with user column named the same as a pseudocolumn - same type
 --@expected.error: io.confluent.ksql.util.KsqlException
---@expected.message: You cannot query a stream or table that has user columns with the same name as new pseudocolumns.
+--@expected.message: Your stream/table has columns with the same name as newly introduced pseudocolumns in ksqlDB, and cannot be queried as a result.
 ----------------------------------------------------------------------------------------------------
 SET 'ksql.rowpartition.rowoffset.enabled' = 'false';
 

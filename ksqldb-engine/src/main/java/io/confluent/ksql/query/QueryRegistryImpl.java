@@ -63,13 +63,13 @@ public class QueryRegistryImpl implements QueryRegistry {
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));
 
-  private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Map<QueryId, QueryMetadata> allLiveQueries;
-  private final Map<SourceName, QueryId> createAsQueries;
-  private final Map<SourceName, Set<QueryId>> insertQueries;
+  private final Map<QueryId, PersistentQueryMetadata> persistentQueries = new ConcurrentHashMap<>();
+  private final Map<QueryId, QueryMetadata> allLiveQueries = new ConcurrentHashMap<>();
+  private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap<>();
+  private final Map<SourceName, Set<QueryId>> insertQueries = new ConcurrentHashMap<>();
   private final Collection<QueryEventListener> eventListeners;
   private final QueryBuilderFactory queryBuilderFactory;
-  private final List<SharedKafkaStreamsRuntime> streams;
+  private final List<SharedKafkaStreamsRuntime> streams = new ArrayList<>();
   private final boolean sandbox;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
@@ -80,23 +80,14 @@ public class QueryRegistryImpl implements QueryRegistry {
       final Collection<QueryEventListener> eventListeners,
       final QueryBuilderFactory queryBuilderFactory
   ) {
-    this.persistentQueries = new ConcurrentHashMap<>();
-    this.allLiveQueries = new ConcurrentHashMap<>();
-    this.createAsQueries = new ConcurrentHashMap<>();
-    this.insertQueries = new ConcurrentHashMap<>();
     this.eventListeners = Objects.requireNonNull(eventListeners);
     this.queryBuilderFactory = Objects.requireNonNull(queryBuilderFactory);
-    this.streams = new ArrayList<>();
     this.sandbox = false;
   }
 
   // Used to construct a sandbox
   private QueryRegistryImpl(final QueryRegistryImpl original) {
     queryBuilderFactory = original.queryBuilderFactory;
-    persistentQueries = new ConcurrentHashMap<>();
-    allLiveQueries = new ConcurrentHashMap<>();
-    createAsQueries = new ConcurrentHashMap<>();
-    insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach((queryId, queryMetadata) -> {
       if (queryMetadata instanceof PersistentQueryMetadataImpl) {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(

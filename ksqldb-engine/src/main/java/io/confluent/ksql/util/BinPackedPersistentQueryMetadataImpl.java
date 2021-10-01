@@ -119,7 +119,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.applicationId = Objects.requireNonNull(applicationId, "applicationId");
-    this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
+    this.topology = Objects.requireNonNull(topology, "namedTopology");
     this.sharedKafkaStreamsRuntime =
         Objects.requireNonNull(sharedKafkaStreamsRuntime, "sharedKafkaStreamsRuntime");
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");

@@ -89,8 +89,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 /**
  * A builder for creating queries metadata.
@@ -380,12 +381,8 @@ final class QueryBuilder {
     final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
         sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         queryId);
-
-    final String applicationId = sharedKafkaStreamsRuntime
-            .getStreamProperties()
-            .get(StreamsConfig.APPLICATION_ID_CONFIG)
-            .toString();
-    final Map<String, Object> streamsProperties = sharedKafkaStreamsRuntime.getStreamProperties();
+    final String applicationId = sharedKafkaStreamsRuntime.getApplicationId();
+    final Map<String, Object> queryOverrides = sharedKafkaStreamsRuntime.getStreamProperties();
 
     final LogicalSchema logicalSchema;
     final KeyFormat keyFormat;
@@ -417,18 +414,21 @@ final class QueryBuilder {
         keyFormat.getFeatures(),
         valueFormat.getFeatures()
     );
-    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
-            queryId.toString()
-    );
+
+    final NamedTopologyBuilder namedTopologyBuilder =
+        ((KafkaStreamsNamedTopologyWrapper) sharedKafkaStreamsRuntime.getKafkaStreams())
+            .newNamedTopologyBuilder(
+                queryId.toString(),
+                PropertiesUtil.asProperties(queryOverrides)
+            );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
             queryId,
-            namedTopologyStreamsBuilder
+            namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology = namedTopologyStreamsBuilder
-            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
+    final NamedTopology topology = namedTopologyBuilder.build();
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -436,7 +436,7 @@ final class QueryBuilder {
                     info,
                     querySchema,
                     keyFormat,
-                    streamsProperties,
+                    queryOverrides,
                     applicationId
             ));
 
@@ -450,7 +450,7 @@ final class QueryBuilder {
         querySchema.logicalSchema(),
         result,
         allPersistentQueries,
-        streamsProperties,
+        queryOverrides,
         applicationId,
         ksqlConfig,
         ksqlTopic,
@@ -475,7 +475,7 @@ final class QueryBuilder {
         sinkDataSource,
         listener,
         classifier,
-        streamsProperties,
+        queryOverrides,
         scalablePushRegistry
     );
   }

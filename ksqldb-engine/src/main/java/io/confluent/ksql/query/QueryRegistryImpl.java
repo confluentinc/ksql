@@ -153,8 +153,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
-      final boolean excludeTombstones,
-      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets) {
+      final boolean excludeTombstones) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryBuilder queryBuilder = queryBuilderFactory.create(
           config,
@@ -176,9 +175,56 @@ public class QueryRegistryImpl implements QueryRegistry {
         excludeTombstones,
         new ListenerImpl(),
         new StreamsBuilder(),
-        endOffsets
+        Optional.empty()
     );
+    query.initialize();
     registerTransientQuery(serviceContext, metaStore, query);
+    return query;
+  }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @Override
+  public TransientQueryMetadata createStreamPullQuery(
+      final SessionConfig config,
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final MetaStore metaStore,
+      final String statementText,
+      final QueryId queryId,
+      final Set<SourceName> sources,
+      final ExecutionStep<?> physicalPlan,
+      final String planSummary,
+      final LogicalSchema schema,
+      final OptionalInt limit,
+      final Optional<WindowInfo> windowInfo,
+      final boolean excludeTombstones,
+      final ImmutableMap<TopicPartition, Long> endOffsets) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    final QueryBuilder queryBuilder = queryBuilderFactory.create(
+          config,
+          processingLogContext,
+          serviceContext,
+          metaStore,
+          streams,
+          !sandbox);
+
+    final TransientQueryMetadata query = queryBuilder.buildTransientQuery(
+        statementText,
+        queryId,
+        sources,
+        physicalPlan,
+        planSummary,
+        schema,
+        limit,
+        windowInfo,
+        excludeTombstones,
+        new ListenerImpl(),
+        new StreamsBuilder(),
+        Optional.of(endOffsets)
+    );
+    query.initialize();
+    // We don't register it as a transient query, so it won't show up in `show queries;`,
+    // nor will it count against the push query limit.
     return query;
   }
 
@@ -370,8 +416,10 @@ public class QueryRegistryImpl implements QueryRegistry {
       final MetaStore metaStore,
       final TransientQueryMetadata query
   ) {
-    // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
-    query.initialize();
+    if (!query.isInitialized()) {
+      throw new IllegalStateException("Transient query must be initialized before it might"
+          + " be exposed to other threads via allLiveQueries");
+    }
     allLiveQueries.put(query.getQueryId(), query);
     notifyCreate(serviceContext, metaStore, query);
   }

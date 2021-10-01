@@ -552,8 +552,7 @@ public class QueryRegistryImplTest {
         mock(LogicalSchema.class),
         OptionalInt.of(123),
         Optional.empty(),
-        false,
-        Optional.empty()
+        false
     );
     return query;
   }

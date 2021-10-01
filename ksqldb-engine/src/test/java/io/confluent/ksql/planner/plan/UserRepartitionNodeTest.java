@@ -89,6 +89,7 @@ public class UserRepartitionNodeTest {
 
   @Before
   public void setUp() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(parent.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(parent.getSourceName()).thenReturn(Optional.of(SOURCE_NAME));
     when(parent.getSourceNodes()).thenReturn(Stream.of(sourceNode));

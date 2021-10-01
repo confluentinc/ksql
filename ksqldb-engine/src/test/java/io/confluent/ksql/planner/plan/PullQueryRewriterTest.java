@@ -3,6 +3,7 @@ package io.confluent.ksql.planner.plan;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -28,6 +29,7 @@ public class PullQueryRewriterTest {
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test

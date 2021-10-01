@@ -1,0 +1,118 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126017045,
+  "path" : "query-validation-tests/project-filter.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` DOUBLE KEY, `C1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` DOUBLE KEY, `C1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Filter on non-STRING key",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1.1,
+      "value" : "0"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0.09999,
+      "value" : "1"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0.0,
+      "value" : "2"
+    }, {
+      "topic" : "test_topic",
+      "key" : 0.11,
+      "value" : "3"
+    }, {
+      "topic" : "test_topic",
+      "key" : 1.1,
+      "value" : "4"
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1.1,
+      "value" : "0"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 0.11,
+      "value" : "3"
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 1.1,
+      "value" : "4"
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (K DOUBLE KEY, C1 BIGINT) WITH (KAFKA_TOPIC='test_topic', value_format='DELIMITED');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K > 0.1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`K` DOUBLE KEY, `C1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` DOUBLE KEY, `C1` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

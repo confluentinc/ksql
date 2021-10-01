@@ -1,0 +1,126 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125922558,
+  "path" : "query-validation-tests/delimited.json",
+  "schemas" : {
+    "CSAS_S2_0.S2" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "select delimited value_format",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,zero,0",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : "0,100,100",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : "100,100,500",
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : "100,100,100",
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : "0",
+      "value" : "0,zero,0",
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "0",
+      "value" : "0,100,100",
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "100",
+      "value" : "100,100,500",
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "100",
+      "value" : "100,100,100",
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM S2 as SELECT K, id, name, value FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `NAME` STRING, `VALUE` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "DELIMITED"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

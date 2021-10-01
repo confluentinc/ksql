@@ -31,7 +31,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -45,18 +44,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ScalablePushUtilTest {
 
-  private static final Map<String, Object> overrides = ImmutableMap.of(
-      KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true,
-      KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true,
-      "auto.offset.reset", "latest"
-  );
-
   private static final Expression AN_EXPRESSION = mock(Expression.class);
 
   @Mock
   private Query query;
-  @Mock
-  private KsqlConfig ksqlConfig;
   @Mock
   private SingleColumn singleColumn;
   @Mock
@@ -65,11 +56,12 @@ public class ScalablePushUtilTest {
   private KsqlEngine ksqlEngine;
   @Mock
   private Select select;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   @Before
   public void setUp() {
-    // Otherwise we'd need to mock static ColumnExtractor in each passing test to avoid NPEs
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test
@@ -77,7 +69,6 @@ public class ScalablePushUtilTest {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
       expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenSelectClause(SystemColumns.ROWPARTITION_NAME, columnExtractor);
 
       // When:
@@ -85,7 +76,7 @@ public class ScalablePushUtilTest {
           query,
           ksqlEngine,
           ksqlConfig,
-          overrides
+          ImmutableMap.of()
       );
 
       // Then:
@@ -98,7 +89,6 @@ public class ScalablePushUtilTest {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
       expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenSelectClause(SystemColumns.ROWOFFSET_NAME, columnExtractor);
 
       // When:
@@ -106,7 +96,7 @@ public class ScalablePushUtilTest {
           query,
           ksqlEngine,
           ksqlConfig,
-          overrides
+          ImmutableMap.of()
       );
 
       // Then:
@@ -119,7 +109,6 @@ public class ScalablePushUtilTest {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
       expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenWhereClause(SystemColumns.ROWPARTITION_NAME, columnExtractor);
 
       // When:
@@ -127,7 +116,7 @@ public class ScalablePushUtilTest {
           query,
           ksqlEngine,
           ksqlConfig,
-          overrides
+          ImmutableMap.of()
       );
 
       // Then:
@@ -140,7 +129,6 @@ public class ScalablePushUtilTest {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
       expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
       givenWhereClause(SystemColumns.ROWOFFSET_NAME, columnExtractor);
 
       // When:
@@ -148,7 +136,7 @@ public class ScalablePushUtilTest {
           query,
           ksqlEngine,
           ksqlConfig,
-          overrides
+          ImmutableMap.of()
       );
 
       // Then:
@@ -168,7 +156,7 @@ public class ScalablePushUtilTest {
           query,
           ksqlEngine,
           ksqlConfig,
-          overrides
+          ImmutableMap.of()
       );
 
       // Then:
@@ -188,17 +176,19 @@ public class ScalablePushUtilTest {
         equalTo(false));
   }
 
-
   @Test
   public void isScalablePushQuery_true_enabledWithOverride() {
-    // When:
-    expectIsSPQ();
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ();
+      givenSelectClause(ColumnName.of("Foo"), columnExtractor);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
-                KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+              ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
+                  KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)),
+          equalTo(true));
+    }
   }
 
   @Test
@@ -281,26 +271,32 @@ public class ScalablePushUtilTest {
 
   @Test
   public void isScalablePushQuery_true_noLatest() {
-    // When:
-    expectIsSPQ();
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ();
+      givenSelectClause(ColumnName.of("Foo"), columnExtractor);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+              ImmutableMap.of()),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_true_configLatest() {
-    // When:
-    expectIsSPQ();
-    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
-        .thenReturn(Optional.of("latest"));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ();
+      givenSelectClause(ColumnName.of("Foo"), columnExtractor);
+      when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+          .thenReturn(Optional.of("latest"));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+              ImmutableMap.of()),
+          equalTo(true));
+    }
   }
 
   @Test
@@ -318,27 +314,33 @@ public class ScalablePushUtilTest {
 
   @Test
   public void isScalablePushQuery_true_latestConfig() {
-    // When:
-    expectIsSPQ();
-    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
-        .thenReturn(Optional.of("latest"));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ();
+      givenSelectClause(ColumnName.of("Foo"), columnExtractor);
+      when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+          .thenReturn(Optional.of("latest"));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+              ImmutableMap.of()),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_true_streamsOverride() {
-    // When:
-    expectIsSPQ();
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ();
+      givenSelectClause(ColumnName.of("Foo"), columnExtractor);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(
-                KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+              ImmutableMap.of(
+                  KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(true));
+    }
   }
 
   @Test

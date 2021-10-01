@@ -22,24 +22,24 @@ import java.util.Set;
 /**
  * Validated set of connect schema translation policies
  */
-public class ConnectSchemaTranslationPolicies extends
+public final class ConnectSchemaTranslationPolicies extends
     CompatibleSet<ConnectSchemaTranslationPolicy> {
 
   public static ConnectSchemaTranslationPolicies from(
-      final Set<ConnectSchemaTranslationPolicy> features) {
-    return new ConnectSchemaTranslationPolicies(features);
+      final Set<ConnectSchemaTranslationPolicy> policies) {
+    return new ConnectSchemaTranslationPolicies(policies);
   }
 
   public static ConnectSchemaTranslationPolicies of(
-      final ConnectSchemaTranslationPolicy... features) {
-    return new ConnectSchemaTranslationPolicies(ImmutableSet.copyOf(features));
+      final ConnectSchemaTranslationPolicy... policies) {
+    return new ConnectSchemaTranslationPolicies(ImmutableSet.copyOf(policies));
   }
 
-  private ConnectSchemaTranslationPolicies(Set<ConnectSchemaTranslationPolicy> policies) {
+  private ConnectSchemaTranslationPolicies(final Set<ConnectSchemaTranslationPolicy> policies) {
     super(policies);
   }
 
-  public boolean enabled(ConnectSchemaTranslationPolicy policy) {
+  public boolean enabled(final ConnectSchemaTranslationPolicy policy) {
     return contains(policy);
   }
 }

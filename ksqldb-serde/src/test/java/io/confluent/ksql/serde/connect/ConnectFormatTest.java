@@ -19,12 +19,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
@@ -38,6 +40,7 @@ import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
 import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -107,6 +110,34 @@ public class ConnectFormatTest {
     // Then:
     verify(format)
         .getConnectSerde(SINGLE_FIELD_SCHEMA, formatProps, config, srFactory, Struct.class, false);
+  }
+
+  @Test
+  public void shouldReturnKsqlTranslatorWithUppercasePolicy() {
+    // When:
+    final ConnectKsqlSchemaTranslator translator = format.getConnectKsqlSchemaTranslator(
+        ImmutableMap.of());
+    final ConnectKsqlSchemaTranslator translator2 = format.getConnectKsqlSchemaTranslator(
+        ImmutableMap.of());
+    // Then:
+    assertTrue(
+        translator.getPolicies().enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
+    assertTrue(
+        translator2.getPolicies().enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
+  }
+
+  @Test
+  public void shouldReturnKsqlTranslatorWithOriginalPolicy() {
+    // When:
+    final ConnectKsqlSchemaTranslator translator = format.getConnectKsqlSchemaTranslator(
+        ImmutableMap.of(ConnectFormat.KEY_SCHEMA_ID, "1"));
+    final ConnectKsqlSchemaTranslator translator2 = format.getConnectKsqlSchemaTranslator(
+        ImmutableMap.of(ConnectFormat.VALUE_SCHEMA_ID, "1"));
+    // Then:
+    assertTrue(
+        translator.getPolicies().enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME));
+    assertTrue(
+        translator2.getPolicies().enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME));
   }
 
   @Test

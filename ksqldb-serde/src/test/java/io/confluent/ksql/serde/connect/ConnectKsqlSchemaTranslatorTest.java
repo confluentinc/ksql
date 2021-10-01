@@ -23,15 +23,50 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 
+@RunWith(Parameterized.class)
 public class ConnectKsqlSchemaTranslatorTest {
+
+  @Parameters(name = "{0}")
+  public static Collection<Object[]> data() {
+    return Arrays.asList(new Object[][]{
+        {"uppercase", ConnectSchemaTranslationPolicies.of(
+            ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME),
+            (Function<String, String>) (String s) -> s.toUpperCase()},
+        {"lowercase", ConnectSchemaTranslationPolicies.of(
+            ConnectSchemaTranslationPolicy.LOWERCASE_FIELD_NAME),
+            (Function<String, String>) (String s) -> s.toLowerCase()},
+        {"original", ConnectSchemaTranslationPolicies.of(
+            ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME),
+            (Function<String, String>) (String s) -> s},
+        {"default", null, (Function<String, String>) (String s) -> s.toUpperCase()}
+    });
+  }
+
+  private final ConnectKsqlSchemaTranslator translator;
+  private final Function<String, String> nameTranslator;
+
+  @SuppressWarnings("unused")
+  public ConnectKsqlSchemaTranslatorTest(final String testName,
+      ConnectSchemaTranslationPolicies policies, Function<String, String> nameTranslator) {
+    translator = Objects.isNull(policies) ? new ConnectKsqlSchemaTranslator()
+        : new ConnectKsqlSchemaTranslator(policies);
+    this.nameTranslator = nameTranslator;
+  }
 
   @Test
   public void shouldTranslatePrimitives() {
@@ -45,21 +80,23 @@ public class ConnectKsqlSchemaTranslatorTest {
         .field("bytesField", Schema.BYTES_SCHEMA)
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
     assertThat(ksqlSchema.schema().type(), equalTo(Schema.Type.STRUCT));
     assertThat(ksqlSchema.fields().size(), equalTo(connectSchema.fields().size()));
     for (int i = 0; i < ksqlSchema.fields().size(); i++) {
       assertThat(
           ksqlSchema.fields().get(i).name(),
-          equalTo(connectSchema.fields().get(i).name().toUpperCase()));
+          equalTo(nameTranslator.apply(connectSchema.fields().get(i).name())));
       assertThat(
           ksqlSchema.fields().get(i).schema().type(),
           equalTo(connectSchema.fields().get(i).schema().type()));
       assertThat(ksqlSchema.fields().get(i).schema().isOptional(), is(true));
     }
     // Make sure that regular int32/int64 fields do not get converted to date/time/timestamp
-    assertThat(ksqlSchema.field("LONGFIELD").schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat(ksqlSchema.field("INTFIELD").schema(), is(Schema.OPTIONAL_INT32_SCHEMA));
+    assertThat(ksqlSchema.field(nameTranslator.apply("longField")).schema(),
+        is(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(ksqlSchema.field(nameTranslator.apply("intField")).schema(),
+        is(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -69,9 +106,9 @@ public class ConnectKsqlSchemaTranslatorTest {
         .field("mapField", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
-    assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
-    final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
+    assertThat(ksqlSchema.field(nameTranslator.apply("mapField")), notNullValue());
+    final Schema mapSchema = ksqlSchema.field(nameTranslator.apply("mapField")).schema();
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
     assertThat(mapSchema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(mapSchema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
@@ -90,16 +127,18 @@ public class ConnectKsqlSchemaTranslatorTest {
                     .build()))
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
-    assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
-    final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
+    assertThat(ksqlSchema.field(nameTranslator.apply("mapField")), notNullValue());
+    final Schema mapSchema = ksqlSchema.field(nameTranslator.apply("mapField")).schema();
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
     assertThat(mapSchema.isOptional(), is(true));
     assertThat(mapSchema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(mapSchema.valueSchema().type(), equalTo(Schema.Type.STRUCT));
     assertThat(mapSchema.valueSchema().fields().size(), equalTo(1));
-    assertThat(mapSchema.valueSchema().fields().get(0).name(), equalTo("INNERINTFIELD"));
-    assertThat(mapSchema.valueSchema().fields().get(0).schema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+    assertThat(mapSchema.valueSchema().fields().get(0).name(),
+        equalTo(nameTranslator.apply("innerIntField")));
+    assertThat(mapSchema.valueSchema().fields().get(0).schema(),
+        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -109,9 +148,9 @@ public class ConnectKsqlSchemaTranslatorTest {
         .field("arrayField", SchemaBuilder.array(Schema.INT32_SCHEMA))
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
-    assertThat(ksqlSchema.field("ARRAYFIELD"), notNullValue());
-    final Schema arraySchema = ksqlSchema.field("ARRAYFIELD").schema();
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
+    assertThat(ksqlSchema.field(nameTranslator.apply("arrayField")), notNullValue());
+    final Schema arraySchema = ksqlSchema.field(nameTranslator.apply("arrayField")).schema();
     assertThat(arraySchema.type(), equalTo(Schema.Type.ARRAY));
     assertThat(arraySchema.isOptional(), is(true));
     assertThat(arraySchema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
@@ -129,14 +168,16 @@ public class ConnectKsqlSchemaTranslatorTest {
                     .build()))
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
-    assertThat(ksqlSchema.field("ARRAYFIELD"), notNullValue());
-    final Schema arraySchema = ksqlSchema.field("ARRAYFIELD").schema();
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
+    assertThat(ksqlSchema.field(nameTranslator.apply("arrayField")), notNullValue());
+    final Schema arraySchema = ksqlSchema.field(nameTranslator.apply("arrayField")).schema();
     assertThat(arraySchema.type(), equalTo(Schema.Type.ARRAY));
     assertThat(arraySchema.valueSchema().type(), equalTo(Schema.Type.STRUCT));
     assertThat(arraySchema.valueSchema().fields().size(), equalTo(1));
-    assertThat(arraySchema.valueSchema().fields().get(0).name(), equalTo("INNERINTFIELD"));
-    assertThat(arraySchema.valueSchema().fields().get(0).schema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+    assertThat(arraySchema.valueSchema().fields().get(0).name(),
+        equalTo(nameTranslator.apply("innerIntField")));
+    assertThat(arraySchema.valueSchema().fields().get(0).schema(),
+        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -150,14 +191,14 @@ public class ConnectKsqlSchemaTranslatorTest {
         .field("structField", connectInnerSchema)
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
-    assertThat(ksqlSchema.field("STRUCTFIELD"), notNullValue());
-    final Schema innerSchema = ksqlSchema.field("STRUCTFIELD").schema();
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
+    assertThat(ksqlSchema.field(nameTranslator.apply("structField")), notNullValue());
+    final Schema innerSchema = ksqlSchema.field(nameTranslator.apply("structField")).schema();
     assertThat(innerSchema.fields().size(), equalTo(connectInnerSchema.fields().size()));
     for (int i = 0; i < connectInnerSchema.fields().size(); i++) {
       assertThat(
-          innerSchema.fields().get(i).name().toUpperCase(),
-          equalTo(connectInnerSchema.fields().get(i).name().toUpperCase()));
+          nameTranslator.apply(innerSchema.fields().get(i).name()),
+          equalTo(nameTranslator.apply(connectInnerSchema.fields().get(i).name())));
       assertThat(
           innerSchema.fields().get(i).schema().type(),
           equalTo(connectInnerSchema.fields().get(i).schema().type()));
@@ -172,10 +213,10 @@ public class ConnectKsqlSchemaTranslatorTest {
         .field("mapfield", SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
 
-    assertThat(ksqlSchema.field("MAPFIELD"), notNullValue());
-    final Schema mapSchema = ksqlSchema.field("MAPFIELD").schema();
+    assertThat(ksqlSchema.field(nameTranslator.apply("mapfield")), notNullValue());
+    final Schema mapSchema = ksqlSchema.field(nameTranslator.apply("mapfield")).schema();
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
     assertThat(mapSchema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(mapSchema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
@@ -190,10 +231,13 @@ public class ConnectKsqlSchemaTranslatorTest {
         .field("timestampfield", Timestamp.SCHEMA)
         .build();
 
-    final Schema ksqlSchema = new ConnectKsqlSchemaTranslator().toKsqlSchema(connectSchema);
+    final Schema ksqlSchema = translator.toKsqlSchema(connectSchema);
 
-    assertThat(ksqlSchema.field("TIMEFIELD").schema(), equalTo(OPTIONAL_TIME_SCHEMA));
-    assertThat(ksqlSchema.field("DATEFIELD").schema(), equalTo(OPTIONAL_DATE_SCHEMA));
-    assertThat(ksqlSchema.field("TIMESTAMPFIELD").schema(), equalTo(OPTIONAL_TIMESTAMP_SCHEMA));
+    assertThat(ksqlSchema.field(nameTranslator.apply("timefield")).schema(),
+        equalTo(OPTIONAL_TIME_SCHEMA));
+    assertThat(ksqlSchema.field(nameTranslator.apply("datefield")).schema(),
+        equalTo(OPTIONAL_DATE_SCHEMA));
+    assertThat(ksqlSchema.field(nameTranslator.apply("timestampfield")).schema(),
+        equalTo(OPTIONAL_TIMESTAMP_SCHEMA));
   }
 }

@@ -17,6 +17,10 @@ package io.confluent.ksql.util;
 
 import java.util.Set;
 
+/**
+ * Interface get a set of incompatible elements for an object
+ * @see CompatibleSet
+ */
 public interface InCompatible<T extends InCompatible> {
 
   Set<T> getIncompatibleWith();

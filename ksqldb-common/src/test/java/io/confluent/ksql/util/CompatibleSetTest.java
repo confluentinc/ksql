@@ -34,16 +34,16 @@ public class CompatibleSetTest {
 
   private static class InCompatibleInteger implements InCompatible<InCompatibleInteger> {
 
-    private Set<InCompatibleInteger> inCompatibleIntegers;
-    private int value;
+    final private Set<InCompatibleInteger> inCompatibleIntegers;
+    final private int value;
 
-    public InCompatibleInteger(int value) {
+    public InCompatibleInteger(final int value) {
       this.value = value;
       inCompatibleIntegers = ImmutableSet.of();
     }
 
-    public InCompatibleInteger(int value, Integer... inCompatibleIntegers) {
-      this.inCompatibleIntegers = Arrays.asList(inCompatibleIntegers).stream()
+    public InCompatibleInteger(final int value, final Integer... inCompatibleIntegers) {
+      this.inCompatibleIntegers = Arrays.stream(inCompatibleIntegers)
           .map(i -> new InCompatibleInteger(i))
           .collect(ImmutableSet.toImmutableSet());
       this.value = value;
@@ -89,10 +89,10 @@ public class CompatibleSetTest {
   }
 
   @Test
-  public void ShouldReturnAllValues() {
+  public void shouldReturnAllValues() {
     // Given:
     CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.of(one, four));
+        ImmutableSet.<InCompatibleInteger>of(one, four));
 
     // When:
     Set<InCompatibleInteger> all = compatibleSet.all();
@@ -106,7 +106,7 @@ public class CompatibleSetTest {
   public void shouldReturnCorrectForContainsWithEmptySet() {
     // Given:
     CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.of());
+        ImmutableSet.<InCompatibleInteger>of());
 
     // When:
     boolean containsOne = compatibleSet.contains(one);
@@ -142,7 +142,7 @@ public class CompatibleSetTest {
   public void shouldReturnCorrectForFindAnyWithEmptySet() {
     // Given:
     CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.of());
+        ImmutableSet.<InCompatibleInteger>of());
 
     // When:
     Optional<InCompatibleInteger> containsOne = compatibleSet.findAny(ImmutableSet.of(one));
@@ -159,7 +159,7 @@ public class CompatibleSetTest {
   public void shouldReturnCorrectForFindAny() {
     // Given:
     CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.of(two, three, four));
+        ImmutableSet.<InCompatibleInteger>of(two, three, four));
 
     // When:
     Optional<InCompatibleInteger> containsOne = compatibleSet.findAny(ImmutableSet.of(one));

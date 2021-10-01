@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -29,7 +30,7 @@ import java.util.Set;
  * <p>Known to not have conflicting elements
  */
 @Immutable
-public class CompatibleSet<T extends InCompatible> {
+public class CompatibleSet<T extends InCompatible<T>> {
 
   protected final ImmutableSet<T> values;
 
@@ -42,6 +43,7 @@ public class CompatibleSet<T extends InCompatible> {
     return values.contains(value);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
   public Set<T> all() {
     return values;
   }
@@ -60,7 +62,7 @@ public class CompatibleSet<T extends InCompatible> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final CompatibleSet<T> that = (CompatibleSet<T>) o;
+    final CompatibleSet<?> that = (CompatibleSet<?>) o;
     return Objects.equals(values, that.values);
   }
 
@@ -74,7 +76,7 @@ public class CompatibleSet<T extends InCompatible> {
     return values.toString();
   }
 
-  private static <T extends InCompatible> void validate(final Set<T> values) {
+  private static <T extends InCompatible<T>> void validate(final Set<T> values) {
     values.forEach(f -> {
       final Set<T> incompatible = Sets.intersection(f.getIncompatibleWith(), values);
       if (!incompatible.isEmpty()) {

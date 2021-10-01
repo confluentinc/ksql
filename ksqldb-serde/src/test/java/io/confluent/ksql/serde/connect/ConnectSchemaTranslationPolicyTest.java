@@ -29,8 +29,8 @@ public class ConnectSchemaTranslationPolicyTest {
   public void shouldReturnIncompatibleSet() {
     // When:
     Set<ConnectSchemaTranslationPolicy> uppercaseIncompables = UPPERCASE_FIELD_NAME.getIncompatibleWith();
-    Set<ConnectSchemaTranslationPolicy> lowercaseIncompables = UPPERCASE_FIELD_NAME.getIncompatibleWith();
-    Set<ConnectSchemaTranslationPolicy> originalIncompables = UPPERCASE_FIELD_NAME.getIncompatibleWith();
+    Set<ConnectSchemaTranslationPolicy> lowercaseIncompables = LOWERCASE_FIELD_NAME.getIncompatibleWith();
+    Set<ConnectSchemaTranslationPolicy> originalIncompables = ORIGINAL_FIELD_NAME.getIncompatibleWith();
 
     // Then:
     assertThat(uppercaseIncompables, containsInAnyOrder(LOWERCASE_FIELD_NAME, ORIGINAL_FIELD_NAME));

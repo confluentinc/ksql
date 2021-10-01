@@ -197,6 +197,14 @@ public final class SystemColumns {
     }
   }
 
+  /**
+   * This class was added with ROWPARTITION and ROWOFFSET to address the growing
+   * number of differences between the columns and ROWTIME. To add future PseudoColumns,
+   * one will need to consider each of the fields below, add a new pseudo column version
+   * (by incrementing CURRENT_PSEUDOCOLUMN_VERSION_NUMBER and setting the newest PseudoColumns
+   * to use the new CURRENT), and make the necessary changes in the logical schema and
+   * value transformer.
+   */
   @Immutable
   private static final class PseudoColumn {
 

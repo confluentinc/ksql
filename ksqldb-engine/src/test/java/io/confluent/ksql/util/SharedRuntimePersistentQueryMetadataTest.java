@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
@@ -42,7 +43,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PersistentQueriesInSharedRuntimesImplTest {
+public class SharedRuntimePersistentQueryMetadataTest {
     private static final String SQL = "sql";
     private static final String EXECUTION_PLAN = "execution plan";
     private static final QueryId QUERY_ID = new QueryId("queryId");
@@ -59,9 +60,9 @@ public class PersistentQueriesInSharedRuntimesImplTest {
     @Mock
     private Map<String, Object> overrides;
     @Mock
-    private QueryErrorClassifier queryErrorClassifier;
-    @Mock
     private ExecutionStep<?> physicalPlan;
+    @Mock
+    private RuntimeBuildContext buildContext;
     @Mock
     private ProcessingLogger processingLogger;
     @Mock
@@ -79,7 +80,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
 
     @Before
     public void setUp()  {
-        query = new PersistentQueriesInSharedRuntimesImpl(
+        query = new SharedRuntimePersistentQueryMetadata(
             KsqlConstants.PersistentQueryType.CREATE_AS,
             SQL,
             physicalSchema,
@@ -93,12 +94,15 @@ public class PersistentQueriesInSharedRuntimesImplTest {
             QUERY_ID,
             Optional.empty(),
             physicalPlan,
+            (builder) -> buildContext,
             processingLogger,
             Optional.of(sinkDataSource),
             listener,
             classifier,
             streamsProperties,
-            scalablePushRegistry);
+            scalablePushRegistry,
+            10
+        );
 
         query.initialize();
     }

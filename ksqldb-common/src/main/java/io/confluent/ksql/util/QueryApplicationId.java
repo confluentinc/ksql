@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.query.QueryId;
 
 /**
- * Util to build query application ids.
+ * Util to build application ids for Kafka Streams
  */
 public final class QueryApplicationId {
 
@@ -38,15 +38,22 @@ public final class QueryApplicationId {
 
     final String queryPrefix = config.getString(configName);
 
-    final String queryAppId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+    final String appId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + serviceId
-        + queryPrefix
-        + queryId;
+        + queryPrefix;
+    final String queryAppId = queryId == null ? appId : appId + queryId;
     if (persistent) {
       return queryAppId;
     } else {
       return addTimeSuffix(queryAppId);
     }
+  }
+
+  // Technically it's fine to use the same application id since all the KafkaStreams and other
+  // sandbox resources are isolated, but tack a "-validation" on just to be safe/for easier
+  // debugging and readability
+  public static String getSandboxAppIdForOriginalRuntimeAppId(final String appId) {
+    return appId + "-validation";
   }
 
   private static String addTimeSuffix(final String original) {

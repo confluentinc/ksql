@@ -26,7 +26,7 @@ import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNa
 public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
   private final KafkaClientSupplier clientSupplier;
 
-  KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
+  public KafkaStreamsBuilderImpl(final KafkaClientSupplier clientSupplier) {
     this.clientSupplier = Objects.requireNonNull(clientSupplier, "clientSupplier");
   }
 

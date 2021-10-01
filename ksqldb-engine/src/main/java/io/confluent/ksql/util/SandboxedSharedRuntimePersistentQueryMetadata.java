@@ -15,21 +15,24 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.query.QueryError;
+import org.apache.kafka.streams.KafkaStreams.State;
+
 /**
  * Sandboxed {@link PersistentQueryMetadata} that prevents to modify the state of the internal
  * {@link org.apache.kafka.streams.KafkaStreams}.
  */
-public final class SandboxedPersistentQueriesInSharedRuntimesImpl
-    extends PersistentQueriesInSharedRuntimesImpl {
-  public static SandboxedPersistentQueriesInSharedRuntimesImpl of(
-      final PersistentQueriesInSharedRuntimesImpl queryMetadata,
-      final QueryMetadata.Listener listener
+public final class SandboxedSharedRuntimePersistentQueryMetadata
+    extends SharedRuntimePersistentQueryMetadata {
+
+  public static SandboxedSharedRuntimePersistentQueryMetadata of(
+      final SharedRuntimePersistentQueryMetadata queryMetadata
   ) {
-    return new SandboxedPersistentQueriesInSharedRuntimesImpl(queryMetadata, listener);
+    return new SandboxedSharedRuntimePersistentQueryMetadata(queryMetadata, new SandboxListener());
   }
 
-  private SandboxedPersistentQueriesInSharedRuntimesImpl(
-      final PersistentQueriesInSharedRuntimesImpl queryMetadata,
+  private SandboxedSharedRuntimePersistentQueryMetadata(
+      final SharedRuntimePersistentQueryMetadata queryMetadata,
       final QueryMetadata.Listener listener
   ) {
     super(queryMetadata, listener);
@@ -48,5 +51,23 @@ public final class SandboxedPersistentQueriesInSharedRuntimesImpl
   @Override
   public void start() {
     // no-op
+  }
+
+  static class SandboxListener implements QueryMetadata.Listener {
+
+    @Override
+    public void onError(final QueryMetadata queryMetadata, final QueryError error) {
+    }
+
+    @Override
+    public void onStateChange(
+        final QueryMetadata queryMetadata,
+        final State before,
+        final State after) {
+    }
+
+    @Override
+    public void onClose(final QueryMetadata queryMetadata) {
+    }
   }
 }

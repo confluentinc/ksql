@@ -85,12 +85,13 @@ public final class QueryPlan  {
     return Objects.equals(sources, queryPlan.sources)
         && Objects.equals(sink, queryPlan.sink)
         && Objects.equals(physicalPlan, queryPlan.physicalPlan)
+        && Objects.equals(runtimeId, queryPlan.runtimeId)
         && Objects.equals(queryId, queryPlan.queryId);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(sources, sink, physicalPlan, queryId);
+    return Objects.hash(sources, sink, physicalPlan, queryId, runtimeId);
   }
 }

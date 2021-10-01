@@ -569,12 +569,14 @@ final class EngineExecutor {
     final KsqlBareOutputNode outputNode =
         (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
 
+    final Set<SourceName> sources = getSourceNames(outputNode);
+    final QueryId queryId = plans.physicalPlan.getQueryId();
     final QueryPlan queryPlan = new QueryPlan(
-        getSourceNames(outputNode),
+        sources,
         Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
-        plans.physicalPlan.getQueryId(),
-        getApplicationId()
+        queryId,
+        getRuntimeApplicationId(engineContext.getQueryRegistry(), queryId, sources)
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -654,12 +656,15 @@ final class EngineExecutor {
 
       validateResultType(outputNode.getNodeOutputType(), statement);
 
+      final Set<SourceName> sources = getSourceNames(outputNode);
+      final QueryId queryId = plans.physicalPlan.getQueryId();
+
       final QueryPlan queryPlan = new QueryPlan(
-          getSourceNames(outputNode),
+          sources,
           outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
-          plans.physicalPlan.getQueryId(),
-          getApplicationId()
+          queryId,
+          getRuntimeApplicationId(engineContext.getQueryRegistry(), queryId, sources)
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -680,9 +685,15 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<String> getApplicationId() {
+  /**
+   * @return the KafkaStreams applicationId aka the "runtimeId" if shared runtimes are enabled
+   *         or {@link Optional#empty()} if not
+   */
+  private Optional<String> getRuntimeApplicationId(
+      final QueryRegistry queryRegistry,
+      final QueryId queryId, final Set<SourceName> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? Optional.of("appId")
+        ? Optional.of(queryRegistry.getSharedRuntimeIdForQuery(queryId, sources))
         : Optional.empty();
   }
 

@@ -143,6 +143,8 @@ public class QueryBuilderTest {
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
+  private SharedKafkaStreamsRuntime sharedRuntime;
+  @Mock
   private ProcessingLogContext processingLogContext;
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
@@ -185,7 +187,6 @@ public class QueryBuilderTest {
 
   private QueryBuilder queryBuilder;
   private final Stacker stacker = new Stacker();
-  private List<SharedKafkaStreamsRuntime> sharedKafkaStreamsRuntimes;
 
   @Before
   public void setup() {
@@ -217,7 +218,6 @@ public class QueryBuilderTest {
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
     when(kstream.filter(any())).thenReturn(kstream);
-    sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryBuilder(
         config,
@@ -230,9 +230,7 @@ public class QueryBuilderTest {
             serviceContext,
             ksMaterializationFactory,
             ksqlMaterializationFactory
-        ),
-        sharedKafkaStreamsRuntimes,
-        true);
+        ));
   }
 
   @Test
@@ -623,17 +621,6 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void shouldMakePersistentQueriesWithSameSources() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
-    // When:
-    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID);
-    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID_2);
-
-    assertThat("chose same source", sharedKafkaStreamsRuntimes.size() > 1);
-  }
-
-  @Test
   public void shouldMakePersistentQueriesWithDifferentSources() {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
@@ -749,6 +736,7 @@ public class QueryBuilderTest {
           physicalPlan,
           SUMMARY,
           queryListener,
+          sharedRuntime,
           ArrayList::new
       );
     } else {

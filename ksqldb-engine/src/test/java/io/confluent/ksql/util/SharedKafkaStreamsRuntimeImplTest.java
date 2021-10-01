@@ -19,7 +19,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-import org.apache.kafka.streams.KafkaStreams;
+
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -51,10 +51,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
 
     @Mock
-    private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
-
-    @Mock
-    private PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimes;
+    private SharedRuntimePersistentQueryMetadata sharedRuntimePersistentQueryMetadata;
 
     @Mock
     private QueryErrorClassifier queryErrorClassifier;
@@ -72,23 +69,19 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
     @Before
     public void setUp() throws Exception {
-        when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
-            5,
+            10,
+            queryErrorClassifier,
             streamProps
         );
         when(queryId.toString()).thenReturn("query 1");
         when(queryId2.toString()).thenReturn("query 2");
 
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.singleton(SourceName.of("foo")));
-        sharedKafkaStreamsRuntimeImpl.register(
-            queryErrorClassifier,
-            Collections.emptyMap(),
-            persistentQueriesInSharedRuntimes,
-            queryId);
+        sharedKafkaStreamsRuntimeImpl.reserveRuntime(queryId, Collections.singleton(SourceName.of("foo")));
+        sharedKafkaStreamsRuntimeImpl.register(sharedRuntimePersistentQueryMetadata);
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
-        when(persistentQueriesInSharedRuntimes.getTopology()).thenReturn(namedTopology);
+        when(sharedRuntimePersistentQueryMetadata.getTopology()).thenReturn(namedTopology);
     }
 
     @Test
@@ -103,15 +96,11 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Test
     public void shouldNotAddQuery() {
         //Given:
-        when(persistentQueriesInSharedRuntimes.getSourceNames())
+        when(sharedRuntimePersistentQueryMetadata.getSourceNames())
             .thenReturn(Collections.singleton(SourceName.of("foo")));
         //When:
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-            () -> sharedKafkaStreamsRuntimeImpl.register(
-                queryErrorClassifier,
-                Collections.emptyMap(),
-                persistentQueriesInSharedRuntimes,
-                queryId2));
+            () -> sharedKafkaStreamsRuntimeImpl.register(sharedRuntimePersistentQueryMetadata));
         //Then
         assertThat(e.getMessage(), containsString(": was not reserved on this runtime"));
     }
@@ -119,7 +108,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Test
     public void shouldCloseRuntime() {
         //When:
-        sharedKafkaStreamsRuntimeImpl.close();
+        sharedKafkaStreamsRuntimeImpl.close(false);
 
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close();

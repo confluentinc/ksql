@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.util.QueryApplicationId.getSandboxAppIdForOriginalRuntimeAppId;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -26,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -40,24 +42,31 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMetadata {
+public class SharedRuntimePersistentQueryMetadata implements PersistentQueryMetadata {
 
   private static final Logger LOG = LoggerFactory
-      .getLogger(PersistentQueriesInSharedRuntimesImpl.class);
+      .getLogger(SharedRuntimePersistentQueryMetadata.class);
 
   private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
@@ -72,8 +81,10 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final Optional<DataSource> sinkDataSource;
   private final ProcessingLogger processingLogger;
   private final ExecutionStep<?> physicalPlan;
+  private final Function<NamedTopologyBuilder, RuntimeBuildContext> runtimeBuildContextSupplier;
   private final PhysicalSchema resultSchema;
   private final Listener listener;
+  private final TimeBoundedQueue queryErrors;
 
   private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -86,14 +97,14 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final Optional<MaterializationProvider> materializationProvider;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   public boolean everStarted = false;
-  private QueryErrorClassifier classifier;
-  private Map<String, Object> streamsProperties;
+  private final QueryErrorClassifier classifier;
+  private final Map<String, Object> streamsProperties;
   private boolean corruptionCommandTopic = false;
 
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  public PersistentQueriesInSharedRuntimesImpl(
+  public SharedRuntimePersistentQueryMetadata(
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
@@ -108,12 +119,14 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
       final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
           materializationProviderBuilder,
       final ExecutionStep<?> physicalPlan,
+      final Function<NamedTopologyBuilder, RuntimeBuildContext> runtimeBuildContextSupplier,
       final ProcessingLogger processingLogger,
       final Optional<DataSource> sinkDataSource,
       final Listener listener,
       final QueryErrorClassifier classifier,
       final Map<String, Object> streamsProperties,
-      final Optional<ScalablePushRegistry> scalablePushRegistry) {
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final int maxQueryErrorsQueueSize) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -131,6 +144,8 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
+    this.runtimeBuildContextSupplier =
+        requireNonNull(runtimeBuildContextSupplier, "runtimeBuildContext");
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
@@ -143,33 +158,38 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
   }
 
-
   // for creating sandbox instances
-  protected PersistentQueriesInSharedRuntimesImpl(
-          final PersistentQueriesInSharedRuntimesImpl original,
+  protected SharedRuntimePersistentQueryMetadata(
+          final SharedRuntimePersistentQueryMetadata original,
           final QueryMetadata.Listener listener
   ) {
     this.persistentQueryType = original.persistentQueryType;
     this.statementString = original.statementString;
     this.executionPlan = original.executionPlan;
-    this.applicationId = original.applicationId;
+    this.applicationId = getSandboxAppIdForOriginalRuntimeAppId(original.applicationId);
     this.topology = original.topology;
     this.sharedKafkaStreamsRuntime = original.sharedKafkaStreamsRuntime;
     this.sinkDataSource = original.sinkDataSource;
     this.schemas = original.schemas;
-    this.overriddenProperties =
-            ImmutableMap.copyOf(original.overriddenProperties);
+    this.overriddenProperties = ImmutableMap.copyOf(original.overriddenProperties);
     this.sourceNames = original.sourceNames;
     this.queryId = original.queryId;
     this.processingLogger = original.processingLogger;
     this.physicalPlan = original.physicalPlan;
+    this.runtimeBuildContextSupplier = original.runtimeBuildContextSupplier;
     this.resultSchema = original.resultSchema;
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = original.materializationProvider;
+    this.classifier = requireNonNull(original.classifier, "classifier");
+    this.streamsProperties =
+        new HashMap<>(requireNonNull(original.streamsProperties, "streamsProperties"));
+    this.streamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
     this.scalablePushRegistry = original.scalablePushRegistry;
+    this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
   }
 
   @Override
@@ -200,6 +220,10 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public ExecutionStep<?> getPhysicalPlan() {
     return physicalPlan;
+  }
+
+  public RuntimeBuildContext getRuntimeBuildContext(final NamedTopologyBuilder topologyBuilder) {
+    return runtimeBuildContextSupplier.apply(topologyBuilder);
   }
 
   @Override
@@ -248,7 +272,6 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public void initialize() {
-
   }
 
   @Override
@@ -346,9 +369,16 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     return topology.describe().toString();
   }
 
+  public void addQueryError(final QueryError error) {
+    queryErrors.add(error);
+  }
+
   @Override
   public List<QueryError> getQueryErrors() {
-    return sharedKafkaStreamsRuntime.getQueryErrors();
+    final List<QueryError> allErrors =
+        new ArrayList<>(sharedKafkaStreamsRuntime.getRuntimeErrors());
+    allErrors.addAll(queryErrors.toImmutableList());
+    return allErrors;
   }
 
   @Override
@@ -359,7 +389,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
         QueryError.Type.USER
     );
     listener.onError(this, corruptionQueryError);
-    sharedKafkaStreamsRuntime.addQueryError(corruptionQueryError);
+    sharedKafkaStreamsRuntime.addRuntimeError(corruptionQueryError);
     corruptionCommandTopic = true;
   }
 
@@ -378,12 +408,6 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public void start() {
     if (!everStarted) {
-      sharedKafkaStreamsRuntime.register(
-          classifier,
-          streamsProperties,
-          this,
-          queryId
-      );
       sharedKafkaStreamsRuntime.start(queryId);
     }
     everStarted = true;

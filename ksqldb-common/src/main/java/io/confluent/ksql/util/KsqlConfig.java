@@ -483,6 +483,13 @@ public class KsqlConfig extends AbstractConfig {
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
 
+  public static final String KSQL_NUM_INITIAL_SHARED_RUNTIMES = "ksql.num.initial.shared.runtimes";
+  public static final Integer KSQL_NUM_INITIAL_SHARED_RUNTIMES_DEFAULT = 8;
+  public static final String KSQL_NUM_INITIAL_SHARED_RUNTIMES_DOC =
+      "The number of shared KafkaStreams runtimes to create during startup. "
+          + "Queries can only share a runtime if they have no overlapping source topics. "
+          + "If a query cannot be placed into any existing runtime because it consumes "
+          + "from the same source topic(s), a new runtime will be added.";
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -1171,6 +1178,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
             Importance.MEDIUM,
             KSQL_SHARED_RUNTIME_ENABLED_DOC
+        )
+        .define(
+            KSQL_NUM_INITIAL_SHARED_RUNTIMES,
+            Type.INT,
+            KSQL_NUM_INITIAL_SHARED_RUNTIMES_DEFAULT,
+            Importance.LOW,
+            KSQL_NUM_INITIAL_SHARED_RUNTIMES_DOC
+        )
+        .define(
+            KSQL_NUM_INITIAL_SHARED_RUNTIMES_DOC,
+            Type.INT,
+            KSQL_NUM_INITIAL_SHARED_RUNTIMES_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_NUM_INITIAL_SHARED_RUNTIMES_DOC
         )
         .define(
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,

@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.query.KafkaStreamsBuilderImpl;
 import io.confluent.ksql.query.KafkaStreamsQueryValidator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
@@ -50,6 +51,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -96,7 +98,12 @@ final class EngineContext {
         new DefaultKsqlParser(),
         cleanupService,
         ksqlConfig,
-        new QueryRegistryImpl(registrationListeners)
+        new QueryRegistryImpl(registrationListeners,
+                              ksqlConfig,
+                              processingLogContext,
+                              new KafkaStreamsBuilderImpl(
+                                  Objects.requireNonNull(serviceContext, "serviceContext")
+                                      .getKafkaClientSupplier()))
     );
   }
 

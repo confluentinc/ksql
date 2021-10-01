@@ -72,7 +72,6 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final Listener listener;
 
   private volatile boolean everStarted = false;
-  protected volatile boolean closed = false;
   private volatile KafkaStreams kafkaStreams;
   // These fields don't need synchronization because they are initialized in initialize() before
   // the object is made available to other threads.
@@ -315,10 +314,6 @@ public class QueryMetadataImpl implements QueryMetadata {
     corruptionCommandTopic = true;
   }
 
-  protected boolean isClosed() {
-    return closed;
-  }
-
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KafkaStreams getKafkaStreams() {
     return kafkaStreams;
@@ -362,7 +357,6 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   void doClose(final boolean cleanUp) {
-    closed = true;
     final boolean closedKafkaStreams = closeKafkaStreams();
 
     if (cleanUp && closedKafkaStreams) {

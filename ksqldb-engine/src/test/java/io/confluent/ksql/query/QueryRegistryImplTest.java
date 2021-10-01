@@ -34,6 +34,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SharedRuntimePersistentQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collection;
@@ -80,7 +81,7 @@ public class QueryRegistryImplTest {
   @Mock
   private MetaStore metaStore;
   @Mock
-  private DataSource source;
+  private KafkaStreamsBuilder builder;
   @Captor
   private ArgumentCaptor<QueryMetadata.Listener> queryListenerCaptor;
   @SuppressWarnings("Unused")
@@ -103,10 +104,10 @@ public class QueryRegistryImplTest {
   @Before
   public void setup() {
     rule.strictness(Strictness.WARN);
-    when(executorFactory.create(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(queryBuilder);
+    when(executorFactory.create(any(), any(), any(), any(), any())).thenReturn(queryBuilder);
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());
-    registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory);
+    registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), ksqlConfig, logContext, builder, executorFactory);
   }
 
   @Test
@@ -492,7 +493,7 @@ public class QueryRegistryImplTest {
           any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any());
     } else {
       verify(queryBuilder).buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any());
     }
     return queryListenerCaptor.getValue();
   }
@@ -510,7 +511,7 @@ public class QueryRegistryImplTest {
       KsqlConstants.PersistentQueryType persistentQueryType
   ) {
     final QueryId queryId = new QueryId(id);
-    final PersistentQueryMetadata query = mock(PersistentQueryMetadataImpl.class);
+    final SharedRuntimePersistentQueryMetadata query = mock(SharedRuntimePersistentQueryMetadata.class);
     final DataSource sinkSource = mock(DataSource.class);
 
     sink.ifPresent(s -> {
@@ -524,7 +525,7 @@ public class QueryRegistryImplTest {
     when(query.getPersistentQueryType()).thenReturn(persistentQueryType);
     if (sharedRuntimes) {
       when(queryBuilder.buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     } else {
       when(queryBuilder.buildPersistentQueryInDedicatedRuntime(

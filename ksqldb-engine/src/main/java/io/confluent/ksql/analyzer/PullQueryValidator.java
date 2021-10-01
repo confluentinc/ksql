@@ -90,6 +90,7 @@ public class PullQueryValidator implements QueryValidator {
     } catch (final KsqlException e) {
       throw new KsqlException(e.getMessage() + PULL_QUERY_SYNTAX_HELP, e);
     }
+    QueryValidatorUtil.validateNoUserColumnsWithSameNameAsNewPseudoColumns(analysis);
   }
 
   private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {

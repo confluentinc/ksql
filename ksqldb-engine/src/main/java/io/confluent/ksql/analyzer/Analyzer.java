@@ -658,16 +658,6 @@ class Analyzer {
     }
 
     public void validate() {
-
-      if (containsUserColumnsWithSameNameAsNewPseudoColumns(analysis, ksqlConfig)) {
-        throw new KsqlException("You cannot query a stream or table that "
-            + "has user columns with the same name as new pseudocolumns.\n"
-            + "To allow for new queries on this source, downgrade your ksql"
-            + "version to a release before the conflicting pseudocolumns"
-            + "were introduced."
-        );
-      }
-
       final String kafkaSources = analysis.getAllDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
                   .equals(KafkaFormat.NAME))
@@ -690,19 +680,6 @@ class Analyzer {
             + " This format does not yet support GROUP BY."
             + System.lineSeparator() + KAFKA_VALUE_FORMAT_LIMITATION_DETAILS);
       }
-    }
-
-    private boolean containsUserColumnsWithSameNameAsNewPseudoColumns(
-        final Analysis analysis,
-        final KsqlConfig ksqlConfig
-    ) {
-      return analysis.getAllDataSources().stream()
-          .map(AliasedDataSource::getDataSource)
-          .map(DataSource::getSchema)
-          .map(LogicalSchema::value)
-          .flatMap(Collection::stream)
-          .map(Column::name)
-          .anyMatch(name -> SystemColumns.isPseudoColumn(name, ksqlConfig));
     }
 
     private void captureReferencedSourceColumns(final Expression exp) {

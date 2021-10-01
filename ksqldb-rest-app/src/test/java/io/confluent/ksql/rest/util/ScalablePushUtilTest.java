@@ -369,7 +369,6 @@ public class ScalablePushUtilTest {
 
   private void expectIsSPQ() {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(true);
-    // to avoid static mocking of ColumnExtractor for each class
     when(query.getGroupBy()).thenReturn(Optional.empty());
     when(query.getWindow()).thenReturn(Optional.empty());
     when(query.getHaving()).thenReturn(Optional.empty());

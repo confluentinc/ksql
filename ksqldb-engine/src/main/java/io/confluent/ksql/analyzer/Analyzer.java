@@ -695,7 +695,7 @@ class Analyzer {
     private boolean containsUserColumnsWithSameNameAsNewPseudoColumns(
         final Analysis analysis,
         final KsqlConfig ksqlConfig
-        ) {
+    ) {
       return analysis.getAllDataSources().stream()
           .map(AliasedDataSource::getDataSource)
           .map(DataSource::getSchema)

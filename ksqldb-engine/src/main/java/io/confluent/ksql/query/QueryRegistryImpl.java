@@ -225,6 +225,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     query.initialize();
     // We don't register it as a transient query, so it won't show up in `show queries;`,
     // nor will it count against the push query limit.
+    notifyCreate(serviceContext, metaStore, query);
     return query;
   }
 

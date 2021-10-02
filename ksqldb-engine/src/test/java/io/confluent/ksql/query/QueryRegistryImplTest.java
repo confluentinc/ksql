@@ -539,6 +539,7 @@ public class QueryRegistryImplTest {
     when(queryBuilder.buildTransientQuery(
         any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any())
     ).thenReturn(query);
+    when(query.isInitialized()).thenReturn(true);
     registry.createTransientQuery(
         config,
         serviceContext,

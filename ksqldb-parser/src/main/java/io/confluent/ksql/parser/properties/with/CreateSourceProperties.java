@@ -205,12 +205,10 @@ public final class CreateSourceProperties {
   }
 
   public CreateSourceProperties withPartitionsAndReplicas(
-      final int partitions,
-      final short replicas
+      final int partitions
   ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
-    originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
     return new CreateSourceProperties(originals, durationParser);
   }

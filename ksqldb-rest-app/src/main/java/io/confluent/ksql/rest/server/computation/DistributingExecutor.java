@@ -145,6 +145,7 @@ public class DistributingExecutor {
    * If a new transactional producer is initialized while the current transaction is incomplete,
    * the old producer will be fenced off and unable to continue with its transaction.
    */
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<? extends Statement> statement,
       final KsqlExecutionContext executionContext,

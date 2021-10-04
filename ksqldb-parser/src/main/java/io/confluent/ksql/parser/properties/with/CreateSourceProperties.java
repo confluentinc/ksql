@@ -204,7 +204,7 @@ public final class CreateSourceProperties {
     return new CreateSourceProperties(originals, durationParser);
   }
 
-  public CreateSourceProperties withPartitionsAndReplicas(
+  public CreateSourceProperties withPartitions(
       final int partitions
   ) {
     final Map<String, Literal> originals = props.copyOfOriginalLiterals();

@@ -56,6 +56,8 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -433,5 +435,34 @@ public class DistributingExecutorTest {
 
     // Then:
     verify(queue).abortCommand(IDGEN.getCommandId(CONFIGURED_STATEMENT.getStatement()));
+  }
+
+  @Test
+  public void shouldNotEnqueueRedundantIfNotExists() {
+    // Given:
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new CreateStream(
+            Optional.empty(),
+            SourceName.of("TEST"),
+            TableElements.of(),
+            false,
+            true,
+            CreateSourceProperties.from(ImmutableMap.of(
+                CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic"),
+                CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("json")
+            ))
+        ));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
+    final DataSource dataSource = mock(DataSource.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("TEST"));
+
+    // When:
+    final Optional<KsqlEntity> response = distributor.execute(configured, executionContext, securityContext);
+
+    // Then:
+    assertThat("Should be present", response.isPresent());
+    assertThat(((WarningEntity) response.get()).getMessage(), containsString(""));
   }
 }

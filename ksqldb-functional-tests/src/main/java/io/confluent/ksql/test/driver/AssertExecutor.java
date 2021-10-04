@@ -316,7 +316,7 @@ public final class AssertExecutor {
         return;
       }
 
-      if (!actual.equals(expected)) {
+      if (!Objects.equals(actual, expected)) {
         throw new KsqlException(
             String.format(
                 "Expected %s does not match actual for source %s.%n\tExpected: %s%n\tActual: %s",

@@ -245,11 +245,10 @@ public class QueryEndpoint {
     try {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
       decrementer = pullConcurrencyLimiter.increment();
-      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+      pullBandRateLimiter.allow();
       final Decrementer finalDecrementer = decrementer;
 
-      final PullQueryResult result = ksqlEngine.executeTablePullQuery(
-          analysis,
+      final PullQueryResult result = ksqlEngine.executePullQuery(
           serviceContext,
           statement,
           routing,

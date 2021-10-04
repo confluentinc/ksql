@@ -108,11 +108,10 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     try {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
       decrementer = concurrencyLimiter.increment();
-      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+      pullBandRateLimiter.allow();
       final Decrementer finalDecrementer = decrementer;
 
-      result = ksqlEngine.executeTablePullQuery(
-          analysis,
+      result = ksqlEngine.executePullQuery(
           serviceContext,
           query,
           routing,

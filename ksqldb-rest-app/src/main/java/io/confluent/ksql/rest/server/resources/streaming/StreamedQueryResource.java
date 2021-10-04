@@ -408,11 +408,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
         PullQueryExecutionUtil.checkRateLimit(rateLimiter);
         decrementer = concurrencyLimiter.increment();
       }
-      pullBandRateLimiter.allow(KsqlQueryType.PULL);
+      pullBandRateLimiter.allow();
 
       final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
-      final PullQueryResult result = ksqlEngine.executeTablePullQuery(
-          analysis,
+      final PullQueryResult result = ksqlEngine.executePullQuery(
           serviceContext,
           configured,
           routing,

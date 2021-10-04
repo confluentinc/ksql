@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
@@ -41,6 +42,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Before;
 import org.junit.Rule;
@@ -115,6 +117,24 @@ public class QueryRegistryImplTest {
         givenCreate(registry, "q2", "source2", Optional.empty(), CREATE_SOURCE),
         givenCreateTransient(registry, "transient1")
     );
+
+    // When:
+    final Set<QueryMetadata> listed
+        = ImmutableSet.<QueryMetadata>builder().addAll(registry.getAllLiveQueries()).build();
+
+    // Then:
+    assertThat(listed, equalTo(queries));
+  }
+
+  @Test
+  public void shouldNotIncludeStreamPullInLiveQueries() {
+    // Given:
+    final Set<QueryMetadata> queries = ImmutableSet.of(
+        givenCreate(registry, "q1", "source1", Optional.of("sink"), CREATE_AS),
+        givenCreate(registry, "q2", "source2", Optional.empty(), CREATE_SOURCE),
+        givenCreateTransient(registry, "transient1")
+    );
+    givenStreamPull(registry, "streamPull1");
 
     // When:
     final Set<QueryMetadata> listed
@@ -554,6 +574,36 @@ public class QueryRegistryImplTest {
         OptionalInt.of(123),
         Optional.empty(),
         false
+    );
+    return query;
+  }
+
+  private TransientQueryMetadata givenStreamPull(
+      final QueryRegistry registry,
+      final String id
+  ) {
+    final QueryId queryId = new QueryId(id);
+    final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
+    when(query.getQueryId()).thenReturn(queryId);
+    when(queryBuilder.buildTransientQuery(
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any())
+    ).thenReturn(query);
+    when(query.isInitialized()).thenReturn(true);
+    registry.createStreamPullQuery(
+        config,
+        serviceContext,
+        logContext,
+        metaStore,
+        "sql",
+        queryId,
+        ImmutableSet.of(SourceName.of("some-source")),
+        mock(ExecutionStep.class),
+        "plan-summary",
+        mock(LogicalSchema.class),
+        OptionalInt.of(123),
+        Optional.empty(),
+        false,
+        ImmutableMap.<TopicPartition, Long> builder().build()
     );
     return query;
   }

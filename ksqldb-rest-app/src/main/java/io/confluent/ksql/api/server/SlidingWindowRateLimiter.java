@@ -23,6 +23,8 @@ import io.confluent.ksql.util.Pair;
 import java.util.LinkedList;
 import java.util.Queue;
 import org.apache.kafka.common.utils.Time;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * SlidingWindowRateLimiter keeps a log of timestamps and the size for each response returned by
@@ -36,6 +38,7 @@ import org.apache.kafka.common.utils.Time;
 
 public class SlidingWindowRateLimiter {
 
+  private static final Logger LOG = LoggerFactory.getLogger(SlidingWindowRateLimiter.class);
   private static long NUM_BYTES_IN_ONE_MEGABYTE = 1 * 1024 * 1024;
 
   /**
@@ -90,6 +93,8 @@ public class SlidingWindowRateLimiter {
       this.numBytesInWindow -= responseSizesLog.poll().right;
     }
     if (this.numBytesInWindow > throttleLimit) {
+      LOG.warn("Hit bandwidth rate limit of " + throttleLimit + "MB with use of "
+          + numBytesInWindow + "MB");
       throw new KsqlException("Host is at bandwidth rate limit for pull queries.");
     }
   }

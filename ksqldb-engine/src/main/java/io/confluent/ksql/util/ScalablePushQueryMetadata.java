@@ -20,10 +20,10 @@ import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
-import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.CompletionHandler;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
@@ -39,7 +39,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private volatile boolean closed = false;
   private final LogicalSchema logicalSchema;
   private final QueryId queryId;
-  private final BlockingRowQueue rowQueue;
+  private final TransientQueryQueue transientQueryQueue;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
@@ -59,7 +59,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   public ScalablePushQueryMetadata(
       final LogicalSchema logicalSchema,
       final QueryId queryId,
-      final BlockingRowQueue blockingRowQueue,
+      final TransientQueryQueue transientQueryQueue,
       final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final ResultType resultType,
       final PushQueryQueuePopulator pushQueryQueuePopulator,
@@ -70,7 +70,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   ) {
     this.logicalSchema = logicalSchema;
     this.queryId = queryId;
-    this.rowQueue = blockingRowQueue;
+    this.transientQueryQueue = transientQueryQueue;
     this.scalablePushQueryMetrics = scalablePushQueryMetrics;
     this.resultType = resultType;
     this.pushQueryQueuePopulator = pushQueryQueuePopulator;
@@ -108,7 +108,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   @Override
   public void close() {
-    rowQueue.close();
+    transientQueryQueue.close();
     startFuture.thenApply(handle -> {
       handle.close();
       return null;
@@ -123,18 +123,18 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
 
   @Override
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
-  public BlockingRowQueue getRowQueue() {
-    return rowQueue;
+  public TransientQueryQueue getRowQueue() {
+    return transientQueryQueue;
   }
 
   @Override
   public void setLimitHandler(final LimitHandler limitHandler) {
-    rowQueue.setLimitHandler(limitHandler);
+    transientQueryQueue.setLimitHandler(limitHandler);
   }
 
   @Override
   public void setCompletionHandler(final CompletionHandler completionHandler) {
-    rowQueue.setCompletionHandler(completionHandler);
+    transientQueryQueue.setCompletionHandler(completionHandler);
   }
 
   @Override
@@ -186,7 +186,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   }
 
   public long getTotalRowsReturned() {
-    return rowQueue.size();
+    return transientQueryQueue.getTotalRowsQueued();
   }
 
   public long getTotalRowsProcessed() {

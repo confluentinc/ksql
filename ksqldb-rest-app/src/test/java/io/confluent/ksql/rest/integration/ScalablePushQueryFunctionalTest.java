@@ -41,6 +41,7 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -152,6 +153,7 @@ public class ScalablePushQueryFunctionalTest {
   private String streamName;
   private PageViewDataProvider pageViewDataProvider;
   private PageViewDataProvider pageViewAdditionalDataProvider;
+  private PageViewDataProvider pageViewTwoRows;
   private KsqlRestClient restClient;
   private StreamPublisher<StreamedRow> publisher;
   private QueryStreamSubscriber subscriber;
@@ -165,7 +167,8 @@ public class ScalablePushQueryFunctionalTest {
     }
     final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
     pageViewDataProvider = new PageViewDataProvider(prefix);
-    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, true);
+    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
+    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
     TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
 
     RestIntegrationTestUtil.createStream(REST_APP_0, pageViewDataProvider);
@@ -234,6 +237,7 @@ public class ScalablePushQueryFunctionalTest {
         header, complete);
 
     header.get();
+    assertExpectedScalablePushQueries(1, false);
 
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
@@ -280,11 +284,17 @@ public class ScalablePushQueryFunctionalTest {
 
     REST_APP_1.stop();
 
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewTwoRows,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewAdditionalDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
 
-    assertThatEventually(() -> subscriber.getUniqueRows().size(),
-        is(pageViewDataProvider.data().size() + pageViewAdditionalDataProvider.data().size() + 1));
+    assertThatEventually(() -> {
+      System.out.println("Unique rows " + subscriber.getUniqueRows());
+      return subscriber.getUniqueRows().size();
+      },
+        is(pageViewDataProvider.data().size() + pageViewAdditionalDataProvider.data().size() + 1 + 1));
 
     List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
         .sorted(this::compareByTimestamp)
@@ -364,16 +374,18 @@ public class ScalablePushQueryFunctionalTest {
   ) {
     assertThatEventually(() -> {
       for (final PersistentQueryMetadata metadata : REST_APP_0.getEngine().getPersistentQueries()) {
-        if (metadata.getScalablePushRegistry().get().numRegistered()
-            < expectedScalablePushQueries) {
+        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
+            < expectedScalablePushQueries
+            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
           return false;
         }
       }
       if (app1) {
         for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
             .getPersistentQueries()) {
-          if (metadata.getScalablePushRegistry().get().numRegistered()
-              < expectedScalablePushQueries) {
+          if (metadata.getScalablePushRegistry().get().latestNumRegistered()
+              < expectedScalablePushQueries
+              || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
             return false;
           }
         }
@@ -407,4 +419,26 @@ public class ScalablePushQueryFunctionalTest {
 
     return res.getResponse();
   }
+
+//  class TestConsumerPartitionAssignor implements ConsumerPartitionAssignor {
+//
+//    @Override
+//    public GroupAssignment assign(Cluster cluster, GroupSubscription groupSubscription) {
+//      final Map<String, Subscription> subscriptions = groupSubscription.groupSubscription();
+//      Map<String, Assignment> assignmentMap = new HashMap<>();
+//      for (final Map.Entry<String, Subscription> entry : subscriptions.entrySet()) {
+//        final String consumerId = entry.getKey();
+//        final Subscription subscription = entry.getValue();
+//        subscription.userData()
+//        assignmentMap.put(consumerId, )
+//      }
+//      return new GroupAssignment(assignmentMap);
+//    }
+//
+//    @Override
+//    public String name() {
+//      return null;
+//    }
+//  }
+
 }

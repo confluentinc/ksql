@@ -336,6 +336,16 @@ public class KsqlConfig extends AbstractConfig {
           + "different performance characteristics.";
   public static final boolean KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS
+      = "ksql.query.push.v2.new.latest.delay.ms";
+  public static final String KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC =
+      "The delay in ms for a new latest consumer to start processing records."
+          + "If new nodes are added to the cluster, a longer delay makes it less likely that"
+          + "stragglers requests will miss a record and be forced to catchup.";
+  public static final long KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT = 5000;
+
+  public static final String KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX = "ksql.query.push.v2.consumer.";
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -1017,6 +1027,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

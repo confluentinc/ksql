@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
-import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import java.util.Optional;
@@ -45,7 +45,7 @@ public class ScalablePushQueryMetadataTest {
   @Mock
   private LogicalSchema logicalSchema;
   @Mock
-  private BlockingRowQueue blockingRowQueue;
+  private TransientQueryQueue transientQueryQueue;
   @Mock
   private PushQueryQueuePopulator populator;
   @Mock
@@ -64,7 +64,7 @@ public class ScalablePushQueryMetadataTest {
     query = new ScalablePushQueryMetadata(
         logicalSchema,
         new QueryId("queryid"),
-        blockingRowQueue,
+        transientQueryQueue,
         metrics,
         ResultType.STREAM,
         populator,

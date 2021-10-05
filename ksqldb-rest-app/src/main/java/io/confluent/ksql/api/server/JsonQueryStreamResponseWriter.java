@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -77,6 +78,13 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
     writeBuffer(ServerUtils.serializeObject(error));
     return this;
   }
+
+  @Override
+  public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
+    writeBuffer(ServerUtils.serializeObject(consistencyToken));
+    return this;
+  }
+
 
   private void writeBuffer(final Buffer buffer) {
     final Buffer buff = Buffer.buffer().appendByte((byte) ',');

@@ -139,8 +139,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryStreamResponseWriter.writeMetadata(metadata);
 
           final QuerySubscriber querySubscriber = new QuerySubscriber(context,
-              routingContext.response(),
-              queryStreamResponseWriter);
+              routingContext.response(), queryStreamResponseWriter);
 
           queryPublisher.subscribe(querySubscriber);
 

@@ -36,6 +36,7 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -173,7 +174,8 @@ public interface KsqlExecutionContext {
       RoutingOptions routingOptions,
       QueryPlannerOptions queryPlannerOptions,
       Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      boolean startImmediately
+      boolean startImmediately,
+      Optional<ConsistencyOffsetVector> consistencyOffsetVector
   );
 
   /**

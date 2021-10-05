@@ -188,7 +188,7 @@ public class PullQueryStreamWriterTest {
   public void shouldWriteOneAndClose() throws InterruptedException, IOException {
     // Given:
     when(pullQueryQueue.pollRow(anyLong(), any()))
-        .thenReturn(new PullQueryRow(ImmutableList.of("Row1"), SCHEMA, Optional.empty()))
+        .thenReturn(new PullQueryRow(ImmutableList.of("Row1"), SCHEMA, Optional.empty(), Optional.empty()))
         .thenAnswer(inv -> {
           completeCapture.getValue().accept(null);
           return END_ROW;
@@ -297,7 +297,7 @@ public class PullQueryStreamWriterTest {
       final Collection<PullQueryRow> output = inv.getArgument(0);
 
       Arrays.stream(rows)
-          .map(row -> new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty()))
+          .map(row -> new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty(), Optional.empty()))
           .forEach(output::add);
 
       return null;
@@ -305,7 +305,7 @@ public class PullQueryStreamWriterTest {
   }
 
   private static PullQueryRow streamRow(final Object row) {
-    return new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty());
+    return new PullQueryRow(ImmutableList.of(row), SCHEMA, Optional.empty(), Optional.empty());
   }
 
   private static List<String> getOutput(final ByteArrayOutputStream out) throws IOException {

@@ -21,6 +21,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.util.KeyValueMetadata;
@@ -28,6 +29,7 @@ import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,11 +59,13 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private QueryId queryId;
   private boolean complete;
   private volatile boolean closed;
+  private AtomicBoolean addedCT;
 
   public BlockingQueryPublisher(final Context ctx,
       final WorkerExecutor workerExecutor) {
     super(ctx);
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
+    this.addedCT = new AtomicBoolean(false);
   }
 
   public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
@@ -87,6 +91,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     // we hit the limit, but for query completion, we should just end the response stream.
     this.queue.setCompletionHandler(() -> {
       complete = true;
+
+      if (isPullQuery) {
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+      }
       // This allows us to finish the query immediately if the query is already fully streamed.
       if (queue.isEmpty()) {
         ctx.runOnContext(v -> sendComplete());
@@ -144,6 +153,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     executeOnWorker(queryHandle::start);
   }
 
+
   private void executeOnWorker(final Runnable runnable) {
     workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
       if (ar.failed()) {
@@ -157,12 +167,15 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       justification = "Vert.x ensures this is executed on event loop only")
   private void doSend() {
     checkContext();
-
     int num = 0;
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
-
+        if (complete && isPullQuery && !addedCT.get()) {
+          queryHandle.getConsistencyOffsetVector().ifPresent(
+              ((PullQueryQueue)queue)::putConsistencyVector);
+          addedCT.set(true);
+        }
         if (complete && queue.isEmpty()) {
           ctx.runOnContext(v -> sendComplete());
         }

@@ -61,9 +61,11 @@ import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
@@ -489,6 +491,21 @@ public class StreamedQueryResource implements KsqlConfigurable {
       pullBandRateLimiter.allow(KsqlQueryType.PULL);
 
       final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
+      Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
+      if (requestProperties.containsKey(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
+        final ConsistencyOffsetVector cv = new ConsistencyOffsetVector();
+        consistencyOffsetVector = Optional.of(cv);
+        final String serializedCV = (String) requestProperties.get(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
+        // The consistency vector is not initialized on the first request, needs the first response
+        // from the server
+        if (serializedCV != null) {
+          cv.deserialize(((String) requestProperties.get(
+              KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)));
+        }
+      }
+
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,
@@ -497,7 +514,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           routingOptions,
           plannerOptions,
           pullQueryMetrics,
-          true
+          true,
+          consistencyOffsetVector
       );
       resultForMetrics.set(result);
       result.onCompletionOrException(

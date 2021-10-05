@@ -24,13 +24,22 @@ import java.util.Optional;
 public class RowMetadata {
 
   private final Optional<PushOffsetRange> pushOffsetsRange;
+  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
-  public RowMetadata(final Optional<PushOffsetRange> pushOffsetsRange) {
+  public RowMetadata(
+      final Optional<PushOffsetRange> pushOffsetsRange,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+  ) {
     this.pushOffsetsRange = pushOffsetsRange;
+    this.consistencyOffsetVector = consistencyOffsetVector;
   }
 
   public Optional<PushOffsetRange> getPushOffsetsRange() {
     return pushOffsetsRange;
+  }
+
+  public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+    return consistencyOffsetVector;
   }
 
   @Override
@@ -42,11 +51,21 @@ public class RowMetadata {
       return false;
     }
     final RowMetadata rowMetadata = (RowMetadata) o;
-    return Objects.equals(pushOffsetsRange, rowMetadata.pushOffsetsRange);
+    return Objects.equals(pushOffsetsRange, rowMetadata.pushOffsetsRange)
+        && Objects.equals(consistencyOffsetVector, rowMetadata.consistencyOffsetVector);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(pushOffsetsRange);
+    return Objects.hash(pushOffsetsRange, consistencyOffsetVector);
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("RowMetadata{");
+    sb.append("pushOffsetsRange=").append(pushOffsetsRange);
+    sb.append(", consistencyOffsetVector=").append(consistencyOffsetVector);
+    sb.append('}');
+    return sb.toString();
   }
 }

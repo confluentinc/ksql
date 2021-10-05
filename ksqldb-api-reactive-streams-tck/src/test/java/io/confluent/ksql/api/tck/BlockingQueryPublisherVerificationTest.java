@@ -21,13 +21,14 @@ import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
@@ -116,6 +117,11 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     @Override
     public QueryId getQueryId() {
       return new QueryId("queryId");
+    }
+
+    @Override
+    public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+      return Optional.empty();
     }
   }
 }

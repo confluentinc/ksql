@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
@@ -279,7 +279,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -304,7 +306,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -327,7 +331,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -352,7 +358,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -382,7 +390,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -754,7 +764,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -770,12 +782,63 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
+    // When:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"rO0ABXNyAC5pby5jb25mbHVlbnQua3NxbC51dGlsLkNvbnNpc3RlbmN5"
+                                       + "T2Zmc2V0VmVjdG9yW3VgUlObgBkCA"
+                                       + "ANJAAd2ZXJzaW9uTAAMb2Zmc2V0VmVjdG9ydAAPTGphdmEvdXRpbC9NYX"
+                                       + "A7TAAGcndMb2NrdAAqTGphdmEvdXRpbC9jb25jdXJyZW50L2xvY2tzL1"
+                                       + "JlYWRXcml0ZUxvY2s7eHAAAAACc3IAEWphdmEudXRpbC5IYXNoTWFwBQ"
+                                       + "fawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xkeHA/QAAAAA"
+                                       + "AADHcIAAAAEAAAAAF0AAVkdW1teXNxAH4ABD9AAAAAAAAGdwgAAAAIAA"
+                                       + "AAA3NyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdW"
+                                       + "V4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAFc3IADmp"
+                                       + "hdmEubGFuZy5Mb25nO4vkkMyPI98CAAFKAAV2YWx1ZXhxAH4ACQAAAAAA"
+                                       + "AAAFc3EAfgAIAAAABnNxAH4ACwAAAAAAAAAGc3EAfgAIAAAAB3NxAH4AC"
+                                       + "wAAAAAAAAAHeHhzcgAxamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUm"
+                                       + "VlbnRyYW50UmVhZFdyaXRlTG9ja5711QDwtWhMAgADTAAKcmVhZGVyTG9"
+                                       + "ja3QAPExqYXZhL3V0aWwvY29uY3VycmVudC9sb2Nrcy9SZWVudHJhbnRS"
+                                       + "ZWFkV3JpdGVMb2NrJFJlYWRMb2NrO0wABHN5bmN0ADhMamF2YS91dGlsL"
+                                       + "2NvbmN1cnJlbnQvbG9ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRTeW"
+                                       + "5jO0wACndyaXRlckxvY2t0AD1MamF2YS91dGlsL2NvbmN1cnJlbnQvbG9"
+                                       + "ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRXcml0ZUxvY2s7eHBzcgA6"
+                                       + "amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFdya"
+                                       + "XRlTG9jayRSZWFkTG9ja6zWi7SYGWhMAgABTAAEc3luY3EAfgATeHBzcg"
+                                       + "A9amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFd"
+                                       + "yaXRlTG9jayROb25mYWlyU3luY47DL86PHQNjAgAAeHIANmphdmEudXRp"
+                                       + "bC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYWRXcml0ZUxvY2skU"
+                                       + "3luY1es4MU/QSu5AgAAeHIANWphdmEudXRpbC5jb25jdXJyZW50LmxvY2"
+                                       + "tzLkFic3RyYWN0UXVldWVkU3luY2hyb25pemVyZlWoQ3U/UuMCAAFJAAV"
+                                       + "zdGF0ZXhyADZqYXZhLnV0aWwuY29uY3VycmVudC5sb2Nrcy5BYnN0cmFj"
+                                       + "dE93bmFibGVTeW5jaHJvbml6ZXIz36+5rW1vqQIAAHhwAAEAAHEAfgAcc"
+                                       + "3IAO2phdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYW"
+                                       + "RXcml0ZUxvY2skV3JpdGVMb2NrurdCaD99aEwCAAFMAARzeW5jcQB+ABN"
+                                       + "4cHEAfgAc\"}}"));
+  }
+
+  @Test
   public void shouldExecutePullQueryOverWebSocketWithJsonContentType() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -791,12 +854,63 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
+    // When:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"rO0ABXNyAC5pby5jb25mbHVlbnQua3NxbC51dGlsLkNvbnNpc3RlbmN"
+                                       + "5T2Zmc2V0VmVjdG9yW3VgUlObgBkCA"
+                                       + "ANJAAd2ZXJzaW9uTAAMb2Zmc2V0VmVjdG9ydAAPTGphdmEvdXRpbC9NYX"
+                                       + "A7TAAGcndMb2NrdAAqTGphdmEvdXRpbC9jb25jdXJyZW50L2xvY2tzL1"
+                                       + "JlYWRXcml0ZUxvY2s7eHAAAAACc3IAEWphdmEudXRpbC5IYXNoTWFwBQ"
+                                       + "fawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xkeHA/QAAAAA"
+                                       + "AADHcIAAAAEAAAAAF0AAVkdW1teXNxAH4ABD9AAAAAAAAGdwgAAAAIAA"
+                                       + "AAA3NyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdW"
+                                       + "V4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAFc3IADmp"
+                                       + "hdmEubGFuZy5Mb25nO4vkkMyPI98CAAFKAAV2YWx1ZXhxAH4ACQAAAAAA"
+                                       + "AAAFc3EAfgAIAAAABnNxAH4ACwAAAAAAAAAGc3EAfgAIAAAAB3NxAH4AC"
+                                       + "wAAAAAAAAAHeHhzcgAxamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUm"
+                                       + "VlbnRyYW50UmVhZFdyaXRlTG9ja5711QDwtWhMAgADTAAKcmVhZGVyTG9"
+                                       + "ja3QAPExqYXZhL3V0aWwvY29uY3VycmVudC9sb2Nrcy9SZWVudHJhbnRS"
+                                       + "ZWFkV3JpdGVMb2NrJFJlYWRMb2NrO0wABHN5bmN0ADhMamF2YS91dGlsL"
+                                       + "2NvbmN1cnJlbnQvbG9ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRTeW"
+                                       + "5jO0wACndyaXRlckxvY2t0AD1MamF2YS91dGlsL2NvbmN1cnJlbnQvbG9"
+                                       + "ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRXcml0ZUxvY2s7eHBzcgA6"
+                                       + "amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFdya"
+                                       + "XRlTG9jayRSZWFkTG9ja6zWi7SYGWhMAgABTAAEc3luY3EAfgATeHBzcg"
+                                       + "A9amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFd"
+                                       + "yaXRlTG9jayROb25mYWlyU3luY47DL86PHQNjAgAAeHIANmphdmEudXRp"
+                                       + "bC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYWRXcml0ZUxvY2skU"
+                                       + "3luY1es4MU/QSu5AgAAeHIANWphdmEudXRpbC5jb25jdXJyZW50LmxvY2"
+                                       + "tzLkFic3RyYWN0UXVldWVkU3luY2hyb25pemVyZlWoQ3U/UuMCAAFJAAV"
+                                       + "zdGF0ZXhyADZqYXZhLnV0aWwuY29uY3VycmVudC5sb2Nrcy5BYnN0cmFj"
+                                       + "dE93bmFibGVTeW5jaHJvbml6ZXIz36+5rW1vqQIAAHhwAAEAAHEAfgAcc"
+                                       + "3IAO2phdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYW"
+                                       + "RXcml0ZUxvY2skV3JpdGVMb2NrurdCaD99aEwCAAFMAARzeW5jcQB+ABN"
+                                       + "4cHEAfgAc\"}}"));
+  }
+
+  @Test
   public void shouldReturnCorrectSchemaForPullQueryWithOnlyKeyInSelect() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -816,7 +930,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -896,7 +1012,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON);
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty());
 
     // Then:
     assertThat(messages, hasSize(LIMIT + 1));
@@ -1005,14 +1123,18 @@ public class RestApiTest {
   private static List<String> makeWebSocketRequest(
       final String sql,
       final String mediaType,
-      final String contentType
+      final String contentType,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     return RestIntegrationTestUtil.makeWsRequest(
         REST_APP.getWsListener(),
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(SUPER_USER)
+        Optional.of(SUPER_USER),
+        overrides,
+        requestProperties
     );
   }
 

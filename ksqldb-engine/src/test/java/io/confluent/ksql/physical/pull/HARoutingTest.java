@@ -17,13 +17,9 @@ package io.confluent.ksql.physical.pull;
 
 import static io.confluent.ksql.util.KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -63,7 +59,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlRequestConfig;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -73,10 +68,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import org.apache.zookeeper.Op;
-import org.checkerframework.checker.nullness.Opt;
 import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -96,10 +88,10 @@ public class HARoutingTest {
   private static final List<?> ROW4 = ImmutableList.of("g", "h");
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder().build();
-  private static final PullQueryRow PQ_ROW1 = new PullQueryRow(ROW1, SCHEMA, Optional.empty());
-  private static final PullQueryRow PQ_ROW2 = new PullQueryRow(ROW2, SCHEMA, Optional.empty());
-  private static final PullQueryRow PQ_ROW3 = new PullQueryRow(ROW3, SCHEMA, Optional.empty());
-  private static final PullQueryRow PQ_ROW4 = new PullQueryRow(ROW4, SCHEMA, Optional.empty());
+  private static final PullQueryRow PQ_ROW1 = new PullQueryRow(ROW1, SCHEMA, Optional.empty(), Optional.empty());
+  private static final PullQueryRow PQ_ROW2 = new PullQueryRow(ROW2, SCHEMA, Optional.empty(), Optional.empty());
+  private static final PullQueryRow PQ_ROW3 = new PullQueryRow(ROW3, SCHEMA, Optional.empty(), Optional.empty());
+  private static final PullQueryRow PQ_ROW4 = new PullQueryRow(ROW4, SCHEMA, Optional.empty(), Optional.empty());
 
   @Mock
   private ConfiguredStatement<Query> statement;
@@ -535,7 +527,8 @@ public class HARoutingTest {
         logicalSchema,
         queryId,
         pullQueryQueue,
-        disconnect, Optional.empty());
+        disconnect,
+        Optional.empty());
     fut.get();
 
     // Then:

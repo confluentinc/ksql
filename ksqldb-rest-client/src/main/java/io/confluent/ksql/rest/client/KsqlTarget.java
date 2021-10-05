@@ -219,9 +219,10 @@ public final class KsqlTarget {
 
   public RestResponse<StreamPublisher<StreamedRow>> postQueryRequestStreamed(
       final String sql,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return executeQueryRequestWithStreamResponse(sql, previousCommandSeqNum,
+    return executeQueryRequestWithStreamResponse(sql, requestProperties, previousCommandSeqNum,
         buff -> deserialize(buff, StreamedRow.class));
   }
 
@@ -238,7 +239,8 @@ public final class KsqlTarget {
       final String ksql,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return executeQueryRequestWithStreamResponse(ksql, previousCommandSeqNum, Object::toString);
+    return executeQueryRequestWithStreamResponse(ksql, Collections.emptyMap(),
+        previousCommandSeqNum, Object::toString);
   }
 
   private KsqlRequest createKsqlRequest(
@@ -357,11 +359,12 @@ public final class KsqlTarget {
 
   private <T> RestResponse<StreamPublisher<T>> executeQueryRequestWithStreamResponse(
       final String ksql,
+      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
       final Function<Buffer, T> mapper
   ) {
     final KsqlRequest ksqlRequest = createKsqlRequest(
-        ksql, Collections.emptyMap(), previousCommandSeqNum);
+        ksql, requestProperties, previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
     return executeSync(HttpMethod.POST, QUERY_PATH, Optional.empty(), ksqlRequest,
         resp -> pubRef.get(),

@@ -56,10 +56,12 @@ import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -79,8 +81,9 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class WSQueryEndpoint {
-
+  // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
 
   private final KsqlConfig ksqlConfig;
@@ -298,7 +301,21 @@ public class WSQueryEndpoint {
           );
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
-
+      final Map<String, Object> requestProperties = info.request.getRequestProperties();
+      Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
+      if (requestProperties.containsKey(
+          KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+        final ConsistencyOffsetVector cv = new ConsistencyOffsetVector();
+        consistencyOffsetVector = Optional.of(cv);
+        final String serializedCV = (String) requestProperties.get(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
+        // The consistency vector is not initialized on the first request, needs the first response
+        // from the server
+        if (serializedCV != null) {
+          cv.deserialize(((String) requestProperties.get(
+              KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)));
+        }
+      }
       switch (dataSourceType) {
         case KTABLE: {
           new PullQueryPublisher(
@@ -313,7 +330,8 @@ public class WSQueryEndpoint {
               rateLimiter,
               pullConcurrencyLimiter,
               pullBandRateLimiter,
-              routing
+              routing,
+              consistencyOffsetVector
           ).subscribe(streamSubscriber);
           return;
         }

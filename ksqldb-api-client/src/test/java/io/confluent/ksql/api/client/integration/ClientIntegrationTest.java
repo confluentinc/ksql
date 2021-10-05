@@ -64,6 +64,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
@@ -85,6 +86,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
@@ -108,7 +110,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -445,6 +446,47 @@ public class ClientIntegrationTest {
   }
 
   @Test
+  public void shouldRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
+    // Given
+    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+
+    // Then
+    shouldReceiveRows(
+        streamedQueryResult,
+        1,
+        (v) -> {}, //do nothing
+        true
+    );
+
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
+    final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
+    verifyConsistencyVector(serializedCV);
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldNotRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
+    // Given
+    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+
+    // Then
+    shouldReceiveRows(
+        streamedQueryResult,
+        1  ,
+        (v) -> {}, //do nothing
+        true
+    );
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
   public void shouldStreamPullQueryOnTableSync() throws Exception {
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
@@ -458,6 +500,23 @@ public class ClientIntegrationTest {
     verifyPullQueryRow(row);
     assertThat(streamedQueryResult.poll(), is(nullValue()));
 
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldRoundTripCVWhenPullQueryOnTableSync() throws Exception {
+    // Given
+    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+    streamedQueryResult.poll();
+
+    // Then
+    assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
+                         is(notNullValue()));
+    final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
+    verifyConsistencyVector(serializedCV);
     assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
@@ -562,6 +621,37 @@ public class ClientIntegrationTest {
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
     assertThat(batchedQueryResult.get().get(0).getBoolean(1), is(false));
   }
+
+  @Test
+  public void shouldRoundTripCVWhenExecutePullQuery() throws Exception {
+    // Given
+    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+
+    // When
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
+    batchedQueryResult.get();
+
+    // Then
+    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
+    final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
+    verifyConsistencyVector(serializedCV);
+  }
+
+  @Test
+  public void shouldNotRoundTripCVWhenExecutePullQuery() throws Exception {
+    // Given
+    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+
+    // When
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
+    batchedQueryResult.get();
+
+    // Then
+    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(nullValue()));
+  }
+
 
   @Test
   public void shouldExecutePushWithLimitQuery() throws Exception {
@@ -1141,6 +1231,17 @@ public class ClientIntegrationTest {
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
     assertThat(obj.toString(), is(obj.toJsonString()));
+  }
+
+  private static void verifyConsistencyVector(final String serializedCV) {
+    final ConsistencyOffsetVector cvResponse = new ConsistencyOffsetVector();
+    cvResponse.deserialize(serializedCV);
+    assertThat(cvResponse.getVersion(), is(2));
+    assertThat(cvResponse.getOffsetVector().keySet(), hasSize(1));
+    assertThat(cvResponse.getTopicOffsets("dummy").keySet(), hasSize(3));
+    assertThat(cvResponse.getTopicOffsets("dummy").get(5), is(5L));
+    assertThat(cvResponse.getTopicOffsets("dummy").get(6), is(6L));
+    assertThat(cvResponse.getTopicOffsets("dummy").get(7), is(7L));
   }
 
   private static void verifyPullQueryRows(final List<Row> rows) {

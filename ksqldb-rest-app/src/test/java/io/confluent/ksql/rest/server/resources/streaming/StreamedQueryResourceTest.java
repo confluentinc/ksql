@@ -403,7 +403,7 @@ public class StreamedQueryResourceTest {
         Optional.empty()
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+    when(mockKsqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(pullQueryResult);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);

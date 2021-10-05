@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -33,6 +34,8 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
 import java.io.Closeable;
@@ -40,6 +43,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +54,7 @@ public final class KsqlRestClient implements Closeable {
 
   private final KsqlClient client;
   private final LocalProperties localProperties;
+  private final ConsistencyOffsetVector consistencyOffsetVector;
 
   private List<URI> serverAddresses;
 
@@ -86,7 +91,8 @@ public final class KsqlRestClient implements Closeable {
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
     final KsqlClient client = clientSupplier.get(clientProps, creds, localProperties);
-    return new KsqlRestClient(client, serverAddress, localProperties);
+    final ConsistencyOffsetVector consistencyOffsetVector = new ConsistencyOffsetVector();
+    return new KsqlRestClient(client, serverAddress, localProperties, consistencyOffsetVector);
   }
 
   @FunctionalInterface
@@ -101,11 +107,14 @@ public final class KsqlRestClient implements Closeable {
   private KsqlRestClient(
       final KsqlClient client,
       final String serverAddress,
-      final LocalProperties localProps
+      final LocalProperties localProps,
+      final ConsistencyOffsetVector consistencyOffsetVector
   ) {
     this.client = requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = requireNonNull(localProps, "localProps");
+    this.consistencyOffsetVector = requireNonNull(
+        consistencyOffsetVector, "consistencyOffsetVector");
   }
 
   public URI getServerAddress() {
@@ -191,10 +200,18 @@ public final class KsqlRestClient implements Closeable {
       final Map<String, ?> properties
   ) {
     KsqlTarget target = target();
+    final Map<String, Object> requestProperties = new HashMap<>();
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(localProperties.toMap())) {
+      requestProperties.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          getConsistencyOffsetVector().serialize());
+    }
     if (properties != null) {
       target = target.properties(properties);
     }
-    return target.postQueryRequestStreamed(ksql, Optional.ofNullable(commandSeqNum));
+    final RestResponse<StreamPublisher<StreamedRow>> response = target.postQueryRequestStreamed(
+        ksql, requestProperties, Optional.ofNullable(commandSeqNum));
+    return response;
   }
 
   @VisibleForTesting
@@ -211,7 +228,7 @@ public final class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<List<StreamedRow>> makeQueryRequest(final String ksql,
-      final Long commandSeqNum) {
+                                                          final Long commandSeqNum) {
     return makeQueryRequest(ksql, commandSeqNum, null, Collections.emptyMap());
   }
 
@@ -252,6 +269,12 @@ public final class KsqlRestClient implements Closeable {
     return localProperties.get(property);
   }
 
+  @VisibleForTesting
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public ConsistencyOffsetVector getConsistencyOffsetVector() {
+    return consistencyOffsetVector;
+  }
+
   private KsqlTarget target() {
     return client.target(getServerAddress());
   }
@@ -281,5 +304,4 @@ public final class KsqlRestClient implements Closeable {
           "The supplied serverAddress is invalid: " + serverAddress, e);
     }
   }
-
 }

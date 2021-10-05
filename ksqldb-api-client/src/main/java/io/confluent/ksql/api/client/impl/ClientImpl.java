@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validate
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
@@ -35,6 +36,9 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.properties.LocalPropertyParser;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
@@ -60,6 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
@@ -81,6 +86,10 @@ public class ClientImpl implements Client {
   private final String basicAuthHeader;
   private final boolean ownedVertx;
   private final Map<String, Object> sessionVariables;
+  private final Map<String, Object> requestProperties;
+  private final LocalPropertyParser parser;
+
+  private AtomicReference<String> serializedConsistencyVector;
 
   /**
    * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
@@ -108,11 +117,14 @@ public class ClientImpl implements Client {
     this.serverSocketAddress =
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
     this.sessionVariables = new HashMap<>();
+    this.serializedConsistencyVector = new AtomicReference<>();
+    this.requestProperties = new HashMap<>();
+    this.parser = new LocalPropertyParser();
   }
 
   @Override
   public CompletableFuture<StreamedQueryResult> streamQuery(final String sql) {
-    return streamQuery(sql, Collections.emptyMap());
+    return streamQuery(sql, new HashMap<>());
   }
 
   @Override
@@ -120,9 +132,15 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestProperties)) {
+      requestProperties.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          serializedConsistencyVector.get());
+    }
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,
-        (ctx, rp, fut, req) -> new StreamQueryResponseHandler(ctx, rp, fut));
+        (ctx, rp, fut, req) -> new StreamQueryResponseHandler(
+            ctx, rp, fut, serializedConsistencyVector));
     return cf;
   }
 
@@ -136,13 +154,19 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestProperties)) {
+      requestProperties.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          serializedConsistencyVector.get());
+    }
     final BatchedQueryResult result = new BatchedQueryResultImpl();
     makeQueryRequest(
         sql,
         properties,
         result,
         (context, recordParser, cf, request) -> new ExecuteQueryResponseHandler(
-            context, recordParser, cf, clientOptions.getExecuteQueryMaxResultRows())
+            context, recordParser, cf, clientOptions.getExecuteQueryMaxResultRows(),
+            serializedConsistencyVector)
     );
     return result;
   }
@@ -418,6 +442,17 @@ public class ClientImpl implements Client {
     return new HashMap<>(sessionVariables);
   }
 
+  public void setRequestProperty(final String key, final Object value) {
+    Objects.requireNonNull(value, "value");
+    final Object parsed = parser.parse(key, value);
+    requestProperties.put(key, parsed);
+  }
+
+  @VisibleForTesting
+  public String getSerializedConsistencyVector() {
+    return serializedConsistencyVector.get();
+  }
+
   @Override
   public void close() {
     httpClient.close();
@@ -445,7 +480,8 @@ public class ClientImpl implements Client {
     final JsonObject requestBody = new JsonObject()
         .put("sql", sql)
         .put("properties", properties)
-        .put("sessionVariables", sessionVariables);
+        .put("sessionVariables", sessionVariables)
+        .put("requestProperties", requestProperties);
 
     makePostRequest(
         QUERY_STREAM_ENDPOINT,
@@ -542,7 +578,7 @@ public class ClientImpl implements Client {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
   }
 
-  private static <T extends CompletableFuture<?>> void handleStreamedResponse(
+  private <T extends CompletableFuture<?>> void handleStreamedResponse(
       final HttpClientResponse response,
       final T cf,
       final StreamedResponseHandlerSupplier<T> responseHandlerSupplier) {
@@ -550,7 +586,6 @@ public class ClientImpl implements Client {
       final RecordParser recordParser = RecordParser.newDelimited("\n", response);
       final ResponseHandler<T> responseHandler =
           responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf, response.request());
-
       recordParser.handler(responseHandler::handleBodyBuffer);
       recordParser.endHandler(responseHandler::handleBodyEnd);
       recordParser.exceptionHandler(responseHandler::handleException);

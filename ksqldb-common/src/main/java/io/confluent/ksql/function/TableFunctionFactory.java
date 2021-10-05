@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;

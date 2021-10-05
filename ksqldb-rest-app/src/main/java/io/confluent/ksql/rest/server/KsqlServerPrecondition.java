@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.services.ServiceContext;
-
 import java.util.Optional;
 
 public interface KsqlServerPrecondition {

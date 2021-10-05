@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.NodeLocation;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;

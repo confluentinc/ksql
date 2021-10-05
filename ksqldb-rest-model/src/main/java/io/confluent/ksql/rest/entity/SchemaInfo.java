@@ -26,7 +26,6 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlPreconditions;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

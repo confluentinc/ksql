@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public final class ArrayUtil {
-  private ArrayUtil(){}
+  private ArrayUtil() {}
 
   public static <T> int getNullIndex(final T[] array) {
     for (int i = 0; i < array.length; i++) {

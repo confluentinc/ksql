@@ -38,18 +38,18 @@ import org.slf4j.LoggerFactory;
 public abstract class Consumer implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
+  private static final Duration POLL_TIMEOUT = Duration.ofMillis(30000L);
 
   protected final int partitions;
   protected final String topicName;
   protected final boolean windowed;
   protected final LogicalSchema logicalSchema;
-  protected KafkaConsumer<GenericKey, GenericRow> consumer;
+  protected KafkaConsumer<Object, GenericRow> consumer;
   protected Map<TopicPartition, Long> currentPositions = new HashMap<>();
   protected volatile boolean newAssignment = false;
   protected final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
       = new ConcurrentHashMap<>();
   private volatile boolean closed = false;
-  private boolean firstPoll = true;
   private AtomicLong numRowsReceived = new AtomicLong(0);
 
   protected AtomicReference<Set<TopicPartition>> topicPartitions = new AtomicReference<>();
@@ -61,7 +61,7 @@ public abstract class Consumer implements AutoCloseable {
       final String topicName,
       final boolean windowed,
       final LogicalSchema logicalSchema,
-      final KafkaConsumer<GenericKey, GenericRow> consumer
+      final KafkaConsumer<Object, GenericRow> consumer
   ) {
     this.partitions = partitions;
     this.topicName = topicName;
@@ -77,8 +77,6 @@ public abstract class Consumer implements AutoCloseable {
 
   protected abstract void onNewAssignment();
 
-  protected abstract void afterFirstPoll();
-
   protected void initialize() {
   }
 
@@ -92,14 +90,11 @@ public abstract class Consumer implements AutoCloseable {
     // calls to position() giving us the right offsets before the first rows are returned after
     // an assignment.
     if (tps != null) {
-      resetCurrentPosition(consumer, currentPositions);
+      resetCurrentPosition();
     }
   }
 
-  private void resetCurrentPosition(
-      KafkaConsumer<GenericKey, GenericRow> consumer,
-      Map<TopicPartition, Long> currentPositions
-  ) {
+  protected void resetCurrentPosition() {
     for (int i = 0; i < partitions; i++) {
       currentPositions.put(new TopicPartition(topicName, i), 0L);
     }
@@ -116,16 +111,12 @@ public abstract class Consumer implements AutoCloseable {
       if (closed) {
         return;
       }
-      final ConsumerRecords<GenericKey, GenericRow> records = consumer.poll(Duration.ofMillis(1000));
+      final ConsumerRecords<?, GenericRow> records = consumer.poll(POLL_TIMEOUT);
       // No assignment yet
       if (this.topicPartitions.get() == null) {
         continue;
       }
       System.out.println("Got NUM RECORDS " + records.count());
-      if (firstPoll) {
-        firstPoll = false;
-        afterFirstPoll();
-      }
       if (records.isEmpty()) {
         updateCurrentPositions();
         onEmptyRecords();
@@ -138,7 +129,7 @@ public abstract class Consumer implements AutoCloseable {
         onNewAssignment();
       }
 
-      for (ConsumerRecord<GenericKey, GenericRow> rec : records) {
+      for (ConsumerRecord<?, GenericRow> rec : records) {
         System.out.println("Got record " + rec);
         System.out.println("KEY " + rec.key());
         System.out.println("VALUE " + rec.value());
@@ -223,11 +214,11 @@ public abstract class Consumer implements AutoCloseable {
   }
 
   public Map<TopicPartition, OffsetAndMetadata> getCommittedOffsets() {
-    return latestCommittedOffsets.get();
+    return ImmutableMap.copyOf(latestCommittedOffsets.get());
   }
 
   public Map<TopicPartition, Long> getCurrentOffsets() {
-    return currentPositions;
+    return ImmutableMap.copyOf(currentPositions);
   }
 
   public long getNumRowsReceived() {
@@ -248,34 +239,4 @@ public abstract class Consumer implements AutoCloseable {
       queue.onError();
     }
   }
-
-  public static class PartitionOffset {
-
-    private final int partition;
-    private final long offset;
-
-    public PartitionOffset(int partition, long offset) {
-      this.partition = partition;
-      this.offset = offset;
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final PartitionOffset that = (PartitionOffset) o;
-      return Objects.equals(partition, that.partition)
-          && Objects.equals(offset, that.offset);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(partition, offset);
-    }
-  }
-
 }

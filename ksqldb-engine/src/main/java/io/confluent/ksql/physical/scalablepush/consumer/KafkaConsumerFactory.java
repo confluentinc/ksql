@@ -1,0 +1,123 @@
+package io.confluent.ksql.physical.scalablepush.consumer;
+
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericKeySerDe;
+import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.streams.kstream.Windowed;
+
+public class KafkaConsumerFactory {
+
+  public interface KafkaConsumerFactoryInterface {
+    KafkaConsumer<Object, GenericRow> create(
+        final KsqlTopic ksqlTopic,
+        final LogicalSchema logicalSchema,
+        final ServiceContext serviceContext,
+        final Map<String, Object> consumerProperties,
+        final KsqlConfig ksqlConfig,
+        final boolean latest
+    );
+  }
+
+  public static KafkaConsumer<Object, GenericRow> create(
+      final KsqlTopic ksqlTopic,
+      final LogicalSchema logicalSchema,
+      final ServiceContext serviceContext,
+      final Map<String, Object> consumerProperties,
+      final KsqlConfig ksqlConfig,
+      final boolean latest
+  ) {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        logicalSchema,
+        ksqlTopic.getKeyFormat().getFeatures(),
+        ksqlTopic.getValueFormat().getFeatures()
+    );
+    final KeySerdeFactory keySerdeFactory = new GenericKeySerDe();
+    final Deserializer<Object> keyDeserializer;
+    if (ksqlTopic.getKeyFormat().isWindowed()) {
+      final Serde<Windowed<GenericKey>> keySerde = keySerdeFactory.create(
+          ksqlTopic.getKeyFormat().getFormatInfo(),
+          ksqlTopic.getKeyFormat().getWindowInfo().get(),
+          physicalSchema.keySchema(),
+          ksqlConfig,
+          serviceContext.getSchemaRegistryClientFactory(),
+          "",
+          NoopProcessingLogContext.INSTANCE,
+          Optional.empty()
+      );
+      keyDeserializer = getDeserializer(keySerde.deserializer());
+    } else {
+      final Serde<GenericKey> keySerde = keySerdeFactory.create(
+          ksqlTopic.getKeyFormat().getFormatInfo(),
+          physicalSchema.keySchema(),
+          ksqlConfig,
+          serviceContext.getSchemaRegistryClientFactory(),
+          "",
+          NoopProcessingLogContext.INSTANCE,
+          Optional.empty()
+      );
+      keyDeserializer = getDeserializer(keySerde.deserializer());
+    }
+
+    final ValueSerdeFactory valueSerdeFactory = new GenericRowSerDe();
+    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
+        ksqlTopic.getValueFormat().getFormatInfo(),
+        physicalSchema.valueSchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
+    );
+    return new KafkaConsumer<>(
+        consumerConfig(consumerProperties, ksqlConfig, latest),
+        keyDeserializer,
+        valueSerde.deserializer()
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Deserializer<Object> getDeserializer(Deserializer<?> deserializer) {
+    return (Deserializer<Object>) deserializer;
+  }
+
+  /**
+   * Common consumer properties that tests will need.
+   *
+   * @return base set of consumer properties.
+   */
+  public static Map<String, Object> consumerConfig(
+      final Map<String, Object> consumerProperties,
+      final KsqlConfig ksqlConfig,
+      boolean latest
+  ) {
+    final Map<String, Object> config = new HashMap<>(consumerProperties);
+    config.putAll(
+        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX, true));
+    //UUID.randomUUID().toString()
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, latest ? "spq_latest1": "spq_catchup");
+    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    // Try to keep consumer groups stable:
+    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);
+    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 20_000);
+    config.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 3_000);
+    config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+    return config;
+  }
+
+}

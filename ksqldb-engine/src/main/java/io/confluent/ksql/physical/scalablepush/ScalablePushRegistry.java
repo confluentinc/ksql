@@ -16,41 +16,34 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory;
+import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata;
+import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata.ConsumerMetadataFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
+import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestConsumerFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.GenericKeySerDe;
-import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KeySerdeFactory;
-import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +66,9 @@ public class ScalablePushRegistry {
   private final KsqlTopic ksqlTopic;
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
+  private final KafkaConsumerFactoryInterface kafkaConsumerFactory;
+  private final LatestConsumerFactory latestConsumerFactory;
+  private final ConsumerMetadataFactory consumerMetadataFactory;
   private final ExecutorService executorService;
   private boolean closed = false;
   private boolean isLatestStarted = false;
@@ -91,7 +87,10 @@ public class ScalablePushRegistry {
       final Map<String, Object> consumerProperties,
       final KsqlTopic ksqlTopic,
       final ServiceContext serviceContext,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final KafkaConsumerFactoryInterface kafkaConsumerFactory,
+      final LatestConsumerFactory latestConsumerFactory,
+      final ConsumerMetadataFactory consumerMetadataFactory
   ) {
     this.pushLocator = pushLocator;
     this.logicalSchema = logicalSchema;
@@ -102,20 +101,25 @@ public class ScalablePushRegistry {
     this.ksqlTopic = ksqlTopic;
     this.serviceContext = serviceContext;
     this.ksqlConfig = ksqlConfig;
+    this.kafkaConsumerFactory = kafkaConsumerFactory;
+    this.latestConsumerFactory = latestConsumerFactory;
+    this.consumerMetadataFactory = consumerMetadataFactory;
     this.executorService = Executors.newSingleThreadExecutor();
   }
 
   public synchronized void close() {
+    System.out.println("Closing SQP registry");
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       latestConsumer.close();
     }
-    try {
-      executorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted while shutting down executor");
-    }
+    executorService.shutdownNow();
     closed = true;
+    System.out.println("DONE Closing SQP registry");
+  }
+
+  public synchronized boolean isClosed() {
+    return closed;
   }
 
   public synchronized void register(
@@ -160,48 +164,8 @@ public class ScalablePushRegistry {
   private synchronized void startLatestIfNotRunning() {
     if (!isLatestStarted) {
       isLatestStarted = true;
-      executorService.submit(() -> {
-        try {
-          runLatest();
-        } catch (final Throwable t) {
-          t.printStackTrace();
-        }
-      });
+      executorService.submit(this::runLatest);
     }
-  }
-
-  private KafkaConsumer<GenericKey, GenericRow> createConsumer(boolean latest) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        logicalSchema,
-        ksqlTopic.getKeyFormat().getFeatures(),
-        ksqlTopic.getValueFormat().getFeatures()
-    );
-    final KeySerdeFactory keySerdeFactory = new GenericKeySerDe();
-    final Serde<GenericKey> keySerde = keySerdeFactory.create(
-        ksqlTopic.getKeyFormat().getFormatInfo(),
-        physicalSchema.keySchema(),
-        ksqlConfig,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
-
-    final ValueSerdeFactory valueSerdeFactory = new GenericRowSerDe();
-    final Serde<GenericRow> valueSerde = valueSerdeFactory.create(
-        ksqlTopic.getValueFormat().getFormatInfo(),
-        physicalSchema.valueSchema(),
-        ksqlConfig,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE,
-        Optional.empty()
-    );
-    return new KafkaConsumer<>(
-        consumerConfig(latest),
-        keySerde.deserializer(),
-        valueSerde.deserializer()
-    );
   }
 
   public PushLocator getLocator() {
@@ -216,6 +180,10 @@ public class ScalablePushRegistry {
     return windowed;
   }
 
+  @VisibleForTesting
+  public synchronized boolean isLatestStarted() {
+    return isLatestStarted;
+  }
 
   @VisibleForTesting
   public int latestNumRegistered() {
@@ -240,11 +208,12 @@ public class ScalablePushRegistry {
     stopLatestConsumerOnLastRequest = false;
   }
 
+  /**
+   * Called when the underlying persistent query has an error.  Since we're now decoupled from the
+   * query, we can safely ignore, just as conventional push query might.
+   */
   public synchronized void onError() {
-    final LatestConsumer latestConsumer = this.latestConsumer.get();
-    if (latestConsumer != null) {
-      latestConsumer.onError();
-    }
+    // Ignore
   }
 
   public static Optional<ScalablePushRegistry> create(
@@ -277,60 +246,58 @@ public class ScalablePushRegistry {
     }
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
-    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, isTable, windowed, newNodeContinuityEnforced, consumerProperties, ksqlTopic, serviceContext, ksqlConfig));
-  }
-
-  /**
-   * Common consumer properties that tests will need.
-   *
-   * @return base set of consumer properties.
-   */
-  public Map<String, Object> consumerConfig(boolean latest) {
-    final Map<String, Object> config = new HashMap<>(consumerProperties);
-    config.putAll(
-        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX, true));
-    //UUID.randomUUID().toString()
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, latest ? "spq_latest1": "spq_catchup");
-    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    // Try to keep consumer groups stable:
-    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);
-    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 20_000);
-    config.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 3_000);
-    config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
-    return config;
-  }
-
-  private ConsumerMetadata getMetadata(KafkaConsumer<GenericKey, GenericRow> consumer) {
-    Map<String, List<PartitionInfo>> partitionInfo = consumer.listTopics();
-    while (!partitionInfo.containsKey(ksqlTopic.getKafkaTopicName())) {
-      try {
-        Thread.sleep(100);
-        partitionInfo = consumer.listTopics();
-      } catch (InterruptedException e) {
-        LOG.error("Interrupted while looking for topic", e);
-        Thread.currentThread().interrupt();
-      }
-    }
-    int numPartitions = partitionInfo.get(ksqlTopic.getKafkaTopicName()).size();
-    return new ConsumerMetadata(numPartitions);
+    return Optional.of(new ScalablePushRegistry(
+        pushLocator, logicalSchema, isTable, windowed, newNodeContinuityEnforced,
+        consumerProperties, ksqlTopic, serviceContext, ksqlConfig,
+        KafkaConsumerFactory::create, LatestConsumer::create, ConsumerMetadata::create));
   }
 
   private void runLatest() {
-    System.out.println("Starting Latest!");
-    try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer(true);
-        ConsumerMetadata consumerMetadata = getMetadata(consumer);
-        LatestConsumer latestConsumer = new  LatestConsumer(consumerMetadata.getNumPartitions(),
+    System.out.println("Starting Latest2!");
+    try (KafkaConsumer<Object, GenericRow> consumer = kafkaConsumerFactory.create(
+        ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig, true);
+        ConsumerMetadata consumerMetadata = consumerMetadataFactory.create(
+            ksqlTopic.getKafkaTopicName(), consumer);
+        LatestConsumer latestConsumer = latestConsumerFactory.create(
+            consumerMetadata.getNumPartitions(),
             ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer, catchupCoordinator,
-            tp -> {}, ksqlConfig)) {
-      this.latestConsumer.set(latestConsumer);
-      while (!latestPendingQueues.isEmpty()) {
-        ProcessingQueue pq = latestPendingQueues.poll();
-        latestConsumer.register(pq);
-      }
+            tp -> {}, ksqlConfig, Clock.systemUTC())) {
+      try {
+        System.out.println("Main block");
+        this.latestConsumer.set(latestConsumer);
+        while (!latestPendingQueues.isEmpty()) {
+          final ProcessingQueue pq = latestPendingQueues.peek();
+          latestConsumer.register(pq);
+          latestPendingQueues.poll();
+        }
+        // Now that everything is setup, make sure that if a close that happened during
+        // startup that it gets registered.
+        synchronized (this) {
+          if (closed) {
+            latestConsumer.close();
+            return;
+          }
+        }
 
-      latestConsumer.run();
+        System.out.println("ABOUT TO RUN");
+        latestConsumer.run();
+      } catch (final Throwable t) {
+        LOG.error("Got error while running latest", t);
+        // These errors aren't considered fatal, so we don't set the hasError flag since retrying
+        // could cause recovery.
+        latestConsumer.onError();
+        if (!latestPendingQueues.isEmpty()) {
+          for (final ProcessingQueue processingQueue : latestPendingQueues) {
+            processingQueue.onError();
+          }
+          latestPendingQueues.clear();
+        }
+      }
+    } catch (final Throwable t) {
+      LOG.error("Got an error while handling another error", t);
     } finally {
       synchronized (this) {
+        System.out.println("FINALLY BLOCK");
         this.latestConsumer.set(null);
         this.isLatestStarted = false;
       }

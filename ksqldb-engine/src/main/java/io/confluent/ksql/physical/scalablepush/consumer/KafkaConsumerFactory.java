@@ -49,7 +49,7 @@ public class KafkaConsumerFactory {
     );
     final KeySerdeFactory keySerdeFactory = new GenericKeySerDe();
     final Deserializer<Object> keyDeserializer;
-    if (ksqlTopic.getKeyFormat().isWindowed()) {
+    if (ksqlTopic.getKeyFormat().getWindowInfo().isPresent()) {
       final Serde<Windowed<GenericKey>> keySerde = keySerdeFactory.create(
           ksqlTopic.getKeyFormat().getFormatInfo(),
           ksqlTopic.getKeyFormat().getWindowInfo().get(),

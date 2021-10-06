@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 public class LatestConsumer extends Consumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(LatestConsumer.class);
-  private static final long LATEST_CONSUMER_OLDEST_COMMIT_AGE_MS = 10000;
+  private static final long LATEST_CONSUMER_OLDEST_COMMIT_AGE_MS = 30000;
 
   private final CatchupCoordinator catchupCoordinator;
   private final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater;

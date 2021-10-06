@@ -24,6 +24,7 @@ import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestCon
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -76,7 +77,7 @@ public class ScalablePushRegistryTest {
   @Mock
   private KafkaConsumer<Object, GenericRow> kafkaConsumer;
   @Mock
-  private PartitionInfo partitionInfo;
+  private KeyFormat keyFormat;
 
   @Before
   public void setUp() {
@@ -112,13 +113,15 @@ public class ScalablePushRegistryTest {
         any(), any())).thenReturn(latestConsumer);
     when(consumerMetadataFactory.create(any(), any()))
         .thenReturn(METADATA);
+    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
+    when(keyFormat.isWindowed()).thenReturn(false);
   }
 
   @Test
   public void shouldRegisterAndStartLatest() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(
-        locator, SCHEMA, false, false, false, ImmutableMap.of(), ksqlTopic, serviceContext,
+        locator, SCHEMA, false, false, ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
 
     // When:
@@ -134,7 +137,7 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldEnforceNewNodeContinuity() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true, true,
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
     when(latestConsumer.getNumRowsReceived()).thenReturn(1L);
@@ -154,7 +157,7 @@ public class ScalablePushRegistryTest {
   public void shouldCatchException_onRegister() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(
-        locator, SCHEMA, false, false, false,
+        locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
     doThrow(new RuntimeException("Error!")).when(latestConsumer).register(any());
@@ -181,7 +184,7 @@ public class ScalablePushRegistryTest {
   public void shouldCatchException_onRun() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(
-        locator, SCHEMA, false, false, false,
+        locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
     doThrow(new RuntimeException("Error!")).when(latestConsumer).run();
@@ -202,7 +205,7 @@ public class ScalablePushRegistryTest {
   public void shouldCreate() {
     // When:
     final Optional<ScalablePushRegistry> registry =
-        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
+        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:8088"),
             false, ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig);
 
@@ -215,7 +218,7 @@ public class ScalablePushRegistryTest {
     // When
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
+        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123), false,
             ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig)
     );
@@ -229,7 +232,7 @@ public class ScalablePushRegistryTest {
     // When
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
+        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"), false,
             ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig)
     );
@@ -242,7 +245,7 @@ public class ScalablePushRegistryTest {
   public void shouldCreate_noApplicationServer() {
     // When
     final Optional<ScalablePushRegistry> registry =
-        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
+        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(), false, ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig);
 
     // Then

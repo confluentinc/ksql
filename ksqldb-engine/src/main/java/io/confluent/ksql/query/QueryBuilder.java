@@ -230,7 +230,6 @@ final class QueryBuilder {
       final LogicalSchema schema,
       final Object result,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final boolean windowed,
       final Map<String, Object> streamsProperties,
       final KsqlConfig ksqlConfig,
       final KsqlTopic ksqlTopic,
@@ -239,21 +238,17 @@ final class QueryBuilder {
     if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED)) {
       return Optional.empty();
     }
-    final KStream<?, GenericRow> stream;
     final boolean isTable;
     if (result instanceof KTableHolder) {
-      stream = ((KTableHolder<?>) result).getTable().toStream();
       isTable = true;
     } else {
-      stream = ((KStreamHolder<?>) result).getStream();
       isTable = false;
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
-        allPersistentQueries, isTable, windowed, streamsProperties,
+        allPersistentQueries, isTable, streamsProperties,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY),
         ksqlConfig.originals(),
         ksqlTopic, serviceContext, ksqlConfig);
-//    registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }
 
@@ -277,6 +272,7 @@ final class QueryBuilder {
     final LogicalSchema logicalSchema;
     final KeyFormat keyFormat;
     final ValueFormat valueFormat;
+    final KsqlTopic ksqlTopic;
 
     switch (persistentQueryType) {
       // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
@@ -286,12 +282,14 @@ final class QueryBuilder {
         logicalSchema = dataSource.getSchema();
         keyFormat = dataSource.getKsqlTopic().getKeyFormat();
         valueFormat = dataSource.getKsqlTopic().getValueFormat();
+        ksqlTopic = dataSource.getKsqlTopic();
 
         break;
       default:
         logicalSchema = sinkDataSource.get().getSchema();
         keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
         valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
+        ksqlTopic = sinkDataSource.get().getKsqlTopic();
 
         break;
     }
@@ -308,18 +306,6 @@ final class QueryBuilder {
         streamsBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
-    // scalable push queries are enabled.
-    final Optional<ScalablePushRegistry> scalablePushRegistry
-        = applyScalablePushProcessor(
-            querySchema.logicalSchema(),
-            result,
-            allPersistentQueries,
-            keyFormat.isWindowed(),
-            streamsProperties,
-            ksqlConfig,
-        sinkDataSource.get().getKsqlTopic(), serviceContext
-    );
     final Topology topology = streamsBuilder
             .build(PropertiesUtil.asProperties(streamsProperties));
 
@@ -338,6 +324,16 @@ final class QueryBuilder {
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
+
+    final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
+        querySchema.logicalSchema(),
+        result,
+        allPersistentQueries,
+        streamsProperties,
+        ksqlConfig,
+        ksqlTopic,
+        serviceContext
+    );
 
     return new PersistentQueryMetadataImpl(
         persistentQueryType,
@@ -392,6 +388,7 @@ final class QueryBuilder {
     final LogicalSchema logicalSchema;
     final KeyFormat keyFormat;
     final ValueFormat valueFormat;
+    final KsqlTopic ksqlTopic;
 
     switch (persistentQueryType) {
       // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
@@ -401,12 +398,14 @@ final class QueryBuilder {
         logicalSchema = dataSource.getSchema();
         keyFormat = dataSource.getKsqlTopic().getKeyFormat();
         valueFormat = dataSource.getKsqlTopic().getValueFormat();
+        ksqlTopic = dataSource.getKsqlTopic();
 
         break;
       default:
         logicalSchema = sinkDataSource.get().getSchema();
         keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
         valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
+        ksqlTopic = sinkDataSource.get().getKsqlTopic();
 
         break;
     }
@@ -426,18 +425,6 @@ final class QueryBuilder {
             namedTopologyStreamsBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
-    // scalable push queries are enabled.
-    final Optional<ScalablePushRegistry> scalablePushRegistry
-            = applyScalablePushProcessor(
-            querySchema.logicalSchema(),
-            result,
-            allPersistentQueries,
-            keyFormat.isWindowed(),
-            streamsProperties,
-            ksqlConfig,
-        sinkDataSource.get().getKsqlTopic(), serviceContext
-    );
     final NamedTopology topology = namedTopologyStreamsBuilder
             .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
 
@@ -456,6 +443,16 @@ final class QueryBuilder {
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
             .map(userErrorClassifiers::and)
             .orElse(userErrorClassifiers);
+
+    final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
+        querySchema.logicalSchema(),
+        result,
+        allPersistentQueries,
+        streamsProperties,
+        ksqlConfig,
+        ksqlTopic,
+        serviceContext
+    );
 
     return new PersistentQueriesInSharedRuntimesImpl(
         persistentQueryType,

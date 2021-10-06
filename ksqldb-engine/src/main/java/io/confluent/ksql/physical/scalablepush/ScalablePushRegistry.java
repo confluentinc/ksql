@@ -29,6 +29,8 @@ import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -60,7 +62,6 @@ public class ScalablePushRegistry {
   private final PushLocator pushLocator;
   private final LogicalSchema logicalSchema;
   private final boolean isTable;
-  private final boolean windowed;
   private final boolean newNodeContinuityEnforced;
   private final Map<String, Object> consumerProperties;
   private final KsqlTopic ksqlTopic;
@@ -82,7 +83,6 @@ public class ScalablePushRegistry {
       final PushLocator pushLocator,
       final LogicalSchema logicalSchema,
       final boolean isTable,
-      final boolean windowed,
       final boolean newNodeContinuityEnforced,
       final Map<String, Object> consumerProperties,
       final KsqlTopic ksqlTopic,
@@ -95,7 +95,6 @@ public class ScalablePushRegistry {
     this.pushLocator = pushLocator;
     this.logicalSchema = logicalSchema;
     this.isTable = isTable;
-    this.windowed = windowed;
     this.newNodeContinuityEnforced = newNodeContinuityEnforced;
     this.consumerProperties = consumerProperties;
     this.ksqlTopic = ksqlTopic;
@@ -177,7 +176,7 @@ public class ScalablePushRegistry {
   }
 
   public boolean isWindowed() {
-    return windowed;
+    return ksqlTopic.getKeyFormat().isWindowed();
   }
 
   @VisibleForTesting
@@ -220,7 +219,6 @@ public class ScalablePushRegistry {
       final LogicalSchema logicalSchema,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final boolean isTable,
-      final boolean windowed,
       final Map<String, Object> streamsProperties,
       final boolean newNodeContinuityEnforced,
       final Map<String, Object> consumerProperties,
@@ -247,7 +245,7 @@ public class ScalablePushRegistry {
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
     return Optional.of(new ScalablePushRegistry(
-        pushLocator, logicalSchema, isTable, windowed, newNodeContinuityEnforced,
+        pushLocator, logicalSchema, isTable, newNodeContinuityEnforced,
         consumerProperties, ksqlTopic, serviceContext, ksqlConfig,
         KafkaConsumerFactory::create, LatestConsumer::create, ConsumerMetadata::create));
   }
@@ -259,8 +257,8 @@ public class ScalablePushRegistry {
         ConsumerMetadata consumerMetadata = consumerMetadataFactory.create(
             ksqlTopic.getKafkaTopicName(), consumer);
         LatestConsumer latestConsumer = latestConsumerFactory.create(
-            consumerMetadata.getNumPartitions(),
-            ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer, catchupCoordinator,
+            consumerMetadata.getNumPartitions(), ksqlTopic.getKafkaTopicName(), isWindowed(),
+            logicalSchema, consumer, catchupCoordinator,
             tp -> {}, ksqlConfig, Clock.systemUTC())) {
       try {
         System.out.println("Main block");

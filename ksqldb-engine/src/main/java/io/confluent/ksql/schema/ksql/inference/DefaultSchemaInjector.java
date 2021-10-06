@@ -160,10 +160,14 @@ public class DefaultSchemaInjector implements Injector {
     ));
   }
 
-  private boolean shouldInferSchema(FormatInfo formatInfo, boolean hasElements,
-      SerdeFeatures serdeFeatures,
-      Optional<Integer> schemaId, boolean isKey) {
-    boolean infer = !hasElements && formatSupportsSchemaInference(formatInfo);
+  private boolean shouldInferSchema(
+      final FormatInfo formatInfo,
+      final boolean hasElements,
+      final SerdeFeatures serdeFeatures,
+      final Optional<Integer> schemaId,
+      final boolean isKey
+  ) {
+    final boolean infer = !hasElements && formatSupportsSchemaInference(formatInfo);
 
     /*
      * Do validation when schemaId presents or we need to infer. Conditions to meet:
@@ -173,10 +177,10 @@ public class DefaultSchemaInjector implements Injector {
      */
 
     if (schemaId.isPresent() || infer) {
-      String schemaIdName =
+      final String schemaIdName =
           isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
       if (!formatSupportsSchemaInference(formatInfo)) {
-        String msg = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+        final String msg = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
             : CommonCreateConfigs.VALUE_FORMAT_PROPERTY + " should support schema inference "
                 + "when " + schemaIdName + " is provided!";
         throw new KsqlException(msg);

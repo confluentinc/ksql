@@ -1,7 +1,21 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -63,15 +77,15 @@ public class LatestConsumer extends Consumer {
 
   public interface LatestConsumerFactory {
     LatestConsumer create(
-        final int partitions,
-        final String topicName,
-        final boolean windowed,
-        final LogicalSchema logicalSchema,
-        final KafkaConsumer<Object, GenericRow> consumer,
-        final CatchupCoordinator catchupCoordinator,
-        final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
-        final KsqlConfig ksqlConfig,
-        final Clock clock
+        int partitions,
+        String topicName,
+        boolean windowed,
+        LogicalSchema logicalSchema,
+        KafkaConsumer<Object, GenericRow> consumer,
+        CatchupCoordinator catchupCoordinator,
+        java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
+        KsqlConfig ksqlConfig,
+        Clock clock
     );
   }
 
@@ -89,12 +103,12 @@ public class LatestConsumer extends Consumer {
     consumer.subscribe(ImmutableList.of(topicName),
         new ConsumerRebalanceListener() {
           @Override
-          public void onPartitionsRevoked(Collection<TopicPartition> collection) {
+          public void onPartitionsRevoked(final Collection<TopicPartition> collection) {
             System.out.println("Revoked assignment" + collection + " from " + this);
           }
 
           @Override
-          public void onPartitionsAssigned(Collection<TopicPartition> collection) {
+          public void onPartitionsAssigned(final Collection<TopicPartition> collection) {
             System.out.println("Got assignment " + collection + " from " + this);
             if (collection == null) {
               return;
@@ -132,17 +146,17 @@ public class LatestConsumer extends Consumer {
    */
   private void maybeSeekToEnd() {
     final Set<TopicPartition> topicPartitions = this.topicPartitions.get();
-    long timeMs = clock.millis() - LATEST_CONSUMER_OLDEST_COMMIT_AGE_MS;
-    HashMap<TopicPartition, Long> timestamps = new HashMap<>();
+    final long timeMs = clock.millis() - LATEST_CONSUMER_OLDEST_COMMIT_AGE_MS;
+    final HashMap<TopicPartition, Long> timestamps = new HashMap<>();
     for (TopicPartition tp : topicPartitions) {
       timestamps.put(tp, timeMs);
     }
-    Map<TopicPartition, OffsetAndTimestamp> offsetAndTimestampMap =
+    final Map<TopicPartition, OffsetAndTimestamp> offsetAndTimestampMap =
         consumer.offsetsForTimes(timestamps);
-    Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
+    final Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
         consumer.committed(topicPartitions);
     for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : offsetAndTimestampMap.entrySet()) {
-      OffsetAndMetadata metadata = offsetAndMetadataMap.get(entry.getKey());
+      final OffsetAndMetadata metadata = offsetAndMetadataMap.get(entry.getKey());
       if (metadata != null && entry.getValue() != null
           && entry.getValue().offset() > metadata.offset()) {
         consumer.seekToEnd(topicPartitions);

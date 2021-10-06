@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import io.confluent.ksql.GenericKey;
@@ -21,16 +36,18 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public class KafkaConsumerFactory {
+public final class KafkaConsumerFactory {
+
+  private KafkaConsumerFactory() { }
 
   public interface KafkaConsumerFactoryInterface {
     KafkaConsumer<Object, GenericRow> create(
-        final KsqlTopic ksqlTopic,
-        final LogicalSchema logicalSchema,
-        final ServiceContext serviceContext,
-        final Map<String, Object> consumerProperties,
-        final KsqlConfig ksqlConfig,
-        final boolean latest
+        KsqlTopic ksqlTopic,
+        LogicalSchema logicalSchema,
+        ServiceContext serviceContext,
+        Map<String, Object> consumerProperties,
+        KsqlConfig ksqlConfig,
+        boolean latest
     );
   }
 
@@ -92,7 +109,7 @@ public class KafkaConsumerFactory {
   }
 
   @SuppressWarnings("unchecked")
-  private static Deserializer<Object> getDeserializer(Deserializer<?> deserializer) {
+  private static Deserializer<Object> getDeserializer(final Deserializer<?> deserializer) {
     return (Deserializer<Object>) deserializer;
   }
 
@@ -104,13 +121,12 @@ public class KafkaConsumerFactory {
   public static Map<String, Object> consumerConfig(
       final Map<String, Object> consumerProperties,
       final KsqlConfig ksqlConfig,
-      boolean latest
+      final boolean latest
   ) {
     final Map<String, Object> config = new HashMap<>(consumerProperties);
     config.putAll(
         ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX, true));
-    //UUID.randomUUID().toString()
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, latest ? "spq_latest1": "spq_catchup");
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, latest ? "spq_latest1" : "spq_catchup");
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     // Try to keep consumer groups stable:
     config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);

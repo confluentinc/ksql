@@ -18,19 +18,17 @@ package io.confluent.ksql.physical.scalablepush;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory;
-import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata;
 import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata.ConsumerMetadataFactory;
+import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory;
+import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestConsumerFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -79,6 +77,7 @@ public class ScalablePushRegistry {
       = new ConcurrentLinkedQueue<>();
   private boolean stopLatestConsumerOnLastRequest = true;
 
+  @SuppressWarnings("ParameterNumber")
   public ScalablePushRegistry(
       final PushLocator pushLocator,
       final LogicalSchema logicalSchema,
@@ -259,7 +258,7 @@ public class ScalablePushRegistry {
         LatestConsumer latestConsumer = latestConsumerFactory.create(
             consumerMetadata.getNumPartitions(), ksqlTopic.getKafkaTopicName(), isWindowed(),
             logicalSchema, consumer, catchupCoordinator,
-            tp -> {}, ksqlConfig, Clock.systemUTC())) {
+            tp -> { }, ksqlConfig, Clock.systemUTC())) {
       try {
         System.out.println("Main block");
         this.latestConsumer.set(latestConsumer);

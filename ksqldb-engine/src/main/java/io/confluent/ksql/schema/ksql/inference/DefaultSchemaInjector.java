@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
@@ -87,8 +88,8 @@ public class DefaultSchemaInjector implements Injector {
       throw e;
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
-          ErrorMessageUtil.buildErrorMessage(e), 
-          statement.getStatementText(), 
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
           e.getCause());
     }
   }
@@ -117,7 +118,13 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSourceProperties props = csStmt.getProperties();
     final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName());
 
-    if (hasKeyElements(statement) || !formatSupportsSchemaInference(keyFormat)) {
+    // until we support user-configuration of single key wrapping/unwrapping, we choose
+    // to have key schema inference always result in an unwrapped key
+    final SerdeFeatures serdeFeatures = SerdeFeaturesFactory.buildKeyFeatures(
+        FormatFactory.of(keyFormat), true);
+
+    if (!shouldInferSchema(keyFormat, hasKeyElements(statement), serdeFeatures,
+        props.getKeySchemaId(), true)) {
       return Optional.empty();
     }
 
@@ -125,9 +132,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
-        // until we support user-configuration of single key wrapping/unwrapping, we choose
-        // to have key schema inference always result in an unwrapped key
-        SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
+        serdeFeatures,
         statement.getStatementText(),
         true
     ));
@@ -138,8 +143,10 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     final CreateSourceProperties props = statement.getStatement().getProperties();
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
+    final SerdeFeatures serdeFeatures = props.getValueSerdeFeatures();
 
-    if (hasValueElements(statement) || !formatSupportsSchemaInference(valueFormat)) {
+    if (!shouldInferSchema(valueFormat, hasValueElements(statement), serdeFeatures,
+        props.getValueSchemaId(), false)) {
       return Optional.empty();
     }
 
@@ -147,10 +154,40 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getValueSchemaId(),
         valueFormat,
-        props.getValueSerdeFeatures(),
+        serdeFeatures,
         statement.getStatementText(),
         false
     ));
+  }
+
+  private boolean shouldInferSchema(FormatInfo formatInfo, boolean hasElements,
+      SerdeFeatures serdeFeatures,
+      Optional<Integer> schemaId, boolean isKey) {
+    boolean infer = !hasElements && formatSupportsSchemaInference(formatInfo);
+
+    /*
+     * Do validation when schemaId presents or we need to infer. Conditions to meet:
+     *  1. If schema id is provided, format must support schema inference
+     *  2. We can only infer when singles are wrapped because unwrapped single inference will
+     *     add field with default ROWKEY|ROWVALUE name
+     */
+
+    if (schemaId.isPresent() || infer) {
+      String schemaIdName =
+          isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+      if (!formatSupportsSchemaInference(formatInfo)) {
+        String msg = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY + " should support schema inference "
+                + "when " + schemaIdName + " is provided!";
+        throw new KsqlException(msg);
+      }
+      // Don't support UNWRAP_SINGLES when inferring from Schema Registry
+      if (serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)) {
+        throw new KsqlException("WRAP_SINGLES should be enabled to use schema inference");
+      }
+    }
+
+    return infer;
   }
 
   private SchemaAndId getSchema(

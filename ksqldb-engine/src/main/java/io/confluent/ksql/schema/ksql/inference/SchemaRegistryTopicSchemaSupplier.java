@@ -180,14 +180,14 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final Optional<Integer> schemaId) {
     final String subject = getSRSubject(topicName, isKey);
     final String schemaIdMsg =
-        schemaId.isPresent() ? "Schema Id: " + schemaId + System.lineSeparator() : "";
+        schemaId.isPresent() ? "Schema Id: " + schemaId.get() + System.lineSeparator() : "";
     return SchemaResult.failure(new KsqlException(
         "Schema for message " + (isKey ? "keys" : "values") + " on topic '" + topicName + "'"
             + " does not exist in the Schema Registry."
             + System.lineSeparator()
             + "Subject: " + subject
-            + schemaIdMsg
             + System.lineSeparator()
+            + schemaIdMsg
             + "Possible causes include:"
             + System.lineSeparator()
             + "- The topic itself does not exist"

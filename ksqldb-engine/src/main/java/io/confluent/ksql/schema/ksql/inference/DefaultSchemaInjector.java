@@ -160,7 +160,30 @@ public class DefaultSchemaInjector implements Injector {
     ));
   }
 
-  private boolean shouldInferSchema(
+  private SchemaAndId getSchema(
+      final String topicName,
+      final Optional<Integer> schemaId,
+      final FormatInfo expectedFormat,
+      final SerdeFeatures serdeFeatures,
+      final String statementText,
+      final boolean isKey
+  ) {
+    final SchemaResult result = isKey
+        ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat, serdeFeatures)
+        : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat, serdeFeatures);
+
+    if (result.failureReason.isPresent()) {
+      final Exception cause = result.failureReason.get();
+      throw new KsqlStatementException(
+          cause.getMessage(),
+          statementText,
+          cause);
+    }
+
+    return result.schemaAndId.get();
+  }
+
+  private static boolean shouldInferSchema(
       final FormatInfo formatInfo,
       final boolean hasElements,
       final SerdeFeatures serdeFeatures,
@@ -192,29 +215,6 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     return infer;
-  }
-
-  private SchemaAndId getSchema(
-      final String topicName,
-      final Optional<Integer> schemaId,
-      final FormatInfo expectedFormat,
-      final SerdeFeatures serdeFeatures,
-      final String statementText,
-      final boolean isKey
-  ) {
-    final SchemaResult result = isKey
-        ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat, serdeFeatures)
-        : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat, serdeFeatures);
-
-    if (result.failureReason.isPresent()) {
-      final Exception cause = result.failureReason.get();
-      throw new KsqlStatementException(
-          cause.getMessage(),
-          statementText,
-          cause);
-    }
-
-    return result.schemaAndId.get();
   }
 
   private static boolean hasKeyElements(

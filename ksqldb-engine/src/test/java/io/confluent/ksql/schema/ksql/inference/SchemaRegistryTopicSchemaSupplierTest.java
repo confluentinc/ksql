@@ -34,6 +34,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
@@ -122,7 +123,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
             + System.lineSeparator()
             + "expected format: AVRO"
             + System.lineSeparator()
-            + "actual format: PROTOBUF"
+            + "actual format from Schema Registry: PROTOBUF"
     ));
   }
 
@@ -146,7 +147,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
             + System.lineSeparator()
             + "expected format: AVRO"
             + System.lineSeparator()
-            + "actual format: PROTOBUF"
+            + "actual format from Schema Registry: PROTOBUF"
     ));
   }
 
@@ -163,7 +164,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForValue(result);
+    verifyFailureMessageForValue(result, Optional.empty());
   }
 
   @Test
@@ -179,7 +180,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForKey(result);
+    verifyFailureMessageForKey(result, Optional.empty());
   }
 
   @Test
@@ -195,7 +196,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForValue(result);
+    verifyFailureMessageForValue(result, Optional.of(42));
   }
 
   @Test
@@ -211,7 +212,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForKey(result);
+    verifyFailureMessageForKey(result, Optional.of(42));
   }
 
   @Test
@@ -227,7 +228,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForValue(result);
+    verifyFailureMessageForValue(result, Optional.of(42));
   }
 
   @Test
@@ -243,7 +244,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForKey(result);
+    verifyFailureMessageForKey(result, Optional.of(42));
   }
 
   @Test
@@ -259,7 +260,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForValue(result);
+    verifyFailureMessageForValue(result, Optional.of(42));
   }
 
   @Test
@@ -275,24 +276,28 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     // Then:
     assertThat(result.schemaAndId, is(Optional.empty()));
     assertThat(result.failureReason, is(not(Optional.empty())));
-    verifyFailureMessageForKey(result);
+    verifyFailureMessageForKey(result, Optional.of(42));
   }
 
-  private void verifyFailureMessageForKey(final SchemaResult result) {
-    verifyFailureMessage(result, true);
+  private void verifyFailureMessageForKey(final SchemaResult result,
+      final Optional<Integer> id) {
+    verifyFailureMessage(result, true, id);
   }
 
-  private void verifyFailureMessageForValue(final SchemaResult result) {
-    verifyFailureMessage(result, false);
+  private void verifyFailureMessageForValue(final SchemaResult result, final Optional<Integer> id) {
+    verifyFailureMessage(result, false, id);
   }
 
   private void verifyFailureMessage(final SchemaResult result,
-                                    final boolean isKey) {
+      final boolean isKey, Optional<Integer> id) {
     final String keyOrValue = isKey ? "keys" : "values";
     final String keyOrValueSuffix = isKey ? "key" : "value";
+    final String schemaIdMsg = id.isPresent() ? "Schema Id: " + id.get() + System.lineSeparator() : "";
     assertThat(result.failureReason.get().getMessage(), is(
         "Schema for message " + keyOrValue + " on topic '" + TOPIC_NAME + "' does not exist in the Schema Registry." + System.lineSeparator()
-            + "Subject: " + TOPIC_NAME + "-" + keyOrValueSuffix + System.lineSeparator()
+            + "Subject: " + TOPIC_NAME + "-" + keyOrValueSuffix
+            + System.lineSeparator()
+            + schemaIdMsg
             + "Possible causes include:" + System.lineSeparator()
             + "- The topic itself does not exist" + System.lineSeparator()
             + "\t-> Use SHOW TOPICS; to check" + System.lineSeparator()

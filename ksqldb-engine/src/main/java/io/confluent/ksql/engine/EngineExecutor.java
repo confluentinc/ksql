@@ -430,8 +430,7 @@ final class EngineExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeTransientQuery(
       final ConfiguredStatement<Query> statement,
-      final boolean excludeTombstones,
-      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets
+      final boolean excludeTombstones
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty(), engineContext.getMetaStore());
@@ -442,6 +441,39 @@ final class EngineExecutor {
         engineContext.getQueryRegistry().getAllLiveQueries()
     );
     return engineContext.getQueryRegistry().createTransientQuery(
+        config,
+        serviceContext,
+        engineContext.getProcessingLogContext(),
+        engineContext.getMetaStore(),
+        statement.getStatementText(),
+        plans.physicalPlan.getQueryId(),
+        getSourceNames(outputNode),
+        plans.physicalPlan.getPhysicalPlan(),
+        buildPlanSummary(
+            plans.physicalPlan.getQueryId(),
+            plans.physicalPlan.getPhysicalPlan()),
+        outputNode.getSchema(),
+        outputNode.getLimit(),
+        outputNode.getWindowInfo(),
+        excludeTombstones
+    );
+  }
+
+  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
+  TransientQueryMetadata executeStreamPullQuery(
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones,
+      final ImmutableMap<TopicPartition, Long> endOffsets
+  ) {
+    final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
+        Optional.empty(), Optional.empty(), engineContext.getMetaStore());
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+    engineContext.createQueryValidator().validateQuery(
+        config,
+        plans.physicalPlan,
+        engineContext.getQueryRegistry().getAllLiveQueries()
+    );
+    return engineContext.getQueryRegistry().createStreamPullQuery(
         config,
         serviceContext,
         engineContext.getProcessingLogContext(),

@@ -313,7 +313,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     try {
       final TransientQueryMetadata query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeTransientQuery(statement, excludeTombstones, Optional.empty());
+          .executeTransientQuery(statement, excludeTombstones);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -361,7 +361,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     final TransientQueryMetadata transientQueryMetadata = EngineExecutor
         .create(primaryContext, serviceContext, statement.getSessionConfig())
-        .executeTransientQuery(statement, excludeTombstones, Optional.of(endOffsets));
+        .executeStreamPullQuery(statement, excludeTombstones, endOffsets);
 
     QueryLogger.info(
         "Streaming stream pull query results '{}'",

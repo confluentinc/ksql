@@ -372,6 +372,10 @@ public class QueryMetadataImpl implements QueryMetadata {
     }
   }
 
+  public boolean isInitialized() {
+    return initialized;
+  }
+
   public static class TimeBoundedQueue {
     private final Duration duration;
     private final Queue<QueryError> queue;

@@ -77,8 +77,29 @@ public interface QueryRegistry {
       LogicalSchema schema,
       OptionalInt limit,
       Optional<WindowInfo> windowInfo,
+      boolean excludeTombstones
+  );
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+
+  /**
+   * Create a transient query
+   */
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  TransientQueryMetadata createStreamPullQuery(
+      SessionConfig config,
+      ServiceContext serviceContext,
+      ProcessingLogContext processingLogContext,
+      MetaStore metaStore,
+      String statementText,
+      QueryId queryId,
+      Set<SourceName> sources,
+      ExecutionStep<?> physicalPlan,
+      String planSummary,
+      LogicalSchema schema,
+      OptionalInt limit,
+      Optional<WindowInfo> windowInfo,
       boolean excludeTombstones,
-      Optional<ImmutableMap<TopicPartition, Long>> endOffsets
+      ImmutableMap<TopicPartition, Long> endOffsets
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 

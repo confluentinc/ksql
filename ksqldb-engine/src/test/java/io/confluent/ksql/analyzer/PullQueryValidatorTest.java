@@ -30,11 +30,15 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
-import io.confluent.ksql.parser.OutputRefinement;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -68,13 +72,28 @@ public class PullQueryValidatorTest {
   private ColumnReferenceExp columnReferenceExp;
   @Mock
   private ColumnReferenceExp columnReferenceExp2;
+  @Mock
+  private Analysis.AliasedDataSource aliasedDataSource;
+  @Mock
+  private DataSource dataSource;
+  @Mock
+  private LogicalSchema logicalSchema;
+  @Mock
+  private Column column;
 
   private QueryValidator validator;
 
   @Before
   public void setUp() {
-    validator = new PullQueryValidator();
     when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(analysis.getAllDataSources()).thenReturn(ImmutableList.of(aliasedDataSource));
+    when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
+    when(dataSource.getSchema()).thenReturn(logicalSchema);
+    when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
+    when(column.name()).thenReturn(ColumnName.of("some_user_column"));
+
+    validator = new PullQueryValidator();
+
   }
 
   @Test
@@ -234,6 +253,24 @@ public class PullQueryValidatorTest {
     }
   }
 
+  @Test
+  public void shouldThrowOnUserColumnsWithSameNameAsPseudoColumn() {
+    // Given:
+    givenSourceWithUserColumnWithSameNameAsPseudoColumn();
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> QueryValidatorUtil.validateNoUserColumnsWithSameNameAsPseudoColumns(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Your stream/table has columns with the "
+        + "same name as newly introduced pseudocolumns in "
+        + "ksqlDB, and cannot be queried as a result. The conflicting names are: `ROWPARTITION`."));
+
+  }
+
   private void givenSelectClauseWithDisallowedColumnNames(
       MockedStatic<ColumnExtractor> columnExtractor
   ) {
@@ -258,4 +295,8 @@ public class PullQueryValidatorTest {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
+  private void givenSourceWithUserColumnWithSameNameAsPseudoColumn() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+    when(column.name()).thenReturn(ROWPARTITION_NAME);
+  }
 }

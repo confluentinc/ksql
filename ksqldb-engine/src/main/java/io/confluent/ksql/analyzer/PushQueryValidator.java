@@ -24,7 +24,7 @@ public class PushQueryValidator implements QueryValidator {
   @Override
   public void validate(final Analysis analysis) {
     failPersistentQueryOnWindowedTable(analysis);
-    QueryValidatorUtil.validateNoUserColumnsWithSameNameAsNewPseudoColumns(analysis);
+    QueryValidatorUtil.validateNoUserColumnsWithSameNameAsPseudoColumns(analysis);
   }
 
   private static void failPersistentQueryOnWindowedTable(final Analysis analysis) {

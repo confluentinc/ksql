@@ -29,10 +29,17 @@ import java.util.stream.Collectors;
 public final class QueryValidatorUtil {
 
   private QueryValidatorUtil() {
-
   }
 
-  static void validateNoUserColumnsWithSameNameAsNewPseudoColumns(final Analysis analysis) {
+  /**
+   * In the event that a user created a stream/table with a user column with the same
+   * name as a newly added pseudocolumn (i.e., user had an existing stream/table and
+   * then upgraded to a newer version of ksqlDB which introduced a new pseudocolumn
+   * with a conflicting name), then we disallow any new queries (persistent, push, and
+   * pull) against this existing stream/table as the ksqlDB engine does not properly
+   * handle the name conflict.
+   */
+  static void validateNoUserColumnsWithSameNameAsPseudoColumns(final Analysis analysis) {
 
     final KsqlConfig ksqlConfig = analysis.getKsqlConfig();
 

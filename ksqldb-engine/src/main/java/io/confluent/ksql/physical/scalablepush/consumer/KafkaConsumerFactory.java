@@ -47,7 +47,7 @@ public final class KafkaConsumerFactory {
         ServiceContext serviceContext,
         Map<String, Object> consumerProperties,
         KsqlConfig ksqlConfig,
-        boolean latest
+        String consumerGroupId
     );
   }
 
@@ -57,7 +57,7 @@ public final class KafkaConsumerFactory {
       final ServiceContext serviceContext,
       final Map<String, Object> consumerProperties,
       final KsqlConfig ksqlConfig,
-      final boolean latest
+      final String consumerGroupId
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         logicalSchema,
@@ -102,7 +102,7 @@ public final class KafkaConsumerFactory {
         Optional.empty()
     );
     return new KafkaConsumer<>(
-        consumerConfig(consumerProperties, ksqlConfig, latest),
+        consumerConfig(consumerProperties, ksqlConfig, consumerGroupId),
         keyDeserializer,
         valueSerde.deserializer()
     );
@@ -121,12 +121,12 @@ public final class KafkaConsumerFactory {
   public static Map<String, Object> consumerConfig(
       final Map<String, Object> consumerProperties,
       final KsqlConfig ksqlConfig,
-      final boolean latest
+      final String consumerGroupId
   ) {
     final Map<String, Object> config = new HashMap<>(consumerProperties);
     config.putAll(
         ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX, true));
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, latest ? "spq_latest1" : "spq_catchup");
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     // Try to keep consumer groups stable:
     config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);

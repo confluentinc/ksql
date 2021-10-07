@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
@@ -65,6 +66,7 @@ public class ScalablePushRegistry {
   private final KsqlTopic ksqlTopic;
   private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
+  private final String sourceApplicationId;
   private final KafkaConsumerFactoryInterface kafkaConsumerFactory;
   private final LatestConsumerFactory latestConsumerFactory;
   private final ConsumerMetadataFactory consumerMetadataFactory;
@@ -87,6 +89,7 @@ public class ScalablePushRegistry {
       final KsqlTopic ksqlTopic,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig,
+      final String sourceApplicationId,
       final KafkaConsumerFactoryInterface kafkaConsumerFactory,
       final LatestConsumerFactory latestConsumerFactory,
       final ConsumerMetadataFactory consumerMetadataFactory
@@ -99,6 +102,7 @@ public class ScalablePushRegistry {
     this.ksqlTopic = ksqlTopic;
     this.serviceContext = serviceContext;
     this.ksqlConfig = ksqlConfig;
+    this.sourceApplicationId = sourceApplicationId;
     this.kafkaConsumerFactory = kafkaConsumerFactory;
     this.latestConsumerFactory = latestConsumerFactory;
     this.consumerMetadataFactory = consumerMetadataFactory;
@@ -106,6 +110,9 @@ public class ScalablePushRegistry {
   }
 
   public synchronized void close() {
+    if (closed) {
+      return;
+    }
     System.out.println("Closing SQP registry");
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
@@ -114,6 +121,19 @@ public class ScalablePushRegistry {
     executorService.shutdownNow();
     closed = true;
     System.out.println("DONE Closing SQP registry");
+  }
+
+  public synchronized void cleanup() {
+    // Close if we haven't already
+    System.out.println("CLEANING UP " + getLatestConsumerGroupId());
+    close();
+    try {
+      serviceContext
+          .getConsumerGroupClient()
+          .deleteConsumerGroups(ImmutableSet.of(getLatestConsumerGroupId()));
+    } catch (Throwable t) {
+      LOG.error("Failed to delete consumer group");
+    }
   }
 
   public synchronized boolean isClosed() {
@@ -221,6 +241,7 @@ public class ScalablePushRegistry {
       final Map<String, Object> streamsProperties,
       final boolean newNodeContinuityEnforced,
       final Map<String, Object> consumerProperties,
+      final String sourceApplicationId,
       final KsqlTopic ksqlTopic,
       final ServiceContext serviceContext,
       final KsqlConfig ksqlConfig
@@ -245,14 +266,15 @@ public class ScalablePushRegistry {
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
     return Optional.of(new ScalablePushRegistry(
         pushLocator, logicalSchema, isTable, newNodeContinuityEnforced,
-        consumerProperties, ksqlTopic, serviceContext, ksqlConfig,
+        consumerProperties, ksqlTopic, serviceContext, ksqlConfig, sourceApplicationId,
         KafkaConsumerFactory::create, LatestConsumer::create, ConsumerMetadata::create));
   }
 
   private void runLatest() {
     System.out.println("Starting Latest2!");
     try (KafkaConsumer<Object, GenericRow> consumer = kafkaConsumerFactory.create(
-        ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig, true);
+        ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig,
+        getLatestConsumerGroupId());
         ConsumerMetadata consumerMetadata = consumerMetadataFactory.create(
             ksqlTopic.getKafkaTopicName(), consumer);
         LatestConsumer latestConsumer = latestConsumerFactory.create(
@@ -299,5 +321,9 @@ public class ScalablePushRegistry {
         this.isLatestStarted = false;
       }
     }
+  }
+
+  private String getLatestConsumerGroupId() {
+    return sourceApplicationId + "_scalable_push_query_latest";
   }
 }

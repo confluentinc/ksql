@@ -67,6 +67,7 @@ public class ScalablePushRegistryTest {
 
   private static final long TIMESTAMP = 123;
   private static final String TOPIC = "topic";
+  private static final String SOURCE_APP_ID = "source_app_id";
   private static final ConsumerMetadata METADATA = new ConsumerMetadata(2);
 
   @Mock
@@ -97,7 +98,7 @@ public class ScalablePushRegistryTest {
   @Before
   public void setUp() {
     when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC);
-    when(kafkaConsumerFactory.create(any(), any(), any(), any(), any(), anyBoolean()))
+    when(kafkaConsumerFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(kafkaConsumer);
 
     AtomicBoolean closed = new AtomicBoolean(false);
@@ -137,7 +138,8 @@ public class ScalablePushRegistryTest {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(
         locator, SCHEMA, false, false, ImmutableMap.of(), ksqlTopic, serviceContext,
-        ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
+        ksqlConfig, SOURCE_APP_ID,
+        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
 
     // When:
     registry.register(processingQueue, false);
@@ -154,7 +156,8 @@ public class ScalablePushRegistryTest {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true,
         ImmutableMap.of(), ksqlTopic, serviceContext,
-        ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
+        ksqlConfig, SOURCE_APP_ID,
+        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
     when(latestConsumer.getNumRowsReceived()).thenReturn(1L);
 
     // When:
@@ -174,7 +177,8 @@ public class ScalablePushRegistryTest {
     ScalablePushRegistry registry = new ScalablePushRegistry(
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
-        ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
+        ksqlConfig, SOURCE_APP_ID,
+        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
     doThrow(new RuntimeException("Error!")).when(latestConsumer).register(any());
     AtomicBoolean isErrorQueue = new AtomicBoolean(false);
     AtomicBoolean isErrorConsumer = new AtomicBoolean(false);
@@ -201,7 +205,8 @@ public class ScalablePushRegistryTest {
     ScalablePushRegistry registry = new ScalablePushRegistry(
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
-        ksqlConfig, kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
+        ksqlConfig, SOURCE_APP_ID,
+        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory);
     doThrow(new RuntimeException("Error!")).when(latestConsumer).run();
     AtomicBoolean isErrorConsumer = new AtomicBoolean(false);
     doAnswer(a -> {
@@ -222,7 +227,7 @@ public class ScalablePushRegistryTest {
     final Optional<ScalablePushRegistry> registry =
         ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:8088"),
-            false, ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig);
+            false, ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig);
 
     // Then:
     assertThat(registry.isPresent(), is(true));
@@ -235,7 +240,7 @@ public class ScalablePushRegistryTest {
         IllegalArgumentException.class,
         () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123), false,
-            ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig)
+            ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig)
     );
 
     // Then
@@ -249,7 +254,7 @@ public class ScalablePushRegistryTest {
         IllegalArgumentException.class,
         () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"), false,
-            ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig)
+            ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig)
     );
 
     // Then
@@ -261,7 +266,8 @@ public class ScalablePushRegistryTest {
     // When
     final Optional<ScalablePushRegistry> registry =
         ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
-            ImmutableMap.of(), false, ImmutableMap.of(), ksqlTopic, serviceContext, ksqlConfig);
+            ImmutableMap.of(), false, ImmutableMap.of(), SOURCE_APP_ID,
+            ksqlTopic, serviceContext, ksqlConfig);
 
     // Then
     assertThat(registry.isPresent(), is(false));

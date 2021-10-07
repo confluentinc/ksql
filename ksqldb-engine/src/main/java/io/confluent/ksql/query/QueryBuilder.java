@@ -231,6 +231,7 @@ final class QueryBuilder {
       final Object result,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final Map<String, Object> streamsProperties,
+      final String sourceApplicationId,
       final KsqlConfig ksqlConfig,
       final KsqlTopic ksqlTopic,
       final ServiceContext serviceContext
@@ -247,7 +248,7 @@ final class QueryBuilder {
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
         allPersistentQueries, isTable, streamsProperties,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY),
-        ksqlConfig.originals(),
+        ksqlConfig.originals(), sourceApplicationId,
         ksqlTopic, serviceContext, ksqlConfig);
     return registry;
   }
@@ -330,6 +331,7 @@ final class QueryBuilder {
         result,
         allPersistentQueries,
         streamsProperties,
+        applicationId,
         ksqlConfig,
         ksqlTopic,
         serviceContext
@@ -449,6 +451,7 @@ final class QueryBuilder {
         result,
         allPersistentQueries,
         streamsProperties,
+        applicationId,
         ksqlConfig,
         ksqlTopic,
         serviceContext

@@ -258,6 +258,7 @@ public class PersistentQueryMetadataImpl
     @Override
     public void onClose(final QueryMetadata queryMetadata) {
       this.listener.onClose(queryMetadata);
+      scalablePushRegistry.ifPresent(ScalablePushRegistry::cleanup);
     }
   }
 }

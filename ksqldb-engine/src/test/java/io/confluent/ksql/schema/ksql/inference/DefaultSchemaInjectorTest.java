@@ -79,14 +79,40 @@ public class DefaultSchemaInjectorTest {
       new TableElement(Namespace.KEY, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_KEY_ELEMENTS_TABLE = TableElements.of(
       new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+  private static final TableElements SUBSET_KEY_ELEMENTS_TABLE = TableElements.of(
+      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("key"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_VALUE_ELEMENTS = TableElements.of(
       new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+  private static final TableElements SUBSET_VALUE_ELEMENTS = TableElements.of(
+      new TableElement(Namespace.VALUE, ColumnName.of("intField"), new Type(SqlTypes.INTEGER)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_STREAM = TableElements.of(
       new TableElement(Namespace.KEY, ColumnName.of("k"), new Type(SqlTypes.STRING)),
       new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_TABLE = TableElements.of(
       new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("k"), new Type(SqlTypes.STRING)),
       new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+
+  private static final TableElements REORDERED_VALUE_ELEMENTS = TableElements.of(
+      new TableElement(Namespace.VALUE, ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, ColumnName.of("intField"), new Type(SqlTypes.INTEGER)));
+  private static final TableElements EXTRA_VALUE_ELEMENTS = TableElements.of(
+      new TableElement(Namespace.VALUE, ColumnName.of("intField"), new Type(SqlTypes.INTEGER)),
+      new TableElement(Namespace.VALUE, ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, ColumnName.of("doubleField"), new Type(SqlTypes.DOUBLE)),
+      new TableElement(Namespace.VALUE, ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
+      new TableElement(Namespace.VALUE, ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
+      new TableElement(Namespace.VALUE, ColumnName.of("mapField"), new Type(SqlTypes.map(
+          SqlTypes.STRING, SqlTypes.BIGINT
+      ))),
+      new TableElement(Namespace.VALUE, ColumnName.of("structField"), new Type(SqlStruct.builder()
+          .field("s0", SqlTypes.BIGINT)
+          .build())),
+      new TableElement(Namespace.VALUE,
+          ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))
+      ),
+      new TableElement(Namespace.VALUE, ColumnName.of("extraField"), new Type(SqlTypes.array(SqlTypes.INTEGER)))
+  );
 
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> BASE_PROPS = ImmutableMap.of(
@@ -424,6 +450,68 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
+  public void shouldUseValueSchemaIdWhenTableElementsPresent() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(SUBSET_VALUE_ELEMENTS);
+
+    // When:
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(result.getStatement().getElements(),
+        is(combineElements(INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
+    assertThat(result.getStatementText(), is(
+         "CREATE TABLE `ct` ("
+            + "`key` STRING PRIMARY KEY, "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', KEY_SCHEMA_ID=18, VALUE_FORMAT='avro', VALUE_SCHEMA_ID=42);"
+    ));
+  }
+
+  @Test
+  public void shouldUseKeySchemaIdWhenTableElementsPresent() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(SUBSET_KEY_ELEMENTS_TABLE);
+
+    // When:
+    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+
+    // Then:
+    assertThat(result.getStatement().getElements(),
+        is(combineElements(INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
+    assertThat(result.getStatementText(), is(
+         "CREATE TABLE `ct` ("
+            + "`key` STRING PRIMARY KEY, "
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)) "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', KEY_SCHEMA_ID=42, VALUE_FORMAT='avro', VALUE_SCHEMA_ID=5);"
+    ));
+  }
+
+  @Test
   public void shouldGetSchemasWithoutSchemaId() {
     // Given:
     givenKeyAndValueInferenceSupported();
@@ -558,6 +646,94 @@ public class DefaultSchemaInjectorTest {
         Optional.empty(),
         FormatInfo.of("AVRO"),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+    );
+  }
+
+  @Test
+  public void shouldThrowIfKeySchemaIdColumnsMissingInTableElements() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(SOME_KEY_ELEMENTS_TABLE);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following key columns are changed, missing or reordered: [`bob` STRING KEY]"));
+  }
+
+  @Test
+  public void shouldThrowIfValueSchemaIdColumnsMissingInTableElements() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(SOME_VALUE_ELEMENTS);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following value columns are changed, missing or reordered: [`bob` STRING]"));
+  }
+
+  @Test
+  public void shouldThrowIfValueSchemaIdColumnsReorderedInTableElements() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(REORDERED_VALUE_ELEMENTS);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString(
+            "The following value columns are changed, "
+                + "missing or reordered: [`bigIntField` BIGINT, `intField` INTEGER]"
+        )
+    );
+  }
+
+  @Test
+  public void shouldThrowIfValueSchemaIdColumnsNotInTableElements() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(EXTRA_VALUE_ELEMENTS);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString(
+            "The following value columns are changed, "
+            + "missing or reordered: [`extraField` ARRAY<INTEGER>]"
+        )
     );
   }
 

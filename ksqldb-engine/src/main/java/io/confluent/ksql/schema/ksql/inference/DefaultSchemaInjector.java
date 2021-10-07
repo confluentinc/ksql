@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -28,6 +31,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
@@ -44,6 +49,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -127,7 +134,7 @@ public class DefaultSchemaInjector implements Injector {
       return Optional.empty();
     }
 
-    return Optional.of(getSchema(
+    final SchemaAndId schemaAndId = getSchema(
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
@@ -136,7 +143,11 @@ public class DefaultSchemaInjector implements Injector {
         SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
         statement.getStatementText(),
         true
-    ));
+    );
+
+    checkColumnsCompatibility(props.getKeySchemaId(), statement, schemaAndId.columns, true);
+
+    return Optional.of(schemaAndId);
   }
 
   private Optional<SchemaAndId> getValueSchema(
@@ -149,14 +160,18 @@ public class DefaultSchemaInjector implements Injector {
       return Optional.empty();
     }
 
-    return Optional.of(getSchema(
+    SchemaAndId schemaAndId = getSchema(
         props.getKafkaTopic(),
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
         statement.getStatementText(),
         false
-    ));
+    );
+
+    checkColumnsCompatibility(props.getValueSchemaId(), statement, schemaAndId.columns, false);
+
+    return Optional.of(schemaAndId);
   }
 
   private SchemaAndId getSchema(
@@ -213,6 +228,49 @@ public class DefaultSchemaInjector implements Injector {
         isKey ? hasKeyElements(statement) : hasValueElements(statement);
 
     return !hasTableElements && formatSupportsSchemaInference(formatInfo);
+  }
+
+  private static void checkColumnsCompatibility(
+      final Optional<Integer> schemaId,
+      final ConfiguredStatement<CreateSource> statement,
+      final List<? extends SimpleColumn> connectColumns, boolean isKey) {
+    /*
+     * Check inferred columns from schema id and provided columns compatibility. Conditions:
+     *   1. Schema id is provided
+     *   2. Table elements are provided
+     *   3. Inferred columns should be superset of columns from table elements
+     */
+    if (!schemaId.isPresent()) {
+      return;
+    }
+
+    if ((isKey && !hasKeyElements(statement)) || (!isKey && !hasValueElements(statement))) {
+      return;
+    }
+
+    final List<Column> tableColumns =
+        isKey ? statement.getStatement().getElements().toLogicalSchema().key()
+            : statement.getStatement().getElements().toLogicalSchema().value();
+
+    final Column.Namespace namespace = isKey ? Column.Namespace.KEY : Column.Namespace.VALUE;
+
+    final List<Column> inferredColumns = IntStream.range(0, connectColumns.size()).mapToObj(
+        i -> Column.of(
+            connectColumns.get(i).name(),
+            connectColumns.get(i).type(),
+            namespace,
+            i)
+    ).collect(Collectors.toList());
+
+    final ImmutableSet<Column> colA = ImmutableSet.copyOf(tableColumns);
+    final ImmutableSet<Column> colB = ImmutableSet.copyOf(inferredColumns);
+
+    final SetView<Column> difference = Sets.difference(colA, colB);
+    if (!difference.isEmpty()) {
+      throw new KsqlException("The following " + (isKey ? "key " : "value ")
+          + "columns are changed, missing or reordered: "
+          + difference);
+    }
   }
 
   private static boolean hasKeyElements(

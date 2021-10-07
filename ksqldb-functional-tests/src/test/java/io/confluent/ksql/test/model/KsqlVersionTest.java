@@ -75,6 +75,16 @@ public class KsqlVersionTest {
   }
 
   @Test
+  public void shouldParseReleaseStabilizations() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("7.1.0-cc-docker-ksql.2-496-rc1");
+
+    // Then:
+    assertThat(result.getName(), is("7.1.0-cc-docker-ksql.2-496-rc1"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(7, 1, 0)));
+  }
+
+  @Test
   public void shouldParsePrerelease() {
     // When:
     final KsqlVersion result = KsqlVersion.parse("6.2.0-foo123456");

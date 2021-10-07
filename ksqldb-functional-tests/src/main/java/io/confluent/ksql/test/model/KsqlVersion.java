@@ -28,8 +28,9 @@ import java.util.regex.Pattern;
 @Immutable
 public final class KsqlVersion implements Comparable<KsqlVersion> {
 
-  private static final Pattern VERSION_PATTERN = Pattern
-      .compile("(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))?");
+  private static final Pattern VERSION_PATTERN = Pattern.compile(
+          "(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))*"
+              + "(\\.\\d-\\d*-\\w*)?");
 
   @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =

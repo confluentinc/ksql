@@ -153,7 +153,6 @@ public class ScalablePushQueryFunctionalTest {
   private String streamName;
   private PageViewDataProvider pageViewDataProvider;
   private PageViewDataProvider pageViewAdditionalDataProvider;
-  private PageViewDataProvider pageViewTwoRows;
   private KsqlRestClient restClient;
   private StreamPublisher<StreamedRow> publisher;
   private QueryStreamSubscriber subscriber;
@@ -168,7 +167,6 @@ public class ScalablePushQueryFunctionalTest {
     final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
     pageViewDataProvider = new PageViewDataProvider(prefix);
     pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
-    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
     TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
 
     RestIntegrationTestUtil.createStream(REST_APP_0, pageViewDataProvider);
@@ -413,26 +411,4 @@ public class ScalablePushQueryFunctionalTest {
 
     return res.getResponse();
   }
-
-//  class TestConsumerPartitionAssignor implements ConsumerPartitionAssignor {
-//
-//    @Override
-//    public GroupAssignment assign(Cluster cluster, GroupSubscription groupSubscription) {
-//      final Map<String, Subscription> subscriptions = groupSubscription.groupSubscription();
-//      Map<String, Assignment> assignmentMap = new HashMap<>();
-//      for (final Map.Entry<String, Subscription> entry : subscriptions.entrySet()) {
-//        final String consumerId = entry.getKey();
-//        final Subscription subscription = entry.getValue();
-//        subscription.userData()
-//        assignmentMap.put(consumerId, )
-//      }
-//      return new GroupAssignment(assignmentMap);
-//    }
-//
-//    @Override
-//    public String name() {
-//      return null;
-//    }
-//  }
-
 }

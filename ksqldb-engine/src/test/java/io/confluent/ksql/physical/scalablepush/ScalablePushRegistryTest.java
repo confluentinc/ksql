@@ -109,7 +109,6 @@ public class ScalablePushRegistryTest {
       return null;
     }).when(latestConsumer).run();
     doAnswer(a -> {
-      System.out.println("Closing latestConsumer");
       closed.set(true);
       return null;
     }).when(latestConsumer).close();

@@ -104,12 +104,10 @@ public class LatestConsumer extends Consumer {
         new ConsumerRebalanceListener() {
           @Override
           public void onPartitionsRevoked(final Collection<TopicPartition> collection) {
-            System.out.println("Revoked assignment" + collection + " from " + this);
           }
 
           @Override
           public void onPartitionsAssigned(final Collection<TopicPartition> collection) {
-            System.out.println("Got assignment " + collection + " from " + this);
             if (collection == null) {
               return;
             }

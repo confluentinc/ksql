@@ -113,19 +113,16 @@ public class ScalablePushRegistry {
     if (closed) {
       return;
     }
-    System.out.println("Closing SQP registry");
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       latestConsumer.close();
     }
     executorService.shutdownNow();
     closed = true;
-    System.out.println("DONE Closing SQP registry");
   }
 
   public synchronized void cleanup() {
     // Close if we haven't already
-    System.out.println("CLEANING UP " + getLatestConsumerGroupId());
     close();
     try {
       serviceContext
@@ -168,7 +165,6 @@ public class ScalablePushRegistry {
     if (closed) {
       throw new IllegalStateException("Shouldn't unregister after closing");
     }
-    System.out.println("UNREGISTERING " + processingQueue);
     latestPendingQueues.remove(processingQueue);
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
@@ -271,7 +267,6 @@ public class ScalablePushRegistry {
   }
 
   private void runLatest() {
-    System.out.println("Starting Latest2!");
     try (KafkaConsumer<Object, GenericRow> consumer = kafkaConsumerFactory.create(
         ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig,
         getLatestConsumerGroupId());
@@ -282,7 +277,6 @@ public class ScalablePushRegistry {
             logicalSchema, consumer, catchupCoordinator,
             tp -> { }, ksqlConfig, Clock.systemUTC())) {
       try {
-        System.out.println("Main block");
         this.latestConsumer.set(latestConsumer);
         while (!latestPendingQueues.isEmpty()) {
           final ProcessingQueue pq = latestPendingQueues.peek();
@@ -298,7 +292,6 @@ public class ScalablePushRegistry {
           }
         }
 
-        System.out.println("ABOUT TO RUN");
         latestConsumer.run();
       } catch (final Throwable t) {
         LOG.error("Got error while running latest", t);
@@ -316,7 +309,6 @@ public class ScalablePushRegistry {
       LOG.error("Got an error while handling another error", t);
     } finally {
       synchronized (this) {
-        System.out.println("FINALLY BLOCK");
         this.latestConsumer.set(null);
         this.isLatestStarted = false;
       }

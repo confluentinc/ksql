@@ -115,11 +115,9 @@ public abstract class Consumer implements AutoCloseable {
     for (TopicPartition tp : topicPartitions.get()) {
       currentPositions.put(tp, consumer.position(tp));
     }
-    System.out.println("RESETTING CURRENT POS TO BE " + currentPositions);
   }
 
   public void run() {
-    System.out.println("foo " + currentPositions);
     initialize();
     while (true) {
       if (closed) {
@@ -130,7 +128,6 @@ public abstract class Consumer implements AutoCloseable {
       if (this.topicPartitions.get() == null) {
         continue;
       }
-      System.out.println("Got NUM RECORDS " + records.count());
       if (records.isEmpty()) {
         updateCurrentPositions();
         onEmptyRecords();
@@ -138,15 +135,11 @@ public abstract class Consumer implements AutoCloseable {
       }
 
       if (newAssignment) {
-        System.out.println("GOT A NEW ASSIGNMENT THIS ROUND");
         newAssignment = false;
         onNewAssignment();
       }
 
       for (ConsumerRecord<?, GenericRow> rec : records) {
-        System.out.println("Got record " + rec);
-        System.out.println("KEY " + rec.key());
-        System.out.println("VALUE " + rec.value());
         handleRow(rec.key(), rec.value(), rec.timestamp());
       }
 

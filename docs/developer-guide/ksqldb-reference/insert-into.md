@@ -16,7 +16,10 @@ Synopsis
 INSERT INTO stream_name
   SELECT select_expr [, ...]
   FROM from_stream
-  [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria
+  [ LEFT | FULL | INNER ]
+      JOIN [join_table | join_stream]
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
+      ON join_criteria
   [ WHERE condition ]
   [ PARTITION BY new_key_expr [, ...] ]
   EMIT CHANGES;

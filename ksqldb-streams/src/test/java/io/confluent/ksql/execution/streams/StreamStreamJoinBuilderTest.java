@@ -223,6 +223,26 @@ public class StreamStreamJoinBuilderTest {
   }
 
   @Test
+  public void shouldDoLeftJoinWithGrace() {
+    // Given:
+    givenLeftJoin(L_KEY, Optional.of(GRACE));
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
+
+    // Then:
+    verify(leftKStream).leftJoin(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        eq(WINDOWS_WITH_GRACE),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
+  }
+
+  @Test
   public void shouldDoOuterJoin() {
     // Given:
     givenOuterJoin();
@@ -235,6 +255,26 @@ public class StreamStreamJoinBuilderTest {
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
         eq(WINDOWS_NO_GRACE),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
+  }
+
+  @Test
+  public void shouldDoOuterJoinWithGrace() {
+    // Given:
+    givenOuterJoin(Optional.of(GRACE));
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
+
+    // Then:
+    verify(leftKStream).outerJoin(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
+        eq(WINDOWS_WITH_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -275,6 +315,26 @@ public class StreamStreamJoinBuilderTest {
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
         eq(WINDOWS_NO_GRACE),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
+  }
+
+  @Test
+  public void shouldDoInnerJoinWithGrace() {
+    // Given:
+    givenInnerJoin(L_KEY, Optional.of(GRACE));
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
+
+    // Then:
+    verify(leftKStream).join(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        eq(WINDOWS_WITH_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);

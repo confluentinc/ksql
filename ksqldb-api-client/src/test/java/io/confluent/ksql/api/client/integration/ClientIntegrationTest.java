@@ -797,11 +797,14 @@ public class ClientIntegrationTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldListTopics() throws Exception {
-    // When
-    final List<TopicInfo> topics = client.listTopics().get();
-
-    // Then
-    assertThat("" + topics, topics, containsInAnyOrder(
+    // Then:
+    assertThatEventually(() -> {
+      try {
+        return client.listTopics().get();
+      } catch (final InterruptedException | ExecutionException e) {
+        return null;
+      }
+    }, containsInAnyOrder(
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
         topicInfo(AGG_TABLE),

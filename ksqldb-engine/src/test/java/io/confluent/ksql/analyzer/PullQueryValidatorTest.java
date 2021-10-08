@@ -86,6 +86,7 @@ public class PullQueryValidatorTest {
   @Before
   public void setUp() {
     when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(analysis.getAllDataSources()).thenReturn(ImmutableList.of(aliasedDataSource));
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getSchema()).thenReturn(logicalSchema);
@@ -292,11 +293,9 @@ public class PullQueryValidatorTest {
         .thenReturn(ImmutableSet.of(columnReferenceExp, columnReferenceExp2));
     when(columnReferenceExp.getColumnName()).thenReturn(ROWPARTITION_NAME);
     when(columnReferenceExp2.getColumnName()).thenReturn(ROWOFFSET_NAME);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   private void givenSourceWithUserColumnWithSameNameAsPseudoColumn() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(column.name()).thenReturn(ROWPARTITION_NAME);
   }
 }

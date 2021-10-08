@@ -66,6 +66,7 @@ public class PushQueryValidatorTest {
   @Before
   public void setUp() {
     when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(source.getSchema()).thenReturn(logicalSchema);
     when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
     when(column.name()).thenReturn(ColumnName.of("some_user_column"));
@@ -198,7 +199,6 @@ public class PushQueryValidatorTest {
   }
 
   private void givenSourceUserColumnWithSameNameAsPseudoColumn() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(column.name()).thenReturn(SystemColumns.ROWPARTITION_NAME);
   }
 }

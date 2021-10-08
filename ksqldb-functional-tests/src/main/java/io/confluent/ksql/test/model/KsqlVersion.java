@@ -25,6 +25,7 @@ import java.util.OptionalLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@SuppressWarnings("checkstyle:AtclauseOrder")
 @Immutable
 public final class KsqlVersion implements Comparable<KsqlVersion> {
   /**

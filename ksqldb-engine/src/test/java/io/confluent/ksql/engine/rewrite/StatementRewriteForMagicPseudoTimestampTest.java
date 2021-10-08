@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
@@ -50,9 +49,6 @@ public class StatementRewriteForMagicPseudoTimestampTest {
   private PartialStringToTimestampParser parser;
   private MetaStore metaStore;
   private StatementRewriteForMagicPseudoTimestamp rewriter;
-
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   @Before
   public void init() {
@@ -323,7 +319,7 @@ public class StatementRewriteForMagicPseudoTimestampTest {
 
   private Expression getPredicate(final String querySql) {
     final Query statement = (Query) KsqlParserTestUtil
-        .buildSingleAst(querySql, metaStore, ksqlConfig)
+        .buildSingleAst(querySql, metaStore, true)
         .getStatement();
 
     return statement.getWhere().get();

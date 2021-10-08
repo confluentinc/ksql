@@ -32,7 +32,6 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -40,11 +39,12 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceExtractorTest {
+
+  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final SourceName TEST2 = SourceName.of("TEST2");
@@ -58,12 +58,9 @@ public class DataSourceExtractorTest {
 
   private DataSourceExtractor extractor;
 
-  @Mock
-  private KsqlConfig ksqlConfig;
-
   @Before
   public void setUp() {
-    extractor = new DataSourceExtractor(META_STORE, ksqlConfig);
+    extractor = new DataSourceExtractor(META_STORE, ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
   @Test
@@ -218,7 +215,7 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    SystemColumns.pseudoColumnNames(ksqlConfig).forEach(pseudoCol ->
+    SystemColumns.pseudoColumnNames(ROWPARTITION_ROWOFFSET_ENABLED).forEach(pseudoCol ->
         assertThat(pseudoCol + " should clash", extractor.isClashingColumnName(pseudoCol))
     );
   }

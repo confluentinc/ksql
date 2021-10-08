@@ -174,7 +174,29 @@ public final class LogicalSchema {
   ) {
     return withPseudoAndKeyColsInValue(
         windowed,
-        ksqlConfig,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
+        false
+    );
+  }
+
+  /**
+   * Copies pseudo and key columns to the value schema with the current pseudocolumn version number
+   *
+   * <p>Similar to the above implementation, but determines the version to use by using the
+   * provided boolean
+   *
+   * @param windowed indicates that the source is windowed
+   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
+   *                                     is enabled
+   * @return the new schema.
+   */
+  public LogicalSchema withPseudoAndKeyColsInValue(
+      final boolean windowed,
+      final boolean rowpartitionRowoffsetEnabled
+  ) {
+    return withPseudoAndKeyColsInValue(
+        windowed,
+        rowpartitionRowoffsetEnabled,
         false
     );
   }
@@ -186,18 +208,19 @@ public final class LogicalSchema {
    * config and whether or not the calling context is a pull or scalable push query.
    *
    * @param windowed indicates that the source is windowed
-   * @param ksqlConfig the config to utilize for finding the version number
+   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
+   *                                     is enabled
    * @param forPullOrScalablePushQuery whether this is a pull or scalable push query schema
    * @return the new schema.
    */
   public LogicalSchema withPseudoAndKeyColsInValue(
       final boolean windowed,
-      final KsqlConfig ksqlConfig,
+      final boolean rowpartitionRowoffsetEnabled,
       final boolean forPullOrScalablePushQuery
   ) {
     return rebuildWithPseudoAndKeyColsInValue(
         windowed,
-        SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig),
+        SystemColumns.getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled),
         forPullOrScalablePushQuery
     );
   }

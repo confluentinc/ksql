@@ -34,11 +34,9 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,6 +45,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AnalysisTest {
+  
+  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
 
   private static final SourceName ALIAS = SourceName.of("ds1");
   private static final FormatInfo A_FORMAT = FormatInfo.of("JSON");
@@ -62,17 +62,15 @@ public class AnalysisTest {
   @Mock
   private KsqlStream<?> dataSource;
   @Mock
-  private BiFunction<Map<SourceName, LogicalSchema>, KsqlConfig, SourceSchemas> sourceSchemasFactory;
+  private BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas> sourceSchemasFactory;
   @Mock
   private WindowExpression windowExpression;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   private Analysis analysis;
 
   @Before
   public void setUp() {
-    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, ksqlConfig);
+    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, ROWPARTITION_ROWOFFSET_ENABLED);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }
@@ -91,9 +89,9 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(
         ImmutableMap.of(
             ALIAS,
-            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ROWPARTITION_ROWOFFSET_ENABLED)
         ),
-        ksqlConfig
+        ROWPARTITION_ROWOFFSET_ENABLED
     );
   }
 
@@ -111,9 +109,9 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(
         ImmutableMap.of(
             ALIAS,
-            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ROWPARTITION_ROWOFFSET_ENABLED)
         ),
-        ksqlConfig
+        ROWPARTITION_ROWOFFSET_ENABLED
     );
   }
 
@@ -132,9 +130,9 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(
         ImmutableMap.of(
             ALIAS,
-            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ROWPARTITION_ROWOFFSET_ENABLED)
         ),
-        ksqlConfig
+        ROWPARTITION_ROWOFFSET_ENABLED
     );
   }
 
@@ -152,9 +150,9 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(
         ImmutableMap.of(
             ALIAS,
-            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig)
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(false, ROWPARTITION_ROWOFFSET_ENABLED)
         ),
-        ksqlConfig
+        ROWPARTITION_ROWOFFSET_ENABLED
     );
   }
 
@@ -172,9 +170,9 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(
         ImmutableMap.of(
             ALIAS,
-            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ROWPARTITION_ROWOFFSET_ENABLED)
         ),
-        ksqlConfig
+        ROWPARTITION_ROWOFFSET_ENABLED
     );
   }
 
@@ -193,9 +191,9 @@ public class AnalysisTest {
     verify(sourceSchemasFactory).apply(
         ImmutableMap.of(
             ALIAS,
-            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig)
+            SOURCE_SCHEMA.withPseudoAndKeyColsInValue(true, ROWPARTITION_ROWOFFSET_ENABLED)
         ),
-        ksqlConfig
+        ROWPARTITION_ROWOFFSET_ENABLED
     );
   }
 

@@ -555,7 +555,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         getMetaStore(),
         "",
-        ksqlConfig.cloneWithPropertyOverwrite(configOverrides)
+        getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides)
     );
 
     final Analysis analysis;
@@ -607,5 +607,18 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
       StreamsErrorCollector.notifyApplicationClose(applicationId);
     }
+  }
+
+  private static boolean getRowpartitionRowoffsetEnabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> configOverrides
+  ) {
+    final Object rowpartitionRowoffsetEnabled =
+        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    if (rowpartitionRowoffsetEnabled != null) {
+      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 }

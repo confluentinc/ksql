@@ -66,7 +66,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
@@ -98,21 +97,22 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final KsqlConfig ksqlConfig;
+  private final boolean rowpartitionRowoffsetEnabled;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param ksqlConfig the config with which to identify the correct pseudocolumn version to use.
+   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
+   *                                     is true
    */
   Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
-    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
   }
 
   /**
@@ -147,7 +147,7 @@ class Analyzer {
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.analysis = new Analysis(query.getRefinement(), ksqlConfig);
+      this.analysis = new Analysis(query.getRefinement(), rowpartitionRowoffsetEnabled);
       this.persistent = persistent;
     }
 
@@ -595,7 +595,8 @@ class Analyzer {
 
     private void validateSelect(final SingleColumn column) {
 
-      final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+      final int pseudoColumnVersion = SystemColumns.
+          getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
 
       SystemColumns.systemColumnNames(pseudoColumnVersion)
           .forEach(col -> checkForReservedToken(column, col));

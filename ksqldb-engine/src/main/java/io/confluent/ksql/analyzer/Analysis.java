@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -43,7 +42,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +58,7 @@ import java.util.stream.Collectors;
 public class Analysis implements ImmutableAnalysis {
 
   private final Optional<RefinementInfo> refinementInfo;
-  private final BiFunction<Map<SourceName, LogicalSchema>, KsqlConfig, SourceSchemas>
+  private final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
       sourceSchemasFactory;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> allDataSources = new ArrayList<>();
@@ -76,22 +74,25 @@ public class Analysis implements ImmutableAnalysis {
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
   private boolean orReplace = false;
-  private final KsqlConfig ksqlConfig;
+  private final boolean rowpartitionRowoffsetEnabled;
 
-  public Analysis(final Optional<RefinementInfo> refinementInfo, final KsqlConfig ksqlConfig) {
-    this(refinementInfo, SourceSchemas::new, ksqlConfig);
+  public Analysis(
+      final Optional<RefinementInfo> refinementInfo,
+      final boolean rowpartitionRowoffsetEnabled
+  ) {
+    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled);
   }
 
   @VisibleForTesting
   Analysis(
       final Optional<RefinementInfo> refinementInfo,
-      final BiFunction<Map<SourceName, LogicalSchema>, KsqlConfig, SourceSchemas>
+      final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
           sourceSchemasFactory,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
-    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -205,7 +206,7 @@ public class Analysis implements ImmutableAnalysis {
             ads -> buildStreamsSchema(ads, postAggregate)
         ));
 
-    return sourceSchemasFactory.apply(schemaBySource, ksqlConfig);
+    return sourceSchemasFactory.apply(schemaBySource, rowpartitionRowoffsetEnabled);
   }
 
   Optional<AliasedDataSource> getSourceByAlias(final SourceName name) {
@@ -268,10 +269,8 @@ public class Analysis implements ImmutableAnalysis {
     return Collections.unmodifiableList(tableFunctions);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP",
-      justification = "KsqlConfig is Effectively Immutable")
-  public KsqlConfig getKsqlConfig() {
-    return ksqlConfig;
+  public boolean getRowpartitionRowoffsetEnabled() {
+    return rowpartitionRowoffsetEnabled;
   }
 
   private LogicalSchema buildStreamsSchema(
@@ -289,7 +288,7 @@ public class Analysis implements ImmutableAnalysis {
 
     return ds.getDataSource()
         .getSchema()
-        .withPseudoAndKeyColsInValue(windowedSource || windowedGroupBy, ksqlConfig);
+        .withPseudoAndKeyColsInValue(windowedSource || windowedGroupBy, rowpartitionRowoffsetEnabled);
   }
 
   @Immutable

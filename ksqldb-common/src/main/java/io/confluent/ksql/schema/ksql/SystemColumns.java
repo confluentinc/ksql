@@ -120,6 +120,14 @@ public final class SystemColumns {
     return isPseudoColumn(columnName, getPseudoColumnVersionFromConfig(ksqlConfig));
   }
 
+  public static boolean isPseudoColumn(
+      final ColumnName columnName,
+      final boolean rowpartitionRowoffsetEnabled
+  ) {
+    return isPseudoColumn(columnName,
+        getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled));
+  }
+
   public static Set<ColumnName> pseudoColumnNames(final int pseudoColumnVersion) {
 
     validatePseudoColumnVersion(pseudoColumnVersion);
@@ -133,6 +141,10 @@ public final class SystemColumns {
 
   public static Set<ColumnName> pseudoColumnNames(final KsqlConfig ksqlConfig) {
     return pseudoColumnNames(getPseudoColumnVersionFromConfig(ksqlConfig));
+  }
+
+  public static Set<ColumnName> pseudoColumnNames(final boolean rowpartitionRowoffsetEnabled) {
+    return pseudoColumnNames(getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled));
   }
 
   public static boolean isSystemColumn(final ColumnName columnName, final int pseudoColumnVersion) {
@@ -190,16 +202,22 @@ public final class SystemColumns {
         .anyMatch(col -> col.name.equals(columnName));
   }
 
+  public static int getPseudoColumnVersionFromConfig(final boolean rowpartitionRowoffsetEnabled) {
+    return getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled, false);
+  }
+
   public static int getPseudoColumnVersionFromConfig(final KsqlConfig ksqlConfig) {
-    return getPseudoColumnVersionFromConfig(ksqlConfig, false);
+    return getPseudoColumnVersionFromConfig(
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
+        false
+    );
   }
 
   public static int getPseudoColumnVersionFromConfig(
-      final KsqlConfig ksqlConfig,
+      final boolean rowpartitionRowoffsetEnabled,
       final boolean forPullOrScalablePushQuery
   ) {
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
-        && !forPullOrScalablePushQuery
+    return rowpartitionRowoffsetEnabled && !forPullOrScalablePushQuery
         ? CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
         : LEGACY_PSEUDOCOLUMN_VERSION_NUMBER;
   }

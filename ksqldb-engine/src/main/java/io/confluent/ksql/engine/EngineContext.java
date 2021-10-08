@@ -178,7 +178,7 @@ final class EngineContext {
               preparedStatement.getStatement(),
               metaStore,
               ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED),
-              ksqlConfig
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)
           ));
     } catch (final KsqlStatementException e) {
       throw e;

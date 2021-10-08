@@ -46,8 +46,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class ScalablePushUtilTest {
 
   private static final Map<String, Object> overrides = ImmutableMap.of(
-      KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true,
-      KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED, true,
       "auto.offset.reset", "latest"
   );
 
@@ -68,17 +66,14 @@ public class ScalablePushUtilTest {
 
   @Before
   public void setUp() {
-    // Otherwise we'd need to mock static ColumnExtractor in each passing test to avoid NPEs
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(false);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test
   public void shouldNotMakeQueryWithRowpartitionInSelectClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
-      givenSelectClause(SystemColumns.ROWPARTITION_NAME, columnExtractor);
+      expectIsSPQ(SystemColumns.ROWPARTITION_NAME, columnExtractor);
 
       // When:
       final boolean isScalablePush = ScalablePushUtil.isScalablePushQuery(
@@ -97,9 +92,7 @@ public class ScalablePushUtilTest {
   public void shouldNotMakeQueryWithRowoffsetInSelectClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
-      givenSelectClause(SystemColumns.ROWOFFSET_NAME, columnExtractor);
+      expectIsSPQ(SystemColumns.ROWOFFSET_NAME, columnExtractor);
 
       // When:
       final boolean isScalablePush = ScalablePushUtil.isScalablePushQuery(
@@ -118,8 +111,7 @@ public class ScalablePushUtilTest {
   public void shouldNotMakeQueryWithRowpartitionInWhereClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
       givenWhereClause(SystemColumns.ROWPARTITION_NAME, columnExtractor);
 
       // When:
@@ -139,8 +131,7 @@ public class ScalablePushUtilTest {
   public void shouldNotMakeQueryWithRowoffsetInWhereClauseScalablePush() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      expectIsSPQ();
-      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
       givenWhereClause(SystemColumns.ROWOFFSET_NAME, columnExtractor);
 
       // When:
@@ -160,8 +151,7 @@ public class ScalablePushUtilTest {
   public void isScalablePushQuery_true() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       // Given:
-      expectIsSPQ();
-      givenSelectClause(ColumnName.of("AnAllowedColumnName"), columnExtractor);
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
 
       // When:
       final boolean isScalablePush = ScalablePushUtil.isScalablePushQuery(
@@ -178,196 +168,228 @@ public class ScalablePushUtilTest {
 
   @Test
   public void isScalablePushQuery_false_configDisabled() {
-    // When:
-    expectIsSPQ();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(false);
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(false);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
-
 
   @Test
   public void isScalablePushQuery_true_enabledWithOverride() {
-    // When:
-    expectIsSPQ();
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
-                KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest",
+              KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_hasGroupBy() {
-    // When:
-    expectIsSPQ();
-    when(query.getGroupBy())
-        .thenReturn(
-            Optional.of(new GroupBy(Optional.empty(), ImmutableList.of(new IntegerLiteral(1)))));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(query.getGroupBy())
+          .thenReturn(
+              Optional.of(new GroupBy(Optional.empty(), ImmutableList.of(new IntegerLiteral(1)))));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_hasWindow() {
-    // When:
-    expectIsSPQ();
-    when(query.getWindow()).thenReturn(Optional.of(new WindowExpression("foo",
-        new TumblingWindowExpression(new WindowTimeClause(1, TimeUnit.MILLISECONDS)))));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(query.getWindow()).thenReturn(Optional.of(new WindowExpression("foo",
+          new TumblingWindowExpression(new WindowTimeClause(1, TimeUnit.MILLISECONDS)))));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_hasHaving() {
-    // When:
-    expectIsSPQ();
-    when(query.getHaving()).thenReturn(Optional.of(new IntegerLiteral(1)));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(query.getHaving()).thenReturn(Optional.of(new IntegerLiteral(1)));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_hasPartitionBy() {
-    // When:
-    expectIsSPQ();
-    when(query.getPartitionBy())
-        .thenReturn(Optional.of(
-            new PartitionBy(Optional.empty(), ImmutableList.of(new IntegerLiteral(1)))));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(query.getPartitionBy())
+          .thenReturn(Optional.of(
+              new PartitionBy(Optional.empty(), ImmutableList.of(new IntegerLiteral(1)))));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_hasNoRefinement() {
-    // When:
-    expectIsSPQ();
-    when(query.getRefinement()).thenReturn(Optional.empty());
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(query.getRefinement()).thenReturn(Optional.empty());
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_hasWrongRefinement() {
-    // When:
-    expectIsSPQ();
-    when(query.getRefinement()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(query.getRefinement()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
 
   @Test
   public void isScalablePushQuery_true_noLatest() {
-    // When:
-    expectIsSPQ();
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of()),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_true_configLatest() {
-    // When:
-    expectIsSPQ();
-    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
-        .thenReturn(Optional.of("latest"));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+          .thenReturn(Optional.of("latest"));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of()),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_configNotLatest() {
-    // When:
-    expectIsSPQ();
-    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
-        .thenReturn(Optional.of("earliest"));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+          .thenReturn(Optional.of("earliest"));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of()),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_true_latestConfig() {
-    // When:
-    expectIsSPQ();
-    when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
-        .thenReturn(Optional.of("latest"));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(ksqlConfig.getKsqlStreamConfigProp(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG))
+          .thenReturn(Optional.of("latest"));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of()),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of()),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_true_streamsOverride() {
-    // When:
-    expectIsSPQ();
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(
-                KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(true));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(
+              KsqlConfig.KSQL_STREAMS_PREFIX + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(true));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_wrongUpstreamQueries_None() {
-    // When:
-    expectIsSPQ();
-    when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
-        ImmutableSet.of());
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
+          ImmutableSet.of());
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
   @Test
   public void isScalablePushQuery_false_wrongUpstreamQueries_Two() {
-    // When:
-    expectIsSPQ();
-    when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
-        ImmutableSet.of(new QueryId("A"), new QueryId("B")));
+    try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
+      // When:
+      expectIsSPQ(ColumnName.of("foo"), columnExtractor);
+      when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
+          ImmutableSet.of(new QueryId("A"), new QueryId("B")));
 
-    // Then:
-    assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
-            ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
-        equalTo(false));
+      // Then:
+      assertThat(ScalablePushUtil.isScalablePushQuery(query, ksqlEngine, ksqlConfig,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")),
+          equalTo(false));
+    }
   }
 
-  private void expectIsSPQ() {
+  private void expectIsSPQ(
+      final ColumnName selectColumnName,
+      final MockedStatic<ColumnExtractor> columnExtractor
+  ) {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)).thenReturn(true);
     when(query.getGroupBy()).thenReturn(Optional.empty());
     when(query.getWindow()).thenReturn(Optional.empty());
@@ -379,6 +401,7 @@ public class ScalablePushUtilTest {
         .thenReturn(new AliasedRelation(new Table(SourceName.of("Foo")), SourceName.of("blah")));
     when(ksqlEngine.getQueriesWithSink(SourceName.of("Foo"))).thenReturn(
         ImmutableSet.of(new QueryId("a")));
+    givenSelectClause(selectColumnName, columnExtractor);
   }
 
   private void givenSelectClause(

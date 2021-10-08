@@ -438,7 +438,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_ROWPARTITION_ROWOFFSET_ENABLED =
       "ksql.rowpartition.rowoffset.enabled";
-  public static final Boolean KSQL_ROWPARTITION_ROWOFFSET_DEFAULT = false;
+  public static final Boolean KSQL_ROWPARTITION_ROWOFFSET_DEFAULT = true;
   public static final String KSQL_ROWPARTITION_ROWOFFSET_DOC =
       "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
           + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";

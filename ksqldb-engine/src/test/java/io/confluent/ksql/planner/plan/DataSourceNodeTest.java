@@ -194,6 +194,7 @@ public class DataSourceNodeTest {
 
     givenWindowedSource(false);
 
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     node = new DataSourceNode(
         PLAN_NODE_ID,
         SOME_SOURCE,

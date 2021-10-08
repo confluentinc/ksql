@@ -72,6 +72,24 @@ public class QueryProjectNodeTest {
       .valueColumn(K, SqlTypes.STRING)
       .build();
 
+  private static final LogicalSchema INTERMEDIATE_SCHEMA = LogicalSchema.builder()
+      .keyColumn(K, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+      .valueColumn(K, SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema INTERMEDIATE_SCHEMA_WINDOWED = LogicalSchema.builder()
+      .keyColumn(K, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+      .valueColumn(K, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT)
+      .build();
+
   @Mock
   private PlanNode source;
   @Mock
@@ -103,6 +121,7 @@ public class QueryProjectNodeTest {
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test
@@ -126,7 +145,7 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig);
+    final LogicalSchema expectedSchema = INTERMEDIATE_SCHEMA;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -151,7 +170,7 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig);
+    final LogicalSchema expectedSchema = INTERMEDIATE_SCHEMA_WINDOWED;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -310,8 +329,7 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
-    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false, ksqlConfig),
-        is(projectNode.getIntermediateSchema()));
+    assertThat(INTERMEDIATE_SCHEMA, is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(
         IllegalStateException.class,

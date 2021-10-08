@@ -44,6 +44,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.checkerframework.checker.units.qual.K;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,6 +56,8 @@ public class DefaultSchemaInjectorFunctionalTest {
 
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
+
+  private static final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private static final org.apache.avro.Schema DECIMAL_SCHEMA =
       parseAvroSchema(
@@ -71,8 +74,7 @@ public class DefaultSchemaInjectorFunctionalTest {
   private AvroSchema avroSchema;
   @Mock
   private MetaStore metaStore;
-  @Mock
-  private KsqlConfig ksqlConfig;
+
   private DefaultSchemaInjector schemaInjector;
 
   @Before

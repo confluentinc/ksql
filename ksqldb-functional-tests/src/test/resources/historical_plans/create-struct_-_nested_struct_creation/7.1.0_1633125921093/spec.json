@@ -1,0 +1,102 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125921093,
+  "path" : "query-validation-tests/create-struct.json",
+  "schemas" : {
+    "CSAS_BIG_STRUCT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `COL1` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_BIG_STRUCT_0.BIG_STRUCT" : {
+      "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRUCT<`C1` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "nested struct creation",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : null,
+      "value" : {
+        "col1" : "foo"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "BIG_STRUCT",
+      "key" : null,
+      "value" : {
+        "S" : {
+          "F1" : {
+            "C1" : "foo"
+          }
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "BIG_STRUCT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID STRING KEY, col1 VARCHAR) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM BIG_STRUCT AS SELECT ID, STRUCT(f1 := STRUCT(c1 := col1)) AS s FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "BIG_STRUCT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `S` STRUCT<`F1` STRUCT<`C1` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `COL1` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "BIG_STRUCT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

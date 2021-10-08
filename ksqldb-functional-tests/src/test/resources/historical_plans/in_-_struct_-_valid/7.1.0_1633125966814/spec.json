@@ -1,0 +1,223 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125966814,
+  "path" : "query-validation-tests/in.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`VAL0` STRUCT<`A` BIGINT, `B` BIGINT>, `VAL1` STRUCT<`A` BIGINT, `B` BIGINT>",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`VAL0` STRUCT<`A` BIGINT, `B` BIGINT>, `VAL1` STRUCT<`A` BIGINT, `B` BIGINT>",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "struct - valid",
+    "inputs" : [ {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 1,
+          "B" : 2
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 2,
+          "B" : 2
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 3,
+          "B" : 2
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 4,
+          "B" : 2
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 5
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 6
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 7,
+          "B" : 2
+        }
+      }
+    }, {
+      "topic" : "input_topic",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 8,
+          "B" : 2
+        },
+        "VAL1" : {
+          "A" : 8,
+          "B" : 2
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 1,
+          "B" : 2
+        },
+        "VAL1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 4,
+          "B" : 2
+        },
+        "VAL1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 5,
+          "B" : null
+        },
+        "VAL1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 6,
+          "B" : null
+        },
+        "VAL1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 7,
+          "B" : 2
+        },
+        "VAL1" : null
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "VAL0" : {
+          "A" : 8,
+          "B" : 2
+        },
+        "VAL1" : {
+          "A" : 8,
+          "B" : 2
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "input_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (VAL0 STRUCT<A BIGINT, B BIGINT>, VAL1 STRUCT<A BIGINT, B BIGINT>) WITH (kafka_topic='input_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE VAL0 IN (STRUCT(A:=1,B:=2),STRUCT(A:=3,B:=2,C:=4),STRUCT(B:=2,A:=4),STRUCT(A:=5),STRUCT(A:=6,B:=CAST(null AS BIGINT)),STRUCT(A:='7',B:=2),VAL1);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`VAL0` STRUCT<`A` BIGINT, `B` BIGINT>, `VAL1` STRUCT<`A` BIGINT, `B` BIGINT>",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`VAL0` STRUCT<`A` BIGINT, `B` BIGINT>, `VAL1` STRUCT<`A` BIGINT, `B` BIGINT>",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input_topic",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

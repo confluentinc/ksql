@@ -179,6 +179,8 @@ public class LogicalPlannerTest {
         selectCol("COL4", "T1_COL4"),
         selectCol("COL5", "T1_COL5"),
         selectCol("ROWTIME", "T1_ROWTIME"),
+        selectCol("ROWPARTITION", "T1_ROWPARTITION"),
+        selectCol("ROWOFFSET", "T1_ROWOFFSET"),
         selectCol("COL0", "T1_COL0")
     ));
     final ProjectNode right = (ProjectNode) joinNode.getSources().get(1);
@@ -188,6 +190,8 @@ public class LogicalPlannerTest {
         selectCol("COL3", "T2_COL3"),
         selectCol("COL4", "T2_COL4"),
         selectCol("ROWTIME", "T2_ROWTIME"),
+        selectCol("ROWPARTITION", "T2_ROWPARTITION"),
+        selectCol("ROWOFFSET", "T2_ROWOFFSET"),
         selectCol("COL0", "T2_COL0")
     ));
   }

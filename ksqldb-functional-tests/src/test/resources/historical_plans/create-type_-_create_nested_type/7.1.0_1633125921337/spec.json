@@ -1,0 +1,138 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125921337,
+  "path" : "query-validation-tests/create-type.json",
+  "schemas" : {
+    "CTAS_COPY_0.COPY" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_COPY_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_COPY_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_COPY_0.Project" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "create nested type",
+    "inputs" : [ {
+      "topic" : "test",
+      "key" : "a",
+      "value" : {
+        "person" : {
+          "name" : "jay",
+          "address" : {
+            "number" : 899,
+            "street" : "W. Evelyn",
+            "city" : "Mountain View"
+          }
+        }
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "COPY",
+      "key" : "a",
+      "value" : {
+        "PERSON" : {
+          "NAME" : "jay",
+          "ADDRESS" : {
+            "NUMBER" : 899,
+            "STREET" : "W. Evelyn",
+            "CITY" : "Mountain View"
+          }
+        }
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "COPY",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;", "CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;", "CREATE TABLE people (K STRING PRIMARY KEY, person PERSON) WITH (kafka_topic='test', value_format='JSON');", "CREATE TABLE copy AS SELECT * FROM people;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "COPY",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "PEOPLE",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "COPY",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "test",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_COPY_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

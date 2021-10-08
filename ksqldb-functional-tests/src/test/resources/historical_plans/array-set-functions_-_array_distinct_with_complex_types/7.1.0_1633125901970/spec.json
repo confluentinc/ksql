@@ -1,0 +1,192 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125901970,
+  "path" : "query-validation-tests/array-set-functions.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `LISTS_DIST` ARRAY<ARRAY<STRING>>, `MAPS_DIST` ARRAY<MAP<STRING, INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "array_distinct with complex types",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "r1",
+      "value" : {
+        "lists" : [ [ "foo", "bar", "foo" ], [ "foo", "bar", "foo" ], [ "foo" ] ],
+        "maps" : [ {
+          "apple" : 1,
+          "banana" : 2
+        }, {
+          "apple" : 3,
+          "banana" : 4
+        }, {
+          "apple" : 1,
+          "banana" : 2
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r2",
+      "value" : {
+        "lists" : [ [ "foo", null ], [ "foo", "bar" ], [ "foo" ] ],
+        "maps" : [ {
+          "apple" : null,
+          "banana" : 2
+        }, {
+          "apple" : 1,
+          "banana" : 2
+        }, {
+          "apple" : 1,
+          "banana" : 2
+        } ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r3",
+      "value" : {
+        "lists" : [ null, [ "foo" ] ],
+        "maps" : [ {
+          "apple" : 1,
+          "banana" : 2
+        }, null ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r4",
+      "value" : {
+        "lists" : [ ],
+        "maps" : [ ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "r5",
+      "value" : {
+        "lists" : null,
+        "maps" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "r1",
+      "value" : {
+        "LISTS_DIST" : [ [ "foo", "bar", "foo" ], [ "foo" ] ],
+        "MAPS_DIST" : [ {
+          "apple" : 1,
+          "banana" : 2
+        }, {
+          "apple" : 3,
+          "banana" : 4
+        } ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r2",
+      "value" : {
+        "LISTS_DIST" : [ [ "foo", null ], [ "foo", "bar" ], [ "foo" ] ],
+        "MAPS_DIST" : [ {
+          "apple" : null,
+          "banana" : 2
+        }, {
+          "apple" : 1,
+          "banana" : 2
+        } ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r3",
+      "value" : {
+        "LISTS_DIST" : [ null, [ "foo" ] ],
+        "MAPS_DIST" : [ {
+          "apple" : 1,
+          "banana" : 2
+        }, null ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r4",
+      "value" : {
+        "LISTS_DIST" : [ ],
+        "MAPS_DIST" : [ ]
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "r5",
+      "value" : {
+        "LISTS_DIST" : null,
+        "MAPS_DIST" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id STRING KEY, lists ARRAY<ARRAY<STRING>>, maps ARRAY<MAP<STRING,INT>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT id, array_distinct(lists) as lists_dist, array_distinct(maps) as maps_dist FROM INPUT;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `LISTS` ARRAY<ARRAY<STRING>>, `MAPS` ARRAY<MAP<STRING, INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `LISTS_DIST` ARRAY<ARRAY<STRING>>, `MAPS_DIST` ARRAY<MAP<STRING, INTEGER>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

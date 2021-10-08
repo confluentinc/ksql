@@ -90,6 +90,7 @@ public class FinalProjectNodeTest {
 
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
 
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     projectNode = new FinalProjectNode(
         NODE_ID,
         source,

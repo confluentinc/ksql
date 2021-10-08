@@ -1,0 +1,257 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126020438,
+  "path" : "query-validation-tests/simple-struct.json",
+  "schemas" : {
+    "CSAS_S2_0.S2" : {
+      "schema" : "`K` STRING KEY, `NAME` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_S2_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "simple struct select filter - JSON",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "ORDERID" : 1,
+        "ITEMID" : {
+          "ITEMID" : 6,
+          "CATEGORY" : {
+            "ID" : 2,
+            "NAME" : "Food"
+          },
+          "NAME" : "Item_6"
+        },
+        "ORDERTIME" : 1528224275715,
+        "MAPCOL" : {
+          "key3" : 3.8688222734507915,
+          "key2" : 5.878674158377773,
+          "key1" : 2.706938954083115
+        },
+        "ORDERUNITS" : 2,
+        "ADDRESS" : {
+          "CITY" : "CITY_0",
+          "STATE" : "STATE_1",
+          "STREET" : "STREET_4",
+          "NUMBER" : 376,
+          "ZIPCODE" : 621
+        },
+        "ARRAYCOL" : [ 6.27276558443913, 8.720822816653817, 4.904955205015469, 0.28466518164817933, 5.276269704236784 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "100",
+      "value" : {
+        "ORDERID" : 2,
+        "ITEMID" : {
+          "ITEMID" : 6,
+          "CATEGORY" : {
+            "ID" : 2,
+            "NAME" : "Produce"
+          },
+          "NAME" : "Item_6"
+        },
+        "ORDERTIME" : 1528224280668,
+        "MAPCOL" : {
+          "key3" : 0.08025583241041634,
+          "key2" : 7.886688738692968,
+          "key1" : 7.997268326700826
+        },
+        "ORDERUNITS" : 4,
+        "ADDRESS" : {
+          "CITY" : "CITY_3",
+          "STATE" : "STATE_6",
+          "STREET" : "STREET_5",
+          "NUMBER" : 29,
+          "ZIPCODE" : 46
+        },
+        "ARRAYCOL" : [ 5.028181423106411, 4.223556791057725, 7.503771637501132, 1.8346470572995977, 8.628168574256188 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "ORDERID" : 3,
+        "ITEMID" : {
+          "ITEMID" : 6,
+          "CATEGORY" : {
+            "ID" : 2,
+            "NAME" : "Produce"
+          },
+          "NAME" : "Item_6"
+        },
+        "ORDERTIME" : 1528224281566,
+        "MAPCOL" : {
+          "key3" : 8.232202829012866,
+          "key2" : 4.76749034853443,
+          "key1" : 3.908548556676262
+        },
+        "ORDERUNITS" : 6,
+        "ADDRESS" : {
+          "CITY" : "CITY_9",
+          "STATE" : "STATE_9",
+          "STREET" : "STREET_3",
+          "NUMBER" : 219,
+          "ZIPCODE" : 287
+        },
+        "ARRAYCOL" : [ 9.404053021473551, 2.005832055529364, 0.16252060679229574, 8.030440873506674, 2.6822009490877683 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "ORDERID" : 4,
+        "ITEMID" : {
+          "ITEMID" : 2,
+          "CATEGORY" : {
+            "ID" : 1,
+            "NAME" : "Food"
+          },
+          "NAME" : "Item_2"
+        },
+        "ORDERTIME" : 1528224285603,
+        "MAPCOL" : {
+          "key3" : 8.58507015716884,
+          "key2" : 8.690191464522353,
+          "key1" : 3.966253991851106
+        },
+        "ORDERUNITS" : 3,
+        "ADDRESS" : {
+          "CITY" : "CITY_3",
+          "STATE" : "STATE_5",
+          "STREET" : "STREET_8",
+          "NUMBER" : 380,
+          "ZIPCODE" : 866
+        },
+        "ARRAYCOL" : [ 9.887072401304447, 5.217021497196517, 5.604857288119519, 4.628527278923561, 6.367135367927281 ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "101",
+      "value" : {
+        "ORDERID" : 5,
+        "ITEMID" : {
+          "ITEMID" : 5,
+          "CATEGORY" : {
+            "ID" : 1,
+            "NAME" : "Produce"
+          },
+          "NAME" : "Item_5"
+        },
+        "ORDERTIME" : 1528224286568,
+        "MAPCOL" : {
+          "key3" : 4.9160189684727,
+          "key2" : 1.3876747586974092,
+          "key1" : 6.688854425726891
+        },
+        "ORDERUNITS" : 5,
+        "ADDRESS" : {
+          "CITY" : "CITY_6",
+          "STATE" : "STATE_3",
+          "STREET" : "STREET_8",
+          "NUMBER" : 294,
+          "ZIPCODE" : 724
+        },
+        "ARRAYCOL" : [ 1.6856668854084866, 3.4970511301361484, 9.143163282671962, 2.196065628133206, 4.343961390870502 ]
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "S2",
+      "key" : "0",
+      "value" : {
+        "NAME" : "Item_6"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "100",
+      "value" : {
+        "NAME" : "Item_6"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "S2",
+      "key" : "101",
+      "value" : {
+        "NAME" : "Item_6"
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "S2",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM orders (K STRING KEY, ordertime bigint, orderid bigint, itemid STRUCT< ITEMID BIGINT, NAME VARCHAR, CATEGORY STRUCT< ID BIGINT, NAME VARCHAR>>, ORDERUNITS double, ARRAYCOL array<double>, MAPCOL map<varchar, double>, address STRUCT < number bigint, street varchar, city varchar, state varchar, zipcode bigint>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM S2 AS SELECT K, itemid->name FROM orders where itemid->name = 'Item_6';" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "ORDERS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ORDERTIME` BIGINT, `ORDERID` BIGINT, `ITEMID` STRUCT<`ITEMID` BIGINT, `NAME` STRING, `CATEGORY` STRUCT<`ID` BIGINT, `NAME` STRING>>, `ORDERUNITS` DOUBLE, `ARRAYCOL` ARRAY<DOUBLE>, `MAPCOL` MAP<STRING, DOUBLE>, `ADDRESS` STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "S2",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `NAME` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "S2",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

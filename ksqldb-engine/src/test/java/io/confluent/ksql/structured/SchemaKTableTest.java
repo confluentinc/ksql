@@ -468,6 +468,8 @@ public class SchemaKTableTest {
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("ROWPARTITION"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("ROWOFFSET"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .build()
     ));

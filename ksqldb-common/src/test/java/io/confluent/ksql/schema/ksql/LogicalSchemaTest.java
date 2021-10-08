@@ -36,6 +36,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
@@ -51,7 +52,6 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"UnstableApiUsage", "unchecked"})
@@ -66,15 +66,13 @@ public class LogicalSchemaTest {
   private static final ColumnName F0 = ColumnName.of("f0");
   private static final ColumnName F1 = ColumnName.of("f1");
   private static final ColumnName VALUE = ColumnName.of("value");
+  private static final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
       .valueColumn(F0, STRING)
       .keyColumn(K0, BIGINT)
       .valueColumn(F1, BIGINT)
       .build();
-
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -413,6 +411,8 @@ public class LogicalSchemaTest {
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
         .valueColumn(K0, INTEGER)
         .valueColumn(K1, STRING)
         .build()
@@ -468,6 +468,8 @@ public class LogicalSchemaTest {
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
         .valueColumn(K0, INTEGER)
         .valueColumn(K1, STRING)
         .valueColumn(WINDOWSTART_NAME, BIGINT)
@@ -544,6 +546,8 @@ public class LogicalSchemaTest {
         .valueColumn(F0, BIGINT)
         .valueColumn(F1, BIGINT)
         .valueColumn(ROWTIME_NAME, BIGINT)
+        .valueColumn(ROWPARTITION_NAME, INTEGER)
+        .valueColumn(ROWOFFSET_NAME, BIGINT)
         .valueColumn(K0, INTEGER)
         .build()
     ));

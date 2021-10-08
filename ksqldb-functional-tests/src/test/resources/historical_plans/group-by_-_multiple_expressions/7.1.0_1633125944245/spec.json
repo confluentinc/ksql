@@ -1,0 +1,228 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125944245,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`F1` INTEGER KEY, `F2` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`F1` INTEGER KEY, `F2` INTEGER KEY, `F2` INTEGER, `F1` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`F1` INTEGER KEY, `F2` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`F1` INTEGER KEY, `F2` INTEGER KEY, `F2` INTEGER, `F1` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`F1` INTEGER KEY, `F2` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "multiple expressions",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : "2"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "4"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : null
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : null
+    }, {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "f2" : "1"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "f2" : "2"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "4"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "f2" : "1"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 1,
+        "F2" : 2
+      },
+      "value" : {
+        "KSQL_COL_0" : 3,
+        "KSQL_COL_1" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 2,
+        "F2" : 4
+      },
+      "value" : {
+        "KSQL_COL_0" : 6,
+        "KSQL_COL_1" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 1,
+        "F2" : 2
+      },
+      "value" : {
+        "KSQL_COL_0" : 3,
+        "KSQL_COL_1" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 2,
+        "F2" : 4
+      },
+      "value" : {
+        "KSQL_COL_0" : 6,
+        "KSQL_COL_1" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : 2,
+        "F2" : 1
+      },
+      "value" : {
+        "KSQL_COL_0" : 3,
+        "KSQL_COL_1" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', format='JSON');", "CREATE TABLE OUTPUT AS SELECT f2, f1, f2+f1, COUNT(*) FROM TEST GROUP BY f1, f2;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`F1` INTEGER KEY, `F2` INTEGER KEY, `KSQL_COL_0` INTEGER, `KSQL_COL_1` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`F1` INTEGER KEY, `F2` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

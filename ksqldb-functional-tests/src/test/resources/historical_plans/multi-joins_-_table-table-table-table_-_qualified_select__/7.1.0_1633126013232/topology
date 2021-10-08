@@ -1,0 +1,94 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000001 (topics: [left])
+      --> KTABLE-SOURCE-0000000002
+    Source: KSTREAM-SOURCE-0000000007 (topics: [right])
+      --> KTABLE-SOURCE-0000000008
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-SOURCE-0000000008 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000009
+      <-- KSTREAM-SOURCE-0000000007
+    Source: KSTREAM-SOURCE-0000000016 (topics: [right2])
+      --> KTABLE-SOURCE-0000000017
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KafkaTopic_L_L_Left-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000009 (stores: [KafkaTopic_L_L_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000010
+      <-- KTABLE-SOURCE-0000000008
+    Processor: KTABLE-SOURCE-0000000017 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000018
+      <-- KSTREAM-SOURCE-0000000016
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> PrependAliasL_L_Left
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: KTABLE-TRANSFORMVALUES-0000000010 (stores: [])
+      --> PrependAliasL_L_Right
+      <-- KTABLE-TRANSFORMVALUES-0000000009
+    Source: KSTREAM-SOURCE-0000000025 (topics: [right3])
+      --> KTABLE-SOURCE-0000000026
+    Processor: KTABLE-TRANSFORMVALUES-0000000018 (stores: [KafkaTopic_L_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000019
+      <-- KTABLE-SOURCE-0000000017
+    Processor: PrependAliasL_L_Left (stores: [])
+      --> KTABLE-JOINTHIS-0000000013
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+    Processor: PrependAliasL_L_Right (stores: [])
+      --> KTABLE-JOINOTHER-0000000014
+      <-- KTABLE-TRANSFORMVALUES-0000000010
+    Processor: KTABLE-JOINOTHER-0000000014 (stores: [KafkaTopic_L_L_Left-Reduce])
+      --> KTABLE-MERGE-0000000012
+      <-- PrependAliasL_L_Right
+    Processor: KTABLE-JOINTHIS-0000000013 (stores: [KafkaTopic_L_L_Right-Reduce])
+      --> KTABLE-MERGE-0000000012
+      <-- PrependAliasL_L_Left
+    Processor: KTABLE-SOURCE-0000000026 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000027
+      <-- KSTREAM-SOURCE-0000000025
+    Processor: KTABLE-TRANSFORMVALUES-0000000019 (stores: [])
+      --> PrependAliasL_Right
+      <-- KTABLE-TRANSFORMVALUES-0000000018
+    Processor: KTABLE-MERGE-0000000012 (stores: [])
+      --> KTABLE-JOINTHIS-0000000022
+      <-- KTABLE-JOINTHIS-0000000013, KTABLE-JOINOTHER-0000000014
+    Processor: KTABLE-TRANSFORMVALUES-0000000027 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000028
+      <-- KTABLE-SOURCE-0000000026
+    Processor: PrependAliasL_Right (stores: [])
+      --> KTABLE-JOINOTHER-0000000023
+      <-- KTABLE-TRANSFORMVALUES-0000000019
+    Processor: KTABLE-JOINOTHER-0000000023 (stores: [KafkaTopic_L_L_Left-Reduce, KafkaTopic_L_L_Right-Reduce])
+      --> KTABLE-MERGE-0000000021
+      <-- PrependAliasL_Right
+    Processor: KTABLE-JOINTHIS-0000000022 (stores: [KafkaTopic_L_Right-Reduce])
+      --> KTABLE-MERGE-0000000021
+      <-- KTABLE-MERGE-0000000012
+    Processor: KTABLE-TRANSFORMVALUES-0000000028 (stores: [])
+      --> PrependAliasRight
+      <-- KTABLE-TRANSFORMVALUES-0000000027
+    Processor: KTABLE-MERGE-0000000021 (stores: [])
+      --> KTABLE-JOINTHIS-0000000031
+      <-- KTABLE-JOINTHIS-0000000022, KTABLE-JOINOTHER-0000000023
+    Processor: PrependAliasRight (stores: [])
+      --> KTABLE-JOINOTHER-0000000032
+      <-- KTABLE-TRANSFORMVALUES-0000000028
+    Processor: KTABLE-JOINOTHER-0000000032 (stores: [KafkaTopic_L_L_Left-Reduce, KafkaTopic_L_Right-Reduce, KafkaTopic_L_L_Right-Reduce])
+      --> KTABLE-MERGE-0000000030
+      <-- PrependAliasRight
+    Processor: KTABLE-JOINTHIS-0000000031 (stores: [KafkaTopic_Right-Reduce])
+      --> KTABLE-MERGE-0000000030
+      <-- KTABLE-MERGE-0000000021
+    Processor: KTABLE-MERGE-0000000030 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000033
+      <-- KTABLE-JOINTHIS-0000000031, KTABLE-JOINOTHER-0000000032
+    Processor: KTABLE-TRANSFORMVALUES-0000000033 (stores: [Project-Last])
+      --> KTABLE-TOSTREAM-0000000034
+      <-- KTABLE-MERGE-0000000030
+    Processor: KTABLE-TOSTREAM-0000000034 (stores: [])
+      --> KSTREAM-SINK-0000000035
+      <-- KTABLE-TRANSFORMVALUES-0000000033
+    Sink: KSTREAM-SINK-0000000035 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000034
+

@@ -53,7 +53,7 @@ partitions=1, key_format='avro', value_format='avro');
   * Corresponding `key_format` or `value_format` must exist and the format must support `SCHEMA_INFERENCE` (protobuf, avro, json_sr format currently).
   * The fetched schema format from _schema_registry_ must match specified format in `WITH` clause. For example, if schema format for schema id in _schema_registry_ is `avro` but specified format in `WITH` clause is `protobuf`, an exception will be thrown.
   * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown.
-  * Serde Features must be`WRAPPED` so that field names always exist.
+  * Serde Features must be`WRAPPED` so that field names always exist. The reason is that if Serde Features has `UNWRAP_SINGLES` enabled, during translation, anonymous `ROWKEY` or `ROWVALUE` column name will be inserted for the schema first which makes the translated schema diverging from original schema in _Schema Registry_.
   * Compatibility Checks. See section blow.
 
 * `C*AS` command

@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -43,6 +44,7 @@ public class LatestConsumer extends Consumer {
   private final Clock clock;
   private boolean gotFirstAssignment = false;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public LatestConsumer(
       final int partitions,
       final String topicName,
@@ -159,6 +161,7 @@ public class LatestConsumer extends Consumer {
           && entry.getValue().offset() > metadata.offset()) {
         consumer.seekToEnd(topicPartitions);
         resetCurrentPosition();
+        LOG.info("LatestConsumer seeking to end {}", currentPositions);
         return;
       }
     }

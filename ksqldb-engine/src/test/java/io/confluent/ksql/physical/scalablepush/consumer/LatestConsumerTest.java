@@ -113,11 +113,6 @@ public class LatestConsumerTest {
           TP0, ImmutableList.of(RECORD0_2, RECORD0_3),
           TP1, ImmutableList.of(RECORD1_2, RECORD1_3))
   );
-  ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST2 = new ConsumerRecords<>(
-      ImmutableMap.of(
-          TP0, ImmutableList.of(RECORD0_1),
-          TP1, ImmutableList.of(RECORD1_1))
-  );
   ConsumerRecords<GenericKey, GenericRow> EMPTY_RECORDS = new ConsumerRecords<>(
       ImmutableMap.of());
 

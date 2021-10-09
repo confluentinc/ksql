@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -52,15 +53,9 @@ public class ConsumerMetadata implements AutoCloseable {
       final String topicName,
       final KafkaConsumer<?, GenericRow> consumer
   ) {
-    Map<String, List<PartitionInfo>> partitionInfo = consumer.listTopics();
-    while (!partitionInfo.containsKey(topicName)) {
-      try {
-        Thread.sleep(100);
-        partitionInfo = consumer.listTopics();
-      } catch (InterruptedException e) {
-        LOG.error("Interrupted while looking for topic", e);
-        Thread.currentThread().interrupt();
-      }
+    final Map<String, List<PartitionInfo>> partitionInfo = consumer.listTopics();
+    if (!partitionInfo.containsKey(topicName)) {
+      throw new KsqlException("Can't find expected topic " + topicName);
     }
     final int numPartitions = partitionInfo.get(topicName).size();
     return new ConsumerMetadata(numPartitions);

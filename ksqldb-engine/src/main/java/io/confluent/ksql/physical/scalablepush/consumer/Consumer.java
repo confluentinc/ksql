@@ -19,22 +19,17 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.Window;
 import io.confluent.ksql.physical.common.QueryRow;
-import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,14 +40,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class Consumer implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
-  private static final Duration POLL_TIMEOUT = Duration.ofMillis(30000L);
+  private static final Duration POLL_TIMEOUT = Duration.ofMillis(5000L);
 
   protected final int partitions;
   protected final String topicName;
@@ -105,6 +99,8 @@ public abstract class Consumer implements AutoCloseable {
     // an assignment.
     if (tps != null) {
       resetCurrentPosition();
+
+      LOG.info("Consumer got assignment {} and current position {}", tps, currentPositions);
     }
   }
 
@@ -163,7 +159,6 @@ public abstract class Consumer implements AutoCloseable {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private boolean handleRow(final Object key, final GenericRow value, final long timestamp) {
     // We don't currently handle null in either field
     if ((key == null && !logicalSchema.key().isEmpty()) || value == null) {
@@ -174,21 +169,7 @@ public abstract class Consumer implements AutoCloseable {
       try {
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
-        final QueryRow row;
-        if (!windowed) {
-          final GenericKey keyCopy = GenericKey.fromList(
-              key != null ? ((GenericKey) key).values() : Collections.emptyList());
-          final GenericRow valueCopy = GenericRow.fromList(value.values());
-          row = QueryRowImpl.of(logicalSchema, keyCopy, Optional.empty(), valueCopy, timestamp);
-        } else {
-          final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
-          final GenericKey keyCopy = GenericKey.fromList(windowedKey.key().values());
-          final GenericRow valueCopy = GenericRow.fromList(value.values());
-          row = QueryRowImpl.of(logicalSchema, keyCopy, Optional.of(Window.of(
-              windowedKey.window().startTime(),
-              windowedKey.window().endTime()
-          )), valueCopy, timestamp);
-        }
+        final QueryRow row = RowUtil.createRow(key, value, timestamp, windowed, logicalSchema);
         queue.offer(row);
         afterOfferedRow(queue);
       } catch (final Throwable t) {

@@ -171,6 +171,7 @@ public class PushPhysicalPlan {
     return schema;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;
   }

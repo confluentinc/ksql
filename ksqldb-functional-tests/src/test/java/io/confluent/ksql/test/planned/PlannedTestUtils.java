@@ -24,7 +24,6 @@ import io.confluent.ksql.test.model.KsqlVersion;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestCaseBuilder;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.util.KsqlConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +31,6 @@ import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class PlannedTestUtils {
@@ -49,7 +47,6 @@ public final class PlannedTestUtils {
 
   public static boolean isNotExcluded(final TestCase testCase) {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
-    final Map<String, Object> props = testCase.properties();
     return true;
   }
 

@@ -16,12 +16,10 @@
 package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
 
 final class QueryLogicalPlanUtil {
 
   private QueryLogicalPlanUtil() {
-
   }
 
   /**
@@ -33,12 +31,12 @@ final class QueryLogicalPlanUtil {
       final LogicalSchema schema,
       final boolean addAdditionalColumnsToIntermediateSchema,
       final boolean isWindowed,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     if (!addAdditionalColumnsToIntermediateSchema) {
       return schema;
     } else {
-      return schema.withPseudoAndKeyColsInValue(isWindowed, ksqlConfig, true);
+      return schema.withPseudoAndKeyColsInValue(isWindowed, rowpartitionRowoffsetEnabled, true);
     }
   }
 }

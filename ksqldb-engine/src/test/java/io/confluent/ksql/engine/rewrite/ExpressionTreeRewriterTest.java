@@ -75,7 +75,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
@@ -131,8 +130,6 @@ public class ExpressionTreeRewriterTest {
   private Type type;
   @Mock
   private Object context;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   private ExpressionTreeRewriter<Object> expressionRewriter;
   private ExpressionTreeRewriter<Object> expressionRewriterWithPlugin;
@@ -768,7 +765,7 @@ public class ExpressionTreeRewriterTest {
   private <T extends Expression> T parseExpression(final String asText) {
     final String ksql = String.format("SELECT %s FROM test1;", asText);
 
-    final PreparedStatement<Query> stmt = KsqlParserTestUtil.buildSingleAst(ksql, metaStore, ksqlConfig);
+    final PreparedStatement<Query> stmt = KsqlParserTestUtil.buildSingleAst(ksql, metaStore, true);
     final SelectItem selectItem = stmt.getStatement().getSelect().getSelectItems().get(0);
     return (T) ((SingleColumn) selectItem).getExpression();
   }

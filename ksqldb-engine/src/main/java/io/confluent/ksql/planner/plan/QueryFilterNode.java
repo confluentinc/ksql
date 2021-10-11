@@ -133,7 +133,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
         source.getSchema().withoutPseudoAndKeyColsInValue(ksqlConfig),
         addAdditionalColumnsToIntermediateSchema, isWindowed,
-        ksqlConfig);
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED));
     compiledWhereClause = getExpressionEvaluator(
         rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig, queryPlannerOptions);
   }

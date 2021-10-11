@@ -21,7 +21,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -41,7 +40,7 @@ public final class QueryValidatorUtil {
    */
   static void validateNoUserColumnsWithSameNameAsPseudoColumns(final Analysis analysis) {
 
-    final KsqlConfig ksqlConfig = analysis.getKsqlConfig();
+    final boolean rowpartitionRowoffsetEnabled = analysis.getRowpartitionRowoffsetEnabled();
 
     final String disallowedNames = analysis.getAllDataSources()
         .stream()
@@ -50,7 +49,7 @@ public final class QueryValidatorUtil {
         .map(LogicalSchema::value)
         .flatMap(Collection::stream)
         .map(Column::name)
-        .filter(name -> SystemColumns.isPseudoColumn(name, ksqlConfig))
+        .filter(name -> SystemColumns.isPseudoColumn(name, rowpartitionRowoffsetEnabled))
         .map(ColumnName::toString)
         .collect(Collectors.joining(", "));
 

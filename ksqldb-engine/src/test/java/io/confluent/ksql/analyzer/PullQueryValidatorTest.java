@@ -38,9 +38,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -65,8 +63,6 @@ public class PullQueryValidatorTest {
   @Mock
   private RefinementInfo refinementInfo;
   @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
   private SingleColumn singleColumn;
   @Mock
   private ColumnReferenceExp columnReferenceExp;
@@ -85,7 +81,7 @@ public class PullQueryValidatorTest {
 
   @Before
   public void setUp() {
-    when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(analysis.getRowpartitionRowoffsetEnabled()).thenReturn(true);
     when(analysis.getAllDataSources()).thenReturn(ImmutableList.of(aliasedDataSource));
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getSchema()).thenReturn(logicalSchema);
@@ -292,11 +288,9 @@ public class PullQueryValidatorTest {
         .thenReturn(ImmutableSet.of(columnReferenceExp, columnReferenceExp2));
     when(columnReferenceExp.getColumnName()).thenReturn(ROWPARTITION_NAME);
     when(columnReferenceExp2.getColumnName()).thenReturn(ROWOFFSET_NAME);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   private void givenSourceWithUserColumnWithSameNameAsPseudoColumn() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
     when(column.name()).thenReturn(ROWPARTITION_NAME);
   }
 }

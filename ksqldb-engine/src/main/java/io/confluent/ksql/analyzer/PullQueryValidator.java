@@ -25,7 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.List;
@@ -103,7 +102,7 @@ public class PullQueryValidator implements QueryValidator {
         .map(ColumnExtractor::extractColumns)
         .flatMap(Collection::stream)
         .map(ColumnReferenceExp::getColumnName)
-        .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
+        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled()))
         .map(Name::toString)
         .collect(Collectors.joining(", "));
 
@@ -126,7 +125,7 @@ public class PullQueryValidator implements QueryValidator {
     final String disallowedColumns = ColumnExtractor.extractColumns(expression.get())
         .stream()
         .map(ColumnReferenceExp::getColumnName)
-        .filter(name -> disallowedInPullQueries(name, analysis.getKsqlConfig()))
+        .filter(name -> disallowedInPullQueries(name, analysis.getRowpartitionRowoffsetEnabled()))
         .map(Name::toString)
         .collect(Collectors.joining(", "));
 
@@ -141,9 +140,10 @@ public class PullQueryValidator implements QueryValidator {
 
   private static boolean disallowedInPullQueries(
       final ColumnName columnName,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
-    final int pseudoColumnVersion = SystemColumns.getPseudoColumnVersionFromConfig(ksqlConfig);
+    final int pseudoColumnVersion = SystemColumns
+        .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
     return SystemColumns.isDisallowedInPullOrScalablePushQueries(columnName, pseudoColumnVersion);
   }
 

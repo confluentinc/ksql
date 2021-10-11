@@ -49,11 +49,12 @@ import org.junit.Test;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerFunctionalTest {
 
+  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
+
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
-  private final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~", ksqlConfig);
+      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED);
 
   @Test
   public void shouldAnalyseTableFunctions() {
@@ -98,7 +99,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldHandleValueFormat() {
     // Given:
     final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ksqlConfig);
+        "create stream s with(value_format='delimited') as select * from test1;", metaStore, ROWPARTITION_ROWOFFSET_ENABLED);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -111,6 +112,6 @@ public class QueryAnalyzerFunctionalTest {
   }
 
   private Query givenQuery(final String sql) {
-    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ksqlConfig).getStatement();
+    return KsqlParserTestUtil.<Query>buildSingleAst(sql, metaStore, ROWPARTITION_ROWOFFSET_ENABLED).getStatement();
   }
 }

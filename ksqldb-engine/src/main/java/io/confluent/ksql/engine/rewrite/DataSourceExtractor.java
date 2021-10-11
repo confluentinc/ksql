@@ -30,7 +30,6 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.List;
@@ -45,13 +44,13 @@ class DataSourceExtractor {
   private final Set<AliasedDataSource> allSources = new HashSet<>();
   private final Set<ColumnName> allColumns = new HashSet<>();
   private final Set<ColumnName> clashingColumns = new HashSet<>();
-  private final KsqlConfig ksqlConfig;
+  private final boolean rowpartitionRowoffsetEnabled;
 
   private boolean isJoin = false;
 
-  DataSourceExtractor(final MetaStore metaStore, final KsqlConfig ksqlConfig) {
+  DataSourceExtractor(final MetaStore metaStore, final boolean rowpartitionRowoffsetEnabled) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
   }
 
   public void extractDataSources(final AstNode node) {
@@ -71,7 +70,7 @@ class DataSourceExtractor {
       return false;
     }
 
-    if (SystemColumns.isPseudoColumn(name, ksqlConfig)) {
+    if (SystemColumns.isPseudoColumn(name, rowpartitionRowoffsetEnabled)) {
       return true;
     }
 
@@ -80,7 +79,7 @@ class DataSourceExtractor {
 
   public List<SourceName> getSourcesFor(final ColumnName columnName) {
     return allSources.stream()
-        .filter(aliased -> hasColumn(columnName, aliased, ksqlConfig))
+        .filter(aliased -> hasColumn(columnName, aliased, rowpartitionRowoffsetEnabled))
         .map(AliasedDataSource::getAlias)
         .collect(Collectors.toList());
   }
@@ -88,9 +87,9 @@ class DataSourceExtractor {
   private static boolean hasColumn(
       final ColumnName columnName,
       final AliasedDataSource aliased,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
-    if (SystemColumns.isPseudoColumn(columnName, ksqlConfig)) {
+    if (SystemColumns.isPseudoColumn(columnName, rowpartitionRowoffsetEnabled)) {
       return true;
     }
 

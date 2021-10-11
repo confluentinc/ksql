@@ -25,7 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.List;

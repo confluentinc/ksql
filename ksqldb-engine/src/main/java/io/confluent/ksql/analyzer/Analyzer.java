@@ -595,8 +595,8 @@ class Analyzer {
 
     private void validateSelect(final SingleColumn column) {
 
-      final int pseudoColumnVersion = SystemColumns.
-          getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
+      final int pseudoColumnVersion = SystemColumns
+          .getPseudoColumnVersionFromConfig(rowpartitionRowoffsetEnabled);
 
       SystemColumns.systemColumnNames(pseudoColumnVersion)
           .forEach(col -> checkForReservedToken(column, col));

@@ -499,7 +499,7 @@ Single field (un)wrapping
 
 ksqlDB assumes that any single key is unwrapped, which mean that it's not contained in an outer
 record or object. Conversely, ksqlDB assumes that any key with multiple columns
-(for example, `CREATE STREAM K1 INT KEY, K2 INT KEY, C1 INT`) _is_ wrapped, which means that it is a record
+(for example, `CREATE STREAM x (K1 INT KEY, K2 INT KEY, C1 INT)`) _is_ wrapped, which means that it is a record
 with each column as a field within the key. 
 
 To declare a single-column key that's wrapped, specify a `STRUCT` type

@@ -128,7 +128,7 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        INPUT_SCHEMA, true, false, ksqlConfig);
+        INPUT_SCHEMA, true, false, true);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -154,7 +154,7 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        INPUT_SCHEMA, true, true, ksqlConfig);;
+        INPUT_SCHEMA, true, true, true);;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -314,7 +314,7 @@ public class QueryProjectNodeTest {
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
     final LogicalSchema expectedIntermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
-        INPUT_SCHEMA, true, false, ksqlConfig);
+        INPUT_SCHEMA, true, false, true);
     assertThat(expectedIntermediateSchema, is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(

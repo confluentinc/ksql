@@ -58,7 +58,6 @@ public class StatementRewriteForMagicPseudoTimestampTest {
     when(parser.parse(any()))
         .thenReturn(A_TIMESTAMP)
         .thenReturn(ANOTHER_TIMESTAMP);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test

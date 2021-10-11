@@ -139,7 +139,6 @@ public class ExpressionTreeRewriterTest {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
     expressionRewriter = new ExpressionTreeRewriter<>((e, c) -> Optional.empty(), processor);
     expressionRewriterWithPlugin = new ExpressionTreeRewriter<>(plugin, processor);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @SuppressWarnings("unchecked")

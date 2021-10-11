@@ -24,7 +24,6 @@ public class PullQueryRewriterTest {
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test

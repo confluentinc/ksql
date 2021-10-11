@@ -73,7 +73,6 @@ public class AnalysisTest {
     analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, ROWPARTITION_ROWOFFSET_ENABLED);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test

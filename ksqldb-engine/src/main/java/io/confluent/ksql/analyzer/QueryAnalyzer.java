@@ -23,7 +23,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 
@@ -36,10 +35,10 @@ public class QueryAnalyzer {
   public QueryAnalyzer(
       final MetaStore metaStore,
       final String outputTopicPrefix,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     this(
-        new Analyzer(metaStore, outputTopicPrefix, ksqlConfig),
+        new Analyzer(metaStore, outputTopicPrefix, rowpartitionRowoffsetEnabled),
         new PullQueryValidator(),
         new PushQueryValidator()
     );

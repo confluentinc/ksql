@@ -521,7 +521,7 @@ public class DefaultSchemaInjectorFunctionalTest {
         "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro');";
 
     final PreparedStatement<Statement> prepared = KsqlParserTestUtil
-        .buildSingleAst(stmtNoSchema, metaStore, ksqlConfig);
+        .buildSingleAst(stmtNoSchema, metaStore, true);
 
     // When:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -530,7 +530,7 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     // Then:
     final Statement withSchema = KsqlParserTestUtil
-        .buildSingleAst(inferred.getStatementText(), metaStore, ksqlConfig)
+        .buildSingleAst(inferred.getStatementText(), metaStore, true)
         .getStatement();
 
     final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);

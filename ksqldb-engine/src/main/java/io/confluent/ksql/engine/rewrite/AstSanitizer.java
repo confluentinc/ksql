@@ -40,7 +40,6 @@ import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.AmbiguousColumnException;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashSet;
@@ -70,17 +69,18 @@ public final class AstSanitizer {
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,
-      final KsqlConfig ksqlConfig) {
-    return sanitize(node, metaStore, true, ksqlConfig);
+      final boolean rowpartitionRowoffsetEnabled) {
+    return sanitize(node, metaStore, true, rowpartitionRowoffsetEnabled);
   }
 
   public static Statement sanitize(
       final Statement node,
       final MetaStore metaStore,
       final Boolean lambdaEnabled,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
-    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore, ksqlConfig);
+    final DataSourceExtractor dataSourceExtractor =
+        new DataSourceExtractor(metaStore, rowpartitionRowoffsetEnabled);
     dataSourceExtractor.extractDataSources(node);
 
     final RewriterPlugin rewriterPlugin =

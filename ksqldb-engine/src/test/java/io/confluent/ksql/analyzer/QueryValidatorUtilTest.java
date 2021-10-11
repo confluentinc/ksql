@@ -24,7 +24,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,8 +43,6 @@ public class QueryValidatorUtilTest {
   private LogicalSchema logicalSchema;
   @Mock
   private Column column;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
 
   @Test
@@ -72,8 +69,7 @@ public class QueryValidatorUtilTest {
     when(dataSource.getSchema()).thenReturn(logicalSchema);
     when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
     when(column.name()).thenReturn(SystemColumns.ROWPARTITION_NAME);
-    when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+    when(analysis.getRowpartitionRowoffsetEnabled()).thenReturn(true);
   }
 
 }

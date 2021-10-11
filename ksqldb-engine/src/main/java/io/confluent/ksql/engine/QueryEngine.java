@@ -58,14 +58,14 @@ class QueryEngine {
       final Optional<Sink> sink,
       final MetaStore metaStore,
       final KsqlConfig config,
-      final KsqlConfig configWithOverrides
+      final boolean rowpartitionRowoffsetEnabled
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
 
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore,
             outputPrefix,
-            configWithOverrides
+            rowpartitionRowoffsetEnabled
         );
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);

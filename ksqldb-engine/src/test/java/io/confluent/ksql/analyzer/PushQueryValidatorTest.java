@@ -32,7 +32,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
@@ -58,15 +57,12 @@ public class PushQueryValidatorTest {
   private KsqlTopic topic;
   @Mock
   private KeyFormat keyFormat;
-  @Mock
-  private KsqlConfig ksqlConfig;
 
   private QueryValidator validator;
 
   @Before
   public void setUp() {
-    when(analysis.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
+    when(analysis.getRowpartitionRowoffsetEnabled()).thenReturn(true);
     when(source.getSchema()).thenReturn(logicalSchema);
     when(logicalSchema.value()).thenReturn(ImmutableList.of(column));
     when(column.name()).thenReturn(ColumnName.of("some_user_column"));

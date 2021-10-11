@@ -45,7 +45,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -55,7 +54,6 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
@@ -69,6 +67,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AnalyzerFunctionalTest {
 
+  private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
+
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName COL2 = ColumnName.of("COL2");
@@ -79,9 +79,6 @@ public class AnalyzerFunctionalTest {
   private Query query;
   private Analyzer analyzer;
 
-  @Mock
-  private KsqlConfig ksqlConfig;
-
   @Before
   public void init() {
     jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -90,9 +87,9 @@ public class AnalyzerFunctionalTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
-    analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
-    query = parseSingle("Select COL0, COL1 from TEST1;", ksqlConfig);
+    query = parseSingle("Select COL0, COL1 from TEST1;");
 
     registerKafkaSource();
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
@@ -101,11 +98,11 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldUseExplicitNamespaceForAvroSchema() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', VALUE_AVRO_SCHEMA_FULL_NAME='com.custom.schema', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = parse(simpleQuery, jsonMetaStore, ksqlConfig);
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -118,11 +115,11 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldUseImplicitNamespaceForAvroSchema() {
     final String simpleQuery = "CREATE STREAM FOO WITH (VALUE_FORMAT='AVRO', KAFKA_TOPIC='TEST_TOPIC1') AS SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
-    final List<Statement> statements = parse(simpleQuery, jsonMetaStore, ksqlConfig);
+    final List<Statement> statements = parse(simpleQuery, jsonMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -134,11 +131,11 @@ public class AnalyzerFunctionalTest {
   public void shouldUseExplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 with (VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1') as select * from test1;";
 
-    final List<Statement> statements = parse(simpleQuery, avroMetaStore, ksqlConfig);
+    final List<Statement> statements = parse(simpleQuery, avroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -178,11 +175,11 @@ public class AnalyzerFunctionalTest {
 
     newAvroMetaStore.putSource(ksqlStream, false);
 
-    final List<Statement> statements = parse(simpleQuery, newAvroMetaStore, ksqlConfig);
+    final List<Statement> statements = parse(simpleQuery, newAvroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -194,11 +191,11 @@ public class AnalyzerFunctionalTest {
   public void shouldUseImplicitNamespaceWhenFormatIsInheritedForAvro() {
     final String simpleQuery = "create stream s1 as select * from test1;";
 
-    final List<Statement> statements = parse(simpleQuery, avroMetaStore, ksqlConfig);
+    final List<Statement> statements = parse(simpleQuery, avroMetaStore);
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -209,7 +206,7 @@ public class AnalyzerFunctionalTest {
   @Test
   public void shouldCaptureProjectionColumnRefs() {
     // Given:
-    query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;", ksqlConfig);
+    query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;");
 
     // When:
     final Analysis analysis = analyzer.analyze(query, Optional.empty());
@@ -227,13 +224,12 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.col0 = t2.col0;",
-        ksqlConfig
+            + "SELECT * FROM test1 t1 JOIN test1 t2 ON t1.col0 = t2.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -251,13 +247,12 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 AND t1.col0 = t2.col0;",
-        ksqlConfig
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 AND t1.col0 = t2.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -277,13 +272,12 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;",
-        ksqlConfig
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t2.col0 JOIN test2 t3 ON t1.col0 = t3.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -301,13 +295,12 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = 'foo';",
-        ksqlConfig
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = 'foo';"
     );
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -327,13 +320,12 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 + t2.col0 = t1.col0;",
-        ksqlConfig
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 + t2.col0 = t1.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -353,13 +345,12 @@ public class AnalyzerFunctionalTest {
     // Given:
     final CreateStreamAsSelect createStreamAsSelect = parseSingle(
         "CREATE STREAM FOO AS "
-            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t1.col0;",
-        ksqlConfig
+            + "SELECT * FROM test1 t1 JOIN test2 t2 ON t1.col0 = t1.col0;"
     );
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ksqlConfig);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -374,11 +365,8 @@ public class AnalyzerFunctionalTest {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Statement> T parseSingle(
-      final String simpleQuery,
-      final KsqlConfig ksqlConfig
-  ) {
-    return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore, ksqlConfig));
+  private <T extends Statement> T parseSingle(final String simpleQuery) {
+    return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
   }
 
   private void registerKafkaSource() {
@@ -408,10 +396,9 @@ public class AnalyzerFunctionalTest {
 
   private static List<Statement> parse(
       final String simpleQuery,
-      final MetaStore metaStore,
-      final KsqlConfig ksqlConfig
+      final MetaStore metaStore
   ) {
-    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore, ksqlConfig)
+    return KsqlParserTestUtil.buildAst(simpleQuery, metaStore, ROWPARTITION_ROWOFFSET_ENABLED)
         .stream()
         .map(PreparedStatement::getStatement)
         .collect(Collectors.toList());

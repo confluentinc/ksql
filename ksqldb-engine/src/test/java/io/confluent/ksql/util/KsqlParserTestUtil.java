@@ -38,9 +38,10 @@ public final class KsqlParserTestUtil {
   public static <T extends Statement> PreparedStatement<T> buildSingleAst(
       final String sql,
       final MetaStore metaStore,
-      final KsqlConfig ksqlConfig
+      final boolean rowpartitionRowoffsetEnabled
   ) {
-    final List<PreparedStatement<?>> statements = buildAst(sql, metaStore, ksqlConfig);
+    final List<PreparedStatement<?>> statements =
+        buildAst(sql, metaStore, rowpartitionRowoffsetEnabled);
     assertThat(statements, hasSize(1));
     return (PreparedStatement<T>)statements.get(0);
   }
@@ -48,12 +49,13 @@ public final class KsqlParserTestUtil {
   public static List<PreparedStatement<?>> buildAst(
       final String sql,
       final MetaStore metaStore,
-      final KsqlConfig ksqlConfig) {
+      final boolean rowpartitionRowoffsetEnabled) {
     return KSQL_PARSER.parse(sql).stream()
         .map(parsed -> KSQL_PARSER.prepare(parsed, metaStore))
         .map(prepared -> PreparedStatement.of(
             prepared.getStatementText(),
-            AstSanitizer.sanitize(prepared.getStatement(), metaStore, ksqlConfig)))
+            AstSanitizer.sanitize(
+                prepared.getStatement(), metaStore, rowpartitionRowoffsetEnabled)))
         .collect(Collectors.toList());
   }
 }

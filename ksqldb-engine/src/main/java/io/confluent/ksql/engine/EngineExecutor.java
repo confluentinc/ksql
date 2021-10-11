@@ -106,6 +106,7 @@ import io.vertx.core.Context;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -696,7 +697,7 @@ final class EngineExecutor {
         sink,
         metaStore,
         ksqlConfig,
-        statement.getSessionConfig().getConfig(true)
+        getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides())
     );
 
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
@@ -950,5 +951,18 @@ final class EngineExecutor {
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
     return new PlanSummary(queryId, config.getConfig(true), engineContext.getMetaStore())
         .summarize(plan);
+  }
+
+  private static boolean getRowpartitionRowoffsetEnabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> configOverrides
+  ) {
+    final Object rowpartitionRowoffsetEnabled =
+        configOverrides.get(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    if (rowpartitionRowoffsetEnabled != null) {
+      return "true".equalsIgnoreCase(rowpartitionRowoffsetEnabled.toString());
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 }

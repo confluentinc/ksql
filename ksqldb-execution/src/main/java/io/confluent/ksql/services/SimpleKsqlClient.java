@@ -76,13 +76,12 @@ public interface SimpleKsqlClient {
       String sql,
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties,
-      Consumer<List<StreamedRow>> rowConsumer,
-      CompletableFuture<Void> shouldCloseConnection
+      Consumer<List<StreamedRow>> rowConsumer
   );
 
   /**
    * Send query request to remote Ksql server.  This method is similar to
-   * {@link #makeQueryRequest(URI, String, Map, Map, Consumer, CompletableFuture)}, but gives a
+   * {@link #makeQueryRequest(URI, String, Map, Map, Consumer)}, but gives a
    * different API.
    * First, this is run asynchronously and second, when a response is received, a publisher is
    * returned which publishes results asynchronously as they become available.

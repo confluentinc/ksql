@@ -28,7 +28,8 @@ order of the names. Any column not explicitly given a value is set to `null`.
 If a column is given a null value or is not set, it does not act as a tombstone. 
 
 Tombstones are not supported with `INSERT INTO`.
-Pseudo columns, for example `ROWTIME`, may be provided.
+Pseudo columns are supported on a case by case basis. `ROWTIME`, may be provided.
+However, `ROWPARTITION` and `ROWOFFSET` are disallowed.
 
 If no columns are specified, a value for every column is expected in the same
 order as the schema, with key columns first.

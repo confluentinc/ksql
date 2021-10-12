@@ -54,8 +54,8 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the `ROWTIME` pseudo column. `where_condition` is an expression that evaluates to true
-for each record selected.
+including the `ROWTIME`, `ROWPARTITION`, and `ROWOFFSET` pseudo columns.
+`where_condition` is an expression that evaluates to true for each record selected.
 
 In the WHERE expression, you can use any operator that ksqlDB supports.
 For more information, see

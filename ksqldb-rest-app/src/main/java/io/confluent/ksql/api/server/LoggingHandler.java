@@ -26,8 +26,6 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -61,7 +59,7 @@ public class LoggingHandler implements Handler<RoutingContext> {
     this.clock = clock;
 
     final String endpointRegex = server.getConfig()
-        .getString(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_FILTER_CONFIG);
+        .getString(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG);
 
     Optional<Pattern> endpointFilter;
     try {
@@ -90,28 +88,9 @@ public class LoggingHandler implements Handler<RoutingContext> {
       final long contentLength = routingContext.request().response().bytesWritten();
       final HttpVersion version = routingContext.request().version();
       final HttpMethod method = routingContext.request().method();
-      String uri;
-      if (enableQueryLogging) {
-        uri = routingContext.request().uri();
-      } else {
-        try {
-          // do not log the query that was sent with the URI, since this may contain
-          // sensitive user information
-          final URI uriWithQueryString = new URI(routingContext.request().uri());
-          uri = new URI(
-              uriWithQueryString.getScheme(),
-              uriWithQueryString.getAuthority(),
-              uriWithQueryString.getPath(),
-              null,
-              uriWithQueryString.getFragment()
-          ).toString();
-        } catch (URISyntaxException e) {
-          // log this at DEBUG level to avoid logging sensitive information at
-          // the INFO level or above
-          LOG.debug("Could not parse URI: {}", routingContext.request().uri(), e);
-          uri = "invalid";
-        }
-      }
+      final String uri = enableQueryLogging
+          ? routingContext.request().uri()
+          : routingContext.request().path();
 
       if (endpointFilter.isPresent() && endpointFilter.get().matcher(uri).matches()) {
         return;

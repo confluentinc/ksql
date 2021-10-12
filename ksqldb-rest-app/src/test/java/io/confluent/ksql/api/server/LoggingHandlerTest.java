@@ -155,7 +155,7 @@ public class LoggingHandlerTest {
     // Given:
     when(response.getStatusCode()).thenReturn(200);
     config = new KsqlRestConfig(
-        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_FILTER_CONFIG, ".*query.*")
+        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG, ".*query.*")
     );
     when(server.getConfig()).thenReturn(config);
     loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);
@@ -176,7 +176,7 @@ public class LoggingHandlerTest {
     // Given:
     when(response.getStatusCode()).thenReturn(200);
     config = new KsqlRestConfig(
-        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_FILTER_CONFIG, ".*random.*")
+        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG, ".*random.*")
     );
     when(server.getConfig()).thenReturn(config);
     loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);

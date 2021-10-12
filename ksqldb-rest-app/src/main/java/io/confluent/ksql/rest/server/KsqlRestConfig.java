@@ -371,9 +371,10 @@ public class KsqlRestConfig extends AbstractConfig {
       = "Whether or not to log the query portion of the URI when logging endpoints. Note that"
       + " enabling this may log sensitive information.";
 
-  public static final String KSQL_ENDPOINT_LOGGING_FILTER_CONFIG = "ksql.endpoint.logging.filter";
-  public static final String KSQL_ENDPOINT_LOGGING_FILTER_DEFAULT = "";
-  public static final String KSQL_ENDPOINT_LOGGING_FILTER_DOC =
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG
+      = "ksql.endpoint.logging.ignored.paths.regex";
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DEFAULT = "";
+  public static final String KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC =
       "A regex that allows users to filter out logging from certain endpoints. Without this filter,"
           + " all endpoints are logged. An example usage of this configuration would be to disable"
           + " heartbeat logging (e.g. ksql.endpoint.logging.filter=.*heartbeat.* ) which can"
@@ -710,11 +711,11 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.LOW,
             KSQL_LOCAL_COMMANDS_LOCATION_DOC
         ).define(
-            KSQL_ENDPOINT_LOGGING_FILTER_CONFIG,
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG,
             Type.STRING,
-            KSQL_ENDPOINT_LOGGING_FILTER_DEFAULT,
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DEFAULT,
             Importance.LOW,
-            KSQL_ENDPOINT_LOGGING_FILTER_DOC
+            KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_DOC
         ).define(
             KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG,
             Type.BOOLEAN,

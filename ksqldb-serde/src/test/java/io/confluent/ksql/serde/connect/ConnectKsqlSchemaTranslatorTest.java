@@ -46,14 +46,11 @@ public class ConnectKsqlSchemaTranslatorTest {
     return Arrays.asList(new Object[][]{
         {"uppercase", ConnectSchemaTranslationPolicies.of(
             ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME),
-            (Function<String, String>) (String s) -> s.toUpperCase()},
-        {"lowercase", ConnectSchemaTranslationPolicies.of(
-            ConnectSchemaTranslationPolicy.LOWERCASE_FIELD_NAME),
-            (Function<String, String>) (String s) -> s.toLowerCase()},
+            (Function<String, String>) String::toUpperCase},
         {"original", ConnectSchemaTranslationPolicies.of(
             ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME),
             (Function<String, String>) (String s) -> s},
-        {"default", null, (Function<String, String>) (String s) -> s.toUpperCase()}
+        {"default", null, (Function<String, String>) String::toUpperCase}
     });
   }
 

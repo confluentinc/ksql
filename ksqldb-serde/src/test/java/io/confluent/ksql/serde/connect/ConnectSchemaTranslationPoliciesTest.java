@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,7 +14,6 @@
  */
 package io.confluent.ksql.serde.connect;
 
-import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.LOWERCASE_FIELD_NAME;
 import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME;
 import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
 import static org.junit.Assert.assertFalse;
@@ -27,24 +26,17 @@ public class ConnectSchemaTranslationPoliciesTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowsWithIncompatiblePolicies() {
     // When:
-    ConnectSchemaTranslationPolicies.of(LOWERCASE_FIELD_NAME, ORIGINAL_FIELD_NAME,
-        UPPERCASE_FIELD_NAME);
+    ConnectSchemaTranslationPolicies.of(ORIGINAL_FIELD_NAME, UPPERCASE_FIELD_NAME);
   }
 
   @Test
   public void shouldReturnCorrectEnabled() {
     // Given:
     ConnectSchemaTranslationPolicies lowercasePolicies = ConnectSchemaTranslationPolicies.of(
-        LOWERCASE_FIELD_NAME);
+        UPPERCASE_FIELD_NAME);
 
-    // When:
-    boolean lowercaseEnabled = lowercasePolicies.enabled(LOWERCASE_FIELD_NAME);
-    boolean uppercaseEnabled = lowercasePolicies.enabled(UPPERCASE_FIELD_NAME);
-    boolean originalEnabled = lowercasePolicies.enabled(ORIGINAL_FIELD_NAME);
-
-    // Then:
-    assertTrue(lowercaseEnabled);
-    assertFalse(uppercaseEnabled);
-    assertFalse(originalEnabled);
+    // When: Then:
+    assertTrue(lowercasePolicies.enabled(UPPERCASE_FIELD_NAME));
+    assertFalse(lowercasePolicies.enabled(ORIGINAL_FIELD_NAME));
   }
 }

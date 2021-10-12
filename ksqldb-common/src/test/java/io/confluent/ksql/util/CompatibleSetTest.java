@@ -23,7 +23,6 @@ import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,25 +31,25 @@ import java.util.Set;
 
 public class CompatibleSetTest {
 
-  private static class InCompatibleInteger implements InCompatible<InCompatibleInteger> {
+  private static class CompatibleInteger implements CompatibleElement<CompatibleInteger> {
 
-    final private Set<InCompatibleInteger> inCompatibleIntegers;
+    final private Set<CompatibleInteger> CompatibleIntegers;
     final private int value;
 
-    public InCompatibleInteger(final int value) {
+    public CompatibleInteger(final int value) {
       this.value = value;
-      inCompatibleIntegers = ImmutableSet.of();
+      CompatibleIntegers = ImmutableSet.of();
     }
 
-    public InCompatibleInteger(final int value, final Integer... inCompatibleIntegers) {
-      this.inCompatibleIntegers = Arrays.stream(inCompatibleIntegers)
-          .map(i -> new InCompatibleInteger(i))
+    public CompatibleInteger(final int value, final Integer... CompatibleIntegers) {
+      this.CompatibleIntegers = Arrays.stream(CompatibleIntegers)
+          .map(CompatibleInteger::new)
           .collect(ImmutableSet.toImmutableSet());
       this.value = value;
     }
 
-    public Set<InCompatibleInteger> getIncompatibleWith() {
-      return inCompatibleIntegers;
+    public Set<CompatibleInteger> getIncompatibleWith() {
+      return CompatibleIntegers;
     }
 
     @Override
@@ -68,18 +67,18 @@ public class CompatibleSetTest {
         return false;
       }
 
-      return ((InCompatibleInteger) other).value == value;
+      return ((CompatibleInteger) other).value == value;
     }
   }
 
-  private InCompatibleInteger one, two, three, four;
+  private CompatibleInteger one, two, three, four;
 
   @Before
   public void setUp() {
-    one = new InCompatibleInteger(1, 2, 3);
-    two = new InCompatibleInteger(2, 1);
-    three = new InCompatibleInteger(3, 1);
-    four = new InCompatibleInteger(4);
+    one = new CompatibleInteger(1, 2, 3);
+    two = new CompatibleInteger(2, 1);
+    three = new CompatibleInteger(3, 1);
+    four = new CompatibleInteger(4);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -91,63 +90,51 @@ public class CompatibleSetTest {
   @Test
   public void shouldReturnAllValues() {
     // Given:
-    CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.<InCompatibleInteger>of(one, four));
+    CompatibleSet<CompatibleInteger> compatibleSet = new CompatibleSet<>(
+        ImmutableSet.<CompatibleInteger>of(one, four));
 
     // When:
-    Set<InCompatibleInteger> all = compatibleSet.all();
+    Set<CompatibleInteger> all = compatibleSet.all();
 
     // Then:
-    assertThat(all, hasSize(2));
     assertThat(all, containsInAnyOrder(one, four));
   }
 
   @Test
   public void shouldReturnCorrectForContainsWithEmptySet() {
     // Given:
-    CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.<InCompatibleInteger>of());
+    CompatibleSet<CompatibleInteger> compatibleSet = new CompatibleSet<>(
+        ImmutableSet.<CompatibleInteger>of());
 
-    // When:
-    boolean containsOne = compatibleSet.contains(one);
-    boolean containsTwo = compatibleSet.contains(two);
-    boolean containsThree = compatibleSet.contains(three);
-    boolean containsFour = compatibleSet.contains(four);
-
-    // Then:
-    assertFalse(containsOne);
-    assertFalse(containsTwo);
-    assertFalse(containsThree);
-    assertFalse(containsFour);
+    // When: Then:
+    assertThat(compatibleSet.contains(one), is(false));
+    assertThat(compatibleSet.contains(two), is(false));
+    assertThat(compatibleSet.contains(three), is(false));
+    assertThat(compatibleSet.contains(four), is(false));
   }
 
   @Test
   public void shouldReturnCorrectForContains() {
     // Given:
-    CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
+    CompatibleSet<CompatibleInteger> compatibleSet = new CompatibleSet<>(
         ImmutableSet.of(one, four));
 
-    // When:
-    boolean containsOne = compatibleSet.contains(one);
-    boolean containsTwo = compatibleSet.contains(two);
-    boolean containsFour = compatibleSet.contains(four);
-
-    // Then:
-    assertTrue(containsOne);
-    assertFalse(containsTwo);
-    assertTrue(containsFour);
+    // When: Then:
+    assertThat(compatibleSet.contains(one), is(true));
+    assertThat(compatibleSet.contains(two), is(false));
+    assertThat(compatibleSet.contains(four), is(true));
   }
 
   @Test
   public void shouldReturnCorrectForFindAnyWithEmptySet() {
     // Given:
-    CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.<InCompatibleInteger>of());
+    CompatibleSet<CompatibleInteger> compatibleSet = new CompatibleSet<>(
+        ImmutableSet.<CompatibleInteger>of());
 
     // When:
-    Optional<InCompatibleInteger> containsOne = compatibleSet.findAny(ImmutableSet.of(one));
-    Optional<InCompatibleInteger> containsTwo = compatibleSet.findAny(ImmutableSet.of(one, two));
-    Optional<InCompatibleInteger> containsTree = compatibleSet.findAny(ImmutableSet.of(three, two));
+    Optional<CompatibleInteger> containsOne = compatibleSet.findAny(ImmutableSet.of(one));
+    Optional<CompatibleInteger> containsTwo = compatibleSet.findAny(ImmutableSet.of(one, two));
+    Optional<CompatibleInteger> containsTree = compatibleSet.findAny(ImmutableSet.of(three, two));
 
     // Then:
     assertFalse(containsOne.isPresent());
@@ -158,13 +145,13 @@ public class CompatibleSetTest {
   @Test
   public void shouldReturnCorrectForFindAny() {
     // Given:
-    CompatibleSet<InCompatibleInteger> compatibleSet = new CompatibleSet<>(
-        ImmutableSet.<InCompatibleInteger>of(two, three, four));
+    CompatibleSet<CompatibleInteger> compatibleSet = new CompatibleSet<>(
+        ImmutableSet.<CompatibleInteger>of(two, three, four));
 
     // When:
-    Optional<InCompatibleInteger> containsOne = compatibleSet.findAny(ImmutableSet.of(one));
-    Optional<InCompatibleInteger> containsTwo = compatibleSet.findAny(ImmutableSet.of(one, two));
-    Optional<InCompatibleInteger> containsTree = compatibleSet.findAny(ImmutableSet.of(three, two));
+    Optional<CompatibleInteger> containsOne = compatibleSet.findAny(ImmutableSet.of(one));
+    Optional<CompatibleInteger> containsTwo = compatibleSet.findAny(ImmutableSet.of(one, two));
+    Optional<CompatibleInteger> containsTree = compatibleSet.findAny(ImmutableSet.of(three, two));
 
     // Then:
     assertFalse(containsOne.isPresent());

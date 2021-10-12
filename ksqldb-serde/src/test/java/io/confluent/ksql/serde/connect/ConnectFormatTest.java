@@ -117,13 +117,10 @@ public class ConnectFormatTest {
     // When:
     final ConnectKsqlSchemaTranslator translator = format.getConnectKsqlSchemaTranslator(
         ImmutableMap.of());
-    final ConnectKsqlSchemaTranslator translator2 = format.getConnectKsqlSchemaTranslator(
-        ImmutableMap.of());
+
     // Then:
     assertTrue(
         translator.getPolicies().enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
-    assertTrue(
-        translator2.getPolicies().enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
   }
 
   @Test

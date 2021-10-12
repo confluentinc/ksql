@@ -70,7 +70,7 @@ public final class ConnectKsqlSchemaTranslator {
   }
 
   public ConnectKsqlSchemaTranslator(final ConnectSchemaTranslationPolicies policies) {
-    this.policies = Objects.requireNonNull(policies);
+    this.policies = Objects.requireNonNull(policies, "policies");
   }
 
   public ConnectSchemaTranslationPolicies getPolicies() {
@@ -176,8 +176,6 @@ public final class ConnectKsqlSchemaTranslator {
         final Schema fieldSchema = toKsqlFieldSchema(field.schema());
         if (policies.enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME)) {
           schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
-        } else if (policies.enabled(ConnectSchemaTranslationPolicy.LOWERCASE_FIELD_NAME)) {
-          schemaBuilder.field(field.name().toLowerCase(), fieldSchema);
         } else if (policies.enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME)) {
           schemaBuilder.field(field.name(), fieldSchema);
         } else {

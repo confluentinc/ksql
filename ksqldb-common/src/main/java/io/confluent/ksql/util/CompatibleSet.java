@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -30,7 +30,7 @@ import java.util.Set;
  * <p>Known to not have conflicting elements
  */
 @Immutable
-public class CompatibleSet<T extends InCompatible<T>> {
+public class CompatibleSet<T extends CompatibleElement<T>> {
 
   protected final ImmutableSet<T> values;
 
@@ -43,7 +43,7 @@ public class CompatibleSet<T extends InCompatible<T>> {
     return values.contains(value);
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "values is ImmutableSet")
   public Set<T> all() {
     return values;
   }
@@ -76,7 +76,7 @@ public class CompatibleSet<T extends InCompatible<T>> {
     return values.toString();
   }
 
-  private static <T extends InCompatible<T>> void validate(final Set<T> values) {
+  private static <T extends CompatibleElement<T>> void validate(final Set<T> values) {
     values.forEach(f -> {
       final Set<T> incompatible = Sets.intersection(f.getIncompatibleWith(), values);
       if (!incompatible.isEmpty()) {

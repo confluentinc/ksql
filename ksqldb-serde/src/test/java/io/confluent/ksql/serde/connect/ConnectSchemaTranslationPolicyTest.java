@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -14,7 +14,6 @@
  */
 package io.confluent.ksql.serde.connect;
 
-import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.LOWERCASE_FIELD_NAME;
 import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME;
 import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,13 +28,11 @@ public class ConnectSchemaTranslationPolicyTest {
   public void shouldReturnIncompatibleSet() {
     // When:
     Set<ConnectSchemaTranslationPolicy> uppercaseIncompables = UPPERCASE_FIELD_NAME.getIncompatibleWith();
-    Set<ConnectSchemaTranslationPolicy> lowercaseIncompables = LOWERCASE_FIELD_NAME.getIncompatibleWith();
     Set<ConnectSchemaTranslationPolicy> originalIncompables = ORIGINAL_FIELD_NAME.getIncompatibleWith();
 
     // Then:
-    assertThat(uppercaseIncompables, containsInAnyOrder(LOWERCASE_FIELD_NAME, ORIGINAL_FIELD_NAME));
-    assertThat(lowercaseIncompables, containsInAnyOrder(UPPERCASE_FIELD_NAME, ORIGINAL_FIELD_NAME));
-    assertThat(originalIncompables, containsInAnyOrder(LOWERCASE_FIELD_NAME, UPPERCASE_FIELD_NAME));
+    assertThat(uppercaseIncompables, containsInAnyOrder(ORIGINAL_FIELD_NAME));
+    assertThat(originalIncompables, containsInAnyOrder(UPPERCASE_FIELD_NAME));
   }
 
 }

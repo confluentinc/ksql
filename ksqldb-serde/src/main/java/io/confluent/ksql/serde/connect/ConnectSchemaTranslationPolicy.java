@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,39 +17,29 @@ package io.confluent.ksql.serde.connect;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.util.InCompatible;
+import io.confluent.ksql.util.CompatibleElement;
 import java.util.Arrays;
 import java.util.Set;
 
 /**
  * Connect schema translation policy for translator
  */
-public enum ConnectSchemaTranslationPolicy implements InCompatible<ConnectSchemaTranslationPolicy> {
+public enum ConnectSchemaTranslationPolicy implements
+    CompatibleElement<ConnectSchemaTranslationPolicy> {
 
   /**
    * This policy will uppercase field name during schema translation
    *
-   * @see ConnectSchemaTranslationPolicy#LOWERCASE_FIELD_NAME
-   * @see ConnectSchemaTranslationPolicy#ORIGINAL_FIELD_NAME
-   *
-   */
-  UPPERCASE_FIELD_NAME("LOWERCASE_FIELD_NAME", "ORIGINAL_FIELD_NAME"),
-
-  /**
-   * This policy will lowercase field name during schema translation
-   *
-   * @see ConnectSchemaTranslationPolicy#UPPERCASE_FIELD_NAME
    * @see ConnectSchemaTranslationPolicy#ORIGINAL_FIELD_NAME
    */
-  LOWERCASE_FIELD_NAME("UPPERCASE_FIELD_NAME", "ORIGINAL_FIELD_NAME"),
+  UPPERCASE_FIELD_NAME("ORIGINAL_FIELD_NAME"),
 
   /**
    * This policy will keep original field name during schema translation
    *
    * @see ConnectSchemaTranslationPolicy#UPPERCASE_FIELD_NAME
-   * @see ConnectSchemaTranslationPolicy#UPPERCASE_FIELD_NAME
    */
-  ORIGINAL_FIELD_NAME("UPPERCASE_FIELD_NAME", "LOWERCASE_FIELD_NAME");
+  ORIGINAL_FIELD_NAME("UPPERCASE_FIELD_NAME");
 
   private final ImmutableSet<String> unvalidated;
   private ImmutableSet<ConnectSchemaTranslationPolicy> incompatibleWith;
@@ -64,7 +54,6 @@ public enum ConnectSchemaTranslationPolicy implements InCompatible<ConnectSchema
     return incompatibleWith;
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   private void validate() {
     this.incompatibleWith = unvalidated.stream()
         .map(ConnectSchemaTranslationPolicy::valueOf)

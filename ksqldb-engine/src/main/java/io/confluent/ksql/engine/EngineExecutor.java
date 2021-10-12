@@ -244,7 +244,7 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, false);
 
-      // This is a cancel signal that is used to stop both local operations and requests
+      // This is a cancel signal that is used to stop both local operations
       final CompletableFuture<Void> shouldCancelRequests = new CompletableFuture<>();
 
       plan = buildPullPhysicalPlan(
@@ -262,7 +262,7 @@ final class EngineExecutor {
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests);
+          physicalPlan.getQueryId(), pullQueryQueue);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
           physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,

@@ -79,10 +79,9 @@ public class FaultyKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final Consumer<List<StreamedRow>> rowConsumer,
-      final CompletableFuture<Void> shouldCloseConnection) {
+      final Consumer<List<StreamedRow>> rowConsumer) {
     return getClient().makeQueryRequest(serverEndPoint, sql, configOverrides, requestProperties,
-        rowConsumer, shouldCloseConnection);
+        rowConsumer);
   }
 
   @Override

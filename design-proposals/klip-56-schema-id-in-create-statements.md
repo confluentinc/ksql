@@ -59,7 +59,7 @@ partitions=1, key_format='avro', value_format='avro');
 * `C*AS` command
   * `key_format` and `value_format` are optional. If specified, they must match format fetched from _schema_registry_.
   * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown.
-  * Serde Features must be`WRAPPED` so that field names always exist.
+  * Serde Features must be `WRAPPED` so that field names always exist.
   * Compatibility Checks. See section blow.
 
 ### Compatibility checks

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -40,8 +41,6 @@ public class LoggingHandlerTest {
   @Mock
   private RoutingContext routingContext;
   @Mock
-  private KsqlRestConfig ksqlRestConfig;
-  @Mock
   private HttpServerRequest request;
   @Mock
   private HttpServerResponse response;
@@ -54,6 +53,7 @@ public class LoggingHandlerTest {
   @Captor
   private ArgumentCaptor<Handler<AsyncResult<Void>>> endCallback;
 
+  private KsqlRestConfig config = new KsqlRestConfig(ImmutableMap.of());
   private LoggingHandler loggingHandler;
 
 
@@ -67,12 +67,13 @@ public class LoggingHandlerTest {
     when(clock.millis()).thenReturn(1699813434333L);
     when(response.bytesWritten()).thenReturn(5678L);
     when(request.path()).thenReturn("/query");
-    when(request.uri()).thenReturn("/query");
+    when(request.uri()).thenReturn("/query?foo=bar");
     when(request.getHeader(HTTP_HEADER_USER_AGENT)).thenReturn("bot");
     when(socketAddress.host()).thenReturn("123.111.222.333");
     when(request.bytesRead()).thenReturn(3456L);
     when(request.version()).thenReturn(HttpVersion.HTTP_1_1);
     when(request.method()).thenReturn(HttpMethod.POST);
+    when(server.getConfig()).thenReturn(config);
     loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);
   }
 
@@ -91,6 +92,28 @@ public class LoggingHandlerTest {
     assertThat(logStringCaptor.getValue(),
         is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
             + "\"POST /query HTTP/1.1\" 200 5678 \"-\" \"bot\" 3456"));
+  }
+
+  @Test
+  public void shouldProduceLogWithQuery() {
+    // Given:
+    when(response.getStatusCode()).thenReturn(200);
+    config = new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG, true)
+    );
+    when(server.getConfig()).thenReturn(config);
+    loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);
+
+    // When:
+    loggingHandler.handle(routingContext);
+    verify(routingContext).addEndHandler(endCallback.capture());
+    endCallback.getValue().handle(null);
+
+    // Then:
+    verify(logger).info(logStringCaptor.capture());
+    assertThat(logStringCaptor.getValue(),
+        is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
+            + "\"POST /query?foo=bar HTTP/1.1\" 200 5678 \"-\" \"bot\" 3456"));
   }
 
   @Test
@@ -125,6 +148,49 @@ public class LoggingHandlerTest {
     verify(logger, never()).info(any());
     verify(logger, never()).warn(any());
     verify(logger, never()).error(any());
+  }
+
+  @Test
+  public void shouldSkipLogIfFiltered() {
+    // Given:
+    when(response.getStatusCode()).thenReturn(200);
+    config = new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG, ".*query.*")
+    );
+    when(server.getConfig()).thenReturn(config);
+    loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);
+
+    // When:
+    loggingHandler.handle(routingContext);
+    verify(routingContext).addEndHandler(endCallback.capture());
+    endCallback.getValue().handle(null);
+
+    // Then:
+    verify(logger, never()).info(any());
+    verify(logger, never()).warn(any());
+    verify(logger, never()).error(any());
+  }
+
+  @Test
+  public void shouldProduceLogWithRandomFilter() {
+    // Given:
+    when(response.getStatusCode()).thenReturn(200);
+    config = new KsqlRestConfig(
+        ImmutableMap.of(KsqlRestConfig.KSQL_ENDPOINT_LOGGING_IGNORED_PATHS_REGEX_CONFIG, ".*random.*")
+    );
+    when(server.getConfig()).thenReturn(config);
+    loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);
+
+    // When:
+    loggingHandler.handle(routingContext);
+    verify(routingContext).addEndHandler(endCallback.capture());
+    endCallback.getValue().handle(null);
+
+    // Then:
+    verify(logger).info(logStringCaptor.capture());
+    assertThat(logStringCaptor.getValue(),
+        is("123.111.222.333 - - [Sun, 12 Nov 2023 18:23:54 GMT] "
+            + "\"POST /query HTTP/1.1\" 200 5678 \"-\" \"bot\" 3456"));
   }
 
   @Test

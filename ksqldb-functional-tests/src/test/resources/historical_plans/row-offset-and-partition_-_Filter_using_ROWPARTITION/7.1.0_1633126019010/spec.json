@@ -1,0 +1,131 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126019010,
+  "path" : "query-validation-tests/row-offset-and-partition.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `FOO` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` INTEGER KEY, `FOO` STRING, `RT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Filter using ROWPARTITION",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "foo" : "a"
+      },
+      "timestamp" : 5
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "foo" : "b"
+      },
+      "timestamp" : 6
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "foo" : "c"
+      },
+      "timestamp" : 7
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : 1,
+      "value" : {
+        "FOO" : "a",
+        "RT" : 5
+      },
+      "timestamp" : 5
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 2,
+      "value" : {
+        "FOO" : "b",
+        "RT" : 6
+      },
+      "timestamp" : 6
+    }, {
+      "topic" : "OUTPUT",
+      "key" : 3,
+      "value" : {
+        "FOO" : "c",
+        "RT" : 7
+      },
+      "timestamp" : 7
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM input (id INT KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM output AS SELECT *, ROWTIME AS rt FROM input WHERE ROWPARTITION = 0;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `FOO` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `FOO` STRING, `RT` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

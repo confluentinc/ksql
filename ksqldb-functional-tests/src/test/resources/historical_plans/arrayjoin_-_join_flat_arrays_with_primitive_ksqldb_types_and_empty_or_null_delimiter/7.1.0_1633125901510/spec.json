@@ -1,0 +1,108 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125901510,
+  "path" : "query-validation-tests/arrayjoin.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `BOOLEANARRAY` ARRAY<BOOLEAN>, `INTARRAY` ARRAY<INTEGER>, `BIGINTARRAY` ARRAY<BIGINT>, `DOUBLEARRAY` ARRAY<DOUBLE>, `DECIMALARRAY` ARRAY<DECIMAL(5, 2)>, `STRINGARRAY` ARRAY<STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING, `KSQL_COL_4` STRING, `KSQL_COL_5` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "join flat arrays with primitive ksqldb types and empty or null delimiter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "BOOLEANARRAY" : [ true, null, false ],
+        "INTARRAY" : [ 1, 23, -42, 0 ],
+        "BIGINTARRAY" : [ -4294967297, 8589934592 ],
+        "DOUBLEARRAY" : [ 1.23, -23.42, 0.0 ],
+        "DECIMALARRAY" : [ 123.45, 987.65 ],
+        "STRINGARRAY" : [ "Hello", "From", "", "Ksqldb", "Udf" ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : "truenullfalse",
+        "KSQL_COL_1" : "123-420",
+        "KSQL_COL_2" : "-42949672978589934592",
+        "KSQL_COL_3" : "1.23-23.420.0",
+        "KSQL_COL_4" : "123.45987.65",
+        "KSQL_COL_5" : "HelloFromKsqldbUdf"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, BOOLEANARRAY ARRAY<BOOLEAN>, INTARRAY ARRAY<INT>, BIGINTARRAY ARRAY<BIGINT>, DOUBLEARRAY ARRAY<DOUBLE>, DECIMALARRAY ARRAY<DECIMAL(5,2)>, STRINGARRAY ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ARRAY_JOIN(BOOLEANARRAY,''), ARRAY_JOIN(INTARRAY,null), ARRAY_JOIN(BIGINTARRAY,''), ARRAY_JOIN(DOUBLEARRAY,null), ARRAY_JOIN(DECIMALARRAY,''), ARRAY_JOIN(STRINGARRAY,null) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` STRING, `KSQL_COL_2` STRING, `KSQL_COL_3` STRING, `KSQL_COL_4` STRING, `KSQL_COL_5` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `BOOLEANARRAY` ARRAY<BOOLEAN>, `INTARRAY` ARRAY<INTEGER>, `BIGINTARRAY` ARRAY<BIGINT>, `DOUBLEARRAY` ARRAY<DOUBLE>, `DECIMALARRAY` ARRAY<DECIMAL(5, 2)>, `STRINGARRAY` ARRAY<STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

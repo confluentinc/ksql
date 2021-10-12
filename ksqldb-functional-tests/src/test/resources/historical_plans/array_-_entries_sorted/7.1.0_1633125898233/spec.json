@@ -1,0 +1,173 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125898233,
+  "path" : "query-validation-tests/array.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `INTMAP` MAP<STRING, INTEGER>, `BIGINTMAP` MAP<STRING, BIGINT>, `DOUBLEMAP` MAP<STRING, DOUBLE>, `BOOLEANMAP` MAP<STRING, BOOLEAN>, `STRINGMAP` MAP<STRING, STRING>, `NULLMAP` MAP<STRING, STRING>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<STRUCT<`K` STRING, `V` INTEGER>>, `KSQL_COL_1` ARRAY<STRUCT<`K` STRING, `V` BIGINT>>, `KSQL_COL_2` ARRAY<STRUCT<`K` STRING, `V` DOUBLE>>, `KSQL_COL_3` ARRAY<STRUCT<`K` STRING, `V` BOOLEAN>>, `KSQL_COL_4` ARRAY<STRUCT<`K` STRING, `V` STRING>>, `KSQL_COL_5` ARRAY<STRUCT<`K` STRING, `V` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "entries sorted",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "INTMAP" : {
+          "K1" : 1,
+          "K2" : 2,
+          "K3" : 3
+        },
+        "BIGINTMAP" : {
+          "K1" : 1,
+          "K2" : 2,
+          "K3" : 3
+        },
+        "DOUBLEMAP" : {
+          "K1" : 1.0,
+          "K2" : 2.0,
+          "K3" : 3.0
+        },
+        "BOOLEANMAP" : {
+          "K1" : true,
+          "K2" : false,
+          "K3" : true
+        },
+        "STRINGMAP" : {
+          "K1" : "V1",
+          "K2" : "V2",
+          "K3" : "V3"
+        },
+        "NULLMAP" : null
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "KSQL_COL_0" : [ {
+          "K" : "K1",
+          "V" : 1
+        }, {
+          "K" : "K2",
+          "V" : 2
+        }, {
+          "K" : "K3",
+          "V" : 3
+        } ],
+        "KSQL_COL_1" : [ {
+          "K" : "K1",
+          "V" : 1
+        }, {
+          "K" : "K2",
+          "V" : 2
+        }, {
+          "K" : "K3",
+          "V" : 3
+        } ],
+        "KSQL_COL_2" : [ {
+          "K" : "K1",
+          "V" : 1.0
+        }, {
+          "K" : "K2",
+          "V" : 2.0
+        }, {
+          "K" : "K3",
+          "V" : 3.0
+        } ],
+        "KSQL_COL_3" : [ {
+          "K" : "K1",
+          "V" : true
+        }, {
+          "K" : "K2",
+          "V" : false
+        }, {
+          "K" : "K3",
+          "V" : true
+        } ],
+        "KSQL_COL_4" : [ {
+          "K" : "K1",
+          "V" : "V1"
+        }, {
+          "K" : "K2",
+          "V" : "V2"
+        }, {
+          "K" : "K3",
+          "V" : "V3"
+        } ],
+        "KSQL_COL_5" : null
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, INTMAP MAP<STRING, INT>, BIGINTMAP MAP<STRING, BIGINT>, DOUBLEMAP MAP<STRING, DOUBLE>, BOOLEANMAP MAP<STRING, BOOLEAN>, STRINGMAP MAP<STRING, STRING>, NULLMAP MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ENTRIES(INTMAP, TRUE), ENTRIES(BIGINTMAP, TRUE), ENTRIES(DOUBLEMAP, TRUE), ENTRIES(BOOLEANMAP, TRUE), ENTRIES(STRINGMAP, TRUE), ENTRIES(NULLMAP, TRUE) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` ARRAY<STRUCT<`K` STRING, `V` INTEGER>>, `KSQL_COL_1` ARRAY<STRUCT<`K` STRING, `V` BIGINT>>, `KSQL_COL_2` ARRAY<STRUCT<`K` STRING, `V` DOUBLE>>, `KSQL_COL_3` ARRAY<STRUCT<`K` STRING, `V` BOOLEAN>>, `KSQL_COL_4` ARRAY<STRUCT<`K` STRING, `V` STRING>>, `KSQL_COL_5` ARRAY<STRUCT<`K` STRING, `V` STRING>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `INTMAP` MAP<STRING, INTEGER>, `BIGINTMAP` MAP<STRING, BIGINT>, `DOUBLEMAP` MAP<STRING, DOUBLE>, `BOOLEANMAP` MAP<STRING, BOOLEAN>, `STRINGMAP` MAP<STRING, STRING>, `NULLMAP` MAP<STRING, STRING>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

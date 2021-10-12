@@ -1,0 +1,88 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126029726,
+  "path" : "query-validation-tests/timestampformat.json",
+  "schemas" : {
+    "CSAS_TS_0.TS" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_TS_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Invalid timestamp value should throw an exception",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : null,
+      "value" : {
+        "ID" : 1,
+        "EVENT_TS" : "not a timestamp"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, EVENT_TS string) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM TS WITH (timestamp='event_ts', timestamp_format='yyyy-MM-dd''T''HH:mm:ssX') AS SELECT K, id, event_ts FROM test;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TS",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `EVENT_TS` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "TS",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

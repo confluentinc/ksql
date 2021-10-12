@@ -1,0 +1,166 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126021511,
+  "path" : "query-validation-tests/split.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `MESSAGE` STRING, `B` BYTES",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `SPLIT_MSG` ARRAY<STRING>, `SPLIT_BYTES` ARRAY<BYTES>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "split a message by using the '$$' delimiter",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "1",
+      "value" : {
+        "message" : "a$$b.c",
+        "b" : "YSQkYi5j"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "2",
+      "value" : {
+        "message" : ".abc$$",
+        "b" : "LmFiYyQk"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "3",
+      "value" : {
+        "message" : ".$$a..",
+        "b" : "LiQkYS4u"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "4",
+      "value" : {
+        "message" : "abc",
+        "b" : "YWJj"
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "test_topic",
+      "key" : "5",
+      "value" : {
+        "message" : "",
+        "b" : ""
+      },
+      "timestamp" : 0
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "1",
+      "value" : {
+        "SPLIT_MSG" : [ "a", "b.c" ],
+        "SPLIT_BYTES" : [ "YQ==", "Yi5j" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "2",
+      "value" : {
+        "SPLIT_MSG" : [ ".abc", "" ],
+        "SPLIT_BYTES" : [ "LmFiYw==", "" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "3",
+      "value" : {
+        "SPLIT_MSG" : [ ".", "a.." ],
+        "SPLIT_BYTES" : [ "Lg==", "YS4u" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "4",
+      "value" : {
+        "SPLIT_MSG" : [ "abc" ],
+        "SPLIT_BYTES" : [ "YWJj" ]
+      },
+      "timestamp" : 0
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "5",
+      "value" : {
+        "SPLIT_MSG" : [ "" ],
+        "SPLIT_BYTES" : [ "" ]
+      },
+      "timestamp" : 0
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (K STRING KEY, message VARCHAR, b BYTES) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, SPLIT(message, '$$') as split_msg, SPLIT(b, TO_BYTES('$$', 'utf8')) as split_bytes FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `SPLIT_MSG` ARRAY<STRING>, `SPLIT_BYTES` ARRAY<BYTES>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `MESSAGE` STRING, `B` BYTES",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126017857,
+  "path" : "query-validation-tests/quoted-identifiers.json",
+  "schemas" : {
+    "CSAS_JOINED_0.KafkaTopic_Left.Source" : {
+      "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_JOINED_0.KafkaTopic_Right.Source.Materialized" : {
+      "schema" : "`with.dot` STRING KEY, `field 0` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_JOINED_0.PrependAliasRight" : {
+      "schema" : "`R_with.dot` STRING KEY, `R_field 0` STRING, `R_ROWTIME` BIGINT, `R_ROWPARTITION` INTEGER, `R_ROWOFFSET` BIGINT, `R_with.dot` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_JOINED_0.JOINED" : {
+      "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_JOINED_0.KafkaTopic_Right.Source" : {
+      "schema" : "`with.dot` STRING KEY, `field 0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_JOINED_0.Join" : {
+      "schema" : "`L_SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_the key` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
+    },
+    "CSAS_JOINED_0.Join.Left" : {
+      "schema" : "`L_SELECT` STRING KEY, `L_SELECT` STRING, `L_field!` STRING, `L_ROWTIME` BIGINT, `L_ROWPARTITION` INTEGER, `L_ROWOFFSET` BIGINT, `L_the key` STRING",
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "joins using fields that require quotes",
+    "inputs" : [ {
+      "topic" : "right_topic",
+      "key" : "1",
+      "value" : {
+        "field 0" : "3"
+      }
+    }, {
+      "topic" : "right_topic",
+      "key" : "2",
+      "value" : {
+        "field 0" : "4"
+      }
+    }, {
+      "topic" : "left_topic",
+      "key" : "diff",
+      "value" : {
+        "SELECT" : "1",
+        "field!" : "A"
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "JOINED",
+      "key" : "1",
+      "value" : {
+        "L_the key" : "diff",
+        "L_field!" : "A",
+        "R_with.dot" : "1",
+        "R_field 0" : "3"
+      }
+    } ],
+    "topics" : [ {
+      "name" : "right_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "JOINED",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "left_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM L (`the key` STRING KEY, `SELECT` VARCHAR, `field!` VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');", "CREATE TABLE R (`with.dot` STRING PRIMARY KEY, `field 0` VARCHAR) WITH (kafka_topic='right_topic', value_format='JSON');", "CREATE STREAM JOINED as SELECT * FROM L LEFT JOIN R ON L.`SELECT` = R.`with.dot`;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "JOINED",
+        "type" : "STREAM",
+        "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "L",
+        "type" : "STREAM",
+        "schema" : "`the key` STRING KEY, `SELECT` STRING, `field!` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "R",
+        "type" : "TABLE",
+        "schema" : "`with.dot` STRING KEY, `field 0` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "JOINED",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "left_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "right_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-Join-repartition",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_JOINED_0-KafkaTopic_Right-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

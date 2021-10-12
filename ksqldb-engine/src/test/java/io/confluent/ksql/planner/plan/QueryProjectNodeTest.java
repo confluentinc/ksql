@@ -103,6 +103,7 @@ public class QueryProjectNodeTest {
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED)).thenReturn(true);
   }
 
   @Test
@@ -126,7 +127,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false, ksqlConfig);
+    final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, false, true);
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -151,7 +153,8 @@ public class QueryProjectNodeTest {
     );
 
     // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true, ksqlConfig);
+    final LogicalSchema expectedSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, true, true);;
     assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
   }
 
@@ -310,8 +313,9 @@ public class QueryProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
-    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false, ksqlConfig),
-        is(projectNode.getIntermediateSchema()));
+    final LogicalSchema expectedIntermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
+        INPUT_SCHEMA, true, false, true);
+    assertThat(expectedIntermediateSchema, is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(
         IllegalStateException.class,

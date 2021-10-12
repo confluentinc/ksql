@@ -1,0 +1,22 @@
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000001 (topics: [test])
+      --> KTABLE-SOURCE-0000000002
+    Processor: KTABLE-SOURCE-0000000002 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000003
+      <-- KSTREAM-SOURCE-0000000001
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [KsqlTopic-Reduce])
+      --> KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-SOURCE-0000000002
+    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
+      --> Project
+      <-- KTABLE-TRANSFORMVALUES-0000000003
+    Processor: Project (stores: [])
+      --> KTABLE-TOSTREAM-0000000006
+      <-- KTABLE-TRANSFORMVALUES-0000000004
+    Processor: KTABLE-TOSTREAM-0000000006 (stores: [])
+      --> KSTREAM-SINK-0000000007
+      <-- Project
+    Sink: KSTREAM-SINK-0000000007 (topic: COPY)
+      <-- KTABLE-TOSTREAM-0000000006
+

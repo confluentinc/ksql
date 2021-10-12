@@ -1,0 +1,110 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633125926594,
+  "path" : "query-validation-tests/explode.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `F1` BIGINT, `F2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`ID` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `KSQL_COL_2` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "udfs with table functions and no aliases, verifies intermediate generated column names don't clash with aliases",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "0",
+      "value" : {
+        "F1" : 1,
+        "F2" : 2,
+        "MY_ARR" : [ 1, 2 ]
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 1,
+        "KSQL_COL_2" : 2
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
+      "value" : {
+        "KSQL_COL_0" : 1,
+        "KSQL_COL_1" : 2,
+        "KSQL_COL_2" : 2
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, MY_ARR ARRAY<BIGINT>, F1 BIGINT, F2 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, ABS(F1), EXPLODE(MY_ARR), ABS(F2) FROM TEST;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `KSQL_COL_2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `MY_ARR` ARRAY<BIGINT>, `F1` BIGINT, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

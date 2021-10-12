@@ -1,0 +1,135 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1633126013982,
+  "path" : "query-validation-tests/null.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING, `VAL` STRING",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_0` BOOLEAN KEY, `NAME` STRING, `VAL` STRING, `ID` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "stream PARTITION BY IS NULL with null value",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : null,
+      "timestamp" : 1
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "NAME" : null,
+        "VAL" : "a"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "NAME" : "n",
+        "VAL" : "b"
+      },
+      "timestamp" : 3
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : null,
+      "timestamp" : 1
+    }, {
+      "topic" : "OUTPUT",
+      "key" : true,
+      "value" : {
+        "NAME" : null,
+        "ID" : 2,
+        "VAL" : "a"
+      },
+      "timestamp" : 2
+    }, {
+      "topic" : "OUTPUT",
+      "key" : false,
+      "value" : {
+        "NAME" : "n",
+        "ID" : 3,
+        "VAL" : "b"
+      },
+      "timestamp" : 3
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (ID INT KEY, NAME STRING, VAL STRING) WITH (kafka_topic='test_topic', format='JSON');", "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY (NAME IS NULL);" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `NAME` STRING, `VAL` STRING",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`KSQL_COL_0` BOOLEAN KEY, `NAME` STRING, `VAL` STRING, `ID` INTEGER",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

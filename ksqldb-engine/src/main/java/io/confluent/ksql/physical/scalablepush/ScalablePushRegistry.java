@@ -198,6 +198,8 @@ public class ScalablePushRegistry {
         }
         latestConsumer.register(processingQueue);
       } else {
+        // Either latest is just starting up or just ending.  Either way, we'll be sure to pick it
+        // up if we enqueue it.
         latestPendingQueues.add(processingQueue);
       }
     } else {
@@ -237,6 +239,11 @@ public class ScalablePushRegistry {
   @VisibleForTesting
   public synchronized boolean isLatestStarted() {
     return isLatestStarted;
+  }
+
+  @VisibleForTesting
+  public int numRegistered() {
+    return latestNumRegistered();
   }
 
   @VisibleForTesting
@@ -376,6 +383,13 @@ public class ScalablePushRegistry {
       synchronized (this) {
         this.latestConsumer.set(null);
         this.isLatestStarted = false;
+
+        // If more requests have been queued up since we started to close, then kick off a new
+        // latest.
+        if (latestPendingQueues.size() > 0) {
+          LOG.info("Continuing with a new lastest just as we shut down the existing");
+          startLatestIfNotRunning();
+        }
       }
     }
   }
@@ -416,6 +430,10 @@ public class ScalablePushRegistry {
 
     public void remove(final ProcessingQueue pq) {
       latestPendingQueues.remove(pq);
+    }
+
+    public int size() {
+      return latestPendingQueues.size();
     }
   }
 }

@@ -132,6 +132,7 @@ public class LatestConsumerTest {
   public void setUp() {
     when(queue.getQueryId()).thenReturn(new QueryId("a"));
     when(clock.millis()).thenReturn(CURRENT_TIME_MS);
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS)).thenReturn(30000L);
   }
 
   @SuppressWarnings("unchecked")

@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -80,6 +81,8 @@ public class ScalablePushRegistryTest {
   @Mock
   private ProcessingQueue processingQueue;
   @Mock
+  private ProcessingQueue processingQueue2;
+  @Mock
   private KsqlTopic ksqlTopic;
   @Mock
   private ServiceContext serviceContext;
@@ -102,6 +105,7 @@ public class ScalablePushRegistryTest {
 
   private ExecutorService realExecutorService;
   private AtomicReference<Runnable> startLatestRunnable = new AtomicReference<>(null);
+  private AtomicBoolean latestClosed = new AtomicBoolean(false);
 
   @Before
   public void setUp() {
@@ -109,17 +113,19 @@ public class ScalablePushRegistryTest {
     when(kafkaConsumerFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(kafkaConsumer);
 
-    AtomicBoolean closed = new AtomicBoolean(false);
     doAnswer(a -> {
-      while (!closed.get()) {
+      while (!latestClosed.get()) {
         Thread.sleep(10);
       }
       return null;
     }).when(latestConsumer).run();
     doAnswer(a -> {
-      closed.set(true);
+      latestClosed.set(true);
       return null;
     }).when(latestConsumer).close();
+    when(latestConsumer.isClosed()).thenAnswer(a -> {
+      return latestClosed.get();
+    });
     AtomicInteger num = new AtomicInteger(0);
     doAnswer(a -> {
       num.incrementAndGet();
@@ -133,7 +139,10 @@ public class ScalablePushRegistryTest {
       return num.get();
     }).when(latestConsumer).numRegistered();
     when(latestConsumerFactory.create(anyInt(), any(), anyBoolean(), any(), any(), any(), any(),
-        any(), any())).thenReturn(latestConsumer);
+        any(), any())).thenAnswer(a -> {
+          latestClosed.set(false);
+          return latestConsumer;
+    });
     when(consumerMetadataFactory.create(any(), any()))
         .thenReturn(METADATA);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
@@ -309,6 +318,68 @@ public class ScalablePushRegistryTest {
     // Then:
     assertThat(registry.latestNumRegistered(), is(0));
     assertThat(registry.isLatestStarted(), is(false));
+  }
+
+
+  @Test
+  public void shouldRegisterAfterAlreadyStarted() {
+    // Given:
+    ScalablePushRegistry registry = new ScalablePushRegistry(
+        locator, SCHEMA, false, false,
+        ImmutableMap.of(), ksqlTopic, serviceContext,
+        ksqlConfig, SOURCE_APP_ID,
+        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+    doAnswer(a -> {
+      final Runnable runnable = a.getArgument(0);
+      startLatestRunnable.set(runnable);
+      return null;
+    }).when(executorService).submit(any(Runnable.class));
+
+    // When:
+    registry.register(processingQueue, false);
+    // This should register a second queue, but we haven't actually started running the latest
+    // yet.
+    registry.register(processingQueue2, false);
+    realExecutorService.submit(startLatestRunnable.get());
+
+    // Then:
+    assertThatEventually(registry::latestNumRegistered, is(2));
+    assertThat(registry.isLatestStarted(), is(true));
+  }
+
+  @Test
+  public void shouldRegisterAfterBeginningClosing() {
+    // Given:
+    ScalablePushRegistry registry = new ScalablePushRegistry(
+        locator, SCHEMA, false, false,
+        ImmutableMap.of(), ksqlTopic, serviceContext,
+        ksqlConfig, SOURCE_APP_ID,
+        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+    AtomicBoolean forceRun = new AtomicBoolean(false);
+    doAnswer(a -> {
+      while (!latestClosed.get() || forceRun.get()) {
+        Thread.sleep(10);
+      }
+      return null;
+    }).when(latestConsumer).run();
+
+    // When:
+    forceRun.set(true);
+    registry.register(processingQueue, false);
+    assertThatEventually(registry::latestNumRegistered, is(1));
+    // This should make the latest close and shutdown
+    registry.unregister(processingQueue);
+    // Meanwhile another queue is registered
+    registry.register(processingQueue2, false);
+    // Only now does the consumer stop running, forcing it to kick off another consumer
+    forceRun.set(false);
+
+    // Then:
+    assertThatEventually(registry::latestNumRegistered, is(1));
+    assertThat(registry.isLatestStarted(), is(true));
+    registry.unregister(processingQueue2);
+    assertThatEventually(registry::latestNumRegistered, is(0));
+    assertThatEventually(registry::isLatestStarted, is(false));
   }
 
   @Test

@@ -65,6 +65,11 @@ public class PageViewDataProvider extends TestDataProvider {
       .put(genericKey("PAGE_5"), genericRow("USER_0", 11L))
       .build();
 
+  private static final Multimap<GenericKey, GenericRow> ROWS4 = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("PAGE_1"), genericRow("USER_4", 10L))
+      .build();
+
   public PageViewDataProvider() {
     super("PAGEVIEW", PHYSICAL_SCHEMA, ROWS);
   }
@@ -81,7 +86,8 @@ public class PageViewDataProvider extends TestDataProvider {
   public enum Batch {
     BATCH1(ROWS),
     BATCH2(ROWS2),
-    BATCH3(ROWS3);
+    BATCH3(ROWS3),
+    BATCH4(ROWS4);
 
     private final Multimap<GenericKey, GenericRow> rows;
 

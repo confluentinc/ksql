@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 public class LatestConsumer extends Consumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(LatestConsumer.class);
-  private static final long LATEST_CONSUMER_OLDEST_COMMIT_AGE_MS = 30000;
 
   private final CatchupCoordinator catchupCoordinator;
   private final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater;
@@ -146,7 +145,8 @@ public class LatestConsumer extends Consumer {
    */
   private void maybeSeekToEnd() {
     final Set<TopicPartition> topicPartitions = this.topicPartitions.get();
-    final long timeMs = clock.millis() - LATEST_CONSUMER_OLDEST_COMMIT_AGE_MS;
+    final long maxAge = ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS);
+    final long timeMs = clock.millis() - maxAge;
     final HashMap<TopicPartition, Long> timestamps = new HashMap<>();
     for (TopicPartition tp : topicPartitions) {
       timestamps.put(tp, timeMs);

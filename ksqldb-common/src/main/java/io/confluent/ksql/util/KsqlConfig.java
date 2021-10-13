@@ -344,6 +344,13 @@ public class KsqlConfig extends AbstractConfig {
           + "stragglers requests will miss a record and be forced to catchup.";
   public static final long KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT = 5000;
 
+  public static final String KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS
+      = "ksql.query.push.v2.latest.reset.age.ms";
+  public static final String KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC =
+      "The maximum age in ms of existing committed offsets for latest consumer to"
+          + " adopt those offsets rather than seek to the end.";
+  public static final long KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT = 30000;
+
   public static final String KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX = "ksql.query.push.v2.consumer.";
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
@@ -1034,6 +1041,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

@@ -32,13 +32,53 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.Pair;
 import io.vertx.core.buffer.Buffer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public final class KsqlTargetUtil {
 
   private KsqlTargetUtil() {
 
+  }
+
+  // This is meant to parse partial chunk responses as well as full pull query responses.
+  public static List<StreamedRow> toRows(Buffer buff, final AtomicReference<Buffer> residual) {
+
+    final List<StreamedRow> rows = new ArrayList<>();
+    int begin = 0;
+    if (residual.get() != null) {
+      buff = Buffer.buffer().appendBuffer(residual.get()).appendBuffer(buff);
+      residual.set(null);
+    }
+
+    for (int i = 0; i <= buff.length(); i++) {
+      if ((i == buff.length() && (i - begin > 1))
+          || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
+        if (begin != i) { // Ignore random newlines - the server can send these
+          final Buffer sliced = buff.slice(begin, i);
+          final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
+          if (tidied.length() > 0) {
+            try {
+              final StreamedRow row = deserialize(tidied, StreamedRow.class);
+              rows.add(row);
+            } catch (KsqlRestClientException e) {
+              if (i == buff.length()) {
+                // If we failed to parse at the end, assume it's been truncated.
+                residual.set(tidied);
+              } else {
+                throw e;
+              }
+            }
+
+          }
+        }
+
+        begin = i + 1;
+      }
+    }
+    return rows;
   }
 
   public static StreamedRow toRowFromDelimited(final Buffer buff) {

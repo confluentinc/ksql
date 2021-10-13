@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -44,12 +45,14 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
@@ -190,12 +193,13 @@ public final class KsqlTarget {
       final CompletableFuture<Void> shouldCloseConnection
   ) {
     final AtomicInteger rowCount = new AtomicInteger(0);
+    final AtomicReference<Buffer> residual = new AtomicReference<>(null);
     return post(
         QUERY_PATH,
         createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
         rowCount::get,
         rows -> {
-          final List<StreamedRow> streamedRows = toRows(rows);
+          final List<StreamedRow> streamedRows = KsqlTargetUtil.toRows(rows, residual);
           rowCount.addAndGet(streamedRows.size());
           return streamedRows;
         },
@@ -309,6 +313,7 @@ public final class KsqlTarget {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
+        final AtomicBoolean end = new AtomicBoolean(false);
         resp.exceptionHandler(vcf::completeExceptionally);
         resp.handler(buff -> {
           try {
@@ -320,6 +325,7 @@ public final class KsqlTarget {
         });
         resp.endHandler(v -> {
           try {
+            end.set(true);
             chunkHandler.accept(null);
             vcf.complete(new ResponseWithBody(resp, Buffer.buffer()));
           } catch (Throwable t) {
@@ -327,8 +333,21 @@ public final class KsqlTarget {
             vcf.completeExceptionally(t);
           }
         });
+        // Closing after the end handle was called resulted in errors about the connection being
+        // closed, so we even turn this on the context so there's no race.
+        final Context context = Vertx.currentContext();
         shouldCloseConnection.handle((v, t) -> {
-          resp.request().connection().close();
+          context.runOnContext(v2 -> {
+            if (!end.get()) {
+              try {
+                resp.request().connection().close();
+                vcf.completeExceptionally(new KsqlRestClientException("Closing connection"));
+              } catch (Throwable closing) {
+                log.error("Error while handling close", closing);
+                vcf.completeExceptionally(closing);
+              }
+            }
+          });
           return null;
         });
       });
@@ -445,31 +464,6 @@ public final class KsqlTarget {
   }
 
   private static List<StreamedRow> toRows(final ResponseWithBody resp) {
-    return toRows(resp.getBody());
+    return KsqlTargetUtil.toRows(resp.getBody(), new AtomicReference<>(null));
   }
-
-  // This is meant to parse partial chunk responses as well as full pull query responses.
-  private static List<StreamedRow> toRows(final Buffer buff) {
-
-    final List<StreamedRow> rows = new ArrayList<>();
-    int begin = 0;
-
-    for (int i = 0; i <= buff.length(); i++) {
-      if ((i == buff.length() && (i - begin > 1))
-          || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
-        if (begin != i) { // Ignore random newlines - the server can send these
-          final Buffer sliced = buff.slice(begin, i);
-          final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
-          if (tidied.length() > 0) {
-            final StreamedRow row = deserialize(tidied, StreamedRow.class);
-            rows.add(row);
-          }
-        }
-
-        begin = i + 1;
-      }
-    }
-    return rows;
-  }
-
 }

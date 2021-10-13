@@ -123,6 +123,7 @@ public class HARoutingTest {
   private KsqlPartitionLocation location2;
   private KsqlPartitionLocation location3;
   private KsqlPartitionLocation location4;
+  private KsqlPartitionLocation location5;
 
   private PullQueryQueue pullQueryQueue = new PullQueryQueue();
 
@@ -148,6 +149,7 @@ public class HARoutingTest {
     location2 = new PartitionLocation(Optional.empty(), 2, ImmutableList.of(node2, node1));
     location3 = new PartitionLocation(Optional.empty(), 3, ImmutableList.of(node1, node2));
     location4 = new PartitionLocation(Optional.empty(), 4, ImmutableList.of(node2, node1));
+    location5 = new PartitionLocation(Optional.empty(), 4, ImmutableList.of(node2));
     // We require at least two threads, one for the orchestrator, and the other for the partitions.
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG))
         .thenReturn(1);
@@ -455,6 +457,55 @@ public class HARoutingTest {
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
     assertThat(Throwables.getRootCause(e).getMessage(), containsString("Authentication Error"));
+  }
+
+  @Test
+  public void forwardingError_throwsError() {
+    // Given:
+    locate(location5);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenThrow(new RuntimeException("Network Error"));
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
+        pullQueryQueue, disconnect);
+    final Exception e = assertThrows(
+        ExecutionException.class,
+        future::get
+    );
+
+    // Then:
+    assertThat(pullQueryQueue.size(), is(0));
+    assertThat(Throwables.getRootCause(e).getMessage(),
+        containsString("Exhausted standby hosts to try."));
+  }
+
+  @Test
+  public void forwardingError_cancelled() throws ExecutionException, InterruptedException {
+    // Given:
+    locate(location5);
+    when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
+        .thenAnswer(a -> {
+          Consumer<List<StreamedRow>> rowConsumer = a.getArgument(4);
+          rowConsumer.accept(
+              ImmutableList.of(
+                  StreamedRow.header(queryId, logicalSchema),
+                  StreamedRow.pullRow(GenericRow.fromList(ROW2), Optional.empty())));
+
+          throw new RuntimeException("Cancelled");
+        });
+    when(disconnect.isDone()).thenReturn(true);
+
+    // When:
+    CompletableFuture<Void> future = haRouting.handlePullQuery(
+        serviceContext, pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId,
+        pullQueryQueue, disconnect);
+    future.get();
+
+    // Then:
+    assertThat(pullQueryQueue.size(), is(1));
+    assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW2));
   }
 
   @Test

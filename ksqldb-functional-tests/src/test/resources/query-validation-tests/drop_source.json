@@ -25,7 +25,7 @@
       ],
       "expectedException" : {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Source TEST does not exist"
+        "message": "Stream TEST does not exist"
       }
     },
     {

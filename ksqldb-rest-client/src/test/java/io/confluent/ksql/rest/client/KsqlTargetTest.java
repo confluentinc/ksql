@@ -198,4 +198,22 @@ public class KsqlTargetTest {
     assertThat(response.get().getResponse(), is (2));
     assertThat(rows.size(), is (2));
   }
+
+  @Test
+  public void shouldPostQueryRequest_chunkHandler_partialMessage() {
+    ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST);
+    executor.submit(this::expectPostQueryRequestChunkHandler);
+
+    assertThatEventually(requestStarted::get, is(true));
+
+    handlerCaptor.getValue().handle(Buffer.buffer("{\"row\": {\"columns\": [1.0, 12.1]}},\n"));
+    handlerCaptor.getValue().handle(Buffer.buffer("{\"row\": {\"columns\""));
+    handlerCaptor.getValue().handle(Buffer.buffer(": [5.0, 10.5]}},\n"));
+    endCaptor.getValue().handle(null);
+    closeConnection.complete(null);
+
+    assertThatEventually(response::get, notNullValue());
+    assertThat(response.get().getResponse(), is (2));
+    assertThat(rows.size(), is (2));
+  }
 }

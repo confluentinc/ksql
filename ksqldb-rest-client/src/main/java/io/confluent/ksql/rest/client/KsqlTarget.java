@@ -45,8 +45,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import io.vertx.core.parsetools.RecordParser;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -193,16 +192,16 @@ public final class KsqlTarget {
       final CompletableFuture<Void> shouldCloseConnection
   ) {
     final AtomicInteger rowCount = new AtomicInteger(0);
-    final AtomicReference<Buffer> residual = new AtomicReference<>(null);
     return post(
         QUERY_PATH,
         createKsqlRequest(ksql, requestProperties, previousCommandSeqNum),
         rowCount::get,
         rows -> {
-          final List<StreamedRow> streamedRows = KsqlTargetUtil.toRows(rows, residual);
+          final List<StreamedRow> streamedRows = KsqlTargetUtil.toRows(rows);
           rowCount.addAndGet(streamedRows.size());
           return streamedRows;
         },
+        "\n", // delimiter
         rowConsumer,
         shouldCloseConnection);
   }
@@ -272,11 +271,12 @@ public final class KsqlTarget {
       final Object jsonEntity,
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> mapper,
+      final String delimiter,
       final Consumer<T> chunkHandler,
       final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeRequestSync(HttpMethod.POST, path, jsonEntity, responseSupplier, mapper,
-        chunkHandler, shouldCloseConnection);
+        delimiter, chunkHandler, shouldCloseConnection);
   }
 
   private <T> CompletableFuture<RestResponse<T>> executeRequestAsync(
@@ -307,15 +307,17 @@ public final class KsqlTarget {
       final Object requestBody,
       final Supplier<R> responseSupplier,
       final Function<Buffer, T> chunkMapper,
+      final String delimiter,
       final Consumer<T> chunkHandler,
       final CompletableFuture<Void> shouldCloseConnection
   ) {
     return executeSync(httpMethod, path, Optional.empty(), requestBody,
         resp -> responseSupplier.get(),
         (resp, vcf) -> {
+        final RecordParser recordParser = RecordParser.newDelimited(delimiter, resp);
         final AtomicBoolean end = new AtomicBoolean(false);
-        resp.exceptionHandler(vcf::completeExceptionally);
-        resp.handler(buff -> {
+        recordParser.exceptionHandler(vcf::completeExceptionally);
+        recordParser.handler(buff -> {
           try {
             chunkHandler.accept(chunkMapper.apply(buff));
           } catch (Throwable t) {
@@ -323,7 +325,7 @@ public final class KsqlTarget {
             vcf.completeExceptionally(t);
           }
         });
-        resp.endHandler(v -> {
+        recordParser.endHandler(v -> {
           try {
             end.set(true);
             chunkHandler.accept(null);
@@ -464,6 +466,6 @@ public final class KsqlTarget {
   }
 
   private static List<StreamedRow> toRows(final ResponseWithBody resp) {
-    return KsqlTargetUtil.toRows(resp.getBody(), new AtomicReference<>(null));
+    return KsqlTargetUtil.toRows(resp.getBody());
   }
 }

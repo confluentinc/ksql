@@ -104,7 +104,7 @@ public class KsqlTargetUtilTest {
     final List<StreamedRow> rows =  KsqlTargetUtil.toRows(Buffer.buffer(
         "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
         + "{\"row\":{\"columns\":[\"Row1\"]}},\n"
-        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), new AtomicReference<>());
+        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"));
 
     // Then:
     assertThat(rows.size(), is(3));
@@ -125,46 +125,14 @@ public class KsqlTargetUtilTest {
   }
 
   @Test
-  public void toRows_withResidualBuffer() {
-    // When:
-    final AtomicReference<Buffer> residual = new AtomicReference<>();
-    final List<StreamedRow> rows =  KsqlTargetUtil.toRows(Buffer.buffer(
-        "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
-            + "{\"row\":{\"columns\""), residual);
-
-    // Then:
-    assertThat(rows.size(), is(1));
-    final StreamedRow row = rows.get(0);
-    assertThat(row.getHeader().isPresent(), is(true));
-    assertThat(row.getHeader().get().getQueryId().toString(), is("query_id_10"));
-    assertThat(row.getHeader().get().getSchema().key(), is(Collections.emptyList()));
-    assertThat(row.getHeader().get().getSchema().value().size(), is(1));
-    assertThat(row.getHeader().get().getSchema().value().get(0),
-        is (Column.of(ColumnName.of("col1"), SqlTypes.STRING, Namespace.VALUE, 0)));
-
-    final List<StreamedRow> rows2 =  KsqlTargetUtil.toRows(Buffer.buffer(
-        ":[\"Row1\"]}},\n"
-        + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), residual);
-
-    assertThat(rows2.size(), is(2));
-    final StreamedRow row2 = rows2.get(0);
-    assertThat(row2.getRow().isPresent(), is(true));
-    assertThat(row2.getRow().get().getColumns(), is(ImmutableList.of("Row1")));
-    final StreamedRow row3 = rows2.get(1);
-    assertThat(row3.getRow().isPresent(), is(true));
-    assertThat(row3.getRow().get().getColumns(), is(ImmutableList.of("Row2")));
-  }
-
-  @Test
   public void toRows_errorParsingNotAtEnd() {
     // When:
-    final AtomicReference<Buffer> residual = new AtomicReference<>();
     final Exception e = assertThrows(
         KsqlRestClientException.class,
         () -> KsqlTargetUtil.toRows(Buffer.buffer(
             "[{\"header\":{\"queryId\":\"query_id_10\",\"schema\":\"`col1` STRING\"}},\n"
                 + "{\"row\":{\"columns\"\n"
-                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"), residual)
+                + "{\"row\":{\"columns\":[\"Row2\"]}},\n"))
     );
 
     // Then:

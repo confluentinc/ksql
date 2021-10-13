@@ -21,7 +21,8 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -36,30 +37,45 @@ public final class ConnectKsqlSchemaTranslator {
 
   private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
 
+  private static final ConnectSchemaTranslationPolicies DEFAULT_POLICY =
+      ConnectSchemaTranslationPolicies.of();
+
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST);
 
-  private final Map<Type, BiFunction<ConnectKsqlSchemaTranslator, Schema, Schema>> connectToSql =
-      ImmutableMap.<Type, BiFunction<ConnectKsqlSchemaTranslator, Schema, Schema>>builder()
-          .put(Type.INT8, (instance, s) -> Schema.OPTIONAL_INT32_SCHEMA)
-          .put(Type.INT16, (instance, s) -> Schema.OPTIONAL_INT32_SCHEMA)
-          .put(Type.INT32, (instance, s) -> this.convertInt32Schema(s))
-          .put(Type.INT64, (instance, s) -> instance.convertInt64Schema(s))
-          .put(Type.FLOAT32, (instance, s) -> Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(Type.FLOAT64, (instance, s) -> Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(Type.STRING, (instance, s) -> Schema.OPTIONAL_STRING_SCHEMA)
-          .put(Type.BOOLEAN, (instance, s) -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
-          .put(Type.BYTES, (instance, s) -> instance.toKsqlBytesSchema(s))
-          .put(Type.ARRAY, (instance, s) -> instance.toKsqlArraySchema(s))
-          .put(Type.MAP, (instance, s) -> instance.toKsqlMapSchema(s))
-          .put(Type.STRUCT, (instance, s) -> instance.toKsqlStructSchema(s))
+  private final Map<Type, Function<Schema, Schema>> connectToSql =
+      ImmutableMap.<Type, Function<Schema, Schema>>builder()
+          .put(Type.INT8, s -> Schema.OPTIONAL_INT32_SCHEMA)
+          .put(Type.INT16, s -> Schema.OPTIONAL_INT32_SCHEMA)
+          .put(Type.INT32, s -> this.convertInt32Schema(s))
+          .put(Type.INT64, s -> this.convertInt64Schema(s))
+          .put(Type.FLOAT32, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(Type.FLOAT64, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
+          .put(Type.STRING, s -> Schema.OPTIONAL_STRING_SCHEMA)
+          .put(Type.BOOLEAN, s -> Schema.OPTIONAL_BOOLEAN_SCHEMA)
+          .put(Type.BYTES, s -> this.toKsqlBytesSchema(s))
+          .put(Type.ARRAY, s -> this.toKsqlArraySchema(s))
+          .put(Type.MAP, s -> this.toKsqlMapSchema(s))
+          .put(Type.STRUCT, s -> this.toKsqlStructSchema(s))
           .build();
 
   public static final Schema OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build();
   public static final Schema OPTIONAL_TIME_SCHEMA = Time.builder().optional().build();
   public static final Schema OPTIONAL_DATE_SCHEMA = Date.builder().optional().build();
 
-  public ConnectKsqlSchemaTranslator() {}
+  private final ConnectSchemaTranslationPolicies policies;
+
+  public ConnectKsqlSchemaTranslator() {
+    this(DEFAULT_POLICY);
+  }
+
+  public ConnectKsqlSchemaTranslator(final ConnectSchemaTranslationPolicies policies) {
+    this.policies = Objects.requireNonNull(policies, "policies");
+  }
+
+  public ConnectSchemaTranslationPolicies getPolicies() {
+    return this.policies;
+  }
 
   /**
    * Ensures all schema types are optional.
@@ -88,14 +104,14 @@ public final class ConnectKsqlSchemaTranslator {
   }
 
   private Schema toKsqlFieldSchema(final Schema schema) {
-    final BiFunction<ConnectKsqlSchemaTranslator, Schema, Schema> handler = connectToSql.get(
+    final Function<Schema, Schema> handler = connectToSql.get(
         schema.type());
     if (handler == null) {
       throw new UnsupportedTypeException(
           String.format("Unsupported type: %s", schema.type().getName()));
     }
 
-    return handler.apply(this, schema);
+    return handler.apply(schema);
   }
 
   private void checkMapKeyType(final Schema.Type type) {
@@ -113,7 +129,7 @@ public final class ConnectKsqlSchemaTranslator {
   }
 
   private Schema convertInt64Schema(final Schema schema) {
-    if (schema.name() == Timestamp.LOGICAL_NAME) {
+    if (Timestamp.LOGICAL_NAME.equals(schema.name())) {
       return OPTIONAL_TIMESTAMP_SCHEMA;
     } else {
       return Schema.OPTIONAL_INT64_SCHEMA;
@@ -121,9 +137,9 @@ public final class ConnectKsqlSchemaTranslator {
   }
 
   private Schema convertInt32Schema(final Schema schema) {
-    if (schema.name() == Time.LOGICAL_NAME) {
+    if (Time.LOGICAL_NAME.equals(schema.name())) {
       return OPTIONAL_TIME_SCHEMA;
-    } else if (schema.name() == Date.LOGICAL_NAME) {
+    } else if (Date.LOGICAL_NAME.equals(schema.name())) {
       return OPTIONAL_DATE_SCHEMA;
     } else {
       return Schema.OPTIONAL_INT32_SCHEMA;
@@ -158,7 +174,14 @@ public final class ConnectKsqlSchemaTranslator {
     for (final Field field : schema.fields()) {
       try {
         final Schema fieldSchema = toKsqlFieldSchema(field.schema());
-        schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+        if (policies.enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME)) {
+          schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+        } else if (policies.enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME)) {
+          schemaBuilder.field(field.name(), fieldSchema);
+        } else {
+          // Default to uppercase
+          schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
+        }
       } catch (final UnsupportedTypeException e) {
         log.error("Error inferring schema at field {}: {}", field.name(), e.getMessage());
       }

@@ -52,12 +52,16 @@ import org.apache.kafka.connect.errors.DataException;
  */
 public abstract class ConnectFormat implements Format {
 
+  // Schema Props:
+  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
+  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
+
   @Override
   public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties) {
     return new ConnectFormatSchemaTranslator(
         this,
         formatProperties,
-        new ConnectKsqlSchemaTranslator()
+        getConnectKsqlSchemaTranslator(formatProperties)
     );
   }
 
@@ -133,6 +137,19 @@ public abstract class ConnectFormat implements Format {
       Class<T> targetType,
       boolean isKey
   );
+
+  protected ConnectKsqlSchemaTranslator getConnectKsqlSchemaTranslator(
+      final Map<String, String> formatProperties) {
+    if (formatProperties.containsKey(KEY_SCHEMA_ID) || formatProperties.containsKey(
+        VALUE_SCHEMA_ID)) {
+      return new ConnectKsqlSchemaTranslator(ConnectSchemaTranslationPolicies.of(
+          ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME));
+    }
+
+    // Use uppercase policy by default
+    return new ConnectKsqlSchemaTranslator(
+        ConnectSchemaTranslationPolicies.of(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
+  }
 
   private static class ListToStructSerializer implements Serializer<List<?>> {
 

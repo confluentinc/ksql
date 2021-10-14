@@ -622,7 +622,6 @@ public class RestApiTest {
 
           String str = buffer.toString();
           if (str.startsWith("{") && str.contains("\"queryId\"")) {
-            System.out.println("HEADER IS " + str);
             start.release();
           }
           String[] parts = str.split("\n");
@@ -1069,8 +1068,6 @@ public class RestApiTest {
         if (metadata.getScalablePushRegistry().get().latestNumRegistered()
             < expectedScalablePushQueries
             || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
-          System.out.println("Checking push query " + metadata.getScalablePushRegistry().get().latestNumRegistered()
-          + " metadata.getScalablePushRegistry().get().latestHasAssignment() " + metadata.getScalablePushRegistry().get().latestHasAssignment());
           return false;
         }
       }

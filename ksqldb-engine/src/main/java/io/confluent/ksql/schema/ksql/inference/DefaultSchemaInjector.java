@@ -155,7 +155,7 @@ public class DefaultSchemaInjector implements Injector {
       return Optional.empty();
     }
 
-    SchemaAndId schemaAndId = getSchema(
+    final SchemaAndId schemaAndId = getSchema(
         props.getKafkaTopic(),
         props.getValueSchemaId(),
         valueFormat,
@@ -228,7 +228,7 @@ public class DefaultSchemaInjector implements Injector {
   private static void checkColumnsCompatibility(
       final Optional<Integer> schemaId,
       final ConfiguredStatement<CreateSource> statement,
-      final List<? extends SimpleColumn> connectColumns, boolean isKey) {
+      final List<? extends SimpleColumn> connectColumns, final boolean isKey) {
     /*
      * Check inferred columns from schema id and provided columns compatibility. Conditions:
      *   1. Schema id is provided

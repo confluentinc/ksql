@@ -13,7 +13,7 @@ As discussed in this [issue](https://github.com/confluentinc/ksql/issues/3634), 
 
 Major benefits are:
 * Let users easily reuse existing schemas in _schema registry_ without rewriting the schemas in `CREATE` command again which could be error-prone.
-* By using the scheme IDs, this can make sure ksqlDB doesn't accidentally uppercase the field names which may create incompatibility field names between schemas later.
+* By using the schema IDs, the user can enforce conventions like field name casing, for example to ensure ksqlDB doesn't uppercase the field names which may create incompatibility between schemas later.
 
 ## What is in scope
 * Fix always uppercase field names in schema conversions between _schema registry_ schemas and ksqlDB schemas.
@@ -54,13 +54,13 @@ partitions=1, key_format='avro', value_format='avro');
   * The fetched schema format from _schema_registry_ must match specified format in `WITH` clause. For example, if schema format for schema id in _schema_registry_ is `avro` but specified format in `WITH` clause is `protobuf`, an exception will be thrown.
   * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown.
   * Serde Features must be`WRAPPED` so that field names always exist. The reason is that if Serde Features has `UNWRAP_SINGLES` enabled, during translation, anonymous `ROWKEY` or `ROWVALUE` column name will be inserted for the schema first which makes the translated schema diverging from original schema in _Schema Registry_.
-  * Compatibility Checks. See section blow.
+  * Compatibility Checks. See section below.
 
 * `C*AS` command
   * `key_format` and `value_format` are optional. If specified, they must match format fetched from _schema_registry_.
   * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown.
   * Serde Features must be `WRAPPED` so that field names always exist.
-  * Compatibility Checks. See section blow.
+  * Compatibility Checks. See section below.
 
 ### Compatibility checks
 * Users can use `*_schema_id` with table elements in `CS/CT` command. For example, `CREATE STREAM stream_name (id INT KEY, value VARCHAR) with (kafka_topic='topic_name, value_schema_id=1, value_format='avro');`. In this case, schema fetched from _schema registry_ should be a superset of table elements and schema from _schema registry_ will be used as new schema.
@@ -89,7 +89,7 @@ Add newly supported properties to:
 * `docs/developer-guide/ksqldb-reference/create-table-as-select.md`
 
 ## Compatibility Implications
-`key_schema_id` and `value_schema_id` properties exists in ksqlDB codebase and it's possible to issue `CREATE` statement with them. The could be commands which already used them but those commands should be augmented and written to the command topic without the properties. As a result, adding more validation checks or changing how the properties should be handled have no compatibility issue.
+`key_schema_id` and `value_schema_id` properties exists in ksqlDB codebase and it's possible to issue `CREATE` statement with them. There could be commands which already used them but those commands should be augmented and written to the command topic without the properties. As a result, adding more validation checks or changing how the properties should be handled have no compatibility issue.
 
 ## Security Implications
 No

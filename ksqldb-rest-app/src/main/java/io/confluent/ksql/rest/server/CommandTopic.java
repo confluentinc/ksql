@@ -102,6 +102,9 @@ public class CommandTopic {
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
     final List<QueuedCommand> restoreCommands = Lists.newArrayList();
+    if (commandTopicBackup.commandTopicCorruption()) {
+      return restoreCommands;
+    }
 
     final long endOffset = getEndOffset();
 

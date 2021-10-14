@@ -246,6 +246,27 @@ public class RestoreCommandTopicIntegrationTest {
     assertTrue(realStateStore.exists());
   }
 
+  @Test
+  public void avoidRecreatingCommandTopicWithActiveBackup() {
+    // Given
+    TEST_HARNESS.ensureTopics("topic1");
+
+    makeKsqlRequest("CREATE STREAM TOPIC1 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream1 AS SELECT * FROM topic1;");
+
+    // When
+    // Delete the command topic
+    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+
+    REST_APP.stop();
+    REST_APP.start();
+
+    // Then
+    assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
+    assertThatEventually("Degraded State", this::isDegradedState, is(true));
+  }
+
   private boolean isDegradedState() {
     // If in degraded state, then the following command will return a warning
     final List<KsqlEntity> response = makeKsqlRequest(

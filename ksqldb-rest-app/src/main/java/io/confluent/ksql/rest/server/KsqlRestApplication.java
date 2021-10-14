@@ -93,6 +93,7 @@ import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
+import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
@@ -771,7 +772,8 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
-            restConfig.getCommandProducerProperties())
+            restConfig.getCommandProducerProperties()),
+        serviceContext
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -1027,6 +1029,15 @@ public final class KsqlRestApplication implements Executable {
   private void registerCommandTopic() {
 
     final String commandTopic = commandStore.getCommandTopicName();
+
+    if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
+        commandTopic,
+        serviceContext.getTopicClient(),
+        ksqlConfigNoPort)) {
+      log.warn("Command topic is not found and it is not in sync with backup" +
+          "Use backup to recover the command topic.");
+      return;
+    }
 
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,

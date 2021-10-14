@@ -265,6 +265,9 @@ public class RestoreCommandTopicIntegrationTest {
     // Then
     assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
+
+    // Create command topic at the end for teardown
+    TEST_HARNESS.ensureTopics(commandTopic);
   }
 
   private boolean isDegradedState() {

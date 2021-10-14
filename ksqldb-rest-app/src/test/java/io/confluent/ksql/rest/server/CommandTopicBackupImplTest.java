@@ -382,4 +382,21 @@ public class CommandTopicBackupImplTest {
         "%s/backup_command_topic_111", backupLocation.getRoot().getAbsolutePath()
     )));
   }
+
+  @Test
+  public void deletedCommandTopicMarksCommandBackupAsCorrupted() {
+    // Given
+    commandTopicBackup.initialize();
+    commandTopicBackup.writeRecord(command1);
+    commandTopicBackup.writeRecord(command2);
+
+    // When
+    // Set command topic as deleted and a second initialize call will
+    // detect it is out of sync and will mark command back as corrupted.
+    when(topicClient.isTopicExists(COMMAND_TOPIC_NAME)).thenReturn(false);
+    commandTopicBackup.initialize();
+
+    // Then:
+    assertThat(commandTopicBackup.commandTopicCorruption(), is(true));
+  }
 }

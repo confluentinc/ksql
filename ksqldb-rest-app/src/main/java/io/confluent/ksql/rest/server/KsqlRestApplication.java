@@ -88,12 +88,12 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
-import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
@@ -1034,8 +1034,8 @@ public final class KsqlRestApplication implements Executable {
         commandTopic,
         serviceContext.getTopicClient(),
         ksqlConfigNoPort)) {
-      log.warn("Command topic is not found and it is not in sync with backup" +
-          "Use backup to recover the command topic.");
+      log.warn("Command topic is not found and it is not in sync with backup"
+          + "Use backup to recover the command topic.");
       return;
     }
 

@@ -17,8 +17,9 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.io.File;
+import java.lang.reflect.Array;
+import java.util.Optional;
 
 public final class CommandTopicBackupUtil {
 
@@ -37,11 +38,14 @@ public final class CommandTopicBackupUtil {
       return false;
     }
 
-    String backupLocation = CommandTopicBackupUtil.backupLocation(ksqlConfig);
+    final String backupLocation = CommandTopicBackupUtil.backupLocation(ksqlConfig);
     if (!backupLocation.isEmpty()) {
-      File backupDir = new File(backupLocation);
+      final File backupDir = new File(backupLocation);
       if (backupDir.exists() && backupDir.isDirectory()) {
-        return backupDir.listFiles().length > 0;
+        final int fileCount = Optional.ofNullable(backupDir.listFiles())
+            .map(Array::getLength)
+            .orElse(0);
+        return fileCount > 0;
       }
     }
     return false;

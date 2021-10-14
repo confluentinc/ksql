@@ -249,11 +249,11 @@ public class RestoreCommandTopicIntegrationTest {
   @Test
   public void avoidRecreatingCommandTopicWithActiveBackup() {
     // Given
-    TEST_HARNESS.ensureTopics("topic1");
+    TEST_HARNESS.ensureTopics("topic5");
 
-    makeKsqlRequest("CREATE STREAM TOPIC1 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE STREAM stream1 AS SELECT * FROM topic1;");
+    makeKsqlRequest("CREATE STREAM TOPIC5 (ID INT) "
+        + "WITH (KAFKA_TOPIC='topic5', VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream5 AS SELECT * FROM topic5;");
 
     // When
     // Delete the command topic
@@ -266,7 +266,7 @@ public class RestoreCommandTopicIntegrationTest {
     assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
 
-    // Create command topic at the end for teardown
+    // Create command topic at the end for teardown to delete it
     TEST_HARNESS.ensureTopics(commandTopic);
   }
 

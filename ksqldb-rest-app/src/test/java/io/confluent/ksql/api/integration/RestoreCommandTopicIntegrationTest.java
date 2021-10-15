@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.common.utils.Time;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.DefaultErrorMessages;
@@ -244,30 +245,6 @@ public class RestoreCommandTopicIntegrationTest {
     // Then:
     assertFalse(fakeStateStore.exists());
     assertTrue(realStateStore.exists());
-  }
-
-  @Test
-  public void avoidRecreatingCommandTopicWithActiveBackup() {
-    // Given
-    TEST_HARNESS.ensureTopics("topic5");
-
-    makeKsqlRequest("CREATE STREAM TOPIC5 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic5', VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE STREAM stream5 AS SELECT * FROM topic5;");
-
-    // When
-    // Delete the command topic
-    TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
-
-    REST_APP.stop();
-    REST_APP.start();
-
-    // Then
-    assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
-    assertThatEventually("Degraded State", this::isDegradedState, is(true));
-
-    // Create command topic at the end for teardown to delete it
-    TEST_HARNESS.ensureTopics(commandTopic);
   }
 
   private boolean isDegradedState() {

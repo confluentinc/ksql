@@ -75,12 +75,22 @@ public class KsqlVersionTest {
   }
 
   @Test
-  public void shouldParseReleaseStabilizations() {
+  public void shouldParseReleaseStabilizationsCandidates() {
     // When:
     final KsqlVersion result = KsqlVersion.parse("7.1.0-ksqldb-rest-app.2-496-rc1");
 
     // Then:
     assertThat(result.getName(), is("7.1.0-ksqldb-rest-app.2-496-rc1"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(7, 1, 0)));
+  }
+
+  @Test
+  public void shouldParseReleaseStabilizationsFinalCandidates() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("7.1.0-ksqldb-rest-app.2-496");
+
+    // Then:
+    assertThat(result.getName(), is("7.1.0-ksqldb-rest-app.2-496"));
     assertThat(result.getVersion(), is(SemanticVersion.of(7, 1, 0)));
   }
 
@@ -103,7 +113,7 @@ public class KsqlVersionTest {
 
     // Then:
     assertThat(e.getMessage(), is("Failed to parse version: '7.1.0-ksqldb-rest-app.2--rc1'. "
-            + "Version must be in format '(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))*(\\.\\d+-\\d+-\\w*)?'. "));
+            + "Version must be in format '(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))*(\\.\\d+-\\d+)?(-rc\\d*)?'. "));
   }
 
   @Test

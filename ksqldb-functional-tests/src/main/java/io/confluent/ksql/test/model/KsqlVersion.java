@@ -39,12 +39,12 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
    *  (?:-([A-Za-z0-9]+|\d+))*
    *  A KsqlVersion can also have a stabilization artifact such as: 7.1.0-ksqldb-rest-app.21-496-rc1
    *  The ".21-496-rc1" is captured by the third part of the regex as:
-   *  (\.\d+-\d+-\w*)?
+   *  (\.\d+-\d+)?(-rc\d*)?
   */
   private static final Pattern VERSION_PATTERN = Pattern.compile(
           "(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?"
               + "(?:-([A-Za-z0-9]+|\\d+))*"
-              + "(\\.\\d+-\\d+-\\w*)?");
+              + "(\\.\\d+-\\d+)?(-rc\\d*)?");
 
   @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =

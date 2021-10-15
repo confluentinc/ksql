@@ -128,7 +128,6 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     KsqlRestoreCommandTopic.main(
         new String[]{
             "--yes",
-            "-s",
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
         });

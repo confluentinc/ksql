@@ -164,7 +164,7 @@ You can set up IntelliJ for CheckStyle. First install the CheckStyle IDEA plugin
 
     IntelliJ → Preferences → Tools → CheckStyle
 
-    In top left corner select CheckStyle version 8.18 (newer versions fail to parse the provided XML)
+    In top left corner select CheckStyle version 8.44 or newer (older versions fail to parse the provided XML)
 
     - Add a new configurations file using the '+' button:
        Description: Confluent Checks

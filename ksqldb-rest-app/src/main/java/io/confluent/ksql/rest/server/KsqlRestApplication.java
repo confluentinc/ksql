@@ -1034,7 +1034,7 @@ public final class KsqlRestApplication implements Executable {
         commandTopic,
         serviceContext.getTopicClient(),
         ksqlConfigNoPort)) {
-      log.warn("Command topic is not found and it is not in sync with backup"
+      log.warn("Command topic is not found and it is not in sync with backup. "
           + "Use backup to recover the command topic.");
       return;
     }

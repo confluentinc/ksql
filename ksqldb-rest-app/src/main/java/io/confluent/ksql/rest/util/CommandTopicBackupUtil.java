@@ -27,7 +27,9 @@ public final class CommandTopicBackupUtil {
   }
 
   public static String backupLocation(final KsqlConfig ksqlConfig) {
-    return ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION);
+    return Optional.ofNullable(
+        ksqlConfig.getString(KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION))
+        .orElse("");
   }
 
   public static boolean commandTopicMissingWithValidBackup(

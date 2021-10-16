@@ -16,7 +16,6 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.Collection;
 import java.util.List;

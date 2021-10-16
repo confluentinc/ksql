@@ -31,7 +31,6 @@ import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

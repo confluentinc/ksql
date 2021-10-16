@@ -34,18 +34,17 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.RowOffsets;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
-import io.confluent.ksql.util.RowMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -518,8 +517,9 @@ public class PushRouting implements AutoCloseable {
         return;
       }
       if (row.getRow().isPresent()) {
-        if (!transientQueryQueue.acceptRowNonBlocking(null,
-            GenericRow.fromList(row.getRow().get().getColumns()), Optional.empty())) {
+        final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(
+            new KeyValue<>(null, GenericRow.fromList(row.getRow().get().getColumns())));
+        if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
           callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
           close();
           return;
@@ -592,7 +592,9 @@ public class PushRouting implements AutoCloseable {
       if (closed) {
         return;
       }
-      if (!transientQueryQueue.acceptRowNonBlocking(null, row.value(), Optional.empty())) {
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(
+          new KeyValue<>(null, row.value()));
+      if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();
         return;

@@ -17,7 +17,6 @@ package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.List;
 import org.reactivestreams.Publisher;

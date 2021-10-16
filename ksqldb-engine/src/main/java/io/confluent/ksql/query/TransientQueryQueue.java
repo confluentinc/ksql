@@ -21,10 +21,8 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
-import io.confluent.ksql.util.RowMetadata;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -119,7 +117,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
       }
 
       final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
-      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row, Optional.empty());
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row);
 
       while (!closed) {
         if (rowQueue.offer(keyValueMetadata, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
@@ -136,21 +134,16 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
   /**
    * Accepts the rows without blocking.
-   * @param key The key
-   * @param value The value
+   * @param keyValueMetadata The key value metadata to accept
    * @return If the row was accepted or discarded for an acceptable reason, false if it was rejected
    *     because the queue was full.
    */
-  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value,
-      final Optional<RowMetadata> rowMetadata) {
+  public boolean acceptRowNonBlocking(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata) {
     try {
       if (passedLimit()) {
         return true;
       }
-
-      final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
-      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(row,
-          rowMetadata);
 
       if (!closed) {
         if (!rowQueue.offer(keyValueMetadata, 0, TimeUnit.MILLISECONDS)) {

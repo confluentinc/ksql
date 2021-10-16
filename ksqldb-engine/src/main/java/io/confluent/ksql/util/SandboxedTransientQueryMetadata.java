@@ -87,7 +87,8 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
       return null;
     }
 
-    public void drainTo(final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
+    public void drainTo(
+        final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
       throwUseException();
     }
 

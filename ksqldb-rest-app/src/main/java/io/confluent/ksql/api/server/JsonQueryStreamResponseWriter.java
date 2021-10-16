@@ -18,8 +18,8 @@ package io.confluent.ksql.api.server;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.RowOffsets;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.RowOffsets;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
@@ -66,7 +66,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeRowOffsets(RowOffsets rowOffsets) {
+  public QueryStreamResponseWriter writeRowOffsets(final RowOffsets rowOffsets) {
     writeBuffer(ServerUtils.serializeObject(rowOffsets));
     return this;
   }

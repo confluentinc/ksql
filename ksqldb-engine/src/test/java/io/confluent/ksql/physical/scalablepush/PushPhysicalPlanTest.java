@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
@@ -74,7 +75,7 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false);
 
-    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    final TestSubscriber<QueryRow> subscriber = new TestSubscriber<>();
     pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     context.owner().setPeriodic(50, timerId -> {
@@ -101,7 +102,7 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.droppedRows()).thenReturn(false, false, true);
 
-    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    final TestSubscriber<QueryRow> subscriber = new TestSubscriber<>();
     pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     context.owner().setPeriodic(50, timerId -> {
@@ -133,7 +134,7 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     when(pushDataSourceOperator.hasError()).thenReturn(false, false, true);
 
-    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    final TestSubscriber<QueryRow> subscriber = new TestSubscriber<>();
     pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     context.owner().setPeriodic(50, timerId -> {
@@ -165,7 +166,7 @@ public class PushPhysicalPlanTest {
     doNothing().when(pushDataSourceOperator).setNewRowCallback(runnableCaptor.capture());
     doThrow(new RuntimeException("Error on open")).when(root).open();
 
-    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    final TestSubscriber<QueryRow> subscriber = new TestSubscriber<>();
     pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     while (subscriber.getError() == null) {
@@ -182,7 +183,7 @@ public class PushPhysicalPlanTest {
     when(pushDataSourceOperator.droppedRows()).thenReturn(false);
     doThrow(new RuntimeException("Error on next")).when(root).next();
 
-    final TestSubscriber<List<?>> subscriber = new TestSubscriber<>();
+    final TestSubscriber<QueryRow> subscriber = new TestSubscriber<>();
     pushPhysicalPlan.subscribeAndExecute(Optional.of(subscriber));
 
     while (subscriber.getError() == null) {

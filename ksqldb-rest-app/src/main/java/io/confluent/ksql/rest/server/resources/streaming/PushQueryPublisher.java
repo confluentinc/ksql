@@ -28,6 +28,7 @@ import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.rest.entity.RowOffsets;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -35,7 +36,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
@@ -185,13 +186,21 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
     @Override
     public Collection<StreamedRow> poll() {
-      final List<KeyValue<List<?>, GenericRow>> rows = Lists.newLinkedList();
+      final List<KeyValueMetadata<List<?>, GenericRow>> rows = Lists.newLinkedList();
       queryMetadata.getRowQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;
       } else {
         return rows.stream()
-            .map(kv -> StreamedRow.pushRow(kv.value()))
+            .map(kv -> {
+              if (kv.getRowMetadata().isPresent()) {
+                return StreamedRow.progressToken(new RowOffsets(
+                    kv.getRowMetadata().get().getStartOffsets(),
+                    kv.getRowMetadata().get().getOffsets()));
+              } else {
+                return StreamedRow.pushRow(kv.getKeyValue().value());
+              }
+            })
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

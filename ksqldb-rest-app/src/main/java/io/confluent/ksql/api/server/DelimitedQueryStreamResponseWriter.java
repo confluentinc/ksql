@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.RowOffsets;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.Objects;
@@ -57,6 +58,12 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   @Override
   public QueryStreamResponseWriter writeRow(final GenericRow row) {
     response.write(ServerUtils.serializeObject(row.values()).appendString("\n"));
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeRowOffsets(RowOffsets rowOffsets) {
+    response.write(ServerUtils.serializeObject(rowOffsets).appendString("\n"));
     return this;
   }
 

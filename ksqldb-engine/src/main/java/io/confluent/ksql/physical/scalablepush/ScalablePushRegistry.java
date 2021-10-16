@@ -18,9 +18,9 @@ package io.confluent.ksql.physical.scalablepush;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.streams.materialization.TableRow;
-import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.Window;
+import io.confluent.ksql.physical.common.QueryRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
@@ -141,19 +141,22 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
       try {
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
-        final TableRow row;
+        final QueryRow row;
         if (!windowed) {
           final GenericKey keyCopy = GenericKey.fromList(
               key != null ? ((GenericKey) key).values() : Collections.emptyList());
           final GenericRow valueCopy = GenericRow.fromList(value.values());
-          row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp);
+          row = QueryRowImpl.of(logicalSchema, keyCopy, Optional.empty(), valueCopy, timestamp);
         } else {
           final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
-          final Windowed<GenericKey> keyCopy =
-              new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
-                  windowedKey.window());
+          final GenericKey keyCopy = GenericKey.fromList(windowedKey.key().values());
+          new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
+              windowedKey.window());
           final GenericRow valueCopy = GenericRow.fromList(value.values());
-          row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
+          row = QueryRowImpl.of(logicalSchema, keyCopy, Optional.of(Window.of(
+              windowedKey.window().startTime(),
+              windowedKey.window().endTime()
+          )), valueCopy, timestamp);
         }
         queue.offer(row);
       } catch (final Throwable t) {

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
@@ -121,9 +122,9 @@ public class TransientQueryQueueTest {
     queue.acceptRow(KEY_TWO, VAL_TWO);
 
     // When:
-    final KeyValue<List<?>, GenericRow> result1 = queue.poll(1, TimeUnit.SECONDS);
-    final KeyValue<List<?>, GenericRow> result2 = queue.poll(1, TimeUnit.SECONDS);
-    final KeyValue<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
+    final KeyValueMetadata<List<?>, GenericRow> result1 = queue.poll(1, TimeUnit.SECONDS);
+    final KeyValueMetadata<List<?>, GenericRow> result2 = queue.poll(1, TimeUnit.SECONDS);
+    final KeyValueMetadata<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
 
     // Then:
     assertThat(result1, is(keyValue(KEY_ONE, VAL_ONE)));
@@ -189,8 +190,8 @@ public class TransientQueryQueueTest {
     queue.setLimitHandler(limitHandler);
   }
 
-  private List<KeyValue<List<?>, GenericRow>> drainValues() {
-    final List<KeyValue<List<?>, GenericRow>> entries = new ArrayList<>();
+  private List<KeyValueMetadata<List<?>, GenericRow>> drainValues() {
+    final List<KeyValueMetadata<List<?>, GenericRow>> entries = new ArrayList<>();
     queue.drainTo(entries);
     return entries;
   }

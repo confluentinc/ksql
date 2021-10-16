@@ -52,6 +52,7 @@ public final class StreamedRow {
   private final Optional<KsqlErrorMessage> errorMessage;
   private final Optional<String> finalMessage;
   private final Optional<KsqlHostInfoEntity> sourceHost;
+  private final Optional<RowOffsets> rowOffsets;
 
   /**
    * The header used in queries.
@@ -74,6 +75,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -87,7 +89,22 @@ public final class StreamedRow {
         Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
+    );
+  }
+
+  /**
+   * Row returned from a push query.
+   */
+  public static StreamedRow progressToken(final RowOffsets rowOffsets) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(rowOffsets)
     );
   }
 
@@ -103,7 +120,8 @@ public final class StreamedRow {
         Optional.of(DataRow.row(value.values())),
         Optional.empty(),
         Optional.empty(),
-        sourceHost
+        sourceHost,
+        Optional.empty()
     );
   }
 
@@ -111,6 +129,7 @@ public final class StreamedRow {
     return new StreamedRow(
         Optional.empty(),
         Optional.of(DataRow.tombstone(columns.values())),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty()
@@ -123,6 +142,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.of(new KsqlErrorMessage(errorCode, exception)),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -133,6 +153,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.of(finalMessage),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -143,15 +164,17 @@ public final class StreamedRow {
       @JsonProperty("row") final Optional<DataRow> row,
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
       @JsonProperty("finalMessage") final Optional<String> finalMessage,
-      @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost
+      @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost,
+      @JsonProperty("rowOffsets") final Optional<RowOffsets> rowOffsets
   ) {
     this.header = requireNonNull(header, "header");
     this.row = requireNonNull(row, "row");
     this.errorMessage = requireNonNull(errorMessage, "errorMessage");
     this.finalMessage = requireNonNull(finalMessage, "finalMessage");
     this.sourceHost = requireNonNull(sourceHost, "sourceHost");
+    this.rowOffsets = requireNonNull(rowOffsets, "progress");
 
-    checkUnion(header, row, errorMessage, finalMessage);
+    checkUnion(header, row, errorMessage, finalMessage, rowOffsets);
   }
 
   public Optional<Header> getHeader() {
@@ -174,6 +197,10 @@ public final class StreamedRow {
     return sourceHost;
   }
 
+  public Optional<RowOffsets> getRowOffsets() {
+    return rowOffsets;
+  }
+
   @JsonIgnore
   public boolean isTerminal() {
     return finalMessage.isPresent() || errorMessage.isPresent();
@@ -192,12 +219,13 @@ public final class StreamedRow {
         && Objects.equals(row, that.row)
         && Objects.equals(errorMessage, that.errorMessage)
         && Objects.equals(finalMessage, that.finalMessage)
-        && Objects.equals(sourceHost, that.sourceHost);
+        && Objects.equals(sourceHost, that.sourceHost)
+        && Objects.equals(rowOffsets, that.rowOffsets);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost);
+    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost, rowOffsets);
   }
 
   @Override

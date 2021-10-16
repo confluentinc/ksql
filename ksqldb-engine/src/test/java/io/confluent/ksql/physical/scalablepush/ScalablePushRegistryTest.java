@@ -104,8 +104,8 @@ public class ScalablePushRegistryTest {
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
     when(windowed.window()).thenReturn(window);
-    when(window.start()).thenReturn(10L);
-    when(window.end()).thenReturn(14L);
+    when(window.startTime()).thenReturn(Instant.ofEpochMilli(10L));
+    when(window.endTime()).thenReturn(Instant.ofEpochMilli(14L));
     when(windowed.key()).thenReturn(genericKey);
 
 
@@ -119,7 +119,7 @@ public class ScalablePushRegistryTest {
     processor.process(record);
     verify(processingQueue).offer(
         QueryRowImpl.of(SCHEMA, GenericKey.fromList(KEY), Optional.of(io.confluent.ksql.Window.of(
-            Instant.ofEpochSecond(10L), Instant.ofEpochMilli(14))),
+            Instant.ofEpochMilli(10L), Instant.ofEpochMilli(14))),
             GenericRow.fromList(VALUE), TIMESTAMP));
     registry.unregister(processingQueue);
     assertThat(registry.numRegistered(), is(0));

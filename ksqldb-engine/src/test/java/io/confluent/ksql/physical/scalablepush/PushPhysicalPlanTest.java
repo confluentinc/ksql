@@ -9,7 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.common.QueryRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.query.QueryId;
@@ -34,8 +37,11 @@ import org.reactivestreams.Subscription;
 @RunWith(MockitoJUnitRunner.class)
 public class PushPhysicalPlanTest {
 
-  private static final List<?> ROW1 = ImmutableList.of(1, "abc");
-  private static final List<?> ROW2 = ImmutableList.of(2, "def");
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder().build();
+  private static final QueryRow ROW1 = QueryRowImpl.of(SCHEMA, GenericKey.genericKey(),
+      Optional.empty(), GenericRow.fromList(ImmutableList.of(1, "abc")), 0);
+  private static final QueryRow ROW2 = QueryRowImpl.of(SCHEMA, GenericKey.genericKey(),
+      Optional.empty(), GenericRow.fromList(ImmutableList.of(2, "def")), 0);
 
   @Mock
   private AbstractPhysicalOperator root;

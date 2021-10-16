@@ -492,7 +492,7 @@ public class PushRoutingTest {
       rows.add(kv.getKeyValue().value().values());
     }
     handle.close();
-    assertThat(rows.get(0), is(LOCAL_ROW1));
+    assertThat(rows.get(0), is(LOCAL_ROW1.value().values()));
     assertThat(handle.getError().getMessage(), containsString("Hit limit of request queue"));
   }
 

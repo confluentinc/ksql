@@ -6,18 +6,22 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -47,6 +51,22 @@ public class TableScanOperatorTest {
   private Row ROW3_1;
   @Mock
   private Row ROW3_2;
+  @Mock
+  private GenericKey GKEY11;
+  @Mock
+  private GenericKey GKEY12;
+  @Mock
+  private GenericKey GKEY31;
+  @Mock
+  private GenericKey GKEY32;
+
+  @Before
+  public void setUp() {
+    when(ROW1_1.key()).thenReturn(GKEY11);
+    when(ROW1_2.key()).thenReturn(GKEY12);
+    when(ROW3_1.key()).thenReturn(GKEY31);
+    when(ROW3_2.key()).thenReturn(GKEY32);
+  }
 
   @Test
   public void shouldLookupRowsForTableScan() {
@@ -74,10 +94,10 @@ public class TableScanOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1_1));
-    assertThat(lookupOperator.next(), is(ROW1_2));
-    assertThat(lookupOperator.next(), is(ROW3_1));
-    assertThat(lookupOperator.next(), is(ROW3_2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY11));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY12));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY31));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY32));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(4L));
   }
@@ -106,8 +126,8 @@ public class TableScanOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1_1));
-    assertThat(lookupOperator.next(), is(ROW1_2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY11));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY12));
     when(shouldCancelOperations.isDone()).thenReturn(true);
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.next(), is(nullValue()));

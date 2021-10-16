@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -38,8 +39,18 @@ public class KeyValueMetadata<K, V> {
     this.rowMetadata = Optional.of(rowMetadata);
   }
 
-  public Optional<KeyValue<K, V>> getKeyValue() {
+  public Optional<KeyValue<K, V>> getKeyValueOptional() {
     return keyValue;
+  }
+
+  /**
+   * Since this is so common and many uses always have it, just expose a version which assumes
+   * it's there as a convenience method.
+   * @return The keyvalue object.
+   */
+  public KeyValue<K, V> getKeyValue() {
+    Preconditions.checkState(keyValue.isPresent(), "This code path assumes there's a keyvalue");
+    return keyValue.get();
   }
 
   public Optional<RowMetadata> getRowMetadata() {

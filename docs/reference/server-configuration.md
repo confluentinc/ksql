@@ -188,8 +188,8 @@ The default value is 2000ms.
 
 ## `ksql.heartbeat.thread.pool.size`
 
-Controls the size of the thread pool used for processing and sending heartbeats as well as
-determining changes in the cluster. The default value is 3. Care should be
+If heartbeats are enabled, this config the size of the thread pool used for processing and sending 
+heartbeats as well as determining changes in the cluster. The default value is 3. Care should be
 taken when changing this value.
 
 ## `ksql.internal.listener`

@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 public final class DropSourceFactory {
   private final MetaStore metaStore;
@@ -58,13 +59,14 @@ public final class DropSourceFactory {
     final DataSource dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (!ifExists) {
-        throw new KsqlException("Source " + sourceName.text() + " does not exist.");
+        throw new KsqlException(StringUtils.capitalize(dataSourceType.getKsqlType().toLowerCase())
+            + " " + sourceName.text() + " does not exist.");
       }
     } else if (dataSource.getDataSourceType() != dataSourceType) {
       throw new KsqlException(String.format(
           "Incompatible data source type is %s, but statement was DROP %s",
-          dataSource.getDataSourceType() == DataSourceType.KSTREAM ? "STREAM" : "TABLE",
-          dataSourceType == DataSourceType.KSTREAM ? "STREAM" : "TABLE"
+          dataSource.getDataSourceType().getKsqlType().toLowerCase(),
+          dataSourceType.getKsqlType().toLowerCase()
       ));
     } else if (dataSource.isSource() && deleteTopic) {
       throw new KsqlException("Cannot delete topic for read-only source: " + sourceName.text());

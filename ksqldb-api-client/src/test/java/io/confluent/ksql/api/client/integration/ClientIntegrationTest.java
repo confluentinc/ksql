@@ -710,7 +710,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Source NONEXISTENT does not exist"));
+    assertThat(e.getCause().getMessage(), containsString("Stream NONEXISTENT does not exist"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
   }
 

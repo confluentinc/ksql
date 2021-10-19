@@ -113,7 +113,23 @@ public class DropSourceFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Source bob does not exist."));
+    assertThat(e.getMessage(), containsString("Stream bob does not exist."));
+  }
+
+  @Test
+  public void shouldFailDropSourceOnMissingSourceWithNoIfExistsForTable() {
+    // Given:
+    final DropTable dropTable = new DropTable(SOME_NAME, false, true);
+    when(metaStore.getSource(SOME_NAME)).thenReturn(null);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> dropSourceFactory.create(dropTable)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Table bob does not exist."));
   }
 
   @Test
@@ -131,7 +147,7 @@ public class DropSourceFactoryTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Incompatible data source type is TABLE"));
+    assertThat(e.getMessage(), containsString("Incompatible data source type is table"));
   }
 
   @Test

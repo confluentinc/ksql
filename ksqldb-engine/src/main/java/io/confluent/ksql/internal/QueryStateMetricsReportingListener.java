@@ -120,17 +120,21 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
       this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null.");
       this.ticker = Objects.requireNonNull(ticker, "ticker");
 
+      final String type = queryId.toLowerCase().contains("transient") ? "transient_" : "query_" ;
+
+      final String tag = "_confluent-ksql-" + groupPrefix + type + queryId;
+
       this.stateMetricName = metrics.metricName(
           "query-status",
           groupPrefix + "ksql-queries",
           "The current status of the given query.",
-          Collections.singletonMap("status", queryId));
+          Collections.singletonMap("status", tag));
 
       errorMetricName = metrics.metricName(
           "error-status",
           groupPrefix + "ksql-queries",
           "The current error status of the given query, if the state is in ERROR state",
-          Collections.singletonMap("status", queryId)
+          Collections.singletonMap("status", tag)
       );
       this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
       this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);

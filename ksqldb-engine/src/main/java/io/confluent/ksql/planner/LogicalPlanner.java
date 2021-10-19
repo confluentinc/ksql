@@ -73,6 +73,7 @@ import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SingleSourcePlanNode;
@@ -99,6 +100,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -181,6 +183,10 @@ public class LogicalPlanner {
       );
     }
 
+    if (analysis.getLimitClause().isPresent()) {
+      currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
+    }
+
     return buildOutputNode(currentNode);
   }
 
@@ -217,6 +223,10 @@ public class LogicalPlanner {
       if (!queryPlannerOptions.getTableScansEnabled()) {
         throw QueryFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
       }
+    }
+
+    if (analysis.getLimitClause().isPresent()) {
+      currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
     }
 
     currentNode = new QueryProjectNode(
@@ -421,6 +431,13 @@ public class LogicalPlanner {
     validator.validateFilterExpression(filterExpression);
 
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
+  }
+  private QueryLimitNode buildLimitNode(
+          final PlanNode sourcePlanNode,
+          final OptionalInt limit
+  ) {
+    return new QueryLimitNode(new PlanNodeId("LimitClause"),
+            sourcePlanNode, limit);
   }
 
   private UserRepartitionNode buildUserRepartitionNode(

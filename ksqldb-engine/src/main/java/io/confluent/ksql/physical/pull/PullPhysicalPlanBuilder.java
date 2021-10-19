@@ -32,6 +32,7 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperator;
+import io.confluent.ksql.physical.pull.operators.LimitOperator;
 import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -45,6 +46,7 @@ import io.confluent.ksql.planner.plan.NonKeyConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
@@ -125,6 +127,8 @@ public class PullPhysicalPlanBuilder {
       } else if (currentLogicalNode instanceof QueryFilterNode) {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
         seenSelectOperator = true;
+      } else if (currentLogicalNode instanceof QueryLimitNode) {
+        currentPhysicalOp = translateLimitNode((QueryLimitNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
             (DataSourceNode) currentLogicalNode);
@@ -189,6 +193,16 @@ public class PullPhysicalPlanBuilder {
                 QueryType.PULL_QUERY, contextStacker.push("SELECT").getQueryContext())
         );
     return new SelectOperator(logicalNode, logger);
+  }
+
+  private LimitOperator translateLimitNode(final QueryLimitNode logicalNode) {
+    final ProcessingLogger logger = processingLogContext
+            .getLoggerFactory()
+            .getLogger(
+                    QueryLoggerUtil.queryLoggerName(
+                            QueryType.PULL_QUERY, contextStacker.push("LIMIT").getQueryContext())
+            );
+    return new LimitOperator(logicalNode, logger);
   }
 
   private PullPhysicalPlanType getPlanType() {

@@ -22,7 +22,22 @@ import java.util.List;
  * as well as push query continuation offsets.
  */
 public interface OffsetVector {
+
+  /**
+   * Merges other into this OffsetVector updating common offset to be the maximum of this and other
+   */
   void merge(OffsetVector other);
+
+  /**
+   *  Adds an entry if no entry for this topic/partition exists,
+   *  otherwise the entry will be updated as the max of existing and offset
+   */
+  void update(String topic, int partition, long offset);
+
+  /**
+   * Returns true if all partitions of this vector have offsets greater than or equal to other.
+   */
+  boolean dominates(OffsetVector other);
 
   /**
    * Returns true if all partitions of this vector have offsets less than or equal to other.
@@ -35,4 +50,9 @@ public interface OffsetVector {
    * @return The list of offsets
    */
   List<Long> getDenseRepresentation();
+
+  /**
+   * Returns a string token for this vector
+   */
+  String serialize();
 }

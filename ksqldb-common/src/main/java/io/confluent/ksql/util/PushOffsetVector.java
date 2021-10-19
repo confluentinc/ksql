@@ -56,4 +56,20 @@ public class PushOffsetVector implements OffsetVector {
   public List<Long> getOffsets() {
     return ImmutableList.copyOf(offsets);
   }
+
+  @JsonIgnore
+  @Override
+  public boolean dominates(final OffsetVector other) {
+    throw new UnsupportedOperationException("Unsupported");
+  }
+
+  @Override
+  public void update(final String topic, final int partition, final long offset) {
+    throw new UnsupportedOperationException("Unsupported");
+  }
+
+  @Override
+  public String serialize() {
+    throw new UnsupportedOperationException("Unsupported");
+  }
 }

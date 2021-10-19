@@ -23,7 +23,7 @@ public class QueryLimitNode extends SingleSourcePlanNode {
 
     @Override
     public SchemaKStream<?> buildStream(final PlanBuildContext buildCtx) {
-        throw new UnsupportedOperationException();
+        return getSource().buildStream(buildCtx);
     }
 
     public int getLimit() {return limit;}

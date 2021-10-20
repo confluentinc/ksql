@@ -38,6 +38,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.HostStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -225,15 +226,25 @@ public class SystemAuthenticationFunctionalTest {
       Thread.sleep(6000);
 
       // When:
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1));
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1));
+      final HostStatusEntity host0Up = waitForRemoteServerToChangeStatus(
+          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1))
+          .getClusterStatus().get(host0);
+      final HostStatusEntity host1Up = waitForRemoteServerToChangeStatus(
+          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp, Optional.of(USER1))
+          .getClusterStatus().get(host1);
       ClusterStatusResponse response = sendClusterStatusRequest(REST_APP_0, Optional.of(USER1));
 
       // Then:
-      assertThat(response.getClusterStatus().get(host0).getHostAlive(), is(true));
-      assertThat(response.getClusterStatus().get(host1).getHostAlive(), is(true));
+      final String format = "Expected %s to be up after confirming response %s, "
+          + "but latest response %s diverged";
+      assertThat(
+          String.format(format, host0, host0Up, response.getClusterStatus().get(host0)),
+          response.getClusterStatus().get(host0).getHostAlive(),
+          is(true));
+      assertThat(
+          String.format(format, host1, host1Up, response.getClusterStatus().get(host1)),
+          response.getClusterStatus().get(host1).getHostAlive(),
+          is(true));
       verify(authorizationProvider, never())
           .checkEndpointAccess(argThat(new PrincipalMatcher(USER1)), any(),
               not(eq("/clusterStatus")));
@@ -301,15 +312,25 @@ public class SystemAuthenticationFunctionalTest {
       Thread.sleep(6000);
 
       // When:
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp);
-      waitForRemoteServerToChangeStatus(
-          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp);
+      final HostStatusEntity host0Up = waitForRemoteServerToChangeStatus(
+          REST_APP_0, host0, HighAvailabilityTestUtil::remoteServerIsUp)
+          .getClusterStatus().get(host0);
+      final HostStatusEntity host1Up = waitForRemoteServerToChangeStatus(
+          REST_APP_0, host1, HighAvailabilityTestUtil::remoteServerIsUp)
+          .getClusterStatus().get(host1);
       ClusterStatusResponse response = sendClusterStatusRequest(REST_APP_0);
 
       // Then:
-      assertThat(response.getClusterStatus().get(host0).getHostAlive(), is(true));
-      assertThat(response.getClusterStatus().get(host1).getHostAlive(), is(true));
+      final String format = "Expected %s to be up after confirming response %s, "
+          + "but latest response %s diverged";
+      assertThat(
+          String.format(format, host0, host0Up, response.getClusterStatus().get(host0)),
+          response.getClusterStatus().get(host0).getHostAlive(),
+          is(true));
+      assertThat(
+          String.format(format, host1, host1Up, response.getClusterStatus().get(host1)),
+          response.getClusterStatus().get(host1).getHostAlive(),
+          is(true));
     }
   }
 

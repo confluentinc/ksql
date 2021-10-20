@@ -223,9 +223,11 @@ final class EngineContext {
   DdlCommand createDdlCommand(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
-      final SessionConfig config
+      final SessionConfig config,
+      final ServiceContext serviceContext
   ) {
-    return ddlCommandFactory.create(
+    final CommandFactories temp = new CommandFactories(serviceContext, metaStore);
+    return temp.create(
         sqlExpression,
         statement,
         config

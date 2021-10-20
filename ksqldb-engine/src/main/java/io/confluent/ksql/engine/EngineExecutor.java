@@ -516,7 +516,8 @@ final class EngineExecutor {
     final CreateTableCommand ddlCommand = (CreateTableCommand) engineContext.createDdlCommand(
         statement.getStatementText(),
         (ExecutableDdlStatement) statement.getStatement(),
-        config
+        config,
+        serviceContext
     );
 
     final Relation from = new AliasedRelation(
@@ -634,7 +635,8 @@ final class EngineExecutor {
           final DdlCommand ddlCommand = engineContext.createDdlCommand(
               statement.getStatementText(),
               (ExecutableDdlStatement) statement.getStatement(),
-              config
+              config,
+              serviceContext
           );
 
           return KsqlPlan.ddlPlanCurrent(

@@ -33,7 +33,6 @@ import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -50,8 +49,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
@@ -108,10 +105,11 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaClusterUtil;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -139,6 +137,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -156,8 +155,10 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -920,7 +921,7 @@ public final class KsqlRestApplication implements Executable {
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
         errorHandler,
-        serviceContext.getTopicClient(),
+        createCommandTopicKafkaTopicClient(restConfig, ksqlConfig),
         commandTopicName,
         metricCollectors.getMetrics()
     );
@@ -1069,21 +1070,7 @@ public final class KsqlRestApplication implements Executable {
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,
         ksqlConfigNoPort,
-        serviceContext.getTopicClient()
-    );
-
-    final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
-        + " (STATEMENT STRING)"
-        + " WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
-
-    final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
-    final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(
-            prepared,
-            SessionConfig.of(ksqlConfigNoPort, ImmutableMap.of())
-        )
+        createCommandTopicKafkaTopicClient(restConfig, ksqlConfigNoPort)
     );
   }
 
@@ -1259,5 +1246,16 @@ public final class KsqlRestApplication implements Executable {
       metricsOptions.addMonitoredHttpServerUri(match);
     }
     return metricsOptions;
+  }
+  
+  private static KafkaTopicClient createCommandTopicKafkaTopicClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
+    final Map<String, Object> commandTopicProducerConfigs =
+      ksqlRestConfig.getCommandProducerProperties();
+    final Map<String, Object> adminClientConfigs =
+      new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
+    adminClientConfigs.putAll(commandTopicProducerConfigs);
+    final Admin admin = new DefaultKafkaClientSupplier()
+      .getAdmin(adminClientConfigs);
+    return new KafkaTopicClientImpl(() -> admin);
   }
 }

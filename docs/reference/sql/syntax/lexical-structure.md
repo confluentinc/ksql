@@ -25,7 +25,7 @@ has no constructs for streaming queries, which are a core aspect of this project
 
 ## Syntax
 
-SQL inputs are made up of a series of statements. Each statements is made up of
+SQL inputs are made up of a series of statements. Each statement is made up of
 a series of tokens and ends in a semicolon (`;`). The tokens that apply depend
 on the statement being invoked.
 

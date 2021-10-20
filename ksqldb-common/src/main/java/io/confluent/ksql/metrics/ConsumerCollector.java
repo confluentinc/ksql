@@ -218,3 +218,4 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     return sensor;
   }
 }
+

@@ -48,6 +48,7 @@ import org.apache.kafka.clients.admin.ConfigEntry;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
+import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -168,10 +169,15 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     LOG.trace("Checking for existence of topic '{}'", topic);
     try {
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.get().describeTopics(
+          () -> {
+            DescribeTopicsResult result = adminClient.get().describeTopics(
+                ImmutableList.of(topic),
+                new DescribeTopicsOptions().includeAuthorizedOperations(true));
+            return adminClient.get().describeTopics(
               ImmutableList.of(topic),
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).values().get(topic).get(),
+          ).values().get(topic).get();
+          },
           RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;

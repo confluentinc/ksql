@@ -82,7 +82,7 @@ public class KsqlEngineMetrics implements Closeable {
         MetricCollectors.getMetrics(),
         customMetricsTags,
         metricsExtension);
-  }
+    }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public KsqlEngineMetrics(

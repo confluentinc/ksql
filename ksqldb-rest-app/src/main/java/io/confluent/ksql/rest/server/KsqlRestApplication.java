@@ -100,6 +100,8 @@ import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaClusterUtil;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -130,6 +132,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -146,9 +149,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1028,10 +1034,21 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopic = commandStore.getCommandTopicName();
 
+    // The command topic may live on a different Kafka cluster than the rest of the
+    // Kafka topics it has access to. The default command topic producer co
+    final Map<String, Object> commandTopicProducerConfigs =
+        restConfig.getCommandProducerProperties();
+    final Map<String, Object> adminClientConfigs =
+        new HashMap<>(ksqlConfigNoPort.getKsqlAdminClientConfigProps());
+    adminClientConfigs.putAll(commandTopicProducerConfigs);
+    final Admin admin = new DefaultKafkaClientSupplier()
+        .getAdmin(adminClientConfigs);
+    final KafkaTopicClient commandTopicClient = new KafkaTopicClientImpl(() -> admin);
+    
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,
         ksqlConfigNoPort,
-        serviceContext.getTopicClient()
+        commandTopicClient
     );
 
     final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME

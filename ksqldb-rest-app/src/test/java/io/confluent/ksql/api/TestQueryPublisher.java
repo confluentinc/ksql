@@ -71,7 +71,7 @@ public class TestQueryPublisher
           getSubscriber().onError(new RuntimeException("Failure in processing"));
         } else {
           rowsSent++;
-          getSubscriber().onNext(new KeyValueMetadata<>(KeyValue.keyValue(null, row), Optional.empty()));
+          getSubscriber().onNext(new KeyValueMetadata<>(KeyValue.keyValue(null, row)));
           if (rowsSent == limit) {
             sendComplete();
           }

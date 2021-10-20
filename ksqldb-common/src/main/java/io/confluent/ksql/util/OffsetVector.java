@@ -13,28 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical.common;
-
-import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.Window;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.PushOffsetRange;
-import java.util.Optional;
+package io.confluent.ksql.util;
 
 /**
- * Represents a row being processed by any type of query -- namely pull or scalable push.
+ * Interface representing a vector of offsets. This is a common interface for both consistency work
+ * as well as push query continuation offsets.
  */
-public interface QueryRow {
-  LogicalSchema schema();
+public interface OffsetVector {
+  void merge(OffsetVector other);
 
-  long rowTime();
-
-  GenericKey key();
-
-  Optional<Window> window();
-
-  GenericRow value();
-
-  Optional<PushOffsetRange> getOffsetRange();
+  /**
+   * Returns true if all partitions of this vector have offsets less than or equal to other.
+   */
+  boolean lessThanOrEqualTo(OffsetVector other);
 }

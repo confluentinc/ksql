@@ -22,7 +22,7 @@ import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.entity.RowOffsets;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -179,10 +179,10 @@ class QueryStreamWriter implements StreamingOutput {
     if (row.getKeyValue().value() == null) {
       return StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()));
     } else {
-      if (row.getRowMetadata().isPresent()) {
-        return StreamedRow.progressToken(new RowOffsets(
-            row.getRowMetadata().get().getStartOffsets(),
-            row.getRowMetadata().get().getOffsets()));
+      if (row.getRowMetadata().isPresent()
+          && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+        return StreamedRow.continuationToken(new PushContinuationToken(
+            row.getRowMetadata().get().getPushOffsetsRange().get().token()));
       } else {
         return StreamedRow.pushRow(row.getKeyValue().value());
       }

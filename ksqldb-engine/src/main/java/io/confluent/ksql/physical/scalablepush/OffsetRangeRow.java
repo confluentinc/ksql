@@ -13,38 +13,39 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical.common;
+package io.confluent.ksql.physical.scalablepush;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.List;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Optional;
 
-public class OffsetsRow implements QueryRow {
+/**
+ * A row that represents an offset range for push queries. These are sent after batches of data
+ * so that the coordinator node can verify that no gaps have been detected.
+ */
+public class OffsetRangeRow implements QueryRow {
 
   private static final LogicalSchema EMPTY_SCHEMA = LogicalSchema.builder().build();
   private final long rowTime;
-  private final Optional<List<Long>> startOffsets;
-  private final List<Long> offsets;
+  final PushOffsetRange offsetRange;
 
-  public static OffsetsRow of(
+  public static OffsetRangeRow of(
       final long rowTime,
-      final Optional<List<Long>> startOffsets,
-      final List<Long> offsets
+      final PushOffsetRange offsetRange
   ) {
-    return new OffsetsRow(rowTime, startOffsets, offsets);
+    return new OffsetRangeRow(rowTime, offsetRange);
   }
 
-  OffsetsRow(
+  OffsetRangeRow(
       final long rowTime,
-      final Optional<List<Long>> startOffsets,
-      final List<Long> offsets
+      final PushOffsetRange offsetRange
   ) {
     this.rowTime = rowTime;
-    this.startOffsets = startOffsets;
-    this.offsets = offsets;
+    this.offsetRange = offsetRange;
   }
 
   @Override
@@ -73,12 +74,7 @@ public class OffsetsRow implements QueryRow {
   }
 
   @Override
-  public Optional<List<Long>> getStartOffsets() {
-    return startOffsets;
-  }
-
-  @Override
-  public Optional<List<Long>> getOffsets() {
-    return Optional.of(offsets);
+  public Optional<PushOffsetRange> getOffsetRange() {
+    return Optional.of(offsetRange);
   }
 }

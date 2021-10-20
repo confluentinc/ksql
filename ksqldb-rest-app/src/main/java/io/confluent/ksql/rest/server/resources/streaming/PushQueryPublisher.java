@@ -28,7 +28,7 @@ import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
-import io.confluent.ksql.rest.entity.RowOffsets;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
@@ -193,10 +193,10 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
       } else {
         return rows.stream()
             .map(kv -> {
-              if (kv.getRowMetadata().isPresent()) {
-                return StreamedRow.progressToken(new RowOffsets(
-                    kv.getRowMetadata().get().getStartOffsets(),
-                    kv.getRowMetadata().get().getOffsets()));
+              if (kv.getRowMetadata().isPresent()
+                  && kv.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+                return StreamedRow.continuationToken(new PushContinuationToken(
+                    kv.getRowMetadata().get().getPushOffsetsRange().get().token()));
               } else {
                 return StreamedRow.pushRow(kv.getKeyValue().value());
               }

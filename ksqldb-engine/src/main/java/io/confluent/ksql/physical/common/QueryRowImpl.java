@@ -19,7 +19,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.List;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -30,8 +30,6 @@ public final class QueryRowImpl implements QueryRow {
   private final GenericKey key;
   private final Optional<Window> window;
   private final GenericRow value;
-  private final Optional<List<Long>> startOffsets;
-  private final Optional<List<Long>> offsets;
 
   public static QueryRowImpl of(
       final LogicalSchema logicalSchema,
@@ -43,19 +41,6 @@ public final class QueryRowImpl implements QueryRow {
     return new QueryRowImpl(logicalSchema, key, window, value, rowTime);
   }
 
-  public static QueryRowImpl of(
-      final LogicalSchema logicalSchema,
-      final GenericKey key,
-      final Optional<Window> window,
-      final GenericRow value,
-      final long rowTime,
-      final Optional<List<Long>> startOffsets,
-      final Optional<List<Long>> offsets
-  ) {
-    return new QueryRowImpl(
-        logicalSchema, key, window, value, rowTime, startOffsets, offsets);
-  }
-
   private QueryRowImpl(
       final LogicalSchema logicalSchema,
       final GenericKey key,
@@ -63,25 +48,11 @@ public final class QueryRowImpl implements QueryRow {
       final GenericRow value,
       final long rowTime
   ) {
-    this(logicalSchema, key, window, value, rowTime, Optional.empty(), Optional.empty());
-  }
-
-  private QueryRowImpl(
-      final LogicalSchema logicalSchema,
-      final GenericKey key,
-      final Optional<Window> window,
-      final GenericRow value,
-      final long rowTime,
-      final Optional<List<Long>> startOffsets,
-      final Optional<List<Long>> offsets
-  ) {
     this.logicalSchema = logicalSchema;
     this.rowTime = rowTime;
     this.key = key;
     this.window = window;
     this.value = value;
-    this.startOffsets = startOffsets;
-    this.offsets = offsets;
   }
 
   @Override
@@ -110,13 +81,8 @@ public final class QueryRowImpl implements QueryRow {
   }
 
   @Override
-  public Optional<List<Long>> getStartOffsets() {
-    return startOffsets;
-  }
-
-  @Override
-  public Optional<List<Long>> getOffsets() {
-    return offsets;
+  public Optional<PushOffsetRange> getOffsetRange() {
+    return Optional.empty();
   }
 
 
@@ -131,14 +97,13 @@ public final class QueryRowImpl implements QueryRow {
     final QueryRowImpl that = (QueryRowImpl) o;
     return Objects.equals(logicalSchema, that.logicalSchema)
         && Objects.equals(key, that.key)
+        && Objects.equals(window, that.window)
         && Objects.equals(value, that.value)
-        && Objects.equals(rowTime, that.rowTime)
-        && Objects.equals(startOffsets, that.startOffsets)
-        && Objects.equals(offsets, that.offsets);
+        && Objects.equals(rowTime, that.rowTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, key, value, rowTime, startOffsets, offsets);
+    return Objects.hash(logicalSchema, key, window, value, rowTime);
   }
 }

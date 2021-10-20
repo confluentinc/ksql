@@ -21,7 +21,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.RowOffsets;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
@@ -59,10 +59,10 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleValue(final KeyValueMetadata<List<?>, GenericRow> row) {
-    if (row.getRowMetadata().isPresent()) {
-      queryStreamResponseWriter.writeRowOffsets(new RowOffsets(
-          row.getRowMetadata().get().getStartOffsets(),
-          row.getRowMetadata().get().getOffsets()));
+    if (row.getRowMetadata().isPresent()
+        && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+      queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
+          row.getRowMetadata().get().getPushOffsetsRange().get().token()));
     } else {
       queryStreamResponseWriter.writeRow(row.getKeyValue().value());
     }

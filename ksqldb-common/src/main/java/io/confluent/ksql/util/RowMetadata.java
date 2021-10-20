@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -24,31 +23,15 @@ import java.util.Optional;
  */
 public class RowMetadata {
 
-  // If set, the start of the offset range associated with this batch of data.
-  private final Optional<List<Long>> startOffsets;
-  // The offsets associated with this row/batch of rows, or the end of the offset range if start
-  // offsets is set.
-  private final List<Long> offsets;
+  private final Optional<PushOffsetRange> pushOffsetsRange;
 
-  public RowMetadata(final Optional<List<Long>> startOffsets, final List<Long> offsets) {
-    this.startOffsets = startOffsets;
-    this.offsets = offsets;
+  public RowMetadata(final Optional<PushOffsetRange> pushOffsetsRange) {
+    this.pushOffsetsRange = pushOffsetsRange;
   }
 
-  /**
-   * If this represents a range of offsets, the starting offsets of the range.
-   */
-  public Optional<List<Long>> getStartOffsets() {
-    return startOffsets;
+  public Optional<PushOffsetRange> getPushOffsetsRange() {
+    return pushOffsetsRange;
   }
-
-  /**
-   * The offsets associated with this set of rows, or the end of a range, if start is also set.
-   */
-  public List<Long> getOffsets() {
-    return offsets;
-  }
-
 
   @Override
   public boolean equals(final Object o) {
@@ -59,12 +42,11 @@ public class RowMetadata {
       return false;
     }
     final RowMetadata rowMetadata = (RowMetadata) o;
-    return Objects.equals(startOffsets, rowMetadata.startOffsets)
-        && Objects.equals(offsets, rowMetadata.offsets);
+    return Objects.equals(pushOffsetsRange, rowMetadata.pushOffsetsRange);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(startOffsets, offsets);
+    return Objects.hash(pushOffsetsRange);
   }
 }

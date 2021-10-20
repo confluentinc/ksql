@@ -90,7 +90,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     if (row == null) {
       return null;
     }
-    if (row.getOffsets().isPresent()) {
+    if (row.getOffsetRange().isPresent()) {
       return row;
     }
 

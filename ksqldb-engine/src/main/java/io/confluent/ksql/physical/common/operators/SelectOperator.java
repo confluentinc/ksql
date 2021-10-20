@@ -73,7 +73,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
       if (row == null) {
         return null;
       }
-      if (row.getOffsets().isPresent()) {
+      if (row.getOffsetRange().isPresent()) {
         return row;
       }
       result = transformRow(row);

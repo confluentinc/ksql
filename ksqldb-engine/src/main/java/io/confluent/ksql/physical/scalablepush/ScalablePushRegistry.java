@@ -150,8 +150,6 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
         } else {
           final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
           final GenericKey keyCopy = GenericKey.fromList(windowedKey.key().values());
-          new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
-              windowedKey.window());
           final GenericRow valueCopy = GenericRow.fromList(value.values());
           row = QueryRowImpl.of(logicalSchema, keyCopy, Optional.of(Window.of(
               windowedKey.window().startTime(),

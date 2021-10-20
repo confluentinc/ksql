@@ -2882,22 +2882,22 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             }
           ]
@@ -2939,25 +2939,25 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             }
@@ -2999,19 +2999,19 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             }
@@ -3054,25 +3054,25 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             }
@@ -3119,27 +3119,27 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON_SR"}
+              "valueFormat" : {"format" : "JSON_SR", "properties":{"VALUE_SCHEMA_ID":"2"}}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON_SR"}
+              "valueFormat" : {"format" : "JSON_SR", "properties":{"VALUE_SCHEMA_ID":"4"}}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON_SR"}
+              "valueFormat" : {"format" : "JSON_SR", "properties":{"VALUE_SCHEMA_ID":"2"}}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON_SR"}
+              "valueFormat" : {"format" : "JSON_SR", "properties":{"VALUE_SCHEMA_ID":"4"}}
             }
           ]
         }
@@ -3180,25 +3180,25 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTERTHIS-0000000016-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}
             }

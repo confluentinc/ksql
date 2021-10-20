@@ -49,6 +49,12 @@ public class ProtobufFormat extends ConnectFormat {
     return SUPPORTED_FEATURES;
   }
 
+
+  @Override
+  public Set<String> getSupportedProperties() {
+    return ImmutableSet.of(ConnectFormat.KEY_SCHEMA_ID, ConnectFormat.VALUE_SCHEMA_ID);
+  }
+
   @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps

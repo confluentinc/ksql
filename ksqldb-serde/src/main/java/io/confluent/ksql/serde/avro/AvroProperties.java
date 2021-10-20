@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.FormatProperties;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import java.util.Map;
 
 /**
@@ -33,7 +34,8 @@ class AvroProperties {
       AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
 
   static final String FULL_SCHEMA_NAME = "fullSchemaName";
-  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(FULL_SCHEMA_NAME);
+  static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(FULL_SCHEMA_NAME,
+      ConnectFormat.VALUE_SCHEMA_ID, ConnectFormat.KEY_SCHEMA_ID);
 
   private final ImmutableMap<String, String> properties;
 

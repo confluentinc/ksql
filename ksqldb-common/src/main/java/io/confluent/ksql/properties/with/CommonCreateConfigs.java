@@ -94,9 +94,9 @@ public final class CommonCreateConfigs {
             Importance.MEDIUM,
             "The name of a field within the Kafka record value that contains the "
                 + "timestamp KSQL should use inplace of the default Kafka record timestamp. "
-                + "By default, KSQL requires the timestamp to be a `BIGINT`. Alternatively, you "
-                + "can supply '" + TIMESTAMP_FORMAT_PROPERTY
-                + "' to control how the field is parsed"
+                + "By default, KSQL requires the timestamp to be a `BIGINT` or a `TIMESTAMP`. "
+                + "Alternatively, you can supply '" + TIMESTAMP_FORMAT_PROPERTY + "' to control "
+                + "how the field is parsed"
         )
         .define(
             TIMESTAMP_FORMAT_PROPERTY,

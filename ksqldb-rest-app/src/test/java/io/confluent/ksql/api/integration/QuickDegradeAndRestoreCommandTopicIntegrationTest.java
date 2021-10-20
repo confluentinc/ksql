@@ -121,9 +121,8 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     REST_APP.start();
 
     // Then
-    assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
-
+    assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
     REST_APP.stop();
     KsqlRestoreCommandTopic.main(
         new String[]{

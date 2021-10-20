@@ -62,7 +62,8 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeContinuationToken(final PushContinuationToken pushContinuationToken) {
+  public QueryStreamResponseWriter writeContinuationToken(
+      final PushContinuationToken pushContinuationToken) {
     response.write(ServerUtils.serializeObject(pushContinuationToken).appendString("\n"));
     return this;
   }

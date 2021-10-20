@@ -66,7 +66,8 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeContinuationToken(final PushContinuationToken pushContinuationToken) {
+  public QueryStreamResponseWriter writeContinuationToken(
+      final PushContinuationToken pushContinuationToken) {
     writeBuffer(ServerUtils.serializeObject(pushContinuationToken));
     return this;
   }

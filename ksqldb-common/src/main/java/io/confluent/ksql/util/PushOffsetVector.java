@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -30,21 +31,28 @@ public class PushOffsetVector implements OffsetVector {
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonCreator
-  public PushOffsetVector(final @JsonProperty(value = "offsets") List<Long> offsets) {
+  public PushOffsetVector(final @JsonProperty(value = "o") List<Long> offsets) {
     this.offsets = offsets;
   }
 
   @Override
-  public void merge(OffsetVector other) {
+  public void merge(final OffsetVector other) {
     throw new UnsupportedOperationException("Unsupported");
   }
 
   @Override
-  public boolean lessThanOrEqualTo(OffsetVector other) {
+  public boolean lessThanOrEqualTo(final OffsetVector other) {
     throw new UnsupportedOperationException("Unsupported");
   }
 
+  @JsonIgnore
+  @Override
+  public List<Long> getDenseRepresentation() {
+    return getOffsets();
+  }
+
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  @JsonProperty("o")
   public List<Long> getOffsets() {
     return ImmutableList.copyOf(offsets);
   }

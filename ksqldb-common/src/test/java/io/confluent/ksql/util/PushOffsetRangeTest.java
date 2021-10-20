@@ -19,18 +19,19 @@ public class PushOffsetRangeTest {
 
     // That:
     assertThat(
-        offsetRange.token(),
-        is("eyJzdGFydE9mZnNldHMiOnsib2Zmc2V0cyI6WzEsMiwzLDQsNSw2LDcsOF19LCJlbmRPZmZzZXRzIjp7Im9mZnN"
-            + "ldHMiOlsxMCw5LDgsNyw2LDUsNCwzXX19")
+        offsetRange.serialize(),
+        is("eyJzIjp7Im8iOlsxLDIsMyw0LDUsNiw3LDhdfSwiZSI6eyJvIjpbMTAsOSw4LDcsNiw1LDQsM119LCJ2IjowfQ"
+            + "==")
     );
 
-    PushOffsetRange decoded = PushOffsetRange.fromToken(
-        "eyJzdGFydE9mZnNldHMiOnsib2Zmc2V0cyI6WzEsMiwzLDQsNSw2LDcsOF19LCJlbmRPZmZzZXRzIjp7Im9mZnN"
-            + "ldHMiOlsxMCw5LDgsNyw2LDUsNCwzXX19");
+    PushOffsetRange decoded = PushOffsetRange.deserialize(
+        "eyJzIjp7Im8iOlsxLDIsMyw0LDUsNiw3LDhdfSwiZSI6eyJvIjpbMTAsOSw4LDcsNiw1LDQsM119LCJ2IjowfQ"
+            + "==");
+    assertThat(decoded.getVersion(), is(0));
     assertThat(decoded.getStartOffsets().isPresent(), is(true));
-    assertThat(decoded.getStartOffsets().get().getOffsets(),
+    assertThat(decoded.getStartOffsets().get().getDenseRepresentation(),
         is(ImmutableList.of(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L)));
-    assertThat(decoded.getEndOffsets().getOffsets(),
+    assertThat(decoded.getEndOffsets().getDenseRepresentation(),
         is(ImmutableList.of(10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L)));
   }
 
@@ -40,14 +41,15 @@ public class PushOffsetRangeTest {
         Optional.empty(),
         new PushOffsetVector(ImmutableList.of(10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L)));
     assertThat(
-        offsetRange.token(),
-        is("eyJlbmRPZmZzZXRzIjp7Im9mZnNldHMiOlsxMCw5LDgsNyw2LDUsNCwzXX19")
+        offsetRange.serialize(),
+        is("eyJzIjpudWxsLCJlIjp7Im8iOlsxMCw5LDgsNyw2LDUsNCwzXX0sInYiOjB9")
     );
 
-    PushOffsetRange decoded = PushOffsetRange.fromToken(
-        "eyJlbmRPZmZzZXRzIjp7Im9mZnNldHMiOlsxMCw5LDgsNyw2LDUsNCwzXX19");
+    PushOffsetRange decoded = PushOffsetRange.deserialize(
+        "eyJzIjpudWxsLCJlIjp7Im8iOlsxMCw5LDgsNyw2LDUsNCwzXX0sInYiOjB9");
+    assertThat(decoded.getVersion(), is(0));
     assertThat(decoded.getStartOffsets().isPresent(), is(false));
-    assertThat(decoded.getEndOffsets().getOffsets(),
+    assertThat(decoded.getEndOffsets().getDenseRepresentation(),
         is(ImmutableList.of(10L, 9L, 8L, 7L, 6L, 5L, 4L, 3L)));
   }
 }

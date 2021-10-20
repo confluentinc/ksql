@@ -196,7 +196,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
               if (kv.getRowMetadata().isPresent()
                   && kv.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
                 return StreamedRow.continuationToken(new PushContinuationToken(
-                    kv.getRowMetadata().get().getPushOffsetsRange().get().token()));
+                    kv.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
               } else {
                 return StreamedRow.pushRow(kv.getKeyValue().value());
               }

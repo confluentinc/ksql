@@ -182,7 +182,7 @@ class QueryStreamWriter implements StreamingOutput {
       if (row.getRowMetadata().isPresent()
           && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
         return StreamedRow.continuationToken(new PushContinuationToken(
-            row.getRowMetadata().get().getPushOffsetsRange().get().token()));
+            row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
       } else {
         return StreamedRow.pushRow(row.getKeyValue().value());
       }

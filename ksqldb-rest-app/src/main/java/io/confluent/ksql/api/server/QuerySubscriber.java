@@ -62,7 +62,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
     if (row.getRowMetadata().isPresent()
         && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
       queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
-          row.getRowMetadata().get().getPushOffsetsRange().get().token()));
+          row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
     } else {
       queryStreamResponseWriter.writeRow(row.getKeyValue().value());
     }

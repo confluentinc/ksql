@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import java.util.List;
+
 /**
  * Interface representing a vector of offsets. This is a common interface for both consistency work
  * as well as push query continuation offsets.
@@ -26,4 +28,11 @@ public interface OffsetVector {
    * Returns true if all partitions of this vector have offsets less than or equal to other.
    */
   boolean lessThanOrEqualTo(OffsetVector other);
+
+  /**
+   * The dense representation of the offset vector, namely a list of offsets where each index
+   * corresponds to the partition.
+   * @return The list of offsets
+   */
+  List<Long> getDenseRepresentation();
 }

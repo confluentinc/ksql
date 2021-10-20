@@ -1,24 +1,38 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import java.util.Base64;
 import java.util.Optional;
 
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
+//@JsonInclude(JsonInclude.Include.NON_ABSENT)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PushOffsetRange {
-  private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   static {
     OBJECT_MAPPER.registerModule(new Jdk8Module());
   }
 
-  private int version;
+  private final int version;
   // If set, the start of the offset range associated with this batch of data.
   private final Optional<PushOffsetVector> startOffsets;
   // The offsets associated with this row/batch of rows, or the end of the offset range if start
@@ -27,9 +41,9 @@ public class PushOffsetRange {
 
   @JsonCreator
   public PushOffsetRange(
-      final @JsonProperty(value = "startOffsets") Optional<PushOffsetVector> startOffsets,
-      final @JsonProperty(value = "endOffsets", required = true) PushOffsetVector endOffsets,
-      final @JsonProperty(value = "version", required = true) int version
+      final @JsonProperty(value = "s") Optional<PushOffsetVector> startOffsets,
+      final @JsonProperty(value = "e", required = true) PushOffsetVector endOffsets,
+      final @JsonProperty(value = "v", required = true) int version
   ) {
     this.startOffsets = startOffsets;
     this.endOffsets = endOffsets;
@@ -48,18 +62,25 @@ public class PushOffsetRange {
   /**
    * If this represents a range of offsets, the starting offsets of the range.
    */
-  public Optional<PushOffsetVector> getStartOffsets() {
-    return startOffsets;
+  @JsonProperty("s")
+  public Optional<OffsetVector> getStartOffsets() {
+    return startOffsets.map(o -> o);
   }
 
   /**
    * The offsets associated with this set of rows, or the end of a range, if start is also set.
    */
-  public PushOffsetVector getEndOffsets() {
+  @JsonProperty("e")
+  public OffsetVector getEndOffsets() {
     return endOffsets;
   }
 
-  public String token() {
+  @JsonProperty("v")
+  public int getVersion() {
+    return version;
+  }
+
+  public String serialize() {
     try {
       final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(this);
       return Base64.getEncoder().encodeToString(bytes);
@@ -68,7 +89,7 @@ public class PushOffsetRange {
     }
   }
 
-  public static PushOffsetRange fromToken(final String token) {
+  public static PushOffsetRange deserialize(final String token) {
     try {
       final byte[] bytes = Base64.getDecoder().decode(token);
       return OBJECT_MAPPER.readValue(bytes, PushOffsetRange.class);
@@ -76,5 +97,4 @@ public class PushOffsetRange {
       throw new KsqlException("Couldn't decode push offset range token", e);
     }
   }
-
 }

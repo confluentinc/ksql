@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
@@ -75,6 +76,7 @@ public final class QueryRowImpl implements QueryRow {
     return window;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   @Override
   public GenericRow value() {
     return value;

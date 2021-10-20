@@ -56,10 +56,11 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -70,8 +71,9 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -99,11 +101,9 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Type;
 import org.apache.avro.SchemaBuilder;
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -176,6 +176,82 @@ public class KsqlEngineTest {
         is(SourceName.of("BAR")));
     assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName().get(),
         is(SourceName.of("FOO")));
+  }
+
+  @Test
+  public void shouldPlanCreateTableWithTableElementsOverride() throws Exception {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("COL1").type().stringType().noDefault()
+        .name("COL2").type().stringType().noDefault()
+        .name("COL3").type().doubleType().noDefault()
+        .name("COL4").type().booleanType().noDefault()
+        .name("COL5").type().intType().noDefault()
+        .endRecord();
+    schemaRegistryClient.register("some_topic-value", new AvroSchema(schema));
+    LogicalSchema.Builder builder = LogicalSchema.builder();
+    LogicalSchema expectedSchema = builder.keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("COL5"), SqlTypes.INTEGER)
+        .build();
+
+    // When:
+    final KsqlPlan plan = KsqlEngineTestUtil.plan(
+        serviceContext,
+        ksqlEngine,
+        "create table bar with (value_format='avro', value_schema_id=1) as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap(),
+        schemaRegistryClient
+    );
+
+    // Then:
+    final Optional<DdlCommand> ddlCommand = plan.getDdlCommand();
+    assertTrue(ddlCommand.isPresent());
+    assertThat(((CreateSourceCommand) ddlCommand.get()).getSchema(), equalTo(expectedSchema));
+  }
+
+  @Test
+  public void shouldPlanCreateStreamWithTableElementsOverride() throws Exception {
+    // Given:
+    final Schema schema = SchemaBuilder
+        .record("Test").fields()
+        .name("COL1").type().stringType().noDefault()
+        .name("COL2").type().stringType().noDefault()
+        .name("COL3").type().doubleType().noDefault()
+        .name("COL4").type().array().items(Schema.create(Type.DOUBLE)).noDefault()
+        .name("COL5").type().map().values(Schema.create(Type.DOUBLE)).noDefault()
+        .name("COL6").type().intType().noDefault()
+        .endRecord();
+    schemaRegistryClient.register("some_topic-value", new AvroSchema(schema));
+    LogicalSchema.Builder builder = LogicalSchema.builder();
+    LogicalSchema expectedSchema = builder.keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("COL6"), SqlTypes.INTEGER)
+        .build();
+
+    // When:
+    final KsqlPlan plan = KsqlEngineTestUtil.plan(
+        serviceContext,
+        ksqlEngine,
+        "create stream foo with (value_format='avro', value_schema_id=1) as select * from test1;",
+        KSQL_CONFIG,
+        Collections.emptyMap(),
+        schemaRegistryClient
+    );
+
+    // Then:
+    final Optional<DdlCommand> ddlCommand = plan.getDdlCommand();
+    assertTrue(ddlCommand.isPresent());
+    assertThat(((CreateSourceCommand) ddlCommand.get()).getSchema(), equalTo(expectedSchema));
   }
 
   @Test

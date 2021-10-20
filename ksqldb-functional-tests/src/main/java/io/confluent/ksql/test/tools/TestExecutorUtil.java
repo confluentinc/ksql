@@ -152,6 +152,7 @@ public final class TestExecutorUtil {
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
@@ -172,7 +173,7 @@ public final class TestExecutorUtil {
           .map(PlannedStatement::new)
           .iterator();
     }
-    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, srClient);
+    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, serviceContext, srClient);
   }
 
   private static Topic buildSinkTopic(
@@ -235,6 +236,7 @@ public final class TestExecutorUtil {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService,
         listener
@@ -308,6 +310,7 @@ public final class TestExecutorUtil {
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
@@ -316,7 +319,7 @@ public final class TestExecutorUtil {
 
     int idx = 0;
     final Iterator<PlannedStatement> plans =
-        planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService);
+        planTestCase(engine, testCase, ksqlConfig, serviceContext, srClient, stubKafkaService);
 
     try {
       while (plans.hasNext()) {
@@ -438,11 +441,12 @@ public final class TestExecutorUtil {
         final KsqlExecutionContext executionContext,
         final TestCase testCase,
         final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
         final Optional<SchemaRegistryClient> srClient
     ) {
       final Optional<DefaultSchemaInjector> schemaInjector = srClient
           .map(SchemaRegistryTopicSchemaSupplier::new)
-          .map(DefaultSchemaInjector::new);
+          .map(supplier -> new DefaultSchemaInjector(supplier, executionContext, serviceContext));
       final String sql = testCase.statements().stream()
           .collect(Collectors.joining(System.lineSeparator()));
       final Iterator<ParsedStatement> statements = executionContext.parse(sql).iterator();

@@ -18,14 +18,20 @@ package io.confluent.ksql.schema.ksql.inference;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
@@ -40,15 +46,20 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
+import io.confluent.ksql.services.SandboxedServiceContext;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -72,9 +83,17 @@ import java.util.stream.Stream;
 public class DefaultSchemaInjector implements Injector {
 
   private final TopicSchemaSupplier schemaSupplier;
+  private final KsqlExecutionContext executionContext;
+  private final ServiceContext serviceContext;
 
-  public DefaultSchemaInjector(final TopicSchemaSupplier schemaSupplier) {
+  public DefaultSchemaInjector(
+      final TopicSchemaSupplier schemaSupplier,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
     this.schemaSupplier = Objects.requireNonNull(schemaSupplier, "schemaSupplier");
+    this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
   }
 
   @SuppressWarnings("unchecked")
@@ -82,15 +101,22 @@ public class DefaultSchemaInjector implements Injector {
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
   ) {
-    if (!(statement.getStatement() instanceof CreateSource)) {
+    if (!(statement.getStatement() instanceof CreateSource)
+        && !(statement.getStatement() instanceof CreateAsSelect)) {
       return statement;
     }
 
-    final ConfiguredStatement<CreateSource> createStatement =
-        (ConfiguredStatement<CreateSource>) statement;
-
     try {
-      return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
+      if (statement.getStatement() instanceof CreateSource) {
+        final ConfiguredStatement<CreateSource> createStatement =
+            (ConfiguredStatement<CreateSource>) statement;
+        return (ConfiguredStatement<T>) forCreateStatement(createStatement).orElse(createStatement);
+      } else {
+        final ConfiguredStatement<CreateAsSelect> createStatement =
+            (ConfiguredStatement<CreateAsSelect>) statement;
+        return (ConfiguredStatement<T>) forCreateAsStatement(createStatement).orElse(
+            createStatement);
+      }
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final KsqlException e) {
@@ -99,6 +125,107 @@ public class DefaultSchemaInjector implements Injector {
           statement.getStatementText(),
           e.getCause());
     }
+  }
+
+  private Optional<ConfiguredStatement<CreateAsSelect>> forCreateAsStatement(
+      final ConfiguredStatement<CreateAsSelect> statement
+  ) {
+    final CreateAsSelect csStmt = statement.getStatement();
+    final CreateSourceAsProperties properties = csStmt.getProperties();
+
+    // Don't need to inject schema if no key schema id and value schema id
+    if (!properties.getKeySchemaId().isPresent() && !properties.getValueSchemaId().isPresent()) {
+      return Optional.empty();
+    }
+
+    final CreateSourceCommand createSourceCommand;
+    try {
+      final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
+      createSourceCommand = (CreateSourceCommand)
+          executionContext.createSandbox(sandboxServiceContext)
+              .plan(sandboxServiceContext, statement)
+              .getDdlCommand()
+              .get();
+    } catch (final Exception e) {
+      throw new KsqlStatementException(
+          "Could not determine output schema for query due to error: "
+              + e.getMessage(), statement.getStatementText(), e);
+    }
+
+    final Optional<SchemaAndId> keySchema = getCreateAsKeySchema(statement, createSourceCommand);
+    final Optional<SchemaAndId> valueSchema = getCreateAsValueSchema(statement,
+        createSourceCommand);
+
+    // Create schema and put into statement
+    final CreateAsSelect withSchema = addSchemaFieldsForCreateAs(statement, keySchema,
+        valueSchema);
+    final PreparedStatement<CreateAsSelect> prepared = buildPreparedStatement(withSchema);
+    final ConfiguredStatement<CreateAsSelect> configured = ConfiguredStatement
+        .of(prepared, statement.getSessionConfig());
+
+    return Optional.of(configured);
+  }
+
+  private Optional<SchemaAndId> getCreateAsKeySchema(
+      final ConfiguredStatement<CreateAsSelect> statement,
+      final CreateSourceCommand createSourceCommand
+  ) {
+    final CreateAsSelect csStmt = statement.getStatement();
+    final CreateSourceAsProperties props = csStmt.getProperties();
+    if (!props.getKeySchemaId().isPresent()) {
+      return Optional.empty();
+    }
+
+    final FormatInfo keyFormat = createSourceCommand.getFormats().getKeyFormat();
+
+    // until we support user-configuration of single key wrapping/unwrapping, we choose
+    // to have key schema inference always result in an unwrapped key
+    final SerdeFeatures serdeFeatures = SerdeFeaturesFactory.buildKeyFeatures(
+        FormatFactory.of(keyFormat), true);
+
+    validateSchemaInference(keyFormat, true);
+
+    final SchemaAndId schemaAndId = getSchema(
+        props.getKafkaTopic(),
+        props.getKeySchemaId(),
+        keyFormat,
+        serdeFeatures,
+        statement.getStatementText(),
+        true
+    );
+
+    final List<Column> tableColumns = createSourceCommand.getSchema().key();
+    checkColumnsCompatibility(props.getKeySchemaId(), tableColumns, schemaAndId.columns, true);
+
+    return Optional.of(schemaAndId);
+  }
+
+  private Optional<SchemaAndId> getCreateAsValueSchema(
+      final ConfiguredStatement<CreateAsSelect> statement,
+      final CreateSourceCommand createSourceCommand
+  ) {
+    final CreateAsSelect csStmt = statement.getStatement();
+    final CreateSourceAsProperties props = csStmt.getProperties();
+    if (!props.getValueSchemaId().isPresent()) {
+      return Optional.empty();
+    }
+
+    final FormatInfo valueFormat = createSourceCommand.getFormats().getValueFormat();
+    validateSchemaInference(valueFormat, false);
+
+    final SchemaAndId schemaAndId = getSchema(
+        props.getKafkaTopic(),
+        props.getValueSchemaId(),
+        valueFormat,
+        createSourceCommand.getFormats().getValueFeatures(),
+        statement.getStatementText(),
+        false
+    );
+
+    final List<Column> tableColumns = createSourceCommand.getSchema().value();
+    checkColumnsCompatibility(props.getValueSchemaId(), tableColumns, schemaAndId.columns, false);
+
+    return Optional.of(schemaAndId);
   }
 
   private Optional<ConfiguredStatement<CreateSource>> forCreateStatement(
@@ -130,7 +257,7 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     final SchemaAndId schemaAndId = getSchema(
-        props.getKafkaTopic(),
+        Optional.of(props.getKafkaTopic()),
         props.getKeySchemaId(),
         keyFormat,
         // until we support user-configuration of single key wrapping/unwrapping, we choose
@@ -140,7 +267,10 @@ public class DefaultSchemaInjector implements Injector {
         true
     );
 
-    checkColumnsCompatibility(props.getKeySchemaId(), statement, schemaAndId.columns, true);
+    final List<Column> tableColumns =
+        hasKeyElements(statement) ? statement.getStatement().getElements().toLogicalSchema().key()
+            : Collections.emptyList();
+    checkColumnsCompatibility(props.getKeySchemaId(), tableColumns, schemaAndId.columns, true);
 
     return Optional.of(schemaAndId);
   }
@@ -156,7 +286,7 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     final SchemaAndId schemaAndId = getSchema(
-        props.getKafkaTopic(),
+        Optional.of(props.getKafkaTopic()),
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
@@ -164,22 +294,26 @@ public class DefaultSchemaInjector implements Injector {
         false
     );
 
-    checkColumnsCompatibility(props.getValueSchemaId(), statement, schemaAndId.columns, false);
+    final List<Column> tableColumns =
+        hasValueElements(statement) ? statement.getStatement().getElements().toLogicalSchema()
+            .value()
+            : Collections.emptyList();
+    checkColumnsCompatibility(props.getValueSchemaId(), tableColumns, schemaAndId.columns, false);
 
     return Optional.of(schemaAndId);
   }
 
   private SchemaAndId getSchema(
-      final String topicName,
+      final Optional<String> topicName,
       final Optional<Integer> schemaId,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures,
       final String statementText,
       final boolean isKey
   ) {
-    final SchemaResult result = isKey
-        ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat, serdeFeatures)
-        : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat, serdeFeatures);
+    final SchemaResult result =
+        isKey ? schemaSupplier.getKeySchema(topicName, schemaId, expectedFormat, serdeFeatures)
+            : schemaSupplier.getValueSchema(topicName, schemaId, expectedFormat, serdeFeatures);
 
     if (result.failureReason.isPresent()) {
       final Exception cause = result.failureReason.get();
@@ -207,15 +341,7 @@ public class DefaultSchemaInjector implements Injector {
      *  1. If schema id is provided, format must support schema inference
      */
     if (schemaId.isPresent()) {
-      if (!formatSupportsSchemaInference(formatInfo)) {
-        final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
-            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
-        final String schemaIdName =
-            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
-        final String msg = String.format("%s should support schema inference when %s is provided. "
-            + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
-        throw new KsqlException(msg);
-      }
+      validateSchemaInference(formatInfo, isKey);
       return true;
     }
 
@@ -225,9 +351,21 @@ public class DefaultSchemaInjector implements Injector {
     return !hasTableElements && formatSupportsSchemaInference(formatInfo);
   }
 
+  private static void validateSchemaInference(final FormatInfo formatInfo, final boolean isKey) {
+    if (!formatSupportsSchemaInference(formatInfo)) {
+      final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+          : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+      final String schemaIdName =
+          isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+      final String msg = String.format("%s should support schema inference when %s is provided. "
+          + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
+      throw new KsqlException(msg);
+    }
+  }
+
   private static void checkColumnsCompatibility(
       final Optional<Integer> schemaId,
-      final ConfiguredStatement<CreateSource> statement,
+      final List<Column> tableColumns,
       final List<? extends SimpleColumn> connectColumns, final boolean isKey) {
     /*
      * Check inferred columns from schema id and provided columns compatibility. Conditions:
@@ -239,13 +377,9 @@ public class DefaultSchemaInjector implements Injector {
       return;
     }
 
-    if ((isKey && !hasKeyElements(statement)) || (!isKey && !hasValueElements(statement))) {
+    if (tableColumns.isEmpty()) {
       return;
     }
-
-    final List<Column> tableColumns =
-        isKey ? statement.getStatement().getElements().toLogicalSchema().key()
-            : statement.getStatement().getElements().toLogicalSchema().value();
 
     final Column.Namespace namespace = isKey ? Column.Namespace.KEY : Column.Namespace.VALUE;
 
@@ -286,12 +420,29 @@ public class DefaultSchemaInjector implements Injector {
     return FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
   }
 
+  private static CreateAsSelect addSchemaFieldsForCreateAs(
+      final ConfiguredStatement<CreateAsSelect> preparedStatement,
+      final Optional<SchemaAndId> keySchema,
+      final Optional<SchemaAndId> valueSchema
+  ) {
+    final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema, null);
+
+    final CreateAsSelect statement = preparedStatement.getStatement();
+    final CreateSourceAsProperties properties = statement.getProperties();
+
+    final CreateSourceAsProperties withSchemaIds = properties.withSchemaIds(
+        keySchema.map(s -> s.id),
+        valueSchema.map(s -> s.id));
+    return statement.copyWith(elements, withSchemaIds);
+  }
+
   private static CreateSource addSchemaFields(
       final ConfiguredStatement<CreateSource> preparedStatement,
       final Optional<SchemaAndId> keySchema,
       final Optional<SchemaAndId> valueSchema
   ) {
-    final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
+    final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema,
+        () -> Pair.of(getKeyColumns(preparedStatement), getValueColumns(preparedStatement)));
 
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
@@ -302,10 +453,11 @@ public class DefaultSchemaInjector implements Injector {
     return statement.copyWith(elements, withSchemaIds);
   }
 
-  private static TableElements buildElements(
-      final ConfiguredStatement<CreateSource> preparedStatement,
+  private static <T extends Statement> TableElements buildElements(
+      final ConfiguredStatement<T> preparedStatement,
       final Optional<SchemaAndId> keySchema,
-      final Optional<SchemaAndId> valueSchema
+      final Optional<SchemaAndId> valueSchema,
+      final Supplier<Pair<Stream<TableElement>, Stream<TableElement>>> kvColumnSupplier
   ) {
     final List<TableElement> elements = new ArrayList<>();
 
@@ -315,8 +467,9 @@ public class DefaultSchemaInjector implements Injector {
           .map(col -> new TableElement(namespace, col.name(), new Type(col.type())))
           .forEach(elements::add);
     } else {
-      getKeyColumns(preparedStatement)
-          .forEach(elements::add);
+      if (Objects.nonNull(kvColumnSupplier)) {
+        kvColumnSupplier.get().left.forEach(elements::add);
+      }
     }
 
     if (valueSchema.isPresent()) {
@@ -324,17 +477,18 @@ public class DefaultSchemaInjector implements Injector {
           .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
           .forEach(elements::add);
     } else {
-      getValueColumns(preparedStatement)
-          .forEach(elements::add);
+      if (Objects.nonNull(kvColumnSupplier)) {
+        kvColumnSupplier.get().right.forEach(elements::add);
+      }
     }
 
     return TableElements.of(elements);
   }
 
-  private static Namespace getKeyNamespace(final CreateSource statement) {
-    if (statement instanceof CreateStream) {
+  private static Namespace getKeyNamespace(final Object statement) {
+    if (statement instanceof CreateStream || statement instanceof CreateStreamAsSelect) {
       return Namespace.KEY;
-    } else if (statement instanceof CreateTable) {
+    } else if (statement instanceof CreateTable || statement instanceof CreateTableAsSelect) {
       return Namespace.PRIMARY_KEY;
     } else {
       throw new IllegalArgumentException("Unrecognized statement type: " + statement);
@@ -355,8 +509,8 @@ public class DefaultSchemaInjector implements Injector {
         .filter(e -> !e.getNamespace().isKey());
   }
 
-  private static PreparedStatement<CreateSource> buildPreparedStatement(
-      final CreateSource stmt
+  private static <T extends Statement> PreparedStatement<T> buildPreparedStatement(
+      final T stmt
   ) {
     return PreparedStatement.of(SqlFormatter.formatSql(stmt), stmt);
   }

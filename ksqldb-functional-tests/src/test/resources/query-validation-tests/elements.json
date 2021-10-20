@@ -61,6 +61,33 @@
       "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
+      "name": "validate schema id in csas OK - AVRO",
+      "statements": [
+        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=1);",
+        "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
+        "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "schema_input",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  "double"}]},
+          "valueFormat": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "`id` INT KEY, `c1` INT, `c2` DOUBLE"}
+        ]
+      }
+    },
+    {
       "name": "validate key schema id wrong format without elements FAILS",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', key_format='kafka', value_format='protobuf', key_schema_id=1);"

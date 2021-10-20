@@ -20,6 +20,7 @@ import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTION
 import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_TIME_SCHEMA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
@@ -29,17 +30,35 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslationPolicies;
 import io.confluent.ksql.serde.SchemaTranslationPolicy;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.IdentifierUtil;
@@ -47,6 +66,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Optional;
+import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -57,29 +78,45 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.MockitoRule;
 
 @RunWith(Parameterized.class)
 public class DefaultSchemaInjectorFunctionalTest {
 
   private enum TestType {
-    WITH_SCHEMA_ID,
-    WITHOUT_SCHEMA_ID
+    CS_WITH_SCHEMA_ID,
+    WITHOUT_SCHEMA_ID,
+    CSAS_WITH_SCHEMA_ID
   }
+
+  private static final Object[][] TEST_DATA = {
+      {
+          "with_schema_id",
+          TestType.CS_WITH_SCHEMA_ID,
+          SchemaTranslationPolicy.ORIGINAL_FIELD_NAME,
+          "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro', VALUE_SCHEMA_ID=1);"
+      },
+      {
+          "without_schema_id",
+          TestType.WITHOUT_SCHEMA_ID,
+          SchemaTranslationPolicy.UPPERCASE_FIELD_NAME,
+          "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro');"
+      },
+      {
+          "csas_with_schema_ia",
+          TestType.CSAS_WITH_SCHEMA_ID,
+          SchemaTranslationPolicy.ORIGINAL_FIELD_NAME,
+          "CREATE STREAM TEST WITH (VALUE_FORMAT='avro', VALUE_SCHEMA_ID=1) AS SELECT * FROM TEST_SOURCE EMIT CHANGES;"
+      }
+  };
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{
-        {"with_schema_id", TestType.WITH_SCHEMA_ID},
-        {"without_schema_id", TestType.WITHOUT_SCHEMA_ID}
-    });
+    return Arrays.asList(TEST_DATA);
   }
 
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
-
-  private static final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private static final org.apache.avro.Schema DECIMAL_SCHEMA =
       parseAvroSchema(
@@ -96,20 +133,47 @@ public class DefaultSchemaInjectorFunctionalTest {
   private AvroSchema avroSchema;
   @Mock
   private MetaStore metaStore;
+  @Mock
+  KsqlStream ksqlStream;
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private KsqlExecutionContext executionContext;
+  @Mock
+  private KafkaTopicClient topicClient;
+  @Mock
+  private KafkaConsumerGroupClient consumerGroupClient;
+  @Mock
+  private KsqlExecutionContext executionSandbox;
+  @Mock
+  private KsqlPlan ksqlPlan;
+  @Mock
+  private CreateSourceCommand ddlCommand;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private DefaultSchemaInjector schemaInjector;
-  private TestType testType;
+  private final TestType testType;
+  private final SchemaTranslationPolicy translationPolicy;
+  private final String statement;
 
-  public DefaultSchemaInjectorFunctionalTest(final String testName, final TestType testType) {
+  @SuppressWarnings("unused")
+  public DefaultSchemaInjectorFunctionalTest(
+      final String testName,
+      final TestType testType,
+      final SchemaTranslationPolicy policy,
+      final String statement
+  ) {
     this.testType = testType;
+    this.translationPolicy = policy;
+    this.statement = statement;
   }
 
   @Before
   public void setUp() {
-    schemaInjector = new DefaultSchemaInjector(new SchemaRegistryTopicSchemaSupplier(srClient));
+    schemaInjector = new DefaultSchemaInjector(new SchemaRegistryTopicSchemaSupplier(srClient),
+        executionContext, serviceContext);
   }
 
   @Test
@@ -509,15 +573,25 @@ public class DefaultSchemaInjectorFunctionalTest {
       final org.apache.avro.Schema avroSchema,
       final Schema expectedKsqlSchema
   ) {
-    final org.apache.avro.Schema avroStreamSchema
+    final FieldAssembler<org.apache.avro.Schema> fieldAssembler
         = org.apache.avro.SchemaBuilder.record("stream")
         .fields()
-        .name("field0").type(avroSchema).noDefault()
-        .endRecord();
+        .name("field0").type(avroSchema).noDefault();
+
+    // Add extra field in SR returned schema
+    if (this.testType == TestType.CSAS_WITH_SCHEMA_ID) {
+      fieldAssembler.name("field1")
+          .type(org.apache.avro.SchemaBuilder.builder().intType()).noDefault();
+    }
+
+    org.apache.avro.Schema avroStreamSchema = fieldAssembler.endRecord();
 
     final SchemaBuilder ksqlStreamSchemaBuilder = SchemaBuilder.struct();
     if (expectedKsqlSchema != null) {
       ksqlStreamSchemaBuilder.field("field0", expectedKsqlSchema);
+      if (this.testType == TestType.CSAS_WITH_SCHEMA_ID) {
+        ksqlStreamSchemaBuilder.field("field1", Schema.OPTIONAL_INT32_SCHEMA);
+      }
     }
 
     shouldInferSchema(avroStreamSchema, ksqlStreamSchemaBuilder.build());
@@ -538,29 +612,25 @@ public class DefaultSchemaInjectorFunctionalTest {
       final Schema expectedKqlSchema
   ) {
     // Given:
-    final SchemaTranslationPolicy policy =
-        testType == TestType.WITH_SCHEMA_ID ? SchemaTranslationPolicy.ORIGINAL_FIELD_NAME
-            : SchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
     final Schema expectedSchema = new ConnectKsqlSchemaTranslator(
-        SchemaTranslationPolicies.of(policy))
+        SchemaTranslationPolicies.of(this.translationPolicy))
         .toKsqlSchema(expectedKqlSchema);
 
     try {
-      when(srClient.getLatestSchemaMetadata(any()))
-          .thenReturn(new SchemaMetadata(1, 1, avroSchema.toString()));
+      if (testType == TestType.WITHOUT_SCHEMA_ID) {
+        when(srClient.getLatestSchemaMetadata(any()))
+            .thenReturn(new SchemaMetadata(1, 1, avroSchema.toString()));
+      }
       when(srClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(this.avroSchema);
       when(this.avroSchema.schemaType()).thenReturn("AVRO");
       when(this.avroSchema.rawSchema()).thenReturn(avroSchema);
+      constructCSASSource(expectedSchema);
     } catch (final Exception e) {
       throw new AssertionError(e);
     }
 
-    final String stmtNoSchema = testType == TestType.WITH_SCHEMA_ID
-        ? "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro', VALUE_SCHEMA_ID=1);"
-        : "CREATE STREAM TEST WITH (KAFKA_TOPIC='test', KEY_FORMAT='kafka', VALUE_FORMAT='avro');";
-
     final PreparedStatement<Statement> prepared = KsqlParserTestUtil
-        .buildSingleAst(stmtNoSchema, metaStore, true);
+        .buildSingleAst(this.statement, metaStore, true);
 
     // When:
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -568,15 +638,67 @@ public class DefaultSchemaInjectorFunctionalTest {
         ConfiguredStatement.of(prepared, SessionConfig.of(ksqlConfig, ImmutableMap.of())));
 
     // Then:
-    final Statement withSchema = KsqlParserTestUtil
-        .buildSingleAst(inferred.getStatementText(), metaStore, true)
-        .getStatement();
+    if (testType == TestType.CSAS_WITH_SCHEMA_ID) {
+      validateCsasInference((CreateStreamAsSelect) inferred.getStatement(), expectedSchema);
+    } else {
+      final Statement withSchema = KsqlParserTestUtil
+          .buildSingleAst(inferred.getStatementText(), metaStore, true)
+          .getStatement();
 
-    final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
+      final Schema actual = getSchemaForDdlStatement((CreateSource) withSchema);
 
-    assertThat(FORMATTER.format(actual),
-        equalTo(FORMATTER.format(expectedSchema)));
-    assertThat(actual, equalTo(expectedSchema));
+      assertThat(FORMATTER.format(actual),
+          equalTo(FORMATTER.format(expectedSchema)));
+      assertThat(actual, equalTo(expectedSchema));
+    }
+  }
+
+  private static void validateCsasInference(CreateStreamAsSelect statement, Schema expectedSchema) {
+    assertTrue(statement.getElements().isPresent());
+    TableElements elements = statement.getElements().get();
+    LogicalSchema.Builder builder = LogicalSchema.builder();
+    expectedSchema.fields().forEach(
+            field -> builder.valueColumn(ColumnName.of(field.name()),
+                SchemaConverters.connectToSqlConverter().toSqlType(field.schema())));
+    LogicalSchema expectedLogicalschema = builder.build();
+    LogicalSchema actual = elements.toLogicalSchema();
+    assertThat(actual, equalTo(expectedLogicalschema));
+  }
+
+  private void constructCSASSource(Schema valueSchema) {
+    if (testType != TestType.CSAS_WITH_SCHEMA_ID) {
+      return;
+    }
+    LogicalSchema.Builder builder = LogicalSchema.builder();
+    valueSchema.fields().forEach(
+            field -> {
+              if (!field.name().equals("field1")) {
+                builder.valueColumn(ColumnName.of(field.name()),
+                    SchemaConverters.connectToSqlConverter().toSqlType(field.schema()));
+              }
+            });
+    builder.keyColumn(ColumnName.of("key"), SqlTypes.INTEGER);
+    LogicalSchema schema = builder.build();
+
+    when(metaStore.getSource(any())).thenReturn(ksqlStream);
+    when(ksqlStream.getSchema()).thenReturn(schema);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(serviceContext.getConsumerGroupClient()).thenReturn(consumerGroupClient);
+
+    when(executionContext.createSandbox(any())).thenReturn(executionSandbox);
+
+    when(executionSandbox.plan(any(), any())).thenReturn(ksqlPlan);
+    when(ksqlPlan.getDdlCommand()).thenReturn(Optional.of(ddlCommand));
+    when(ddlCommand.getSchema()).thenReturn(schema);
+    when(ddlCommand.getFormats()).thenReturn(
+        Formats.of(
+            FormatInfo.of(KafkaFormat.NAME),
+            FormatInfo.of(AvroFormat.NAME),
+            SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+            SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)
+        )
+    );
   }
 
   private static Schema getSchemaForDdlStatement(final CreateSource statement) {

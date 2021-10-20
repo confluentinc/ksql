@@ -107,6 +107,41 @@ public final class CreateSourceFactory {
     );
   }
 
+  // This method is called by CREATE_AS statements
+  public CreateStreamCommand createStreamCommand(
+      final KsqlStructuredDataOutputNode outputNode,
+      final TableElements tableElements,
+      final KsqlConfig ksqlConfig
+  ) {
+    // Check schema compatibility and timestamp field
+    final LogicalSchema schema = buildSchema(tableElements, ksqlConfig);
+    final LogicalSchema outputSchema = outputNode.getSchema();
+
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    if (schema.key().isEmpty()) {
+      builder.keyColumns(outputSchema.key());
+    } else {
+      builder.keyColumns(schema.key());
+    }
+
+    if (schema.value().isEmpty()) {
+      builder.valueColumns(outputSchema.value());
+    } else {
+      builder.valueColumns(schema.value());
+    }
+
+    return new CreateStreamCommand(
+        outputNode.getSinkName().get(),
+        builder.build(),
+        outputNode.getTimestampColumn(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        Formats.from(outputNode.getKsqlTopic()),
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
+    );
+  }
+
   // This method is called by simple CREATE statements
   public CreateStreamCommand createStreamCommand(
       final CreateStream statement,
@@ -146,6 +181,41 @@ public final class CreateSourceFactory {
     return new CreateTableCommand(
         outputNode.getSinkName().get(),
         outputNode.getSchema(),
+        outputNode.getTimestampColumn(),
+        outputNode.getKsqlTopic().getKafkaTopicName(),
+        Formats.from(outputNode.getKsqlTopic()),
+        outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
+    );
+  }
+
+  // This method is called by CREATE_AS statements
+  public CreateTableCommand createTableCommand(
+      final KsqlStructuredDataOutputNode outputNode,
+      final TableElements tableElements,
+      final KsqlConfig ksqlConfig
+  ) {
+    // Check schema compatibility and timestamp field
+    final LogicalSchema schema = buildSchema(tableElements, ksqlConfig);
+    final LogicalSchema outputSchema = outputNode.getSchema();
+
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    if (schema.key().isEmpty()) {
+      builder.keyColumns(outputSchema.key());
+    } else {
+      builder.keyColumns(schema.key());
+    }
+
+    if (schema.value().isEmpty()) {
+      builder.valueColumns(outputSchema.value());
+    } else {
+      builder.valueColumns(schema.value());
+    }
+
+    return new CreateTableCommand(
+        outputNode.getSinkName().get(),
+        builder.build(),
         outputNode.getTimestampColumn(),
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),

@@ -33,6 +33,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.query.KafkaStreamsQueryValidator;
 import io.confluent.ksql.query.QueryId;
@@ -213,6 +214,11 @@ final class EngineContext {
 
   DdlCommand createDdlCommand(final KsqlStructuredDataOutputNode outputNode) {
     return ddlCommandFactory.create(outputNode);
+  }
+
+  DdlCommand createDdlCommand(final KsqlStructuredDataOutputNode outputNode,
+      final TableElements tableElements) {
+    return ddlCommandFactory.create(outputNode, tableElements, ksqlConfig);
   }
 
   String executeDdl(

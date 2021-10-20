@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -43,8 +44,18 @@ public class SqlFormatInjector implements Injector {
       final String sqlWithSemiColon = sql.endsWith(";") ? sql : sql + ";";
       final PreparedStatement<?> prepare = executionContext
           .prepare(executionContext.parse(sqlWithSemiColon).get(0));
+      final Statement finalStatement;
 
-      return statement.withStatement(sql, (T) prepare.getStatement());
+      // Put Elements in CreateAsSelect back
+      if (node instanceof CreateAsSelect && ((CreateAsSelect) node).getElements().isPresent()) {
+        final CreateAsSelect cas = ((CreateAsSelect) prepare.getStatement());
+        finalStatement = cas.copyWith(((CreateAsSelect) node).getElements().get(),
+            cas.getProperties());
+      } else {
+        finalStatement = prepare.getStatement();
+      }
+
+      return statement.withStatement(sql, (T) finalStatement);
     } catch (final Exception e) {
       throw new KsqlException("Unable to format statement! This is bad because "
           + "it means we cannot persist it onto the command topic: " + statement, e);

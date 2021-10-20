@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.fasterxml.jackson.jaxrs.json.annotation.JSONP.Def;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -127,7 +128,7 @@ public final class KsqlEngineTestUtil {
 
     final Optional<DefaultSchemaInjector> schemaInjector = srClient
         .map(SchemaRegistryTopicSchemaSupplier::new)
-        .map(DefaultSchemaInjector::new);
+        .map(supplier -> new DefaultSchemaInjector(supplier, engine, serviceContext));
 
     return statements.stream()
         .map(stmt ->
@@ -138,7 +139,28 @@ public final class KsqlEngineTestUtil {
         .collect(Collectors.toList());
   }
 
-  @SuppressWarnings({"rawtypes","unchecked"})
+  public static KsqlPlan plan(
+      final ServiceContext serviceContext,
+      final KsqlEngine engine,
+      final String sql,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties,
+      final SchemaRegistryClient srClient
+  ) {
+    final List<ParsedStatement> statements = engine.parse(sql);
+    final PreparedStatement<?> prepared = engine.prepare(statements.get(0));
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        prepared, SessionConfig.of(ksqlConfig, overriddenProperties));
+    final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
+    final DefaultSchemaInjector schemaInjector = new DefaultSchemaInjector(
+        new SchemaRegistryTopicSchemaSupplier(srClient), engine, serviceContext);
+    final ConfiguredStatement<?> withSchema = schemaInjector.inject(withFormats);
+    final ConfiguredStatement<?> reformatted =
+        new SqlFormatInjector(engine).inject(withSchema);
+    return engine.plan(serviceContext, reformatted);
+  }
+
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static ExecuteResult execute(
       final ServiceContext serviceContext,
       final KsqlExecutionContext executionContext,

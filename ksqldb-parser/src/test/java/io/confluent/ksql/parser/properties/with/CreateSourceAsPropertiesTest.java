@@ -322,4 +322,18 @@ public class CreateSourceAsPropertiesTest {
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
   }
+
+  @Test
+  public void shouldSetValidSchemaIds() {
+    // When:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.<String, Literal>builder()
+            .put(CommonCreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
+            .put(CommonCreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
+            .build());
+
+    // Then:
+    assertThat(properties.getKeySchemaId(), is(Optional.of(1)));
+    assertThat(properties.getValueSchemaId(), is(Optional.of(2)));
+  }
 }

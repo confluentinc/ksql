@@ -34,10 +34,12 @@ import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
@@ -119,6 +121,18 @@ public class CommandFactories implements DdlCommandFactory {
       return createSourceFactory.createStreamCommand(outputNode);
     } else {
       return createSourceFactory.createTableCommand(outputNode);
+    }
+  }
+
+  @Override
+  public DdlCommand create(
+      final KsqlStructuredDataOutputNode outputNode,
+      final TableElements tableElements,
+      final KsqlConfig ksqlConfig) {
+    if (outputNode.getNodeOutputType() == DataSource.DataSourceType.KSTREAM) {
+      return createSourceFactory.createStreamCommand(outputNode, tableElements, ksqlConfig);
+    } else {
+      return createSourceFactory.createTableCommand(outputNode, tableElements, ksqlConfig);
     }
   }
 

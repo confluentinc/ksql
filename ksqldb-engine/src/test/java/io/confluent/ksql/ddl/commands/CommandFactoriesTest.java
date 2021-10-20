@@ -54,6 +54,7 @@ import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
@@ -135,9 +136,15 @@ public class CommandFactoriesTest {
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
-    when(createSourceFactory.createStreamCommand(any(), any()))
+    when(createSourceFactory.createStreamCommand(any(CreateStream.class), any()))
+        .thenReturn(createStreamCommand);
+    when(createSourceFactory.createStreamCommand(
+        any(KsqlStructuredDataOutputNode.class), any(TableElements.class), any()))
         .thenReturn(createStreamCommand);
     when(createSourceFactory.createTableCommand(any(), any()))
+        .thenReturn(createTableCommand);
+    when(createSourceFactory.createTableCommand(
+        any(KsqlStructuredDataOutputNode.class), any(TableElements.class), any()))
         .thenReturn(createTableCommand);
     when(dropSourceFactory.create(any(DropStream.class))).thenReturn(dropSourceCommand);
     when(dropSourceFactory.create(any(DropTable.class))).thenReturn(dropSourceCommand);
@@ -197,6 +204,25 @@ public class CommandFactoriesTest {
   }
 
   @Test
+  public void shouldCreateStreamCommandFromNodeOutputAndTableElementsOverride() {
+    // Given:
+    final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
+    when(outputNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
+
+    final TableElements tableElements = TableElements.of(
+        tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+        tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))
+    );
+
+    // When:
+    final DdlCommand result = commandFactories.create(outputNode, tableElements, ksqlConfig);
+
+    // Then:
+    assertThat(result, is(createStreamCommand));
+    verify(createSourceFactory).createStreamCommand(outputNode, tableElements, ksqlConfig);
+  }
+
+  @Test
   public void shouldCreateCommandForStreamWithOverriddenProperties() {
     // Given:
     final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, false, true, withProperties, false);
@@ -225,6 +251,25 @@ public class CommandFactoriesTest {
     // Then:
     assertThat(result, is(createTableCommand));
     verify(createSourceFactory).createTableCommand(statement, ksqlConfig);
+  }
+
+  @Test
+  public void shouldCreateTableCommandFromNodeOutputAndTableElementsOverride() {
+    // Given:
+    final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
+    when(outputNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
+
+    final TableElements tableElements = TableElements.of(
+        tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+        tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))
+    );
+
+    // When:
+    final DdlCommand result = commandFactories.create(outputNode, tableElements, ksqlConfig);
+
+    // Then:
+    assertThat(result, is(createTableCommand));
+    verify(createSourceFactory).createTableCommand(outputNode, tableElements, ksqlConfig);
   }
 
   @Test

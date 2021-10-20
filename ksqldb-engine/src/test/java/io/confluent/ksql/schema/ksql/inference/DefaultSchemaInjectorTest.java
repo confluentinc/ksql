@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -30,20 +31,33 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
+import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -56,6 +70,9 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.services.KafkaConsumerGroupClient;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -63,6 +80,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Before;
@@ -113,7 +131,23 @@ public class DefaultSchemaInjectorTest {
       ),
       new TableElement(Namespace.VALUE, ColumnName.of("extraField"), new Type(SqlTypes.array(SqlTypes.INTEGER)))
   );
-
+  private static final TableElements VALUE_ELEMENTS = TableElements.of(
+      new TableElement(Namespace.VALUE, ColumnName.of("intField"), new Type(SqlTypes.INTEGER)),
+      new TableElement(Namespace.VALUE, ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, ColumnName.of("doubleField"), new Type(SqlTypes.DOUBLE)),
+      new TableElement(Namespace.VALUE, ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
+      new TableElement(Namespace.VALUE, ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
+      new TableElement(Namespace.VALUE, ColumnName.of("mapField"), new Type(SqlTypes.map(
+          SqlTypes.STRING, SqlTypes.BIGINT
+      ))),
+      new TableElement(Namespace.VALUE, ColumnName.of("structField"), new Type(SqlStruct.builder()
+          .field("s0", SqlTypes.BIGINT)
+          .build())),
+      new TableElement(Namespace.VALUE,
+          ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))
+      )
+  );
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> BASE_PROPS = ImmutableMap.of(
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
@@ -134,6 +168,41 @@ public class DefaultSchemaInjectorTest {
           .field("s0", SqlTypes.BIGINT).build())
       .valueColumn(ColumnName.of("decimalField"), SqlTypes.decimal(4, 2))
       .build();
+
+   private static final LogicalSchema LOGICAL_SCHEMA_EXTRA_KEY = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("key"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("key1"), SqlTypes.STRING)
+      .build();
+
+   private static final LogicalSchema LOGICAL_SCHEMA_INT_KEY = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("key"), SqlTypes.INTEGER)
+      .build();
+
+  private static final LogicalSchema LOGICAL_SCHEMA_VALUE_REORDERED = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("bigIntField"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("intField"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("doubleField"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("stringField"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("booleanField"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("arrayField"), SqlTypes.array(SqlTypes.INTEGER))
+      .valueColumn(ColumnName.of("mapField"), SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
+      .valueColumn(ColumnName.of("structField"), SqlTypes.struct()
+          .field("s0", SqlTypes.BIGINT).build())
+      .valueColumn(ColumnName.of("decimalField"), SqlTypes.decimal(4, 2))
+      .build();
+
+  private static final LogicalSchema LOGICAL_SCHEMA_VALUE_MISSING = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("intField"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("bigIntField"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("doubleField"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("stringField"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("booleanField"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("arrayField"), SqlTypes.array(SqlTypes.INTEGER))
+      .valueColumn(ColumnName.of("mapField"), SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
+      .valueColumn(ColumnName.of("structField"), SqlTypes.struct()
+          .field("s0", SqlTypes.BIGINT).build())
+      .build();
+
   private static final List<? extends SimpleColumn> SR_KEY_SCHEMA = LOGICAL_SCHEMA.key();
   private static final List<? extends SimpleColumn> SR_VALUE_SCHEMA = LOGICAL_SCHEMA.value();
 
@@ -162,7 +231,22 @@ public class DefaultSchemaInjectorTest {
 
   private static final int KEY_SCHEMA_ID = 18;
   private static final int VALUE_SCHEMA_ID = 5;
-
+  @Mock
+  private ServiceContext serviceContext;
+  @Mock
+  private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private KafkaTopicClient topicClient;
+  @Mock
+  private KafkaConsumerGroupClient consumerGroupClient;
+  @Mock
+  private KsqlExecutionContext executionSandbox;
+  @Mock
+  private KsqlExecutionContext executionContext;
+  @Mock
+  private KsqlPlan ksqlPlan;
+  @Mock
+  private CreateSourceCommand ddlCommand;
   @Mock
   private Statement statement;
   @Mock
@@ -170,9 +254,16 @@ public class DefaultSchemaInjectorTest {
   @Mock
   private CreateTable ct;
   @Mock
+  private CreateStreamAsSelect csas;
+  @Mock
+  private CreateTableAsSelect ctas;
+  @Mock
   private TopicSchemaSupplier schemaSupplier;
   private ConfiguredStatement<CreateStream> csStatement;
   private ConfiguredStatement<CreateTable> ctStatement;
+  private ConfiguredStatement<CreateStreamAsSelect> csasStatement;
+  private ConfiguredStatement<CreateTableAsSelect> ctasStatement;
+
 
   private DefaultSchemaInjector injector;
 
@@ -181,14 +272,22 @@ public class DefaultSchemaInjectorTest {
   public void setUp() {
     when(cs.getName()).thenReturn(SourceName.of("cs"));
     when(ct.getName()).thenReturn(SourceName.of("ct"));
+    when(csas.getName()).thenReturn(SourceName.of("csas"));
+    when(ctas.getName()).thenReturn(SourceName.of("ctas"));
 
     when(cs.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, cs, mock(CreateStream.class)));
     when(ct.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ct, mock(CreateTable.class)));
+    when(csas.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, csas, mock(CreateStreamAsSelect.class)));
+    when(ctas.copyWith(any(), any())).thenAnswer(inv -> setupCopy(inv, ctas, mock(CreateTableAsSelect.class)));
 
     final KsqlConfig config = new KsqlConfig(ImmutableMap.of());
     csStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, cs),
         SessionConfig.of(config, ImmutableMap.of()));
     ctStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ct),
+        SessionConfig.of(config, ImmutableMap.of()));
+    csasStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, csas),
+        SessionConfig.of(config, ImmutableMap.of()));
+    ctasStatement = ConfiguredStatement.of(PreparedStatement.of(SQL_TEXT, ctas),
         SessionConfig.of(config, ImmutableMap.of()));
 
     when(schemaSupplier.getKeySchema(any(), any(), any(), any()))
@@ -205,7 +304,16 @@ public class DefaultSchemaInjectorTest {
     when(cs.getElements()).thenReturn(TableElements.of());
     when(ct.getElements()).thenReturn(TableElements.of());
 
-    injector = new DefaultSchemaInjector(schemaSupplier);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
+    when(serviceContext.getTopicClient()).thenReturn(topicClient);
+    when(serviceContext.getConsumerGroupClient()).thenReturn(consumerGroupClient);
+
+    when(executionContext.createSandbox(any())).thenReturn(executionSandbox);
+
+    when(executionSandbox.plan(any(), any())).thenReturn(ksqlPlan);
+    when(ksqlPlan.getDdlCommand()).thenReturn(Optional.of(ddlCommand));
+
+    injector = new DefaultSchemaInjector(schemaSupplier, executionContext, serviceContext);
   }
 
   @Test
@@ -234,6 +342,30 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(result, is(sameInstance(csStatement)));
+  }
+
+  @Test
+  public void shouldReturnStatementUnchangedIfCsasDoesnotHaveSchemaId() {
+    // Given:
+    givenKeyAndValueInferenceSupported();
+
+    // When:
+    final ConfiguredStatement<?> result = injector.inject(csasStatement);
+
+    // Then:
+    assertThat(result, is(sameInstance(csasStatement)));
+  }
+
+  @Test
+  public void shouldReturnStatementUnchangedIfCtasDoesnotHaveSchemaId() {
+    // Given:
+    givenKeyAndValueInferenceSupported();
+
+    // When:
+    final ConfiguredStatement<?> result = injector.inject(ctasStatement);
+
+    // Then:
+    assertThat(result, is(sameInstance(ctasStatement)));
   }
 
   @Test
@@ -450,6 +582,98 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
+  public void shouldInjectKeyForCsas() {
+    // Given:
+    givenFormatsAndProps("avro", "delimited",
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA, "avro", "delimited",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.WRAP_SINGLES);
+    TableElements tableElements = TableElements.of(
+      new TableElement(Namespace.KEY, ColumnName.of("key"), new Type(SqlTypes.STRING)));
+
+    // When:
+    final ConfiguredStatement<CreateStreamAsSelect> result = injector.inject(csasStatement);
+    final Optional<TableElements> elements = result.getStatement().getElements();
+
+    // Then:
+    assertThat(result.getStatementText(), is(
+        "CREATE STREAM `csas` "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', "
+            + "KEY_SCHEMA_ID=42, VALUE_FORMAT='delimited') AS SELECT *\nFROM TABLE `sink`"
+    ));
+    assertTrue(elements.isPresent());
+    assertThat(elements.get(), is(tableElements));
+  }
+
+  @Test
+  public void shouldInjectKeyForCtas() {
+    // Given:
+    givenFormatsAndProps("avro", "delimited",
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    TableElements tableElements = TableElements.of(
+      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("key"), new Type(SqlTypes.STRING)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA, "avro", "delimited",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.WRAP_SINGLES);
+
+    // When:
+    final ConfiguredStatement<CreateTableAsSelect> result = injector.inject(ctasStatement);
+    final Optional<TableElements> elements = result.getStatement().getElements();
+
+    // Then:
+    assertThat(result.getStatementText(), is(
+        "CREATE TABLE `ctas` "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', "
+            + "KEY_SCHEMA_ID=42, VALUE_FORMAT='delimited') AS SELECT *\nFROM TABLE `sink`"
+    ));
+    assertTrue(elements.isPresent());
+    assertThat(elements.get(), is(tableElements));
+  }
+
+  @Test
+  public void shouldInjectValueForCsas() {
+    // Given:
+    givenFormatsAndProps("kafka", "protobuf",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_VALUE_MISSING, "kafka", "protobuf",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.WRAP_SINGLES);
+
+    // When:
+    final ConfiguredStatement<CreateStreamAsSelect> result = injector.inject(csasStatement);
+    final Optional<TableElements> elements = result.getStatement().getElements();
+
+    // Then:
+    assertThat(result.getStatementText(), is(
+        "CREATE STREAM `csas` "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='protobuf', "
+            + "VALUE_SCHEMA_ID=42) AS SELECT *\nFROM TABLE `sink`"
+    ));
+    assertTrue(elements.isPresent());
+    assertThat(elements.get(), is(VALUE_ELEMENTS));
+  }
+
+  @Test
+  public void shouldInjectValueForCtas() {
+    // Given:
+    givenFormatsAndProps("kafka", "protobuf",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_VALUE_MISSING, "kafka", "protobuf",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.WRAP_SINGLES);
+
+    // When:
+    final ConfiguredStatement<CreateTableAsSelect> result = injector.inject(ctasStatement);
+    final Optional<TableElements> elements = result.getStatement().getElements();
+
+    // Then:
+    assertThat(result.getStatementText(), is(
+        "CREATE TABLE `ctas` "
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='protobuf', "
+            + "VALUE_SCHEMA_ID=42) AS SELECT *\nFROM TABLE `sink`"
+    ));
+    assertTrue(elements.isPresent());
+    assertThat(elements.get(), is(VALUE_ELEMENTS));
+  }
+
+  @Test
   public void shouldUseValueSchemaIdWhenTableElementsPresent() {
     // Given:
     givenFormatsAndProps(
@@ -523,8 +747,18 @@ public class DefaultSchemaInjectorTest {
     assertThat(result.getStatementText(), containsString("KEY_SCHEMA_ID=18"));
     assertThat(result.getStatementText(), containsString("VALUE_SCHEMA_ID=5"));
 
-    verify(schemaSupplier).getKeySchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("PROTOBUF"), SerdeFeatures.of());
-    verify(schemaSupplier).getValueSchema(KAFKA_TOPIC, Optional.empty(), FormatInfo.of("AVRO"), SerdeFeatures.of());
+    verify(schemaSupplier).getKeySchema(
+        Optional.of(KAFKA_TOPIC),
+        Optional.empty(),
+        FormatInfo.of("PROTOBUF"),
+        SerdeFeatures.of()
+    );
+    verify(schemaSupplier).getValueSchema(
+        Optional.of(KAFKA_TOPIC),
+        Optional.empty(),
+        FormatInfo.of("AVRO"),
+        SerdeFeatures.of()
+    );
   }
 
   @Test
@@ -604,7 +838,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     verify(schemaSupplier).getKeySchema(
-        KAFKA_TOPIC,
+        Optional.of(KAFKA_TOPIC),
         Optional.empty(),
         FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.CtKey")),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
@@ -621,7 +855,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     verify(schemaSupplier).getKeySchema(
-        KAFKA_TOPIC,
+        Optional.of(KAFKA_TOPIC),
         Optional.empty(),
         FormatInfo.of("PROTOBUF"),
         SerdeFeatures.of()
@@ -642,11 +876,234 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     verify(schemaSupplier).getValueSchema(
-        KAFKA_TOPIC,
+        Optional.of(KAFKA_TOPIC),
         Optional.empty(),
         FormatInfo.of("AVRO"),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     );
+  }
+
+  @Test
+  public void shouldThrowIfCsasKeyTableElementsNotCompatibleExtraKey() {
+    // Given:
+    givenFormatsAndProps("protobuf", null,
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_EXTRA_KEY, "protobuf", "avro",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following key columns are changed, missing or reordered: "
+            + "[`key1` STRING KEY]. Schema from schema registry is [`key` STRING KEY]"));
+  }
+
+  @Test
+  public void shouldThrowIfCtasKeyTableElementsNotCompatibleExtraKey() {
+    // Given:
+    givenFormatsAndProps("protobuf", null,
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_EXTRA_KEY, "protobuf", "avro",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctasStatement)
+    );
+
+    // Then:
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following key columns are changed, missing or reordered: "
+            + "[`key1` STRING KEY]. Schema from schema registry is [`key` STRING KEY]"));
+  }
+
+  @Test
+  public void shouldThrowIfCsasKeyTableElementsNotCompatibleWrongKeyType() {
+    // Given:
+    givenFormatsAndProps("protobuf", null,
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_INT_KEY, "protobuf", "avro",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following key columns are changed, missing or reordered: "
+            + "[`key` INTEGER KEY]. Schema from schema registry is [`key` STRING KEY]"));
+  }
+
+  @Test
+  public void shouldThrowIfCtasKeyTableElementsNotCompatibleWrongKeyType() {
+    // Given:
+    givenFormatsAndProps("protobuf", null,
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_INT_KEY, "protobuf", "avro",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following key columns are changed, missing or reordered: "
+            + "[`key` INTEGER KEY]. Schema from schema registry is [`key` STRING KEY]"));
+  }
+  @Test
+  public void shouldThrowIfCsasKeyTableElementsNotCompatibleReorderedValue() {
+    // Given:
+    givenFormatsAndProps("kafka", "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_VALUE_REORDERED, "kafka", "avro",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following value columns are changed, missing or reordered: "
+            + "[`bigIntField` BIGINT, `intField` INTEGER]. Schema from schema registry is ["
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)]"
+        )
+    );
+  }
+
+  @Test
+  public void shouldThrowIfCtasKeyTableElementsNotCompatibleReorderedValue() {
+    // Given:
+    givenFormatsAndProps("kafka", "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA_VALUE_REORDERED, "kafka", "avro",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctasStatement)
+    );
+
+    // Then:
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("The following value columns are changed, missing or reordered: "
+            + "[`bigIntField` BIGINT, `intField` INTEGER]. Schema from schema registry is ["
+            + "`intField` INTEGER, "
+            + "`bigIntField` BIGINT, "
+            + "`doubleField` DOUBLE, "
+            + "`stringField` STRING, "
+            + "`booleanField` BOOLEAN, "
+            + "`arrayField` ARRAY<INTEGER>, "
+            + "`mapField` MAP<STRING, BIGINT>, "
+            + "`structField` STRUCT<`s0` BIGINT>, "
+            + "`decimalField` DECIMAL(4, 2)]"
+        )
+    );
+  }
+
+  @Test
+  public void shouldThrowIfCsasKeyFormatDoesnotSupportInference() {
+    // Given:
+    givenFormatsAndProps("kafka", null,
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA, "kafka", "avro",
+        SerdeFeature.WRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("KEY_FORMAT should support schema inference when "
+            + "KEY_SCHEMA_ID is provided. Current format is KAFKA."));
+  }
+
+  @Test
+  public void shouldThrowIfCtasKeyFormatDoesnotSupportInference() {
+    // Given:
+    givenFormatsAndProps("kafka", null,
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA, "kafka", "avro",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("KEY_FORMAT should support schema inference when "
+            + "KEY_SCHEMA_ID is provided. Current format is KAFKA."));
+  }
+
+  @Test
+  public void shouldThrowIfCsasValueFormatDoesnotSupportInference() {
+    // Given:
+    givenFormatsAndProps(null, "kafka",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA, "kafka", "delimited",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("VALUE_FORMAT should support schema inference when "
+            + "VALUE_SCHEMA_ID is provided. Current format is DELIMITED."));
+  }
+
+  @Test
+  public void shouldThrowIfCtasValueFormatDoesnotSupportInference() {
+    // Given:
+    givenFormatsAndProps(null, "kafka",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    givenDDLSchemaAndFormats(LOGICAL_SCHEMA, "kafka", "delimited",
+        SerdeFeature.UNWRAP_SINGLES, SerdeFeature.UNWRAP_SINGLES);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctasStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("VALUE_FORMAT should support schema inference when "
+            + "VALUE_SCHEMA_ID is provided. Current format is DELIMITED."));
   }
 
   @Test
@@ -821,18 +1278,51 @@ public class DefaultSchemaInjectorTest {
     givenFormatsAndProps("kafka", "json_sr", additionalProps);
   }
 
+  private Formats givenFormats(final String keyFormat, final String valueFormat,
+      final SerdeFeature keyFeature, final SerdeFeature valueFeature) {
+    return Formats.of(FormatInfo.of(keyFormat), FormatInfo.of(valueFormat),
+        SerdeFeatures.of(keyFeature), SerdeFeatures.of(valueFeature));
+  }
+
+  private void givenDDLSchemaAndFormats(
+      final LogicalSchema schema,
+      final String keyFormat,
+      final String valueFormat,
+      final SerdeFeature keyFeature,
+      final SerdeFeature valueFeature
+  ) {
+    when(ddlCommand.getSchema()).thenReturn(schema);
+    when(ddlCommand.getFormats()).thenReturn(
+        givenFormats(keyFormat, valueFormat, keyFeature, valueFeature));
+  }
+
   private void givenFormatsAndProps(
       final String keyFormat,
       final String valueFormat,
       final Map<String, Literal> additionalProps) {
     final HashMap<String, Literal> props = new HashMap<>(BASE_PROPS);
-    props.put("KEY_FORMAT", new StringLiteral(keyFormat));
-    props.put("VALUE_FORMAT", new StringLiteral(valueFormat));
+    if (keyFormat != null) {
+      props.put("KEY_FORMAT", new StringLiteral(keyFormat));
+    }
+    if (valueFormat != null) {
+      props.put("VALUE_FORMAT", new StringLiteral(valueFormat));
+    }
     props.putAll(additionalProps);
     final CreateSourceProperties csProps = CreateSourceProperties.from(props);
+    final CreateSourceAsProperties casProps = CreateSourceAsProperties.from(props);
 
     when(cs.getProperties()).thenReturn(csProps);
     when(ct.getProperties()).thenReturn(csProps);
+    when(csas.getProperties()).thenReturn(casProps);
+    when(ctas.getProperties()).thenReturn(casProps);
+
+    /*
+    when(csas.getSink()).thenReturn(
+        Sink.of(SourceName.of("csas"), true, false, casProps));
+    when(ctas.getSink()).thenReturn(
+        Sink.of(SourceName.of("ctas"), true, false, casProps));
+
+     */
   }
 
   private static Object setupCopy(
@@ -845,6 +1335,33 @@ public class DefaultSchemaInjectorTest {
     when(mock.getElements()).thenReturn(inv.getArgument(0));
     when(mock.accept(any(), any())).thenCallRealMethod();
     when(mock.getProperties()).thenReturn(inv.getArgument(1));
+    return mock;
+  }
+
+  private static Object setupCopy(
+      final InvocationOnMock inv,
+      final CreateAsSelect source,
+      final CreateAsSelect mock
+  ) {
+    final SourceName name = source.getName();
+    when(mock.getName()).thenReturn(name);
+    when(mock.getElements()).thenReturn(Optional.ofNullable(inv.getArgument(0)));
+    when(mock.accept(any(), any())).thenCallRealMethod();
+    when(mock.getProperties()).thenReturn(inv.getArgument(1));
+    when(mock.getQuery()).thenReturn(
+        new Query(
+            Optional.empty(),
+        new Select(ImmutableList.of(new AllColumns(Optional.empty()))),
+        new Table(SourceName.of("sink")),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        false,
+        OptionalInt.empty()
+    ));
     return mock;
   }
 

@@ -30,6 +30,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
   private final boolean orReplace;
   private final boolean notExists;
   private final CreateSourceAsProperties properties;
+  private final Optional<TableElements> elements;
 
   CreateAsSelect(
       final Optional<NodeLocation> location,
@@ -39,12 +40,26 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
       final boolean notExists,
       final CreateSourceAsProperties properties
   ) {
+    this(location, name, query, orReplace, notExists, properties, Optional.empty());
+  }
+
+  CreateAsSelect(
+      final Optional<NodeLocation> location,
+      final SourceName name,
+      final Query query,
+      final boolean orReplace,
+      final boolean notExists,
+      final CreateSourceAsProperties properties,
+      final Optional<TableElements> elements
+  ) {
     super(location);
     this.name = requireNonNull(name, "name");
     this.query = requireNonNull(query, "query");
     this.orReplace = orReplace;
     this.notExists = notExists;
     this.properties = requireNonNull(properties, "properties");
+    this.elements = requireNonNull(elements, "elements");
+
   }
 
   CreateAsSelect(
@@ -57,11 +72,15 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         other.query,
         other.orReplace,
         other.notExists,
-        properties
+        properties,
+        other.elements
     );
   }
 
   public abstract CreateAsSelect copyWith(CreateSourceAsProperties properties);
+
+  public abstract CreateAsSelect copyWith(TableElements elements,
+      CreateSourceAsProperties properties);
 
   public SourceName getName() {
     return name;
@@ -84,6 +103,10 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
     return properties;
   }
 
+  public Optional<TableElements> getElements() {
+    return elements;
+  }
+
   @Override
   public Sink getSink() {
     return Sink.of(getName(), true, isOrReplace(), getProperties());
@@ -96,7 +119,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, query, properties, notExists, getClass());
+    return Objects.hash(name, query, properties, notExists, elements, getClass());
   }
 
   @Override
@@ -112,7 +135,8 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         && Objects.equals(query, o.query)
         && Objects.equals(notExists, o.notExists)
         && Objects.equals(orReplace, o.orReplace)
-        && Objects.equals(properties, o.properties);
+        && Objects.equals(properties, o.properties)
+        && Objects.equals(elements, o.elements);
   }
 
   @Override
@@ -122,6 +146,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
         + ", notExists=" + notExists
         + ", orReplace =" + orReplace
         + ", properties=" + properties
+        + ", elements=" + elements
         + '}';
   }
 }

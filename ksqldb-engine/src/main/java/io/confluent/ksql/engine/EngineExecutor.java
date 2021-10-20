@@ -353,7 +353,7 @@ final class EngineExecutor {
           context,
           pushRoutingOptions
       );
-      final  PushPhysicalPlan physicalPlan = plan;
+      final PushPhysicalPlan physicalPlan = plan;
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -829,6 +829,12 @@ final class EngineExecutor {
       ));
     }
 
+    if (statement instanceof CreateAsSelect && ((CreateAsSelect) statement).getElements()
+        .isPresent()) {
+      return Optional.of(
+          engineContext.createDdlCommand(outputNode, ((CreateAsSelect) statement).getElements()
+              .get()));
+    }
     return Optional.of(engineContext.createDdlCommand(outputNode));
   }
 

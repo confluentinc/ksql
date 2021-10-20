@@ -100,6 +100,14 @@ public final class CreateSourceAsProperties {
     return SerdeFeatures.from(builder.build());
   }
 
+  public Optional<Integer> getKeySchemaId() {
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.KEY_SCHEMA_ID));
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
+  }
+
   public Optional<String> getKeyFormat() {
     final String keyFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
@@ -131,6 +139,19 @@ public final class CreateSourceAsProperties {
     }
 
     return builder.build();
+  }
+
+  public CreateSourceAsProperties withSchemaIds(
+      final Optional<Integer> keySchemaId,
+      final Optional<Integer> valueSchemaId
+  ) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    keySchemaId.ifPresent(id ->
+        originals.put(CommonCreateConfigs.KEY_SCHEMA_ID, new IntegerLiteral(id)));
+    valueSchemaId.ifPresent(id ->
+        originals.put(CommonCreateConfigs.VALUE_SCHEMA_ID, new IntegerLiteral(id)));
+
+    return new CreateSourceAsProperties(originals);
   }
 
   public Map<String, String> getValueFormatProperties() {

@@ -116,6 +116,9 @@ public class CreateSourceFactoryTest {
   private static final TableElement ELEMENT2 =
       tableElement(VALUE, "hojjat", new Type(BIGINT));
 
+  private static final TableElement ELEMENT3 =
+      tableElement(VALUE, "extra_field", new Type(BIGINT));
+
   private static final TableElements ONE_KEY_ONE_VALUE = TableElements.of(
       EXPLICIT_KEY,
       ELEMENT1
@@ -130,10 +133,20 @@ public class CreateSourceFactoryTest {
   private static final TableElements STREAM_ELEMENTS =
       TableElements.of(EXPLICIT_KEY, ELEMENT1, ELEMENT2);
 
+  private static final TableElements TABLE_ELEMENTS_EXTRA_FIELD =
+      TableElements.of(ELEMENT1, ELEMENT2, ELEMENT3);
+
   private static final LogicalSchema EXPECTED_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("hojjat"), BIGINT)
+      .build();
+
+  private static final LogicalSchema EXPECTED_SCHEMA_WITH_EXTRA_FIELD = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("hojjat"), BIGINT)
+      .valueColumn(ColumnName.of("extra_field"), BIGINT)
       .build();
 
   private static final String TOPIC_NAME = "some topic";
@@ -244,6 +257,35 @@ public class CreateSourceFactoryTest {
   }
 
   @Test
+  public void shouldCreateStreamCommandFromNodeOutputAndTableElementsOverride() {
+    // Given:
+    final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
+    when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(ksqlTopic.getKeyFormat()).thenReturn(SOME_KEY_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(SOME_VALUE_FORMAT);
+
+    final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
+    when(outputNode.getSinkName()).thenReturn(Optional.of(SOME_NAME));
+    when(outputNode.getSchema()).thenReturn(EXPECTED_SCHEMA);
+    when(outputNode.getTimestampColumn()).thenReturn(Optional.of(TIMESTAMP_COLUMN));
+    when(outputNode.getKsqlTopic()).thenReturn(ksqlTopic);
+
+
+    // When:
+    final CreateStreamCommand result = createSourceFactory.createStreamCommand(outputNode,
+        TABLE_ELEMENTS_EXTRA_FIELD, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSourceName(), is(SOME_NAME));
+    assertThat(result.getSchema(), is(EXPECTED_SCHEMA_WITH_EXTRA_FIELD));
+    assertThat(result.getTimestampColumn(), is(Optional.of(TIMESTAMP_COLUMN)));
+    assertThat(result.getTopicName(), is(TOPIC_NAME));
+    assertThat(result.getFormats(), is(Formats.from(ksqlTopic)));
+    assertThat(result.getWindowInfo(), is(Optional.empty()));
+    assertThat(result.isOrReplace(), is(false));
+  }
+
+  @Test
   public void shouldCreateCommandForCreateStream() {
     // Given:
     final CreateStream ddlStatement =
@@ -277,7 +319,7 @@ public class CreateSourceFactoryTest {
 
   @Test
   public void shouldCreateTableCommandFromNodeOutput() {
-// Given:
+    // Given:
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);
     when(ksqlTopic.getKeyFormat()).thenReturn(SOME_KEY_FORMAT);
@@ -296,6 +338,35 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(result.getSourceName(), is(SOME_NAME));
     assertThat(result.getSchema(), is(EXPECTED_SCHEMA));
+    assertThat(result.getTimestampColumn(), is(Optional.of(TIMESTAMP_COLUMN)));
+    assertThat(result.getTopicName(), is(TOPIC_NAME));
+    assertThat(result.getFormats(), is(Formats.from(ksqlTopic)));
+    assertThat(result.getWindowInfo(), is(Optional.empty()));
+    assertThat(result.isOrReplace(), is(false));
+  }
+
+  @Test
+  public void shouldCreateTableCommandFromNodeOutputAndTableElementsOverride() {
+    // Given:
+    final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
+    when(ksqlTopic.getKafkaTopicName()).thenReturn(TOPIC_NAME);
+    when(ksqlTopic.getKeyFormat()).thenReturn(SOME_KEY_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(SOME_VALUE_FORMAT);
+
+    final KsqlStructuredDataOutputNode outputNode = mock(KsqlStructuredDataOutputNode.class);
+    when(outputNode.getSinkName()).thenReturn(Optional.of(SOME_NAME));
+    when(outputNode.getSchema()).thenReturn(EXPECTED_SCHEMA);
+    when(outputNode.getTimestampColumn()).thenReturn(Optional.of(TIMESTAMP_COLUMN));
+    when(outputNode.getKsqlTopic()).thenReturn(ksqlTopic);
+
+
+    // When:
+    final CreateTableCommand result = createSourceFactory.createTableCommand(outputNode,
+        TABLE_ELEMENTS_EXTRA_FIELD, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSourceName(), is(SOME_NAME));
+    assertThat(result.getSchema(), is(EXPECTED_SCHEMA_WITH_EXTRA_FIELD));
     assertThat(result.getTimestampColumn(), is(Optional.of(TIMESTAMP_COLUMN)));
     assertThat(result.getTopicName(), is(TOPIC_NAME));
     assertThat(result.getFormats(), is(Formats.from(ksqlTopic)));

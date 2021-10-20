@@ -18,7 +18,9 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.parser.tree.DdlStatement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.util.KsqlConfig;
 
 public interface DdlCommandFactory {
   DdlCommand create(
@@ -29,5 +31,9 @@ public interface DdlCommandFactory {
 
   DdlCommand create(
       KsqlStructuredDataOutputNode outputNode
+  );
+
+  DdlCommand create(
+      KsqlStructuredDataOutputNode outputNode, TableElements tableElements, KsqlConfig ksqlConfig
   );
 }

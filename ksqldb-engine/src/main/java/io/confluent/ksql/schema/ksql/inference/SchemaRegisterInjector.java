@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
@@ -51,6 +52,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.acl.AclOperation;
 
 public class SchemaRegisterInjector implements Injector {
@@ -132,7 +134,7 @@ public class SchemaRegisterInjector implements Injector {
     }
 
     registerSchemas(
-        createSourceCommand.getSchema(),
+        getSchema(cas.getStatement(), createSourceCommand),
         createSourceCommand.getTopicName(),
         createSourceCommand.getFormats().getKeyFormat(),
         createSourceCommand.getFormats().getKeyFeatures(),
@@ -142,6 +144,43 @@ public class SchemaRegisterInjector implements Injector {
         cas.getStatementText(),
         true
     );
+  }
+
+  /**
+   * Get override schema if {@code CreateAsSelect} has optional table elements present.
+   *
+   * <p>Table elements schema should be super set of the schema we derived from query of
+   * {@code CreateAsSelect}. It's validated in {@code DefaultSchemaInject} when table elements
+   * are injected to {@code CreateAsSelect} statement.</p>
+   *
+   * @param cas CreateAsSelect statement
+   * @param createSourceCommand DDL derived from query
+   * @return Computed schema if table elements exist in {@code CreateAsSelect} statement or schema
+   *         from DDL.
+   */
+  private static LogicalSchema getSchema(final CreateAsSelect cas,
+      final CreateSourceCommand createSourceCommand) {
+    final Optional<TableElements> tableElements = cas.getElements();
+    if (!tableElements.isPresent()) {
+      return createSourceCommand.getSchema();
+    }
+
+    final LogicalSchema.Builder builder = LogicalSchema.builder();
+    final LogicalSchema tableSchema = tableElements.get().toLogicalSchema();
+
+    if (!tableSchema.key().isEmpty()) {
+      builder.keyColumns(tableSchema.key());
+    } else {
+      builder.keyColumns(createSourceCommand.getSchema().key());
+    }
+
+    if (!tableSchema.value().isEmpty()) {
+      builder.valueColumns(tableSchema.value());
+    } else {
+      builder.valueColumns(createSourceCommand.getSchema().value());
+    }
+
+    return builder.build();
   }
 
   private void registerSchemas(

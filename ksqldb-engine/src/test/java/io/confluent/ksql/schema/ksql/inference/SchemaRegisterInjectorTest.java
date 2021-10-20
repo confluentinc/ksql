@@ -54,6 +54,10 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
@@ -99,6 +103,20 @@ public class SchemaRegisterInjectorTest {
           + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
           + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null}],"
           + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
+
+  private static final AvroSchema OVERRIDE_AVRO_SCHEMA = new AvroSchema(
+      "{\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\","
+          + "\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":"
+          + "[{\"name\":\"F1\",\"type\":[\"null\",\"string\"],\"default\":null},"
+          + "{\"name\":\"F2\",\"type\":[\"null\",\"int\"],\"default\":null}],"
+          + "\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}");
+  private static final TableElements TABLE_ELEMENTS = TableElements.of(
+      new TableElement(Namespace.VALUE, ColumnName.of("F1"),
+          new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("F2"),
+          new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.INTEGER))
+  );
+
   private static final ProtobufSchema PROTOBUF_SCHEMA = new ProtobufSchema(
       "syntax = \"proto3\"; import \"google/protobuf/timestamp.proto\";"
           + "message ConnectDefault1 {google.protobuf.Timestamp F1 = 1;}");
@@ -283,6 +301,19 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
+  public void shouldRegisterSchemaForSchemaRegistryCreateAsSelectWithTableElements() throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM sink WITH(key_format='AVRO', value_format='AVRO', value_schema_id=1) AS SELECT * FROM SOURCE;", Optional.of(TABLE_ELEMENTS));
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("SINK-key", AVRO_UNWRAPPED_KEY_SCHEMA);
+    verify(schemaRegistryClient).register("SINK-value", OVERRIDE_AVRO_SCHEMA);
+  }
+
+  @Test
   public void shouldPropagateErrorOnFailureToPlanQuery() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
@@ -405,8 +436,19 @@ public class SchemaRegisterInjectorTest {
   }
 
   private void givenStatement(final String sql) {
-    final PreparedStatement<?> preparedStatement =
+    givenStatement(sql, Optional.empty());
+  }
+
+  private void givenStatement(final String sql, final Optional<TableElements> tableElements) {
+    PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
+    if (tableElements.isPresent()) {
+      final CreateAsSelect createAsSelect = (CreateAsSelect) preparedStatement.getStatement();
+      preparedStatement = PreparedStatement.of(
+          preparedStatement.getStatementText(),
+          createAsSelect.copyWith(tableElements.get(), createAsSelect.getProperties())
+      );
+    }
     statement = ConfiguredStatement.of(
         preparedStatement,
         SessionConfig.of(config, ImmutableMap.of())

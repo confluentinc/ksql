@@ -68,6 +68,7 @@ public class QueryTranslationTest {
     return
         testCases
             .map(testCase -> new Object[]{testCase.getName(), testCase})
+            .filter(obj -> ((String) obj[0]).contains("validate schema id in csas OK - AVRO"))
             .collect(Collectors.toCollection(ArrayList::new));
   }
 

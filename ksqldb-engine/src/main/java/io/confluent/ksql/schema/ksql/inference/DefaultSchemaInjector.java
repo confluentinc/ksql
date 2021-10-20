@@ -123,10 +123,11 @@ public class DefaultSchemaInjector implements Injector {
     final SerdeFeatures serdeFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         FormatFactory.of(keyFormat), true);
 
-    if (!shouldInferSchema(keyFormat, hasKeyElements(statement), serdeFeatures,
-        props.getKeySchemaId(), true)) {
+    if (!props.getKeySchemaId().isPresent() && (hasKeyElements(statement)
+        || !formatSupportsSchemaInference(keyFormat))) {
       return Optional.empty();
     }
+    validateSchemaInference(keyFormat, serdeFeatures, true);
 
     return Optional.of(getSchema(
         props.getKafkaTopic(),
@@ -145,10 +146,11 @@ public class DefaultSchemaInjector implements Injector {
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
     final SerdeFeatures serdeFeatures = props.getValueSerdeFeatures();
 
-    if (!shouldInferSchema(valueFormat, hasValueElements(statement), serdeFeatures,
-        props.getValueSchemaId(), false)) {
+    if (!props.getValueSchemaId().isPresent() && (hasValueElements(statement)
+        || !formatSupportsSchemaInference(valueFormat))) {
       return Optional.empty();
     }
+    validateSchemaInference(valueFormat, serdeFeatures, false);
 
     return Optional.of(getSchema(
         props.getKafkaTopic(),
@@ -183,15 +185,11 @@ public class DefaultSchemaInjector implements Injector {
     return result.schemaAndId.get();
   }
 
-  private static boolean shouldInferSchema(
+  private static void validateSchemaInference(
       final FormatInfo formatInfo,
-      final boolean hasElements,
       final SerdeFeatures serdeFeatures,
-      final Optional<Integer> schemaId,
       final boolean isKey
   ) {
-    final boolean infer = !hasElements && formatSupportsSchemaInference(formatInfo);
-
     /*
      * Do validation when schemaId presents or we need to infer. Conditions to meet:
      *  1. If schema id is provided, format must support schema inference
@@ -199,22 +197,18 @@ public class DefaultSchemaInjector implements Injector {
      *     add field with default ROWKEY|ROWVALUE name
      */
 
-    if (schemaId.isPresent() || infer) {
-      final String schemaIdName =
-          isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
-      if (!formatSupportsSchemaInference(formatInfo)) {
-        final String msg = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
-            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY + " should support schema inference "
-                + "when " + schemaIdName + " is provided!";
-        throw new KsqlException(msg);
-      }
-      // Don't support UNWRAP_SINGLES when inferring from Schema Registry
-      if (serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)) {
-        throw new KsqlException("WRAP_SINGLES should be enabled to use schema inference");
-      }
+    final String schemaIdName =
+        isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+    if (!formatSupportsSchemaInference(formatInfo)) {
+      final String msg = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+          : CommonCreateConfigs.VALUE_FORMAT_PROPERTY + " should support schema inference "
+              + "when " + schemaIdName + " is provided or no table elements provided!";
+      throw new KsqlException(msg);
     }
-
-    return infer;
+    // Don't support UNWRAP_SINGLES when inferring from Schema Registry
+    if (serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)) {
+      throw new KsqlException("WRAP_SINGLES should be enabled to use schema inference");
+    }
   }
 
   private static boolean hasKeyElements(

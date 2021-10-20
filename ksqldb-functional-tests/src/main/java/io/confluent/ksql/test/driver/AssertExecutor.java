@@ -312,10 +312,6 @@ public final class AssertExecutor {
       final Object expected = extractStatement.apply(statement, config);
       final Object actual = extractSource.apply(dataSource);
 
-      if (actual == null && expected == null) {
-        return;
-      }
-
       if (!Objects.equals(actual, expected)) {
         throw new KsqlException(
             String.format(

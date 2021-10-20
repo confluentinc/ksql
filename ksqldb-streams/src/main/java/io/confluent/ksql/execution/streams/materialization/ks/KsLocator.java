@@ -461,6 +461,19 @@ public final class KsLocator implements Locator {
       );
     }
 
+    @Override
+    public KsqlPartitionLocation removeHeadHost() {
+      if (nodes.isEmpty()) {
+        return new PartitionLocation(keys, partition, nodes.stream().collect(Collectors.toList()));
+      }
+      final KsqlNode headNode = nodes.get(0);
+      return new PartitionLocation(
+        keys,
+        partition,
+        nodes.stream().filter(node -> !node.equals(headNode)).collect(Collectors.toList())
+      );
+    }
+
     @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "nodes is ImmutableList")
     public List<KsqlNode> getNodes() {
       return nodes;

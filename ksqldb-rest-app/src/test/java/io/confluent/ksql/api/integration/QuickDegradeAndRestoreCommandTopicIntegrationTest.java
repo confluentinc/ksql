@@ -17,6 +17,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -44,7 +45,11 @@ import org.junit.rules.TemporaryFolder;
 
 @Category({IntegrationTest.class})
 public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
-  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
+      .withKafkaCluster(
+          EmbeddedSingleNodeKafkaCluster.newBuilder()
+              .withoutAutoCreateTopics()
+      ).build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain

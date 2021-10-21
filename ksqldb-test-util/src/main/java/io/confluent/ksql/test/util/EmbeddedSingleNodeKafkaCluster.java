@@ -576,9 +576,6 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Need to know where ZK is:
     config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     config.put(AclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    // Create topics explicitly when needed to avoid a race which
-    // automatically recreates deleted command topic:
-    config.put(KafkaConfig.AutoCreateTopicsEnableProp(), false);
     // Default to small number of partitions for auto-created topics:
     config.put(KafkaConfig.NumPartitionsProp(), 1);
     // Allow tests to delete topics:
@@ -695,6 +692,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       brokerConfig.put(AclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
           true);
       brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
+      brokerConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
+    }
+
+    public Builder withoutAutoCreateTopics() {
+      // Create topics explicitly when needed to avoid a race which
+      // automatically recreates deleted topic:
+      brokerConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), false);
+      return this;
     }
 
     public Builder withoutPlainListeners() {

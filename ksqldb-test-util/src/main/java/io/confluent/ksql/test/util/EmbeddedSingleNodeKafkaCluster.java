@@ -576,8 +576,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Need to know where ZK is:
     config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
     config.put(AclAuthorizer.ZkUrlProp(), zookeeper.connectString());
-    // Do not require tests to explicitly create tests:
-    config.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
+    // Create topics explicitly when needed to avoid a race which
+    // automatically recreates deleted command topic:
+    config.put(KafkaConfig.AutoCreateTopicsEnableProp(), false);
     // Default to small number of partitions for auto-created topics:
     config.put(KafkaConfig.NumPartitionsProp(), 1);
     // Allow tests to delete topics:

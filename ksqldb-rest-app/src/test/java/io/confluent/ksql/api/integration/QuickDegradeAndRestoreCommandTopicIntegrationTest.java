@@ -117,6 +117,7 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     // When
     // Delete the command topic and restart
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    assertThatEventually("Topic Deleted", this::isCommandTopicDeleted, is(true));
     REST_APP.stop();
     REST_APP.start();
 

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams.materialization;
+package io.confluent.ksql;
 
 import java.time.Instant;
 import java.util.Objects;

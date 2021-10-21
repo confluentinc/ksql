@@ -77,17 +77,18 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
       throwUseException();
     }
 
-    public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit) {
+    public KeyValueMetadata<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit) {
       throwUseException();
       return null;
     }
 
-    public KeyValue<List<?>, GenericRow> poll() {
+    public KeyValueMetadata<List<?>, GenericRow> poll() {
       throwUseException();
       return null;
     }
 
-    public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+    public void drainTo(
+        final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
       throwUseException();
     }
 

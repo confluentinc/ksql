@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,16 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams.materialization;
+package io.confluent.ksql.physical.common;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Optional;
 
-public interface TableRow {
-
+/**
+ * Represents a row being processed by any type of query -- namely pull or scalable push.
+ */
+public interface QueryRow {
   LogicalSchema schema();
 
   long rowTime();
@@ -33,8 +36,5 @@ public interface TableRow {
 
   GenericRow value();
 
-  TableRow withValue(
-      GenericRow newValue,
-      LogicalSchema newSchema
-  );
+  Optional<PushOffsetRange> getOffsetRange();
 }

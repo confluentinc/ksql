@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,57 +13,52 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams.materialization;
+package io.confluent.ksql.physical.common;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
-import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class Row implements TableRow {
+public final class QueryRowImpl implements QueryRow {
 
-  private final LogicalSchema schema;
-  private final GenericKey key;
-  private final GenericRow value;
+  private final LogicalSchema logicalSchema;
   private final long rowTime;
-  private final Validator validator;
+  private final GenericKey key;
+  private final Optional<Window> window;
+  private final GenericRow value;
 
-  public static Row of(
-      final LogicalSchema schema,
+  public static QueryRowImpl of(
+      final LogicalSchema logicalSchema,
       final GenericKey key,
+      final Optional<Window> window,
       final GenericRow value,
       final long rowTime
   ) {
-    return new Row(schema, key, value, rowTime, TableRowValidation::validate);
+    return new QueryRowImpl(logicalSchema, key, window, value, rowTime);
   }
 
-  @VisibleForTesting
-  Row(
-      final LogicalSchema schema,
+  private QueryRowImpl(
+      final LogicalSchema logicalSchema,
       final GenericKey key,
+      final Optional<Window> window,
       final GenericRow value,
-      final long rowTime,
-      final Validator validator
+      final long rowTime
   ) {
-    this.schema = requireNonNull(schema, "schema");
-    this.key = requireNonNull(key, "key");
-    this.value = requireNonNull(value, "value");
+    this.logicalSchema = logicalSchema;
     this.rowTime = rowTime;
-    this.validator = requireNonNull(validator, "validator");
-
-    validator.validate(schema, key, value);
+    this.key = key;
+    this.window = window;
+    this.value = value;
   }
 
   @Override
   public LogicalSchema schema() {
-    return schema;
+    return logicalSchema;
   }
 
   @Override
@@ -78,28 +73,20 @@ public final class Row implements TableRow {
 
   @Override
   public Optional<Window> window() {
-    return Optional.empty();
+    return window;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public GenericRow value() {
     return value;
   }
 
   @Override
-  public Row withValue(
-      final GenericRow newValue,
-      final LogicalSchema newSchema
-  ) {
-    return new Row(
-        newSchema,
-        key,
-        newValue,
-        rowTime,
-        validator
-    );
+  public Optional<PushOffsetRange> getOffsetRange() {
+    return Optional.empty();
   }
+
 
   @Override
   public boolean equals(final Object o) {
@@ -109,25 +96,16 @@ public final class Row implements TableRow {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final Row that = (Row) o;
-    return Objects.equals(schema, that.schema)
+    final QueryRowImpl that = (QueryRowImpl) o;
+    return Objects.equals(logicalSchema, that.logicalSchema)
         && Objects.equals(key, that.key)
+        && Objects.equals(window, that.window)
         && Objects.equals(value, that.value)
         && Objects.equals(rowTime, that.rowTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(schema, key, value, rowTime);
-  }
-
-  @Override
-  public String toString() {
-    return "Row{"
-        + "key=" + key
-        + ", value=" + value
-        + ", rowTime=" + rowTime
-        + ", schema=" + schema
-        + '}';
+    return Objects.hash(logicalSchema, key, window, value, rowTime);
   }
 }

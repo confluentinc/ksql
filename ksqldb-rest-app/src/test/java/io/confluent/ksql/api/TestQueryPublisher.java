@@ -21,11 +21,13 @@ import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import java.util.List;
+import java.util.Optional;
 
 public class TestQueryPublisher
-    extends BasePublisher<KeyValue<List<?>, GenericRow>>
+    extends BasePublisher<KeyValueMetadata<List<?>, GenericRow>>
     implements QueryPublisher {
 
   private final RowGenerator rowGenerator;
@@ -69,7 +71,7 @@ public class TestQueryPublisher
           getSubscriber().onError(new RuntimeException("Failure in processing"));
         } else {
           rowsSent++;
-          getSubscriber().onNext(KeyValue.keyValue(null, row));
+          getSubscriber().onNext(new KeyValueMetadata<>(KeyValue.keyValue(null, row)));
           if (rowsSent == limit) {
             sendComplete();
           }

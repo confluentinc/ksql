@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -127,9 +128,10 @@ public class PullQueryRunner extends BasePerfRunner {
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
         final MetricsCallbackHolder metricsCallbackHolder) {
-      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
-      publishers.add(publisher);
-      return CompletableFuture.completedFuture(publisher);
+//      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
+//      publishers.add(publisher);
+//      return CompletableFuture.completedFuture(publisher);
+      return null;
     }
 
     @Override
@@ -236,10 +238,10 @@ public class PullQueryRunner extends BasePerfRunner {
   }
 
   private static class PullQueryPublisher
-      extends BufferedPublisher<KeyValue<List<?>, GenericRow>>
+      extends BufferedPublisher<KeyValueMetadata<List<?>, GenericRow>>
       implements QueryPublisher {
 
-    public PullQueryPublisher(final Context ctx, List<KeyValue<List<?>, GenericRow>> rows) {
+    public PullQueryPublisher(final Context ctx, List<KeyValueMetadata<List<?>, GenericRow>> rows) {
       super(ctx, rows);
     }
 

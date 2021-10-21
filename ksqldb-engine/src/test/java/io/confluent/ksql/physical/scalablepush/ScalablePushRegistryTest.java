@@ -12,13 +12,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -88,7 +88,8 @@ public class ScalablePushRegistryTest {
     processor.init(processorContext);
     processor.process(record);
     verify(processingQueue).offer(
-        Row.of(SCHEMA, GenericKey.fromList(KEY), GenericRow.fromList(VALUE), TIMESTAMP));
+        QueryRowImpl.of(SCHEMA, GenericKey.fromList(KEY), Optional.empty(),
+            GenericRow.fromList(VALUE), TIMESTAMP));
     registry.unregister(processingQueue);
     assertThat(registry.numRegistered(), is(0));
   }
@@ -103,6 +104,8 @@ public class ScalablePushRegistryTest {
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
     when(windowed.window()).thenReturn(window);
+    when(window.startTime()).thenReturn(Instant.ofEpochMilli(10L));
+    when(window.endTime()).thenReturn(Instant.ofEpochMilli(14L));
     when(windowed.key()).thenReturn(genericKey);
 
 
@@ -115,7 +118,8 @@ public class ScalablePushRegistryTest {
     processor.init(processorContext);
     processor.process(record);
     verify(processingQueue).offer(
-        WindowedRow.of(SCHEMA, new Windowed<>(GenericKey.fromList(KEY), window),
+        QueryRowImpl.of(SCHEMA, GenericKey.fromList(KEY), Optional.of(io.confluent.ksql.Window.of(
+            Instant.ofEpochMilli(10L), Instant.ofEpochMilli(14))),
             GenericRow.fromList(VALUE), TIMESTAMP));
     registry.unregister(processingQueue);
     assertThat(registry.numRegistered(), is(0));

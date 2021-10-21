@@ -36,6 +36,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -377,11 +378,11 @@ public class EndToEndIntegrationTest {
         TimeUnit.SECONDS
     );
 
-    final List<KeyValue<List<?>, GenericRow>> rows = new ArrayList<>();
+    final List<KeyValueMetadata<List<?>, GenericRow>> rows = new ArrayList<>();
     rowQueue.drainTo(rows);
 
     return rows.stream()
-        .map(KeyValue::value)
+        .map(kvm -> kvm.getKeyValue().value())
         .collect(Collectors.toList());
   }
 

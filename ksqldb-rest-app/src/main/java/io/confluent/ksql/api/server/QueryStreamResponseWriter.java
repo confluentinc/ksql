@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 
 /**
@@ -27,6 +28,8 @@ public interface QueryStreamResponseWriter {
   QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
   QueryStreamResponseWriter writeRow(GenericRow row);
+
+  QueryStreamResponseWriter writeContinuationToken(PushContinuationToken pushContinuationToken);
 
   QueryStreamResponseWriter writeError(KsqlErrorMessage error);
 

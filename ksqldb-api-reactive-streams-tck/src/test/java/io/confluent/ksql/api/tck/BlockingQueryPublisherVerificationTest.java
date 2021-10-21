@@ -22,6 +22,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.WorkerExecutor;
@@ -33,7 +34,7 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.PublisherVerification;
 import org.reactivestreams.tck.TestEnvironment;
 
-public class BlockingQueryPublisherVerificationTest extends PublisherVerification<KeyValue<List<?>, GenericRow>> {
+public class BlockingQueryPublisherVerificationTest extends PublisherVerification<KeyValueMetadata<List<?>, GenericRow>> {
 
   private final Vertx vertx;
   private final WorkerExecutor workerExecutor;
@@ -47,7 +48,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
   }
 
   @Override
-  public Publisher<KeyValue<List<?>, GenericRow>> createPublisher(long elements) {
+  public Publisher<KeyValueMetadata<List<?>, GenericRow>> createPublisher(long elements) {
     final Context context = vertx.getOrCreateContext();
     BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
     final TestQueryHandle queryHandle = new TestQueryHandle(elements);
@@ -61,7 +62,7 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
   }
 
   @Override
-  public Publisher<KeyValue<List<?>, GenericRow>> createFailedPublisher() {
+  public Publisher<KeyValueMetadata<List<?>, GenericRow>> createFailedPublisher() {
     return null;
   }
 

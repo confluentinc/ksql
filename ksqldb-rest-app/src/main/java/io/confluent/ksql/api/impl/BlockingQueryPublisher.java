@@ -23,7 +23,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * this won't prevent the thread from doing useful work elsewhere but it does mean we can't have too
  * many push queries in the server at any one time as we can end up with a lot of threads.
  */
-public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, GenericRow>>
+public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<?>, GenericRow>>
     implements QueryPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(BlockingQueryPublisher.class);

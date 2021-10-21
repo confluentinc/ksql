@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.physical.scalablepush;
 
-import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.query.QueryId;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -32,7 +32,7 @@ public class ProcessingQueue {
 
   static final int BLOCKING_QUEUE_CAPACITY = 1000;
 
-  private final Deque<TableRow> rowQueue;
+  private final Deque<QueryRow> rowQueue;
   private final QueryId queryId;
   private final int queueSizeLimit;
   private boolean closed = false;
@@ -51,20 +51,22 @@ public class ProcessingQueue {
   }
 
   /**
-   * Adds a {@link TableRow} to the queue. This is expected to be called from the processor streams
+   * Adds a {@link QueryRow} to the queue. This is expected to be called from the processor streams
    * thread when a new row arrives.
-   * @param tableRow The row to add
+   * @param queryRow The row to add
    * @return if the row has been successfully added to the queue or if it's been dropped due to
    *     being at the size limit.
    */
-  public synchronized boolean offer(final TableRow tableRow) {
+  public synchronized boolean offer(final QueryRow queryRow) {
     if (closed) {
       return false;
     } else if (rowQueue.size() < queueSizeLimit && !droppedRows) {
-      rowQueue.offer(tableRow);
+      rowQueue.offer(queryRow);
       newRowCallback.run();
+      System.out.println("Accepting row. At limit: " + (rowQueue.size() >= queueSizeLimit));
       return true;
     }
+    System.out.println("DROPPED ROWS " + (rowQueue.size() >= queueSizeLimit));
     droppedRows = true;
     return false;
   }
@@ -74,7 +76,7 @@ public class ProcessingQueue {
    * which is called from the Vertx context.
    * @return The next row or null if either the queue is closed or there's no data to return.
    */
-  public synchronized TableRow poll() {
+  public synchronized QueryRow poll() {
     if (!closed) {
       return rowQueue.poll();
     }
@@ -117,5 +119,9 @@ public class ProcessingQueue {
 
   public QueryId getQueryId() {
     return queryId;
+  }
+
+  public synchronized boolean isAtLimit() {
+    return rowQueue.size() >= queueSizeLimit;
   }
 }

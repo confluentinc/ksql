@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
@@ -92,7 +93,14 @@ public class TableScanOperator extends AbstractPhysicalOperator
     }
 
     returnedRows++;
-    return resultIterator.next();
+    final Row row = resultIterator.next();
+    return QueryRowImpl.of(
+        row.schema(),
+        row.key(),
+        row.window(),
+        row.value(),
+        row.rowTime()
+    );
   }
 
   @Override

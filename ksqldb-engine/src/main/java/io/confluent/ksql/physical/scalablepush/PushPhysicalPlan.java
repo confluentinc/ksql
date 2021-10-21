@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
@@ -25,7 +26,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.reactivestreams.Subscriber;
@@ -76,12 +76,12 @@ public class PushPhysicalPlan {
     this.querySourceType = Objects.requireNonNull(querySourceType, "querySourceType");
   }
 
-  public BufferedPublisher<List<?>> execute() {
+  public BufferedPublisher<QueryRow> execute() {
     return subscribeAndExecute(Optional.empty());
   }
 
   // for testing only
-  BufferedPublisher<List<?>> subscribeAndExecute(final Optional<Subscriber<List<?>>> subscriber) {
+  BufferedPublisher<QueryRow> subscribeAndExecute(final Optional<Subscriber<QueryRow>> subscriber) {
     final Publisher publisher = new Publisher(context);
     subscriber.ifPresent(publisher::subscribe);
     context.runOnContext(v -> open(publisher));
@@ -93,8 +93,8 @@ public class PushPhysicalPlan {
   }
 
   private void maybeNext(final Publisher publisher) {
-    List<?> row;
-    while (!isErrored(publisher) && (row = (List<?>) next(publisher)) != null) {
+    QueryRow row;
+    while (!isErrored(publisher) && (row = (QueryRow) next(publisher)) != null) {
       publisher.accept(row);
     }
     if (publisher.isFailed()) {
@@ -152,8 +152,10 @@ public class PushPhysicalPlan {
 
   private void closeInternal() {
     VertxUtils.checkContext(context);
-    closed = true;
-    root.close();
+    if (!closed) {
+      closed = true;
+      root.close();
+    }
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
@@ -186,7 +188,7 @@ public class PushPhysicalPlan {
     return dataSourceOperator.getRowsReadCount();
   }
 
-  public static class Publisher extends BufferedPublisher<List<?>> {
+  public static class Publisher extends BufferedPublisher<QueryRow> {
 
     public Publisher(final Context ctx) {
       super(ctx, CAPACITY);

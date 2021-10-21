@@ -17,15 +17,17 @@ package io.confluent.ksql.physical.common.operators;
 
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
-import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.physical.common.QueryRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.schema.ksql.Column;
@@ -84,16 +86,23 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   @Override
   public Object next() {
-    final TableRow row = (TableRow) child.next();
+    final QueryRow row = (QueryRow) child.next();
     if (row == null) {
       return null;
+    }
+    if (row.getOffsetRange().isPresent()) {
+      return row;
     }
 
     final GenericRow intermediate = PhysicalOperatorUtil.getIntermediateRow(
         row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
 
     if (logicalNode.getIsSelectStar()) {
-      return createRowForSelectStar(intermediate);
+      return QueryRowImpl.of(logicalNode.getSchema(),
+          GenericKey.genericKey(),
+          Optional.empty(),
+          GenericRow.fromList(createRowForSelectStar(intermediate)),
+          row.rowTime());
     }
 
     final GenericRow mapped = transformer.transform(
@@ -103,7 +112,11 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     );
     validateProjection(mapped, logicalNode.getSchema());
 
-    return mapped.values();
+    return QueryRowImpl.of(logicalNode.getSchema(),
+        GenericKey.genericKey(),
+        Optional.empty(),
+        GenericRow.fromList(mapped.values()),
+        row.rowTime());
   }
 
   @Override

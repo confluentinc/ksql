@@ -20,6 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.planner.plan.KeyConstraint;
@@ -86,8 +87,8 @@ public class PullPhysicalPlan {
     dataSourceOperator.setPartitionLocations(locations);
 
     open();
-    List<?> row;
-    while ((row = (List<?>)next()) != null) {
+    QueryRow row;
+    while ((row = (QueryRow)next()) != null) {
       if (pullQueryQueue.isClosed()) {
         // If the queue has been closed, we stop adding rows and cleanup. This should be triggered
         // because the client has closed their connection with the server before the results have
@@ -95,7 +96,7 @@ public class PullPhysicalPlan {
         LOGGER.info("Queue closed before results completed. Stopping execution.");
         break;
       }
-      if (!pullQueryQueue.acceptRow(rowFactory.apply(row, schema))) {
+      if (!pullQueryQueue.acceptRow(rowFactory.apply(row.value().values(), schema))) {
         LOGGER.info("Failed to queue row");
       }
     }

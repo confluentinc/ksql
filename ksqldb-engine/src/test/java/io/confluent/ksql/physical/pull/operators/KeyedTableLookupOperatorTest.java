@@ -23,12 +23,14 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
@@ -90,6 +92,9 @@ public class KeyedTableLookupOperatorTest {
     when(KEY2.getOperator()).thenReturn(ConstraintOperator.EQUAL);
     when(KEY3.getOperator()).thenReturn(ConstraintOperator.EQUAL);
     when(KEY4.getOperator()).thenReturn(ConstraintOperator.EQUAL);
+    when(ROW1.key()).thenReturn(GKEY1);
+    when(ROW3.key()).thenReturn(GKEY3);
+    when(ROW4.key()).thenReturn(GKEY4);
   }
 
   @Test
@@ -117,9 +122,9 @@ public class KeyedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1));
-    assertThat(lookupOperator.next(), is(ROW3));
-    assertThat(lookupOperator.next(), is(ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
@@ -142,9 +147,9 @@ public class KeyedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1));
-    assertThat(lookupOperator.next(), is(ROW3));
-    assertThat(lookupOperator.next(), is(ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
@@ -165,8 +170,8 @@ public class KeyedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1));
-    assertThat(lookupOperator.next(), is(ROW3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
     assertThat(lookupOperator.getReturnedRowCount(), is(2L));
   }
 
@@ -190,8 +195,8 @@ public class KeyedTableLookupOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(ROW1));
-    assertThat(lookupOperator.next(), is(ROW3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(2L));
   }

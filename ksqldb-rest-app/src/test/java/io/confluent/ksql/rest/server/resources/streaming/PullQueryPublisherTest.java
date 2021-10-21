@@ -54,6 +54,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collection;
 import java.util.List;
@@ -80,10 +81,10 @@ public class PullQueryPublisherTest {
   private static final List<?> ROW1 = ImmutableList.of("a", "b");
   private static final List<?> ROW2 = ImmutableList.of("c", "d");
 
-  private static final KeyValue<List<?>, GenericRow> KV1
-      = new KeyValue<>(null, GenericRow.fromList(ROW1));
-  private static final KeyValue<List<?>, GenericRow> KV2
-      = new KeyValue<>(null, GenericRow.fromList(ROW2));
+  private static final KeyValueMetadata<List<?>, GenericRow> KV1
+      = new KeyValueMetadata<>(new KeyValue<>(null, GenericRow.fromList(ROW1)));
+  private static final KeyValueMetadata<List<?>, GenericRow> KV2
+      = new KeyValueMetadata<>(new KeyValue<>(null, GenericRow.fromList(ROW2)));
 
   @Mock
   private KsqlEngine engine;
@@ -151,7 +152,7 @@ public class PullQueryPublisherTest {
     doNothing().when(pullQueryResult).onCompletion(completeCaptor.capture());
     int[] times = new int[1];
     doAnswer(inv -> {
-      Collection<? super KeyValue<List<?>, GenericRow>> c = inv.getArgument(0);
+      Collection<? super KeyValueMetadata<List<?>, GenericRow>> c = inv.getArgument(0);
       if (times[0] == 0) {
         c.add(KV1);
       } else if (times[0] == 1) {

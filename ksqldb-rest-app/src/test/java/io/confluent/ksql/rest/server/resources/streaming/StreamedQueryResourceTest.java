@@ -820,7 +820,8 @@ public class StreamedQueryResourceTest {
 
     final String queryString = "SELECT * FROM test_stream;";
 
-    final SynchronousQueue<KeyValue<List<?>, GenericRow>> rowQueue = new SynchronousQueue<>();
+    final SynchronousQueue<KeyValueMetadata<List<?>, GenericRow>> rowQueue
+        = new SynchronousQueue<>();
 
     final LinkedList<GenericRow> writtenRows = new LinkedList<>();
 
@@ -831,7 +832,7 @@ public class StreamedQueryResourceTest {
           synchronized (writtenRows) {
             writtenRows.add(value);
           }
-          rowQueue.put(KeyValue.keyValue(null, value));
+          rowQueue.put(new KeyValueMetadata<>(KeyValue.keyValue(null, value)));
         }
       } catch (final InterruptedException exception) {
         // This should happen during the test, so it's fine
@@ -862,7 +863,7 @@ public class StreamedQueryResourceTest {
             SOME_SCHEMA,
             Collections.emptySet(),
             "",
-            null,
+            new TestRowQueue(rowQueue),
             queryId,
             "appId",
             mock(Topology.class),

@@ -486,7 +486,8 @@ final class QueryBuilder {
     }
     final SharedKafkaStreamsRuntime stream;
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final String queryPrefix = ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
+    final String queryPrefix = ksqlConfig
+        .getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     if (real) {
       stream = new SharedKafkaStreamsRuntimeImpl(

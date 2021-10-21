@@ -85,7 +85,7 @@ public abstract class Consumer implements AutoCloseable {
 
   protected abstract void onNewAssignment();
 
-  protected void initialize() {
+  protected void subscribeOrAssign() {
   }
 
   protected void afterOfferedRow(final ProcessingQueue queue) {
@@ -114,7 +114,7 @@ public abstract class Consumer implements AutoCloseable {
   }
 
   public void run() {
-    initialize();
+    subscribeOrAssign();
     while (true) {
       if (closed) {
         return;

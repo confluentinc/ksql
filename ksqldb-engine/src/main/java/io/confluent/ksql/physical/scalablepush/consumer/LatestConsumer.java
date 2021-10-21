@@ -91,7 +91,7 @@ public class LatestConsumer extends Consumer {
   }
 
   @Override
-  protected void initialize() {
+  protected void subscribeOrAssign() {
     // Initial wait time, giving client connections a chance to be made to avoid having to do
     // any catchups.
     try {

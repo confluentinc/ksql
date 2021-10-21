@@ -168,7 +168,7 @@ public class LatestConsumerTest {
 
       verifyRows(
           ImmutableList.of(RECORD0_0, RECORD1_0, RECORD0_1, RECORD1_1));
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(1)).onNewAssignment();
       verify(consumer, times(2)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();
@@ -216,7 +216,7 @@ public class LatestConsumerTest {
       verify(kafkaConsumer).seekToEnd(ImmutableSet.of(TP0, TP1));
       verifyRows(
           ImmutableList.of(RECORD0_2, RECORD0_3, RECORD1_2, RECORD1_3));
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(1)).onNewAssignment();
       verify(consumer, times(1)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();
@@ -264,7 +264,7 @@ public class LatestConsumerTest {
       verify(kafkaConsumer, never()).seekToEnd(any());
       verifyRows(
           ImmutableList.of(RECORD0_2, RECORD0_3, RECORD1_2, RECORD1_3));
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(1)).onNewAssignment();
       verify(consumer, times(1)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();

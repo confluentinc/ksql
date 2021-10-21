@@ -124,8 +124,7 @@ public final class KafkaConsumerFactory {
       final String consumerGroupId
   ) {
     final Map<String, Object> config = new HashMap<>(consumerProperties);
-    config.putAll(
-        ksqlConfig.originalsWithPrefix(KsqlConfig.KSQL_QUERY_PUSH_V2_CONSUMER_PREFIX, true));
+    config.putAll(ksqlConfig.getConsumerClientConfigProps());
     config.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     // Try to keep consumer groups stable:

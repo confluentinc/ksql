@@ -47,7 +47,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Before;
@@ -190,7 +189,7 @@ public class ConsumerTest {
       doAnswer(a -> {
         consumer.newAssignment(ImmutableList.of(TP0, TP1));
         return null;
-      }).when(consumer).initialize();
+      }).when(consumer).subscribeOrAssign();
 
       consumer.register(queue);
 
@@ -198,7 +197,7 @@ public class ConsumerTest {
 
       verifyRows(
           ImmutableList.of(RECORD0_0, RECORD0_1, RECORD1_0, RECORD0_2, RECORD1_1, RECORD1_2));
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(1)).onNewAssignment();
       verify(consumer, times(2)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();
@@ -230,7 +229,7 @@ public class ConsumerTest {
       doAnswer(a -> {
         consumer.newAssignment(ImmutableList.of(TP0, TP1));
         return null;
-      }).when(consumer).initialize();
+      }).when(consumer).subscribeOrAssign();
 
       consumer.register(queue);
 
@@ -238,7 +237,7 @@ public class ConsumerTest {
 
       verifyRowsW(
           ImmutableList.of(WRECORD0_0, WRECORD0_1, WRECORD1_0, WRECORD0_2, WRECORD1_1, WRECORD1_2));
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(1)).onNewAssignment();
       verify(consumer, times(2)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();
@@ -277,7 +276,7 @@ public class ConsumerTest {
       doAnswer(a -> {
         consumer.newAssignment(ImmutableList.of(TP0));
         return null;
-      }).when(consumer).initialize();
+      }).when(consumer).subscribeOrAssign();
 
       consumer.register(queue);
 
@@ -285,7 +284,7 @@ public class ConsumerTest {
 
       verifyRows(
           ImmutableList.of(RECORD0_0, RECORD0_1, RECORD0_2, RECORD1_0, RECORD1_1, RECORD1_2));
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(2)).onNewAssignment();
       verify(consumer, times(2)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();
@@ -312,14 +311,14 @@ public class ConsumerTest {
       doAnswer(a -> {
         consumer.newAssignment(null);
         return null;
-      }).when(consumer).initialize();
+      }).when(consumer).subscribeOrAssign();
 
       consumer.register(queue);
 
       consumer.run();
 
       verifyRows(ImmutableList.of());
-      verify(consumer, times(1)).initialize();
+      verify(consumer, times(1)).subscribeOrAssign();
       verify(consumer, times(0)).onNewAssignment();
       verify(consumer, times(0)).afterCommit();
       verify(consumer, times(1)).onEmptyRecords();

@@ -63,6 +63,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -484,12 +485,20 @@ final class QueryBuilder {
       }
     }
     final SharedKafkaStreamsRuntime stream;
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+    final String queryPrefix = ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
+    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     if (real) {
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              "_confluent-ksql-" + streams.size() + "-" + UUID.randomUUID(),
+              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+                  + serviceId
+                  + queryPrefix
+                  + streams.size()
+                  + "-"
+                  + UUID.randomUUID(),
               queryID)
       );
     } else {
@@ -497,7 +506,13 @@ final class QueryBuilder {
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              "_confluent-ksql-" + streams.size() + "-" + UUID.randomUUID() + "-validation",
+              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+                  + serviceId
+                  + queryPrefix
+                  + streams.size()
+                  + "-"
+                  + UUID.randomUUID()
+                  + "-validation",
               queryID)
       );
     }

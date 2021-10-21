@@ -189,13 +189,7 @@ class HighAvailabilityTestUtil {
       final KsqlHostInfoEntity remoteServer,
       final Map<KsqlHostInfoEntity, HostStatusEntity> clusterStatus
   ) {
-    for( Entry<KsqlHostInfoEntity, HostStatusEntity> entry: clusterStatus.entrySet()) {
-      if (entry.getKey().getPort() == remoteServer.getPort()
-          && entry.getValue().getHostAlive()) {
-        return true;
-      }
-    }
-    return false;
+    return clusterStatus.get(remoteServer).getHostAlive();
   }
 
   private static boolean allServersDiscovered(

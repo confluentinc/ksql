@@ -34,6 +34,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
@@ -127,8 +128,8 @@ public class TransientQueryQueueTest {
     final KeyValueMetadata<List<?>, GenericRow> result3 = queue.poll(1, TimeUnit.MICROSECONDS);
 
     // Then:
-    assertThat(result1, is(keyValue(KEY_ONE, VAL_ONE)));
-    assertThat(result2, is(keyValue(KEY_TWO, VAL_TWO)));
+    assertThat(result1.getKeyValue(), is(keyValue(KEY_ONE, VAL_ONE)));
+    assertThat(result2.getKeyValue(), is(keyValue(KEY_TWO, VAL_TWO)));
     assertThat(result3, is(nullValue()));
   }
 
@@ -190,10 +191,10 @@ public class TransientQueryQueueTest {
     queue.setLimitHandler(limitHandler);
   }
 
-  private List<KeyValueMetadata<List<?>, GenericRow>> drainValues() {
+  private List<KeyValue<List<?>, GenericRow>> drainValues() {
     final List<KeyValueMetadata<List<?>, GenericRow>> entries = new ArrayList<>();
     queue.drainTo(entries);
-    return entries;
+    return entries.stream().map(KeyValueMetadata::getKeyValue).collect(Collectors.toList());
   }
 
   @Test

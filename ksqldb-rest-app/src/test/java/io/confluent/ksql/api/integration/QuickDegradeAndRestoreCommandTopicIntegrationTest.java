@@ -121,8 +121,8 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     REST_APP.start();
 
     // Then
+    assertThatEventually("Topic Deleted", this::isCommandTopicDeleted, is(true));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
-    assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
     REST_APP.stop();
     KsqlRestoreCommandTopic.main(
         new String[]{
@@ -137,6 +137,10 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     assertThat("Should have TOPIC5", streamsNames.contains("TOPIC5"), is(true));
     assertThat("Should have STREAM5", streamsNames.contains("STREAM5"), is(true));
     assertThatEventually("Degraded State", this::isDegradedState, is(false));
+  }
+
+  private boolean isCommandTopicDeleted() {
+    return !TEST_HARNESS.topicExists(commandTopic);
   }
 
   private boolean isDegradedState() {

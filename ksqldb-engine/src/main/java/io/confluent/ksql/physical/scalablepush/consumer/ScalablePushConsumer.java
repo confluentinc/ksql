@@ -83,8 +83,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
 
   protected abstract void onNewAssignment();
 
-  protected void subscribeOrAssign() {
-  }
+  protected abstract void subscribeOrAssign();
 
   protected void afterOfferedRow(final ProcessingQueue queue) {
   }

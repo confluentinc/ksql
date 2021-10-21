@@ -121,9 +121,10 @@ public class ScalablePushRegistry {
    */
   public synchronized void close() {
     if (closed) {
-      LOG.info("Already closed registry");
+      LOG.warn("Already closed registry");
       return;
     }
+    LOG.info("Closing scalable push registry for topic " + ksqlTopic.getKafkaTopicName());
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       latestConsumer.close();
@@ -148,6 +149,7 @@ public class ScalablePushRegistry {
   public synchronized void cleanup() {
     // Close if we haven't already
     close();
+    LOG.info("Cleaning up consumer group " + getLatestConsumerGroupId());
     try {
       serviceContext
           .getConsumerGroupClient()
@@ -179,7 +181,8 @@ public class ScalablePushRegistry {
     if (latestConsumer != null && !latestConsumer.isClosed()) {
       if (latestConsumer.getNumRowsReceived() > 0
           && newNodeContinuityEnforced && expectingStartOfRegistryData) {
-        LOG.warn("Request missed data with new node added to the cluster");
+        LOG.warn("Request missed data with new node added to the cluster, rows {}",
+            latestConsumer.getNumRowsReceived());
         throw new KsqlException("New node missed data");
       }
       latestConsumer.register(processingQueue);
@@ -312,6 +315,11 @@ public class ScalablePushRegistry {
     return false;
   }
 
+  /**
+   * Creates the latest consumer and its underlying kafka consumer.
+   * @param processingQueue The queue on which to send an error if anything goes wrong
+   * @return The new LatestConsumer
+   */
   private LatestConsumer createLatestConsumer(final ProcessingQueue processingQueue) {
     KafkaConsumer<Object, GenericRow> consumer = null;
     LatestConsumer latestConsumer = null;
@@ -324,7 +332,7 @@ public class ScalablePushRegistry {
           logicalSchema, consumer, catchupCoordinator,
           tp -> { }, ksqlConfig, Clock.systemUTC());
       return latestConsumer;
-    } catch (final Exception e) {
+    } catch (Exception e) {
       LOG.error("Couldn't create latest consumer", e);
       processingQueue.onError();
       // We're not supposed to block here, but if it fails here, hopefully it can immediately close.
@@ -336,14 +344,14 @@ public class ScalablePushRegistry {
   }
 
   private void runLatest(final LatestConsumer latestConsumerToRun) {
-      try (final LatestConsumer latestConsumer = latestConsumerToRun) {
-        synchronized (this) {
-          if (closed) {
-            return;
-          }
+    try (LatestConsumer latestConsumer = latestConsumerToRun) {
+      synchronized (this) {
+        if (closed) {
+          return;
         }
-        latestConsumer.run();
-    } catch (final Throwable t) {
+      }
+      latestConsumer.run();
+    } catch (Throwable t) {
       LOG.error("Got error while running latest", t);
       // These errors aren't considered fatal, so we don't set the hasError flag since retrying
       // could cause recovery.

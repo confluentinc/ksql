@@ -21,8 +21,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
-import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata;
-import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata.ConsumerMetadataFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
@@ -38,7 +36,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -46,7 +43,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.streams.StreamsConfig;
@@ -74,7 +70,6 @@ public class ScalablePushRegistry {
   private final String sourceApplicationId;
   private final KafkaConsumerFactoryInterface kafkaConsumerFactory;
   private final LatestConsumerFactory latestConsumerFactory;
-  private final ConsumerMetadataFactory consumerMetadataFactory;
   private final ExecutorService executorService;
 
   /**
@@ -83,15 +78,10 @@ public class ScalablePushRegistry {
 
   // If the registry is closed.  Should only happen on server shutdown.
   private boolean closed = false;
-  // Indicates that the latest consumer has been started and is running.
-  private boolean isLatestStarted = false;
   // Once the latest consumer is created, this is a reference to it.
   private AtomicReference<LatestConsumer> latestConsumer = new AtomicReference<>(null);
   // The catchup coordinator used by the latest consumer.
   private CatchupCoordinator catchupCoordinator = new NoopCatchupCoordinator();
-  // These are the ProcessingQueues which have been registered between the time that latest has
-  // been kicked off but before the LatestConsumer has yet been created and run.
-  private final LatestPendingQueues latestPendingQueues = new LatestPendingQueues();
   // If the latest consumer should be stopped when there are no more requests to serve. True by
   // default, this prevent reading unnecessary data from Kafka when not serving any requests.
   private boolean stopLatestConsumerOnLastRequest = true;
@@ -110,7 +100,6 @@ public class ScalablePushRegistry {
       final String sourceApplicationId,
       final KafkaConsumerFactoryInterface kafkaConsumerFactory,
       final LatestConsumerFactory latestConsumerFactory,
-      final ConsumerMetadataFactory consumerMetadataFactory,
       final ExecutorService executorService
   ) {
     this.pushLocator = pushLocator;
@@ -124,7 +113,6 @@ public class ScalablePushRegistry {
     this.sourceApplicationId = sourceApplicationId;
     this.kafkaConsumerFactory = kafkaConsumerFactory;
     this.latestConsumerFactory = latestConsumerFactory;
-    this.consumerMetadataFactory = consumerMetadataFactory;
     this.executorService = executorService;
   }
 
@@ -136,7 +124,6 @@ public class ScalablePushRegistry {
       LOG.info("Already closed registry");
       return;
     }
-    latestPendingQueues.close();
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       latestConsumer.close();
@@ -188,23 +175,21 @@ public class ScalablePushRegistry {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
     }
-    if (isLatestStarted) {
-      final LatestConsumer latestConsumer = this.latestConsumer.get();
-      if (latestConsumer != null && !latestConsumer.isClosed()) {
-        if (latestConsumer.getNumRowsReceived() > 0
-            && newNodeContinuityEnforced && expectingStartOfRegistryData) {
-          LOG.warn("Request missed data with new node added to the cluster");
-          throw new KsqlException("New node missed data");
-        }
-        latestConsumer.register(processingQueue);
-      } else {
-        // Either latest is just starting up or just ending.  Either way, we'll be sure to pick it
-        // up if we enqueue it.
-        latestPendingQueues.add(processingQueue);
+    final LatestConsumer latestConsumer = this.latestConsumer.get();
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
+      if (latestConsumer.getNumRowsReceived() > 0
+          && newNodeContinuityEnforced && expectingStartOfRegistryData) {
+        LOG.warn("Request missed data with new node added to the cluster");
+        throw new KsqlException("New node missed data");
       }
+      latestConsumer.register(processingQueue);
     } else {
-      latestPendingQueues.add(processingQueue);
-      startLatestIfNotRunning();
+      // If latestConsumer != null but it's already closed, that means that it's trying to shut
+      // down, so we just let it finish while creating a new one.
+      final LatestConsumer newLatestConsumer = createLatestConsumer(processingQueue);
+      newLatestConsumer.register(processingQueue);
+      this.latestConsumer.set(newLatestConsumer);
+      executorService.submit(() -> runLatest(newLatestConsumer));
     }
   }
 
@@ -216,7 +201,6 @@ public class ScalablePushRegistry {
     if (closed) {
       throw new IllegalStateException("Shouldn't unregister after closing");
     }
-    latestPendingQueues.remove(processingQueue);
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       latestConsumer.unregister(processingQueue);
@@ -237,8 +221,8 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
-  public synchronized boolean isLatestStarted() {
-    return isLatestStarted;
+  public synchronized boolean isLatestRunning() {
+    return this.latestConsumer.get() != null && !this.latestConsumer.get().isClosed();
   }
 
   @VisibleForTesting
@@ -249,7 +233,7 @@ public class ScalablePushRegistry {
   @VisibleForTesting
   public int latestNumRegistered() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
-    if (latestConsumer != null) {
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
       return latestConsumer.numRegistered();
     }
     return 0;
@@ -258,7 +242,7 @@ public class ScalablePushRegistry {
   @VisibleForTesting
   public boolean latestHasAssignment() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
-    if (latestConsumer != null) {
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
       return latestConsumer.getAssignment() != null;
     }
     return false;
@@ -310,18 +294,8 @@ public class ScalablePushRegistry {
     return Optional.of(new ScalablePushRegistry(
         pushLocator, logicalSchema, isTable, newNodeContinuityEnforced,
         consumerProperties, ksqlTopic, serviceContext, ksqlConfig, sourceApplicationId,
-        KafkaConsumerFactory::create, LatestConsumer::create, ConsumerMetadata::create,
+        KafkaConsumerFactory::create, LatestConsumer::create,
         Executors.newSingleThreadExecutor()));
-  }
-
-  /**
-   * Starts the latest
-   */
-  private synchronized void startLatestIfNotRunning() {
-    if (!isLatestStarted) {
-      isLatestStarted = true;
-      executorService.submit(this::runLatest);
-    }
   }
 
   /**
@@ -331,109 +305,53 @@ public class ScalablePushRegistry {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       if (latestConsumer.numRegistered() == 0 && stopLatestConsumerOnLastRequest) {
-        latestConsumer.close();
+        latestConsumer.closeAsync();
         return true;
       }
     }
     return false;
   }
 
-  private void runLatest() {
-    try (KafkaConsumer<Object, GenericRow> consumer = kafkaConsumerFactory.create(
-        ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig,
-        getLatestConsumerGroupId());
-        ConsumerMetadata consumerMetadata = consumerMetadataFactory.create(
-            ksqlTopic.getKafkaTopicName(), consumer);
-        LatestConsumer latestConsumer = latestConsumerFactory.create(
-            consumerMetadata.getNumPartitions(), ksqlTopic.getKafkaTopicName(), isWindowed(),
-            logicalSchema, consumer, catchupCoordinator,
-            tp -> { }, ksqlConfig, Clock.systemUTC())) {
-      try {
+  private LatestConsumer createLatestConsumer(final ProcessingQueue processingQueue) {
+    KafkaConsumer<Object, GenericRow> consumer = null;
+    LatestConsumer latestConsumer = null;
+    try {
+      consumer = kafkaConsumerFactory.create(
+          ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig,
+          getLatestConsumerGroupId());
+      latestConsumer = latestConsumerFactory.create(
+          ksqlTopic.getKafkaTopicName(), isWindowed(),
+          logicalSchema, consumer, catchupCoordinator,
+          tp -> { }, ksqlConfig, Clock.systemUTC());
+      return latestConsumer;
+    } catch (final Exception e) {
+      LOG.error("Couldn't create latest consumer", e);
+      processingQueue.onError();
+      // We're not supposed to block here, but if it fails here, hopefully it can immediately close.
+      if (consumer != null) {
+        consumer.close();
+      }
+      throw e;
+    }
+  }
+
+  private void runLatest(final LatestConsumer latestConsumerToRun) {
+      try (final LatestConsumer latestConsumer = latestConsumerToRun) {
         synchronized (this) {
-          this.latestConsumer.set(latestConsumer);
-          // This following block should never error since registering just adds to a map, so
-          // the error handling code below assumes that it all succeeded.
-          latestPendingQueues.foreachPoll(latestConsumer::register);
-          // Now that everything is setup, make sure that if a close happened during
-          // startup it gets registered.
           if (closed) {
-            latestConsumer.close();
-            return;
-          }
-          // It's also possible that requests were unregistered by the time we started and there's
-          // no need to run anymore.
-          if (stopLatestConsumerOnLastRequest()) {
             return;
           }
         }
-
         latestConsumer.run();
-      } catch (final Throwable t) {
-        LOG.error("Got error while running latest", t);
-        // These errors aren't considered fatal, so we don't set the hasError flag since retrying
-        // could cause recovery.
-        latestConsumer.onError();
-      }
     } catch (final Throwable t) {
-      LOG.error("Got an error while handling another error", t);
-      synchronized (this) {
-        latestPendingQueues.sendErrorAndRemoveAll();
-      }
-    } finally {
-      synchronized (this) {
-        this.latestConsumer.set(null);
-        this.isLatestStarted = false;
-
-        // If more requests have been queued up since we started to close, then kick off a new
-        // latest.
-        if (latestPendingQueues.size() > 0) {
-          LOG.info("Continuing with a new lastest just as we shut down the existing");
-          startLatestIfNotRunning();
-        }
-      }
+      LOG.error("Got error while running latest", t);
+      // These errors aren't considered fatal, so we don't set the hasError flag since retrying
+      // could cause recovery.
+      latestConsumerToRun.onError();
     }
   }
 
   private String getLatestConsumerGroupId() {
     return sourceApplicationId + LATEST_CONSUMER_GROUP_SUFFIX;
-  }
-
-  /**
-   * Manages all of the pending ProcessingQueues that come in before the LatestConsumer is started.
-   */
-  private static class LatestPendingQueues {
-    private final LinkedList<ProcessingQueue> latestPendingQueues
-        = new LinkedList<>();
-
-    public void sendErrorAndRemoveAll() {
-      while (!latestPendingQueues.isEmpty()) {
-        final ProcessingQueue processingQueue = latestPendingQueues.poll();
-        processingQueue.onError();
-      }
-    }
-
-    public void foreachPoll(final Consumer<ProcessingQueue> consumer) {
-      while (!latestPendingQueues.isEmpty()) {
-        consumer.accept(latestPendingQueues.poll());
-      }
-    }
-
-    public void add(final ProcessingQueue pq) {
-      latestPendingQueues.add(pq);
-    }
-
-    public void close() {
-      while (!latestPendingQueues.isEmpty()) {
-        latestPendingQueues.poll().close();
-      }
-    }
-
-    public void remove(final ProcessingQueue pq) {
-      latestPendingQueues.remove(pq);
-    }
-
-    public int size() {
-      return latestPendingQueues.size();
-    }
   }
 }

@@ -33,7 +33,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LatestConsumer extends Consumer {
+public class LatestConsumer extends ScalablePushConsumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(LatestConsumer.class);
 
@@ -45,7 +45,6 @@ public class LatestConsumer extends Consumer {
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public LatestConsumer(
-      final int partitions,
       final String topicName,
       final boolean windowed,
       final LogicalSchema logicalSchema,
@@ -54,7 +53,7 @@ public class LatestConsumer extends Consumer {
       final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
       final KsqlConfig ksqlConfig,
       final Clock clock) {
-    super(partitions, topicName, windowed, logicalSchema, consumer);
+    super(topicName, windowed, logicalSchema, consumer);
     this.catchupCoordinator = catchupCoordinator;
     this.catchupAssignmentUpdater = catchupAssignmentUpdater;
     this.ksqlConfig = ksqlConfig;
@@ -62,7 +61,6 @@ public class LatestConsumer extends Consumer {
   }
 
   public static LatestConsumer create(
-      final int partitions,
       final String topicName,
       final boolean windowed,
       final LogicalSchema logicalSchema,
@@ -72,13 +70,12 @@ public class LatestConsumer extends Consumer {
       final KsqlConfig ksqlConfig,
       final Clock clock
   ) {
-    return new LatestConsumer(partitions, topicName, windowed, logicalSchema, consumer,
+    return new LatestConsumer(topicName, windowed, logicalSchema, consumer,
         catchupCoordinator, catchupAssignmentUpdater, ksqlConfig, clock);
   }
 
   public interface LatestConsumerFactory {
     LatestConsumer create(
-        int partitions,
         String topicName,
         boolean windowed,
         LogicalSchema logicalSchema,

@@ -44,6 +44,7 @@ import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
@@ -57,7 +58,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ConsumerTest {
+public class ScalablePushConsumerTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
@@ -65,7 +66,6 @@ public class ConsumerTest {
       .build();
 
   private static final String TOPIC = "topic";
-  private static final int NUM_PARTITIONS = 2;
   private static final TopicPartition TP0 = new TopicPartition(TOPIC, 0);
   private static final TopicPartition TP1 = new TopicPartition(TOPIC, 1);
 
@@ -156,18 +156,22 @@ public class ConsumerTest {
   private KafkaConsumer<Object, GenericRow> kafkaConsumer;
   @Mock
   private ProcessingQueue queue;
+  @Mock
+  PartitionInfo partitionInfo1;
+  @Mock
+  PartitionInfo partitionInfo2;
+
 
   @Before
   public void setUp() {
     when(queue.getQueryId()).thenReturn(new QueryId("a"));
-    createRecord(0, 0, 0L,
-        new Windowed<>(GenericKey.fromList(ImmutableList.of("k00")), new TimeWindow(0, 100)),
-        GenericRow.fromList(ImmutableList.of(0)));
+    when(kafkaConsumer.partitionsFor(any()))
+        .thenReturn(ImmutableList.of(partitionInfo1, partitionInfo2));
   }
 
   @Test
   public void shouldRunConsumer_success() {
-    try (Consumer consumer = spy(new TestConsumer(kafkaConsumer, false))) {
+    try (ScalablePushConsumer consumer = spy(new TestScalablePushConsumer(kafkaConsumer, false))) {
       AtomicInteger count = new AtomicInteger(0);
 
       when(kafkaConsumer.poll(any())).thenAnswer(
@@ -207,7 +211,7 @@ public class ConsumerTest {
 
   @Test
   public void shouldRunConsumer_successWindowed() {
-    try (Consumer consumer = spy(new TestConsumer(kafkaConsumer, true))) {
+    try (ScalablePushConsumer consumer = spy(new TestScalablePushConsumer(kafkaConsumer, true))) {
       AtomicInteger count = new AtomicInteger(0);
 
       when(kafkaConsumer.poll(any())).thenAnswer(
@@ -247,7 +251,7 @@ public class ConsumerTest {
 
   @Test
   public void shouldRunConsumer_commitError() {
-    try (Consumer consumer = spy(new TestConsumer(kafkaConsumer, false))) {
+    try (ScalablePushConsumer consumer = spy(new TestScalablePushConsumer(kafkaConsumer, false))) {
       AtomicInteger count = new AtomicInteger(0);
 
       when(kafkaConsumer.poll(any())).thenAnswer(
@@ -294,7 +298,7 @@ public class ConsumerTest {
 
   @Test
   public void shouldRunConsumer_noAssignmentYet() {
-    try (Consumer consumer = spy(new TestConsumer(kafkaConsumer, false))) {
+    try (ScalablePushConsumer consumer = spy(new TestScalablePushConsumer(kafkaConsumer, false))) {
       AtomicInteger count = new AtomicInteger(0);
 
       when(kafkaConsumer.poll(any())).thenAnswer(
@@ -358,9 +362,10 @@ public class ConsumerTest {
         TimestampType.NO_TIMESTAMP_TYPE, -1, -1, key, row, new RecordHeaders(), Optional.empty());
   }
 
-  private static class TestConsumer extends Consumer {
-    public TestConsumer(final KafkaConsumer<Object, GenericRow> kafkaConsumer, boolean windowed) {
-      super(NUM_PARTITIONS, TOPIC, windowed, SCHEMA, kafkaConsumer);
+  private static class TestScalablePushConsumer extends ScalablePushConsumer {
+    public TestScalablePushConsumer(final KafkaConsumer<Object, GenericRow> kafkaConsumer,
+        boolean windowed) {
+      super(TOPIC, windowed, SCHEMA, kafkaConsumer);
     }
 
     @Override

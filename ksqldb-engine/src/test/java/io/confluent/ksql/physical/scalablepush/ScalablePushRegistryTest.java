@@ -22,9 +22,10 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -32,27 +33,32 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata;
-import io.confluent.ksql.physical.scalablepush.consumer.ConsumerMetadata.ConsumerMetadataFactory;
+import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestConsumerFactory;
+import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -74,7 +80,6 @@ public class ScalablePushRegistryTest {
   private static final long TIMESTAMP = 123;
   private static final String TOPIC = "topic";
   private static final String SOURCE_APP_ID = "source_app_id";
-  private static final ConsumerMetadata METADATA = new ConsumerMetadata(2);
 
   @Mock
   private PushLocator locator;
@@ -93,10 +98,6 @@ public class ScalablePushRegistryTest {
   @Mock
   private LatestConsumerFactory latestConsumerFactory;
   @Mock
-  private ConsumerMetadataFactory consumerMetadataFactory;
-  @Mock
-  private LatestConsumer latestConsumer;
-  @Mock
   private KafkaConsumer<Object, GenericRow> kafkaConsumer;
   @Mock
   private KeyFormat keyFormat;
@@ -105,7 +106,9 @@ public class ScalablePushRegistryTest {
 
   private ExecutorService realExecutorService;
   private AtomicReference<Runnable> startLatestRunnable = new AtomicReference<>(null);
-  private AtomicBoolean latestClosed = new AtomicBoolean(false);
+  private TestLatestConsumer latestConsumer;
+  private TestLatestConsumer latestConsumer2;
+  private List<TestLatestConsumer> latestConsumers = new ArrayList<>();
 
   @Before
   public void setUp() {
@@ -113,38 +116,12 @@ public class ScalablePushRegistryTest {
     when(kafkaConsumerFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(kafkaConsumer);
 
-    doAnswer(a -> {
-      while (!latestClosed.get()) {
-        Thread.sleep(10);
-      }
-      return null;
-    }).when(latestConsumer).run();
-    doAnswer(a -> {
-      latestClosed.set(true);
-      return null;
-    }).when(latestConsumer).close();
-    when(latestConsumer.isClosed()).thenAnswer(a -> {
-      return latestClosed.get();
-    });
-    AtomicInteger num = new AtomicInteger(0);
-    doAnswer(a -> {
-      num.incrementAndGet();
-      return null;
-    }).when(latestConsumer).register(any());
-    doAnswer(a -> {
-      num.decrementAndGet();
-      return null;
-    }).when(latestConsumer).unregister(any());
-    doAnswer(a -> {
-      return num.get();
-    }).when(latestConsumer).numRegistered();
-    when(latestConsumerFactory.create(anyInt(), any(), anyBoolean(), any(), any(), any(), any(),
-        any(), any())).thenAnswer(a -> {
-          latestClosed.set(false);
-          return latestConsumer;
-    });
-    when(consumerMetadataFactory.create(any(), any()))
-        .thenReturn(METADATA);
+    latestConsumer = new TestLatestConsumer(TOPIC, false, SCHEMA, kafkaConsumer,
+        new NoopCatchupCoordinator(), assignment -> { },  ksqlConfig, Clock.systemUTC());
+    latestConsumer2 = new TestLatestConsumer(TOPIC, false, SCHEMA, kafkaConsumer,
+        new NoopCatchupCoordinator(), assignment -> { },  ksqlConfig, Clock.systemUTC());
+    when(latestConsumerFactory.create(any(), anyBoolean(), any(), any(), any(), any(),
+        any(), any())).thenReturn(latestConsumer, latestConsumer2);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
     when(keyFormat.isWindowed()).thenReturn(false);
     realExecutorService = Executors.newSingleThreadExecutor();
@@ -154,6 +131,8 @@ public class ScalablePushRegistryTest {
       realExecutorService.submit(runnable);
       return null;
     }).when(executorService).submit(any(Runnable.class));
+    when(processingQueue.getQueryId()).thenReturn(new QueryId("q1"));
+    when(processingQueue2.getQueryId()).thenReturn(new QueryId("q2"));
   }
 
   @After
@@ -167,17 +146,17 @@ public class ScalablePushRegistryTest {
     ScalablePushRegistry registry = new ScalablePushRegistry(
         locator, SCHEMA, false, false, ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
 
     // When:
     registry.register(processingQueue, false);
-    assertThat(registry.isLatestStarted(), is(true));
+    assertThat(registry.isLatestRunning(), is(true));
     assertThatEventually(registry::latestNumRegistered, is(1));
 
     // Then:
     registry.unregister(processingQueue);
     assertThat(registry.latestNumRegistered(), is(0));
-    assertThatEventually(registry::isLatestStarted, is(false));
+    assertThatEventually(registry::isLatestRunning, is(false));
   }
 
   @Test
@@ -186,12 +165,11 @@ public class ScalablePushRegistryTest {
     ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
-    when(latestConsumer.getNumRowsReceived()).thenReturn(1L);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
 
     // When:
     registry.register(processingQueue, false);
-    assertThat(registry.isLatestStarted(), is(true));
+    assertThat(registry.isLatestRunning(), is(true));
     assertThatEventually(registry::latestNumRegistered, is(1));
     final Exception e = assertThrows(KsqlException.class,
         () -> registry.register(processingQueue, true));
@@ -207,19 +185,19 @@ public class ScalablePushRegistryTest {
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
-    doThrow(new RuntimeException("Error!")).when(latestConsumer).run();
-    AtomicBoolean isErrorConsumer = new AtomicBoolean(false);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
+    latestConsumer.setErrorOnRun(true);
+    AtomicBoolean isErrorQueue = new AtomicBoolean(false);
     doAnswer(a -> {
-      isErrorConsumer.set(true);
+      isErrorQueue.set(true);
       return null;
-    }).when(latestConsumer).onError();
+    }).when(processingQueue).onError();
 
     // When:
     registry.register(processingQueue, false);
 
     // Then:
-    assertThatEventually(isErrorConsumer::get, is(true));
+    assertThatEventually(isErrorQueue::get, is(true));
   }
 
   @Test
@@ -229,7 +207,7 @@ public class ScalablePushRegistryTest {
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
     doThrow(new RuntimeException("Error!"))
         .when(kafkaConsumerFactory).create(any(), any(), any(), any(), any(), any());
     AtomicBoolean isErrorQueue = new AtomicBoolean(false);
@@ -239,11 +217,15 @@ public class ScalablePushRegistryTest {
     }).when(processingQueue).onError();
 
     // When:
-    registry.register(processingQueue, false);
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> registry.register(processingQueue, false)
+    );
 
     // Then:
-    assertThatEventually(isErrorQueue::get, is(true));
-    assertThat(registry.isLatestStarted(), is(false));
+    assertThat(e.getMessage(), is("Error!"));
+    assertThat(isErrorQueue.get(), is(true));
+    assertThat(registry.isLatestRunning(), is(false));
   }
 
   @Test
@@ -253,10 +235,10 @@ public class ScalablePushRegistryTest {
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
     doThrow(new RuntimeException("Error!"))
         .when(latestConsumerFactory).create(
-            anyInt(), any(), anyBoolean(), any(), any(), any(), any(), any(), any());
+            any(), anyBoolean(), any(), any(), any(), any(), any(), any());
     AtomicBoolean isErrorQueue = new AtomicBoolean(false);
     doAnswer(a -> {
       isErrorQueue.set(true);
@@ -264,21 +246,25 @@ public class ScalablePushRegistryTest {
     }).when(processingQueue).onError();
 
     // When:
-    registry.register(processingQueue, false);
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> registry.register(processingQueue, false)
+    );
 
     // Then:
-    assertThatEventually(isErrorQueue::get, is(true));
-    assertThat(registry.isLatestStarted(), is(false));
+    assertThat(e.getMessage(), is("Error!"));
+    assertThat(isErrorQueue.get(), is(true));
+    assertThat(registry.isLatestRunning(), is(false));
   }
 
   @Test
-  public void shouldCloseLatestAfterStartingIfRegistryClosed() {
+  public void shouldStopRunningAfterStartingIfRegistryClosed() {
     // Given:
     ScalablePushRegistry registry = new ScalablePushRegistry(
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
     doAnswer(a -> {
       final Runnable runnable = a.getArgument(0);
       startLatestRunnable.set(runnable);
@@ -293,7 +279,7 @@ public class ScalablePushRegistryTest {
 
     // Then:
     assertThat(registry.latestNumRegistered(), is(0));
-    assertThat(registry.isLatestStarted(), is(false));
+    assertThat(registry.isLatestRunning(), is(false));
   }
 
   @Test
@@ -303,7 +289,7 @@ public class ScalablePushRegistryTest {
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
     doAnswer(a -> {
       final Runnable runnable = a.getArgument(0);
       startLatestRunnable.set(runnable);
@@ -317,7 +303,7 @@ public class ScalablePushRegistryTest {
 
     // Then:
     assertThat(registry.latestNumRegistered(), is(0));
-    assertThat(registry.isLatestStarted(), is(false));
+    assertThat(registry.isLatestRunning(), is(false));
   }
 
 
@@ -328,7 +314,7 @@ public class ScalablePushRegistryTest {
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
     doAnswer(a -> {
       final Runnable runnable = a.getArgument(0);
       startLatestRunnable.set(runnable);
@@ -344,7 +330,7 @@ public class ScalablePushRegistryTest {
 
     // Then:
     assertThatEventually(registry::latestNumRegistered, is(2));
-    assertThat(registry.isLatestStarted(), is(true));
+    assertThat(registry.isLatestRunning(), is(true));
   }
 
   @Test
@@ -354,17 +340,10 @@ public class ScalablePushRegistryTest {
         locator, SCHEMA, false, false,
         ImmutableMap.of(), ksqlTopic, serviceContext,
         ksqlConfig, SOURCE_APP_ID,
-        kafkaConsumerFactory, latestConsumerFactory, consumerMetadataFactory, executorService);
-    AtomicBoolean forceRun = new AtomicBoolean(false);
-    doAnswer(a -> {
-      while (!latestClosed.get() || forceRun.get()) {
-        Thread.sleep(10);
-      }
-      return null;
-    }).when(latestConsumer).run();
+        kafkaConsumerFactory, latestConsumerFactory, executorService);
 
     // When:
-    forceRun.set(true);
+    latestConsumer.setForceRun(true);
     registry.register(processingQueue, false);
     assertThatEventually(registry::latestNumRegistered, is(1));
     // This should make the latest close and shutdown
@@ -372,14 +351,18 @@ public class ScalablePushRegistryTest {
     // Meanwhile another queue is registered
     registry.register(processingQueue2, false);
     // Only now does the consumer stop running, forcing it to kick off another consumer
-    forceRun.set(false);
+    latestConsumer.setForceRun(false);
 
     // Then:
+    verify(latestConsumerFactory, times(2)).create(any(), anyBoolean(), any(), any(), any(), any(),
+        any(), any());
     assertThatEventually(registry::latestNumRegistered, is(1));
-    assertThat(registry.isLatestStarted(), is(true));
+    assertThat(registry.isLatestRunning(), is(true));
     registry.unregister(processingQueue2);
     assertThatEventually(registry::latestNumRegistered, is(0));
-    assertThatEventually(registry::isLatestStarted, is(false));
+    assertThatEventually(registry::isLatestRunning, is(false));
+    assertThat(latestConsumer.isClosed(), is(true));
+    assertThat(latestConsumer2.isClosed(), is(true));
   }
 
   @Test
@@ -432,5 +415,47 @@ public class ScalablePushRegistryTest {
 
     // Then
     assertThat(registry.isPresent(), is(false));
+  }
+
+  public static class TestLatestConsumer extends LatestConsumer {
+
+    private final AtomicBoolean forceRun = new AtomicBoolean(false);
+    private final AtomicBoolean errorOnRun = new AtomicBoolean(false);
+
+    public TestLatestConsumer(String topicName, boolean windowed,
+        LogicalSchema logicalSchema,
+        KafkaConsumer<Object, GenericRow> consumer,
+        CatchupCoordinator catchupCoordinator,
+        Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
+        KsqlConfig ksqlConfig, Clock clock) {
+      super(topicName, windowed, logicalSchema, consumer, catchupCoordinator,
+          catchupAssignmentUpdater,
+          ksqlConfig, clock);
+    }
+
+    public void setForceRun(boolean forceRun) {
+      this.forceRun.set(forceRun);
+    }
+
+    public void setErrorOnRun(boolean errorOnRun) {
+      this.errorOnRun.set(errorOnRun);
+    }
+
+    public void run() {
+      if (errorOnRun.get()) {
+        throw new RuntimeException("Error!");
+      }
+      while (!isClosed() || forceRun.get()) {
+        try {
+          Thread.sleep(10);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    public long getNumRowsReceived() {
+      return 1L;
+    }
   }
 }

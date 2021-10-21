@@ -26,6 +26,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -49,6 +50,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
@@ -68,7 +70,6 @@ public class LatestConsumerTest {
       .build();
 
   private static final String TOPIC = "topic";
-  private static final int NUM_PARTITIONS = 2;
   private static final TopicPartition TP0 = new TopicPartition(TOPIC, 0);
   private static final TopicPartition TP1 = new TopicPartition(TOPIC, 1);
   private static final long CURRENT_TIME_MS = 60000;
@@ -133,13 +134,15 @@ public class LatestConsumerTest {
     when(queue.getQueryId()).thenReturn(new QueryId("a"));
     when(clock.millis()).thenReturn(CURRENT_TIME_MS);
     when(ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS)).thenReturn(30000L);
+    when(kafkaConsumer.partitionsFor(TOPIC)).thenReturn(
+        ImmutableList.of(mock(PartitionInfo.class), mock(PartitionInfo.class)));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldRunConsumer_success() {
     try (LatestConsumer consumer = spy(new LatestConsumer(
-        NUM_PARTITIONS, TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
+        TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
         catchupAssignmentUpdater, ksqlConfig, clock))) {
       AtomicInteger count = new AtomicInteger(0);
 
@@ -180,7 +183,7 @@ public class LatestConsumerTest {
   @Test
   public void shouldRunConsumer_seekToEnd() {
     try (LatestConsumer consumer = spy(new LatestConsumer(
-        NUM_PARTITIONS, TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
+        TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
         catchupAssignmentUpdater, ksqlConfig, clock))) {
       AtomicInteger count = new AtomicInteger(0);
 
@@ -228,7 +231,7 @@ public class LatestConsumerTest {
   @Test
   public void shouldRunConsumer_dontSeekToEnd() {
     try (LatestConsumer consumer = spy(new LatestConsumer(
-        NUM_PARTITIONS, TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
+        TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
         catchupAssignmentUpdater, ksqlConfig, clock))) {
       AtomicInteger count = new AtomicInteger(0);
 

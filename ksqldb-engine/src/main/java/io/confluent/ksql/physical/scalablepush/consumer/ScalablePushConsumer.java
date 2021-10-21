@@ -43,16 +43,16 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class Consumer implements AutoCloseable {
+public abstract class ScalablePushConsumer implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ScalablePushConsumer.class);
   private static final Duration POLL_TIMEOUT = Duration.ofMillis(5000L);
 
-  protected final int partitions;
   protected final String topicName;
   protected final boolean windowed;
   protected final LogicalSchema logicalSchema;
-  protected KafkaConsumer<Object, GenericRow> consumer;
+  protected final KafkaConsumer<Object, GenericRow> consumer;
+  protected int partitions;
   protected Map<TopicPartition, Long> currentPositions = new HashMap<>();
   protected volatile boolean newAssignment = false;
   protected final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
@@ -64,14 +64,12 @@ public abstract class Consumer implements AutoCloseable {
   private final AtomicReference<Map<TopicPartition, OffsetAndMetadata>> latestCommittedOffsets
       = new AtomicReference<>(null);
 
-  public Consumer(
-      final int partitions,
+  public ScalablePushConsumer(
       final String topicName,
       final boolean windowed,
       final LogicalSchema logicalSchema,
       final KafkaConsumer<Object, GenericRow> consumer
   ) {
-    this.partitions = partitions;
     this.topicName = topicName;
     this.windowed = windowed;
     this.logicalSchema = logicalSchema;
@@ -113,7 +111,13 @@ public abstract class Consumer implements AutoCloseable {
     }
   }
 
+  private void initialize() {
+    partitions = consumer.partitionsFor(topicName).size();
+    LOG.info("Found {} partitions for {}", partitions, topicName);
+  }
+
   public void run() {
+    initialize();
     subscribeOrAssign();
     while (true) {
       if (closed) {
@@ -179,11 +183,30 @@ public abstract class Consumer implements AutoCloseable {
     return false;
   }
 
+  /**
+   * Closes everything immediately, may block.
+   */
   public void close() {
+    try {
+      consumer.close();
+    } catch (final Throwable t) {
+      LOG.error("Error closing kafka consumer", t);
+    }
+    try {
+      closeAsync();
+    } catch (final Throwable t) {
+      LOG.error("Error closing consumer", t);
+    }
+  }
+
+  /**
+   * Closes async, avoiding blocking the caller.
+   */
+  public void closeAsync() {
+    closed = true;
     for (final ProcessingQueue processingQueue : processingQueues.values()) {
       processingQueue.close();
     }
-    closed = true;
   }
 
   public boolean isClosed() {

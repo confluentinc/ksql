@@ -100,6 +100,11 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY =
       "ksql.sink.window.change.log.additional.retention";
+  private static final String SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY_DOC =
+      "The default window change log additional retention time. This "
+          + "is a streams config value which will be added to a windows maintainMs to ensure "
+          + "data is not deleted from the log prematurely. Allows for clock drift. "
+          + "Default is 1 day";
 
   public static final String
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG = "ksql.fail.on.deserialization.error";
@@ -122,6 +127,12 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG = "ksql.transient.prefix";
   public static final String
       KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT = "transient_";
+  private static final String KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG_DOC =
+      "Second part of the prefix for transient queries. For instance if "
+          + "the prefix is transient_ the query name would be "
+          + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
+          + " and '_transient' is the second part of the prefix for the query id the third and "
+          + "4th parts are a random long value and the current timestamp.";
 
   public static final String
       KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG = "ksql.output.topic.name.prefix";
@@ -684,11 +695,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
-            "Second part of the prefix for transient queries. For instance if "
-                + "the prefix is transient_ the query name would be "
-                + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
-                + " and '_transient' is the second part of the prefix for the query id the third and "
-                + "4th parts are a random long value and the current timestamp. "
+            KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG_DOC
         )
         .define(
             KSQL_CUSTOM_METRICS_EXTENSION,
@@ -748,10 +755,7 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Type.LONG,
             KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
             ConfigDef.Importance.MEDIUM,
-            "The default window change log additional retention time. This "
-            + "is a streams config value which will be added to a windows maintainMs to ensure "
-            + "data is not deleted from the log prematurely. Allows for clock drift. "
-            + "Default is 1 day",
+            SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY_DOC,
             "SERVER",
             1,
             Width.NONE,

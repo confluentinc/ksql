@@ -113,7 +113,8 @@ public class KsqlVersionTest {
 
     // Then:
     assertThat(e.getMessage(), is("Failed to parse version: '7.1.0-ksqldb-rest-app.2--rc1'. "
-            + "Version must be in format '(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))*(\\.\\d+-\\d+)?(-rc\\d*)?'. "));
+            + "Version must be in format '(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?" +
+            "(?:-([A-Za-z0-9]+|\\d+))*(\\.\\d+-\\d+)?(-rc\\d*)?'. "));
   }
 
   @Test

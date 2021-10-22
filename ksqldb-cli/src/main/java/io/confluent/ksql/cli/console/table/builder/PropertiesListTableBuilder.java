@@ -65,7 +65,6 @@ public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> 
       } else {
         // all configs are server-level by default, unless explicitly handled per query
         level = "SERVER";
-        // TODO -- what are these configs? maybe streams/producer configs? only the overridden ones, or others? test
       }
       final String value = property.getValue() == null ? "NULL" : property.getValue();
       final String scope = property.getScope();

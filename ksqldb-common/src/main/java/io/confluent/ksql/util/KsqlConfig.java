@@ -15,15 +15,12 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
-
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.ConfigItem;
 import io.confluent.ksql.config.KsqlConfigResolver;
-import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -47,8 +44,8 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
-import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
+import org.apache.kafka.common.config.ConfigDef.Width;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.utils.AppInfoParser;
@@ -133,8 +130,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
       "ksql.query.persistent.active.limit";
-  private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
-  private static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
+  static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
+  static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC =
       "An upper limit on the number of active, persistent queries that may be running at a time, "
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
@@ -153,20 +150,36 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
+  public static final String KSQL_WRAP_SINGLE_VALUES_DOC =
+      "Controls how KSQL will serialize a value whose schema contains only a "
+          + "single column. The setting only sets the default for `CREATE STREAM`, "
+          + "`CREATE TABLE`, `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` and "
+          + "`INSERT INTO` statements, where `WRAP_SINGLE_VALUE` is not provided explicitly "
+          + "in the statement." + System.lineSeparator()
+          + "When set to true, KSQL will persist the single column nested with a STRUCT, "
+          + "for formats that support them. When set to false KSQL will persist "
+          + "the column as the anonymous values." + System.lineSeparator()
+          + "For example, if the value contains only a single column 'FOO INT' and the "
+          + "format is JSON,  and this setting is `false`, then KSQL will persist the value "
+          + "as an unnamed JSON number, e.g. '10'. Where as, if this setting is `true`, KSQL "
+          + "will persist the value as a JSON document with a single numeric property, "
+          + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
+          + "Note: the DELIMITED format ignores this setting as it does not support the "
+          + "concept of a STRUCT, record or object.";
 
   public static final String KSQL_QUERYANONYMIZER_ENABLED =
       "ksql.queryanonymizer.logs_enabled";
-  private static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
+  public static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
       "This defines whether we log anonymized queries out of query logger or if we log them"
       + "in plain text. Defaults to true";
   public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE =
       "ksql.queryanonymizer.cluster_namespace";
-  private static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
+  public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
       "Namespace used in the query anonymization process, representing cluster id and "
           + "organization id respectively. For example, 'clusterid.orgid'.";
 
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
-  private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
+  public static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
       + "pairs separated by commas. For example, 'key1:value1,key2:value2'.";
 
@@ -196,7 +209,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_ACCESS_VALIDATOR_ON = "on";
   public static final String KSQL_ACCESS_VALIDATOR_OFF = "off";
   public static final String KSQL_ACCESS_VALIDATOR_AUTO = "auto";
-  public static final String KSQL_ACCESS_VALIDATOR_DOC =
+  static final String KSQL_ACCESS_VALIDATOR_DOC =
       "Config to enable/disable the topic access validator, which checks that KSQL can access "
           + "the involved topics before committing to execute a statement. Possible values are "
           + "\"on\", \"off\", and \"auto\". Setting to \"on\" enables the validator. Setting to "
@@ -211,7 +224,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS =
         "ksql.query.pull.enable.standby.reads";
-  private static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC =
+  static final String KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC =
       "Config to enable/disable forwarding pull queries to standby hosts when the active is dead. "
           + "This means that stale values may be returned for these queries since standby hosts"
           + "receive updates from the changelog topic (to which the active writes to) "
@@ -227,7 +240,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG =
       "ksql.query.pull.max.allowed.offset.lag";
   public static final Long KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT = Long.MAX_VALUE;
-  private static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC =
+  static final String KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC =
       "Controls the maximum lag tolerated by a pull query against a table. This is applied to all "
           + "hosts storing it, both active and standbys included. This can be overridden per query "
           + "or set in the CLI. It's only enabled when lag.reporting.enable is true. "
@@ -445,8 +458,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
       "ksql.source.table.materialization.enabled";
-  private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
-  private static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC =
+  static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
+  static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC =
       "Feature flag that enables table materialization on source tables. Default is true. "
           + "If false, CREATE SOURCE [TABLE|STREAM] statements will be rejected. "
           + "Current CREATE SOURCE TABLE statements found in the KSQL command topic will "
@@ -487,13 +500,13 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS =
       "ksql.query.status.running.threshold.seconds";
-  private static final Integer KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT = 300;
-  private static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC = "Amount of time in "
+  static final Integer KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT = 300;
+  static final String KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC = "Amount of time in "
       + "seconds to wait before setting a restarted query status as healthy (or running).";
 
   public static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST =
       "ksql.properties.overrides.denylist";
-  private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
+  static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
 
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
@@ -662,33 +675,72 @@ public class KsqlConfig extends AbstractConfig {
   // CHECKSTYLE_RULES.OFF: MethodLength
   private static ConfigDef buildConfigDef(final ConfigGeneration generation) {
     final ConfigDef configDef = new ConfigDef()
-        .define(
-            KSQL_SERVICE_ID_CONFIG,
-            ConfigDef.Type.STRING,
-            KSQL_SERVICE_ID_DEFAULT,
-            ConfigDef.Importance.MEDIUM,
-            "Indicates the ID of the ksql service. It will be used as prefix for "
-                + "all implicitly named resources created by this instance in Kafka. "
-                + "By convention, the id should end in a seperator character of some form, e.g. "
-                + "a dash or underscore, as this makes identifiers easier to read."
-        )
+        ////////////////// TODO_CLASSIFICATION //////////////////
         .define(
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             KSQL_TRANSIENT_QUERY_NAME_PREFIX_DEFAULT,
             ConfigDef.Importance.MEDIUM,
             "Second part of the prefix for transient queries. For instance if "
-            + "the prefix is transient_ the query name would be "
-            + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
-            + " and '_transient' is the second part of the prefix for the query id the third and "
-            + "4th parts are a random long value and the current timestamp. "
-        ).define(
+                + "the prefix is transient_ the query name would be "
+                + "ksql_transient_4120896722607083946_1509389010601 where 'ksql_' is the first prefix"
+                + " and '_transient' is the second part of the prefix for the query id the third and "
+                + "4th parts are a random long value and the current timestamp. "
+        )
+        .define(
+            KSQL_CUSTOM_METRICS_EXTENSION,
+            ConfigDef.Type.CLASS,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_CUSTOM_METRICS_EXTENSION_DOC
+        )
+        ////////////////// TODO_ENSURE_APPLIED_PER_QUERY //////////////////
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC,
+            "QUERY",
+            1,
+            Width.NONE,
+            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
+        )
+        .define(
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS,
+            Type.LONG,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC,
+            "QUERY",
+            1,
+            Width.NONE,
+            KSQL_QUERY_RETRY_BACKOFF_MAX_MS
+        )
+        .define(
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,
+            Type.INT,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC,
+            "QUERY",
+            1,
+            Width.NONE,
+            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE
+        )
+        ////////////////// END_TODO //////////////////
+        .define(
             KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG,
             ConfigDef.Type.STRING,
             "",
             ConfigDef.Importance.LOW,
-            KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS
-        ).define(
+            KSQL_OUTPUT_TOPIC_NAME_PREFIX_DOCS,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG
+        )
+        .define(
             SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
             ConfigDef.Type.LONG,
             KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention,
@@ -696,446 +748,89 @@ public class KsqlConfig extends AbstractConfig {
             "The default window change log additional retention time. This "
             + "is a streams config value which will be added to a windows maintainMs to ensure "
             + "data is not deleted from the log prematurely. Allows for clock drift. "
-            + "Default is 1 day"
-        ).define(
-            SCHEMA_REGISTRY_URL_PROPERTY,
-            ConfigDef.Type.STRING,
-            "",
-            new ConfigDef.NonNullValidator(),
-            ConfigDef.Importance.MEDIUM,
-            "The URL for the schema registry"
-        ).define(
-            CONNECT_URL_PROPERTY,
-            ConfigDef.Type.STRING,
-            DEFAULT_CONNECT_URL,
-            Importance.MEDIUM,
-            "The URL for the connect deployment, defaults to http://localhost:8083"
-        ).define(
-            CONNECT_WORKER_CONFIG_FILE_PROPERTY,
-            ConfigDef.Type.STRING,
-            "",
-            Importance.LOW,
-            "The path to a connect worker configuration file. An empty value for this configuration"
-                + "will prevent connect from starting up embedded within KSQL. For more information"
-                + " on configuring connect, see "
-                + "https://docs.confluent.io/current/connect/userguide.html#configuring-workers."
-        ).define(
-            KSQL_ENABLE_UDFS,
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.MEDIUM,
-            "Whether or not custom UDF jars found in the ext dir should be loaded. Default is true "
-        ).define(
-            KSQL_COLLECT_UDF_METRICS,
-            ConfigDef.Type.BOOLEAN,
-            false,
-            ConfigDef.Importance.LOW,
-            "Whether or not metrics should be collected for custom udfs. Default is false. Note: "
-                + "this will add some overhead to udf invocation. It is recommended that this "
-                + " be set to false in production."
-        ).define(
-            KSQL_EXT_DIR,
-            ConfigDef.Type.STRING,
-            DEFAULT_EXT_DIR,
-            ConfigDef.Importance.LOW,
-            "The path to look for and load extensions such as UDFs from."
-        ).define(
-            KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
-            Type.SHORT,
-            (short) 1,
-            ConfigDef.Importance.MEDIUM,
-            "The replication factor for the internal topics of KSQL server."
-        ).define(
-            KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY,
-            Type.SHORT,
-            (short) 1,
-            ConfigDef.Importance.MEDIUM,
-            "The minimum number of insync replicas for the internal topics of KSQL server."
-        ).define(
-            KSQL_UDF_SECURITY_MANAGER_ENABLED,
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.LOW,
-            "Enable the security manager for UDFs. Default is true and will stop UDFs from"
-               + " calling System.exit or executing processes"
-        ).define(
-            KSQL_INSERT_INTO_VALUES_ENABLED,
-            Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.LOW,
-            "Enable the INSERT INTO ... VALUES functionality."
-        ).define(
-            KSQL_SECURITY_EXTENSION_CLASS,
-            Type.CLASS,
-            KSQL_SECURITY_EXTENSION_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_SECURITY_EXTENSION_DOC
-        ).define(
+            + "Default is 1 day",
+            "SERVER",
+            1,
+            Width.NONE,
+            SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY
+        )
+        .define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,
             KSQL_DEFAULT_KEY_FORMAT_DEFAULT,
             ConfigDef.Importance.LOW,
-            KSQL_DEFAULT_KEY_FORMAT_DOC
-        ).define(
+            KSQL_DEFAULT_KEY_FORMAT_DOC,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_DEFAULT_KEY_FORMAT_CONFIG
+        )
+        .define(
             KSQL_DEFAULT_VALUE_FORMAT_CONFIG,
             Type.STRING,
             null,
             ConfigDef.Importance.LOW,
-            KSQL_DEFAULT_VALUE_FORMAT_DOC
-        ).define(
+            KSQL_DEFAULT_VALUE_FORMAT_DOC,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_DEFAULT_VALUE_FORMAT_CONFIG
+        )
+        .define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
             null,
             ConfigDef.Importance.LOW,
-            "Controls how KSQL will serialize a value whose schema contains only a "
-                + "single column. The setting only sets the default for `CREATE STREAM`, "
-                + "`CREATE TABLE`, `CREATE STREAM AS SELECT`, `CREATE TABLE AS SELECT` and "
-                + "`INSERT INTO` statements, where `WRAP_SINGLE_VALUE` is not provided explicitly "
-                + "in the statement." + System.lineSeparator()
-                + "When set to true, KSQL will persist the single column nested with a STRUCT, "
-                + "for formats that support them. When set to false KSQL will persist "
-                + "the column as the anonymous values." + System.lineSeparator()
-                + "For example, if the value contains only a single column 'FOO INT' and the "
-                + "format is JSON,  and this setting is `false`, then KSQL will persist the value "
-                + "as an unnamed JSON number, e.g. '10'. Where as, if this setting is `true`, KSQL "
-                + "will persist the value as a JSON document with a single numeric property, "
-                + "e.g. '{\"FOO\": 10}." + System.lineSeparator()
-                + "Note: the DELIMITED format ignores this setting as it does not support the "
-                + "concept of a STRUCT, record or object."
-        ).define(
-            KSQL_CUSTOM_METRICS_TAGS,
-            ConfigDef.Type.STRING,
-            "",
-            ConfigDef.Importance.LOW,
-            KSQL_CUSTOM_METRICS_TAGS_DOC
-        ).define(
-            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE,
-            ConfigDef.Type.STRING,
-            null,
-            ConfigDef.Importance.LOW,
-            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC
-        ).define(
-            KSQL_QUERYANONYMIZER_ENABLED,
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.LOW,
-            KSQL_QUERYANONYMIZER_ENABLED_DOC
-        ).define(
-            KSQL_CUSTOM_METRICS_EXTENSION,
-            ConfigDef.Type.CLASS,
-            null,
-            ConfigDef.Importance.LOW,
-            KSQL_CUSTOM_METRICS_EXTENSION_DOC
-        ).define(
-            KSQL_ENABLE_ACCESS_VALIDATOR,
-            Type.STRING,
-            KSQL_ACCESS_VALIDATOR_AUTO,
-            ValidString.in(
-                KSQL_ACCESS_VALIDATOR_ON,
-                KSQL_ACCESS_VALIDATOR_OFF,
-                KSQL_ACCESS_VALIDATOR_AUTO
-            ),
-            ConfigDef.Importance.LOW,
-            KSQL_ACCESS_VALIDATOR_DOC
-        ).define(METRIC_REPORTER_CLASSES_CONFIG,
-            Type.LIST,
-            "",
-            Importance.LOW,
-            METRIC_REPORTER_CLASSES_DOC
-        ).define(
-            KSQL_PULL_QUERIES_ENABLE_CONFIG,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_ENABLE_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_ENABLE_DOC
-        ).define(
-            KSQL_QUERY_PULL_ENABLE_STANDBY_READS,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_QUERY_PULL_ENABLE_STANDBY_READS_DOC
-        ).define(
-            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG,
-            Type.LONG,
-            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DEFAULT,
-            zeroOrPositive(),
-            Importance.MEDIUM,
-            KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_DOC
-        ).define(
+            KSQL_WRAP_SINGLE_VALUES_DOC,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_WRAP_SINGLE_VALUES
+        )
+        .define(
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG,
             Type.STRING,
             KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT,
             Importance.LOW,
-            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DOC
-        ).define(
-            KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG,
-            Type.INT,
-            KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC
-        ).define(
-            KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG,
-            Type.LONG,
-            KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_SHUTDOWN_TIMEOUT_MS_DOC
-        ).define(
-            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS,
-            Type.LONG,
-            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DEFAULT,
-            Importance.LOW,
-            KSQL_AUTH_CACHE_EXPIRY_TIME_SECS_DOC
-        ).define(
-            KSQL_AUTH_CACHE_MAX_ENTRIES,
-            Type.LONG,
-            KSQL_AUTH_CACHE_MAX_ENTRIES_DEFAULT,
-            Importance.LOW,
-            KSQL_AUTH_CACHE_MAX_ENTRIES_DOC
-        ).define(
-            KSQL_HIDDEN_TOPICS_CONFIG,
-            Type.LIST,
-            KSQL_HIDDEN_TOPICS_DEFAULT,
-            ConfigValidators.validRegex(),
-            Importance.LOW,
-            KSQL_HIDDEN_TOPICS_DOC
-        ).define(
-            KSQL_READONLY_TOPICS_CONFIG,
-            Type.LIST,
-            KSQL_READONLY_TOPICS_DEFAULT,
-            ConfigValidators.validRegex(),
-            Importance.LOW,
-            KSQL_READONLY_TOPICS_DOC
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_DOC,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG
         )
         .define(
             KSQL_TIMESTAMP_THROW_ON_INVALID,
             Type.BOOLEAN,
             KSQL_TIMESTAMP_THROW_ON_INVALID_DEFAULT,
             Importance.MEDIUM,
-            KSQL_TIMESTAMP_THROW_ON_INVALID_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_METRICS_ENABLED,
-            Type.BOOLEAN,
-            true,
-            Importance.LOW,
-            KSQL_QUERY_PULL_METRICS_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_MAX_QPS_CONFIG,
-            Type.INT,
-            KSQL_QUERY_PULL_MAX_QPS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_MAX_QPS_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG,
-            Type.INT,
-            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,
-            Type.INT,
-            KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
-            Importance.HIGH,
-            KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG,
-        Type.INT,
-            KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DEFAULT,
-        Importance.HIGH,
-            KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
-            Type.INT,
-            KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_CONFIG,
-            Type.INT,
-            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_ROUTER_THREAD_POOL_SIZE_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_STREAM_PULL_QUERY_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_RANGE_SCAN_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PULL_INTERPRETER_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_V2_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_V2_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY,
-            Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED,
-            Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC
-        )
-        .define(
-            KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
-            Type.STRING,
-            "",
-            Importance.LOW,
-            KSQL_ERROR_CLASSIFIER_REGEX_PREFIX_DOC
-        )
-        .define(
-            KSQL_CREATE_OR_REPLACE_ENABLED,
-            Type.BOOLEAN,
-            KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_CREATE_OR_REPLACE_ENABLED_DOC
-        )
-        .define(
-            KSQL_METASTORE_BACKUP_LOCATION,
-            Type.STRING,
-            KSQL_METASTORE_BACKUP_LOCATION_DEFAULT,
-            Importance.LOW,
-            KSQL_METASTORE_BACKUP_LOCATION_DOC
-        )
-        .define(
-            KSQL_SUPPRESS_ENABLED,
-            Type.BOOLEAN,
-            KSQL_SUPPRESS_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_SUPPRESS_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS,
-            Type.LONG,
-            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS_DOC
-        )
-        .define(
-            KSQL_QUERY_RETRY_BACKOFF_MAX_MS,
-            Type.LONG,
-            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_RETRY_BACKOFF_MAX_MS_DOC
-        )
-        .define(
-            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,
-            Type.INT,
-            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_ERROR_MAX_QUEUE_SIZE_DOC
-        )
-        .define(
-            KSQL_SUPPRESS_BUFFER_SIZE_BYTES,
-            Type.LONG,
-            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT,
-            Importance.LOW,
-            KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC
-        )
-        .define(
-            KSQL_PROPERTIES_OVERRIDES_DENYLIST,
-            Type.LIST,
-            "",
-            Importance.LOW,
-            KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC
-        )
-        .define(
-            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS,
-            Type.INT,
-            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC
-        )
-        .define(
-            KSQL_VARIABLE_SUBSTITUTION_ENABLE,
-            Type.BOOLEAN,
-            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
-            Importance.LOW,
-            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+            KSQL_TIMESTAMP_THROW_ON_INVALID_DOC,
+            "QUERY",
+            1,
+            Width.NONE,
+            KSQL_TIMESTAMP_THROW_ON_INVALID
         )
         .define(
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING,
             Type.LONG,
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT,
             Importance.LOW,
-            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING
         )
         .define(
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT,
             Type.LONG,
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT,
             Importance.LOW,
-            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC
-        ).define(
-            KSQL_LAMBDAS_ENABLED,
-            Type.BOOLEAN,
-            KSQL_LAMBDAS_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_LAMBDAS_ENABLED_DOC
-        ).define(
-            KSQL_ROWPARTITION_ROWOFFSET_ENABLED,
-            Type.BOOLEAN,
-            KSQL_ROWPARTITION_ROWOFFSET_DEFAULT,
-            Importance.LOW,
-            KSQL_ROWPARTITION_ROWOFFSET_DOC
-        )
-        .define(
-            KSQL_SHARED_RUNTIME_ENABLED,
-            Type.BOOLEAN,
-            KSQL_SHARED_RUNTIME_ENABLED_DEFAULT,
-            Importance.MEDIUM,
-            KSQL_SHARED_RUNTIME_ENABLED_DOC
-        )
-        .define(
-            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,
-            Type.BOOLEAN,
-            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
-            Importance.LOW,
-            KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
-        )
-        .withClientSslSupport();
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC,
+            "SERVER",
+            1,
+            Width.NONE,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT
+        );
 
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
         : COMPATIBLY_BREAKING_CONFIG_DEFS) {

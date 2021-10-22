@@ -20,6 +20,8 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PropertiesList.Property;
+import io.confluent.ksql.util.InternalKsqlConfig;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -29,7 +31,7 @@ import java.util.stream.Collectors;
 public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> {
 
   private static final List<String> HEADERS =
-      ImmutableList.of("Property", "Scope", "Default override", "Effective Value");
+      ImmutableList.of("Property", "Scope", "Level", "Default override", "Effective Value");
 
   @Override
   public Table buildTable(final PropertiesList entity) {
@@ -50,9 +52,24 @@ public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> 
   private static List<PropertyDef> propertiesListWithOverrides(final PropertiesList properties) {
 
     final Function<Property, PropertyDef> toPropertyDef = property -> {
-      final String value = property.getValue() == null ? "NULL" : property.getValue();
       final String name = property.getName();
+      // Filter out internal configs
+      if (InternalKsqlConfig.CONFIG_DEF.names().contains(name)) {
+        return null;
+      }
+
+      final String level;
+      if (KsqlConfig.CURRENT_DEF.names().contains(name) || KsqlConfig.LEGACY_DEF.names().contains(name)) {
+        // LEGACY_DEF and CURRENT_DEF should differ only by default values, but check them both for future-proofness
+        level = KsqlConfig.CURRENT_DEF.configKeys().get(name).group;
+      } else {
+        // all configs are server-level by default, unless explicitly handled per query
+        level = "SERVER";
+        // TODO -- what are these configs? maybe streams/producer configs? only the overridden ones, or others? test
+      }
+      final String value = property.getValue() == null ? "NULL" : property.getValue();
       final String scope = property.getScope();
+
       if (properties.getOverwrittenProperties().contains(name)) {
         return new PropertyDef(name, scope, "SESSION", value);
       }

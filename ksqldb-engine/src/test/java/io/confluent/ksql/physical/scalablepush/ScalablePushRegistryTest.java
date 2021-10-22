@@ -47,10 +47,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -108,7 +106,6 @@ public class ScalablePushRegistryTest {
   private AtomicReference<Runnable> startLatestRunnable = new AtomicReference<>(null);
   private TestLatestConsumer latestConsumer;
   private TestLatestConsumer latestConsumer2;
-  private List<TestLatestConsumer> latestConsumers = new ArrayList<>();
 
   @Before
   public void setUp() {

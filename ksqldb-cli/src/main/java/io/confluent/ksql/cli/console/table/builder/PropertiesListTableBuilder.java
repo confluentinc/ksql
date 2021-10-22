@@ -83,6 +83,7 @@ public class PropertiesListTableBuilder implements TableBuilder<PropertiesList> 
 
     return properties.getProperties().stream()
         .map(toPropertyDef)
+        .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }
 

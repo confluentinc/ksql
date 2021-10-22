@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -73,15 +74,15 @@ public class SchemaRegistryTopicSchemaSupplierTest {
   @Mock
   private FormatInfo expectedFormat;
   @Mock
-  private Map<String, String> formatProperties;
-  @Mock
   private SchemaTranslator schemaTranslator;
 
   private SchemaRegistryTopicSchemaSupplier supplier;
+  private Map<String, String> formatProperties;
 
   @Before
   public void setUp() throws Exception {
     supplier = new SchemaRegistryTopicSchemaSupplier(srClient, f -> format);
+    formatProperties = ImmutableMap.of();
 
     when(srClient.getLatestSchemaMetadata(any()))
         .thenReturn(new SchemaMetadata(SCHEMA_ID, -1, AVRO_SCHEMA));
@@ -97,6 +98,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(schemaTranslator.toColumns(eq(parsedSchema), any(), anyBoolean()))
         .thenReturn(ImmutableList.of(column1));
     when(schemaTranslator.name()).thenReturn("AVRO");
+
 
     when(expectedFormat.getProperties()).thenReturn(formatProperties);
   }
@@ -535,11 +537,17 @@ public class SchemaRegistryTopicSchemaSupplierTest {
 
   @Test
   public void shouldPassRightSchemaToFormat() {
+    // Given:
+    Map<String, String> properties = new ImmutableMap.Builder<String, String>()
+        .putAll(formatProperties)
+        .put("VALUE_SCHEMA_ID", "12")
+        .build();
+
     // When:
     supplier.getValueSchema(TOPIC_NAME, Optional.empty(), expectedFormat, SerdeFeatures.of());
 
     // Then:
-    verify(format).getSchemaTranslator(formatProperties);
+    verify(format).getSchemaTranslator(properties);
     verify(schemaTranslator).toColumns(parsedSchema, SerdeFeatures.of(), false);
   }
 

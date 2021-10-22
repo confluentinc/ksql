@@ -184,6 +184,7 @@ public final class ConnectKsqlSchemaTranslator {
         }
       } catch (final UnsupportedTypeException e) {
         log.error("Error inferring schema at field {}: {}", field.name(), e.getMessage());
+        throw e;
       }
     }
     return schemaBuilder.optional().build();

@@ -20,6 +20,8 @@ import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTION
 import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_TIME_SCHEMA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
@@ -42,9 +44,9 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
+import io.confluent.ksql.util.KsqlStatementException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.checkerframework.checker.units.qual.K;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,8 +58,6 @@ public class DefaultSchemaInjectorFunctionalTest {
 
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
-
-  private static final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
 
   private static final org.apache.avro.Schema DECIMAL_SCHEMA =
       parseAvroSchema(
@@ -168,8 +168,8 @@ public class DefaultSchemaInjectorFunctionalTest {
             .name("inner2").type().stringType().noDefault()
             .endRecord(),
         SchemaBuilder.struct()
-            .field("INNER1", Schema.OPTIONAL_INT32_SCHEMA)
-            .field("INNER2", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("inner1", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("inner2", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
     );
@@ -180,10 +180,10 @@ public class DefaultSchemaInjectorFunctionalTest {
     shouldInferType(
         org.apache.avro.SchemaBuilder.record("inner_record").fields()
             .name("inner1").type().optional().intType()
-            .name("inner2").type().optional().stringType()
+            .name("INNER2").type().optional().stringType()
             .endRecord(),
         SchemaBuilder.struct()
-            .field("INNER1", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("inner1", Schema.OPTIONAL_INT32_SCHEMA)
             .field("INNER2", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
@@ -268,8 +268,8 @@ public class DefaultSchemaInjectorFunctionalTest {
             .endUnion(),
         SchemaBuilder
             .struct()
-            .field("INT", Schema.OPTIONAL_INT32_SCHEMA)
-            .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("int", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("string", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
     );
@@ -279,11 +279,12 @@ public class DefaultSchemaInjectorFunctionalTest {
   public void shouldIgnoreFixed() {
     shouldInferType(
         org.apache.avro.SchemaBuilder.record("foo").fields()
-            .name("fixed_field").type(org.apache.avro.SchemaBuilder.fixed("fixed").size(32)).noDefault()
+            .name("fixed_field").type(org.apache.avro.SchemaBuilder.fixed("fixed").size(32))
+            .noDefault()
             .nullableString("STRING", "bar")
             .endRecord(),
         SchemaBuilder.struct()
-            .field("FIXED_FIELD", Schema.OPTIONAL_BYTES_SCHEMA)
+            .field("fixed_field", Schema.OPTIONAL_BYTES_SCHEMA)
             .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
@@ -298,7 +299,7 @@ public class DefaultSchemaInjectorFunctionalTest {
             .nullableString("STRING", "bar")
             .endRecord(),
         SchemaBuilder.struct()
-            .field("BYTES", Schema.OPTIONAL_BYTES_SCHEMA)
+            .field("bytes", Schema.OPTIONAL_BYTES_SCHEMA)
             .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
@@ -400,10 +401,15 @@ public class DefaultSchemaInjectorFunctionalTest {
             .field("map", map)
             .field("foo", Schema.OPTIONAL_STRING_SCHEMA)
             .build();
-    shouldInferConnectType(
-        schema,
-        SchemaBuilder.struct().field("FOO", Schema.OPTIONAL_STRING_SCHEMA).optional().build()
-    );
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> shouldInferConnectType(
+            schema,
+            SchemaBuilder.struct().field("foo", Schema.OPTIONAL_STRING_SCHEMA).optional().build()
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported type for map key: bytes"));
   }
 
   @Test
@@ -443,30 +449,30 @@ public class DefaultSchemaInjectorFunctionalTest {
         .build();
 
     final Schema ksqlArrayInner = SchemaBuilder.struct()
-        .field("ARRAYINNER1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ARRAYINNER2", Schema.OPTIONAL_INT64_SCHEMA)
+        .field("arrayInner1", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("arrayInner2", Schema.OPTIONAL_INT64_SCHEMA)
         .optional()
         .build();
     final Schema ksqlMapInner = SchemaBuilder.struct()
-        .field("MAPINNER1", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .field("MAPINNER2", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("mapInner1", Schema.OPTIONAL_FLOAT64_SCHEMA)
+        .field("mapInner2", Schema.OPTIONAL_STRING_SCHEMA)
         .optional()
         .build();
     final Schema ksqlStructInner2 = SchemaBuilder.struct()
-        .field("STRUCTINNER2_1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .field("STRUCTINNER2_2", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("structInner2_1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        .field("structInner2_2", Schema.OPTIONAL_INT32_SCHEMA)
         .optional()
         .build();
     final Schema ksqlStructInner1 = SchemaBuilder.struct()
-        .field("STRUCTINNER1_1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STRUCTINNER1_2", ksqlStructInner2)
+        .field("structInner1_1", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("structInner1_2", ksqlStructInner2)
         .optional()
         .build();
     final Schema ksqlSchema = SchemaBuilder.struct()
-        .field("PRIMITIVE", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("ARRAY", ksqlArrayInner)
-        .field("MAP", ksqlMapInner)
-        .field("STRUCT", ksqlStructInner1)
+        .field("primitive", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("array", ksqlArrayInner)
+        .field("map", ksqlMapInner)
+        .field("struct", ksqlStructInner1)
         .build();
 
     shouldInferSchema(
@@ -486,7 +492,7 @@ public class DefaultSchemaInjectorFunctionalTest {
 
     final SchemaBuilder ksqlStreamSchemaBuilder = SchemaBuilder.struct();
     if (expectedKsqlSchema != null) {
-      ksqlStreamSchemaBuilder.field("FIELD0", expectedKsqlSchema);
+      ksqlStreamSchemaBuilder.field("field0", expectedKsqlSchema);
     }
 
     shouldInferSchema(avroStreamSchema, ksqlStreamSchemaBuilder.build());
@@ -545,7 +551,8 @@ public class DefaultSchemaInjectorFunctionalTest {
     for (final TableElement tableElement : statement.getElements()) {
       builder.field(
           tableElement.getName().text(),
-          SchemaConverters.sqlToConnectConverter().toConnectSchema(tableElement.getType().getSqlType())
+          SchemaConverters.sqlToConnectConverter()
+              .toConnectSchema(tableElement.getType().getSqlType())
       );
     }
     return builder.build();

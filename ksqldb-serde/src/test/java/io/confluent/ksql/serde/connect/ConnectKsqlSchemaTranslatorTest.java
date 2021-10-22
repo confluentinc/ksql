@@ -22,7 +22,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
+import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -109,6 +112,26 @@ public class ConnectKsqlSchemaTranslatorTest {
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
     assertThat(mapSchema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(mapSchema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+  }
+
+  @Test
+  public void shouldThrowUnsupportedMapKey() {
+    final Schema connectSchema = SchemaBuilder
+        .struct()
+        .field(
+            "mapField",
+            SchemaBuilder.map(
+                Schema.BYTES_SCHEMA,
+                SchemaBuilder.struct()
+                    .field("innerIntField", Schema.INT32_SCHEMA)
+                    .build()))
+        .build();
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> translator.toKsqlSchema(connectSchema));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unsupported type for map key: bytes"));
   }
 
   @Test

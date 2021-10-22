@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql.inference;
 import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -29,8 +30,10 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -124,7 +127,14 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final boolean isKey
   ) {
     final Format format = formatFactory.apply(expectedFormat);
-    final SchemaTranslator translator = format.getSchemaTranslator(expectedFormat.getProperties());
+
+    // Put schema id to properties so that translator will not uppercase field name
+    final Map<String, String> propertiesWithId = new ImmutableMap.Builder<String, String>().putAll(
+            expectedFormat.getProperties())
+        .put(isKey ? ConnectFormat.KEY_SCHEMA_ID : ConnectFormat.VALUE_SCHEMA_ID,
+            String.valueOf(id))
+        .build();
+    final SchemaTranslator translator = format.getSchemaTranslator(propertiesWithId);
 
     if (!parsedSchema.schemaType().equals(translator.name())) {
       return incorrectFormat(topic, translator.name(), parsedSchema.schemaType(), isKey);
@@ -172,7 +182,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   private static SchemaResult notFound(final String topicName, final boolean isKey) {
     final String subject = getSRSubject(topicName, isKey);
     return SchemaResult.failure(new KsqlException(
-        "Schema for message " + (isKey ? "keys" : "values") +  " on topic '" + topicName + "'"
+        "Schema for message " + (isKey ? "keys" : "values") + " on topic '" + topicName + "'"
             + " does not exist in the Schema Registry."
             + System.lineSeparator()
             + "Subject: " + subject

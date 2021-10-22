@@ -22,14 +22,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>rest-utils-parent</artifactId>
-        <version>5.5.1</version>
+        <version>5.5.1-cp12</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>5.5.1</version>
+    <version>5.5.1-cp12</version>
     <licenses>
         <license>
             <name>Confluent Community License</name>

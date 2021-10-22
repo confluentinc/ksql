@@ -32,6 +32,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,6 +50,7 @@ import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigDef.Width;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.config.types.Password;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -900,6 +903,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private final Map<String, ConfigValue> ksqlStreamConfigProps;
+  private final InternalKsqlConfig internalKsqlConfigs;
 
   public KsqlConfig(final Map<?, ?> props) {
     this(ConfigGeneration.CURRENT, props);
@@ -933,6 +937,7 @@ public class KsqlConfig extends AbstractConfig {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    this.internalKsqlConfigs = new InternalKsqlConfig(props);
   }
 
   private static Set<String> streamTopicConfigNames() {
@@ -967,6 +972,116 @@ public class KsqlConfig extends AbstractConfig {
                      final Map<String, ConfigValue> ksqlStreamConfigProps) {
     super(configDef(generation), values);
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
+    this.internalKsqlConfigs = new InternalKsqlConfig(values);
+  }
+
+  @Override
+  public void ignore(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      internalKsqlConfigs.ignore(key);
+    } else {
+      super.ignore(key);
+    }
+  }
+
+  @Override
+  public Short getShort(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getShort(key);
+    } else {
+      return super.getShort(key);
+    }
+  }
+
+  @Override
+  public Integer getInt(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getInt(key);
+    } else {
+      return super.getInt(key);
+    }
+  }
+
+  @Override
+  public Long getLong(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getLong(key);
+    } else {
+      return super.getLong(key);
+    }
+  }
+
+  @Override
+  public Double getDouble(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getDouble(key);
+    } else {
+      return super.getDouble(key);
+    }
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public List<String> getList(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getList(key);
+    } else {
+      return super.getList(key);
+    }
+  }
+
+  @Override
+  public Boolean getBoolean(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getBoolean(key);
+    } else {
+      return super.getBoolean(key);
+    }
+  }
+
+  @Override
+  public String getString(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getString(key);
+    } else {
+      return super.getString(key);
+    }
+  }
+
+  @Override
+  public ConfigDef.Type typeOf(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.typeOf(key);
+    } else {
+      return super.typeOf(key);
+    }
+  }
+
+  @Override
+  public String documentationOf(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.documentationOf(key);
+    } else {
+      return super.documentationOf(key);
+    }
+  }
+
+  @Override
+  public Password getPassword(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getPassword(key);
+    } else {
+      return super.getPassword(key);
+    }
+  }
+
+  @Override
+  public Class<?> getClass(String key) {
+    if (InternalKsqlConfig.CONFIG_DEF.names().contains(key)) {
+      return internalKsqlConfigs.getClass(key);
+    } else {
+      return super.getClass(key);
+    }
   }
 
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {

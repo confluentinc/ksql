@@ -10,9 +10,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -128,7 +130,8 @@ public class CommonTestUtil {
     InOrder inOrder = inOrder(queue);
     for (ConsumerRecord<GenericKey, GenericRow> record : records) {
       inOrder.verify(queue).offer(
-          eq(Row.of(SCHEMA, record.key(), record.value(), record.timestamp())));
+          eq(QueryRowImpl.of(SCHEMA, record.key(), Optional.empty(), record.value(),
+              record.timestamp())));
     }
     inOrder.verify(queue).close();
     inOrder.verifyNoMoreInteractions();
@@ -140,7 +143,12 @@ public class CommonTestUtil {
     InOrder inOrder = inOrder(queue);
     for (ConsumerRecord<Windowed<GenericKey>, GenericRow> record : records) {
       inOrder.verify(queue).offer(
-          eq(WindowedRow.of(SCHEMA, record.key(), record.value(), record.timestamp())));
+          eq(QueryRowImpl.of(SCHEMA, record.key().key(),
+              Optional.of(Window.of(
+                  record.key().window().startTime(),
+                  record.key().window().endTime()
+              )),
+              record.value(), record.timestamp())));
     }
     inOrder.verify(queue).close();
     inOrder.verifyNoMoreInteractions();

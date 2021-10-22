@@ -87,9 +87,7 @@ public final class SchemaParser {
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
-            ctx.KEY() == null
-                ? Namespace.VALUE
-                : ctx.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
+            TableElement.getNamespace(ctx),
             ColumnName.of(ParserUtil.getIdentifierText(ctx.identifier())),
             typeParser.getType(ctx.type())
         ))

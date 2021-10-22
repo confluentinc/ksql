@@ -33,12 +33,17 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -104,7 +109,7 @@ final class SourceBuilder extends SourceBuilderBase {
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
       maybeMaterialized = source.transformValues(
-          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
+          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion(), streamSource.getSourceSchema().header().isPresent()), materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
       // we do not need to force a materialization at this source step since the
@@ -116,7 +121,7 @@ final class SourceBuilder extends SourceBuilderBase {
       // into a single transformValues() call,
       // it is included to keep KStreams topologies consistent and simplify code
       maybeMaterialized = source.transformValues(
-          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
+          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion(), streamSource.getSourceSchema().header().isPresent()));
     }
 
     return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
@@ -179,14 +184,16 @@ final class SourceBuilder extends SourceBuilderBase {
 
     private final int pseudoColumnVersion;
     private final int numPseudoColumnsToMaterialize;
+    private final boolean header;
 
-    AddPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
+    AddPseudoColumnsToMaterialize(final int pseudoColumnVersion, final boolean header) {
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.numPseudoColumnsToMaterialize =
           (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(SystemColumns::mustBeMaterializedForTableJoins)
           .count();
+      this.header = header;
     }
 
     @Override
@@ -212,6 +219,18 @@ final class SourceBuilder extends SourceBuilderBase {
             final long offset = processorContext.offset();
             row.append(partition);
             row.append(offset);
+          }
+
+          if (header) {
+            row.append(Arrays.stream(processorContext.headers().toArray())
+                .map(header ->new Struct(SchemaBuilder.struct()
+                    .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("value", Schema.OPTIONAL_BYTES_SCHEMA)
+                    .optional()
+                    .build())
+                    .put("key", header.key())
+                    .put("value", header.value()))
+                .collect(Collectors.toList()));
           }
 
           return row;

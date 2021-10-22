@@ -144,6 +144,10 @@ public class GenericRecordFactory {
       builder.valueColumn(SystemColumns.ROWOFFSET_NAME, SystemColumns.ROWOFFSET_TYPE);
     }
 
+    if (schema.header().isPresent()) {
+      builder.valueColumn(schema.header().get(), SystemColumns.HEADER_TYPE);
+    }
+
     return builder.build();
   }
 

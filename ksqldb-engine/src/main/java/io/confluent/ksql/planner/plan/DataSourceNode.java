@@ -184,6 +184,11 @@ public class DataSourceNode extends PlanNode {
       return false;
     }
 
+    if (dataSource.getSchema().header().isPresent()
+        && dataSource.getSchema().header().get().equals(columnName)) {
+      return false;
+    }
+
     if (SystemColumns.isWindowBound(columnName)) {
       return !dataSource.getKsqlTopic().getKeyFormat().isWindowed();
     }

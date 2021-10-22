@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADER_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
@@ -39,6 +40,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,13 +61,15 @@ import java.util.stream.Collectors;
 public final class LogicalSchema {
 
   private final ImmutableList<Column> columns;
+  private final Optional<ColumnName> headerColumn;
 
   public static Builder builder() {
     return new Builder(ImmutableList.of());
   }
 
-  private LogicalSchema(final ImmutableList<Column> columns) {
+  private LogicalSchema(final ImmutableList<Column> columns, final Optional<ColumnName> headerColumn) {
     this.columns = Objects.requireNonNull(columns, "columns");
+    this.headerColumn = Objects.requireNonNull(headerColumn, "headerColumn");
   }
 
   public Builder asBuilder() {
@@ -86,6 +90,10 @@ public final class LogicalSchema {
   public List<Column> value() {
     return byNamespace()
         .get(VALUE);
+  }
+
+  public Optional<ColumnName> header() {
+    return headerColumn;
   }
 
   /**
@@ -264,7 +272,7 @@ public final class LogicalSchema {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
-    return new LogicalSchema(builder.build());
+    return new LogicalSchema(builder.build(), header());
   }
 
   /**
@@ -333,9 +341,13 @@ public final class LogicalSchema {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return columns.stream()
+    final String header = header().isPresent()
+        ? header().get().toString(formatOptions) + " " + HEADER_TYPE.toString(formatOptions) + " HEADERS,"
+        : "";
+    final String cols = columns.stream()
         .map(c -> c.toString(formatOptions))
         .collect(Collectors.joining(", "));
+    return header + cols;
   }
 
   private Optional<Column> findColumnMatching(final Predicate<Column> predicate) {
@@ -396,6 +408,10 @@ public final class LogicalSchema {
       pseudoColumns.add(Pair.of(ROWOFFSET_NAME, ROWOFFSET_TYPE));
     }
 
+    if (headerColumn.isPresent()) {
+      pseudoColumns.add(Pair.of(headerColumn.get(), HEADER_TYPE));
+    }
+
     //if query is pull or scalable push, need to check if column is disallowed
     if (forPullOrScalablePushQuery) {
       for (Pair<ColumnName, SqlType> pair : pseudoColumns) {
@@ -422,7 +438,7 @@ public final class LogicalSchema {
     }
 
 
-    return new LogicalSchema(builder.build());
+    return new LogicalSchema(builder.build(), header());
   }
 
   /**
@@ -441,7 +457,7 @@ public final class LogicalSchema {
     builder.addAll(keyColumns);
     builder.addAll(nonPseudoAndKeyCols);
 
-    return new LogicalSchema(builder.build());
+    return new LogicalSchema(builder.build(), header());
   }
 
 
@@ -472,7 +488,11 @@ public final class LogicalSchema {
       builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
     }
 
-    return new LogicalSchema(builder.build());
+    if (headerColumn.isPresent()) {
+      builder.add(Column.of(headerColumn.get(), HEADER_TYPE, VALUE, valueIndex++));
+    }
+
+    return new LogicalSchema(builder.build(), header());
   }
 
   /**
@@ -533,6 +553,7 @@ public final class LogicalSchema {
     private final ImmutableList.Builder<Column> columns = ImmutableList.builder();
     private final Set<ColumnName> seenKeys = new HashSet<>();
     private final Set<ColumnName> seenValues = new HashSet<>();
+    private Optional<ColumnName> header = Optional.empty();
 
     private Builder(final ImmutableList<Column> columns) {
       columns.forEach(col -> {
@@ -572,8 +593,16 @@ public final class LogicalSchema {
       return this;
     }
 
+    public Builder headerColumn(final ColumnName name) {
+      if (header.isPresent()) {
+        throw new KsqlException("theres already a header");
+      }
+      header = Optional.of(name);
+      return this;
+    }
+
     public LogicalSchema build() {
-      return new LogicalSchema(columns.build());
+      return new LogicalSchema(columns.build(), header);
     }
 
     private void addColumn(final Column column) {

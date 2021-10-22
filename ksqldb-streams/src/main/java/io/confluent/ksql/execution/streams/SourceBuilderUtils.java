@@ -30,12 +30,16 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.types.KsqlStruct;
 import io.confluent.ksql.util.KsqlConfig;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,9 +47,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -312,11 +320,13 @@ final class SourceBuilderUtils {
 
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
+    private final boolean header;
 
     AddKeyAndPseudoColumns(
-        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
+        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion, final boolean header) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.header = header;
     }
 
     @Override
@@ -352,6 +362,17 @@ final class SourceBuilderUtils {
             final long offset = processorContext.offset();
             row.append(partition);
             row.append(offset);
+          }
+          if (header) {
+            row.append(Arrays.stream(processorContext.headers().toArray())
+                .map(header ->new Struct(SchemaBuilder.struct()
+                    .field("key", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("value", Schema.OPTIONAL_BYTES_SCHEMA)
+                    .optional()
+                    .build())
+                    .put("key", header.key())
+                    .put("value", header.value()))
+                .collect(Collectors.toList()));
           }
 
           row.appendAll(keyColumns);

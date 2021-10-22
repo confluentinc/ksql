@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -43,6 +45,12 @@ public final class SystemColumns {
 
   public static final ColumnName ROWOFFSET_NAME = ColumnName.of("ROWOFFSET");
   public static final SqlType ROWOFFSET_TYPE = SqlTypes.BIGINT;
+
+  public static final ColumnName HEADER_NAME = ColumnName.of("HEADERS");
+  public static final SqlType HEADER_TYPE = SqlArray.of(
+      SqlStruct.builder()
+          .field("key", SqlTypes.STRING)
+          .field("value", SqlTypes.BYTES).build());
 
   public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
@@ -81,6 +89,14 @@ public final class SystemColumns {
       PseudoColumn.of(
           ROWOFFSET_NAME,
           ROWOFFSET_TYPE,
+          ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
+          true,
+          true,
+          true
+      ),
+      PseudoColumn.of(
+          HEADER_NAME,
+          HEADER_TYPE,
           ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION,
           true,
           true,

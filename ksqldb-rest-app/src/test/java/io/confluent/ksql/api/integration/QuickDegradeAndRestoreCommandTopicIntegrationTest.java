@@ -17,6 +17,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
+import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -44,7 +45,11 @@ import org.junit.rules.TemporaryFolder;
 
 @Category({IntegrationTest.class})
 public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
-  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
+      .withKafkaCluster(
+          EmbeddedSingleNodeKafkaCluster.newBuilder()
+              .withoutAutoCreateTopics()
+      ).build();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -117,12 +122,13 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     // When
     // Delete the command topic and restart
     TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
+    assertThatEventually("Topic Deleted", this::isCommandTopicDeleted, is(true));
     REST_APP.stop();
     REST_APP.start();
 
     // Then
+    assertThatEventually("Topic Deleted", this::isCommandTopicDeleted, is(true));
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
-    assertThat(TEST_HARNESS.topicExists(commandTopic), is(false));
     REST_APP.stop();
     KsqlRestoreCommandTopic.main(
         new String[]{
@@ -137,6 +143,10 @@ public class QuickDegradeAndRestoreCommandTopicIntegrationTest {
     assertThat("Should have TOPIC5", streamsNames.contains("TOPIC5"), is(true));
     assertThat("Should have STREAM5", streamsNames.contains("STREAM5"), is(true));
     assertThatEventually("Degraded State", this::isDegradedState, is(false));
+  }
+
+  private boolean isCommandTopicDeleted() {
+    return !TEST_HARNESS.topicExists(commandTopic);
   }
 
   private boolean isDegradedState() {

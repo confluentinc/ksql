@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import javax.annotation.concurrent.GuardedBy;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -72,11 +73,8 @@ public class ScalablePushRegistry {
   private final LatestConsumerFactory latestConsumerFactory;
   private final ExecutorService executorService;
 
-  /**
-   * All of the following fields are synchronized by this.
-   */
-
   // If the registry is closed.  Should only happen on server shutdown.
+  @GuardedBy("this")
   private boolean closed = false;
   // Once the latest consumer is created, this is a reference to it.
   private AtomicReference<LatestConsumer> latestConsumer = new AtomicReference<>(null);
@@ -84,6 +82,7 @@ public class ScalablePushRegistry {
   private CatchupCoordinator catchupCoordinator = new NoopCatchupCoordinator();
   // If the latest consumer should be stopped when there are no more requests to serve. True by
   // default, this prevent reading unnecessary data from Kafka when not serving any requests.
+  @GuardedBy("this")
   private boolean stopLatestConsumerOnLastRequest = true;
 
   @SuppressWarnings("ParameterNumber")
@@ -126,6 +125,7 @@ public class ScalablePushRegistry {
     }
     LOG.info("Closing scalable push registry for topic " + ksqlTopic.getKafkaTopicName());
     final LatestConsumer latestConsumer = this.latestConsumer.get();
+    // Even if it's closing async, we just call close anyway to try to do it immediately
     if (latestConsumer != null) {
       latestConsumer.close();
     }
@@ -187,8 +187,9 @@ public class ScalablePushRegistry {
       }
       latestConsumer.register(processingQueue);
     } else {
-      // If latestConsumer != null but it's already closed, that means that it's trying to shut
-      // down, so we just let it finish while creating a new one.
+      // If latestConsumer is null, that means it's the first time.  If latestConsumer != null
+      // but it's already closed, that means that it's stopping async, so we just let it
+      // finish while creating a new one.
       final LatestConsumer newLatestConsumer = createLatestConsumer(processingQueue);
       newLatestConsumer.register(processingQueue);
       this.latestConsumer.set(newLatestConsumer);
@@ -205,7 +206,7 @@ public class ScalablePushRegistry {
       throw new IllegalStateException("Shouldn't unregister after closing");
     }
     final LatestConsumer latestConsumer = this.latestConsumer.get();
-    if (latestConsumer != null) {
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
       latestConsumer.unregister(processingQueue);
       stopLatestConsumerOnLastRequest();
     }
@@ -225,7 +226,8 @@ public class ScalablePushRegistry {
 
   @VisibleForTesting
   public synchronized boolean isLatestRunning() {
-    return this.latestConsumer.get() != null && !this.latestConsumer.get().isClosed();
+    final LatestConsumer latestConsumer = this.latestConsumer.get();
+    return latestConsumer != null && !latestConsumer.isClosed();
   }
 
   @VisibleForTesting
@@ -306,7 +308,7 @@ public class ScalablePushRegistry {
    */
   private synchronized boolean stopLatestConsumerOnLastRequest() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
-    if (latestConsumer != null) {
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
       if (latestConsumer.numRegistered() == 0 && stopLatestConsumerOnLastRequest) {
         latestConsumer.closeAsync();
         return true;
@@ -343,18 +345,18 @@ public class ScalablePushRegistry {
     }
   }
 
+  /**
+   * Runs the latest consumer passed in. Note that it's possible that by the time this runs, this
+   * may have been closed and there may be a new latest, so we don't take from
+   * this.latestConsumer.get(), but rather process the consumers in the order in which they were
+   * run.
+   * @param latestConsumerToRun The latest consumer to run
+   */
   private void runLatest(final LatestConsumer latestConsumerToRun) {
     try (LatestConsumer latestConsumer = latestConsumerToRun) {
-      synchronized (this) {
-        if (closed) {
-          return;
-        }
-      }
       latestConsumer.run();
     } catch (Throwable t) {
       LOG.error("Got error while running latest", t);
-      // These errors aren't considered fatal, so we don't set the hasError flag since retrying
-      // could cause recovery.
       latestConsumerToRun.onError();
     }
   }

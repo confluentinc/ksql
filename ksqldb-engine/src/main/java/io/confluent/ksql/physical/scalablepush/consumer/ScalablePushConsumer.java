@@ -53,6 +53,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   protected final LogicalSchema logicalSchema;
   protected final KafkaConsumer<Object, GenericRow> consumer;
   protected int partitions;
+  protected boolean started = false;
   protected Map<TopicPartition, Long> currentPositions = new HashMap<>();
   protected volatile boolean newAssignment = false;
   protected final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
@@ -116,12 +117,14 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   }
 
   public void run() {
+    if (started) {
+      LOG.error("Already ran consumer");
+      throw new IllegalStateException("Already ran consumer");
+    }
+    started = true;
     initialize();
     subscribeOrAssign();
-    while (true) {
-      if (closed) {
-        return;
-      }
+    while (!closed) {
       final ConsumerRecords<?, GenericRow> records = consumer.poll(POLL_TIMEOUT);
       // No assignment yet
       if (this.topicPartitions.get() == null) {

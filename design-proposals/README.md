@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **55**
+Next KLIP number: **58**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -96,3 +96,4 @@ Next KLIP number: **55**
 | [KLIP-53: Pull Queries on Streams                                                                                                | Proposal |      0.22.0       |            |                                                              |
 | [KLIP-54: Optimized Range Pull Queries on Tables                                                                                 | Proposal |      0.22.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/7993) |
 | [KLIP-55: Tablespaces](https://github.com/confluentinc/ksql/blob/af5e34f27627b634a33dc8e5bfa4f64ac75069e6/design-proposals/klip-55-tablespaces.md)                                                                                 | Proposal |      TBD       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8109) |
+| KLIP-57: Kafka headers                                                                                                           | Proposal |      0.25.0       |            |                                                              |

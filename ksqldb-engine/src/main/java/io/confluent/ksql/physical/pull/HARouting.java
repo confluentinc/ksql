@@ -183,6 +183,8 @@ public final class HARouting implements AutoCloseable {
 
     for (final KsqlPartitionLocation partition : locations) {
       final KsqlNode node = getNodeForRound(partition);
+      pullQueryMetrics.ifPresent(queryExecutorMetrics ->
+          queryExecutorMetrics.recordPartitionFetchRequest(1));
       completionService.submit(
           () -> routeQuery.routeQuery(
           node, partition, statement, serviceContext, routingOptions,
@@ -198,6 +200,8 @@ public final class HARouting implements AutoCloseable {
         if (fetchResult.isError()) {
           final KsqlPartitionLocation nextRoundPartition = nextNode(fetchResult.getLocation());
           final KsqlNode node = getNodeForRound(nextRoundPartition);
+          pullQueryMetrics.ifPresent(queryExecutorMetrics ->
+              queryExecutorMetrics.recordResubmissionRequest(1));
           completionService.submit(
               () -> routeQuery.routeQuery(
               node, nextRoundPartition, statement, serviceContext, routingOptions,

@@ -120,7 +120,8 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
       final Consumer<List<StreamedRow>> rowConsumer,
-      final CompletableFuture<Void> shouldCloseConnection
+      final CompletableFuture<Void> shouldCloseConnection,
+      final Optional<String> serializedOffsetVector
   ) {
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)

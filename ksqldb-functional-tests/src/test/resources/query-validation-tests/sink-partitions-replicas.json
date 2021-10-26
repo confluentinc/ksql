@@ -23,7 +23,7 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+      "outputs": [{"topic": "S", "value": {"c1": 4}}]
     },
     {
       "name": "Use the legacy default sink properties for the sink topic if default partitions and replicas were set",
@@ -51,7 +51,7 @@
         "ksql.sink.replicas": "1"
       },
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "S", "value": {"C1": 4}}]
+      "outputs": [{"topic": "S", "value": {"c1": 4}}]
     }
   ]
 }

@@ -327,7 +327,7 @@
       "name": "date schema inference",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AVRO');",
-        "CREATE STREAM OUTPUT as SELECT CAST(c1 AS STRING) AS C2 FROM input;"
+        "CREATE STREAM OUTPUT as SELECT CAST(`c1` AS STRING) AS C2 FROM input;"
       ],
       "topics": [
         {

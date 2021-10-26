@@ -37,7 +37,7 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
       "name": "validate unwrapped value without elements OK - AVRO",
@@ -71,7 +71,7 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
       "name": "validate without elements OK - JSON_SR SCHEMA",
@@ -92,7 +92,7 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
       "name": "with invalid or reserved words in schema - JSON",
@@ -136,10 +136,10 @@
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` INT"}
         ]
       }
     },
@@ -161,10 +161,10 @@
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` INT"}
         ]
       }
     },
@@ -186,10 +186,10 @@
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `C1` BIGINT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, `c1` BIGINT"}
         ]
       }
     },
@@ -211,10 +211,10 @@
         }
       ],
       "inputs": [{"topic": "input", "key": 42, "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"C1": 4}}],
+      "outputs": [{"topic": "OUTPUT", "key": 42, "value": {"c1": 4}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, C1 BIGINT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, `c1` BIGINT"}
         ]
       }
     },

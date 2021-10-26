@@ -44,11 +44,11 @@
         {"topic": "test", "value": {"b": "dmFyaWF0aW9ucw=="}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"B": "dmFyaWF0aW9ucw=="}}
+        {"topic": "TEST2", "value": {"b": "dmFyaWF0aW9ucw=="}}
       ],
       "post": {
         "sources": [
-          {"name": "TEST2", "type": "stream", "schema": "B BYTES"}
+          {"name": "TEST2", "type": "stream", "schema": "`b` BYTES"}
         ]
       }
     },

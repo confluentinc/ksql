@@ -443,10 +443,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello"}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` BOOLEAN, `c2` INT, `c3` BIGINT, `c4` DOUBLE, `c5` STRING"}
         ]
       }
     },
@@ -469,10 +469,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": "SPADES"}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": "SPADES"}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": "SPADES"}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` STRING"}
         ]
       }
     },
@@ -492,10 +492,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": ["a", "", "Bc"]}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": ["a", "", "Bc"]}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": ["a", "", "Bc"]}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 ARRAY<STRING>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` ARRAY<STRING>"}
         ]
       }
     },
@@ -515,10 +515,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": {"f1": 1}}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": {"f1":  1}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": {"f1":  1}}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 MAP<STRING, BIGINT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` MAP<STRING, BIGINT>"}
         ]
       }
     },
@@ -543,10 +543,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": {"f1": 1}}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": {"F1":  1}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": {"f1":  1}}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 STRUCT<F1 INT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` STRUCT<`f1` INT>"}
         ]
       }
     },{
@@ -568,10 +568,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4.0}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4.0}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4.0}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 DOUBLE"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` DOUBLE"}
         ]
       }
     },
@@ -593,10 +593,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"expected": 1, "c1": null, "c2": null, "c3": null}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1, "c1": null, "c2": null}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"expected": 1, "c1": null, "c2": null}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT, C1 BYTES, C2 BYTES"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`expected` INT, `c1` BYTES, `c2` BYTES"}
         ]
       }
     },
@@ -620,10 +620,10 @@
         }
       ],
       "inputs": [{"topic": "input", "key": 1, "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}],
-      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello"}}],
+      "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, `c1` BOOLEAN, `c2` INT, `c3` BIGINT, `c4` DOUBLE, `c5` STRING"}
         ]
       }
     },

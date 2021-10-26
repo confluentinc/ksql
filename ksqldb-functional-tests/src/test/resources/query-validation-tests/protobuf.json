@@ -152,11 +152,11 @@
         {"topic": "input", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello"}}
+        {"topic": "OUTPUT", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` BOOLEAN, `c2` INT, `c3` BIGINT, `c4` DOUBLE, `c5` STRING"}
         ]
       }
     },
@@ -177,11 +177,11 @@
         {"topic": "input", "key": "a", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello", "c6": 10.01 }}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello", "C6":  10.01 }}
+        {"topic": "OUTPUT", "key": "a", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello", "c6":  10.01 }}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING, C6 DECIMAL(4,2)"}
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, `c1` BOOLEAN, `c2` INT, `c3` BIGINT, `c4` DOUBLE, `c5` STRING, `c6` DECIMAL(4,2)"}
         ]
       }
     },
@@ -205,7 +205,7 @@
         {
           "name": "input",
           "valueFormat": "PROTOBUF",
-          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit c1 = 1;}"
+          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {enum Suit {SPADES = 0; HEARTS = 1; DIAMONDS = 2; CLUBS = 4;} Suit C1 = 1;}"
         }
       ],
       "inputs": [
@@ -236,10 +236,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": ["a", "", "Bc"]}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": ["a", "", "Bc"]}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": ["a", "", "Bc"]}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 ARRAY<STRING>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` ARRAY<STRING>"}
         ]
       }
     },
@@ -257,10 +257,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": {"f1": 1}}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": {"F1": 1}}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": {"f1": 1}}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 STRUCT<F1 INT>"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` STRUCT<`f1` INT>"}
         ]
       }
     },
@@ -285,11 +285,11 @@
         {"topic": "input", "value": {"c1": 1.1234, "c2": 1, "c3": 400000000000, "c4": 1, "c5": 400000000000}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"C1": 1.1233999729156494, "C2": 1, "C3": 400000000000, "C4": 1, "C5": 400000000000}}
+        {"topic": "OUTPUT", "value": {"c1": 1.1233999729156494, "c2": 1, "c3": 400000000000, "c4": 1, "c5": 400000000000}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "C1 DOUBLE, C2 BIGINT, C3 BIGINT, C4 INT, C5 BIGINT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`c1` DOUBLE, `c2` BIGINT, `c3` BIGINT, `c4` INT, `c5` BIGINT"}
         ]
       }
     },
@@ -573,10 +573,10 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"expected": 1, "c4": null}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1, "c2": null}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"expected": 1, "c2": null}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT, C2 BYTES"}
+          {"name": "OUTPUT", "type": "stream", "schema": "`expected` INT, `c2` BYTES"}
         ]
       }
     },

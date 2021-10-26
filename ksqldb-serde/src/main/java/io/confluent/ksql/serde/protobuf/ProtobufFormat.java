@@ -59,7 +59,7 @@ public class ProtobufFormat extends ConnectFormat {
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {
-    FormatProperties.validateProperties(name(), formatProps, ImmutableSet.of());
+    FormatProperties.validateProperties(name(), formatProps, getSupportedProperties());
     return new ProtobufSchemaTranslator();
   }
 

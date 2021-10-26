@@ -1,0 +1,122 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1635272037962,
+  "path" : "query-validation-tests/protobuf.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`c1` DOUBLE, `c2` BIGINT, `c3` BIGINT, `c4` INTEGER, `c5` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "VALUE_SCHEMA_ID" : "1"
+        }
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`c1` DOUBLE, `c2` BIGINT, `c3` BIGINT, `c4` INTEGER, `c5` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF",
+        "properties" : {
+          "VALUE_SCHEMA_ID" : "1"
+        }
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "protobuf inference - other scalars",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "c1" : 1.1234,
+        "c2" : 1,
+        "c3" : 400000000000,
+        "c4" : 1,
+        "c5" : 400000000000
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : null,
+      "value" : {
+        "c1" : 1.1233999729156494,
+        "c2" : 1,
+        "c3" : 400000000000,
+        "c4" : 1,
+        "c5" : 400000000000
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    }, {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`c1` DOUBLE, `c2` BIGINT, `c3` BIGINT, `c4` INTEGER, `c5` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`c1` DOUBLE, `c2` BIGINT, `c3` BIGINT, `c4` INTEGER, `c5` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "VALUE_SCHEMA_ID" : "1"
+            }
+          },
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  float c1 = 1;\n  uint32 c2 = 2;\n  uint64 c3 = 3;\n  sint32 c4 = 4;\n  sint64 c5 = 5;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "VALUE_SCHEMA_ID" : "1"
+            }
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double c1 = 1;\n  int64 c2 = 2;\n  int64 c3 = 3;\n  int32 c4 = 4;\n  int64 c5 = 5;\n}\n"
+        } ]
+      }
+    }
+  }
+}

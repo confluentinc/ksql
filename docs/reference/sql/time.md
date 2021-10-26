@@ -36,9 +36,9 @@ the specified column. Define the format of a record's timestamp by
 using the TIMESTAMP_FORMAT property.
 
 If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, ksqlDB
-assumes that the timestamp field is a `bigint`. If you set
-TIMESTAMP_FORMAT, the TIMESTAMP field must be of type `varchar` and
-have a format that the `DateTimeFormatter` Java class can parse.
+assumes that the timestamp field is either a `bigint` or a `timestamp`.
+If you set TIMESTAMP_FORMAT, the TIMESTAMP field must be of type `varchar`
+and have a format that the `DateTimeFormatter` Java class can parse.
 
 If your timestamp format has embedded single quotes, you can escape them
 by using two successive single quotes, `''`. For example, to escape

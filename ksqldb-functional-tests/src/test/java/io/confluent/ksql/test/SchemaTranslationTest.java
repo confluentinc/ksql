@@ -81,13 +81,13 @@ public class SchemaTranslationTest {
     for (int i = 0; i < 100; i++) {
       final Object avro = generator.generate();
 
-      final JsonNode spec = avroToJson(avro, avroSchema, true);
+      final JsonNode spec = avroToJson(avro, avroSchema, false);
 
       final Record record = new Record(
           TOPIC_NAME,
           "test-key",
           JsonNodeFactory.instance.textNode("test-key"),
-          avroToValueSpec(avro, avroSchema, true),
+          avroToValueSpec(avro, avroSchema, false),
           spec,
           Optional.of(0L),
           null
@@ -180,6 +180,7 @@ public class SchemaTranslationTest {
         final String csasStatement = schema.rawSchema().getFields()
             .stream()
             .map(Schema.Field::name)
+            .map(name -> "`" + name + "`")
             .collect(
                 Collectors.joining(
                     ", ",

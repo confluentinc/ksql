@@ -25,10 +25,12 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -47,6 +49,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -275,7 +278,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     @Override
     public Void process(final Expression node, final Object context) {
       if (!(node instanceof LogicalBinaryExpression)
-          && !(node instanceof ComparisonExpression)) {
+          && !(node instanceof ComparisonExpression) && !(node instanceof LikePredicate) && !(node instanceof BetweenPredicate)) {
         throw invalidWhereClauseException("Unsupported expression in WHERE clause: " + node, false);
       }
       super.process(node, context);
@@ -356,6 +359,37 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         }
         return null;
       }
+    }
+
+    @Override
+    public Void visitLikePredicate(final LikePredicate node, final Object context) {
+      final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
+      if (column == null) {
+        throw invalidWhereClauseException("Like condition must directly reference a key column", isWindowed);
+      }
+      final ColumnName columnName = column.getColumnName();
+      final Column col = schema.findColumn(columnName)
+              .orElseThrow(() -> invalidWhereClauseException(
+                      "Like condition on non-existent column " + columnName, isWindowed));
+
+      if (SqlBaseType.STRING != col.type().baseType()) {
+        throw invalidWhereClauseException("The column type for Like condition must be VARCHAR", isWindowed);
+      }
+      return null;
+    }
+
+    @Override
+    public Void visitBetweenPredicate(final BetweenPredicate node, final Object context) {
+      final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
+      if (column == null) {
+        throw invalidWhereClauseException("Between condition must directly reference a key column", isWindowed);
+      }
+      final ColumnName columnName = column.getColumnName();
+      final Column col = schema.findColumn(columnName)
+              .orElseThrow(() -> invalidWhereClauseException(
+                      "Between condition on non-existent column " + columnName, isWindowed));
+
+      return null;
     }
 
     private boolean isKeyQuery(final ComparisonExpression node) {

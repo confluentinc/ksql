@@ -129,9 +129,8 @@ public class LogicalPlanner {
     this.aggregateAnalyzer = new AggregateAnalyzer(metaStore);
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
   public OutputNode buildPersistentLogicalPlan() {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final boolean isWindowed = analysis
         .getFrom()
         .getDataSource()
@@ -165,6 +164,11 @@ public class LogicalPlanner {
             .orElse("");
         throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
       }
+
+      if (analysis.getLimitClause().isPresent()) {
+        currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
+      }
+
       currentNode = buildUserProjectNode(currentNode);
     }
 
@@ -181,10 +185,6 @@ public class LogicalPlanner {
           currentNode,
           analysis.getRefinementInfo().get()
       );
-    }
-
-    if (analysis.getLimitClause().isPresent()) {
-      currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
     }
 
     return buildOutputNode(currentNode);
@@ -432,6 +432,7 @@ public class LogicalPlanner {
 
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
+
   private QueryLimitNode buildLimitNode(
           final PlanNode sourcePlanNode,
           final OptionalInt limit

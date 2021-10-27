@@ -106,7 +106,9 @@ public class PullPhysicalPlanBuilder {
    * @param logicalPlanNode the logical plan root node
    * @return the root node of the tree of physical operators
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public PullPhysicalPlan buildPullPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     DataSourceOperator dataSourceOperator = null;
 
     final OutputNode outputNode = logicalPlanNode.getNode()

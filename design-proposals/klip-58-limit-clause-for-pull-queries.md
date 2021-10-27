@@ -1,4 +1,4 @@
-# KLIP Number - Title
+# KLIP 58 - LIMIT clause for Pull Queries
 
 **Author**: Chittaranjan Prasad (@cprasad1) | 
 **Release Target**: 0.25.0 | 

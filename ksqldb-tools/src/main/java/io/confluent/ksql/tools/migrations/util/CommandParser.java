@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
@@ -180,6 +181,8 @@ public final class CommandParser {
       return ((BooleanLiteral) expressionValue).getValue();
     } else if (expressionValue instanceof DecimalLiteral) {
       return ((DecimalLiteral) expressionValue).getValue();
+    } else if (expressionValue instanceof NullLiteral) {
+      return null;
     } else if (expressionValue instanceof CreateArrayExpression) {
       return ((CreateArrayExpression) expressionValue)
           .getValues()

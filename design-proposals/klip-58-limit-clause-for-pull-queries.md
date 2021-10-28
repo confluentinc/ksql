@@ -82,28 +82,32 @@ LIMIT 3;
 the query gets translated into a logical plan which in turn gets translated into a physical plan that look like:
 
 ```
-     Logical Plan                      Physical Plan
-    ──────────────                    ───────────────
-
-  ┌────────────────┐               ┌───────────────────┐
-  │ DataSourceNode │               │ TableScanOperator │
-  └────────┬───────┘               └─────────┬─────────┘
-           │                                 │
- ┌─────────▼────────┐               ┌────────▼───────┐
- │  QueryFilterNode │               │ SelectOperator │
- └─────────┬────────┘               └────────┬───────┘
-           │                                 │
-  ┌────────▼───────┐                 ┌───────▼───────┐
-  │ QueryLimitNode │    ────────►    │ LimitOperator │
-  └────────┬───────┘                 └───────┬───────┘
-           │                                 │
- ┌─────────▼────────┐               ┌────────▼────────┐
- │ QueryProjectNode │               │ ProjectOperator │
- └─────────┬────────┘               └─────────────────┘
-           │
-┌──────────▼─────────┐
-│ KsqlBareOutputNode │
-└────────────────────┘
+┌────────────────────────┐              ┌───────────────────────┐
+│                        │              │                       │
+│      Logical Plan      │              │     Physical Plan     │
+│     ──────────────     │              │    ───────────────    │
+│                        │              │                       │
+│   ┌────────────────┐   │              │ ┌───────────────────┐ │
+│   │ DataSourceNode │   │              │ │ TableScanOperator │ │
+│   └────────┬───────┘   │              │ └─────────┬─────────┘ │
+│            │           │              │           │           │
+│  ┌─────────▼────────┐  │              │  ┌────────▼───────┐   │
+│  │  QueryFilterNode │  │              │  │ SelectOperator │   │
+│  └─────────┬────────┘  │              │  └────────┬───────┘   │
+│            │           │              │           │           │
+│   ┌────────▼───────┐   │              │   ┌───────▼───────┐   │
+│   │ QueryLimitNode │   │  ─────────►  │   │ LimitOperator │   │
+│   └────────┬───────┘   │              │   └───────┬───────┘   │
+│            │           │              │           │           │
+│  ┌─────────▼────────┐  │              │  ┌────────▼────────┐  │
+│  │ QueryProjectNode │  │              │  │ ProjectOperator │  │
+│  └─────────┬────────┘  │              │  └─────────────────┘  │
+│            │           │              │                       │
+│ ┌──────────▼─────────┐ │              │                       │
+│ │ KsqlBareOutputNode │ │              │                       │
+│ └────────────────────┘ │              │                       │
+│                        │              │                       │
+└────────────────────────┘              └───────────────────────┘
 ```
 The output of the above query will look like:
 ```
@@ -141,30 +145,36 @@ LIMIT 5;
 ```     
 then the query gets translated into a logical plan which in turn gets translated into a physical plan that look like:
 ```
-     Logical Plan                     Physical Plan
-    ──────────────                   ───────────────
-                              `TransientQueryMetadata` has 
-                      ┌────────►    limit information 
-                      │
-  ┌────────────────┐  │              ┌──────────────┐
-  │ DataSourceNode │  │              │ StreamSource │
-  └────────┬───────┘  │              └───────┬──────┘
-           │          │                      │       
-    ┌──────▼─────┐    │              ┌───────▼──────┐
-    │ FilterNode │    │              │ StreamFilter │
-    └──────┬─────┘    │              └───────┬──────┘
-           │          │                      │       
-  ┌────────▼───────┐  │                      │
-  │ QueryLimitNode │──┘    ────────►         │
-  └────────┬───────┘                         │
-           │                                 │
- ┌─────────▼────────┐                ┌───────▼──────┐
- │ FinalProjectNode │                │ StreamSelect │
- └─────────┬────────┘                └──────────────┘
-           │
-┌──────────▼─────────┐
-│ KsqlBareOutputNode │
-└────────────────────┘
+┌────────────────────────┐              ┌──────────────────────────────────┐
+│                        │              │                                  │
+│      Logical Plan      │              │           Physical Plan          │
+│     ──────────────     │              │          ───────────────         │
+│                        │              │                                  │
+│                        │       ┌──────┼──►`TransientQueryMetadata` has   │
+│                        │       │      │         limit information        │
+│                        │       │      │                                  │
+│                        │       │      │                                  │
+│   ┌────────────────┐   │       │      │          ┌──────────────┐        │
+│   │ DataSourceNode │   │       │      │          │ StreamSource │        │
+│   └────────┬───────┘   │       │      │          └───────┬──────┘        │
+│            │           │       │      │                  │               │
+│     ┌──────▼─────┐     │       │      │          ┌───────▼──────┐        │
+│     │ FilterNode │     │       │      │          │ StreamFilter │        │
+│     └──────┬─────┘     │       │      │          └───────┬──────┘        │
+│            │           │       │      │                  │               │
+│   ┌────────▼───────┐   │       │      │                  │               │
+│   │ QueryLimitNode ├───┼───────┘      │                  │               │
+│   └────────┬───────┘   │              │                  │               │
+│            │           │              │                  │               │
+│  ┌─────────▼────────┐  │ ───────────► │          ┌───────▼──────┐        │
+│  │ FinalProjectNode │  │              │          │ StreamSelect │        │
+│  └─────────┬────────┘  │              │          └──────────────┘        │
+│            │           │              │                                  │
+│ ┌──────────▼─────────┐ │              │                                  │
+│ │ KsqlBareOutputNode │ │              │                                  │
+│ └────────────────────┘ │              │                                  │
+│                        │              │                                  │
+└────────────────────────┘              └──────────────────────────────────┘
 ```
 The output of the above query will look like:
 ```

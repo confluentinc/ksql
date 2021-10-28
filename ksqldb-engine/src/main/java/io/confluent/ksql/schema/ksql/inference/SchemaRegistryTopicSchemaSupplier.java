@@ -129,11 +129,16 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     final Format format = formatFactory.apply(expectedFormat);
 
     // Put schema id to properties so that translator will not uppercase field name
-    final Map<String, String> propertiesWithId = new ImmutableMap.Builder<String, String>().putAll(
-            expectedFormat.getProperties())
-        .put(isKey ? ConnectFormat.KEY_SCHEMA_ID : ConnectFormat.VALUE_SCHEMA_ID,
-            String.valueOf(id))
-        .build();
+    boolean schemaIdInProperty =
+        isKey ? expectedFormat.getProperties().containsKey(ConnectFormat.KEY_SCHEMA_ID)
+            : expectedFormat.getProperties().containsKey(ConnectFormat.VALUE_SCHEMA_ID);
+    final Map<String, String> propertiesWithId = schemaIdInProperty ? expectedFormat.getProperties()
+        : new ImmutableMap.Builder<String, String>().putAll(
+                expectedFormat.getProperties())
+            .put(isKey ? ConnectFormat.KEY_SCHEMA_ID : ConnectFormat.VALUE_SCHEMA_ID,
+                String.valueOf(id))
+            .build();
+
     final SchemaTranslator translator = format.getSchemaTranslator(propertiesWithId);
 
     if (!parsedSchema.schemaType().equals(translator.name())) {

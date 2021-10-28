@@ -47,7 +47,7 @@ Add EMIT CHANGES if you intended to issue a push query.
 ```
 
 Syntax evolution:
-```roomsql
+```SQL
 SELECT select_expr [, ...]                 SELECT select_expr [, ...] 
   FROM table/stream                          FROM table/stream        
   [ WHERE where_condition ]    ────────►     [ WHERE where_condition ]
@@ -73,7 +73,7 @@ upstream operators and stop scanning for rows after that. If the limit isn't rea
 
 As an example, if we have a table called `ridersNearMountainView` with 
 `Schema: DISTANCEINMILES DOUBLE KEY, RIDERS ARRAY<STRING>, COUNT BIGINT`, and we execute a pull query of the form:
-```roomsql
+```SQL
 SELECT distanceinmiles, riders 
 FROM ridersNearMountainView 
 WHERE distanceinmiles < 115 
@@ -137,12 +137,12 @@ steps of the physical plan till it is full and then return.
 As an example, if we have a table called `ridersNearMountainView` with 
 `Schema: profileId VARCHAR, latitude DOUBLE, longitude DOUBLE`, and we execute a pull query of the form:
 
-```roomsql
+```SQL
 SELECT profileid, latitude 
 FROM riderlocations 
 WHERE latitude > 38 
 LIMIT 5;
-```     
+```
 then the query gets translated into a logical plan which in turn gets translated into a physical plan that look like:
 ```
 ┌────────────────────────┐              ┌──────────────────────────────────┐

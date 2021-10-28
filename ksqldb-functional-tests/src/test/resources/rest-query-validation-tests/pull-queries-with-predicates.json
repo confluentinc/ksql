@@ -4,7 +4,7 @@
   ],
   "tests": [
     {
-      "name": "like condition must succeed with table scan enabled ",
+      "name": "like operator must succeed with table scan enabled ",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "name": "between condition must succeed with table scan enabled",
+      "name": "between operator must succeed with table scan enabled",
       "statements": [
         "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT, V0 STRING) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, V0, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2, V0;",

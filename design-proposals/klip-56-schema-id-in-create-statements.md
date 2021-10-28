@@ -16,13 +16,13 @@ Major benefits are:
 * By using the schema IDs, the user can enforce conventions like field name casing, for example to ensure ksqlDB doesn't uppercase the field names which may create incompatibility between schemas later.
 
 ## What is in scope
-* Fix always uppercase field names in schema conversions between _schema registry_ schemas and ksqlDB schemas.
+* Fix _ksqlDB_ to not always uppercase field names in schema conversions between _schema registry_ schemas and ksqlDB schemas.
 * Add support of `key_schema_id` and `value_schema_id` in `C*AS` statements with proper validations.
 * Add proper validation for `key_schema_id` and `value_schema_id` in `CS/CT` statements.
-* Provide compatibility checks of schemas from schema id and schemes from table elements in `CREATE * WITH` or select projection in `C*AS`.
+* Provide compatibility checks of schemas from schema id and schemes from table elements in `CS/CT` or select projection in `C*AS`.
 
 ## What is not in scope
-* Schema creation in existing subjects in _schema registry_ will always succeed without compatibility check in _schema registry_. Compatibility check is only done during `INSERT` time which could result in always failed insertion. This fix is not covered in this KLIP.
+* Anything except what is in scope :) 
 
 ## Public APIS
 ### Schema ids in `C*AS`
@@ -37,7 +37,7 @@ SELECT key, COUNT(field1) AS count_field FROM source_stream
 GROUP BY key;
 ```
 
-### Schema ids in `CREATE * WITH`
+### Schema ids in `CS/CT`
 ```roomsql
 CREATE STREAM stream_name WITH (kafka_topic='topic_name', key_schema_id=1, value_schema_id=2, 
 partitions=1, key_format='avro', value_format='avro');
@@ -49,7 +49,7 @@ partitions=1, key_format='avro', value_format='avro');
 
 ## Design
 ### Validations needed when `*_schema_id` presents
-* `CREATE * WITH` command
+* `CS/CT` command
   * Corresponding `key_format` or `value_format` must exist and the format must support `SCHEMA_INFERENCE` (protobuf, avro, json_sr format currently).
   * The fetched schema format from _schema_registry_ must match specified format in `WITH` clause. For example, if schema format for schema id in _schema_registry_ is `avro` but specified format in `WITH` clause is `protobuf`, an exception will be thrown.
   * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown.
@@ -57,7 +57,9 @@ partitions=1, key_format='avro', value_format='avro');
   * Compatibility Checks. See section below.
 
 * `C*AS` command
-  * `key_format` and `value_format` are optional. If specified, they must match format fetched from _schema_registry_.
+  * For `key_format` and `value_format` properties, if `*_schema_id` is provided:
+    * If a _format_ property is provided, it must match the format fetched using schema id.
+    * If a _format_ property is not provided, it will be deduced from query source's format and then must match the format fetched using schema id.
   * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown.
   * Serde Features must be `WRAPPED` so that field names always exist.
   * Compatibility Checks. See section below.

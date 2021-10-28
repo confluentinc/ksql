@@ -243,6 +243,7 @@ public class MigrationsTest {
             "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
             "INSERT INTO ${streamName} (A) VALUES ('${onlyDefinedInFile1}--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
+            "INSERT INTO FOO (A) VALUES (NULL);" +
             "DEFINE variable = 'cool';" +
             "SeT 'ksql.output.topic.name.prefix' = '${variable}';" +
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
@@ -343,7 +344,7 @@ public class MigrationsTest {
     // verify foo
     final List<StreamedRow> foo = assertThatEventually(
         () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 4;"),
-        hasSize(6)); // first row is a header, last row is a message saying "Limit Reached"
+        hasSize(7)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(foo.get(1).getRow().get().getColumns().size(), is(3));
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
     assertThat(foo.get(1).getRow().get().getColumns().get(1), is(50));
@@ -353,6 +354,7 @@ public class MigrationsTest {
     assertNull(foo.get(2).getRow().get().getColumns().get(2));
     assertThat(foo.get(3).getRow().get().getColumns().get(0), is("${onlyDefinedInFile1}--ha\nha"));
     assertThat(foo.get(4).getRow().get().getColumns().get(0), is(""));
+    assertNull(foo.get(5).getRow().get().getColumns().get(0));
 
     // verify bar
     final List<StreamedRow> bar = assertThatEventually(

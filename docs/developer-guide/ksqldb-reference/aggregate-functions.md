@@ -112,12 +112,10 @@ EARLIEST_BY_OFFSET(col1, [ignoreNulls])
 Stream
 
 Return the earliest value for the specified column. The earliest value in the partition
-
 has the lowest offset. 
 
 
 The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
-
 is to ignore null values.
 
 
@@ -131,12 +129,10 @@ EARLIEST_BY_OFFSET(col1, earliestN, [ignoreNulls])
 Stream
 
 Return the earliest _N_ values for the specified column as an `ARRAY`. The earliest values
-
 in the partition have the lowest offsets.
 
 
 The optional `ignoreNulls` parameter controls whether nulls are ignored. The default
-
 is to ignore null values.
 
 
@@ -173,12 +169,10 @@ LATEST_BY_OFFSET(col1, [ignoreNulls])
 Stream
 
 Return the latest value for the specified column. The latest value in the partition
-
 has the largest offset. 
 
 
 The optional `ignoreNulls` parameter, available since version 0.13.0, controls whether nulls are ignored. The default
-
 is to ignore null values.
 
 
@@ -191,12 +185,10 @@ LATEST_BY_OFFSET(col1, latestN, [ignoreNulls])
 Stream
 
 Returns the latest _N_ values for the specified column as an `ARRAY`. The latest values have
-
 the largest offset.
 
 
 The optional `ignoreNulls` parameter controls whether nulls are ignored. The default is to ignore
-
 null values. 
 
 ## `MAX`

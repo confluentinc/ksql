@@ -190,14 +190,14 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
    */
   public void close() {
     try {
-      consumer.close();
-    } catch (final Throwable t) {
-      LOG.error("Error closing kafka consumer", t);
-    }
-    try {
       closeAsync();
     } catch (final Throwable t) {
       LOG.error("Error closing consumer", t);
+    }
+    try {
+      consumer.close();
+    } catch (final Throwable t) {
+      LOG.error("Error closing kafka consumer", t);
     }
   }
 

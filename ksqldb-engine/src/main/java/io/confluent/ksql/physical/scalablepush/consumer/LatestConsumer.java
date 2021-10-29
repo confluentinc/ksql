@@ -102,10 +102,12 @@ public class LatestConsumer extends ScalablePushConsumer {
         new ConsumerRebalanceListener() {
           @Override
           public void onPartitionsRevoked(final Collection<TopicPartition> collection) {
+            LOG.info("Latest consumer had partitions revoked {}", collection);
           }
 
           @Override
           public void onPartitionsAssigned(final Collection<TopicPartition> collection) {
+            LOG.info("Latest consumer had partitions assigned {}", collection);
             if (collection == null) {
               return;
             }

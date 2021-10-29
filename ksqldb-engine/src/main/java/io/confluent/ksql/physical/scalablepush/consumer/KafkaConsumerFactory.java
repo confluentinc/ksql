@@ -114,7 +114,7 @@ public final class KafkaConsumerFactory {
   }
 
   /**
-   * Common consumer properties that tests will need.
+   * Common consumer properties used.
    *
    * @return base set of consumer properties.
    */
@@ -127,10 +127,6 @@ public final class KafkaConsumerFactory {
     config.putAll(ksqlConfig.getConsumerClientConfigProps());
     config.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    // Try to keep consumer groups stable:
-    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);
-    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 20_000);
-    config.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 3_000);
     config.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
     return config;
   }

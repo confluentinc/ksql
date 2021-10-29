@@ -42,8 +42,7 @@
         "SELECT ID, V0, V1 FROM MATVIEW WHERE ID LIKE '%12';"
       ],
       "properties": {
-        "ksql.query.pull.table.scan.enabled":  false,
-        "ksql.query.pull.range.scan.enabled":  true
+        "ksql.query.pull.table.scan.enabled":  false
       },
       "expectedError": {
         "message": "The column type for Like condition must be VARCHAR. The column type is INTEGER"

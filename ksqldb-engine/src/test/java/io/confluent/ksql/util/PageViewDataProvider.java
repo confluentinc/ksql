@@ -50,13 +50,24 @@ public class PageViewDataProvider extends TestDataProvider {
       .put(genericKey("PAGE_5"), genericRow("USER_3", 7L))
       .build();
 
-  private static final Multimap<GenericKey, GenericRow> ADDITIONAL_ROWS = ImmutableListMultimap
+  private static final Multimap<GenericKey, GenericRow> ROWS2 = ImmutableListMultimap
       .<GenericKey, GenericRow>builder()
       .put(genericKey("PAGE_4"), genericRow("USER_2", 8L))
       .put(genericKey("PAGE_2"), genericRow("USER_3", 9L))
       .put(genericKey("PAGE_1"), genericRow("USER_4", 10L))
       .put(genericKey("PAGE_5"), genericRow("USER_0", 11L))
       .put(genericKey("PAGE_4"), genericRow("USER_1", 12L))
+      .build();
+
+  private static final Multimap<GenericKey, GenericRow> ROWS3 = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("PAGE_1"), genericRow("USER_4", 10L))
+      .put(genericKey("PAGE_5"), genericRow("USER_0", 11L))
+      .build();
+
+  private static final Multimap<GenericKey, GenericRow> ROWS4 = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("PAGE_1"), genericRow("USER_4", 10L))
       .build();
 
   public PageViewDataProvider() {
@@ -68,7 +79,20 @@ public class PageViewDataProvider extends TestDataProvider {
     super(namePrefix, PHYSICAL_SCHEMA, ROWS);
   }
 
-  public PageViewDataProvider(final String namePrefix, boolean additionalRows) {
-    super(namePrefix, PHYSICAL_SCHEMA, additionalRows ? ADDITIONAL_ROWS : ROWS);
+  public PageViewDataProvider(final String namePrefix, final Batch batch) {
+    super(namePrefix, PHYSICAL_SCHEMA, batch.rows);
+  }
+
+  public enum Batch {
+    BATCH1(ROWS),
+    BATCH2(ROWS2),
+    BATCH3(ROWS3),
+    BATCH4(ROWS4);
+
+    private final Multimap<GenericKey, GenericRow> rows;
+
+    Batch(final Multimap<GenericKey, GenericRow> rows) {
+      this.rows = rows;
+    }
   }
 }

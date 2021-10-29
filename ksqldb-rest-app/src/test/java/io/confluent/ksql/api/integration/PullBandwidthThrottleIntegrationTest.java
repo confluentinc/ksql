@@ -56,6 +56,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 
 @Category({IntegrationTest.class})
 public class PullBandwidthThrottleIntegrationTest {
@@ -94,6 +95,12 @@ public class PullBandwidthThrottleIntegrationTest {
             .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS);
     private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for pull queries.";
+
+    @Rule
+    public final Timeout timeout = Timeout.builder()
+        .withTimeout(2, TimeUnit.MINUTES)
+        .withLookingForStuckThread(true)
+        .build();
 
     @BeforeClass
     public static void setUpClass() {

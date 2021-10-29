@@ -63,10 +63,8 @@ public class ProcessingQueue {
     } else if (rowQueue.size() < queueSizeLimit && !droppedRows) {
       rowQueue.offer(queryRow);
       newRowCallback.run();
-      System.out.println("Accepting row. At limit: " + (rowQueue.size() >= queueSizeLimit));
       return true;
     }
-    System.out.println("DROPPED ROWS " + (rowQueue.size() >= queueSizeLimit));
     droppedRows = true;
     return false;
   }

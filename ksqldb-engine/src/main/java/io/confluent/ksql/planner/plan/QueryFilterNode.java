@@ -278,7 +278,9 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     @Override
     public Void process(final Expression node, final Object context) {
       if (!(node instanceof LogicalBinaryExpression)
-          && !(node instanceof ComparisonExpression) && !(node instanceof LikePredicate) && !(node instanceof BetweenPredicate)) {
+          && !(node instanceof ComparisonExpression)
+              && !(node instanceof LikePredicate)
+              && !(node instanceof BetweenPredicate)) {
         throw invalidWhereClauseException("Unsupported expression in WHERE clause: " + node, false);
       }
       super.process(node, context);
@@ -365,15 +367,18 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     public Void visitLikePredicate(final LikePredicate node, final Object context) {
       final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
       if (column == null) {
-        throw invalidWhereClauseException("Like condition must directly reference a key column", isWindowed);
+        setTableScanOrElseThrow(() -> invalidWhereClauseException("Like condition must directly "
+            + "reference a key column", isWindowed));
       }
       final ColumnName columnName = column.getColumnName();
       final Column col = schema.findColumn(columnName)
-              .orElseThrow(() -> invalidWhereClauseException(
-                      "Like condition on non-existent column " + columnName, isWindowed));
+          .orElseThrow(() -> invalidWhereClauseException(
+              "Like condition on non-existent column " + columnName, isWindowed));
 
       if (SqlBaseType.STRING != col.type().baseType()) {
-        throw invalidWhereClauseException("The column type for Like condition must be VARCHAR", isWindowed);
+        throw invalidWhereClauseException("The column type for Like "
+            + "condition must be VARCHAR. The column type is "
+                + col.type().baseType().toString(), isWindowed);
       }
       return null;
     }
@@ -382,12 +387,13 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     public Void visitBetweenPredicate(final BetweenPredicate node, final Object context) {
       final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
       if (column == null) {
-        throw invalidWhereClauseException("Between condition must directly reference a key column", isWindowed);
+        setTableScanOrElseThrow(() -> invalidWhereClauseException(
+            "Between condition must directly reference " + "a key column", isWindowed));
       }
       final ColumnName columnName = column.getColumnName();
-      final Column col = schema.findColumn(columnName)
-              .orElseThrow(() -> invalidWhereClauseException(
-                      "Between condition on non-existent column " + columnName, isWindowed));
+      schema.findColumn(columnName)
+          .orElseThrow(() -> invalidWhereClauseException(
+              "Between condition on non-existent column " + columnName, isWindowed));
 
       return null;
     }

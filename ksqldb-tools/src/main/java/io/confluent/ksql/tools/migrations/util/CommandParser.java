@@ -168,7 +168,9 @@ public final class CommandParser {
   /**
   * Converts a generic expression into the proper Java type.
   */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static Object toFieldType(final Expression expressionValue) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (expressionValue instanceof StringLiteral) {
       return ((StringLiteral) expressionValue).getValue();
     } else if (expressionValue instanceof IntegerLiteral) {

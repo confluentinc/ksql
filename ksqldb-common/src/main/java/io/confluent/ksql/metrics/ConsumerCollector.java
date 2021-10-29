@@ -46,7 +46,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
   public static final String CONSUMER_ALL_TOTAL_BYTES_SUM = "consumer-all-total-bytes-sum";
   public static final String CONSUMER_COLLECTOR_METRICS_GROUP_NAME = "consumer-metrics";
-  private static final Sensor totalBytesSum;
+  private static Sensor totalBytesSum;
 
   private final Map<String, TopicSensors<ConsumerRecord<Object, Object>>> topicSensors =
       new HashMap<>();
@@ -56,7 +56,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   private Time time;
 
   static {
-    totalBytesSum = configureTotalBytesSum(MetricCollectors.getMetrics());
+    configureTotalBytesSum(MetricCollectors.getMetrics());
   }
 
   public void configure(final Map<String, ?> map) {
@@ -179,6 +179,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     final KafkaMetric metric = metrics.metrics().get(metricName);
 
     sensors.add(new SensorMetric<ConsumerRecord<Object, Object>>(sensor, metric, time, isError) {
+      @Override
       void record(final ConsumerRecord<Object, Object> record) {
         sensor.record(recordValue.apply(record));
         super.record(record);
@@ -186,6 +187,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     });
   }
 
+  @Override
   public void close() {
     MetricCollectors.remove(this.id);
     topicSensors.values().forEach(v -> v.close(metrics));
@@ -206,7 +208,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
   }
 
-  private static Sensor configureTotalBytesSum(final Metrics metrics) {
+  static void configureTotalBytesSum(final Metrics metrics) {
     final String description = "The total number of bytes consumed across all consumers";
     final Sensor sensor = metrics.sensor(CONSUMER_ALL_TOTAL_BYTES_SUM);
     sensor.add(
@@ -215,6 +217,6 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
             CONSUMER_COLLECTOR_METRICS_GROUP_NAME,
             description),
         new CumulativeSum());
-    return sensor;
+    totalBytesSum = sensor;
   }
 }

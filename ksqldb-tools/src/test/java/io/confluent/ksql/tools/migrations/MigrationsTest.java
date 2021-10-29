@@ -343,7 +343,7 @@ public class MigrationsTest {
 
     // verify foo
     final List<StreamedRow> foo = assertThatEventually(
-        () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 4;"),
+        () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 5;"),
         hasSize(7)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(foo.get(1).getRow().get().getColumns().size(), is(3));
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));

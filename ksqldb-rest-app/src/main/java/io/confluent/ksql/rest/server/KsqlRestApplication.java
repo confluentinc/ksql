@@ -86,6 +86,8 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -651,7 +653,9 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         schemaRegistryClientFactory,
         vertx,
-        sharedClient
+        sharedClient,
+        RestServiceContextFactory::create,
+        RestServiceContextFactory::create
     );
   }
 
@@ -664,7 +668,9 @@ public final class KsqlRestApplication implements Executable {
       final ServiceContext serviceContext,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final Vertx vertx,
-      final KsqlClient sharedClient) {
+      final KsqlClient sharedClient,
+      final DefaultServiceContextFactory defaultServiceContextFactory,
+      final UserServiceContextFactory userServiceContextFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -754,8 +760,8 @@ public final class KsqlRestApplication implements Executable {
     final KsqlSecurityContextProvider ksqlSecurityContextProvider =
         new DefaultKsqlSecurityContextProvider(
             securityExtension,
-            RestServiceContextFactory::create,
-            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory,
+            defaultServiceContextFactory,
+            userServiceContextFactory, ksqlConfig, schemaRegistryClientFactory,
             sharedClient);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(

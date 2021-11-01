@@ -556,7 +556,7 @@ public class StreamedQueryResourceTest {
             SOME_SCHEMA,
             Collections.emptySet(),
             "",
-            new TestRowQueue(rowQueue),
+            null,
             queryId,
             "appId",
             mock(Topology.class),

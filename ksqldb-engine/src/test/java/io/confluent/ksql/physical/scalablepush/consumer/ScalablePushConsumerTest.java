@@ -274,13 +274,15 @@ public class ScalablePushConsumerTest {
     }
 
     @Override
-    protected void onEmptyRecords() {
+    protected boolean onEmptyRecords() {
       emptyRecords++;
+      return false;
     }
 
     @Override
-    protected void afterCommit() {
+    protected boolean afterCommit() {
       afterCommit++;
+      return false;
     }
 
     @Override

@@ -15,10 +15,13 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
 
@@ -40,19 +43,24 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   }
 
   @Override
-  public boolean getExpectingStartOfRegistryData() {
-    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START)) {
-      return (Boolean) requestProperties.get(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START);
-    }
-    return KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT;
-  }
-
-  @Override
   public boolean getIsDebugRequest() {
     if (requestProperties.containsKey(KsqlRequestConfig.KSQL_DEBUG_REQUEST)) {
       return (Boolean) requestProperties.get(KsqlRequestConfig.KSQL_DEBUG_REQUEST);
     }
     return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
+  }
+
+  public Optional<List<Long>> getToken() {
+    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS)) {
+      return Optional.of(getLongList(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS));
+    }
+    return Optional.empty();
+  }
+
+  @SuppressWarnings("unchecked")
+  List<Long> getLongList(final String key) {
+    final List<String> list = (List<String>) requestProperties.get(key);
+    return list.stream().map(Long::parseLong)
+        .collect(ImmutableList.toImmutableList());
   }
 }

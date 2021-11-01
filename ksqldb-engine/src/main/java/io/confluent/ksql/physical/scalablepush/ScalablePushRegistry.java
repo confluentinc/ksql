@@ -16,10 +16,12 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.physical.scalablepush.consumer.CatchupConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
@@ -28,17 +30,19 @@ import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestCon
 import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.GuardedBy;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +68,6 @@ public class ScalablePushRegistry {
   private final PushLocator pushLocator;
   private final LogicalSchema logicalSchema;
   private final boolean isTable;
-  private final boolean newNodeContinuityEnforced;
   private final Map<String, Object> consumerProperties;
   private final KsqlTopic ksqlTopic;
   private final ServiceContext serviceContext;
@@ -72,6 +76,7 @@ public class ScalablePushRegistry {
   private final KafkaConsumerFactoryInterface kafkaConsumerFactory;
   private final LatestConsumerFactory latestConsumerFactory;
   private final ExecutorService executorService;
+  private final ExecutorService executorServiceCatchup;
 
   // If the registry is closed.  Should only happen on server shutdown.
   @GuardedBy("this")
@@ -80,6 +85,7 @@ public class ScalablePushRegistry {
   private AtomicReference<LatestConsumer> latestConsumer = new AtomicReference<>(null);
   // The catchup coordinator used by the latest consumer.
   private CatchupCoordinator catchupCoordinator = new NoopCatchupCoordinator();
+  private Map<QueryId, CatchupConsumer> catchupConsumers = new ConcurrentHashMap<>();
   // If the latest consumer should be stopped when there are no more requests to serve. True by
   // default, this prevent reading unnecessary data from Kafka when not serving any requests.
   @GuardedBy("this")
@@ -91,7 +97,6 @@ public class ScalablePushRegistry {
       final PushLocator pushLocator,
       final LogicalSchema logicalSchema,
       final boolean isTable,
-      final boolean newNodeContinuityEnforced,
       final Map<String, Object> consumerProperties,
       final KsqlTopic ksqlTopic,
       final ServiceContext serviceContext,
@@ -99,12 +104,12 @@ public class ScalablePushRegistry {
       final String sourceApplicationId,
       final KafkaConsumerFactoryInterface kafkaConsumerFactory,
       final LatestConsumerFactory latestConsumerFactory,
-      final ExecutorService executorService
+      final ExecutorService executorService,
+      final ExecutorService executorServiceCatchup
   ) {
     this.pushLocator = pushLocator;
     this.logicalSchema = logicalSchema;
     this.isTable = isTable;
-    this.newNodeContinuityEnforced = newNodeContinuityEnforced;
     this.consumerProperties = consumerProperties;
     this.ksqlTopic = ksqlTopic;
     this.serviceContext = serviceContext;
@@ -113,6 +118,7 @@ public class ScalablePushRegistry {
     this.kafkaConsumerFactory = kafkaConsumerFactory;
     this.latestConsumerFactory = latestConsumerFactory;
     this.executorService = executorService;
+    this.executorServiceCatchup = executorServiceCatchup;
   }
 
   /**
@@ -128,6 +134,9 @@ public class ScalablePushRegistry {
     // Even if it's closing async, we just call close anyway to try to do it immediately
     if (latestConsumer != null) {
       latestConsumer.closeAsync();
+    }
+    for (CatchupConsumer catchupConsumer : catchupConsumers.values()) {
+      catchupConsumer.close();
     }
 
     executorService.shutdown();
@@ -167,30 +176,30 @@ public class ScalablePushRegistry {
    * Registers a ProcessingQueue with this scalable push registry so that it starts receiving
    * data as it streams in for that consumer.
    * @param processingQueue The queue to register
-   * @param expectingStartOfRegistryData Whether the request is expecting a new server without
-   *                                     rows received.
+   * @param token The token to start from if one is provided, otherwise starts from latest
    */
   public synchronized void register(
       final ProcessingQueue processingQueue,
-      final boolean expectingStartOfRegistryData
+      final Optional<List<Long>> token
   ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
     }
+    if (token.isPresent()) {
+      final CatchupConsumer catchupConsumer = createCatchupConsumer(processingQueue, token.get());
+      catchupConsumer.register(processingQueue);
+      catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
+      executorServiceCatchup.submit(() -> runCatchup(catchupConsumer, processingQueue));
+      return;
+    }
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null && !latestConsumer.isClosed()) {
-      if (latestConsumer.getNumRowsReceived() > 0
-          && newNodeContinuityEnforced && expectingStartOfRegistryData) {
-        LOG.warn("Request missed data with new node added to the cluster, rows {}",
-            latestConsumer.getNumRowsReceived());
-        throw new KsqlException("New node missed data");
-      }
       latestConsumer.register(processingQueue);
     } else {
       // If latestConsumer is null, that means it's the first time.  If latestConsumer != null
       // but it's already closed, that means that it's stopping async, so we just let it
       // finish while creating a new one.
-      final LatestConsumer newLatestConsumer = createLatestConsumer(processingQueue);
+      final LatestConsumer newLatestConsumer = createLatestConsumer(Optional.of(processingQueue));
       newLatestConsumer.register(processingQueue);
       this.latestConsumer.set(newLatestConsumer);
       executorService.submit(() -> runLatest(newLatestConsumer));
@@ -210,6 +219,11 @@ public class ScalablePushRegistry {
       latestConsumer.unregister(processingQueue);
       stopLatestConsumerOnLastRequest();
     }
+    catchupConsumers.computeIfPresent(processingQueue.getQueryId(), (queryId, catchupConsumer) -> {
+      catchupConsumer.unregister(processingQueue);
+      catchupConsumer.close();
+      return null;
+    });
   }
 
   public PushLocator getLocator() {
@@ -251,6 +265,15 @@ public class ScalablePushRegistry {
       return latestConsumer.getAssignment() != null;
     }
     return false;
+  }
+
+  @VisibleForTesting
+  public List<Long> latestOffsetsAsToken() {
+    final LatestConsumer latestConsumer = this.latestConsumer.get();
+    if (latestConsumer != null) {
+      return latestConsumer.getCurrentToken();
+    }
+    return ImmutableList.of();
   }
 
   @VisibleForTesting
@@ -297,10 +320,10 @@ public class ScalablePushRegistry {
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
     return Optional.of(new ScalablePushRegistry(
-        pushLocator, logicalSchema, isTable, newNodeContinuityEnforced,
+        pushLocator, logicalSchema, isTable,
         consumerProperties, ksqlTopic, serviceContext, ksqlConfig, sourceApplicationId,
         KafkaConsumerFactory::create, LatestConsumer::create,
-        Executors.newSingleThreadExecutor()));
+        Executors.newSingleThreadExecutor(), Executors.newScheduledThreadPool(4)));
   }
 
   /**
@@ -322,7 +345,7 @@ public class ScalablePushRegistry {
    * @param processingQueue The queue on which to send an error if anything goes wrong
    * @return The new LatestConsumer
    */
-  private LatestConsumer createLatestConsumer(final ProcessingQueue processingQueue) {
+  private LatestConsumer createLatestConsumer(final Optional<ProcessingQueue> processingQueue) {
     KafkaConsumer<Object, GenericRow> consumer = null;
     LatestConsumer latestConsumer = null;
     try {
@@ -332,11 +355,11 @@ public class ScalablePushRegistry {
       latestConsumer = latestConsumerFactory.create(
           ksqlTopic.getKafkaTopicName(), isWindowed(),
           logicalSchema, consumer, catchupCoordinator,
-          tp -> { }, ksqlConfig, Clock.systemUTC());
+          this::catchupAssignmentUpdater, ksqlConfig, Clock.systemUTC());
       return latestConsumer;
     } catch (Exception e) {
       LOG.error("Couldn't create latest consumer", e);
-      processingQueue.onError();
+      processingQueue.ifPresent(ProcessingQueue::onError);
       // We're not supposed to block here, but if it fails here, hopefully it can immediately close.
       if (consumer != null) {
         consumer.close();
@@ -363,5 +386,90 @@ public class ScalablePushRegistry {
 
   private String getLatestConsumerGroupId() {
     return sourceApplicationId + LATEST_CONSUMER_GROUP_SUFFIX;
+  }
+
+  private synchronized void catchupAssignmentUpdater(
+      final Collection<TopicPartition> newAssignment
+  ) {
+    for (CatchupConsumer catchupConsumer : catchupConsumers.values()) {
+      catchupConsumer.newAssignment(newAssignment);
+    }
+  }
+
+  private synchronized void startLatestIfNotRunning() {
+    final LatestConsumer newLatestConsumer = createLatestConsumer(Optional.empty());
+    executorService.submit(() -> runLatest(newLatestConsumer));
+  }
+
+  /**
+   * Creates the latest consumer and its underlying kafka consumer.
+   * @param processingQueue The queue on which to send an error if anything goes wrong
+   * @return The new LatestConsumer
+   */
+  private CatchupConsumer createCatchupConsumer(
+      final ProcessingQueue processingQueue,
+      final List<Long> token
+  ) {
+    KafkaConsumer<Object, GenericRow> consumer = null;
+    CatchupConsumer catchupConsumer = null;
+    try {
+      consumer = kafkaConsumerFactory.create(
+          ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig,
+          getLatestConsumerGroupId());
+      catchupConsumer = new CatchupConsumer(ksqlTopic.getKafkaTopicName(), isWindowed(),
+          logicalSchema,
+          consumer,
+          this::startLatestIfNotRunning, latestConsumer::get, catchupCoordinator,
+          token);
+      return catchupConsumer;
+    } catch (Exception e) {
+      LOG.error("Couldn't create catchup consumer", e);
+      processingQueue.onError();
+      // We're not supposed to block here, but if it fails here, hopefully it can immediately close.
+      if (consumer != null) {
+        consumer.close();
+      }
+      throw e;
+    }
+  }
+
+  private void runCatchup(
+      final CatchupConsumer catchupConsumerToRun,
+      final ProcessingQueue processingQueue
+  ) {
+    try (CatchupConsumer catchupConsumer = catchupConsumerToRun) {
+      catchupConsumer.setExplicitAssignmentMode(false);
+      catchupConsumer.run();
+    } catch (Throwable t) {
+      LOG.error("Got error while running latest", t);
+      catchupConsumerToRun.onError();
+    } finally {
+      catchupConsumerToRun.unregister(processingQueue);
+      catchupConsumers.remove(processingQueue.getQueryId());
+    }
+//    try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer(false);
+//        ConsumerMetadata consumerMetadata = getMetadata(consumer);
+//        CatchupConsumer catchupConsumer
+//            = new CatchupConsumer(consumerMetadata.getNumPartitions(),
+//            ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer,
+//            this::startLatestIfNotRunning, latestConsumer::get, catchupCoordinator,
+//            token)) {
+//      catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
+//      catchupConsumer.register(processingQueue);
+//
+//      synchronized (this) {
+//        if (latestConsumer.get() != null) {
+//          catchupConsumer.newAssignment(latestConsumer.get().getAssignment());
+//          catchupConsumer.setExplicitAssignmentMode(true);
+//        } else {
+//          catchupConsumer.setExplicitAssignmentMode(false);
+//        }
+//      }
+//
+//      catchupConsumer.run();
+//      catchupConsumer.unregister(processingQueue);
+//    } finally {
+//      catchupConsumers.remove(processingQueue.getQueryId());
+//    }
   }
 }

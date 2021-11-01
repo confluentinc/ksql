@@ -154,7 +154,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
@@ -195,7 +195,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
@@ -249,7 +249,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
@@ -299,7 +299,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
@@ -348,7 +348,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     final PushConnectionsHandle handle = future.get();
     final AtomicReference<Throwable> exception = new AtomicReference<>(null);
     handle.onException(exception::set);
@@ -380,7 +380,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     final PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
@@ -413,7 +413,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     PushConnectionsHandle handle = future.get();
 
     // Then:
@@ -431,7 +431,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     PushConnectionsHandle handle = future.get();
 
     // Then:
@@ -454,7 +454,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     PushConnectionsHandle handle = future.get();
 
     // Then:
@@ -474,7 +474,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
@@ -509,7 +509,7 @@ public class PushRoutingTest {
     // When:
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
-            outputSchema, transientQueryQueue, scalablePushQueryMetrics);
+            outputSchema, transientQueryQueue, scalablePushQueryMetrics, t -> null);
     PushConnectionsHandle handle = future.get();
     context.runOnContext(v -> {
       remotePublisher.accept(REMOTE_ROW1);

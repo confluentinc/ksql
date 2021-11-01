@@ -34,6 +34,7 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.RowOffsets;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,9 +43,13 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.PushOffsetRange;
+import io.confluent.ksql.util.PushOffsetVector;
+import io.confluent.ksql.util.RowMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -105,19 +110,24 @@ public class PushRouting implements AutoCloseable {
       final PushRoutingOptions pushRoutingOptions,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
-      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator
   ) {
     final Set<KsqlNode> hosts = getInitialHosts(pushPhysicalPlan, statement, pushRoutingOptions);
 
     final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle();
+    final AtomicReference<PushPhysicalPlan> pushPhysicalPlanReference
+        = new AtomicReference<>(pushPhysicalPlan);
     // Returns a future with the handle once the initial connection is made
     final CompletableFuture<PushConnectionsHandle> result = connectToHosts(
-        serviceContext, pushPhysicalPlan, statement, hosts, outputSchema, transientQueryQueue,
-        pushConnectionsHandle, false, scalablePushQueryMetrics);
+        serviceContext, pushPhysicalPlanReference, statement, hosts, outputSchema,
+        transientQueryQueue, pushConnectionsHandle, false, scalablePushQueryMetrics,
+            Collections.emptySet(), pushPhysicalPlanCreator);
     // Only check for new nodes if this is the source node
     if (backgroundRetries && !pushRoutingOptions.getHasBeenForwarded()) {
-      checkForNewHostsOnContext(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-          transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics);
+      checkForNewHostsOnContext(serviceContext, pushPhysicalPlanReference, statement, hosts,
+          outputSchema, transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics,
+          pushPhysicalPlanCreator);
     }
     return result;
   }
@@ -157,15 +167,18 @@ public class PushRouting implements AutoCloseable {
    */
   private CompletableFuture<PushConnectionsHandle> connectToHosts(
       final ServiceContext serviceContext,
-      final PushPhysicalPlan pushPhysicalPlan,
+      final AtomicReference<PushPhysicalPlan> pushPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final Collection<KsqlNode> hosts,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
       final boolean dynamicallyAddedNode,
-      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
+      final Set<KsqlNode> catchupHosts,
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator
   ) {
+    System.out.println("connectToHosts " + hosts);
     final Map<KsqlNode, CompletableFuture<RoutingResult>> futureMap = new LinkedHashMap<>();
     for (final KsqlNode node : hosts) {
       pushConnectionsHandle.add(
@@ -175,10 +188,19 @@ public class PushRouting implements AutoCloseable {
         if (t == null) {
           pushConnectionsHandle.get(node)
               .ifPresent(result -> {
+                System.out.println("CLOSING");
                 result.close();
+                System.out.println("SETTING TO COMPLETE " + node + " result " + result);
                 result.updateStatus(RoutingResultStatus.COMPLETE);
+                System.out.println("AFTER SETTING TO COMPLETE " + node + " result " + result);
               });
-          LOG.info("Host {} completed request {}.", node, pushPhysicalPlan.getQueryId());
+          LOG.info("Host {} completed request {}.", node, pushPhysicalPlan.get().getQueryId());
+        } else if (t instanceof GapFoundException) {
+          pushConnectionsHandle.get(node)
+              .ifPresent(result -> {
+                result.close();
+                result.updateStatus(RoutingResultStatus.OFFSET_GAP_FOUND);
+              });
         } else {
           pushConnectionsHandle.completeExceptionally(t);
         }
@@ -186,7 +208,9 @@ public class PushRouting implements AutoCloseable {
       });
       futureMap.put(node, executeOrRouteQuery(
           node, statement, serviceContext, pushPhysicalPlan, outputSchema,
-          transientQueryQueue, callback, dynamicallyAddedNode, scalablePushQueryMetrics));
+          transientQueryQueue, callback, scalablePushQueryMetrics,
+          pushConnectionsHandle.getOffsetsTracker(), catchupHosts.contains(node),
+          pushPhysicalPlanCreator));
     }
     return CompletableFuture.allOf(futureMap.values().toArray(new CompletableFuture[0]))
         .thenApply(v -> {
@@ -205,17 +229,17 @@ public class PushRouting implements AutoCloseable {
               .orElse(null);
           for (KsqlNode n : hosts) {
             final CompletableFuture<RoutingResult> future = futureMap.get(n);
-            // For simplicity, just close all of the connections that may have succeeded
-            if (future.isDone() && !future.isCompletedExceptionally()) {
+            // Take whatever completed exceptionally and mark it as failed
+            if (future.isCompletedExceptionally()) {
+              pushConnectionsHandle.get(n)
+                  .ifPresent(result -> result.updateStatus(RoutingResultStatus.FAILED));
+            } else {
               final RoutingResult routingResult = future.join();
-              routingResult.close();
+              pushConnectionsHandle.add(node, routingResult);
             }
-            // Mark these all as failed
-            pushConnectionsHandle.get(n)
-                .ifPresent(result -> result.updateStatus(RoutingResultStatus.FAILED));
           }
           LOG.warn("Error routing query {} id {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), pushPhysicalPlan.getQueryId(), node,
+              statement.getStatementText(), pushPhysicalPlan.get().getQueryId(), node,
               System.currentTimeMillis(), t.getCause());
 
           // We only fail the whole thing if this is not a new dynamically added node. We allow
@@ -239,29 +263,44 @@ public class PushRouting implements AutoCloseable {
       final KsqlNode node,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final PushPhysicalPlan pushPhysicalPlan,
+      final AtomicReference<PushPhysicalPlan> pushPhysicalPlan,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final CompletableFuture<Void> callback,
-      final boolean dynamicallyAddedNode,
-      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
+      final OffsetsTracker offsetsTracker,
+      final boolean shouldCatchupFromOffsets,
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator
   ) {
+    System.out.println("executeOrRouteQuery node.isLocal():" + node.isLocal());
     if (node.isLocal()) {
-      LOG.debug("Query {} id {} executed locally at host {} at timestamp {}.",
-          statement.getStatementText(), pushPhysicalPlan.getQueryId(), node.location(),
+      LOG.info("Query {} id {} executed locally at host {} at timestamp {}.",
+          statement.getStatementText(), pushPhysicalPlan.get().getQueryId(), node.location(),
           System.currentTimeMillis());
       scalablePushQueryMetrics
           .ifPresent(metrics -> metrics.recordLocalRequests(1));
+
+      final AtomicReference<PushPhysicalPlan> thisPushPhysicalPlan
+          = new AtomicReference<>(pushPhysicalPlan.get());
       final AtomicReference<BufferedPublisher<QueryRow>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
-          .thenApply(v -> pushPhysicalPlan.execute())
+          .thenApply(v -> {
+            if (thisPushPhysicalPlan.get().isClosed()) {
+              thisPushPhysicalPlan.set(
+                  pushPhysicalPlanCreator.create(offsetsTracker.getOffsetsAsToken()));
+              pushPhysicalPlan.set(thisPushPhysicalPlan.get());
+            }
+            return thisPushPhysicalPlan.get().execute();
+          })
           .thenApply(publisher -> {
             publisherRef.set(publisher);
             publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
-                transientQueryQueue, callback, node, pushPhysicalPlan.getQueryId()));
+                transientQueryQueue, callback, node, pushPhysicalPlan.get().getQueryId(),
+                offsetsTracker));
+            System.out.println("Successful local node");
             return new RoutingResult(RoutingResultStatus.SUCCESS, () -> {
-              pushPhysicalPlan.close();
+              thisPushPhysicalPlan.get().close();
               publisher.close();
             });
           })
@@ -269,7 +308,7 @@ public class PushRouting implements AutoCloseable {
             LOG.error("Error executing query {} locally at node {}",
                 statement.getStatementText(), node.location(), t.getCause());
             final BufferedPublisher<QueryRow> publisher = publisherRef.get();
-            pushPhysicalPlan.close();
+            thisPushPhysicalPlan.get().close();
             if (publisher != null) {
               publisher.close();
             }
@@ -280,18 +319,19 @@ public class PushRouting implements AutoCloseable {
             );
           });
     } else {
-      LOG.debug("Query {} routed to host {} at timestamp {}.",
+      LOG.info("Query {} routed to host {} at timestamp {}.",
           statement.getStatementText(), node.location(), System.currentTimeMillis());
       scalablePushQueryMetrics
               .ifPresent(metrics -> metrics.recordRemoteRequests(1));
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
           = new AtomicReference<>(null);
       final CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture
-          = forwardTo(node, statement, serviceContext, outputSchema, dynamicallyAddedNode);
+          = forwardTo(node, statement, serviceContext, outputSchema,
+          shouldCatchupFromOffsets, offsetsTracker);
       return publisherFuture.thenApply(publisher -> {
         publisherRef.set(publisher);
         publisher.subscribe(new RemoteStreamSubscriber(publisher.getContext(), transientQueryQueue,
-            callback, node, pushPhysicalPlan.getQueryId()));
+            callback, node, pushPhysicalPlan.get().getQueryId(), offsetsTracker));
         return new RoutingResult(RoutingResultStatus.SUCCESS, publisher::close);
       }).exceptionally(t -> {
         LOG.error("Error forwarding query {} to node {}",
@@ -314,13 +354,21 @@ public class PushRouting implements AutoCloseable {
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
       final LogicalSchema outputSchema,
-      final boolean dynamicallyAddedNode
+      final boolean shouldCatchupFromOffsets,
+      final OffsetsTracker offsetsTracker
   ) {
     // Add skip forward flag to properties
-    final Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING, true,
-        KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true,
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_REGISTRY_START, dynamicallyAddedNode);
+    final ImmutableMap.Builder<String, Object> requestPropertiesBuilder
+        = ImmutableMap.<String, Object>builder()
+        .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING, true)
+        .put(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
+
+    if (shouldCatchupFromOffsets) {
+      requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS,
+          offsetsTracker.getOffsetsAsToken());
+    }
+
+    final Map<String, Object> requestProperties = requestPropertiesBuilder.build();
 
     final CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> future  = serviceContext
         .getKsqlClient()
@@ -345,59 +393,77 @@ public class PushRouting implements AutoCloseable {
 
   private void checkForNewHostsOnContext(
       final ServiceContext serviceContext,
-      final PushPhysicalPlan pushPhysicalPlan,
+      final AtomicReference<PushPhysicalPlan> pushPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final Set<KsqlNode> hosts,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
-      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator
   ) {
-    pushPhysicalPlan.getContext().runOnContext(v ->
+    pushPhysicalPlan.get().getContext().runOnContext(v ->
         checkForNewHosts(serviceContext, pushPhysicalPlan, statement, outputSchema,
-            transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics));
+            transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics,
+                pushPhysicalPlanCreator));
   }
 
   private void checkForNewHosts(
       final ServiceContext serviceContext,
-      final PushPhysicalPlan pushPhysicalPlan,
+      final AtomicReference<PushPhysicalPlan> pushPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue,
       final PushConnectionsHandle pushConnectionsHandle,
-      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics
+      final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator
   ) {
-    VertxUtils.checkContext(pushPhysicalPlan.getContext());
+    VertxUtils.checkContext(pushPhysicalPlan.get().getContext());
     if (pushConnectionsHandle.isClosed()) {
       return;
     }
     final Set<KsqlNode> updatedHosts = registryToNodes.apply(
-        pushPhysicalPlan.getScalablePushRegistry());
+        pushPhysicalPlan.get().getScalablePushRegistry());
     final Set<KsqlNode> hosts = pushConnectionsHandle.getActiveHosts();
+    System.out.println("CHECKING updatedHosts " + updatedHosts + " active hosts " + hosts);
     final Set<KsqlNode> newHosts = Sets.difference(updatedHosts, hosts).stream()
         .filter(node ->
             pushConnectionsHandle.get(node)
               .map(routingResult -> routingResult.getStatus() != RoutingResultStatus.IN_PROGRESS)
               .orElse(true))
         .collect(Collectors.toSet());
+    System.out.println("newHosts " + newHosts);
     final Set<KsqlNode> removedHosts = Sets.difference(hosts, updatedHosts);
     if (newHosts.size() > 0) {
-      LOG.info("Dynamically adding new hosts {} for {}", newHosts, pushPhysicalPlan.getQueryId());
+      LOG.info("Dynamically adding new hosts {} for {}", newHosts,
+          pushPhysicalPlan.get().getQueryId());
+      System.out.println("Dynamically adding new hosts " + newHosts);
+      final Set<KsqlNode> catchupHosts = newHosts.stream()
+          .filter(node ->
+              pushConnectionsHandle.get(node)
+                  .map(routingResult ->
+                      routingResult.getStatus() == RoutingResultStatus.OFFSET_GAP_FOUND)
+                  .orElse(false))
+          .collect(Collectors.toSet());
+      System.out.println("Catchup hosts " + catchupHosts);
       connectToHosts(serviceContext, pushPhysicalPlan, statement, newHosts, outputSchema,
           transientQueryQueue, pushConnectionsHandle, true,
-          scalablePushQueryMetrics);
+          scalablePushQueryMetrics, catchupHosts, pushPhysicalPlanCreator);
     }
     if (removedHosts.size() > 0) {
-      LOG.info("Dynamically removing hosts {} for {}", removedHosts, pushPhysicalPlan.getQueryId());
+      LOG.info("Dynamically removing hosts {} for {}", removedHosts,
+          pushPhysicalPlan.get().getQueryId());
+      System.out.println("Dynamically removing hosts " + removedHosts);
       for (final KsqlNode node : removedHosts) {
         final RoutingResult result = pushConnectionsHandle.remove(node);
         result.close();
         result.updateStatus(RoutingResultStatus.REMOVED);
       }
     }
-    pushPhysicalPlan.getContext().owner().setTimer(clusterCheckInterval, timerId ->
+    pushPhysicalPlan.get().getContext().owner().setTimer(clusterCheckInterval, timerId ->
         checkForNewHosts(serviceContext, pushPhysicalPlan, statement, outputSchema,
-            transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics));
+            transientQueryQueue, pushConnectionsHandle, scalablePushQueryMetrics,
+                pushPhysicalPlanCreator));
   }
 
   private static Set<KsqlNode> loadCurrentHosts(final ScalablePushRegistry scalablePushRegistry) {
@@ -479,60 +545,31 @@ public class PushRouting implements AutoCloseable {
     }
   }
 
-  /**
-   * Subscriber for handling remote data.
-   */
-  private static class RemoteStreamSubscriber extends BaseSubscriber<StreamedRow> {
+  private static class StreamSubscriber<T> extends BaseSubscriber<T> {
 
-    private final TransientQueryQueue transientQueryQueue;
-    private final CompletableFuture<Void> callback;
-    private final KsqlNode node;
-    private final QueryId queryId;
-    private boolean closed;
+    protected final TransientQueryQueue transientQueryQueue;
+    protected final CompletableFuture<Void> callback;
+    protected final KsqlNode node;
+    protected final QueryId queryId;
+    protected final OffsetsTracker offsetsTracker;
+    protected boolean closed;
 
-    RemoteStreamSubscriber(final Context context,
+    public StreamSubscriber(final Context context,
         final TransientQueryQueue transientQueryQueue,
         final CompletableFuture<Void> callback,
         final KsqlNode node,
-        final QueryId queryId) {
+        final QueryId queryId,
+        final OffsetsTracker offsetsTracker) {
       super(context);
       this.transientQueryQueue = transientQueryQueue;
       this.callback = callback;
       this.node = node;
       this.queryId = queryId;
+      this.offsetsTracker = offsetsTracker;
     }
 
     @Override
     protected void afterSubscribe(final Subscription subscription) {
-      makeRequest(1);
-    }
-
-    @Override
-    protected synchronized void handleValue(final StreamedRow row) {
-      if (closed) {
-        return;
-      }
-      if (row.getFinalMessage().isPresent()) {
-        close();
-        return;
-      }
-      if (row.getRow().isPresent()) {
-        final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(
-            new KeyValue<>(null, GenericRow.fromList(row.getRow().get().getColumns())));
-        if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
-          callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
-          close();
-          return;
-        }
-      }
-      if (row.getErrorMessage().isPresent()) {
-        final KsqlErrorMessage errorMessage = row.getErrorMessage().get();
-        LOG.error("Received error from remote node {} and id {}: {}", node, queryId, errorMessage);
-        callback.completeExceptionally(new KsqlException("Remote server had an error: "
-            + errorMessage.getErrorCode() + " - " + errorMessage.getMessage()));
-        close();
-        return;
-      }
       makeRequest(1);
     }
 
@@ -555,45 +592,128 @@ public class PushRouting implements AutoCloseable {
       callback.complete(null);
       context.runOnContext(v -> cancel());
     }
+
+    protected Optional<PushOffsetRange> handleProgressToken(
+        final Optional<PushOffsetRange> offsetRangeOptional
+    ) {
+      if (!offsetRangeOptional.isPresent()) {
+        return offsetRangeOptional;
+      }
+      final PushOffsetRange offsetRange = offsetRangeOptional.get();
+      final Optional<Map<Integer, Long>> currentOffsets = offsetsTracker.getOffsets();
+      final Optional<PushOffsetRange> mergedToken = currentOffsets.map(offsets -> {
+        List<Long> start = TokenUtils.getToken(TokenUtils.merge(offsets, Optional.of(offsetRange.getStartOffsets().get().getDenseRepresentation())));
+        List<Long> end = TokenUtils.getToken(TokenUtils.merge(offsets, Optional.of(offsetRange.getEndOffsets().getDenseRepresentation())));
+            return new PushOffsetRange(Optional.of(new PushOffsetVector(start)), new PushOffsetVector(end));
+          }
+      );
+      final PushOffsetRange updatedToken = mergedToken.orElse(offsetRange);
+      if (currentOffsets.isPresent() && TokenUtils.gapExists(currentOffsets.get(),
+          TokenUtils.parseToken(Optional.of(offsetRange.getStartOffsets().get().getDenseRepresentation())))) {
+        LOG.warn(name() + "Found a gap in offsets for {} and id {}: start: {}, current: {}", node, queryId,
+            offsetRange.getStartOffsets(), offsetsTracker.getOffsetsAsToken());
+        System.out.println(name() + " Found gap in offsets start: " +  offsetRange.getStartOffsets() + " current: " + offsetsTracker.getOffsetsAsToken());
+        callback.completeExceptionally(new GapFoundException());
+        close();
+        return Optional.empty();
+      } else {
+        System.out.println(name() + " UPDATE " + offsetRange.getEndOffsets());
+        offsetsTracker.updateFromToken(Optional.of(offsetRange.getEndOffsets().getDenseRepresentation()));
+      }
+      return Optional.of(updatedToken);
+    }
+
+    public String name() {
+      return "common";
+    }
+  }
+
+  /**
+   * Subscriber for handling remote data.
+   */
+  private static class RemoteStreamSubscriber extends StreamSubscriber<StreamedRow> {
+
+    RemoteStreamSubscriber(final Context context,
+        final TransientQueryQueue transientQueryQueue,
+        final CompletableFuture<Void> callback,
+        final KsqlNode node,
+        final QueryId queryId,
+        final OffsetsTracker offsetsTracker
+    ) {
+      super(context, transientQueryQueue, callback, node, queryId, offsetsTracker);
+    }
+
+    @Override
+    protected synchronized void handleValue(final StreamedRow row) {
+      System.out.println("REMOTE Got row " + row + " token " + row.getContinuationToken());
+      if (closed) {
+        return;
+      }
+      if (row.getFinalMessage().isPresent()) {
+        close();
+        return;
+      }
+      if (row.getRow().isPresent() || row.getContinuationToken().isPresent()) {
+        final Optional<PushOffsetRange> currentOffsetRange = handleProgressToken(
+            row.getContinuationToken().map(t -> PushOffsetRange.deserialize(t.getContinuationToken())));
+        final Optional<RowMetadata> rowMetadata = currentOffsetRange.map(
+            or -> new RowMetadata(Optional.of(or)));
+        final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
+            ? new KeyValueMetadata<>(rowMetadata.get())
+            : new KeyValueMetadata<>(
+                new KeyValue<>(null, GenericRow.fromList(row.getRow().get().getColumns())));
+        if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
+          callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
+          close();
+          return;
+        }
+      }
+      if (row.getErrorMessage().isPresent()) {
+        final KsqlErrorMessage errorMessage = row.getErrorMessage().get();
+        LOG.error("Received error from remote node {} and id {}: {}", node, queryId, errorMessage);
+        callback.completeExceptionally(new KsqlException("Remote server had an error: "
+            + errorMessage.getErrorCode() + " - " + errorMessage.getMessage()));
+        close();
+        return;
+      }
+      makeRequest(1);
+    }
+
+    public String name() {
+      return "Remote";
+    }
   }
 
   /**
    * Subscriber for handling local data.
    */
-  private static class LocalQueryStreamSubscriber extends BaseSubscriber<QueryRow> {
-
-    private final TransientQueryQueue transientQueryQueue;
-    private final CompletableFuture<Void> callback;
-    private final KsqlNode localNode;
-    private final QueryId queryId;
-    private boolean closed;
+  private static class LocalQueryStreamSubscriber extends StreamSubscriber<QueryRow> {
 
     LocalQueryStreamSubscriber(
         final Context context,
         final TransientQueryQueue transientQueryQueue,
         final CompletableFuture<Void> callback,
         final KsqlNode localNode,
-        final QueryId queryId
+        final QueryId queryId,
+        final OffsetsTracker offsetsTracker
     ) {
-      super(context);
-      this.transientQueryQueue = transientQueryQueue;
-      this.callback = callback;
-      this.localNode = localNode;
-      this.queryId = queryId;
-    }
-
-    @Override
-    protected void afterSubscribe(final Subscription subscription) {
-      makeRequest(1);
+      super(context, transientQueryQueue, callback, localNode, queryId, offsetsTracker);
     }
 
     @Override
     protected synchronized void handleValue(final QueryRow row) {
+      System.out.println("handleValue " + row.value() + " closed " + closed + " start " + row.getOffsetRange());
       if (closed) {
         return;
       }
-      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = new KeyValueMetadata<>(
-          new KeyValue<>(null, row.value()));
+
+      final Optional<PushOffsetRange> currentOffsetRange = handleProgressToken(row.getOffsetRange());
+      final Optional<RowMetadata> rowMetadata = currentOffsetRange.map(
+          t -> new RowMetadata(Optional.of(t)));
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
+          ? new KeyValueMetadata<>(rowMetadata.get())
+          : new KeyValueMetadata<>(new KeyValue<>(null, row.value()));
+      System.out.println("Outputting " + row.value() + " row metadata " + rowMetadata + " for query " + queryId);
       if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
         callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
         close();
@@ -603,23 +723,8 @@ public class PushRouting implements AutoCloseable {
       makeRequest(1);
     }
 
-    @Override
-    protected void handleComplete() {
-      close();
-    }
-
-    @Override
-    protected void handleError(final Throwable t) {
-      LOG.error("Received error from local node {} for id {}: {}", localNode, queryId,
-          t.getMessage(), t);
-      callback.completeExceptionally(t);
-    }
-
-    synchronized void close() {
-      closed = true;
-      // Is a noop if already completed in some manner
-      callback.complete(null);
-      context.runOnContext(v -> cancel());
+    public String name() {
+      return "Local";
     }
   }
 
@@ -631,6 +736,7 @@ public class PushRouting implements AutoCloseable {
     private final Map<KsqlNode, RoutingResult> results = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> errorCallback;
     private volatile boolean closed = false;
+    private final OffsetsTracker offsetsTracker = new OffsetsTracker();
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public PushConnectionsHandle() {
@@ -644,6 +750,7 @@ public class PushRouting implements AutoCloseable {
     }
 
     public void add(final KsqlNode ksqlNode, final RoutingResult result) {
+      System.out.println("PushConnectionsHandle ADDING " + ksqlNode + " result " + result);
       results.put(ksqlNode, result);
       // Make sure that we close the result if the handle has been closed.
       if (isClosed()) {
@@ -661,8 +768,10 @@ public class PushRouting implements AutoCloseable {
 
     public void close() {
       closed = true;
-      for (RoutingResult result : results.values()) {
-        result.close();
+      System.out.println("CLOSING HANDLE");
+      for (Map.Entry<KsqlNode, RoutingResult> result : results.entrySet()) {
+        System.out.println("CLOSING result" + result.getKey() + ": " + result.getValue().getStatus());
+        result.getValue().close();
       }
     }
 
@@ -671,6 +780,7 @@ public class PushRouting implements AutoCloseable {
     }
 
     public Set<KsqlNode> getActiveHosts() {
+      System.out.println("ALL RESULTS " + results);
       return results.entrySet().stream()
           .filter(e -> RoutingResultStatus.isHostActive(e.getValue().getStatus()))
           .map(Entry::getKey)
@@ -703,5 +813,40 @@ public class PushRouting implements AutoCloseable {
       }
       return null;
     }
+
+    public OffsetsTracker getOffsetsTracker() {
+      return offsetsTracker;
+    }
+  }
+
+  public static class OffsetsTracker {
+    private final AtomicReference<Map<Integer, Long>> currentOffsets = new AtomicReference<>();
+
+    public OffsetsTracker() {
+    }
+
+    public Optional<Map<Integer, Long>> getOffsets() {
+      return Optional.ofNullable(currentOffsets.get());
+    }
+
+    public Optional<List<Long>> getOffsetsAsToken() {
+      final Optional<Map<Integer, Long>> offsets = getOffsets();
+      return offsets.map(TokenUtils::getToken);
+    }
+
+    public void updateFromToken(final Optional<List<Long>> token) {
+      currentOffsets.updateAndGet(offsets -> {
+        if (offsets != null) {
+          System.out.println("Merging result " + offsets + " and " + token + " result is " + TokenUtils.merge(offsets, token));
+          return TokenUtils.merge(offsets, token);
+        } else {
+          System.out.println("Initializing token as " + TokenUtils.parseToken(token));
+          return TokenUtils.parseToken(token);
+        }
+      });
+    }
+  }
+
+  public static class GapFoundException extends RuntimeException {
   }
 }

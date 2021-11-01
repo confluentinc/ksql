@@ -23,6 +23,7 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A physical operator which utilizes a {@link ScalablePushRegistry} to register for output rows.
@@ -33,7 +34,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
-  private final boolean expectingStartOfRegistryData;
+  private final Optional<List<Long>> token;
 
   private long rowsRead = 0;
 
@@ -42,17 +43,17 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
       final QueryId queryId,
-      final boolean expectingStartOfRegistryData
+      final Optional<List<Long>> token
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
-    this.expectingStartOfRegistryData = expectingStartOfRegistryData;
+    this.token = token;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue, expectingStartOfRegistryData);
+    scalablePushRegistry.register(processingQueue, token);
   }
 
   @Override

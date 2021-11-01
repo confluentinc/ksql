@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -77,6 +78,13 @@ public final class KsqlTargetUtil {
     try {
       final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
       return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
+    } catch (KsqlRestClientException e) {
+      // Not a {@link KsqlErrorMessage}
+    }
+    try {
+      final PushContinuationToken continuationToken
+          = deserialize(buff, PushContinuationToken.class);
+      return StreamedRow.continuationToken(continuationToken);
     } catch (KsqlRestClientException e) {
       // Not a {@link KsqlErrorMessage}
     }

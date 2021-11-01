@@ -37,7 +37,9 @@ import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.Context;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -50,7 +52,6 @@ public class PushPhysicalPlanBuilder {
 
   private final ProcessingLogContext processingLogContext;
   private final PersistentQueryMetadata persistentQueryMetadata;
-  private final boolean expectingStartOfRegistryData;
   private final Stacker contextStacker;
   private final QueryId queryId;
 
@@ -58,14 +59,12 @@ public class PushPhysicalPlanBuilder {
 
   public PushPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
-      final PersistentQueryMetadata persistentQueryMetadata,
-      final boolean expectingStartOfRegistryData
+      final PersistentQueryMetadata persistentQueryMetadata
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
     this.persistentQueryMetadata = Objects.requireNonNull(
         persistentQueryMetadata, "persistentQueryMetadata");
-    this.expectingStartOfRegistryData = expectingStartOfRegistryData;
     this.contextStacker = new Stacker();
     queryId = uniqueQueryId();
   }
@@ -77,7 +76,8 @@ public class PushPhysicalPlanBuilder {
    */
   public PushPhysicalPlan buildPushPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
-      final Context context
+      final Context context,
+      final Optional<List<Long>> token
   ) {
     PushDataSourceOperator dataSourceOperator = null;
 
@@ -100,7 +100,7 @@ public class PushPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
-            (DataSourceNode) currentLogicalNode);
+            (DataSourceNode) currentLogicalNode, token);
         dataSourceOperator = (PushDataSourceOperator) currentPhysicalOp;
       } else {
         throw new KsqlException(String.format(
@@ -162,7 +162,8 @@ public class PushPhysicalPlanBuilder {
   }
 
   private AbstractPhysicalOperator translateDataSourceNode(
-      final DataSourceNode logicalNode
+      final DataSourceNode logicalNode,
+      final Optional<List<Long>> token
   ) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
@@ -170,8 +171,7 @@ public class PushPhysicalPlanBuilder {
 
     querySourceType = logicalNode.isWindowed()
         ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
-    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId,
-        expectingStartOfRegistryData);
+    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId, token);
   }
 
   private QueryId uniqueQueryId() {

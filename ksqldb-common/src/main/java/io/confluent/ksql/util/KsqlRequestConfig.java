@@ -15,10 +15,16 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.configdef.ConfigValidators.longList;
+
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigException;
 
 public class KsqlRequestConfig extends AbstractConfig {
 
@@ -56,12 +62,11 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC =
       "Controls whether a ksql host forwards a push query request to another host";
 
-  public static final String KSQL_REQUEST_QUERY_PUSH_REGISTRY_START =
-      "request.ksql.query.push.registry.start";
-  public static final boolean KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT = false;
-  private static final String KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DOC =
-      "Indicates whether a connecting node expects to be at the start of the registry data. After a"
-          + "rebalance, this ensures we don't miss any data.";
+  public static final String KSQL_REQUEST_QUERY_PUSH_START_OFFSETS =
+      "request.ksql.query.push.start.offsets";
+  public static final String KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DOC =
+      "Indicates whether a connecting node wants to start from a specific point, or latest";
 
   public static final String KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR =
       "request.ksql.query.pull.consistency.token";
@@ -103,11 +108,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC
         ).define(
-            KSQL_REQUEST_QUERY_PUSH_REGISTRY_START,
-            Type.BOOLEAN,
-            KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DEFAULT,
+            KSQL_REQUEST_QUERY_PUSH_START_OFFSETS,
+            Type.LIST,
+            KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DEFAULT,
+            longList(),
             ConfigDef.Importance.LOW,
-            KSQL_REQUEST_QUERY_PUSH_REGISTRY_START_DOC
+            KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DOC
         ).define(
             KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
             Type.STRING,

@@ -32,7 +32,9 @@ public final class QueryRowImpl implements QueryRow {
   private final Optional<Window> window;
   private final GenericRow value;
 
-  public static QueryRowImpl of(
+  private final Optional<PushOffsetRange> pushOffsetRange;
+
+  public static QueryRowImpl of (
       final LogicalSchema logicalSchema,
       final GenericKey key,
       final Optional<Window> window,
@@ -42,6 +44,18 @@ public final class QueryRowImpl implements QueryRow {
     return new QueryRowImpl(logicalSchema, key, window, value, rowTime);
   }
 
+  public static QueryRowImpl of(
+      final LogicalSchema logicalSchema,
+      final GenericKey key,
+      final Optional<Window> window,
+      final GenericRow value,
+      final long rowTime,
+      final Optional<PushOffsetRange> pushOffsetRange
+  ) {
+    return new QueryRowImpl(
+        logicalSchema, key, window, value, rowTime, pushOffsetRange);
+  }
+
   private QueryRowImpl(
       final LogicalSchema logicalSchema,
       final GenericKey key,
@@ -49,11 +63,23 @@ public final class QueryRowImpl implements QueryRow {
       final GenericRow value,
       final long rowTime
   ) {
+    this(logicalSchema, key, window, value, rowTime, Optional.empty());
+  }
+
+  private QueryRowImpl(
+      final LogicalSchema logicalSchema,
+      final GenericKey key,
+      final Optional<Window> window,
+      final GenericRow value,
+      final long rowTime,
+      final Optional<PushOffsetRange> pushOffsetRange
+  ) {
     this.logicalSchema = logicalSchema;
     this.rowTime = rowTime;
     this.key = key;
     this.window = window;
     this.value = value;
+    this.pushOffsetRange = pushOffsetRange;
   }
 
   @Override
@@ -84,7 +110,7 @@ public final class QueryRowImpl implements QueryRow {
 
   @Override
   public Optional<PushOffsetRange> getOffsetRange() {
-    return Optional.empty();
+    return pushOffsetRange;
   }
 
 
@@ -101,11 +127,12 @@ public final class QueryRowImpl implements QueryRow {
         && Objects.equals(key, that.key)
         && Objects.equals(window, that.window)
         && Objects.equals(value, that.value)
-        && Objects.equals(rowTime, that.rowTime);
+        && Objects.equals(rowTime, that.rowTime)
+        && Objects.equals(pushOffsetRange, that.pushOffsetRange);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, key, window, value, rowTime);
+    return Objects.hash(logicalSchema, key, window, value, rowTime, pushOffsetRange);
   }
 }

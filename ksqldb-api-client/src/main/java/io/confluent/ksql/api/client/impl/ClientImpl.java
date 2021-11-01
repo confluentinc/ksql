@@ -88,8 +88,7 @@ public class ClientImpl implements Client {
   private final Map<String, Object> sessionVariables;
   private final Map<String, Object> requestProperties;
   private final LocalPropertyParser parser;
-
-  private AtomicReference<String> serializedConsistencyVector;
+  private final AtomicReference<String> serializedConsistencyVector;
 
   /**
    * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via

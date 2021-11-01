@@ -19,9 +19,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -30,7 +28,6 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.reactive.BaseSubscriber;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -44,8 +41,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Context;
@@ -59,7 +54,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -117,16 +111,6 @@ public class RestClientIntegrationTest {
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY_ON_TABLE =
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
-
-  private final static String serializedCT = "rO0ABXNyACdpby5jb25mbHVlbnQua3NxbC51dGlsLkNvbnNpc3Rlb"
-      + "mN5VG9rZW4BxDEeQk6w5QIAAkkAB3ZlcnNpb25MABZ0YWJsZVBhcnRpdGlvbnNPZmZzZXRzdAAPTGphdmEvdXRpbC9"
-      + "NYXA7eHAAAAABc3IAEWphdmEudXRpbC5IYXNoTWFwBQfawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xke"
-      + "HA/QAAAAAAAA3cIAAAABAAAAAJ0AAV2aWNreXNyABNqYXZhLnV0aWwuQXJyYXlMaXN0eIHSHZnHYZ0DAAFJAARzaXp"
-      + "leHAAAAADdwQAAAADc3IADmphdmEubGFuZy5Mb25nO4vkkMyPI98CAAFKAAV2YWx1ZXhyABBqYXZhLmxhbmcuTnVtY"
-      + "mVyhqyVHQuU4IsCAAB4cAAAAAAAAAABc3EAfgAIAAAAAAAAAAJzcQB+AAgAAAAAAAAAA3h0AAVWaWNreXNyADZjb20"
-      + "uZ29vZ2xlLmNvbW1vbi5jb2xsZWN0LkltbXV0YWJsZUxpc3QkU2VyaWFsaXplZEZvcm0AAAAAAAAAAAIAAVsACGVsZ"
-      + "W1lbnRzdAATW0xqYXZhL2xhbmcvT2JqZWN0O3hwdXIAE1tMamF2YS5sYW5nLk9iamVjdDuQzlifEHMpbAIAAHhwAAA"
-      + "AA3EAfgAKcQB+AAtxAH4ADHg=";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -237,49 +221,6 @@ public class RestClientIntegrationTest {
       response.getResponse().close();
     }
   }
-
-  @Test(timeout = 120000L)
-  public void shouldRoundTripConsistencyVectorWhenEnabled() throws Exception {
-    final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    ksqlRestClient.setProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-
-    ksqlRestClient.getConsistencyOffsetVector().setVersion(1);
-    ksqlRestClient.getConsistencyOffsetVector().setOffsetVector(
-        ImmutableMap.of("Vicky", ImmutableMap.of(1, 1L, 2, 2L, 3, 3L)));
-
-    final RestResponse<StreamPublisher<StreamedRow>> response =
-        ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L);
-
-    final List<StreamedRow> rows = getElementsFromPublisher(4, response.getResponse());
-    assertThat(rows, hasSize(3));
-    assertThat(rows.get(2).getConsistencyToken().get(), not(Optional.empty()));
-    final String serialized = rows.get(2).getConsistencyToken().get().getConsistencyToken();
-    final ConsistencyOffsetVector cvResponse = new ConsistencyOffsetVector();
-    cvResponse.deserialize(serialized);
-    assertThat(cvResponse.getVersion(), is(2));
-    assertThat(cvResponse.getOffsetVector().keySet(), hasSize(2));
-    assertThat(cvResponse.getTopicOffsets("dummy").keySet(), hasSize(3));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(5), is(5L));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(6), is(6L));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(7), is(7L));
-  }
-
-  @Test(timeout = 120000L)
-  public void shouldNotRoundTripConsistencyVectorWhenDisabled() throws Exception {
-    final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    ksqlRestClient.getConsistencyOffsetVector().setVersion(1);
-    ksqlRestClient.getConsistencyOffsetVector().setOffsetVector(
-        ImmutableMap.of("Vicky", ImmutableMap.of(1, 1L, 2, 2L, 3, 3L)));
-
-    final RestResponse<StreamPublisher<StreamedRow>> response =
-        ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L);
-
-    final List<StreamedRow> rows = getElementsFromPublisher(4, response.getResponse());
-    assertThat(rows, hasSize(2));
-    assertThat(rows.get(0).getConsistencyToken(), is(Optional.empty()));
-    assertThat(rows.get(1).getConsistencyToken(), is(Optional.empty()));
-  }
-
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);

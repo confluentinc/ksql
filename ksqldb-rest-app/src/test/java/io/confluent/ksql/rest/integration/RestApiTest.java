@@ -1,4 +1,4 @@
- /*
+  /*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
@@ -798,36 +798,8 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
     assertValidJsonMessages(messages);
     assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"rO0ABXNyAC5pby5jb25mbHVlbnQua3NxbC51dGlsLkNvbnNpc3RlbmN5"
-                                       + "T2Zmc2V0VmVjdG9yW3VgUlObgBkCA"
-                                       + "ANJAAd2ZXJzaW9uTAAMb2Zmc2V0VmVjdG9ydAAPTGphdmEvdXRpbC9NYX"
-                                       + "A7TAAGcndMb2NrdAAqTGphdmEvdXRpbC9jb25jdXJyZW50L2xvY2tzL1"
-                                       + "JlYWRXcml0ZUxvY2s7eHAAAAACc3IAEWphdmEudXRpbC5IYXNoTWFwBQ"
-                                       + "fawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xkeHA/QAAAAA"
-                                       + "AADHcIAAAAEAAAAAF0AAVkdW1teXNxAH4ABD9AAAAAAAAGdwgAAAAIAA"
-                                       + "AAA3NyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdW"
-                                       + "V4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAFc3IADmp"
-                                       + "hdmEubGFuZy5Mb25nO4vkkMyPI98CAAFKAAV2YWx1ZXhxAH4ACQAAAAAA"
-                                       + "AAAFc3EAfgAIAAAABnNxAH4ACwAAAAAAAAAGc3EAfgAIAAAAB3NxAH4AC"
-                                       + "wAAAAAAAAAHeHhzcgAxamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUm"
-                                       + "VlbnRyYW50UmVhZFdyaXRlTG9ja5711QDwtWhMAgADTAAKcmVhZGVyTG9"
-                                       + "ja3QAPExqYXZhL3V0aWwvY29uY3VycmVudC9sb2Nrcy9SZWVudHJhbnRS"
-                                       + "ZWFkV3JpdGVMb2NrJFJlYWRMb2NrO0wABHN5bmN0ADhMamF2YS91dGlsL"
-                                       + "2NvbmN1cnJlbnQvbG9ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRTeW"
-                                       + "5jO0wACndyaXRlckxvY2t0AD1MamF2YS91dGlsL2NvbmN1cnJlbnQvbG9"
-                                       + "ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRXcml0ZUxvY2s7eHBzcgA6"
-                                       + "amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFdya"
-                                       + "XRlTG9jayRSZWFkTG9ja6zWi7SYGWhMAgABTAAEc3luY3EAfgATeHBzcg"
-                                       + "A9amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFd"
-                                       + "yaXRlTG9jayROb25mYWlyU3luY47DL86PHQNjAgAAeHIANmphdmEudXRp"
-                                       + "bC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYWRXcml0ZUxvY2skU"
-                                       + "3luY1es4MU/QSu5AgAAeHIANWphdmEudXRpbC5jb25jdXJyZW50LmxvY2"
-                                       + "tzLkFic3RyYWN0UXVldWVkU3luY2hyb25pemVyZlWoQ3U/UuMCAAFJAAV"
-                                       + "zdGF0ZXhyADZqYXZhLnV0aWwuY29uY3VycmVudC5sb2Nrcy5BYnN0cmFj"
-                                       + "dE93bmFibGVTeW5jaHJvbml6ZXIz36+5rW1vqQIAAHhwAAEAAHEAfgAcc"
-                                       + "3IAO2phdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYW"
-                                       + "RXcml0ZUxvY2skV3JpdGVMb2NrurdCaD99aEwCAAFMAARzeW5jcQB+ABN"
-                                       + "4cHEAfgAc\"}}"));
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
   @Test
@@ -870,36 +842,8 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
     assertValidJsonMessages(messages);
     assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"rO0ABXNyAC5pby5jb25mbHVlbnQua3NxbC51dGlsLkNvbnNpc3RlbmN"
-                                       + "5T2Zmc2V0VmVjdG9yW3VgUlObgBkCA"
-                                       + "ANJAAd2ZXJzaW9uTAAMb2Zmc2V0VmVjdG9ydAAPTGphdmEvdXRpbC9NYX"
-                                       + "A7TAAGcndMb2NrdAAqTGphdmEvdXRpbC9jb25jdXJyZW50L2xvY2tzL1"
-                                       + "JlYWRXcml0ZUxvY2s7eHAAAAACc3IAEWphdmEudXRpbC5IYXNoTWFwBQ"
-                                       + "fawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGhyZXNob2xkeHA/QAAAAA"
-                                       + "AADHcIAAAAEAAAAAF0AAVkdW1teXNxAH4ABD9AAAAAAAAGdwgAAAAIAA"
-                                       + "AAA3NyABFqYXZhLmxhbmcuSW50ZWdlchLioKT3gYc4AgABSQAFdmFsdW"
-                                       + "V4cgAQamF2YS5sYW5nLk51bWJlcoaslR0LlOCLAgAAeHAAAAAFc3IADmp"
-                                       + "hdmEubGFuZy5Mb25nO4vkkMyPI98CAAFKAAV2YWx1ZXhxAH4ACQAAAAAA"
-                                       + "AAAFc3EAfgAIAAAABnNxAH4ACwAAAAAAAAAGc3EAfgAIAAAAB3NxAH4AC"
-                                       + "wAAAAAAAAAHeHhzcgAxamF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUm"
-                                       + "VlbnRyYW50UmVhZFdyaXRlTG9ja5711QDwtWhMAgADTAAKcmVhZGVyTG9"
-                                       + "ja3QAPExqYXZhL3V0aWwvY29uY3VycmVudC9sb2Nrcy9SZWVudHJhbnRS"
-                                       + "ZWFkV3JpdGVMb2NrJFJlYWRMb2NrO0wABHN5bmN0ADhMamF2YS91dGlsL"
-                                       + "2NvbmN1cnJlbnQvbG9ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRTeW"
-                                       + "5jO0wACndyaXRlckxvY2t0AD1MamF2YS91dGlsL2NvbmN1cnJlbnQvbG9"
-                                       + "ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRXcml0ZUxvY2s7eHBzcgA6"
-                                       + "amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFdya"
-                                       + "XRlTG9jayRSZWFkTG9ja6zWi7SYGWhMAgABTAAEc3luY3EAfgATeHBzcg"
-                                       + "A9amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuUmVlbnRyYW50UmVhZFd"
-                                       + "yaXRlTG9jayROb25mYWlyU3luY47DL86PHQNjAgAAeHIANmphdmEudXRp"
-                                       + "bC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYWRXcml0ZUxvY2skU"
-                                       + "3luY1es4MU/QSu5AgAAeHIANWphdmEudXRpbC5jb25jdXJyZW50LmxvY2"
-                                       + "tzLkFic3RyYWN0UXVldWVkU3luY2hyb25pemVyZlWoQ3U/UuMCAAFJAAV"
-                                       + "zdGF0ZXhyADZqYXZhLnV0aWwuY29uY3VycmVudC5sb2Nrcy5BYnN0cmFj"
-                                       + "dE93bmFibGVTeW5jaHJvbml6ZXIz36+5rW1vqQIAAHhwAAEAAHEAfgAcc"
-                                       + "3IAO2phdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYW"
-                                       + "RXcml0ZUxvY2skV3JpdGVMb2NrurdCaD99aEwCAAFMAARzeW5jcQB+ABN"
-                                       + "4cHEAfgAc\"}}"));
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
   @Test

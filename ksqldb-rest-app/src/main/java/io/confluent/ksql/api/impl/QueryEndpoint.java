@@ -150,18 +150,16 @@ public class QueryEndpoint {
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
       Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
-      if (requestProperties.containsKey(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
-        final ConsistencyOffsetVector cv = new ConsistencyOffsetVector();
-        consistencyOffsetVector = Optional.of(cv);
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)
+          && requestProperties.containsKey(
+              KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
         final String serializedCV = (String)requestProperties.get(
             KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
-        // The consistency vector is not initialized on the first request, needs the first response
-        // from the server
-        if (serializedCV != null) {
-          cv.deserialize(((String) requestProperties.get(
-              KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)));
-        }
+        // serializedCV will be null on the first request as the consistency vector is initialized
+        // at the server
+        consistencyOffsetVector = serializedCV != null
+            ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
+            : Optional.of(new ConsistencyOffsetVector());
       }
       switch (dataSourceType) {
         case KTABLE:

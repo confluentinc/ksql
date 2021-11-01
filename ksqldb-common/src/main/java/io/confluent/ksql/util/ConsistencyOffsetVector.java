@@ -16,13 +16,14 @@
 package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +38,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * This token is used to ensure monotonic reads for table pull queries as in: once a client has
  * received a row with an offset x, subsequent reads will only return rows of offsets > x.
  */
-public class ConsistencyOffsetVector implements OffsetVector, Serializable {
+//@JsonInclude(JsonInclude.Include.NON_ABSENT)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ConsistencyOffsetVector implements OffsetVector {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  static {
+    OBJECT_MAPPER.registerModule(new Jdk8Module());
+  }
 
   // This field should be the first
   private int version;
@@ -48,6 +57,17 @@ public class ConsistencyOffsetVector implements OffsetVector, Serializable {
   public ConsistencyOffsetVector() {
     this.version = 0;
     this.offsetVector = new HashMap<>();
+    this.rwLock = new ReentrantReadWriteLock();
+  }
+
+  @JsonCreator
+  public ConsistencyOffsetVector(
+      final @JsonProperty(value = "version", required = true) int version,
+      final @JsonProperty(value = "offsetVector", required = true)
+          Map<String, Map<Integer, Long>> offsetVector
+  ) {
+    this.version = version;
+    this.offsetVector = offsetVector;
     this.rwLock = new ReentrantReadWriteLock();
   }
 
@@ -167,32 +187,25 @@ public class ConsistencyOffsetVector implements OffsetVector, Serializable {
     throw new UnsupportedOperationException("Unsupported");
   }
 
+  @JsonIgnore
   @Override
   public List<Long> getDenseRepresentation() {
     throw new UnsupportedOperationException("Unsupported");
   }
 
-  @Override
   public String serialize() {
-    try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(bos)) {
-      rwLock.readLock().lock();
-      oos.writeObject(this);
-      oos.flush();
-      return Base64.getEncoder().encodeToString(bos.toByteArray());
+    try {
+      final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(this);
+      return Base64.getEncoder().encodeToString(bytes);
     } catch (Exception e) {
       throw new KsqlException("Couldn't encode consistency token", e);
-    } finally {
-      rwLock.readLock().unlock();
     }
   }
 
-  public void deserialize(final String serializedString) {
-    final byte[] data = Base64.getDecoder().decode(serializedString);
-    try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
-      final ConsistencyOffsetVector ct = (ConsistencyOffsetVector) in.readObject();
-      version = ct.version;
-      offsetVector.putAll(ct.offsetVector);
+  public static ConsistencyOffsetVector deserialize(final String token) {
+    try {
+      final byte[] bytes = Base64.getDecoder().decode(token);
+      return OBJECT_MAPPER.readValue(bytes, ConsistencyOffsetVector.class);
     } catch (Exception e) {
       throw new KsqlException("Couldn't decode consistency token", e);
     }
@@ -223,6 +236,18 @@ public class ConsistencyOffsetVector implements OffsetVector, Serializable {
     sb.append(", rwLock=").append(rwLock);
     sb.append('}');
     return sb.toString();
+  }
+
+  public static boolean isConsistencyVectorEnabled(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overrides
+  ) {
+    if (overrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+      return Boolean.TRUE.equals(overrides.get(
+          KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED));
+    } else {
+      return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED);
+    }
   }
 
   public static boolean isConsistencyVectorEnabled(final Map<String, Object> requestProperties) {

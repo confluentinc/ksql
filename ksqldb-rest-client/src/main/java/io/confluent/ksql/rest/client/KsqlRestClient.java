@@ -48,13 +48,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public final class KsqlRestClient implements Closeable {
 
   private final KsqlClient client;
   private final LocalProperties localProperties;
-  private final ConsistencyOffsetVector consistencyOffsetVector;
+  private final AtomicReference<String> serializedConsistencyVector;
 
   private List<URI> serverAddresses;
 
@@ -91,8 +92,7 @@ public final class KsqlRestClient implements Closeable {
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
     final KsqlClient client = clientSupplier.get(clientProps, creds, localProperties);
-    final ConsistencyOffsetVector consistencyOffsetVector = new ConsistencyOffsetVector();
-    return new KsqlRestClient(client, serverAddress, localProperties, consistencyOffsetVector);
+    return new KsqlRestClient(client, serverAddress, localProperties);
   }
 
   @FunctionalInterface
@@ -107,14 +107,12 @@ public final class KsqlRestClient implements Closeable {
   private KsqlRestClient(
       final KsqlClient client,
       final String serverAddress,
-      final LocalProperties localProps,
-      final ConsistencyOffsetVector consistencyOffsetVector
+      final LocalProperties localProps
   ) {
     this.client = requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = requireNonNull(localProps, "localProps");
-    this.consistencyOffsetVector = requireNonNull(
-        consistencyOffsetVector, "consistencyOffsetVector");
+    this.serializedConsistencyVector = new AtomicReference<>();
   }
 
   public URI getServerAddress() {
@@ -202,9 +200,10 @@ public final class KsqlRestClient implements Closeable {
     KsqlTarget target = target();
     final Map<String, Object> requestProperties = new HashMap<>();
     if (ConsistencyOffsetVector.isConsistencyVectorEnabled(localProperties.toMap())) {
-      requestProperties.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          getConsistencyOffsetVector().serialize());
+      final String serializedCV = serializedConsistencyVector.get();
+      // KsqlRequest:serializeClassValues throws NPE for null value
+      requestProperties.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          serializedCV == null ? "" : serializedCV);
     }
     if (properties != null) {
       target = target.properties(properties);
@@ -270,9 +269,9 @@ public final class KsqlRestClient implements Closeable {
   }
 
   @VisibleForTesting
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
-  public ConsistencyOffsetVector getConsistencyOffsetVector() {
-    return consistencyOffsetVector;
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
+  public AtomicReference<String> getSerializedConsistencyVector() {
+    return serializedConsistencyVector;
   }
 
   private KsqlTarget target() {

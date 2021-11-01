@@ -37,7 +37,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class DataSourceExtractor {
+public class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
@@ -48,7 +48,8 @@ class DataSourceExtractor {
 
   private boolean isJoin = false;
 
-  DataSourceExtractor(final MetaStore metaStore, final boolean rowpartitionRowoffsetEnabled) {
+  public DataSourceExtractor(final MetaStore metaStore,
+                             final boolean rowpartitionRowoffsetEnabled) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
   }

@@ -16,19 +16,26 @@ package io.confluent.ksql.rest.server.computation;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.engine.rewrite.DataSourceExtractor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -41,6 +48,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -214,7 +223,8 @@ public class DistributingExecutor {
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
-          queuedCommandStatus.getCommandSequenceNumber()
+          queuedCommandStatus.getCommandSequenceNumber(),
+          getDeprecatedWarnings(executionContext.getMetaStore(), injected)
       )));
     } catch (final ProducerFencedException
         | OutOfOrderSequenceException
@@ -239,6 +249,64 @@ public class DistributingExecutor {
     } finally {
       transactionalProducer.close();
     }
+  }
+
+  /**
+   * @return a list of warning messages for deprecated syntax statements
+   */
+  private List<KsqlWarning> getDeprecatedWarnings(
+      final MetaStore metaStore,
+      final ConfiguredStatement<?> statement
+  ) {
+    final List<KsqlWarning> deprecatedWarnings = new ArrayList<>();
+
+    if (isLeftOrOuterStreamStreamJoinWithoutGrace(metaStore, statement.getStatement())) {
+      deprecatedWarnings.add(new KsqlWarning(
+          "DEPRECATION NOTICE: Left/Outer stream-stream joins statements without a GRACE PERIOD "
+              + "will not be accepted in a future ksqlDB version.\n"
+              + "Please use the GRACE PERIOD clause as specified in "
+              + "https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/"
+              + "select-push-query/"
+      ));
+    }
+
+    return deprecatedWarnings;
+  }
+
+  private boolean isLeftOrOuterStreamStreamJoinWithoutGrace(
+      final MetaStore metaStore,
+      final Statement statement
+  ) {
+    // Check only CREATE_AS statements.
+    // Pull and push queries are not written in the command topic.
+    if (!(statement instanceof CreateAsSelect)) {
+      return false;
+    }
+
+    if (((CreateAsSelect) statement).getQuery().getFrom() instanceof Join) {
+      final Join join = (Join) ((CreateAsSelect) statement).getQuery().getFrom();
+
+      // Check join sources are streams only
+      final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore, false);
+      dataSourceExtractor.extractDataSources(((CreateAsSelect) statement).getQuery());
+      for (final Analysis.AliasedDataSource dataSource : dataSourceExtractor.getAllSources()) {
+        if (dataSource.getDataSource().getDataSourceType() != DataSource.DataSourceType.KSTREAM) {
+          return false;
+        }
+      }
+
+      // Check for left/outer join types and a grace period clause
+      for (final JoinedSource joinedSource : join.getRights()) {
+        if (joinedSource.getType() == JoinedSource.Type.LEFT
+            || joinedSource.getType() == JoinedSource.Type.OUTER) {
+          if (!joinedSource.getWithinExpression().flatMap(WithinExpression::getGrace).isPresent()) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private void checkAuthorization(

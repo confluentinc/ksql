@@ -183,26 +183,8 @@ public class StreamedRowTest {
         StreamedRow.consistencyToken(new ConsistencyToken(CONSISTENCY_TOKEN.serialize()));
 
     final String expectedJson =
-        "{\"consistencyToken\":{\"consistencyToken\":\"rO0ABXNyAC5pby5jb25mbHVlbnQua3NxbC51dGlsLk"
-            + "NvbnNpc3RlbmN5T2Zmc2V0VmVjdG9yW3VgUlObgBkCAANJAAd2ZXJzaW9uTAAMb2Zmc2V0VmVjdG9ydAAPT"
-            + "GphdmEvdXRpbC9NYXA7TAAGcndMb2NrdAAqTGphdmEvdXRpbC9jb25jdXJyZW50L2xvY2tzL1JlYWRXcml0"
-            + "ZUxvY2s7eHAAAAAAc3IAEWphdmEudXRpbC5IYXNoTWFwBQfawcMWYNEDAAJGAApsb2FkRmFjdG9ySQAJdGh"
-            + "yZXNob2xkeHA/QAAAAAAADHcIAAAAEAAAAAF0AAZ0YWJsZTFzcQB+AAQ/QAAAAAAAA3cIAAAABAAAAAJzcg"
-            + "ARamF2YS5sYW5nLkludGVnZXIS4qCk94GHOAIAAUkABXZhbHVleHIAEGphdmEubGFuZy5OdW1iZXKGrJUdC"
-            + "5TgiwIAAHhwAAAAAXNyAA5qYXZhLmxhbmcuTG9uZzuL5JDMjyPfAgABSgAFdmFsdWV4cQB+AAkAAAAAAAAA"
-            + "AXNxAH4ACAAAAAJzcQB+AAsAAAAAAAAAAnh4c3IAMWphdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW5"
-            + "0cmFudFJlYWRXcml0ZUxvY2ue9dUA8LVoTAIAA0wACnJlYWRlckxvY2t0ADxMamF2YS91dGlsL2NvbmN1cn"
-            + "JlbnQvbG9ja3MvUmVlbnRyYW50UmVhZFdyaXRlTG9jayRSZWFkTG9jaztMAARzeW5jdAA4TGphdmEvdXRpb"
-            + "C9jb25jdXJyZW50L2xvY2tzL1JlZW50cmFudFJlYWRXcml0ZUxvY2skU3luYztMAAp3cml0ZXJMb2NrdAA9"
-            + "TGphdmEvdXRpbC9jb25jdXJyZW50L2xvY2tzL1JlZW50cmFudFJlYWRXcml0ZUxvY2skV3JpdGVMb2NrO3h"
-            + "wc3IAOmphdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW50cmFudFJlYWRXcml0ZUxvY2skUmVhZExvY2"
-            + "us1ou0mBloTAIAAUwABHN5bmNxAH4AEXhwc3IAPWphdmEudXRpbC5jb25jdXJyZW50LmxvY2tzLlJlZW50c"
-            + "mFudFJlYWRXcml0ZUxvY2skTm9uZmFpclN5bmOOwy/Ojx0DYwIAAHhyADZqYXZhLnV0aWwuY29uY3VycmVu"
-            + "dC5sb2Nrcy5SZWVudHJhbnRSZWFkV3JpdGVMb2NrJFN5bmNXrODFP0EruQIAAHhyADVqYXZhLnV0aWwuY29"
-            + "uY3VycmVudC5sb2Nrcy5BYnN0cmFjdFF1ZXVlZFN5bmNocm9uaXplcmZVqEN1P1LjAgABSQAFc3RhdGV4cg"
-            + "A2amF2YS51dGlsLmNvbmN1cnJlbnQubG9ja3MuQWJzdHJhY3RPd25hYmxlU3luY2hyb25pemVyM9+vua1tb"
-            + "6kCAAB4cAABAABxAH4AGnNyADtqYXZhLnV0aWwuY29uY3VycmVudC5sb2Nrcy5SZWVudHJhbnRSZWFkV3Jp"
-            + "dGVMb2NrJFdyaXRlTG9ja7q3Qmg/fWhMAgABTAAEc3luY3EAfgAReHBxAH4AGg==\"}}";
+        "{\"consistencyToken\":{\"consistencyToken\":\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsidGFi"
+            + "bGUxIjp7IjEiOjEsIjIiOjJ9fX0=\"}}";
 
     testRoundTrip(row, expectedJson);
   }

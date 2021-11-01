@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +61,7 @@ public class ConsistencyOffsetVector implements OffsetVector {
     this.rwLock = new ReentrantReadWriteLock();
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonCreator
   public ConsistencyOffsetVector(
       final @JsonProperty(value = "version", required = true) int version,

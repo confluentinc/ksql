@@ -16,7 +16,7 @@ Today, users of pull queries don't have a simple way of restricting the amount o
 user just wants to see some of the rows in a table or a few records in a stream, they would very often issue queries of 
 the form `SELECT * FROM table/stream;`. Issuing pull queries of this form can be very computationally intensive if the 
 underlying table/stream on which the pull query is being executed has a large amount of data. This can also lead them to 
-incurring large bandwidth costs when all they wanted to do was inspect a small amount of data from the taable or stream. 
+incurring large bandwidth costs when all they wanted to do was inspect a small amount of data from the table or stream. 
 In the future, the `LIMIT` clause will also enhance the expressivity of pull query SQL syntax in conjunction with 
 potential `OFFSET` and `ORDER BY` clauses which can unlock new use cases for pull queries. 
 

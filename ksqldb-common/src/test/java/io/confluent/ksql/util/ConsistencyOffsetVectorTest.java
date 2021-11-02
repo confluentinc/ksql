@@ -16,8 +16,6 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
@@ -35,14 +33,11 @@ public class ConsistencyOffsetVectorTest {
     offsetVector.addTopicOffsets("testTopic", ImmutableMap.of(1, 1L, 2, 2L, 3, 3L));
 
     // When:
-    offsetVector.deserialize(offsetVector.serialize());
+    final ConsistencyOffsetVector deserializedCV =
+        ConsistencyOffsetVector.deserialize(offsetVector.serialize());
 
     // Then:
-    assertThat(offsetVector.getOffsetVector().keySet(), contains("testTopic"));
-    assertThat(offsetVector.getOffsetVector().get("testTopic").keySet(), hasSize(3));
-    assertThat(offsetVector.getOffsetVector().get("testTopic").get(1), is(1L));
-    assertThat(offsetVector.getOffsetVector().get("testTopic").get(2), is(2L));
-    assertThat(offsetVector.getOffsetVector().get("testTopic").get(3), is(3L));
+    assertThat(deserializedCV.equals(offsetVector), is(true));
   }
 
   @Test

@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
@@ -100,6 +101,9 @@ public class ConsistencyOffsetVectorFunctionalTest {
   private static final String PULL_QUERY_ON_TABLE =
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
 
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
+      new ConsistencyOffsetVector(2, ImmutableMap.of("dummy",
+                                                     ImmutableMap.of(5, 5L, 6, 6L, 7, 7L)));
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
 
@@ -319,12 +323,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
   private static void verifyConsistencyVector(final String serializedCV) {
     final ConsistencyOffsetVector cvResponse = ConsistencyOffsetVector.deserialize(serializedCV);
-    assertThat(cvResponse.getVersion(), is(2));
-    assertThat(cvResponse.getOffsetVector().keySet(), hasSize(1));
-    assertThat(cvResponse.getTopicOffsets("dummy").keySet(), hasSize(3));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(5), is(5L));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(6), is(6L));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(7), is(7L));
+    assertThat(cvResponse.equals(CONSISTENCY_OFFSET_VECTOR), is(true));
   }
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {

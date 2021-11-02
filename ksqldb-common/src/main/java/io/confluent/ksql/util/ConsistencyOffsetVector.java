@@ -22,8 +22,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Base64;
 import java.util.HashMap;
@@ -75,16 +73,6 @@ public class ConsistencyOffsetVector implements OffsetVector {
 
   public int getVersion() {
     return version;
-  }
-
-  @VisibleForTesting
-  public ImmutableMap<String, Map<Integer, Long>> getOffsetVector() {
-    return ImmutableMap.copyOf(offsetVector);
-  }
-
-  @VisibleForTesting
-  public Map<Integer, Long> getTopicOffsets(final String topicID) {
-    return ImmutableMap.copyOf(offsetVector.get(topicID));
   }
 
   public void addTopicOffsets(final String topicID, final Map<Integer, Long> offsets) {

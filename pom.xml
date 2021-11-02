@@ -136,8 +136,7 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
-        <!-- Temporarily disabling this because it is causing failures in packaging but not CI builds. -->
-        <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
+        <compile.warnings-flag>-Werror</compile.warnings-flag>
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>

@@ -71,7 +71,7 @@ This will result in returning the first set of n (where n is the limit requested
 upstream operators and stop scanning for rows after that. If the limit isn't reached and we run out of rows to return 
 (exhausting the rows that conform to our query), then the operator will just return. 
 
-As an example, if we have a table called `ridersNearMountainView` with 
+As an example, if we have a `TABLE` called `ridersNearMountainView` with 
 `Schema: DISTANCEINMILES DOUBLE KEY, RIDERS ARRAY<STRING>, COUNT BIGINT`, and we execute a pull query of the form:
 ```SQL
 SELECT distanceinmiles, riders 
@@ -134,7 +134,7 @@ information will then be used to create a `TransientQueryQueue` which has a size
 `TransientQueryQueue` will continue accepting stream records from the beginning of the stream flowing from the execution 
 steps of the physical plan till it is full and then return.
 
-As an example, if we have a table called `ridersNearMountainView` with 
+As an example, if we have a `STREAM` called `riderlocations` with 
 `Schema: profileId VARCHAR, latitude DOUBLE, longitude DOUBLE`, and we execute a pull query of the form:
 
 ```SQL

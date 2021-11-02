@@ -155,9 +155,6 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
-    final Optional<Integer> keySchemaId = getKeySchemaId();
-    keySchemaId.ifPresent(id -> builder.put(ConnectFormat.KEY_SCHEMA_ID, String.valueOf(id)));
-
     return builder.build();
   }
 
@@ -180,9 +177,6 @@ public final class CreateSourceProperties {
     if (delimiter != null) {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
-
-    final Optional<Integer> valueSchemaId = getValueSchemaId();
-    valueSchemaId.ifPresent(id -> builder.put(ConnectFormat.VALUE_SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
   }

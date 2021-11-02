@@ -27,6 +27,8 @@ import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
@@ -98,7 +100,8 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       }
 
       final ParsedSchema schema = srClient.getSchemaBySubjectAndId(subject, id);
-      return fromParsedSchema(topicName, id, schema, expectedFormat, serdeFeatures, isKey);
+      return fromParsedSchema(topicName, id, schema, expectedFormat, serdeFeatures, isKey,
+          schemaId.isPresent());
     } catch (final RestClientException e) {
       switch (e.getStatus()) {
         case HttpStatus.SC_NOT_FOUND:
@@ -121,10 +124,14 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       final ParsedSchema parsedSchema,
       final FormatInfo expectedFormat,
       final SerdeFeatures serdeFeatures,
-      final boolean isKey
+      final boolean isKey,
+      final boolean isIdProvided
   ) {
     final Format format = formatFactory.apply(expectedFormat);
-    final SchemaTranslator translator = format.getSchemaTranslator(expectedFormat.getProperties());
+    final SchemaTranslator translator =
+        isIdProvided ? format.getSchemaTranslator(expectedFormat.getProperties(),
+            SchemaTranslationPolicies.of(SchemaTranslationPolicy.ORIGINAL_FIELD_NAME))
+            : format.getSchemaTranslator(expectedFormat.getProperties());
 
     if (!parsedSchema.schemaType().equals(translator.name())) {
       return incorrectFormat(topic, translator.name(), parsedSchema.schemaType(), isKey);
@@ -172,7 +179,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   private static SchemaResult notFound(final String topicName, final boolean isKey) {
     final String subject = getSRSubject(topicName, isKey);
     return SchemaResult.failure(new KsqlException(
-        "Schema for message " + (isKey ? "keys" : "values") +  " on topic '" + topicName + "'"
+        "Schema for message " + (isKey ? "keys" : "values") + " on topic '" + topicName + "'"
             + " does not exist in the Schema Registry."
             + System.lineSeparator()
             + "Subject: " + subject

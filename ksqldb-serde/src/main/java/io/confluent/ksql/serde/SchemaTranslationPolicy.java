@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.connect;
+package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -24,44 +24,44 @@ import java.util.Set;
 /**
  * Connect schema translation policy for translator
  */
-public enum ConnectSchemaTranslationPolicy implements
-    CompatibleElement<ConnectSchemaTranslationPolicy> {
+public enum SchemaTranslationPolicy implements
+    CompatibleElement<SchemaTranslationPolicy> {
 
   /**
    * This policy will uppercase field name during schema translation
    *
-   * @see ConnectSchemaTranslationPolicy#ORIGINAL_FIELD_NAME
+   * @see SchemaTranslationPolicy#ORIGINAL_FIELD_NAME
    */
   UPPERCASE_FIELD_NAME("ORIGINAL_FIELD_NAME"),
 
   /**
    * This policy will keep original field name during schema translation
    *
-   * @see ConnectSchemaTranslationPolicy#UPPERCASE_FIELD_NAME
+   * @see SchemaTranslationPolicy#UPPERCASE_FIELD_NAME
    */
   ORIGINAL_FIELD_NAME("UPPERCASE_FIELD_NAME");
 
   private final ImmutableSet<String> unvalidated;
-  private ImmutableSet<ConnectSchemaTranslationPolicy> incompatibleWith;
+  private ImmutableSet<SchemaTranslationPolicy> incompatibleWith;
 
-  ConnectSchemaTranslationPolicy(final String... incompatibleWith) {
+  SchemaTranslationPolicy(final String... incompatibleWith) {
     this.unvalidated = ImmutableSet.copyOf(incompatibleWith);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
   @Override
-  public Set<ConnectSchemaTranslationPolicy> getIncompatibleWith() {
+  public Set<SchemaTranslationPolicy> getIncompatibleWith() {
     return incompatibleWith;
   }
 
   private void validate() {
     this.incompatibleWith = unvalidated.stream()
-        .map(ConnectSchemaTranslationPolicy::valueOf)
+        .map(SchemaTranslationPolicy::valueOf)
         .collect(ImmutableSet.toImmutableSet());
   }
 
   static {
-    Arrays.stream(ConnectSchemaTranslationPolicy.values())
-        .forEach(ConnectSchemaTranslationPolicy::validate);
+    Arrays.stream(SchemaTranslationPolicy.values())
+        .forEach(SchemaTranslationPolicy::validate);
   }
 }

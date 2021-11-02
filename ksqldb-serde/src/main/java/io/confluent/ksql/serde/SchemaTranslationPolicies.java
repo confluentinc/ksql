@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.serde.connect;
+package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.util.CompatibleSet;
@@ -22,24 +22,24 @@ import java.util.Set;
 /**
  * Validated set of connect schema translation policies
  */
-public final class ConnectSchemaTranslationPolicies extends
-    CompatibleSet<ConnectSchemaTranslationPolicy> {
+public final class SchemaTranslationPolicies extends
+    CompatibleSet<SchemaTranslationPolicy> {
 
-  public static ConnectSchemaTranslationPolicies from(
-      final Set<ConnectSchemaTranslationPolicy> policies) {
-    return new ConnectSchemaTranslationPolicies(policies);
+  public static SchemaTranslationPolicies from(
+      final Set<SchemaTranslationPolicy> policies) {
+    return new SchemaTranslationPolicies(policies);
   }
 
-  public static ConnectSchemaTranslationPolicies of(
-      final ConnectSchemaTranslationPolicy... policies) {
-    return new ConnectSchemaTranslationPolicies(ImmutableSet.copyOf(policies));
+  public static SchemaTranslationPolicies of(
+      final SchemaTranslationPolicy... policies) {
+    return new SchemaTranslationPolicies(ImmutableSet.copyOf(policies));
   }
 
-  private ConnectSchemaTranslationPolicies(final Set<ConnectSchemaTranslationPolicy> policies) {
+  private SchemaTranslationPolicies(final Set<SchemaTranslationPolicy> policies) {
     super(policies);
   }
 
-  public boolean enabled(final ConnectSchemaTranslationPolicy policy) {
+  public boolean enabled(final SchemaTranslationPolicy policy) {
     return contains(policy);
   }
 }

@@ -58,7 +58,7 @@ SELECT select_expr [, ...]                 SELECT select_expr [, ...]
 
 ## Design
 ### For Pull Queries over Tables
-Pull query execution relies on building a logical plan which is then translated into a physical plan.The `LIMIT` clause 
+Pull query execution relies on building a logical plan which is then translated into a physical plan. The `LIMIT` clause 
 of pull queries will be translated into a `QueryLimitNode` in the logical plan. If present, the `QueryLimitNode` will be 
 the parent node of `QueryProjectNode` in the logical plan. The `QueryLimitNode` will then be translated into an operator 
 called the `LimitOperator` in the physical plan by the pull query physical plan builder. The `LimitOperator` will wil be 

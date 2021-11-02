@@ -561,8 +561,6 @@ public class ClientIntegrationTest {
     assertThat(batchedQueryResult.get().get(0).getBoolean(1), is(false));
   }
 
-
-
   @Test
   public void shouldExecutePushWithLimitQuery() throws Exception {
     // When

@@ -497,7 +497,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
         final String serializedCV = (String)requestProperties.get(
             KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
-        // serializedCV will be null on the first request as the consistency vector is initialized
+        // serializedCV will be empty on the first request as the consistency vector is initialized
         // at the server
         consistencyOffsetVector = !serializedCV.equals("")
             ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))

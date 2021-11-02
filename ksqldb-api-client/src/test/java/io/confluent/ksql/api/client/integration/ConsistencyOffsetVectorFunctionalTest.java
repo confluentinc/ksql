@@ -18,6 +18,7 @@ package io.confluent.ksql.api.client.integration;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -51,7 +52,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Context;
@@ -107,7 +107,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
-      .withProperty("ksql.query.pull.consistency.token.enabled", true)
+      .withProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .build();
 
   @ClassRule
@@ -167,7 +167,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
     // Given
-    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
@@ -189,7 +189,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableSync() throws Exception {
     // Given
-    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
@@ -206,7 +206,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenExecutePullQuery() throws Exception {
     // Given
-    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 
     // When
     final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
@@ -223,7 +223,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   public void shouldRoundTripCVWhenPullQueryHttp1() throws Exception {
     // Given
     final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    ksqlRestClient.setProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    ksqlRestClient.setProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 
     // When
     final RestResponse<StreamPublisher<StreamedRow>> response =
@@ -240,7 +240,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldNotRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
     // Given
-    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
 
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
@@ -259,7 +259,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldNotRoundTripCVWhenPullQueryOnTableSync() throws Exception {
     // Given
-    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
 
     // When
     final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
@@ -274,7 +274,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldNotRoundTripCVWhenExecutePullQuery() throws Exception {
     // Given
-    ((ClientImpl)client).setRequestProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
 
     // When
     final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
@@ -288,7 +288,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test(timeout = 120000L)
   public void shouldNotRoundTripCVHttp1() throws Exception {
     final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    ksqlRestClient.setProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+    ksqlRestClient.setProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
 
     final RestResponse<StreamPublisher<StreamedRow>> response =
         ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L);
@@ -368,5 +368,4 @@ public class ConsistencyOffsetVectorFunctionalTest {
       future.completeExceptionally(t);
     }
   }
-
 }

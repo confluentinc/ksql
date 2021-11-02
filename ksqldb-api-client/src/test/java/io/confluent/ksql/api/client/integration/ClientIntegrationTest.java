@@ -85,7 +85,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -1142,16 +1141,6 @@ public class ClientIntegrationTest {
     assertThat(obj.containsKey("notafield"), is(false));
     assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
     assertThat(obj.toString(), is(obj.toJsonString()));
-  }
-
-  private static void verifyConsistencyVector(final String serializedCV) {
-    final ConsistencyOffsetVector cvResponse = ConsistencyOffsetVector.deserialize(serializedCV);
-    assertThat(cvResponse.getVersion(), is(2));
-    assertThat(cvResponse.getOffsetVector().keySet(), hasSize(1));
-    assertThat(cvResponse.getTopicOffsets("dummy").keySet(), hasSize(3));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(5), is(5L));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(6), is(6L));
-    assertThat(cvResponse.getTopicOffsets("dummy").get(7), is(7L));
   }
 
   private static void verifyPullQueryRows(final List<Row> rows) {

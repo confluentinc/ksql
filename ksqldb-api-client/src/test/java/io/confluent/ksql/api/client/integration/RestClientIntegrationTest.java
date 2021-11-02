@@ -27,7 +27,6 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -43,7 +42,6 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
-import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
@@ -55,7 +53,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -70,8 +67,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.reactivestreams.Subscription;
-
 
 /**
  * This integration test is displaced from the rest-client package
@@ -88,7 +83,6 @@ public class RestClientIntegrationTest {
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
   private static final String AGG_TABLE = "AGG_TABLE";
-  private static final String AN_AGG_KEY = "STRUCT(F1 := ARRAY['a'])";
   private static final PhysicalSchema AGG_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
           .keyColumn(ColumnName.of("K"), SqlTypes.struct()
@@ -109,8 +103,6 @@ public class RestClientIntegrationTest {
   private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
-  private static final String PULL_QUERY_ON_TABLE =
-      "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -143,7 +135,7 @@ public class RestClientIntegrationTest {
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
-        + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
+                        + "SELECT K, LATEST_BY_OFFSET(LONG) AS LONG FROM " + TEST_STREAM + " GROUP BY K;"
     );
 
     TEST_HARNESS.verifyAvailableUniqueRows(
@@ -224,52 +216,5 @@ public class RestClientIntegrationTest {
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
-  }
-
-  private <T> List<T> getElementsFromPublisher(int numElements, StreamPublisher<T> publisher)
-      throws Exception {
-    CompletableFuture<List<T>> future = new CompletableFuture<>();
-    CollectSubscriber<T> subscriber = new CollectSubscriber<>(vertx.getOrCreateContext(),
-                                                              future, numElements);
-    publisher.subscribe(subscriber);
-    return future.get();
-  }
-
-  private static class CollectSubscriber<T> extends BaseSubscriber<T> {
-
-    private final CompletableFuture<List<T>> future;
-    private final List<T> list = new ArrayList<>();
-    private final int numRows;
-
-    public CollectSubscriber(final Context context, CompletableFuture<List<T>> future,
-                             final int numRows) {
-      super(context);
-      this.future = future;
-      this.numRows = numRows;
-    }
-
-    @Override
-    protected void afterSubscribe(final Subscription subscription) {
-      makeRequest(1);
-    }
-
-    @Override
-    protected void handleValue(final T value) {
-      list.add(value);
-      if (list.size() == numRows) {
-        future.complete(new ArrayList<>(list));
-      }
-      makeRequest(1);
-    }
-
-    @Override
-    protected void handleComplete() {
-      future.complete(new ArrayList<>(list));
-    }
-
-    @Override
-    protected void handleError(final Throwable t) {
-      future.completeExceptionally(t);
-    }
   }
 }

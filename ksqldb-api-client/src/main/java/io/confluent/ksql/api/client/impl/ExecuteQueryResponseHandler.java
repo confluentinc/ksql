@@ -82,8 +82,14 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
       }
     } else  if (json instanceof JsonArray) {
       final JsonArray values = new JsonArray(buff);
-      row = new RowImpl(columnNames, columnTypes, values, columnNameToIndex);
-      addToList(row);
+      if (rows.size() < maxRows) {
+        rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
+      } else {
+        throw new KsqlClientException(
+            "Reached max number of rows that may be returned by executeQuery(). "
+                + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
+                + "Current limit: " + maxRows);
+      }
     } else {
       throw new RuntimeException("Could not decode JSON: " + json);
     }
@@ -102,16 +108,5 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   public void handleExceptionAfterFutureCompleted(final Throwable t) {
     // This should not happen
     log.error("Exceptions should not occur after the future has been completed", t);
-  }
-
-  private void addToList(final Row row) {
-    if (rows.size() < maxRows) {
-      rows.add(row);
-    } else {
-      throw new KsqlClientException(
-          "Reached max number of rows that may be returned by executeQuery(). "
-              + "Increase the limit via ClientOptions#setExecuteQueryMaxResultRows(). "
-              + "Current limit: " + maxRows);
-    }
   }
 }

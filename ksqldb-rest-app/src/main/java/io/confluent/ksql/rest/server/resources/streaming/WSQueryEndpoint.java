@@ -308,9 +308,9 @@ public class WSQueryEndpoint {
               KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
         final String serializedCV = (String)requestProperties.get(
             KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
-        // serializedCV will be null on the first request as the consistency vector is initialized
+        // serializedCV will be empty on the first request as the consistency vector is initialized
         // at the server
-        consistencyOffsetVector = serializedCV != null
+        consistencyOffsetVector = serializedCV != ""
             ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
             : Optional.of(new ConsistencyOffsetVector());
       }

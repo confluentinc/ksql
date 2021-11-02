@@ -74,6 +74,7 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -221,6 +222,7 @@ public class RestApiTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .build();
 
   @ClassRule
@@ -782,27 +784,6 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
-    // When:
-    Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        Optional.empty(),
-        Optional.of(requestProperties)
-    );
-
-    // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
-    assertValidJsonMessages(messages);
-    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
-                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
-  }
-
-  @Test
   public void shouldExecutePullQueryOverWebSocketWithJsonContentType() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
@@ -823,27 +804,6 @@ public class RestApiTest {
             + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
-  }
-
-  @Test
-  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
-    // When:
-    Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON,
-        Optional.empty(),
-        Optional.of(requestProperties)
-    );
-
-    // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
-    assertValidJsonMessages(messages);
-    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
-                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
   @Test
@@ -948,6 +908,54 @@ public class RestApiTest {
         }
       }, is(1));
       assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+  }
+
+  @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
+    // Given:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+  }
+
+  @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
+    // Given:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
   }
 
   @Test

@@ -91,11 +91,6 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     // we hit the limit, but for query completion, we should just end the response stream.
     this.queue.setCompletionHandler(() -> {
       complete = true;
-
-      if (isPullQuery) {
-        queryHandle.getConsistencyOffsetVector().ifPresent(
-            ((PullQueryQueue) queue)::putConsistencyVector);
-      }
       // This allows us to finish the query immediately if the query is already fully streamed.
       if (queue.isEmpty()) {
         ctx.runOnContext(v -> sendComplete());

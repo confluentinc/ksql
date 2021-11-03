@@ -9,13 +9,10 @@
 `LIMIT` clause will enable users to save on computation, time and bandwidth costs by giving them an easy way to restrict 
 the number of rows returned. In the future, the `LIMIT` clause can also be used to write more expressive queries in 
 conjunction with `OFFSET` and `ORDER BY` clauses. 
+> **_NOTE:_** ksqlDB pull queries don't support `OFFSET` and `ORDER BY` currently. 
 
----
-**NOTE**
 
-ksqlDB pull queries don't support `OFFSET` and `ORDER BY` currently. 
 
----
 
 ## Motivation and background
 
@@ -45,7 +42,7 @@ just get a quick look of what the underlying table or stream looks like (the sch
 
 ## Public APIS
 
-#####ksqlDB query language: 
+##### ksqlDB query language: 
 Users will be able to add a `LIMIT n` clause at the end of their pull queries to retrievea subset of the data from tables 
 and streams. Earlier, users would get this error if they issued a pull query with a `LIMIT` clause: 
 ```

@@ -1361,6 +1361,10 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
+  public boolean keyExistsInConfigPropMap(final String key) {
+    return ksqlStreamConfigProps.containsKey(key);
+  }
+
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(

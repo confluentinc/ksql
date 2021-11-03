@@ -130,6 +130,14 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldReturnTrueIfKeyExistsInConfigMap() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+
+    assertThat(ksqlConfig.keyExistsInConfigPropMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), equalTo(true));
+    assertThat(ksqlConfig.keyExistsInConfigPropMap(ConsumerConfig.FETCH_MIN_BYTES_CONFIG), equalTo(false));
+  }
+
+  @Test
   public void shouldSetStreamsConfigConsumerKsqlPrefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(

@@ -42,6 +42,7 @@ import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
@@ -107,7 +108,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
-  private final KsqlConfig ksqlConfig;
+  private KsqlConfig ksqlConfig;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -323,6 +324,24 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
     }
   }
+
+  public KsqlConfig getKsqlConfig() {
+    return this.ksqlConfig;
+  }
+
+  public void alterSystemProperty(final PreparedStatement<AlterSystemProperty> alterSystemQuery) {
+    final String propertyName = alterSystemQuery.getStatement().getPropertyName();
+    final String propertyValue = alterSystemQuery.getStatement().getPropertyValue();
+    final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
+
+    if (!ksqlConfig.keyExistsInConfigPropMap(propertyName)) {
+      throw new KsqlStatementException(
+          String.format("Failed to set %s to %s. Caused by: Not recognizable as ksql, streams, consumer, or producer property: %s \n",
+              propertyName, propertyValue, propertyName), alterSystemQuery.getStatementText());
+    }
+    this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
+  }
+
 
   public StreamPullQueryMetadata createStreamPullQuery(
       final ServiceContext serviceContext,

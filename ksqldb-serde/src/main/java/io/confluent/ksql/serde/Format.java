@@ -91,8 +91,8 @@ public interface Format {
    * @return the converter
    * @see SerdeFeature#SCHEMA_INFERENCE
    */
-  default SchemaTranslator getSchemaTranslator(Map<String, String> formatProperties,
-      SchemaTranslationPolicies policies) {
+  default SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties,
+      final SchemaTranslationPolicies policies) {
     throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");
   }
 

@@ -20,9 +20,9 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SchemaTranslationPolicies;
 import io.confluent.ksql.serde.SchemaTranslationPolicy;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
@@ -62,7 +62,7 @@ public abstract class ConnectFormat implements Format {
 
   @Override
   public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties,
-      SchemaTranslationPolicies policies) {
+      final SchemaTranslationPolicies policies) {
     return new ConnectFormatSchemaTranslator(
         this,
         formatProperties,

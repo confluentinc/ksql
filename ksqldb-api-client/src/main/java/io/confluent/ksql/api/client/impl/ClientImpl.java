@@ -36,7 +36,6 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
-import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
@@ -87,7 +86,6 @@ public class ClientImpl implements Client {
   private final boolean ownedVertx;
   private final Map<String, Object> sessionVariables;
   private final Map<String, Object> requestProperties;
-  private final LocalPropertyParser parser;
   private final AtomicReference<String> serializedConsistencyVector;
 
   /**
@@ -118,7 +116,6 @@ public class ClientImpl implements Client {
     this.sessionVariables = new HashMap<>();
     this.serializedConsistencyVector = new AtomicReference<>();
     this.requestProperties = new HashMap<>();
-    this.parser = new LocalPropertyParser();
   }
 
   @Override
@@ -131,7 +128,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestProperties)) {
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(properties)) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
@@ -153,7 +150,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestProperties)) {
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(properties)) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
@@ -439,12 +436,6 @@ public class ClientImpl implements Client {
   @Override
   public Map<String, Object> getVariables() {
     return new HashMap<>(sessionVariables);
-  }
-
-  public void setRequestProperty(final String key, final Object value) {
-    Objects.requireNonNull(value, "value");
-    final Object parsed = parser.parse(key, value);
-    requestProperties.put(key, parsed);
   }
 
   @VisibleForTesting

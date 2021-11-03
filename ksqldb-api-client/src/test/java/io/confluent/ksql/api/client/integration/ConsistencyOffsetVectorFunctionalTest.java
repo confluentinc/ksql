@@ -170,11 +170,9 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
-    // Given
-    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)).get();
 
     // Then
     shouldReceiveRows(
@@ -192,11 +190,9 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableSync() throws Exception {
-    // Given
-    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)).get();
     streamedQueryResult.poll();
 
     // Then
@@ -209,11 +205,9 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
   @Test
   public void shouldRoundTripCVWhenExecutePullQuery() throws Exception {
-    // Given
-    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(
+        PULL_QUERY_ON_TABLE, ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true));
     batchedQueryResult.get();
 
     // Then
@@ -243,11 +237,9 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
   @Test
   public void shouldNotRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
-    // Given
-    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
-
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false)).get();
 
     // Then
     shouldReceiveRows(
@@ -258,30 +250,27 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(nullValue()));
   }
 
   @Test
   public void shouldNotRoundTripCVWhenPullQueryOnTableSync() throws Exception {
-    // Given
-    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
-
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(
+        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false)).get();
     streamedQueryResult.poll();
 
     // Then
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                          is(nullValue()));
-    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
   public void shouldNotRoundTripCVWhenExecutePullQuery() throws Exception {
-    // Given
-    ((ClientImpl)client).setRequestProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
-
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(
+        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false));
     batchedQueryResult.get();
 
     // Then

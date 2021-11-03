@@ -31,26 +31,6 @@ import java.util.Optional;
 @Immutable
 public final class TableElement extends AstNode {
 
-  public enum Namespace {
-    /**
-     * Table's have PRIMARY KEYs:
-     */
-    PRIMARY_KEY,
-    /**
-     * Stream's just have KEYs:
-     */
-    KEY,
-    /**
-     * Non-key colunns:
-     */
-    VALUE,
-    HEADERS;
-
-    public boolean isKey() {
-      return this == PRIMARY_KEY || this == KEY;
-    }
-  }
-
   private final Namespace namespace;
   private final ColumnName name;
   private final Type type;
@@ -132,7 +112,7 @@ public final class TableElement extends AstNode {
   }
 
   public static Namespace getNamespace(final SqlBaseParser.TableElementContext context) {
-    if (context.HEADERS() != null) {
+    if (context.headerType() != null) {
       return Namespace.HEADERS;
     }
     return context.KEY() == null

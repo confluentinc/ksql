@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
+import static io.confluent.ksql.parser.tree.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.Namespace.PRIMARY_KEY;
+import static io.confluent.ksql.parser.tree.Namespace.VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;

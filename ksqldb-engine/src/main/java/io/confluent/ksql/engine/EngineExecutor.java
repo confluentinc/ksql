@@ -51,6 +51,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.parser.tree.Namespace;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Relation;
@@ -511,7 +512,7 @@ final class EngineExecutor {
     // keys are added if selecting all columns.
     final Select select = new Select(
         createTable.getElements().stream()
-            .filter(column -> column.getNamespace() == TableElement.Namespace.VALUE)
+            .filter(column -> column.getNamespace() == Namespace.VALUE)
             .map(column -> new SingleColumn(
                 new UnqualifiedColumnReferenceExp(column.getName()),
                 Optional.of(column.getName())))

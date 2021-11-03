@@ -57,6 +57,7 @@ import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListVariables;
+import io.confluent.ksql.parser.tree.Namespace;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -698,14 +699,14 @@ public final class SqlFormatter {
 
     private static String formatTableElement(final TableElement e) {
       final String postFix;
-      switch (e.getNamespace()) {
-        case PRIMARY_KEY:
+      switch (e.getNamespace().getType()) {
+        case "PRIMARY_KEY":
           postFix = " PRIMARY KEY";
           break;
-        case KEY:
+        case "KEY":
           postFix = " KEY";
           break;
-        case HEADERS:
+        case "HEADERS":
           postFix = " HEADERS";
           break;
         default:

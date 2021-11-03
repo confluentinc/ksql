@@ -15,7 +15,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -43,7 +43,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -71,7 +71,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -99,7 +99,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -127,7 +127,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -155,7 +155,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -183,7 +183,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -211,7 +211,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11.0, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -239,7 +239,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -267,7 +267,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -295,7 +295,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -323,7 +323,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11.1, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -350,7 +350,7 @@
         {"topic": "test_topic", "timestamp": 34555, "key": 11, "value": {"id": 100}, "window": {"start": 12345, "end": 34555, "type": "session"}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -377,7 +377,7 @@
         {"topic": "test_topic", "timestamp": 1580223282456, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -405,7 +405,7 @@
         {"topic": "test_topic", "key": 1, "value": {}, "timestamp": 13251}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -432,7 +432,7 @@
         {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -458,7 +458,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "11", "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -486,7 +486,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": "should be ignored", "value": {"k": "b", "id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -514,7 +514,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -546,7 +546,7 @@
         {"topic": "test_topic", "timestamp": 5, "key": 11, "value": {"id": 111}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -659,7 +659,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -689,7 +689,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -721,7 +721,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"
@@ -755,7 +755,7 @@
         {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
       ],
       "inputConditions": {
-        "waitForQueryHeader": true
+        "waitForActivePushQuery": true
       },
       "properties": {
         "auto.offset.reset" : "latest"

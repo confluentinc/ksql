@@ -64,6 +64,7 @@ statement
     | TERMINATE identifier                                                  #terminateQuery
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
+    | ALTER SYSTEM STRING EQ STRING                                         #alterSystemProperty
     | UNSET STRING                                                          #unsetProperty
     | DEFINE variableName EQ variableValue                                  #defineVariable
     | UNDEFINE variableName                                                 #undefineVariable
@@ -546,6 +547,7 @@ VARIABLES: 'VARIABLES';
 PLUGINS: 'PLUGINS';
 HEADERS: 'HEADERS';
 HEADER: 'HEADER';
+SYSTEM: 'SYSTEM';
 
 IF: 'IF';
 

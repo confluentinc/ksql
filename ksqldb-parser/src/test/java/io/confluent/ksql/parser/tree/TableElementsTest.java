@@ -100,9 +100,9 @@ public class TableElementsTest {
   public void shouldThrowOnDuplicateHeaderColumns() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement(KEY, "k0", STRING_TYPE),
-        tableElement(KEY, "k0", STRING_TYPE),
-        tableElement(KEY, "k1", STRING_TYPE),
+        tableElement(HEADERS, "k0", STRING_TYPE),
+        tableElement(HEADERS, "k0", STRING_TYPE),
+        tableElement(HEADERS, "k1", STRING_TYPE),
         tableElement(PRIMARY_KEY, "k1", STRING_TYPE)
     );
 
@@ -125,9 +125,9 @@ public class TableElementsTest {
   public void shouldThrowOnDuplicateValueColumns() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement(HEADERS, "v0", INT_TYPE),
-        tableElement(HEADERS, "v0", INT_TYPE),
-        tableElement(HEADERS, "v1", INT_TYPE),
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(VALUE, "v1", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE)
     );
 

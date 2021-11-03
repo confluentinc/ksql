@@ -1,4 +1,4 @@
-# KLIP 57 - Kafka headers in ksqlDB
+# KLIP 57 - Reading Kafka headers in ksqlDB
 **Author**: Zara Lim (@jzaralim) | 
 **Release Target**: 0.25 | 
 **Status**: _In Discussion_ | 

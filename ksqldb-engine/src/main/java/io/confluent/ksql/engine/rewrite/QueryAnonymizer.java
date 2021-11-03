@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.AliasedRelationContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
+import io.confluent.ksql.parser.SqlBaseParser.AlterSystemPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanDefaultContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
@@ -87,6 +88,8 @@ import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.WithinExpressionContext;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
+
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -435,6 +438,12 @@ public class QueryAnonymizer {
     public String visitSetProperty(final SetPropertyContext context) {
       final String propertyName = context.STRING(0).getText();
       return String.format("SET %s='[string]'", propertyName);
+    }
+
+    @Override
+    public String visitAlterSystemProperty(final AlterSystemPropertyContext context) {
+      final String propertyName = context.STRING(0).getText();
+      return String.format("ALTER SYSTEM %s='[string]'", propertyName);
     }
 
     @Override

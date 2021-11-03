@@ -365,36 +365,22 @@ public class QueryFilterNode extends SingleSourcePlanNode {
 
     @Override
     public Void visitLikePredicate(final LikePredicate node, final Object context) {
-      final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
-      if (column == null) {
+      if (node.getValue() instanceof UnqualifiedColumnReferenceExp) {
+        final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
+        final ColumnName columnName = column.getColumnName();
+        final Column col = schema.findColumn(columnName)
+                .orElseThrow(() -> invalidWhereClauseException(
+                        "Like condition on non-existent column " + columnName, isWindowed));
+        final Expression pattern = node.getPattern();
+        if (!(pattern instanceof StringLiteral || pattern instanceof NullLiteral)) {
+          throw invalidWhereClauseException(
+                  "Like condition on non-string pattern " + pattern.getClass().getName(),
+                  isWindowed);
+        }
+      } else {
         setTableScanOrElseThrow(() -> invalidWhereClauseException("Like condition must directly "
-            + "reference a key column", isWindowed));
+                + "reference a key column", isWindowed));
       }
-      final ColumnName columnName = column.getColumnName();
-      final Column col = schema.findColumn(columnName)
-          .orElseThrow(() -> invalidWhereClauseException(
-              "Like condition on non-existent column " + columnName, isWindowed));
-
-      if (SqlBaseType.STRING != col.type().baseType()) {
-        throw invalidWhereClauseException("The column type for Like "
-            + "condition must be VARCHAR. The column type is "
-                + col.type().baseType().toString(), isWindowed);
-      }
-      return null;
-    }
-
-    @Override
-    public Void visitBetweenPredicate(final BetweenPredicate node, final Object context) {
-      final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
-      if (column == null) {
-        setTableScanOrElseThrow(() -> invalidWhereClauseException(
-            "Between condition must directly reference " + "a key column", isWindowed));
-      }
-      final ColumnName columnName = column.getColumnName();
-      schema.findColumn(columnName)
-          .orElseThrow(() -> invalidWhereClauseException(
-              "Between condition on non-existent column " + columnName, isWindowed));
-
       return null;
     }
 

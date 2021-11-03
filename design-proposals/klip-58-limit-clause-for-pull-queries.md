@@ -8,7 +8,14 @@
 **tl;dr:** Users of pull queries don't have any way of restricting the number of rows returned by a pull query. The 
 `LIMIT` clause will enable users to save on computation, time and bandwidth costs by giving them an easy way to restrict 
 the number of rows returned. In the future, the `LIMIT` clause can also be used to write more expressive queries in 
-conjunction with `OFFSET` and `ORDER BY` clauses.
+conjunction with `OFFSET` and `ORDER BY` clauses. 
+
+---
+**NOTE**
+
+ksqlDB pull queries don't support `OFFSET` and `ORDER BY` currently. 
+
+---
 
 ## Motivation and background
 
@@ -22,13 +29,13 @@ potential `OFFSET` and `ORDER BY` clauses which can unlock new use cases for pul
 
 ## What is in scope
 
-- `LIMIT` clause should be supported with pull queries on `STREAM` and `TABLE` objects.
+- `LIMIT` clause should be supported with pull queries on `STREAM` and `TABLE` objects with non-negative integers.
 - When a pull query is executed over a stream the `LIMIT` clause should output results from the beginning of the stream.
+- When the limit is reached, the underlying query terminates and free up its resources.
 
 ## What is not in scope
 - Pull queries over `TABLES` don't offer any ordering guarantees today, so the exact subset of data that will returned 
 by restricting the output using `LIMIT` won't be covered in this klip.
-- Performance profile of the `LIMIT` clause (?)
 
 ## Value/Return
 
@@ -63,13 +70,18 @@ of pull queries will be translated into a `QueryLimitNode` in the logical plan. 
 the parent node of `QueryProjectNode` in the logical plan. The `QueryLimitNode` will then be translated into an operator 
 called the `LimitOperator` in the physical plan by the pull query physical plan builder. The `LimitOperator` will wil be 
 the parent operator of `ProjectOperator` in the physical plan. The `QueryLimitNode` and `LimitOperator` will store the 
-number of rows to return in them.
+number of rows to return in them. The physical plan will be fanned out to all the hosts (both remote and local) in parallel
+to execute with the limit being applied to every host individually. 
 
 Functionally, the `LimitOperator` will stop returning rows flowing down from upstream operators in the physical plan 
 topology by keeping a counter of the number of rows returned so far and stop scanning further once the limit is reached. 
 This will result in returning the first set of n (where n is the limit requested in the query) rows that it gets from 
 upstream operators and stop scanning for rows after that. If the limit isn't reached and we run out of rows to return 
 (exhausting the rows that conform to our query), then the operator will just return. 
+
+In other words, if we have three hosts and we execute a query with `LIMIT 5`, we could potentially scan 15 records 
+(5 from each host), but then after we stream back the first five records to the caller, we'd just stop the response and 
+drop the rest of the queue.
 
 As an example, if we have a `TABLE` called `ridersNearMountainView` with 
 `Schema: DISTANCEINMILES DOUBLE KEY, RIDERS ARRAY<STRING>, COUNT BIGINT`, and we execute a pull query of the form:
@@ -199,7 +211,7 @@ then the `TransientQueryQueue` will just be returned.
 streams and tables.
 - Rest query validation tests to ensure that we are returning the correct number of rows and ending the query with 
 messages saying `Limit Reached` and `Query terminated` for pull queries on streams and tables.
-- Queries with limit clause argument that is not a positive integer should throw a ksqlDB syntax exception and output an 
+- Queries with limit clause argument that is a negative integer should throw a ksqlDB syntax exception and output an 
 appropriate message to the user.
 
 ## LOEs and Delivery Milestones

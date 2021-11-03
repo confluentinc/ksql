@@ -99,6 +99,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -348,15 +349,17 @@ final class EngineExecutor {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      final PushPhysicalPlanCreator pushPhysicalPlanCreator = token ->
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator = offsetRange ->
           buildScalablePushPhysicalPlan(
               logicalPlan,
               analysis,
               context,
-              token
+              offsetRange
           );
+      final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
+          .map(PushOffsetRange::deserialize);
       final PushPhysicalPlan physicalPlan
-          = pushPhysicalPlanCreator.create(pushRoutingOptions.getToken());
+          = pushPhysicalPlanCreator.create(offsetRange);
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -760,14 +763,14 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
       final Context context,
-      final Optional<List<Long>> token
+      final Optional<PushOffsetRange> offsetRange
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
     );
-    return builder.buildPushPhysicalPlan(logicalPlan, context, token);
+    return builder.buildPushPhysicalPlan(logicalPlan, context, offsetRange);
   }
 
   private PullPhysicalPlan buildPullPhysicalPlan(

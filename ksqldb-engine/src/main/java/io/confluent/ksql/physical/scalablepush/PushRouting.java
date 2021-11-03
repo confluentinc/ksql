@@ -288,7 +288,7 @@ public class PushRouting implements AutoCloseable {
           .thenApply(v -> {
             if (thisPushPhysicalPlan.get().isClosed()) {
               thisPushPhysicalPlan.set(
-                  pushPhysicalPlanCreator.create(offsetsTracker.getOffsetsAsToken()));
+                  pushPhysicalPlanCreator.create(offsetsTracker.getOffsetsAsOffsetRange()));
               pushPhysicalPlan.set(thisPushPhysicalPlan.get());
             }
             return thisPushPhysicalPlan.get().execute();
@@ -364,7 +364,7 @@ public class PushRouting implements AutoCloseable {
         .put(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
 
     if (shouldCatchupFromOffsets) {
-      requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS,
+      requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
           offsetsTracker.getOffsetsAsToken());
     }
 
@@ -832,6 +832,11 @@ public class PushRouting implements AutoCloseable {
     public Optional<List<Long>> getOffsetsAsToken() {
       final Optional<Map<Integer, Long>> offsets = getOffsets();
       return offsets.map(TokenUtils::getToken);
+    }
+
+    public Optional<PushOffsetRange> getOffsetsAsOffsetRange() {
+      final Optional<Map<Integer, Long>> offsets = getOffsets();
+      return offsets.map(o -> new PushOffsetRange(Optional.empty(), new PushOffsetVector(TokenUtils.getToken(o))));
     }
 
     public void updateFromToken(final Optional<List<Long>> token) {

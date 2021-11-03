@@ -22,6 +22,7 @@ import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,7 +35,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
-  private final Optional<List<Long>> token;
+  private final Optional<PushOffsetRange> offsetRange;
 
   private long rowsRead = 0;
 
@@ -43,17 +44,17 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
       final QueryId queryId,
-      final Optional<List<Long>> token
+      final Optional<PushOffsetRange> offsetRange
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
-    this.token = token;
+    this.offsetRange = offsetRange;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue, token);
+    scalablePushRegistry.register(processingQueue, offsetRange);
   }
 
   @Override

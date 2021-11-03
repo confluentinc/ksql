@@ -6,6 +6,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.TokenUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -24,7 +25,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
   private final Runnable ensureLatestIsRunning;
   private final Supplier<LatestConsumer> latestConsumerSupplier;
   private final CatchupCoordinator catchupCoordinator;
-  private final List<Long> token;
+  private final PushOffsetRange offsetRange;
   private AtomicBoolean blocked = new AtomicBoolean(false);
   private boolean explicitAssignmentMode = false;
 
@@ -36,13 +37,13 @@ public class CatchupConsumer extends ScalablePushConsumer {
       Runnable ensureLatestIsRunning,
       Supplier<LatestConsumer> latestConsumerSupplier,
       CatchupCoordinator catchupCoordinator,
-      List<Long> token
+      PushOffsetRange offsetRange
   ) {
     super(topicName, windowed, logicalSchema, consumer);
     this.ensureLatestIsRunning = ensureLatestIsRunning;
     this.latestConsumerSupplier = latestConsumerSupplier;
     this.catchupCoordinator = catchupCoordinator;
-    this.token = token;
+    this.offsetRange = offsetRange;
   }
 
   public void setExplicitAssignmentMode(boolean explicitAssignmentMode) {
@@ -94,7 +95,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
   protected void subscribeOrAssign() {
     if (isExplicitAssignmentMode()) {
       onNewAssignment();
-      Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(token));
+      Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(offsetRange.getEndOffsets().getDenseRepresentation()));
       for (TopicPartition tp : consumer.assignment()) {
         consumer.seek(tp,
             startingOffsets.containsKey(tp.partition()) ? startingOffsets.get(tp.partition())
@@ -112,7 +113,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
             public void onPartitionsAssigned(Collection<TopicPartition> collection) {
               System.out.println("CATCHUP:  Got assignment " + collection);
               newAssignment(collection);
-              Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(token));
+              Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(offsetRange.getEndOffsets().getDenseRepresentation()));
               for (TopicPartition tp : consumer.assignment()) {
                 consumer.seek(tp, startingOffsets.containsKey(tp.partition()) ? startingOffsets
                     .get(tp.partition()) : 0);

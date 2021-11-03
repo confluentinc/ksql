@@ -36,6 +36,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PushOffsetRange;
 import io.vertx.core.Context;
 import java.util.List;
 import java.util.Objects;
@@ -77,7 +78,7 @@ public class PushPhysicalPlanBuilder {
   public PushPhysicalPlan buildPushPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final Context context,
-      final Optional<List<Long>> token
+      final Optional<PushOffsetRange> offsetRange
   ) {
     PushDataSourceOperator dataSourceOperator = null;
 
@@ -100,7 +101,7 @@ public class PushPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
-            (DataSourceNode) currentLogicalNode, token);
+            (DataSourceNode) currentLogicalNode, offsetRange);
         dataSourceOperator = (PushDataSourceOperator) currentPhysicalOp;
       } else {
         throw new KsqlException(String.format(
@@ -163,7 +164,7 @@ public class PushPhysicalPlanBuilder {
 
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode,
-      final Optional<List<Long>> token
+      final Optional<PushOffsetRange> offsetRange
   ) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
@@ -171,7 +172,7 @@ public class PushPhysicalPlanBuilder {
 
     querySourceType = logicalNode.isWindowed()
         ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
-    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId, token);
+    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId, offsetRange);
   }
 
   private QueryId uniqueQueryId() {

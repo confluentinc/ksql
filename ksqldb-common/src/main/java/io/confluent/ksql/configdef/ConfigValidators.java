@@ -173,23 +173,6 @@ public final class ConfigValidators {
     };
   }
 
-  public static Validator longList() {
-    return (name, val) -> {
-      if (!(val instanceof List)) {
-        throw new ConfigException(name, val, "Must be a list");
-      }
-      @SuppressWarnings("unchecked")
-      final List<String> list = (List<String>) val;
-      list.forEach(intStr -> {
-        try {
-          Long.parseLong(intStr);
-        } catch (NumberFormatException e) {
-          throw new ConfigException(name, intStr, "Not a long");
-        }
-      });
-    };
-  }
-
   public static Validator mapWithIntKeyDoubleValue() {
     return (name, val) -> {
       if (!(val instanceof String)) {

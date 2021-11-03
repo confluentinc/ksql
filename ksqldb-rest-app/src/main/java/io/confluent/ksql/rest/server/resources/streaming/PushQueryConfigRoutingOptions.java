@@ -50,9 +50,12 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     return KsqlRequestConfig.KSQL_DEBUG_REQUEST_DEFAULT;
   }
 
-  public Optional<List<Long>> getToken() {
-    if (requestProperties.containsKey(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS)) {
-      return Optional.of(getLongList(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_START_OFFSETS));
+  @Override
+  public Optional<String> getContinuationToken() {
+    if (requestProperties.containsKey(
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN)) {
+      return Optional.of((String) requestProperties.get(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN));
     }
     return Optional.empty();
   }

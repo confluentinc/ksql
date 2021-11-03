@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
@@ -176,17 +177,18 @@ public class ScalablePushRegistry {
    * Registers a ProcessingQueue with this scalable push registry so that it starts receiving
    * data as it streams in for that consumer.
    * @param processingQueue The queue to register
-   * @param token The token to start from if one is provided, otherwise starts from latest
+   * @param offsetRange The offsets to start from if one is provided, otherwise starts from latest
    */
   public synchronized void register(
       final ProcessingQueue processingQueue,
-      final Optional<List<Long>> token
+      final Optional<PushOffsetRange> offsetRange
   ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
     }
-    if (token.isPresent()) {
-      final CatchupConsumer catchupConsumer = createCatchupConsumer(processingQueue, token.get());
+    if (offsetRange.isPresent()) {
+      final CatchupConsumer catchupConsumer = createCatchupConsumer(processingQueue,
+          offsetRange.get());
       catchupConsumer.register(processingQueue);
       catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
       executorServiceCatchup.submit(() -> runCatchup(catchupConsumer, processingQueue));
@@ -221,7 +223,7 @@ public class ScalablePushRegistry {
     }
     catchupConsumers.computeIfPresent(processingQueue.getQueryId(), (queryId, catchupConsumer) -> {
       catchupConsumer.unregister(processingQueue);
-      catchupConsumer.close();
+      catchupConsumer.closeAsync();
       return null;
     });
   }
@@ -408,7 +410,7 @@ public class ScalablePushRegistry {
    */
   private CatchupConsumer createCatchupConsumer(
       final ProcessingQueue processingQueue,
-      final List<Long> token
+      final PushOffsetRange offsetRange
   ) {
     KafkaConsumer<Object, GenericRow> consumer = null;
     CatchupConsumer catchupConsumer = null;
@@ -420,7 +422,7 @@ public class ScalablePushRegistry {
           logicalSchema,
           consumer,
           this::startLatestIfNotRunning, latestConsumer::get, catchupCoordinator,
-          token);
+          offsetRange);
       return catchupConsumer;
     } catch (Exception e) {
       LOG.error("Couldn't create catchup consumer", e);

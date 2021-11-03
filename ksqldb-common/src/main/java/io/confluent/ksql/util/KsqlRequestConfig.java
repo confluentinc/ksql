@@ -15,16 +15,10 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.configdef.ConfigValidators.longList;
-
-import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Type;
-import org.apache.kafka.common.config.ConfigException;
 
 public class KsqlRequestConfig extends AbstractConfig {
 
@@ -62,11 +56,12 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC =
       "Controls whether a ksql host forwards a push query request to another host";
 
-  public static final String KSQL_REQUEST_QUERY_PUSH_START_OFFSETS =
+  public static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN =
       "request.ksql.query.push.start.offsets";
-  public static final String KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DEFAULT = "";
-  private static final String KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DOC =
-      "Indicates whether a connecting node wants to start from a specific point, or latest";
+  public static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DOC =
+      "A continuation token that can be provided which will start a push query off right at the "
+          + "point of that the token was provided.";
 
   public static final String KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR =
       "request.ksql.query.pull.consistency.token";
@@ -108,12 +103,11 @@ public class KsqlRequestConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC
         ).define(
-            KSQL_REQUEST_QUERY_PUSH_START_OFFSETS,
-            Type.LIST,
-            KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DEFAULT,
-            longList(),
+            KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+            Type.STRING,
+            KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DEFAULT,
             ConfigDef.Importance.LOW,
-            KSQL_REQUEST_QUERY_PUSH_START_OFFSETS_DOC
+            KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DOC
         ).define(
             KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
             Type.STRING,

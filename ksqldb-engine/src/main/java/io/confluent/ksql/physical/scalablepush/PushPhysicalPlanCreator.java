@@ -1,8 +1,8 @@
 package io.confluent.ksql.physical.scalablepush;
 
-import java.util.List;
+import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Optional;
 
 public interface PushPhysicalPlanCreator {
-  PushPhysicalPlan create(Optional<List<Long>> token);
+  PushPhysicalPlan create(Optional<PushOffsetRange> offsetRange);
 }

@@ -28,7 +28,7 @@ public interface PushRoutingOptions {
 
   boolean getIsDebugRequest();
 
-  Optional<List<Long>> getToken();
+  Optional<String> getContinuationToken();
 
   /**
    * @return a human readable representation of the routing options, used

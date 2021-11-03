@@ -33,7 +33,7 @@ by restricting the output using `LIMIT` won't be covered in this klip.
 ## Value/Return
 
 The ability to `LIMIT` should help users prototyping in ksqlDB with pull by giving them access to a subset of the results 
-that they would expect to see without the `LIMIT` in place. ksqlDB users will not have to issue exepnsive table scans to
+that they would expect to see without the `LIMIT` in place. ksqlDB users will not have to issue expensive table scans to
 just get a quick look of what the underlying table or stream looks like (the schema and the rows/records).
 
 ## Public APIS

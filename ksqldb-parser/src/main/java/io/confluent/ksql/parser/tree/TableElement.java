@@ -21,6 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -42,10 +43,14 @@ public final class TableElement extends AstNode {
     /**
      * Non-key colunns:
      */
-    VALUE;
+    VALUE,
+    /**
+     * Header-backed columns
+     */
+    HEADERS;
 
     public boolean isKey() {
-      return this != VALUE;
+      return this == KEY || this == PRIMARY_KEY;
     }
   }
 
@@ -127,5 +132,14 @@ public final class TableElement extends AstNode {
         + ", type=" + type
         + ", namespace=" + namespace
         + '}';
+  }
+
+  public static Namespace getNamespaceFromContext(final SqlBaseParser.TableElementContext context) {
+    if (context.headerType() != null) {
+      return Namespace.HEADERS;
+    }
+    return context.KEY() == null
+        ? Namespace.VALUE
+        : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY;
   }
 }

@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -53,6 +54,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -865,5 +867,18 @@ public class AstBuilderTest {
             ParseFailedException.class,
             () -> givenQuery("CREATE STREAM INPUT (K BIGINT (KEY)) WITH (kafka_topic='input',value_format='JSON');")
     );
+  }
+
+  @Test
+  public void shouldSupportHeadersColumns() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADERS) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    assertEquals(createStream.getElements().stream().findFirst().get().getNamespace(), Namespace.HEADERS);
   }
 }

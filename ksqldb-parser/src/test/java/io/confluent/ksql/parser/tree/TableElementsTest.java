@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.HEADERS;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
@@ -96,12 +97,37 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldThrowOnDuplicateHeaderColumns() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k0", STRING_TYPE),
+        tableElement(KEY, "k1", STRING_TYPE),
+        tableElement(PRIMARY_KEY, "k1", STRING_TYPE)
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> TableElements.of(elements)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Duplicate column names:"));
+    assertThat(e.getMessage(), containsString(
+        "k0"));
+    assertThat(e.getMessage(), containsString(
+        "k1"));
+  }
+
+  @Test
   public void shouldThrowOnDuplicateValueColumns() {
     // Given:
     final List<TableElement> elements = ImmutableList.of(
-        tableElement(VALUE, "v0", INT_TYPE),
-        tableElement(VALUE, "v0", INT_TYPE),
-        tableElement(VALUE, "v1", INT_TYPE),
+        tableElement(HEADERS, "v0", INT_TYPE),
+        tableElement(HEADERS, "v0", INT_TYPE),
+        tableElement(HEADERS, "v1", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE)
     );
 

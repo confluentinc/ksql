@@ -75,6 +75,9 @@ The following test cases will be added:
 * Header columns can be used with the Java client, migrations tool and the CLI
 
 ## LOEs and Delivery Milestones
+
+Development of the feature will be done behind a feature flag, `ksql.headers.enabled`. When the flag is off, creating new streams and tables with headers will be disabled, but sources with headers will continue to work as usual.
+
 * Create feature flag
 * Add `HEADERS` to the ksqlDB syntax
 * Add header columns to the `LogicalSchema`

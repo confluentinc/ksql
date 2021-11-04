@@ -69,6 +69,11 @@ public class KsqlRequestConfig extends AbstractConfig {
   private static final String KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR__DOC =
       "Indicates the offsets of the last read.";
 
+  public static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP =
+      "request.ksql.query.push.catchup.consumer.group";
+  public static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DEFAULT = "";
+  private static final String KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DOC =
+      "The consumer group to use with the catchup client";
 
   private static ConfigDef buildConfigDef() {
     final ConfigDef configDef = new ConfigDef()
@@ -114,6 +119,12 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR__DOC
+        ).define(
+            KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP,
+            Type.STRING,
+            KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP_DOC
         );
     return configDef;
   }

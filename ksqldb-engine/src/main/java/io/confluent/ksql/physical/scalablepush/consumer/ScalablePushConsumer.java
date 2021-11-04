@@ -30,6 +30,7 @@ import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushOffsetVector;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -102,9 +103,9 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     // calls to position() giving us the right offsets before the first rows are returned after
     // an assignment.
     if (tps != null) {
-      resetCurrentPosition();
+//      resetCurrentPosition();
 
-      LOG.info("Consumer got assignment {} and current position {}", tps, currentPositions);
+//      LOG.info("Consumer got assignment {} and current position {}", tps, currentPositions);
     }
   }
 
@@ -115,6 +116,8 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     for (TopicPartition tp : topicPartitions.get()) {
       currentPositions.put(tp, consumer.position(tp));
     }
+    LOG.info("Consumer got assignment {} and current position {}", topicPartitions.get(),
+        currentPositions);
   }
 
   private void initialize() {
@@ -157,9 +160,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
         computeProgressToken(Optional.of(startToken));
         try {
           consumer.commitSync();
-          final Map<TopicPartition, OffsetAndMetadata> offsets
-              = consumer.committed(new HashSet<>(topicPartitions.get()));
-          latestCommittedOffsets.set(ImmutableMap.copyOf(offsets));
+          updateCommittedOffsets();
         } catch (CommitFailedException e) {
           LOG.warn("Failed to commit, likely due to rebalance.  Will wait for new assignment", e);
         }
@@ -169,6 +170,12 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     } catch (WakeupException e) {
       // This is expected when we get closed.
     }
+  }
+
+  private void updateCommittedOffsets() {
+    final Map<TopicPartition, OffsetAndMetadata> offsets
+        = consumer.committed(new HashSet<>(topicPartitions.get()));
+    latestCommittedOffsets.set(ImmutableMap.copyOf(offsets));
   }
 
   private void updateCurrentPositions() {
@@ -265,7 +272,8 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   }
 
   public Map<TopicPartition, OffsetAndMetadata> getCommittedOffsets() {
-    return ImmutableMap.copyOf(latestCommittedOffsets.get());
+    final Map<TopicPartition, OffsetAndMetadata> offsets = latestCommittedOffsets.get();
+    return offsets == null ? Collections.emptyMap() : offsets;
   }
 
   public Map<TopicPartition, Long> getCurrentOffsets() {

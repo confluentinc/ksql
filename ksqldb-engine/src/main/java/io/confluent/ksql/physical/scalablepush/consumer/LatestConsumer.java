@@ -112,6 +112,7 @@ public class LatestConsumer extends ScalablePushConsumer {
               return;
             }
             newAssignment(collection);
+            resetCurrentPosition();
             catchupAssignmentUpdater.accept(collection);
             if (!gotFirstAssignment) {
               maybeSeekToEnd();

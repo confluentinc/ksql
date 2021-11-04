@@ -349,17 +349,19 @@ final class EngineExecutor {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      final PushPhysicalPlanCreator pushPhysicalPlanCreator = offsetRange ->
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator = (offsetRange, catchupConsumerGroup) ->
           buildScalablePushPhysicalPlan(
               logicalPlan,
               analysis,
               context,
-              offsetRange
+              offsetRange,
+              catchupConsumerGroup
           );
       final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
           .map(PushOffsetRange::deserialize);
+      final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
       final PushPhysicalPlan physicalPlan
-          = pushPhysicalPlanCreator.create(offsetRange);
+          = pushPhysicalPlanCreator.create(offsetRange, catchupConsumerGroup);
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -763,14 +765,15 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
       final Context context,
-      final Optional<PushOffsetRange> offsetRange
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroup
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
     );
-    return builder.buildPushPhysicalPlan(logicalPlan, context, offsetRange);
+    return builder.buildPushPhysicalPlan(logicalPlan, context, offsetRange, catchupConsumerGroup);
   }
 
   private PullPhysicalPlan buildPullPhysicalPlan(

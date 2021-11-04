@@ -23,6 +23,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.ProjectOperator;
 import io.confluent.ksql.physical.common.operators.SelectOperator;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry.CatchupMetadata;
 import io.confluent.ksql.physical.scalablepush.operators.PeekStreamOperator;
 import io.confluent.ksql.physical.scalablepush.operators.PushDataSourceOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
@@ -78,7 +79,8 @@ public class PushPhysicalPlanBuilder {
   public PushPhysicalPlan buildPushPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final Context context,
-      final Optional<PushOffsetRange> offsetRange
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroup
   ) {
     PushDataSourceOperator dataSourceOperator = null;
 
@@ -101,7 +103,7 @@ public class PushPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
-            (DataSourceNode) currentLogicalNode, offsetRange);
+            (DataSourceNode) currentLogicalNode, offsetRange, catchupConsumerGroup);
         dataSourceOperator = (PushDataSourceOperator) currentPhysicalOp;
       } else {
         throw new KsqlException(String.format(
@@ -164,15 +166,21 @@ public class PushPhysicalPlanBuilder {
 
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode,
-      final Optional<PushOffsetRange> offsetRange
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroupFromSource
   ) {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
 
+    final String catchupConsumerGroup = catchupConsumerGroupFromSource.orElse(
+        scalablePushRegistry.getCatchupConsumerId(
+            "" + Math.abs(ThreadLocalRandom.current().nextLong())));
     querySourceType = logicalNode.isWindowed()
         ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
-    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId, offsetRange);
+    final Optional<CatchupMetadata> catchupMetadata = offsetRange.map(or ->
+        new CatchupMetadata(or, catchupConsumerGroup, !catchupConsumerGroupFromSource.isPresent()));
+    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId, catchupMetadata);
   }
 
   private QueryId uniqueQueryId() {

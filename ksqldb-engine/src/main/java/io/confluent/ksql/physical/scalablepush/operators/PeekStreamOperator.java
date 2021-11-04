@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry.CatchupMetadata;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
@@ -35,8 +36,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   private final DataSourceNode logicalNode;
   private final ScalablePushRegistry scalablePushRegistry;
   private final ProcessingQueue processingQueue;
-  private final Optional<PushOffsetRange> offsetRange;
-
+  private final Optional<CatchupMetadata> catchupMetadata;
   private long rowsRead = 0;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -44,17 +44,17 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
       final QueryId queryId,
-      final Optional<PushOffsetRange> offsetRange
+      final Optional<CatchupMetadata> catchupMetadata
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
     this.processingQueue = new ProcessingQueue(queryId);
-    this.offsetRange = offsetRange;
+    this.catchupMetadata = catchupMetadata;
   }
 
   @Override
   public void open() {
-    scalablePushRegistry.register(processingQueue, offsetRange);
+    scalablePushRegistry.register(processingQueue, catchupMetadata);
   }
 
   @Override

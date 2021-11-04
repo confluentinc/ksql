@@ -60,10 +60,13 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     return Optional.empty();
   }
 
-  @SuppressWarnings("unchecked")
-  List<Long> getLongList(final String key) {
-    final List<String> list = (List<String>) requestProperties.get(key);
-    return list.stream().map(Long::parseLong)
-        .collect(ImmutableList.toImmutableList());
+  @Override
+  public Optional<String> getCatchupConsumerGroup() {
+    if (requestProperties.containsKey(
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP)) {
+      return Optional.of((String) requestProperties.get(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP));
+    }
+    return Optional.empty();
   }
 }

@@ -4,5 +4,6 @@ import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Optional;
 
 public interface PushPhysicalPlanCreator {
-  PushPhysicalPlan create(Optional<PushOffsetRange> offsetRange);
+  PushPhysicalPlan create(Optional<PushOffsetRange> offsetRange,
+      Optional<String> catchupConsumerGroup);
 }

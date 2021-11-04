@@ -23,11 +23,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
+import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinatorImpl;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestConsumerFactory;
-import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
@@ -65,6 +65,7 @@ public class ScalablePushRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScalablePushRegistry.class);
   private static final String LATEST_CONSUMER_GROUP_SUFFIX = "_scalable_push_query_latest";
+  private static final String CATCHUP_CONSUMER_GROUP_MIDDLE = "_scalable_push_query_catchup_";
 
   private final PushLocator pushLocator;
   private final LogicalSchema logicalSchema;
@@ -85,7 +86,7 @@ public class ScalablePushRegistry {
   // Once the latest consumer is created, this is a reference to it.
   private AtomicReference<LatestConsumer> latestConsumer = new AtomicReference<>(null);
   // The catchup coordinator used by the latest consumer.
-  private CatchupCoordinator catchupCoordinator = new NoopCatchupCoordinator();
+  private CatchupCoordinator catchupCoordinator = new CatchupCoordinatorImpl();
   private Map<QueryId, CatchupConsumer> catchupConsumers = new ConcurrentHashMap<>();
   // If the latest consumer should be stopped when there are no more requests to serve. True by
   // default, this prevent reading unnecessary data from Kafka when not serving any requests.
@@ -159,14 +160,7 @@ public class ScalablePushRegistry {
   public synchronized void cleanup() {
     // Close if we haven't already
     close();
-    LOG.info("Cleaning up consumer group " + getLatestConsumerGroupId());
-    try {
-      serviceContext
-          .getConsumerGroupClient()
-          .deleteConsumerGroups(ImmutableSet.of(getLatestConsumerGroupId()));
-    } catch (Throwable t) {
-      LOG.error("Failed to delete consumer group " + getLatestConsumerGroupId(), t);
-    }
+    deleteConsumerGroup(getLatestConsumerGroupId());
   }
 
   public synchronized boolean isClosed() {
@@ -177,21 +171,23 @@ public class ScalablePushRegistry {
    * Registers a ProcessingQueue with this scalable push registry so that it starts receiving
    * data as it streams in for that consumer.
    * @param processingQueue The queue to register
-   * @param offsetRange The offsets to start from if one is provided, otherwise starts from latest
+   * @param catchupMetadata The catchup metadata including offsets to start at
    */
   public synchronized void register(
       final ProcessingQueue processingQueue,
-      final Optional<PushOffsetRange> offsetRange
+      final Optional<CatchupMetadata> catchupMetadata
   ) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
     }
-    if (offsetRange.isPresent()) {
+    if (catchupMetadata.isPresent()) {
       final CatchupConsumer catchupConsumer = createCatchupConsumer(processingQueue,
-          offsetRange.get());
+          catchupMetadata.get().getPushOffsetRange(),
+          catchupMetadata.get().getCatchupConsumerGroup());
       catchupConsumer.register(processingQueue);
       catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
-      executorServiceCatchup.submit(() -> runCatchup(catchupConsumer, processingQueue));
+      executorServiceCatchup.submit(() -> runCatchup(catchupConsumer, processingQueue,
+          catchupMetadata.get()));
       return;
     }
     final LatestConsumer latestConsumer = this.latestConsumer.get();
@@ -334,7 +330,8 @@ public class ScalablePushRegistry {
   private synchronized boolean stopLatestConsumerOnLastRequest() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null && !latestConsumer.isClosed()) {
-      if (latestConsumer.numRegistered() == 0 && stopLatestConsumerOnLastRequest) {
+      if (latestConsumer.numRegistered() == 0 && stopLatestConsumerOnLastRequest
+          && catchupConsumers.size() == 0) {
         latestConsumer.closeAsync();
         return true;
       }
@@ -399,7 +396,12 @@ public class ScalablePushRegistry {
   }
 
   private synchronized void startLatestIfNotRunning() {
+    final LatestConsumer latestConsumer = this.latestConsumer.get();
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
+      return;
+    }
     final LatestConsumer newLatestConsumer = createLatestConsumer(Optional.empty());
+    this.latestConsumer.set(newLatestConsumer);
     executorService.submit(() -> runLatest(newLatestConsumer));
   }
 
@@ -410,14 +412,15 @@ public class ScalablePushRegistry {
    */
   private CatchupConsumer createCatchupConsumer(
       final ProcessingQueue processingQueue,
-      final PushOffsetRange offsetRange
+      final PushOffsetRange offsetRange,
+      final String consumerGroup
   ) {
     KafkaConsumer<Object, GenericRow> consumer = null;
     CatchupConsumer catchupConsumer = null;
     try {
       consumer = kafkaConsumerFactory.create(
           ksqlTopic, logicalSchema, serviceContext, consumerProperties, ksqlConfig,
-          getLatestConsumerGroupId());
+          consumerGroup);
       catchupConsumer = new CatchupConsumer(ksqlTopic.getKafkaTopicName(), isWindowed(),
           logicalSchema,
           consumer,
@@ -437,41 +440,64 @@ public class ScalablePushRegistry {
 
   private void runCatchup(
       final CatchupConsumer catchupConsumerToRun,
-      final ProcessingQueue processingQueue
+      final ProcessingQueue processingQueue,
+      final CatchupMetadata catchupMetadata
   ) {
     try (CatchupConsumer catchupConsumer = catchupConsumerToRun) {
-      catchupConsumer.setExplicitAssignmentMode(false);
       catchupConsumer.run();
+      if (catchupMetadata.shouldCleanupConsumeGroup()) {
+        deleteConsumerGroup(catchupMetadata.getCatchupConsumerGroup());
+      }
     } catch (Throwable t) {
-      LOG.error("Got error while running latest", t);
+      LOG.error("Got error while running catchup", t);
       catchupConsumerToRun.onError();
     } finally {
       catchupConsumerToRun.unregister(processingQueue);
       catchupConsumers.remove(processingQueue.getQueryId());
     }
-//    try (KafkaConsumer<GenericKey, GenericRow> consumer = createConsumer(false);
-//        ConsumerMetadata consumerMetadata = getMetadata(consumer);
-//        CatchupConsumer catchupConsumer
-//            = new CatchupConsumer(consumerMetadata.getNumPartitions(),
-//            ksqlTopic.getKafkaTopicName(), windowed, logicalSchema, consumer,
-//            this::startLatestIfNotRunning, latestConsumer::get, catchupCoordinator,
-//            token)) {
-//      catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
-//      catchupConsumer.register(processingQueue);
-//
-//      synchronized (this) {
-//        if (latestConsumer.get() != null) {
-//          catchupConsumer.newAssignment(latestConsumer.get().getAssignment());
-//          catchupConsumer.setExplicitAssignmentMode(true);
-//        } else {
-//          catchupConsumer.setExplicitAssignmentMode(false);
-//        }
-//      }
-//
-//      catchupConsumer.run();
-//      catchupConsumer.unregister(processingQueue);
-//    } finally {
-//      catchupConsumers.remove(processingQueue.getQueryId());
-//    }
+  }
+
+  public String getCatchupConsumerId(final String suffix) {
+    return sourceApplicationId + CATCHUP_CONSUMER_GROUP_MIDDLE + suffix;
+  }
+
+  private void deleteConsumerGroup(final String consumerGroupId) {
+    LOG.info("Cleaning up consumer group " + consumerGroupId);
+    try {
+      serviceContext
+          .getConsumerGroupClient()
+          .deleteConsumerGroups(ImmutableSet.of(consumerGroupId));
+    } catch (Throwable t) {
+      LOG.error("Failed to delete consumer group " + consumerGroupId, t);
+    }
+  }
+
+  public static class CatchupMetadata {
+
+    private final PushOffsetRange pushOffsetRange;
+    private final String catchupConsumerGroup;
+    private final boolean cleanupConsumeGroup;
+
+    public CatchupMetadata(
+        final PushOffsetRange pushOffsetRange,
+        final String catchupConsumerGroup,
+        final boolean cleanupConsumeGroup
+    ) {
+      this.pushOffsetRange = pushOffsetRange;
+      this.catchupConsumerGroup = catchupConsumerGroup;
+      this.cleanupConsumeGroup = cleanupConsumeGroup;
+    }
+
+    public PushOffsetRange getPushOffsetRange() {
+      return pushOffsetRange;
+    }
+
+    public String getCatchupConsumerGroup() {
+      return catchupConsumerGroup;
+    }
+
+    public boolean shouldCleanupConsumeGroup() {
+      return cleanupConsumeGroup;
+    }
   }
 }

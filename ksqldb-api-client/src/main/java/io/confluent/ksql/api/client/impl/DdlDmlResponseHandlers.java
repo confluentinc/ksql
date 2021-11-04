@@ -76,7 +76,8 @@ final class DdlDmlResponseHandlers {
     return ksqlEntity.getString("statementText") != null
         && ksqlEntity.getString("statementText").contains("IF NOT EXISTS")
         && ksqlEntity.getString("message") != null
-        && ksqlEntity.getString("message").contains("A stream with the same name already exists.");
+        && ksqlEntity.getString("message").contains("with the same name already exists.")
+        && ksqlEntity.getString("warnings") != null;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

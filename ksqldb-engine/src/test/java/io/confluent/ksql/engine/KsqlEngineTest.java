@@ -63,7 +63,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -105,7 +104,6 @@ import org.apache.kafka.streams.KafkaStreams;
 
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMock;
@@ -2074,50 +2072,23 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldRaiseExceptionIfValueIsErroneous() {
+    assertThrows(ConfigException.class, () ->
+        ksqlEngine.alterSystemProperty(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, "TEST"));
+  }
+
+  @Test
   public void shouldOverrideKsqlConfigsWhenAlterSystemPropertyIsCalled() {
     // Given:
-    final Optional<Object> valueBefore = ksqlEngine.getKsqlConfig().getKsqlStreamConfigProp(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG);
-
-    final AlterSystemProperty statement = mock(AlterSystemProperty.class);
-    when(statement.getPropertyName()).thenReturn(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG);
-    when(statement.getPropertyValue()).thenReturn("3000");
-    
-    final PreparedStatement<AlterSystemProperty> statementOrig = mock(PreparedStatement.class);
-    when(statementOrig.getStatement()).thenReturn(statement);
+    final Object valueBefore = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
 
     // When:
-    ksqlEngine.alterSystemProperty(statementOrig);
+    ksqlEngine.alterSystemProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "3000");
 
     // Then:
-    final Optional<Object> valueAfter = ksqlEngine.getKsqlConfig().getKsqlStreamConfigProp(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG);
+    final Object valueAfter = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
     assertThat(valueAfter, not(equalTo(valueBefore)));
   }
-
-  @Test
-  public void shouldRaiseExceptionIfKeyDoesNotExistInConfigList() {
-    final AlterSystemProperty statement = mock(AlterSystemProperty.class);
-    when(statement.getPropertyName()).thenReturn(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG);
-    when(statement.getPropertyValue()).thenReturn("TEST");
-
-    final PreparedStatement<AlterSystemProperty> statementOrig = mock(PreparedStatement.class);
-    when(statementOrig.getStatement()).thenReturn(statement);
-
-    assertThrows(ConfigException.class, () -> ksqlEngine.alterSystemProperty(statementOrig));
-  }
-
-  @Test
-  public void shouldRaiseExceptionIfValueIsErroneous() {
-    final AlterSystemProperty statement = mock(AlterSystemProperty.class);
-    when(statement.getPropertyName()).thenReturn("TEST");
-    when(statement.getPropertyValue()).thenReturn("TEST");
-
-    final PreparedStatement<AlterSystemProperty> statementOrig = mock(PreparedStatement.class);
-    when(statementOrig.getStatement()).thenReturn(statement);
-
-    assertThrows(KsqlStatementException.class, () -> ksqlEngine.alterSystemProperty(statementOrig));
-  }
-
-  // TEST TO VERIFY THAT SETTING WRONG VLAUE OR SETTING DOESN'T WORK AND RAISE EXCEPTION
 
   @Test
   public void shouldCheckStreamPullQueryEnabledFlag() {

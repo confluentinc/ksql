@@ -1361,8 +1361,13 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = ksqlStreamConfigProps;
   }
 
-  public boolean keyExistsInConfigPropMap(final String key) {
-    return ksqlStreamConfigProps.containsKey(key);
+  public boolean keyExistsInConfigMap(final String key) {
+    return ksqlStreamConfigProps.containsKey(key) || originals().containsKey(key);
+  }
+
+  public boolean propertyIsPossibleItem(final String propertyName) {
+    return new KsqlConfigResolver().resolve(propertyName, true).isPresent()
+        || keyExistsInConfigMap(propertyName);
   }
 
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
@@ -1511,6 +1516,13 @@ public class KsqlConfig extends AbstractConfig {
         )
     );
     return Collections.unmodifiableMap(allPropsCleaned);
+  }
+
+  public KsqlConfig cloneWithoutOverride() {
+    final Map<String, Object> props = new HashMap<>(originals());
+    final Map<String, ConfigValue> streamConfigProps =
+        buildStreamingConfig(getKsqlStreamConfigProps(), new HashMap<>());
+    return new KsqlConfig(ConfigGeneration.CURRENT, props, streamConfigProps);
   }
 
   public KsqlConfig cloneWithPropertyOverwrite(final Map<String, ?> props) {

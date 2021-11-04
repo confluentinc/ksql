@@ -91,7 +91,7 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
-  private static final List<String> InternalPropertiesList = ImmutableList.of(
+  public static final List<String> InternalPropertiesList = ImmutableList.of(
       CONNECT_URL_PROPERTY,
       CONNECT_WORKER_CONFIG_FILE_PROPERTY,
       KSQL_ACCESS_VALIDATOR_AUTO,

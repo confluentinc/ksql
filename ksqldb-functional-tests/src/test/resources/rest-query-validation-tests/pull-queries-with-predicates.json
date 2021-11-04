@@ -54,7 +54,21 @@
         "ksql.query.pull.table.scan.enabled":  true
       },
       "expectedError": {
-        "message": "Like condition on non-string pattern io.confluent.ksql.execution.expression.tree.IntegerLiteral"
+        "message": "The column type for Like condition must be VARCHAR. The column type is INTEGER"
+      }
+    },
+    {
+      "name": "like operator must fail if table-scan is disabled",
+      "statements": [
+        "CREATE TABLE INPUT (ID INTEGER PRIMARY KEY, V0 STRING, V1 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, V1 FROM INPUT;",
+        "SELECT ID, V0, V1 FROM MATVIEW WHERE '12' LIKE '12';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "message": "Like condition must be between strings"
       }
     },
     {

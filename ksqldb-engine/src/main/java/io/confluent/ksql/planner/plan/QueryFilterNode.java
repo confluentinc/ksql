@@ -279,8 +279,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     public Void process(final Expression node, final Object context) {
       if (!(node instanceof LogicalBinaryExpression)
           && !(node instanceof ComparisonExpression)
-              && !(node instanceof LikePredicate)
-              && !(node instanceof BetweenPredicate)) {
+              && !(node instanceof LikePredicate)) {
         throw invalidWhereClauseException("Unsupported expression in WHERE clause: " + node, false);
       }
       super.process(node, context);
@@ -371,6 +370,11 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         final Column col = schema.findColumn(columnName)
                 .orElseThrow(() -> invalidWhereClauseException(
                         "Like condition on non-existent column " + columnName, isWindowed));
+        if (SqlBaseType.STRING != col.type().baseType()) {
+          throw invalidWhereClauseException("The column type for Like "
+                  + "condition must be VARCHAR. The column type is "
+                  + col.type().baseType().toString(), isWindowed);
+        }
         final Expression pattern = node.getPattern();
         if (!(pattern instanceof StringLiteral || pattern instanceof NullLiteral)) {
           throw invalidWhereClauseException(
@@ -378,8 +382,8 @@ public class QueryFilterNode extends SingleSourcePlanNode {
                   isWindowed);
         }
       } else {
-        setTableScanOrElseThrow(() -> invalidWhereClauseException("Like condition must directly "
-                + "reference a key column", isWindowed));
+        setTableScanOrElseThrow(() -> invalidWhereClauseException("Like condition must be between "
+                + "strings", isWindowed));
       }
       return null;
     }

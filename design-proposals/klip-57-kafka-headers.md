@@ -51,14 +51,14 @@ There will also be new byte conversion functions to help decode header data:
 
 ### Queries
 
-The headers columns will usable in any query like any other column, except `INSERT` query will be blocked. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.
+The headers columns will be usable in any query like any other column, except `INSERT` query will be blocked. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.
 
 ### Schema
 
 Header columns will fully be a part of the stream/table's schema. When running `SELECT *`, header columns will be included in the projection, and they will also appear when describing a source.
 
 ## Design
-Columns in the logical schema will be represented by a new type of column `HeaderColumn` which will extend `Column` and contain an optional String named `key`. They will be in a new `HEADER` namespace, which functions identically to the `VALUE` namespace, except that the `StreamBuilder` will populate those columns with header values. 
+Columns in the logical schema will be represented by a new type of column `HeaderColumn` which will extend `Column` and contain an optional String named `key` representing the key in `HEADER(key)`. It will store `Optional.empty()` for columns defined with `HEADERS`. They will be in a new `HEADER` namespace, which functions identically to the `VALUE` namespace, except that the `StreamBuilder` will populate those columns with header values. 
 
 ## Test plan
 
@@ -67,7 +67,7 @@ The following test cases will be added:
 * `SELECT * FROM ...` queries include header columns in the output
 * `DESCRIBE SOURCE ...` includes any header columns
 * Push and pull queries may select headers
-* Queries can use header columns in UDFs, filters, group by and partition by clauses
+* Queries can use header columns in joins, UDFs, filters, group by and partition by clauses
 * Tests for new functions
 * Inserting values into header columns is blocked
 * Persistent queries that were created in a previous version can still work
@@ -101,6 +101,11 @@ All queries created before the introduction of headers should still work. No com
 N/A
 
 ## Alternatives Considered
+### Add ROWHEADERS as a pseudocolumn, similar to timestamp/offset/partition
+In this approach. `ROWHEADERS` works exactly like `ROWTIME`, `ROWOFFSET` and `ROWPARTITION`. This is the lowest LOE to implement, but it was rejected for the following reasons:
+1. When performaing joins, ksqlDB includes all columns in the repartition and changelog topics (https://github.com/confluentinc/ksql/issues/7489), including pseudocolumns. `ROWHEADERS`, being a list of structs, would increase the size of the state store much more than the other pseudocolumns. The accepted approach makes headers opt-in, so at least the extra overhead is not forced on every join.
+2. The `ROWHEADERS` column would not be included in the schema (`SELECT * ` and `DESCRIBE` won't include the column). The data in Kafka headers is populated by Kafka clients rather than by Kafka itself, so it makes sense to distinguish it from other system columns .
+
 ### Use a property in the WITH clause to identify the column to be interpreted as headers
 Example: 
 ```
@@ -110,6 +115,7 @@ CREATE STREAM FOO (my_headers ARRAY<STRUCT<key VARCHAR, value VARCHAR>>)
 ```
 * Supporting multiple header-backed columns would likely be awkward in WITH-based approach.
 * `HEADER(<key>)` would not work well in this approach.
+* Aligns to existing syntax of `KEY` and `PRIMARY KEY` that tell ksqlDB to populate a row from the record key, instead the record value (default).
 
 ### Automatically convert KSQL types (like VARCHAR or INT) from the headers' byte-array values, based on the KSQL type assigned to the column.
 ```

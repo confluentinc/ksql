@@ -187,12 +187,11 @@ public class LocalCommandsTest {
   }
 
   @Test
-  public void shouldNotFailToCleanup() throws IOException {
+  public void shouldNotThrowWhenFailToCleanup() throws IOException {
     // Given
     final File dir = commandsDir.newFolder();
     LocalCommands localCommands = LocalCommands.open(ksqlEngine, dir);
-    doThrow(new RuntimeException("Error")).when(ksqlEngine)
-        .cleanupOrphanedInternalTopics(any(), any());
+    doThrow(new KsqlServerException("Error")).when(localCommandsFile).readRecords();
 
     // When
     localCommands.write(metadata1);

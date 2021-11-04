@@ -87,6 +87,11 @@ public interface KsqlExecutionContext {
   ServiceContext getServiceContext();
 
   /**
+   * @return the ksql config used for this execution context
+   */
+  KsqlConfig getKsqlConfig();
+
+  /**
    * @return the processing log context used to track errors during processing.
    */
   ProcessingLogContext getProcessingLogContext();

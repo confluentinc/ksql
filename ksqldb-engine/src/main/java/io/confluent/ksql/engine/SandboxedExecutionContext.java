@@ -89,6 +89,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public KsqlConfig getKsqlConfig() {
+    return engineContext.getKsqlConfig();
+  }
+
+  @Override
   public ProcessingLogContext getProcessingLogContext() {
     return NoopProcessingLogContext.INSTANCE;
   }

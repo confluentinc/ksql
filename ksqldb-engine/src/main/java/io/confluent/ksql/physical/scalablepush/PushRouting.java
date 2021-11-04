@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -43,6 +44,7 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.OffsetVector;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.RowMetadata;
@@ -288,7 +290,7 @@ public class PushRouting implements AutoCloseable {
           .thenApply(v -> {
             if (thisPushPhysicalPlan.get().isClosed()) {
               thisPushPhysicalPlan.set(
-                  pushPhysicalPlanCreator.create(offsetsTracker.getOffsetsAsOffsetRange(), Optional.empty()));
+                  pushPhysicalPlanCreator.create(Optional.of(offsetsTracker.getOffsetRange()), Optional.empty()));
               pushPhysicalPlan.set(thisPushPhysicalPlan.get());
             }
             return thisPushPhysicalPlan.get().execute();
@@ -365,9 +367,9 @@ public class PushRouting implements AutoCloseable {
 
     if (shouldCatchupFromOffsets) {
       requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
-          offsetsTracker.getOffsetsAsToken());
-      requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
-          offsetsTracker.getOffsetsAsToken());
+          offsetsTracker.getSerializedOffsetRange());
+//      requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP,
+//          offsetsTracker.getOffsetsAsToken());
     }
 
     final Map<String, Object> requestProperties = requestPropertiesBuilder.build();
@@ -602,25 +604,23 @@ public class PushRouting implements AutoCloseable {
         return offsetRangeOptional;
       }
       final PushOffsetRange offsetRange = offsetRangeOptional.get();
-      final Optional<Map<Integer, Long>> currentOffsets = offsetsTracker.getOffsets();
-      final Optional<PushOffsetRange> mergedToken = currentOffsets.map(offsets -> {
-        List<Long> start = TokenUtils.getToken(TokenUtils.merge(offsets, Optional.of(offsetRange.getStartOffsets().get().getDenseRepresentation())));
-        List<Long> end = TokenUtils.getToken(TokenUtils.merge(offsets, Optional.of(offsetRange.getEndOffsets().getDenseRepresentation())));
-            return new PushOffsetRange(Optional.of(new PushOffsetVector(start)), new PushOffsetVector(end));
-          }
-      );
-      final PushOffsetRange updatedToken = mergedToken.orElse(offsetRange);
-      if (currentOffsets.isPresent() && TokenUtils.gapExists(currentOffsets.get(),
-          TokenUtils.parseToken(Optional.of(offsetRange.getStartOffsets().get().getDenseRepresentation())))) {
+      final PushOffsetVector currentOffsets = offsetsTracker.getOffsets();
+      Preconditions.checkState(offsetRange.getStartOffsets().isPresent());
+      final PushOffsetVector startOffsets = currentOffsets.mergeCopy(
+          offsetRange.getStartOffsets().get());
+      final PushOffsetVector endOffsets = currentOffsets.mergeCopy(offsetRange.getEndOffsets());
+      final PushOffsetRange updatedToken
+          = new PushOffsetRange(Optional.of(startOffsets), endOffsets);
+      if (!offsetRange.getStartOffsets().get().lessThanOrEqualTo(currentOffsets)) {
         LOG.warn(name() + "Found a gap in offsets for {} and id {}: start: {}, current: {}", node, queryId,
-            offsetRange.getStartOffsets(), offsetsTracker.getOffsetsAsToken());
-        System.out.println(name() + " Found gap in offsets start: " +  offsetRange.getStartOffsets() + " current: " + offsetsTracker.getOffsetsAsToken());
+            offsetRange.getStartOffsets(), offsetsTracker.getOffsets());
+        System.out.println(name() + " Found gap in offsets start: " +  offsetRange.getStartOffsets() + " current: " + offsetsTracker.getOffsets());
         callback.completeExceptionally(new GapFoundException());
         close();
         return Optional.empty();
       } else {
         System.out.println(name() + " UPDATE " + offsetRange.getEndOffsets());
-        offsetsTracker.updateFromToken(Optional.of(offsetRange.getEndOffsets().getDenseRepresentation()));
+        offsetsTracker.updateFromToken(offsetRange.getEndOffsets());
       }
       return Optional.of(updatedToken);
     }
@@ -822,35 +822,25 @@ public class PushRouting implements AutoCloseable {
   }
 
   public static class OffsetsTracker {
-    private final AtomicReference<Map<Integer, Long>> currentOffsets = new AtomicReference<>();
+    private final PushOffsetVector currentOffsets = new PushOffsetVector();
 
     public OffsetsTracker() {
     }
 
-    public Optional<Map<Integer, Long>> getOffsets() {
-      return Optional.ofNullable(currentOffsets.get());
+    public PushOffsetVector getOffsets() {
+      return currentOffsets;
     }
 
-    public Optional<List<Long>> getOffsetsAsToken() {
-      final Optional<Map<Integer, Long>> offsets = getOffsets();
-      return offsets.map(TokenUtils::getToken);
+    public PushOffsetRange getOffsetRange() {
+      return new PushOffsetRange(Optional.empty(), currentOffsets);
     }
 
-    public Optional<PushOffsetRange> getOffsetsAsOffsetRange() {
-      final Optional<Map<Integer, Long>> offsets = getOffsets();
-      return offsets.map(o -> new PushOffsetRange(Optional.empty(), new PushOffsetVector(TokenUtils.getToken(o))));
+    public String getSerializedOffsetRange() {
+      return getOffsetRange().serialize();
     }
 
-    public void updateFromToken(final Optional<List<Long>> token) {
-      currentOffsets.updateAndGet(offsets -> {
-        if (offsets != null) {
-          System.out.println("Merging result " + offsets + " and " + token + " result is " + TokenUtils.merge(offsets, token));
-          return TokenUtils.merge(offsets, token);
-        } else {
-          System.out.println("Initializing token as " + TokenUtils.parseToken(token));
-          return TokenUtils.parseToken(token);
-        }
-      });
+    public void updateFromToken(final OffsetVector update) {
+      currentOffsets.merge(update);
     }
   }
 

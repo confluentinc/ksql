@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,7 +64,7 @@ public class PushOffsetRange {
    * If this represents a range of offsets, the starting offsets of the range.
    */
   @JsonProperty("s")
-  public Optional<OffsetVector> getStartOffsets() {
+  public Optional<PushOffsetVector> getStartOffsets() {
     return startOffsets.map(o -> o);
   }
 
@@ -71,7 +72,7 @@ public class PushOffsetRange {
    * The offsets associated with this set of rows, or the end of a range, if start is also set.
    */
   @JsonProperty("e")
-  public OffsetVector getEndOffsets() {
+  public PushOffsetVector getEndOffsets() {
     return endOffsets;
   }
 
@@ -96,5 +97,15 @@ public class PushOffsetRange {
     } catch (Exception e) {
       throw new KsqlException("Couldn't decode push offset range token", e);
     }
+  }
+
+  @JsonIgnore
+  @Override
+  public String toString() {
+    return "PushOffsetRange{"
+        + "version=" + version
+        + "startOffsets=" + startOffsets
+        + "endOffsets=" + endOffsets
+        + '}';
   }
 }

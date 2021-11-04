@@ -18,31 +18,82 @@ package io.confluent.ksql.util;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * OffsetVector for push query continuation tokens.
  */
 public class PushOffsetVector implements OffsetVector {
 
-  private final List<Long> offsets;
+  private final AtomicReference<List<Long>> offsets = new AtomicReference<>();
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonCreator
   public PushOffsetVector(final @JsonProperty(value = "o") List<Long> offsets) {
-    this.offsets = offsets;
+    this.offsets.set(ImmutableList.copyOf(offsets));
+  }
+
+  public PushOffsetVector() {
+    this.offsets.set(Collections.emptyList());
   }
 
   @Override
   public void merge(final OffsetVector other) {
-    throw new UnsupportedOperationException("Unsupported");
+    final List<Long> offsetsOther = other.getDenseRepresentation();
+    if (offsets.get().isEmpty()) {
+      offsets.set(offsetsOther);
+      return;
+    } else if (offsetsOther.isEmpty()) {
+      return;
+    }
+    Preconditions.checkState(offsetsOther.size() == offsets.get().size(),
+        "Should be equal other:" + offsetsOther.size() + ",  offsets:" + offsets.get().size());
+    ImmutableList.Builder<Long> builder = ImmutableList.builder();
+    int partition = 0;
+    for (Long offset : offsets.get()) {
+      if (offsetsOther.get(partition) > 0) {
+        builder.add(offsetsOther.get(partition));
+      } else {
+        builder.add(offset);
+      }
+      partition++;
+    }
+    this.offsets.set(builder.build());
+  }
+
+  public PushOffsetVector mergeCopy(final OffsetVector other) {
+    PushOffsetVector copy = copy();
+    copy.merge(other);
+    return copy;
   }
 
   @Override
   public boolean lessThanOrEqualTo(final OffsetVector other) {
-    throw new UnsupportedOperationException("Unsupported");
+    final List<Long> offsetsOther = other.getDenseRepresentation();
+    // Special case that says that a vectors is "less than or equal" to an uninitialized vector
+    if (offsetsOther.isEmpty()) {
+      return true;
+    }
+    Preconditions.checkState(offsetsOther.size() == offsets.get().size());
+    int partition = 0;
+    for (Long offset : offsets.get()) {
+      final long offsetOther = offsetsOther.get(partition);
+      if (offset > 0 && offsetOther > 0) {
+        if (offset > offsetOther) {
+          return false;
+        }
+      }
+      partition++;
+    }
+    return true;
   }
 
   @JsonIgnore
@@ -51,10 +102,20 @@ public class PushOffsetVector implements OffsetVector {
     return getOffsets();
   }
 
+  @JsonIgnore
+  public Map<Integer, Long> getSparseRepresentation() {
+    int i = 0;
+    Map<Integer, Long> offsets = new HashMap<>();
+    for (Long offset : getOffsets()) {
+      offsets.put(i++, offset);
+    }
+    return offsets;
+  }
+
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   @JsonProperty("o")
   public List<Long> getOffsets() {
-    return ImmutableList.copyOf(offsets);
+    return offsets.get();
   }
 
   @JsonIgnore
@@ -63,13 +124,27 @@ public class PushOffsetVector implements OffsetVector {
     throw new UnsupportedOperationException("Unsupported");
   }
 
+  @JsonIgnore
   @Override
   public void update(final String topic, final int partition, final long offset) {
     throw new UnsupportedOperationException("Unsupported");
   }
 
+  @JsonIgnore
   @Override
   public String serialize() {
     throw new UnsupportedOperationException("Unsupported");
+  }
+
+  public PushOffsetVector copy() {
+    return new PushOffsetVector(offsets.get());
+  }
+
+  @JsonIgnore
+  @Override
+  public String toString() {
+    return "PushOffsetVector{"
+        + "offsets=" + offsets
+        + '}';
   }
 }

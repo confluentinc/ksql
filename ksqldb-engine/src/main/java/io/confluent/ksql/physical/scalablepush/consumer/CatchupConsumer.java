@@ -79,7 +79,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
   protected void subscribeOrAssign() {
     ensureLatestIsRunning.run();
     onNewAssignment();
-    Map<Integer, Long> startingOffsets = TokenUtils.parseToken(Optional.of(offsetRange.getEndOffsets().getDenseRepresentation()));
+    Map<Integer, Long> startingOffsets = offsetRange.getEndOffsets().getSparseRepresentation();
     for (TopicPartition tp : consumer.assignment()) {
       consumer.seek(tp,
           startingOffsets.containsKey(tp.partition()) ? startingOffsets.get(tp.partition())

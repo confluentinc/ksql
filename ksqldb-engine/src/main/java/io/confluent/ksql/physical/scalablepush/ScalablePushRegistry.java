@@ -36,6 +36,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PushOffsetRange;
+import io.confluent.ksql.util.PushOffsetVector;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;
@@ -266,12 +267,12 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
-  public List<Long> latestOffsetsAsToken() {
+  public PushOffsetVector latestOffsets() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null) {
       return latestConsumer.getCurrentToken();
     }
-    return ImmutableList.of();
+    return null;
   }
 
   @VisibleForTesting

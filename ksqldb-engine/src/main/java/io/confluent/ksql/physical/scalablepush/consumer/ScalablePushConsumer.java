@@ -29,6 +29,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushOffsetVector;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -155,9 +156,10 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
           handleRow(rec.key(), rec.value(), rec.timestamp());
         }
 
-        List<Long> startToken = TokenUtils.getToken(currentPositions, topicName, partitions);
+        PushOffsetVector startOffsetVector
+            = getOffsetVector(currentPositions, topicName, partitions);
         updateCurrentPositions();
-        computeProgressToken(Optional.of(startToken));
+        computeProgressToken(Optional.of(startOffsetVector));
         try {
           consumer.commitSync();
           updateCommittedOffsets();
@@ -185,25 +187,36 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   }
 
   private void computeProgressToken(
-      final Optional<List<Long>> givenStartToken
+      final Optional<PushOffsetVector> givenStartOffsetVector
   ) {
     System.out.println("END TOKEN " + currentPositions);
-    List<Long> endToken = TokenUtils.getToken(currentPositions, topicName, partitions);
-    List<Long> startToken = givenStartToken.orElse(endToken);
+    PushOffsetVector endOffsetVector = getOffsetVector(currentPositions, topicName, partitions);
+    PushOffsetVector startOffsetVector = givenStartOffsetVector.orElse(endOffsetVector);
 
-    System.out.println("Sending tokens start " + startToken + " end " + endToken);
-    handleProgressToken(startToken, endToken);
+    System.out.println("Sending tokens start " + startOffsetVector + " end " + endOffsetVector);
+    handleProgressToken(startOffsetVector, endOffsetVector);
+  }
+
+  private static PushOffsetVector getOffsetVector(
+      final Map<TopicPartition, Long> offsets,
+      final String topic,
+      final int numPartitions
+  ) {
+    List<Long> offsetList = new ArrayList<>();
+    for (int i = 0; i < numPartitions; i++) {
+      TopicPartition tp = new TopicPartition(topic, i);
+      offsetList.add(offsets.getOrDefault(tp, 0L));
+    }
+    return new PushOffsetVector(offsetList);
   }
 
   private void handleProgressToken(
-      final List<Long> startToken,
-      final List<Long> endToken) {
+      final PushOffsetVector startOffsetVector,
+      final PushOffsetVector endOffsetVector) {
+    final PushOffsetRange range = new PushOffsetRange(
+        Optional.of(startOffsetVector), endOffsetVector);
     for (ProcessingQueue queue : processingQueues.values()) {
-      PushOffsetVector offsetVectorStart = new PushOffsetVector(startToken);
-      PushOffsetVector offsetVectorEnd = new PushOffsetVector(endToken);
-      final QueryRow row = OffsetsRow.of(
-          System.currentTimeMillis(),
-          new PushOffsetRange(Optional.of(offsetVectorStart), offsetVectorEnd));
+      final QueryRow row = OffsetsRow.of(System.currentTimeMillis(), range);
       queue.offer(row);
     }
   }
@@ -280,8 +293,8 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     return ImmutableMap.copyOf(currentPositions);
   }
 
-  public List<Long> getCurrentToken() {
-    return TokenUtils.getToken(currentPositions, topicName, partitions);
+  public PushOffsetVector getCurrentToken() {
+    return getOffsetVector(currentPositions, topicName, partitions);
   }
 
   public long getNumRowsReceived() {

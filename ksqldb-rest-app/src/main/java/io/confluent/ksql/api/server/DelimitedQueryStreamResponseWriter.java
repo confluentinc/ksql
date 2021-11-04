@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
@@ -73,6 +74,13 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
     response.write(ServerUtils.serializeObject(error).appendString("\n"));
     return this;
   }
+
+  @Override
+  public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
+    response.write(ServerUtils.serializeObject(consistencyToken).appendString("\n"));
+    return this;
+  }
+
 
   @Override
   public void end() {

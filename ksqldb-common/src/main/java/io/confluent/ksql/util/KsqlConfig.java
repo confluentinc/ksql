@@ -305,6 +305,13 @@ public class KsqlConfig extends AbstractConfig {
           + " much faster for short-lived queries.";
   public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED
+      = "ksql.query.pull.consistency.token.enabled";
+  public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC =
+      "Enables the use of the consistency token to offer monotonic read consistency for pull "
+          + "queries.";
+  public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -1005,6 +1012,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_ENABLED,

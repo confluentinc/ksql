@@ -61,9 +61,11 @@ import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
@@ -489,6 +491,18 @@ public class StreamedQueryResource implements KsqlConfigurable {
       pullBandRateLimiter.allow(KsqlQueryType.PULL);
 
       final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
+      Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)
+          && requestProperties.containsKey(
+              KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
+        final String serializedCV = (String)requestProperties.get(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
+        // serializedCV will be empty on the first request as the consistency vector is initialized
+        // at the server
+        consistencyOffsetVector = !serializedCV.equals("")
+            ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
+            : Optional.of(new ConsistencyOffsetVector());
+      }
       final PullQueryResult result = ksqlEngine.executeTablePullQuery(
           analysis,
           serviceContext,
@@ -497,7 +511,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           routingOptions,
           plannerOptions,
           pullQueryMetrics,
-          true
+          true,
+          consistencyOffsetVector
       );
       resultForMetrics.set(result);
       result.onCompletionOrException(

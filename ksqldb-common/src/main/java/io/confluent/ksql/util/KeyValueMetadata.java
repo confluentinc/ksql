@@ -74,4 +74,13 @@ public class KeyValueMetadata<K, V> {
   public int hashCode() {
     return Objects.hash(keyValue, rowMetadata);
   }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("KeyValueMetadata{");
+    sb.append("keyValue=").append(keyValue);
+    sb.append(", rowMetadata=").append(rowMetadata);
+    sb.append('}');
+    return sb.toString();
+  }
 }

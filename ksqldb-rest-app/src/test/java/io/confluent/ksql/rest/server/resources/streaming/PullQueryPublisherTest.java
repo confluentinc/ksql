@@ -16,9 +16,6 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static com.google.common.util.concurrent.RateLimiter.create;
-
-import io.confluent.ksql.analyzer.ImmutableAnalysis;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -36,6 +33,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -45,10 +44,10 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
@@ -141,7 +140,8 @@ public class PullQueryPublisherTest {
         create(1),
         concurrencyLimiter,
         pullBandRateLimiter,
-        haRouting);
+        haRouting,
+        Optional.empty());
 
     when(statement.getSessionConfig()).thenReturn(sessionConfig);
     when(sessionConfig.getConfig(false)).thenReturn(ksqlConfig);
@@ -162,7 +162,7 @@ public class PullQueryPublisherTest {
       times[0]++;
       return null;
     }).when(pullQueryQueue).drainTo(any());
-    when(engine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+    when(engine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(pullQueryResult);
     when(exec.submit(any(Runnable.class))).thenAnswer(inv -> {
       Runnable runnable = inv.getArgument(0);
@@ -192,7 +192,7 @@ public class PullQueryPublisherTest {
     // Then:
     verify(engine).executeTablePullQuery(
         any(), eq(serviceContext), eq(statement), eq(haRouting), any(), any(), eq(Optional.empty()),
-        anyBoolean());
+        anyBoolean(), eq(Optional.empty()));
   }
 
   @Test
@@ -207,7 +207,7 @@ public class PullQueryPublisherTest {
     verify(subscriber).onNext(any());
     verify(engine).executeTablePullQuery(
         any(), eq(serviceContext), eq(statement), eq(haRouting), any(), any(),
-        eq(Optional.empty()), anyBoolean());
+        eq(Optional.empty()), anyBoolean(), eq(Optional.empty()));
   }
 
   @Test
@@ -242,7 +242,7 @@ public class PullQueryPublisherTest {
   @Test
   public void shouldCallOnErrorOnFailure_initial() {
     // Given:
-    when(engine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+    when(engine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any()))
         .thenThrow(new RuntimeException("Boom!"));
 
     // When:

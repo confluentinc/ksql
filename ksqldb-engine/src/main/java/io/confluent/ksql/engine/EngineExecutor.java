@@ -91,6 +91,7 @@ import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
@@ -228,7 +229,8 @@ final class EngineExecutor {
       final RoutingOptions routingOptions,
       final QueryPlannerOptions queryPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final boolean startImmediately
+      final boolean startImmediately,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
 
     if (!statement.getStatement().isPullQuery()) {
@@ -266,11 +268,11 @@ final class EngineExecutor {
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, Optional.empty());
+          physicalPlan.getQueryId(), pullQueryQueue, shouldCancelRequests, consistencyOffsetVector);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
           physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource,
-          shouldCancelRequests);
+          shouldCancelRequests, consistencyOffsetVector);
       if (startImmediately) {
         result.start();
       }

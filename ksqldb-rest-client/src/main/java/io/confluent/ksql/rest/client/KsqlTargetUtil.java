@@ -70,7 +70,7 @@ public final class KsqlTargetUtil {
     try {
       final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
       return StreamedRow.header(new QueryId(Strings.nullToEmpty(metadata.queryId)),
-          createSchema(metadata));
+        createSchema(metadata));
     } catch (KsqlRestClientException e) {
       // Not a {@link QueryResponseMetadata}
     }

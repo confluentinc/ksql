@@ -20,6 +20,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.reactive.BaseSubscriber;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.util.KeyValueMetadata;
@@ -59,10 +60,15 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleValue(final KeyValueMetadata<List<?>, GenericRow> row) {
-    if (row.getRowMetadata().isPresent()
-        && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
-      queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
-          row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
+    if (row.getRowMetadata().isPresent()) {
+      // Only one of the metadata are present at a time
+      if (row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+        queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
+            row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
+      } else if (row.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
+        queryStreamResponseWriter.writeConsistencyToken(new ConsistencyToken(
+            row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
+      }
     } else {
       queryStreamResponseWriter.writeRow(row.getKeyValue().value());
     }

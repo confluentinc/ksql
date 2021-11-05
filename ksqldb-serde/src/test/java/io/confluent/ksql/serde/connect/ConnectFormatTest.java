@@ -34,13 +34,14 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
 import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,31 +111,6 @@ public class ConnectFormatTest {
     // Then:
     verify(format)
         .getConnectSerde(SINGLE_FIELD_SCHEMA, formatProps, config, srFactory, Struct.class, false);
-  }
-
-  @Test
-  public void shouldReturnKsqlTranslatorWithUppercasePolicy() {
-    // When:
-    final ConnectKsqlSchemaTranslator translator = format.getConnectKsqlSchemaTranslator(
-        ImmutableMap.of());
-
-    // Then:
-    assertTrue(
-        translator.getPolicies().enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
-  }
-
-  @Test
-  public void shouldReturnKsqlTranslatorWithOriginalPolicy() {
-    // When:
-    final ConnectKsqlSchemaTranslator translator = format.getConnectKsqlSchemaTranslator(
-        ImmutableMap.of(ConnectFormat.KEY_SCHEMA_ID, "1"));
-    final ConnectKsqlSchemaTranslator translator2 = format.getConnectKsqlSchemaTranslator(
-        ImmutableMap.of(ConnectFormat.VALUE_SCHEMA_ID, "1"));
-    // Then:
-    assertTrue(
-        translator.getPolicies().enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME));
-    assertTrue(
-        translator2.getPolicies().enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME));
   }
 
   @Test

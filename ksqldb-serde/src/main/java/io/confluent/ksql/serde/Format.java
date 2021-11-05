@@ -80,6 +80,23 @@ public interface Format {
   }
 
   /**
+   * Get a type for converting between {@link ParsedSchema} returned by Confluent Schema Registry
+   * and ksqlDB's own schema types.
+   *
+   * <p>If this Format supports the {@link SerdeFeature#SCHEMA_INFERENCE} feature, it is expected
+   * that this method will be implemented.
+   *
+   * @param formatProperties any format specific properties
+   * @param policies controls how schema should be translated
+   * @return the converter
+   * @see SerdeFeature#SCHEMA_INFERENCE
+   */
+  default SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties,
+      final SchemaTranslationPolicies policies) {
+    throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");
+  }
+
+  /**
    * If the format accepts custom properties in the WITH clause of the statement, then this will
    * take the properties and validate the key-value pairs.
    *

@@ -758,7 +758,7 @@
           "topics": [
             {
               "name": "OUTPUT",
-              "keyFormat" : { "format" : "JSON_SR", "properties":{"KEY_SCHEMA_ID":"1"}, "features": ["UNWRAP_SINGLES"] },
+              "keyFormat" : { "format" : "JSON_SR", "features": ["UNWRAP_SINGLES"] },
               "keySchema": {"oneOf":[{"type":"null"},{"type":"object","properties":{"F1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string"}]}}}]},
               "valueFormat" : { "format" : "JSON_SR" },
               "valueSchema": {"type":"object","properties":{"FOO":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}}

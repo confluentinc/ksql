@@ -25,7 +25,6 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -365,7 +364,8 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     @Override
     public Void visitLikePredicate(final LikePredicate node, final Object context) {
       if (node.getValue() instanceof UnqualifiedColumnReferenceExp) {
-        final UnqualifiedColumnReferenceExp column = (UnqualifiedColumnReferenceExp) node.getValue();
+        final UnqualifiedColumnReferenceExp column =
+                (UnqualifiedColumnReferenceExp) node.getValue();
         final ColumnName columnName = column.getColumnName();
         final Column col = schema.findColumn(columnName)
                 .orElseThrow(() -> invalidWhereClauseException(

@@ -108,7 +108,7 @@ public final class PullQueryRewriter {
       final ComparisonExpression rightComparisonExpression = new ComparisonExpression(
               node.getLocation(), Type.LESS_THAN_OR_EQUAL, node.getValue(),
               node.getMax());
-      Expression currentExpression = new LogicalBinaryExpression(
+      final Expression currentExpression = new LogicalBinaryExpression(
               node.getLocation(), LogicalBinaryExpression.Type.AND, leftComparisonExpression,
               rightComparisonExpression);
 

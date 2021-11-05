@@ -38,7 +38,7 @@ final class DdlDmlResponseHandlers {
       final CompletableFuture<ExecuteStatementResult> cf
   ) {
     if (isIfNotExistsWarning(ksqlEntity)) {
-      cf.complete(new ExecuteStatementResultImpl(Optional.of(ksqlEntity.getString("message"))));
+      cf.complete(new ExecuteStatementResultImpl(Optional.empty()));
       return;
     }
     if (!isCommandStatusEntity(ksqlEntity)) {

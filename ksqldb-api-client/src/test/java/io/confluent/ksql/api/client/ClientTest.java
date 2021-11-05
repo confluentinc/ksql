@@ -806,8 +806,7 @@ public class ClientTest extends BaseApiTest {
 
     // Then
     assertThat(result.queryId(),
-        equalTo(Optional.of("Cannot add stream `HIGH_VALUE_STOCK_TRADES`: A stream with the same name already exists."
-        )));
+        equalTo(Optional.empty()));
   }
 
   @Test

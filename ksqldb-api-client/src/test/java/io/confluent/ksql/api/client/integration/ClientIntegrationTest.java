@@ -329,7 +329,7 @@ public class ClientIntegrationTest {
     result = client.executeStatement("CREATE STREAM IF NOT EXISTS BAR AS SELECT * FROM FOO EMIT CHANGES;").get();
 
     //Then
-    assertThat(result.queryId().get(), is("Cannot add stream `BAR`: A stream with the same name already exists."));
+    assertThat(result.queryId(), is(Optional.empty()));
   }
 
   @Test

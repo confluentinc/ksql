@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (C1 INTEGER) WITH (KAFKA_TOPIC='input', KEY_FORMAT='KAFKA', VALUE_FORMAT='PROTOBUF', VALUE_SCHEMA_ID=1);",
+    "statementText" : "CREATE STREAM INPUT (`c1` INTEGER) WITH (KAFKA_TOPIC='input', KEY_FORMAT='KAFKA', VALUE_FORMAT='PROTOBUF', VALUE_SCHEMA_ID=1);",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`C1` INTEGER",
+      "schema" : "`c1` INTEGER",
       "topicName" : "input",
       "formats" : {
         "keyFormat" : {
@@ -24,7 +24,7 @@
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`C1` INTEGER",
+      "schema" : "`c1` INTEGER",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -64,10 +64,10 @@
                 "format" : "PROTOBUF"
               }
             },
-            "sourceSchema" : "`C1` INTEGER",
+            "sourceSchema" : "`c1` INTEGER",
             "pseudoColumnVersion" : 1
           },
-          "selectExpressions" : [ "C1 AS C1" ]
+          "selectExpressions" : [ "`c1` AS `c1`" ]
         },
         "formats" : {
           "keyFormat" : {

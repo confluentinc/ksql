@@ -52,6 +52,7 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
 import io.confluent.ksql.api.client.ConnectorType;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
@@ -315,6 +316,18 @@ public class ClientIntegrationTest {
     for (final StreamedQueryResult streamedQueryResult : streamedQueryResults) {
       assertThat(streamedQueryResult.isComplete(), is(false));
     }
+  }
+
+  @Test
+  public void shouldOnlyWarnForDuplicateIfNotExists() throws Exception {
+    // When
+    ExecuteStatementResult result;
+    client.executeStatement("CREATE STREAM FOO (id INT KEY, bar VARCHAR) WITH(value_format='json', kafka_topic='foo', partitions=6);").get();
+    client.executeStatement("CREATE STREAM IF NOT EXISTS BAR AS SELECT * FROM FOO EMIT CHANGES;").get();
+    result = client.executeStatement("CREATE STREAM IF NOT EXISTS BAR AS SELECT * FROM FOO EMIT CHANGES;").get();
+
+    //Then
+    assertThat(result.queryId(), is(Optional.empty()));
   }
 
   @Test

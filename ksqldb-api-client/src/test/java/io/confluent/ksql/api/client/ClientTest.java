@@ -43,6 +43,7 @@ import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
+import io.confluent.ksql.api.client.impl.ExecuteStatementResultImpl;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
@@ -84,6 +85,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
@@ -787,6 +789,24 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
     assertThat(e.getCause().getMessage(), containsString("something bad"));
+  }
+
+  @Test
+  public void shouldHandleIfNotExistsWarningResponseFromExecuteStatement() throws Exception {
+    // Given
+    KsqlEntity ksqlEntity = new WarningEntity(
+        "CREATE STREAM IF NOT EXISTS ",
+        "Cannot add stream `HIGH_VALUE_STOCK_TRADES`: A stream with the same name already exists."
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(ksqlEntity));
+
+
+    final ExecuteStatementResult result = javaClient.executeStatement("CSAS;").get();
+
+
+    // Then
+    assertThat(result.queryId(),
+        equalTo(Optional.empty()));
   }
 
   @Test

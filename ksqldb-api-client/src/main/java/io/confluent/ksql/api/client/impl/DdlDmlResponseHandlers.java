@@ -38,7 +38,7 @@ final class DdlDmlResponseHandlers {
       final CompletableFuture<ExecuteStatementResult> cf
   ) {
     if (isIfNotExistsWarning(ksqlEntity)) {
-      cf.complete(new ExecuteStatementResultImpl(Optional.empty()));
+      cf.complete(new ExecuteStatementResultImpl(Optional.of(ksqlEntity.getString("message"))));
       return;
     }
     if (!isCommandStatusEntity(ksqlEntity)) {
@@ -75,9 +75,8 @@ final class DdlDmlResponseHandlers {
   private static boolean isIfNotExistsWarning(final JsonObject ksqlEntity) {
     return ksqlEntity.getString("statementText") != null
         && ksqlEntity.getString("statementText").contains("IF NOT EXISTS")
-        && ksqlEntity.getString("message") != null
-        && ksqlEntity.getString("message").contains("with the same name already exists.")
-        && ksqlEntity.getString("warnings") != null;
+        && ksqlEntity.getString("@type") != null
+        && ksqlEntity.getString("@type").equals("warning_entity");
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

@@ -97,7 +97,7 @@
     {
       "name": "validate schema id without elements OK - PROTOBUF",
       "statements": [
-        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);",
         "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
@@ -113,7 +113,7 @@
         }
       ],
       "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+      "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
       "name": "validate without elements OK - JSON_SR SCHEMA",

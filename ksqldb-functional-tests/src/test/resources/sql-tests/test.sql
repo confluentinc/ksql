@@ -45,19 +45,11 @@ ASSERT VALUES bar (rowtime, id, count) VALUES (1, 1, 1);
 ----------------------------------------------------------------------------------------------------
 --@test: basic test (format AVRO)
 ----------------------------------------------------------------------------------------------------
-CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='AVRO', value_schema_id=123);
+CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='AVRO');
 CREATE STREAM bar AS SELECT * FROM foo;
-
-ASSERT STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', value_format='AVRO');
 
 INSERT INTO foo (rowtime, id, col1) VALUES (1, 1, 1);
 ASSERT VALUES bar (rowtime, id, col1) VALUES (1, 1, 1);
-
-----------------------------------------------------------------------------------------------------
---@test: basic test with key_schema_id (format AVRO)
-----------------------------------------------------------------------------------------------------
-CREATE STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', key_format='AVRO', value_format='AVRO', key_schema_id=123);
-ASSERT STREAM foo (id INT KEY, col1 INT) WITH (kafka_topic='foo', key_format='AVRO', value_format='AVRO');
 
 ----------------------------------------------------------------------------------------------------
 --@test: basic chained test

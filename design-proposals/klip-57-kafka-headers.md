@@ -24,9 +24,11 @@ So far, ksqlDB exposes the timestamp, partition and offset of Kafka records as p
 
 ### Syntax
 
-Unlike other pseudocolumns, if a user wants to access headers, they will create a column with the `HEADERS` keyword. This column will be populated with the full list of header keys and values.
+Unlike other pseudocolumns, if a user wants to access headers, they will create a column with the `HEADERS` keyword. This column will be populated with the full list of header keys and values. There can be any number of HEADERS columns.
 ```
-ksql> CREATE STREAM A (my_headers ARRAY<STRUCT<key STRING, value BYTES>> HEADERS);
+ksql> CREATE STREAM A (
+    my_headers ARRAY<STRUCT<key STRING, value BYTES>> HEADERS,
+    my_headers_2 ARRAY<STRUCT<key STRING, value BYTES>> HEADERS);
 ```
 The type of a header backed column must be exactly `ARRAY<STRUCT<key STRING, value BYTES>>`. An error will be thrown if that is not the case.
 ```
@@ -35,7 +37,7 @@ Error: Columns specified with the HEADERS keyword must be typed as ARRAY<STRUCT<
 ```
 Users can also mark a column with `HEADER(<key>)`, which will populate the column with the last header that matches the key. The data type must be `BYTES`
 ```
-ksql> CREATE STREAM B (value BYTES HEADER(<key>));
+ksql> CREATE STREAM B (value BYTES HEADER(<key>), value_2 BYTES HEADER(<key_2>));
 ```
 If the key is not present in the header, then the value in the column will be `null`.
 
@@ -51,11 +53,11 @@ There will also be new byte conversion functions to help decode header data:
 
 ### Queries
 
-The headers columns will be usable in any query like any other column, except `INSERT` query will be blocked. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.
+The headers columns will be usable in any query like any other column, except `INSERT SELECT` and `INSERT VALUES` statements will fail if trying to insert into a headers column. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.
 
 ### Schema
 
-Header columns will fully be a part of the stream/table's schema. When running `SELECT *`, header columns will be included in the projection, and they will also appear when describing a source.
+Header columns will fully be a part of the stream/table's schema. When running `SELECT *`, header columns will be included in the projection, and they will also appear when describing a source. However, headers will not be copied to the header fields of sink topics.
 
 ## Design
 Columns in the logical schema will be represented by a new type of column `HeaderColumn` which will extend `Column` and contain an optional String named `key` representing the key in `HEADER(key)`. It will store `Optional.empty()` for columns defined with `HEADERS`. They will be in a new `HEADER` namespace, which functions identically to the `VALUE` namespace, except that the `StreamBuilder` will populate those columns with header values. 

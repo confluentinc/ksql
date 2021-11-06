@@ -40,6 +40,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -77,6 +78,21 @@ public class ListPropertiesExecutorTest {
     // Then:
     assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getInternal(), equalTo(true));
     assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getInternal(), equalTo(false));
+  }
+
+  @Test
+  public void shouldContainLevelField() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getLevel(), equalTo("SERVER"));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE).getLevel(), equalTo("QUERY"));
   }
 
   @Test

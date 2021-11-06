@@ -26,6 +26,8 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.Year;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
@@ -73,8 +75,18 @@ public class ParseDate {
         throw new KsqlFunctionException("Date format contains time field.");
       }
 
-      return new Date(
-          TimeUnit.DAYS.toMillis(LocalDate.from(ta).toEpochDay()));
+      if (ta.isSupported(ChronoField.EPOCH_DAY)) {
+        return new Date(
+            TimeUnit.DAYS.toMillis(LocalDate.from(ta).toEpochDay()));
+      } else if (ta.isSupported(ChronoField.YEAR) && ta.isSupported(ChronoField.MONTH_OF_YEAR)) {
+        return new Date(
+            TimeUnit.DAYS.toMillis(YearMonth.from(ta).atDay(1).toEpochDay()));
+      } else if (ta.isSupported(ChronoField.YEAR) && !ta.isSupported(ChronoField.DAY_OF_MONTH)) {
+        return new Date(
+            TimeUnit.DAYS.toMillis(Year.from(ta).atDay(1).toEpochDay()));
+      } else {
+        throw new KsqlFunctionException("Cannot create DATE out of the fields provided.");
+      }
     } catch (final ExecutionException | RuntimeException e) {
       throw new KsqlFunctionException("Failed to parse date '" + formattedDate
           + "' with formatter '" + formatPattern

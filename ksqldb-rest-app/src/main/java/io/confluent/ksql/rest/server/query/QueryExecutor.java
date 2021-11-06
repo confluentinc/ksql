@@ -349,7 +349,7 @@ public class QueryExecutor {
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
 
     final PushQueryConfigRoutingOptions routingOptions =
-        new PushQueryConfigRoutingOptions(requestProperties);
+        new PushQueryConfigRoutingOptions(ksqlConfig, configOverrides, requestProperties);
 
     final PushQueryConfigPlannerOptions plannerOptions =
         new PushQueryConfigPlannerOptions(ksqlConfig, configOverrides);

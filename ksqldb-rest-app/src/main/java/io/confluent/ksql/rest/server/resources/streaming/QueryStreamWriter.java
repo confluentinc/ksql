@@ -177,13 +177,13 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private StreamedRow buildRow(final KeyValueMetadata<List<?>, GenericRow> row) {
-    if (row.getKeyValue().value() == null) {
-      return StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()));
+    if (row.getRowMetadata().isPresent()
+        && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+      return StreamedRow.continuationToken(new PushContinuationToken(
+          row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
     } else {
-      if (row.getRowMetadata().isPresent()
-          && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
-        return StreamedRow.continuationToken(new PushContinuationToken(
-            row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
+      if (row.getKeyValue().value() == null) {
+        return StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()));
       } else {
         return StreamedRow.pushRow(row.getKeyValue().value());
       }

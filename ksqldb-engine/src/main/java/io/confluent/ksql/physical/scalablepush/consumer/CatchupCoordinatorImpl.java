@@ -1,57 +1,67 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public class CatchupCoordinatorImpl implements CatchupCoordinator {
 
-  private final AtomicInteger blockers = new AtomicInteger(0);
-  private final AtomicBoolean waiting = new AtomicBoolean(false);
+  private final AtomicInteger catchupJoiners = new AtomicInteger(0);
+  private final AtomicBoolean latestWaiting = new AtomicBoolean(false);
 
   @Override
   public void checkShouldWaitForCatchup() {
-    synchronized (blockers) {
-      while (blockers.get() > 0) {
+    synchronized (catchupJoiners) {
+      while (catchupJoiners.get() > 0) {
         try {
           System.out.println("WAITING TO BE WOKEN UP");
-          waiting.set(true);
-          blockers.wait();
-          System.out.println("WAKING UP");
+          latestWaiting.set(true);
+          catchupJoiners.wait();
+          System.out.println("WAKING UP catchupJoiners.get()" + catchupJoiners.get());
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      waiting.set(false);
+      latestWaiting.set(false);
     }
   }
 
   @Override
   public boolean checkShouldCatchUp(
-      final AtomicBoolean blocked,
+      final AtomicBoolean signalledLatest,
       final Supplier<Boolean> isCaughtUp,
       final Runnable switchOver
   ) {
     // Check caught up first before grabbing the lock
     if (isCaughtUp.get()) {
       System.out.println("CAUGHT UP!!");
-      synchronized (blockers) {
-        if (waiting.get() && isCaughtUp.get()) {
+      synchronized (catchupJoiners) {
+        if (latestWaiting.get() && isCaughtUp.get()) {
           System.out.println("TRANSFER");
-          if (blocked.get()) {
-            System.out.println("DECREMENTING BLOCKERS to " + blockers.get());
-            blockers.decrementAndGet();
-            blockers.notify();
+          if (signalledLatest.get()) {
+            System.out.println("DECREMENTING BLOCKERS to " + catchupJoiners.get());
+            catchupJoiners.decrementAndGet();
+            catchupJoiners.notify();
           }
           switchOver.run();
           return true;
-        } else {
-          System.out.println("INCREMENTING BLOCKERS to " + blockers.get());
-          blocked.set(true);
-          blockers.incrementAndGet();
+        } else if (!signalledLatest.get()) {
+          System.out.println("INCREMENTING BLOCKERS to " + catchupJoiners.get());
+          signalledLatest.set(true);
+          catchupJoiners.incrementAndGet();
         }
       }
     }
     return false;
+  }
+
+  @VisibleForTesting
+  public void simulateWaitingInTest() {
+    synchronized (catchupJoiners) {
+      if (catchupJoiners.get() > 0) {
+        latestWaiting.set(true);
+      }
+    }
   }
 }

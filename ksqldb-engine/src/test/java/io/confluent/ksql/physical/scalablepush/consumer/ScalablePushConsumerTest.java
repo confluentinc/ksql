@@ -16,6 +16,12 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.EMPTY_RECORDS;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_0;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_2;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_0;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_2;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.RECORD0_0;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.RECORD0_1;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.RECORD0_2;
@@ -29,12 +35,12 @@ import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.TO
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.TP0;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.TP1;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WEMPTY_RECORDS;
-import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORD0_0;
-import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORD0_1;
-import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORD0_2;
-import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORD1_0;
-import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORD1_1;
-import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORD1_2;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WQR0_0;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WQR0_1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WQR0_2;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WQR1_0;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WQR1_1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WQR1_2;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORDS1;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.WRECORDS2;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.expectPoll;
@@ -42,6 +48,8 @@ import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.ex
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyRows;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyRowsW;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.offsetsRow;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyQueryRows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -56,6 +64,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.query.QueryId;
+import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -74,11 +83,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ScalablePushConsumerTest {
-  ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST0 = new ConsumerRecords<>(
+  private static final long CURRENT_TIME_MS = 60000;
+
+  private static final ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST0 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP0, ImmutableList.of(RECORD0_0, RECORD0_1, RECORD0_2))
   );
-  ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST1 = new ConsumerRecords<>(
+  private static final ConsumerRecords<GenericKey, GenericRow> RECORDS_JUST1 = new ConsumerRecords<>(
       ImmutableMap.of(
           TP1, ImmutableList.of(RECORD1_0, RECORD1_1, RECORD1_2))
   );
@@ -88,13 +99,16 @@ public class ScalablePushConsumerTest {
   @Mock
   private ProcessingQueue queue;
   @Mock
-  PartitionInfo partitionInfo1;
+  private PartitionInfo partitionInfo1;
   @Mock
-  PartitionInfo partitionInfo2;
+  private PartitionInfo partitionInfo2;
+  @Mock
+  private Clock clock;
 
   @Before
   public void setUp() {
     when(queue.getQueryId()).thenReturn(new QueryId("a"));
+    when(clock.millis()).thenReturn(CURRENT_TIME_MS);
     when(kafkaConsumer.partitionsFor(any()))
         .thenReturn(ImmutableList.of(partitionInfo1, partitionInfo2));
   }
@@ -103,7 +117,7 @@ public class ScalablePushConsumerTest {
   @Test
   public void shouldRunConsumer_success() {
     try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
-        ImmutableList.of(TP0, TP1))) {
+        ImmutableList.of(TP0, TP1), clock)) {
       expectPoll(kafkaConsumer, consumer, RECORDS1, RECORDS2, EMPTY_RECORDS);
       when(kafkaConsumer.position(TP0)).thenReturn(0L, 2L, 3L);
       when(kafkaConsumer.position(TP1)).thenReturn(0L, 1L, 3L);
@@ -112,9 +126,14 @@ public class ScalablePushConsumerTest {
 
       consumer.run();
 
-      verifyRows(
+      verifyQueryRows(
           queue,
-          ImmutableList.of(RECORD0_0, RECORD0_1, RECORD1_0, RECORD0_2, RECORD1_1, RECORD1_2));
+          ImmutableList.of(
+              QR0_0, QR0_1, QR1_0,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(0L, 0L), ImmutableList.of(2L, 1L)),
+              QR0_2, QR1_1, QR1_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(2L, 1L), ImmutableList.of(3L, 3L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 3L), ImmutableList.of(3L, 3L))));
       assertThat(consumer.getNewAssignment(), is (1));
       assertThat(consumer.getAfterCommit(), is (2));
       assertThat(consumer.getEmptyRecords(), is (1));
@@ -126,7 +145,7 @@ public class ScalablePushConsumerTest {
   @Test
   public void shouldRunConsumer_successWindowed() {
     try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, true,
-        ImmutableList.of(TP0, TP1))) {
+        ImmutableList.of(TP0, TP1), clock)) {
       expectPollW(kafkaConsumer, consumer, WRECORDS1, WRECORDS2, WEMPTY_RECORDS);
       when(kafkaConsumer.position(TP0)).thenReturn(0L, 2L, 3L);
       when(kafkaConsumer.position(TP1)).thenReturn(0L, 1L, 3L);
@@ -135,9 +154,14 @@ public class ScalablePushConsumerTest {
 
       consumer.run();
 
-      verifyRowsW(
+      verifyQueryRows(
           queue,
-          ImmutableList.of(WRECORD0_0, WRECORD0_1, WRECORD1_0, WRECORD0_2, WRECORD1_1, WRECORD1_2));
+          ImmutableList.of(
+              WQR0_0, WQR0_1, WQR1_0,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(0L, 0L), ImmutableList.of(2L, 1L)),
+              WQR0_2, WQR1_1, WQR1_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(2L, 1L), ImmutableList.of(3L, 3L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 3L), ImmutableList.of(3L, 3L))));
       assertThat(consumer.getNewAssignment(), is (1));
       assertThat(consumer.getAfterCommit(), is (2));
       assertThat(consumer.getEmptyRecords(), is (1));
@@ -149,10 +173,10 @@ public class ScalablePushConsumerTest {
   @Test
   public void shouldRunConsumer_commitError() {
     try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
-        ImmutableList.of(TP0, TP1))) {
+        ImmutableList.of(TP0, TP1), clock)) {
       expectPoll(kafkaConsumer, consumer, RECORDS_JUST0, RECORDS_JUST1, EMPTY_RECORDS);
-      when(kafkaConsumer.position(TP0)).thenReturn(0L, 3L);
-      when(kafkaConsumer.position(TP1)).thenReturn(0L, 3L);
+      when(kafkaConsumer.position(TP0)).thenReturn(0L, 3L, 3L);
+      when(kafkaConsumer.position(TP1)).thenReturn(0L, 0L, 3L);
       doAnswer(a -> {
         throw new CommitFailedException();
       }).when(kafkaConsumer).commitSync();
@@ -161,9 +185,14 @@ public class ScalablePushConsumerTest {
 
       consumer.run();
 
-      verifyRows(
+      verifyQueryRows(
           queue,
-          ImmutableList.of(RECORD0_0, RECORD0_1, RECORD0_2, RECORD1_0, RECORD1_1, RECORD1_2));
+          ImmutableList.of(
+              QR0_0, QR0_1, QR0_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(0L, 0L), ImmutableList.of(3L, 0L)),
+              QR1_0, QR1_1, QR1_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 0L), ImmutableList.of(3L, 3L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 3L), ImmutableList.of(3L, 3L))));
       assertThat(consumer.getNewAssignment(), is (1));
       assertThat(consumer.getAfterCommit(), is (2));
       assertThat(consumer.getEmptyRecords(), is (1));
@@ -174,7 +203,7 @@ public class ScalablePushConsumerTest {
   @Test
   public void shouldRunConsumer_reassign() {
     try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
-        ImmutableList.of(TP0))) {
+        ImmutableList.of(TP0), clock)) {
       AtomicInteger count = new AtomicInteger(0);
       when(kafkaConsumer.poll(any())).thenAnswer(
           a -> {
@@ -183,6 +212,7 @@ public class ScalablePushConsumerTest {
               return RECORDS_JUST0;
             } else if (count.get() == 2) {
               consumer.newAssignment(ImmutableList.of(TP1));
+              consumer.resetCurrentPosition();
               return RECORDS_JUST1;
             } else {
               consumer.close();
@@ -196,20 +226,25 @@ public class ScalablePushConsumerTest {
 
       consumer.run();
 
-      verifyRows(
+      verifyQueryRows(
           queue,
-          ImmutableList.of(RECORD0_0, RECORD0_1, RECORD0_2, RECORD1_0, RECORD1_1, RECORD1_2));
+          ImmutableList.of(
+              QR0_0, QR0_1, QR0_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(0L, -1L), ImmutableList.of(3L, -1L)),
+              QR1_0, QR1_1, QR1_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(-1L, 0L), ImmutableList.of(-1L, 3L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(-1L, 3L), ImmutableList.of(-1L, 3L))));
       assertThat(consumer.getNewAssignment(), is (2));
       assertThat(consumer.getAfterCommit(), is (2));
       assertThat(consumer.getEmptyRecords(), is (1));
-      assertThat(consumer.getCurrentOffsets(), is(ImmutableMap.of(TP0, 0L, TP1, 3L)));
+      assertThat(consumer.getCurrentOffsets(), is(ImmutableMap.of(TP0, -1L, TP1, 3L)));
     }
   }
 
   @Test
   public void shouldRunConsumer_noAssignmentYet() {
     try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
-        null)) {
+        null, clock)) {
       AtomicInteger count = new AtomicInteger(0);
 
       when(kafkaConsumer.poll(any())).thenAnswer(
@@ -217,6 +252,7 @@ public class ScalablePushConsumerTest {
             count.incrementAndGet();
             if (count.get() == 2) {
               consumer.newAssignment(ImmutableList.of(TP0, TP1));
+              consumer.resetCurrentPosition();
               consumer.close();
             }
             return EMPTY_RECORDS;
@@ -226,8 +262,11 @@ public class ScalablePushConsumerTest {
 
       consumer.run();
 
-      verifyRows(queue, ImmutableList.of());
-      assertThat(consumer.getNewAssignment(), is (0));
+      verifyQueryRows(
+          queue,
+          ImmutableList.of(
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(0L, 0L), ImmutableList.of(0L, 0L))));
+      assertThat(consumer.getNewAssignment(), is (1));
       assertThat(consumer.getAfterCommit(), is (0));
       assertThat(consumer.getEmptyRecords(), is (1));
     }
@@ -241,7 +280,7 @@ public class ScalablePushConsumerTest {
       when(kafkaConsumer.poll(any())).thenAnswer(a -> EMPTY_RECORDS);
       executorService.submit(() -> {
         try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
-            null)) {
+            null, clock)) {
           ref.set(consumer);
 
           consumer.register(queue);
@@ -268,8 +307,8 @@ public class ScalablePushConsumerTest {
 
     public TestScalablePushConsumer(final KafkaConsumer<Object, GenericRow> kafkaConsumer,
         boolean windowed,
-        final List<TopicPartition> initialAssignment) {
-      super(TOPIC, windowed, SCHEMA, kafkaConsumer);
+        final List<TopicPartition> initialAssignment, final Clock clock) {
+      super(TOPIC, windowed, SCHEMA, kafkaConsumer, clock);
       this.initialAssignment = initialAssignment;
     }
 
@@ -294,6 +333,9 @@ public class ScalablePushConsumerTest {
     protected void subscribeOrAssign() {
       // Simulate getting an assignment after a call to subscribeOrAssign
       newAssignment(initialAssignment);
+      if (initialAssignment != null) {
+        resetCurrentPosition();
+      }
     }
 
     public int getEmptyRecords() {

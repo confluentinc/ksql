@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.List;
 import java.util.Map;
@@ -25,11 +26,17 @@ import java.util.Optional;
 
 public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
 
+  private final KsqlConfig ksqlConfig;
+  private final Map<String, ?> configOverrides;
   private final Map<String, ?> requestProperties;
 
   public PushQueryConfigRoutingOptions(
+      final KsqlConfig ksqlConfig,
+      final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.configOverrides = Objects.requireNonNull(configOverrides, "configOverrides");
     this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
   }
 
@@ -68,5 +75,16 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP));
     }
     return Optional.empty();
+  }
+
+  @Override
+  public boolean shouldOutputContinuationToken() {
+    if (getHasBeenForwarded()) {
+      return true;
+    } else if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED)) {
+      return (Boolean) configOverrides.get(
+          KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED);
   }
 }

@@ -1,75 +1,128 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
+import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
-import io.confluent.ksql.physical.scalablepush.TokenUtils;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushOffsetRange;
-import java.util.HashSet;
+import java.time.Clock;
+import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CatchupConsumer extends ScalablePushConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(CatchupConsumer.class);
+  private static final long WAIT_FOR_ASSIGNMENT_MS = 15000;
 
-  private final Runnable ensureLatestIsRunning;
   private final Supplier<LatestConsumer> latestConsumerSupplier;
   private final CatchupCoordinator catchupCoordinator;
   private final PushOffsetRange offsetRange;
-  private AtomicBoolean blocked = new AtomicBoolean(false);
+  private final Consumer<Long> sleepMs;
+  private AtomicBoolean signalledLatest = new AtomicBoolean(false);
 
   public CatchupConsumer(
       String topicName,
       boolean windowed,
       LogicalSchema logicalSchema,
       KafkaConsumer<Object, GenericRow> consumer,
-      Runnable ensureLatestIsRunning,
       Supplier<LatestConsumer> latestConsumerSupplier,
       CatchupCoordinator catchupCoordinator,
-      PushOffsetRange offsetRange
+      PushOffsetRange offsetRange,
+      Clock clock,
+      Consumer<Long> sleepMs
   ) {
-    super(topicName, windowed, logicalSchema, consumer);
-    this.ensureLatestIsRunning = ensureLatestIsRunning;
+    super(topicName, windowed, logicalSchema, consumer, clock);
     this.latestConsumerSupplier = latestConsumerSupplier;
     this.catchupCoordinator = catchupCoordinator;
     this.offsetRange = offsetRange;
+    this.sleepMs = sleepMs;
+  }
+
+  public CatchupConsumer(
+      String topicName,
+      boolean windowed,
+      LogicalSchema logicalSchema,
+      KafkaConsumer<Object, GenericRow> consumer,
+      Supplier<LatestConsumer> latestConsumerSupplier,
+      CatchupCoordinator catchupCoordinator,
+      PushOffsetRange offsetRange,
+      Clock clock
+  ) {
+    this(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier, catchupCoordinator,
+        offsetRange, clock, CatchupConsumer::sleep);
+  }
+
+  public interface CatchupConsumerFactory {
+    CatchupConsumer create(
+        String topicName,
+        boolean windowed,
+        LogicalSchema logicalSchema,
+        KafkaConsumer<Object, GenericRow> consumer,
+        Supplier<LatestConsumer> latestConsumerSupplier,
+        CatchupCoordinator catchupCoordinator,
+        PushOffsetRange pushOffsetRange,
+        Clock clock
+    );
   }
 
   @Override
   protected boolean onEmptyRecords() {
-    return checkCaughtUp(consumer, blocked);
+    return checkCaughtUp();
   }
 
   @Override
   protected boolean afterCommit() {
-    return checkCaughtUp(consumer, blocked);
+    return checkCaughtUp();
   }
 
   @Override
   protected void onNewAssignment() {
+    System.out.println("onNewAssignment ");
     Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
 
+    System.out.println("onNewAssignment assign");
     consumer.assign(tps);
     resetCurrentPosition();
+    System.out.println("onNewAssignment doneReset");
     newAssignment = false;
   }
 
+//  @Override
+//  protected void resetCurrentPosition() {
+//    final Map<Integer, Long> offsets = offsetRange.getEndOffsets().getSparseRepresentation();
+//    for (int i = 0; i < partitions; i++) {
+//      currentPositions.put(new TopicPartition(topicName, i), -1L);
+//    }
+//    for (TopicPartition tp : topicPartitions.get()) {
+//      currentPositions.put(tp, Math.max(offsets.get(tp.partition()), consumer.position(tp)));
+//    }
+//    System.out.println("Consumer got assignment " + topicPartitions.get() + " and current position " + currentPositions);
+//    LOG.info("Consumer got assignment {} and current position {}", topicPartitions.get(),
+//        currentPositions);
+//  }
+
+  /**
+   * The first time we start up a LatestConsumer, if it doesn't already have an assignment, we need
+   * to wait for it to give us that assignment by calling {@link #newAssignment}
+   * @return
+   */
   protected Set<TopicPartition> waitForNewAssignmentFromLatestConsumer() {
+    long startMs = clock.millis();
     Set<TopicPartition> tps = this.topicPartitions.get();
     while (tps == null) {
-      try {
-        Thread.sleep(100);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
+      if (clock.millis() - startMs > WAIT_FOR_ASSIGNMENT_MS) {
+        throw new KsqlException("Timed out waiting for assignment from Latest");
       }
+      sleepMs.accept(100L);
       tps = this.topicPartitions.get();
     }
     return tps;
@@ -77,31 +130,30 @@ public class CatchupConsumer extends ScalablePushConsumer {
 
   @Override
   protected void subscribeOrAssign() {
-    ensureLatestIsRunning.run();
+    final LatestConsumer latestConsumer = latestConsumerSupplier.get();
+    Preconditions.checkNotNull(latestConsumer,
+        "Latest should always be started before catchup is run");
+    this.newAssignment(latestConsumer.getAssignment());
     onNewAssignment();
     Map<Integer, Long> startingOffsets = offsetRange.getEndOffsets().getSparseRepresentation();
+    System.out.println("subscribeOrAssign CATCHUP " + startingOffsets);
     for (TopicPartition tp : consumer.assignment()) {
-      consumer.seek(tp,
-          startingOffsets.containsKey(tp.partition()) ? startingOffsets.get(tp.partition())
-              : 0);
+      if (startingOffsets.containsKey(tp.partition()) && startingOffsets.get(tp.partition()) >= 0) {
+        consumer.seek(tp, startingOffsets.get(tp.partition()));
+      }
     }
   }
 
   protected void afterOfferedRow(final ProcessingQueue processingQueue) {
     // Since we handle only one request at a time, we can afford to block and wait for the request.
     while (processingQueue.isAtLimit()) {
-      try {
-        System.out.println("Sleeping for a bit");
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
+      System.out.println("Sleeping for a bit");
+      sleepMs.accept(1000L);
     }
   }
 
-  private boolean checkCaughtUp(KafkaConsumer<Object, GenericRow> consumer, AtomicBoolean blocked) {
+  private boolean checkCaughtUp() {
     System.out.println("CHECKING CAUGHT UP!!");
-    Map<TopicPartition, OffsetAndMetadata> offsets = consumer.committed(new HashSet<>(topicPartitions.get()));
 
     final Supplier<Boolean> isCaughtUp = () -> {
       LatestConsumer lc = latestConsumerSupplier.get();
@@ -109,13 +161,13 @@ public class CatchupConsumer extends ScalablePushConsumer {
       if (lc == null) {
         return false;
       }
-      Map<TopicPartition, OffsetAndMetadata> latestOffsets = lc.getCommittedOffsets();
+      Map<TopicPartition, Long> latestOffsets = lc.getCurrentOffsets();
       System.out.println("latestOffsets " + latestOffsets);
       if (latestOffsets.isEmpty()) {
         return false;
       }
-      System.out.println("Comparing " + offsets + " and " + latestOffsets);
-      return caughtUp(latestOffsets, offsets);
+      System.out.println("Comparing " + currentPositions + " and " + latestOffsets);
+      return caughtUp(latestOffsets, currentPositions);
     };
 
     final Runnable switchOver = () -> {
@@ -131,26 +183,36 @@ public class CatchupConsumer extends ScalablePushConsumer {
       processingQueues.clear();
       close();
     };
-    return catchupCoordinator.checkShouldCatchUp(blocked, isCaughtUp, switchOver);
+    return catchupCoordinator.checkShouldCatchUp(signalledLatest, isCaughtUp, switchOver);
   }
 
-  private static boolean caughtUp(Map<TopicPartition, OffsetAndMetadata> latestOffsets, Map<TopicPartition, OffsetAndMetadata> offsets) {
+  private static boolean caughtUp(
+      final Map<TopicPartition, Long> latestOffsets,
+      final Map<TopicPartition, Long> offsets
+  ) {
     if (!latestOffsets.keySet().equals(offsets.keySet())) {
       return false;
     } else {
       for (TopicPartition tp : latestOffsets.keySet()) {
-        OffsetAndMetadata latestOam = latestOffsets.get(tp);
-        OffsetAndMetadata oam = offsets.get(tp);
-        if (latestOam == null || oam == null) {
+        final Long latestOffset = latestOffsets.get(tp);
+        final Long offset = offsets.get(tp);
+        if (latestOffset == null || offset == null) {
           return false;
         }
-        long latestOffset = latestOam.offset();
-        long offset = oam.offset();
         if (offset < latestOffset) {
           return false;
         }
       }
       return true;
+    }
+  }
+
+  private static void sleep(final long waitMs) {
+    try {
+      Thread.sleep(waitMs);
+    } catch (InterruptedException e) {
+      LOG.warn("Interrupted while sleeping", e);
+      Thread.currentThread().interrupt();
     }
   }
 }

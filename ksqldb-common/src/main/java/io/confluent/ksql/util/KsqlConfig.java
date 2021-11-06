@@ -365,6 +365,12 @@ public class KsqlConfig extends AbstractConfig {
           + " adopt those offsets rather than seek to the end.";
   public static final long KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT = 30000;
 
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED
+      = "ksql.query.push.v2.continuation.tokens.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC =
+      "Whether to output continuation tokens";
+  public static final boolean KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT = false;
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -1090,6 +1096,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

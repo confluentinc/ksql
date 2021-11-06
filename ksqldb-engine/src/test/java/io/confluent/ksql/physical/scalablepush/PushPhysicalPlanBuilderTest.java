@@ -39,158 +39,163 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PushPhysicalPlanBuilderTest {
-//  @Mock
-//  private ProcessingLogContext logContext;
-//  @Mock
-//  private ProcessingLoggerFactory processingLoggerFactory;
-//  @Mock
-//  private ProcessingLogger processingLogger;
-//  @Mock
-//  private PersistentQueryMetadata persistentQueryMetadata;
-//  @Mock
-//  private Context context;
-//  @Mock
-//  private LogicalPlanNode logicalPlanNode;
-//  @Mock
-//  private KsqlBareOutputNode ksqlBareOutputNode;
-//  @Mock
-//  private QueryProjectNode projectNode;
-//  @Mock
-//  private QueryFilterNode filterNode;
-//  @Mock
-//  private DataSourceNode dataSourceNode;
-//  @Mock
-//  private ScalablePushRegistry scalablePushRegistry;
-//  @Mock
-//  private Expression rewrittenExpression;
-//  @Mock
-//  private ExpressionEvaluator expressionEvaluator;
-//  @Mock
-//  private LogicalSchema logicalSchema;
-//
-//  @Before
-//  public void setUp() {
-//    when(logContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
-//    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
-//    when(logicalPlanNode.getNode()).thenReturn(Optional.of(ksqlBareOutputNode));
-//    when(ksqlBareOutputNode.getSource()).thenReturn(projectNode);
-//    when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode));
-//    when(filterNode.getSources()).thenReturn(ImmutableList.of(dataSourceNode));
-//    when(persistentQueryMetadata.getScalablePushRegistry())
-//        .thenReturn(Optional.of(scalablePushRegistry));
-//
-//    when(filterNode.getRewrittenPredicate()).thenReturn(rewrittenExpression);
-//    when(filterNode.getCompiledWhereClause()).thenReturn(expressionEvaluator);
-//    when(expressionEvaluator.getExpressionType()).thenReturn(SqlTypes.BOOLEAN);
-//    when(projectNode.getSchema()).thenReturn(logicalSchema);
-//  }
-//
-//  @Test
-//  @SuppressWarnings("unchecked")
-//  public void shouldBuildPhysicalPlan() {
-//    // Given:
-//    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-//        persistentQueryMetadata, false);
-//
-//    // When:
-//    final PushPhysicalPlan pushPhysicalPlan =
-//        builder.buildPushPhysicalPlan(logicalPlanNode, context);
-//
-//    // Then:
-//    assertThat(pushPhysicalPlan.getRoot(), isA((Class) ProjectOperator.class));
-//    final ProjectOperator projectOperator = (ProjectOperator) pushPhysicalPlan.getRoot();
-//    assertThat(projectOperator.getChild(), isA((Class) SelectOperator.class));
-//    final SelectOperator selectOperator = (SelectOperator) projectOperator.getChild();
-//    assertThat(selectOperator.getChild(), isA((Class) PeekStreamOperator.class));
-//    assertThat(pushPhysicalPlan.getScalablePushRegistry(), is(scalablePushRegistry));
-//  }
-//
-//  @Test
-//  public void shouldThrowOnNoOutputNode() {
-//    // Given:
-//    when(logicalPlanNode.getNode()).thenReturn(Optional.empty());
-//    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-//        persistentQueryMetadata, false);
-//
-//    // When:
-//    final Exception e = assertThrows(
-//        IllegalArgumentException.class,
-//        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
-//    );
-//
-//    // Then:
-//    assertThat(e.getMessage(), containsString("Need an output node to build a plan"));
-//  }
-//
-//  @Test
-//  public void shouldThrowOnNotBareOutputNode() {
-//    // Given:
-//    when(logicalPlanNode.getNode()).thenReturn(Optional.of(mock(OutputNode.class)));
-//    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-//        persistentQueryMetadata, false);
-//
-//    // When:
-//    final Exception e = assertThrows(
-//        KsqlException.class,
-//        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
-//    );
-//
-//    // Then:
-//    assertThat(e.getMessage(),
-//        containsString("Push queries expect the root of the logical plan to be a "
-//            + "KsqlBareOutputNode."));
-//  }
-//
-//  @Test
-//  public void shouldThrowOnUnknownLogicalNode() {
-//    // Given:
-//    when(ksqlBareOutputNode.getSource()).thenReturn(mock(PlanNode.class));
-//    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-//        persistentQueryMetadata, false);
-//
-//    // When:
-//    final Exception e = assertThrows(
-//        KsqlException.class,
-//        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
-//    );
-//
-//    // Then:
-//    assertThat(e.getMessage(), containsString("unrecognized logical node"));
-//  }
-//
-//  @Test
-//  public void shouldThrowOnMultipleSources() {
-//    // Given:
-//    when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode, dataSourceNode));
-//    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-//        persistentQueryMetadata, false);
-//
-//    // When:
-//    final Exception e = assertThrows(
-//        KsqlException.class,
-//        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
-//    );
-//
-//    // Then:
-//    assertThat(e.getMessage(),
-//        containsString("Push queries do not support joins or nested sub-queries yet"));
-//  }
-//
-//  @Test
-//  public void shouldThrowOnNoDataSourceOperator() {
-//    // Given:
-//    when(filterNode.getSources()).thenReturn(ImmutableList.of());
-//    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-//        persistentQueryMetadata, false);
-//
-//    // When:
-//    final Exception e = assertThrows(
-//        IllegalStateException.class,
-//        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
-//    );
-//
-//    // Then:
-//    assertThat(e.getMessage(),
-//        containsString("DataSourceOperator cannot be null in Push physical plan"));
-//  }
+  @Mock
+  private ProcessingLogContext logContext;
+  @Mock
+  private ProcessingLoggerFactory processingLoggerFactory;
+  @Mock
+  private ProcessingLogger processingLogger;
+  @Mock
+  private PersistentQueryMetadata persistentQueryMetadata;
+  @Mock
+  private Context context;
+  @Mock
+  private LogicalPlanNode logicalPlanNode;
+  @Mock
+  private KsqlBareOutputNode ksqlBareOutputNode;
+  @Mock
+  private QueryProjectNode projectNode;
+  @Mock
+  private QueryFilterNode filterNode;
+  @Mock
+  private DataSourceNode dataSourceNode;
+  @Mock
+  private ScalablePushRegistry scalablePushRegistry;
+  @Mock
+  private Expression rewrittenExpression;
+  @Mock
+  private ExpressionEvaluator expressionEvaluator;
+  @Mock
+  private LogicalSchema logicalSchema;
+
+  @Before
+  public void setUp() {
+    when(logContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
+    when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
+    when(logicalPlanNode.getNode()).thenReturn(Optional.of(ksqlBareOutputNode));
+    when(ksqlBareOutputNode.getSource()).thenReturn(projectNode);
+    when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode));
+    when(filterNode.getSources()).thenReturn(ImmutableList.of(dataSourceNode));
+    when(persistentQueryMetadata.getScalablePushRegistry())
+        .thenReturn(Optional.of(scalablePushRegistry));
+
+    when(filterNode.getRewrittenPredicate()).thenReturn(rewrittenExpression);
+    when(filterNode.getCompiledWhereClause()).thenReturn(expressionEvaluator);
+    when(expressionEvaluator.getExpressionType()).thenReturn(SqlTypes.BOOLEAN);
+    when(projectNode.getSchema()).thenReturn(logicalSchema);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldBuildPhysicalPlan() {
+    // Given:
+    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
+        persistentQueryMetadata);
+
+    // When:
+    final PushPhysicalPlan pushPhysicalPlan =
+        builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(), Optional.empty());
+
+    // Then:
+    assertThat(pushPhysicalPlan.getRoot(), isA((Class) ProjectOperator.class));
+    final ProjectOperator projectOperator = (ProjectOperator) pushPhysicalPlan.getRoot();
+    assertThat(projectOperator.getChild(), isA((Class) SelectOperator.class));
+    final SelectOperator selectOperator = (SelectOperator) projectOperator.getChild();
+    assertThat(selectOperator.getChild(), isA((Class) PeekStreamOperator.class));
+    assertThat(pushPhysicalPlan.getScalablePushRegistry(), is(scalablePushRegistry));
+  }
+
+  @Test
+  public void shouldThrowOnNoOutputNode() {
+    // Given:
+    when(logicalPlanNode.getNode()).thenReturn(Optional.empty());
+    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
+        persistentQueryMetadata);
+
+    // When:
+    final Exception e = assertThrows(
+        IllegalArgumentException.class,
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Need an output node to build a plan"));
+  }
+
+  @Test
+  public void shouldThrowOnNotBareOutputNode() {
+    // Given:
+    when(logicalPlanNode.getNode()).thenReturn(Optional.of(mock(OutputNode.class)));
+    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
+        persistentQueryMetadata);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Push queries expect the root of the logical plan to be a "
+            + "KsqlBareOutputNode."));
+  }
+
+  @Test
+  public void shouldThrowOnUnknownLogicalNode() {
+    // Given:
+    when(ksqlBareOutputNode.getSource()).thenReturn(mock(PlanNode.class));
+    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
+        persistentQueryMetadata);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("unrecognized logical node"));
+  }
+
+  @Test
+  public void shouldThrowOnMultipleSources() {
+    // Given:
+    when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode, dataSourceNode));
+    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
+        persistentQueryMetadata);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Push queries do not support joins or nested sub-queries yet"));
+  }
+
+  @Test
+  public void shouldThrowOnNoDataSourceOperator() {
+    // Given:
+    when(filterNode.getSources()).thenReturn(ImmutableList.of());
+    final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
+        persistentQueryMetadata);
+
+    // When:
+    final Exception e = assertThrows(
+        IllegalStateException.class,
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("DataSourceOperator cannot be null in Push physical plan"));
+  }
 }

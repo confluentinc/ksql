@@ -23,11 +23,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.common.OffsetsRow;
 import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
-import io.confluent.ksql.physical.scalablepush.TokenUtils;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushOffsetVector;
+import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,6 +60,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   protected final boolean windowed;
   protected final LogicalSchema logicalSchema;
   protected final KafkaConsumer<Object, GenericRow> consumer;
+  protected final Clock clock;
   protected int partitions;
   protected boolean started = false;
   protected Map<TopicPartition, Long> currentPositions = new HashMap<>();
@@ -77,12 +78,14 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       final String topicName,
       final boolean windowed,
       final LogicalSchema logicalSchema,
-      final KafkaConsumer<Object, GenericRow> consumer
+      final KafkaConsumer<Object, GenericRow> consumer,
+      final Clock clock
   ) {
     this.topicName = topicName;
     this.windowed = windowed;
     this.logicalSchema = logicalSchema;
     this.consumer = consumer;
+    this.clock = clock;
   }
 
 
@@ -100,23 +103,23 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   public void newAssignment(final Collection<TopicPartition> tps) {
     newAssignment = true;
     topicPartitions.set(tps != null ? ImmutableSet.copyOf(tps) : null);
-    // This must be called from the new assignment callback in order to ensure the accuracy of the
-    // calls to position() giving us the right offsets before the first rows are returned after
-    // an assignment.
-    if (tps != null) {
-//      resetCurrentPosition();
-
-//      LOG.info("Consumer got assignment {} and current position {}", tps, currentPositions);
-    }
   }
 
   protected void resetCurrentPosition() {
     for (int i = 0; i < partitions; i++) {
-      currentPositions.put(new TopicPartition(topicName, i), 0L);
+      currentPositions.put(new TopicPartition(topicName, i), -1L);
     }
-    for (TopicPartition tp : topicPartitions.get()) {
-      currentPositions.put(tp, consumer.position(tp));
+    System.out.println("Consumer got assignment " + topicPartitions.get() + " about to get positions");
+    try {
+      for (TopicPartition tp : topicPartitions.get()) {
+        currentPositions.put(tp, consumer.position(tp));
+      }
+    } catch (Throwable t) {
+      t.printStackTrace();
+      System.out.println("Consumer things assignment is  " + consumer.assignment());
+      throw t;
     }
+    System.out.println("Consumer got assignment " + topicPartitions.get() + " and current position " + currentPositions);
     LOG.info("Consumer got assignment {} and current position {}", topicPartitions.get(),
         currentPositions);
   }
@@ -142,7 +145,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
           continue;
         }
         if (records.isEmpty()) {
-          updateCurrentPositions();
+          resetCurrentPosition();
           onEmptyRecords();
           continue;
         }
@@ -158,7 +161,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
 
         PushOffsetVector startOffsetVector
             = getOffsetVector(currentPositions, topicName, partitions);
-        updateCurrentPositions();
+        resetCurrentPosition();
         computeProgressToken(Optional.of(startOffsetVector));
         try {
           consumer.commitSync();
@@ -180,11 +183,11 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     latestCommittedOffsets.set(ImmutableMap.copyOf(offsets));
   }
 
-  private void updateCurrentPositions() {
-    for (TopicPartition tp : topicPartitions.get()) {
-      currentPositions.put(tp, consumer.position(tp));
-    }
-  }
+//  private void updateCurrentPositions() {
+//    for (TopicPartition tp : topicPartitions.get()) {
+//      currentPositions.put(tp, consumer.position(tp));
+//    }
+//  }
 
   private void computeProgressToken(
       final Optional<PushOffsetVector> givenStartOffsetVector
@@ -205,7 +208,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     List<Long> offsetList = new ArrayList<>();
     for (int i = 0; i < numPartitions; i++) {
       TopicPartition tp = new TopicPartition(topic, i);
-      offsetList.add(offsets.getOrDefault(tp, 0L));
+      offsetList.add(offsets.getOrDefault(tp, -1L));
     }
     return new PushOffsetVector(offsetList);
   }
@@ -216,7 +219,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     final PushOffsetRange range = new PushOffsetRange(
         Optional.of(startOffsetVector), endOffsetVector);
     for (ProcessingQueue queue : processingQueues.values()) {
-      final QueryRow row = OffsetsRow.of(System.currentTimeMillis(), range);
+      final QueryRow row = OffsetsRow.of(clock.millis(), range);
       queue.offer(row);
     }
   }

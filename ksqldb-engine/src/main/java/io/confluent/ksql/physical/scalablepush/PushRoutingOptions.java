@@ -32,6 +32,8 @@ public interface PushRoutingOptions {
 
   Optional<String> getCatchupConsumerGroup();
 
+  boolean shouldOutputContinuationToken();
+
   /**
    * @return a human readable representation of the routing options, used
    *         to debug requests

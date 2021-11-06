@@ -108,4 +108,15 @@ public final class QueryRowImpl implements QueryRow {
   public int hashCode() {
     return Objects.hash(logicalSchema, key, window, value, rowTime);
   }
+
+  @Override
+  public String toString() {
+    return "QueryRowImpl{"
+        + "logicalSchema=" + logicalSchema
+        + ", key=" + key
+        + ", window=" + window
+        + ", value=" + value
+        + ", rowTime=" + rowTime
+        + '}';
+  }
 }

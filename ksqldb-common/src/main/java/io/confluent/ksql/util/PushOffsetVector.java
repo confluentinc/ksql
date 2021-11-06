@@ -20,12 +20,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -59,11 +59,7 @@ public class PushOffsetVector implements OffsetVector {
     ImmutableList.Builder<Long> builder = ImmutableList.builder();
     int partition = 0;
     for (Long offset : offsets.get()) {
-      if (offsetsOther.get(partition) > 0) {
-        builder.add(offsetsOther.get(partition));
-      } else {
-        builder.add(offset);
-      }
+      builder.add(Math.max(offsetsOther.get(partition), offset));
       partition++;
     }
     this.offsets.set(builder.build());
@@ -86,7 +82,7 @@ public class PushOffsetVector implements OffsetVector {
     int partition = 0;
     for (Long offset : offsets.get()) {
       final long offsetOther = offsetsOther.get(partition);
-      if (offset > 0 && offsetOther > 0) {
+      if (offset >= 0 && offsetOther >= 0) {
         if (offset > offsetOther) {
           return false;
         }
@@ -146,5 +142,22 @@ public class PushOffsetVector implements OffsetVector {
     return "PushOffsetVector{"
         + "offsets=" + offsets
         + '}';
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(offsets.get());
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PushOffsetVector that = (PushOffsetVector) o;
+    return Objects.equals(offsets.get(), that.offsets.get());
   }
 }

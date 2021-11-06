@@ -359,6 +359,7 @@ final class EngineExecutor {
           );
       final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
           .map(PushOffsetRange::deserialize);
+      System.out.println("KICKING OFF CATCHUP " + offsetRange);
       final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
       final PushPhysicalPlan physicalPlan
           = pushPhysicalPlanCreator.create(offsetRange, catchupConsumerGroup);
@@ -374,7 +375,7 @@ final class EngineExecutor {
       final PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
               physicalPlan.getOutputSchema(), transientQueryQueue, scalablePushQueryMetrics,
-                  pushPhysicalPlanCreator);
+                  pushPhysicalPlanCreator, offsetRange);
       final PushQueryPreparer preparer = () ->
           pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(

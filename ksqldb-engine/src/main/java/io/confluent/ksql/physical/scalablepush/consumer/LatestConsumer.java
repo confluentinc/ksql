@@ -40,7 +40,6 @@ public class LatestConsumer extends ScalablePushConsumer {
   private final CatchupCoordinator catchupCoordinator;
   private final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater;
   private final KsqlConfig ksqlConfig;
-  private final Clock clock;
   private boolean gotFirstAssignment = false;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -53,25 +52,10 @@ public class LatestConsumer extends ScalablePushConsumer {
       final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
       final KsqlConfig ksqlConfig,
       final Clock clock) {
-    super(topicName, windowed, logicalSchema, consumer);
+    super(topicName, windowed, logicalSchema, consumer, clock);
     this.catchupCoordinator = catchupCoordinator;
     this.catchupAssignmentUpdater = catchupAssignmentUpdater;
     this.ksqlConfig = ksqlConfig;
-    this.clock = clock;
-  }
-
-  public static LatestConsumer create(
-      final String topicName,
-      final boolean windowed,
-      final LogicalSchema logicalSchema,
-      final KafkaConsumer<Object, GenericRow> consumer,
-      final CatchupCoordinator catchupCoordinator,
-      final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
-      final KsqlConfig ksqlConfig,
-      final Clock clock
-  ) {
-    return new LatestConsumer(topicName, windowed, logicalSchema, consumer,
-        catchupCoordinator, catchupAssignmentUpdater, ksqlConfig, clock);
   }
 
   public interface LatestConsumerFactory {
@@ -103,6 +87,7 @@ public class LatestConsumer extends ScalablePushConsumer {
           @Override
           public void onPartitionsRevoked(final Collection<TopicPartition> collection) {
             LOG.info("Latest consumer had partitions revoked {}", collection);
+            newAssignment(null);
           }
 
           @Override

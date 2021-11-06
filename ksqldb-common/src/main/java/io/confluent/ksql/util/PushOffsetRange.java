@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.Optional;
 
 //@JsonInclude(JsonInclude.Include.NON_ABSENT)
@@ -99,13 +100,32 @@ public class PushOffsetRange {
     }
   }
 
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final PushOffsetRange that = (PushOffsetRange) o;
+    return Objects.equals(version, that.version)
+        && Objects.equals(startOffsets, that.startOffsets)
+        && Objects.equals(endOffsets, that.endOffsets);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(version, startOffsets, endOffsets);
+  }
+
   @JsonIgnore
   @Override
   public String toString() {
     return "PushOffsetRange{"
         + "version=" + version
-        + "startOffsets=" + startOffsets
-        + "endOffsets=" + endOffsets
+        + ", startOffsets=" + startOffsets
+        + ", endOffsets=" + endOffsets
         + '}';
   }
 }

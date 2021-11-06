@@ -5,6 +5,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PushOffsetRange;
+import java.util.Objects;
 import java.util.Optional;
 
 public class OffsetsRow implements QueryRow {
@@ -56,5 +57,31 @@ public class OffsetsRow implements QueryRow {
   @Override
   public Optional<PushOffsetRange> getOffsetRange() {
     return Optional.of(pushOffsetRange);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final OffsetsRow that = (OffsetsRow) o;
+    return Objects.equals(pushOffsetRange, that.pushOffsetRange)
+        && Objects.equals(rowTime, that.rowTime);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(pushOffsetRange, rowTime);
+  }
+
+  @Override
+  public String toString() {
+    return "OffsetsRow{"
+        + "pushOffsetRange=" + pushOffsetRange
+        + ", rowTime=" + rowTime
+        + '}';
   }
 }

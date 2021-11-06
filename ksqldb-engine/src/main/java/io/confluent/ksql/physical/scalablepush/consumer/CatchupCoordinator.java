@@ -33,14 +33,14 @@ public interface CatchupCoordinator {
   /**
    * Coordinates whether the primary thread is ready to be caught up with and calls switchOver
    * when appropriate.
-   * @param blocked If the catchup thread has attempted to block the primary thread so that it can
+   * @param signalledLatest If the catchup thread has attempted to signal to latest so that it can
    *                join it. Should start off false an implementations can set it if appropriate.
    * @param isCaughtUp If the catchup thread is caught up.
    * @param switchOver After the switch over can go forward, this logic must implement it.
    * @return If the switch over has occurred
    */
   boolean checkShouldCatchUp(
-      AtomicBoolean blocked,
+      AtomicBoolean signalledLatest,
       Supplier<Boolean> isCaughtUp,
       Runnable switchOver
   );

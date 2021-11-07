@@ -24,8 +24,8 @@ import io.confluent.ksql.util.RowMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.OptionalInt;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +70,7 @@ public class PullQueryQueue implements BlockingRowQueue {
    */
   private Runnable queuedCallback;
 
-  public PullQueryQueue(OptionalInt limit) {
+  public PullQueryQueue(final OptionalInt limit) {
     this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
   }
 

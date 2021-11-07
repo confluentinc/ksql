@@ -51,6 +51,11 @@ public class JsonSchemaFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getSupportedProperties() {
+    return ImmutableSet.of();
+  }
+
+  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {

@@ -14,25 +14,26 @@
  */
 package io.confluent.ksql.serde.connect;
 
-import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME;
-import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
+import static io.confluent.ksql.serde.SchemaTranslationPolicy.ORIGINAL_FIELD_NAME;
+import static io.confluent.ksql.serde.SchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
 import org.junit.Test;
 
-public class ConnectSchemaTranslationPoliciesTest {
+public class SchemaTranslationPoliciesTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowsWithIncompatiblePolicies() {
     // When:
-    ConnectSchemaTranslationPolicies.of(ORIGINAL_FIELD_NAME, UPPERCASE_FIELD_NAME);
+    SchemaTranslationPolicies.of(ORIGINAL_FIELD_NAME, UPPERCASE_FIELD_NAME);
   }
 
   @Test
   public void shouldReturnCorrectEnabled() {
     // Given:
-    ConnectSchemaTranslationPolicies lowercasePolicies = ConnectSchemaTranslationPolicies.of(
+    SchemaTranslationPolicies lowercasePolicies = SchemaTranslationPolicies.of(
         UPPERCASE_FIELD_NAME);
 
     // When: Then:

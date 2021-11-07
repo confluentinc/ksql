@@ -18,6 +18,8 @@ package io.confluent.ksql.serde.connect;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter.Option;
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -37,8 +39,8 @@ public final class ConnectKsqlSchemaTranslator {
 
   private static final Logger log = LoggerFactory.getLogger(ConnectSchemaTranslator.class);
 
-  private static final ConnectSchemaTranslationPolicies DEFAULT_POLICY =
-      ConnectSchemaTranslationPolicies.of();
+  private static final SchemaTranslationPolicies DEFAULT_POLICY =
+      SchemaTranslationPolicies.of();
 
   private static final SqlSchemaFormatter FORMATTER =
       new SqlSchemaFormatter(w -> false, Option.AS_COLUMN_LIST);
@@ -63,17 +65,17 @@ public final class ConnectKsqlSchemaTranslator {
   public static final Schema OPTIONAL_TIME_SCHEMA = Time.builder().optional().build();
   public static final Schema OPTIONAL_DATE_SCHEMA = Date.builder().optional().build();
 
-  private final ConnectSchemaTranslationPolicies policies;
+  private final SchemaTranslationPolicies policies;
 
   public ConnectKsqlSchemaTranslator() {
     this(DEFAULT_POLICY);
   }
 
-  public ConnectKsqlSchemaTranslator(final ConnectSchemaTranslationPolicies policies) {
+  public ConnectKsqlSchemaTranslator(final SchemaTranslationPolicies policies) {
     this.policies = Objects.requireNonNull(policies, "policies");
   }
 
-  public ConnectSchemaTranslationPolicies getPolicies() {
+  public SchemaTranslationPolicies getPolicies() {
     return this.policies;
   }
 
@@ -174,9 +176,9 @@ public final class ConnectKsqlSchemaTranslator {
     for (final Field field : schema.fields()) {
       try {
         final Schema fieldSchema = toKsqlFieldSchema(field.schema());
-        if (policies.enabled(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME)) {
+        if (policies.enabled(SchemaTranslationPolicy.UPPERCASE_FIELD_NAME)) {
           schemaBuilder.field(field.name().toUpperCase(), fieldSchema);
-        } else if (policies.enabled(ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME)) {
+        } else if (policies.enabled(SchemaTranslationPolicy.ORIGINAL_FIELD_NAME)) {
           schemaBuilder.field(field.name(), fieldSchema);
         } else {
           // Default to uppercase

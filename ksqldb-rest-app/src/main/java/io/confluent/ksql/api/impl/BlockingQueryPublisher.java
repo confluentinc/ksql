@@ -21,13 +21,15 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +42,7 @@ import org.slf4j.LoggerFactory;
  * this won't prevent the thread from doing useful work elsewhere but it does mean we can't have too
  * many push queries in the server at any one time as we can end up with a lot of threads.
  */
-public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, GenericRow>>
+public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<?>, GenericRow>>
     implements QueryPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(BlockingQueryPublisher.class);
@@ -57,11 +59,13 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   private QueryId queryId;
   private boolean complete;
   private volatile boolean closed;
+  private AtomicBoolean addedCT;
 
   public BlockingQueryPublisher(final Context ctx,
       final WorkerExecutor workerExecutor) {
     super(ctx);
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
+    this.addedCT = new AtomicBoolean(false);
   }
 
   public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
@@ -144,6 +148,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
     executeOnWorker(queryHandle::start);
   }
 
+
   private void executeOnWorker(final Runnable runnable) {
     workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
       if (ar.failed()) {
@@ -157,12 +162,15 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
       justification = "Vert.x ensures this is executed on event loop only")
   private void doSend() {
     checkContext();
-
     int num = 0;
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
-
+        if (complete && isPullQuery && !addedCT.get()) {
+          queryHandle.getConsistencyOffsetVector().ifPresent(
+              ((PullQueryQueue)queue)::putConsistencyVector);
+          addedCT.set(true);
+        }
         if (complete && queue.isEmpty()) {
           ctx.runOnContext(v -> sendComplete());
         }

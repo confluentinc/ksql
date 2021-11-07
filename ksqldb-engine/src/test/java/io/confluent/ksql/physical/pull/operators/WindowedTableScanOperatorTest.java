@@ -7,18 +7,21 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -42,6 +45,14 @@ public class WindowedTableScanOperatorTest {
   @Mock
   private CompletableFuture<Void> shouldCancelOperations;
   @Mock
+  private GenericKey GKEY1;
+  @Mock
+  private GenericKey GKEY2;
+  @Mock
+  private GenericKey GKEY3;
+  @Mock
+  private GenericKey GKEY4;
+  @Mock
   private WindowedRow WINDOWED_ROW1;
   @Mock
   private WindowedRow WINDOWED_ROW2;
@@ -49,6 +60,14 @@ public class WindowedTableScanOperatorTest {
   private WindowedRow WINDOWED_ROW3;
   @Mock
   private WindowedRow WINDOWED_ROW4;
+
+  @Before
+  public void setUp() {
+    when(WINDOWED_ROW1.key()).thenReturn(GKEY1);
+    when(WINDOWED_ROW2.key()).thenReturn(GKEY2);
+    when(WINDOWED_ROW3.key()).thenReturn(GKEY3);
+    when(WINDOWED_ROW4.key()).thenReturn(GKEY4);
+  }
 
   @Test
   public void shouldLookupRowsForTableScan() {
@@ -76,11 +95,11 @@ public class WindowedTableScanOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW1));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW3));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY3));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY4));
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
@@ -107,8 +126,8 @@ public class WindowedTableScanOperatorTest {
     lookupOperator.open();
 
     //Then:
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW1));
-    assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY1));
+    assertThat(((QueryRow) lookupOperator.next()).key(), is(GKEY2));
     when(shouldCancelOperations.isDone()).thenReturn(true);
     assertThat(lookupOperator.next(), is(nullValue()));
     assertThat(lookupOperator.next(), is(nullValue()));

@@ -155,6 +155,54 @@ other, to aid in faster failure detection for improved pull query routing.
 Also enables the [`/clusterStatus` endpoint](../developer-guide/ksqldb-rest-api/cluster-status-endpoint.md).
 The default is `false`.
 
+!!! important
+    Be careful when you change heartbeat configuration values, because
+    the stability and availability of ksqlDB applications depend sensitively on them.
+    For example, if you set the value of [`ksql.heartbeat.check.interval.ms`](#ksql.heartbeat.check.interval.ms)
+    too high, it takes longer for nodes to determine the availability of actives and
+    standbys, which may cause pull queries to fail unnecessarily.
+
+## `ksql.heartbeat.send.interval.ms`
+
+If heartbeats are enabled, this config controls the interval, in milliseconds, at which 
+heartbeats are sent between nodes. The default value is `100`.
+
+If you tune this value, also consider tuning
+[`ksql.heartbeat.check.interval.ms`](#ksql.heartbeat.check.interval.ms), 
+which controls how often a node processes received heartbeats, and
+[`ksql.heartbeat.window.ms`](#ksql.heartbeat.window.ms),
+which controls the window size for checking if heartbeats were missed 
+and deciding whether a node is up or down.
+
+## `ksql.heartbeat.check.interval.ms`
+
+If heartbeats are enabled, this config controls the interval, in milliseconds,
+at which a ksqlDB node processes its received heartbeats to determine whether
+other nodes in the cluster are down. The default value is `200`. 
+
+## `ksql.heartbeat.window.ms`
+
+If heartbeats are enabled, this config controls the size of the window,
+in milliseconds, at which heartbeats are processed to determine how many
+have been missed. The default value is `2000`.
+
+## `ksql.heartbeat.missed.threshold.ms`
+
+If heartbeats are enabled, this config determines how many consecutive missed
+heartbeats flag a ksqlDB node as down. The default value is `3`. 
+
+## `ksql.heartbeat.discover.interval.ms`
+
+If heartbeats are enabled, this config controls the interval, in milliseconds,
+at which a ksqlDB node checks for changes in the cluster, like newly added nodes. 
+The default value is `2000`.
+
+## `ksql.heartbeat.thread.pool.size`
+
+If heartbeats are enabled, this config controls the size of the thread pool
+used for processing and sending heartbeats as well as determining changes in
+the cluster. The default value is `3`. 
+
 ## `ksql.internal.listener`
 
 The `ksql.internal.listener` setting controls the address bound for use by internal,

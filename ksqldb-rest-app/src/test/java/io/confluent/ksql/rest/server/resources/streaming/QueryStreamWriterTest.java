@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -273,11 +274,11 @@ public class QueryStreamWriterTest {
 
   private static Answer<Void> streamRows(final Object... rows) {
     return inv -> {
-      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+      final Collection<KeyValueMetadata<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       Arrays.stream(rows)
           .map(GenericRow::genericRow)
-          .map(value -> KeyValue.keyValue((List<Object>) null, value))
+          .map(value -> new KeyValueMetadata<>(KeyValue.keyValue((List<Object>) null, value)))
           .forEach(output::add);
 
       return null;
@@ -286,7 +287,7 @@ public class QueryStreamWriterTest {
 
   private static Answer<Void> tableRows(final Object... rows) {
     return inv -> {
-      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+      final Collection<KeyValueMetadata<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       for (int i = 0; i < rows.length; i = i + 2) {
         final List<Object> key = ImmutableList.of(rows[i]);
@@ -294,7 +295,7 @@ public class QueryStreamWriterTest {
             ? null
             : GenericRow.genericRow(rows[i + 1]);
 
-        output.add(KeyValue.keyValue(key, value));
+        output.add(new KeyValueMetadata(KeyValue.keyValue(key, value)));
       }
 
       return null;
@@ -303,7 +304,7 @@ public class QueryStreamWriterTest {
 
   private static Answer<Void> windowedTableRows(final Object... rows) {
     return inv -> {
-      final Collection<KeyValue<List<Object>, GenericRow>> output = inv.getArgument(0);
+      final Collection<KeyValueMetadata<List<Object>, GenericRow>> output = inv.getArgument(0);
 
       for (int i = 0; i < rows.length; i = i + 2) {
         final List<Object> key = ImmutableList.of(rows[i], 1000, 2000);
@@ -311,7 +312,7 @@ public class QueryStreamWriterTest {
             ? null
             : GenericRow.genericRow(rows[i + 1]);
 
-        output.add(KeyValue.keyValue(key, value));
+        output.add(new KeyValueMetadata(KeyValue.keyValue(key, value)));
       }
 
       return null;

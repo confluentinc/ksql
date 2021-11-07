@@ -201,7 +201,7 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<BasicCredentials> userCreds,
       final Map<String, ?> properties,
-      final Map<String, ?> requestProperties
+      final Map<String, Object> requestProperties
   ) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
@@ -508,7 +508,9 @@ public final class RestIntegrationTestUtil {
       final String sql,
       final Optional<String> mediaType,
       final Optional<String> contentType,
-      final Optional<Credentials> credentials
+      final Optional<Credentials> credentials,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     Vertx vertx = Vertx.vertx();
     HttpClient httpClient = null;
@@ -516,7 +518,7 @@ public final class RestIntegrationTestUtil {
       httpClient = vertx.createHttpClient();
 
       final String uri = baseUri.toString() + "/ws/query?request="
-          + buildStreamingRequest(sql, Optional.empty());
+          + buildStreamingRequest(sql, overrides, requestProperties);
 
       final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
@@ -569,7 +571,7 @@ public final class RestIntegrationTestUtil {
     final HttpClient httpClient = vertx.createHttpClient();
 
     final String uri = baseUri.toString() + "/ws/query?request="
-        + buildStreamingRequest(sql, Optional.of(overrides));
+        + buildStreamingRequest(sql, Optional.of(overrides), Optional.empty());
 
     final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
 
@@ -613,9 +615,10 @@ public final class RestIntegrationTestUtil {
   }
 
   private static String buildStreamingRequest(final String sql,
-      Optional<Map<String, Object>> overrides) {
+      Optional<Map<String, Object>> overrides, Optional<Map<String, Object>> requestProperties
+  ) {
     KsqlRequest request = new KsqlRequest(sql, overrides.orElse(Collections.emptyMap()),
-        Collections.emptyMap(), null);
+        requestProperties.orElse(Collections.emptyMap()), null);
     final String requestStr;
     try {
       requestStr = ApiJsonMapper.INSTANCE.get().writeValueAsString(request);

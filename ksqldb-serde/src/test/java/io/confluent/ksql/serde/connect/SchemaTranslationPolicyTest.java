@@ -14,21 +14,22 @@
  */
 package io.confluent.ksql.serde.connect;
 
-import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME;
-import static io.confluent.ksql.serde.connect.ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
+import static io.confluent.ksql.serde.SchemaTranslationPolicy.ORIGINAL_FIELD_NAME;
+import static io.confluent.ksql.serde.SchemaTranslationPolicy.UPPERCASE_FIELD_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import java.util.Set;
 import org.junit.Test;
 
-public class ConnectSchemaTranslationPolicyTest {
+public class SchemaTranslationPolicyTest {
 
   @Test
   public void shouldReturnIncompatibleSet() {
     // When:
-    Set<ConnectSchemaTranslationPolicy> uppercaseIncompables = UPPERCASE_FIELD_NAME.getIncompatibleWith();
-    Set<ConnectSchemaTranslationPolicy> originalIncompables = ORIGINAL_FIELD_NAME.getIncompatibleWith();
+    Set<SchemaTranslationPolicy> uppercaseIncompables = UPPERCASE_FIELD_NAME.getIncompatibleWith();
+    Set<SchemaTranslationPolicy> originalIncompables = ORIGINAL_FIELD_NAME.getIncompatibleWith();
 
     // Then:
     assertThat(uppercaseIncompables, containsInAnyOrder(ORIGINAL_FIELD_NAME));

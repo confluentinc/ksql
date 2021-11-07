@@ -23,6 +23,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -44,11 +46,11 @@ public class ConnectKsqlSchemaTranslatorTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{
-        {"uppercase", ConnectSchemaTranslationPolicies.of(
-            ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME),
+        {"uppercase", SchemaTranslationPolicies.of(
+            SchemaTranslationPolicy.UPPERCASE_FIELD_NAME),
             (Function<String, String>) String::toUpperCase},
-        {"original", ConnectSchemaTranslationPolicies.of(
-            ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME),
+        {"original", SchemaTranslationPolicies.of(
+            SchemaTranslationPolicy.ORIGINAL_FIELD_NAME),
             (Function<String, String>) (String s) -> s},
         {"default", null, (Function<String, String>) String::toUpperCase}
     });
@@ -59,7 +61,7 @@ public class ConnectKsqlSchemaTranslatorTest {
 
   @SuppressWarnings("unused")
   public ConnectKsqlSchemaTranslatorTest(final String testName,
-      ConnectSchemaTranslationPolicies policies, Function<String, String> nameTranslator) {
+      SchemaTranslationPolicies policies, Function<String, String> nameTranslator) {
     translator = Objects.isNull(policies) ? new ConnectKsqlSchemaTranslator()
         : new ConnectKsqlSchemaTranslator(policies);
     this.nameTranslator = nameTranslator;

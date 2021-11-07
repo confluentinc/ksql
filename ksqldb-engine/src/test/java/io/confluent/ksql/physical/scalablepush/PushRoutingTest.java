@@ -12,10 +12,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.common.QueryRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.physical.scalablepush.PushRouting.RoutingResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting.RoutingResultStatus;
@@ -30,6 +33,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.net.URI;
@@ -52,8 +56,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PushRoutingTest {
 
-  private static final List<?> LOCAL_ROW1 = ImmutableList.of(1, "a");
-  private static final List<?> LOCAL_ROW2 = ImmutableList.of(2, "b");
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder().build();
+  private static final QueryRow LOCAL_ROW1 = QueryRowImpl.of(SCHEMA, GenericKey.genericKey(),
+      Optional.empty(), GenericRow.fromList(ImmutableList.of(1, "a")), 0);
+  private static final QueryRow LOCAL_ROW2 = QueryRowImpl.of(SCHEMA, GenericKey.genericKey(),
+      Optional.empty(), GenericRow.fromList(ImmutableList.of(2, "b")), 0);
 
   private static final StreamedRow REMOTE_ROW1
       = StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of(3, "c")));
@@ -138,7 +145,7 @@ public class PushRoutingTest {
   public void shouldSucceed_forward() throws ExecutionException, InterruptedException {
     // Given:
     final PushRouting routing = new PushRouting();
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
@@ -159,16 +166,16 @@ public class PushRoutingTest {
     // Then:
     Set<List<?>> rows = new HashSet<>();
     while (rows.size() < 4) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
     handle.close();
-    assertThat(rows.contains(LOCAL_ROW1), is(true));
-    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
+    assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
     assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
   }
@@ -179,7 +186,7 @@ public class PushRoutingTest {
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal));
     final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
@@ -197,12 +204,12 @@ public class PushRoutingTest {
 
     Set<List<?>> rows = new HashSet<>();
     while (rows.size() < 2) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
 
     nodes.set(ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
@@ -213,16 +220,16 @@ public class PushRoutingTest {
 
     // Then:
     while (rows.size() < 4) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
     handle.close();
-    assertThat(rows.contains(LOCAL_ROW1), is(true));
-    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
+    assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
     assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
   }
@@ -233,7 +240,7 @@ public class PushRoutingTest {
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
     final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
@@ -253,12 +260,12 @@ public class PushRoutingTest {
 
     Set<List<?>> rows = new HashSet<>();
     while (rows.size() < 4) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
 
     final RoutingResult result = handle.get(ksqlNodeRemote).get();
@@ -270,8 +277,8 @@ public class PushRoutingTest {
     handle.close();
 
     // Then:
-    assertThat(rows.contains(LOCAL_ROW1), is(true));
-    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
+    assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
     assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
     assertThat(result.getStatus(), is(RoutingResultStatus.REMOVED));
@@ -283,7 +290,7 @@ public class PushRoutingTest {
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
     final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, false);
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
@@ -304,12 +311,12 @@ public class PushRoutingTest {
 
     Set<List<?>> rows = new HashSet<>();
     while (rows.size() < 4) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
     while (!handle.get(ksqlNodeRemote).isPresent()
         || handle.get(ksqlNodeRemote).get().getStatus() != RoutingResultStatus.COMPLETE) {
@@ -319,8 +326,8 @@ public class PushRoutingTest {
     handle.close();
 
     // Then:
-    assertThat(rows.contains(LOCAL_ROW1), is(true));
-    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
+    assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
     assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
     assertThat(handle.get(ksqlNodeRemote).get().getStatus(), is(RoutingResultStatus.COMPLETE));
@@ -332,7 +339,7 @@ public class PushRoutingTest {
     final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
         ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
     final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     TestRemotePublisher remotePublisher = new TestRemotePublisher(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
@@ -367,7 +374,7 @@ public class PushRoutingTest {
     // Given:
     when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
 
     // When:
@@ -384,16 +391,16 @@ public class PushRoutingTest {
     verify(simpleKsqlClient, never()).makeQueryRequestStreamed(any(), any(), any(), any());
     Set<List<?>> rows = new HashSet<>();
     while (rows.size() < 2) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
     handle.close();
-    assertThat(rows.contains(LOCAL_ROW1), is(true));
-    assertThat(rows.contains(LOCAL_ROW2), is(true));
+    assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
+    assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
   }
 
   @Test
@@ -461,7 +468,7 @@ public class PushRoutingTest {
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty(), 1, 100);
     when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(true);
     final PushRouting routing = new PushRouting();
-    BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
+    BufferedPublisher<QueryRow> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
 
     // When:
@@ -477,15 +484,15 @@ public class PushRoutingTest {
     // Then:
     List<List<?>> rows = new ArrayList<>();
     while (rows.size() < 1) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
     handle.close();
-    assertThat(rows.get(0), is(LOCAL_ROW1));
+    assertThat(rows.get(0), is(LOCAL_ROW1.value().values()));
     assertThat(handle.getError().getMessage(), containsString("Hit limit of request queue"));
   }
 
@@ -512,12 +519,12 @@ public class PushRoutingTest {
     // Then:
     List<List<?>> rows = new ArrayList<>();
     while (rows.size() < 1) {
-      final KeyValue<List<?>, GenericRow> kv = transientQueryQueue.poll();
+      final KeyValueMetadata<List<?>, GenericRow> kv = transientQueryQueue.poll();
       if (kv == null) {
         Thread.sleep(100);
         continue;
       }
-      rows.add(kv.value().values());
+      rows.add(kv.getKeyValue().value().values());
     }
     handle.close();
     assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));

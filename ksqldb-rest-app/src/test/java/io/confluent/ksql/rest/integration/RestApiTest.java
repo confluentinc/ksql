@@ -1,4 +1,4 @@
-/*
+  /*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
@@ -74,7 +74,10 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.PageViewDataProvider.Batch;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.TombstoneProvider;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -121,7 +124,7 @@ public class RestApiTest {
 
   // Used to test scalable push queries since we produce to the topics in the tests
   private static final PageViewDataProvider PAGE_VIEWS2_PROVIDER = new PageViewDataProvider(
-      "PAGEVIEWS2");
+      "PAGEVIEWS2", Batch.BATCH3);
   private static final String PAGE_VIEW2_TOPIC = PAGE_VIEWS2_PROVIDER.topicName();
   private static final String PAGE_VIEW2_STREAM = PAGE_VIEWS2_PROVIDER.sourceName();
 
@@ -217,7 +220,9 @@ public class RestApiTest {
       .withProperties(ClientTrustStore.trustStoreProps())
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .build();
 
   @ClassRule
@@ -267,9 +272,7 @@ public class RestApiTest {
 
   @AfterClass
   public static void classTearDown() {
-    System.out.println("TEARING DOWN CLASS");
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
-    System.out.println("DONE TEARING DOWN CLASS");
   }
 
   @Test
@@ -278,7 +281,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -303,7 +308,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -326,7 +333,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -351,7 +360,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -381,7 +392,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -629,6 +642,7 @@ public class RestApiTest {
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
+    assertExpectedScalablePushQueries(1);
 
     // Write some new rows
     TEST_HARNESS.produceRows(PAGE_VIEW2_TOPIC, PAGE_VIEWS2_PROVIDER, FormatFactory.KAFKA,
@@ -640,8 +654,8 @@ public class RestApiTest {
         startsWith("{\"queryId\":\"SCALABLE_PUSH_QUERY_"));
     assertThat(messages.get(0), endsWith(",\"columnNames\":[\"USERID\",\"PAGEID\",\"VIEWTIME\"],"
         + "\"columnTypes\":[\"STRING\",\"STRING\",\"BIGINT\"]}"));
-    assertThat(messages.get(1), is("[\"USER_1\",\"PAGE_1\",1]"));
-    assertThat(messages.get(2), is("[\"USER_2\",\"PAGE_2\",2]"));
+    assertThat(messages.get(1), is("[\"USER_4\",\"PAGE_1\",10]"));
+    assertThat(messages.get(2), is("[\"USER_0\",\"PAGE_5\",11]"));
   }
 
   @Test
@@ -684,6 +698,7 @@ public class RestApiTest {
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
+    assertExpectedScalablePushQueries(1);
 
     // Write some new rows
     TEST_HARNESS.produceRows(PAGE_VIEW2_TOPIC, PAGE_VIEWS2_PROVIDER, FormatFactory.KAFKA,
@@ -694,8 +709,8 @@ public class RestApiTest {
     assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\"SCALABLE_PUSH_QUERY_"));
     assertThat(messages.get(0),
         endsWith("\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
-    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_4\",\"PAGE_1\",10]}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_0\",\"PAGE_5\",11]}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 
@@ -727,6 +742,7 @@ public class RestApiTest {
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
+    assertExpectedScalablePushQueries(1);
 
     // Write some new rows
     TEST_HARNESS.produceRows(PAGE_VIEW2_TOPIC, PAGE_VIEWS2_PROVIDER, FormatFactory.KAFKA,
@@ -739,8 +755,8 @@ public class RestApiTest {
         + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
         + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
         + "]"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}}"));
-    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}}"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_4\",\"PAGE_1\",10]}}"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_0\",\"PAGE_5\",11]}}"));
     assertThat(messages.get(3), is("{\"error\":\"done\"}"));
   }
 
@@ -750,7 +766,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -771,7 +789,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -792,7 +812,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -812,7 +834,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -887,12 +911,62 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
+    // Given:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+  }
+
+  @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
+    // Given:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+  }
+
+  @Test
   public void shouldPrintTopicOverWebSocket() {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON);
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty());
 
     // Then:
     assertThat(messages, hasSize(LIMIT + 1));
@@ -1001,14 +1075,18 @@ public class RestApiTest {
   private static List<String> makeWebSocketRequest(
       final String sql,
       final String mediaType,
-      final String contentType
+      final String contentType,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     return RestIntegrationTestUtil.makeWsRequest(
         REST_APP.getWsListener(),
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(SUPER_USER)
+        Optional.of(SUPER_USER),
+        overrides,
+        requestProperties
     );
   }
 
@@ -1042,5 +1120,32 @@ public class RestApiTest {
 
   private static void verifyNoPushQueries() {
     assertThatEventually(REST_APP::getTransientQueries, hasSize(0));
+    assertThatEventually(() -> {
+      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
+        if (metadata.getScalablePushRegistry().get().numRegistered() != 0) {
+          return false;
+        }
+      }
+      return true;
+    }, is(true));
+  }
+
+  private static void assertExpectedScalablePushQueries(
+      final int expectedScalablePushQueries
+  ) {
+    assertThatEventually(() -> {
+      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
+        if (!metadata.getSinkName().isPresent()
+            || !metadata.getSinkName().get().text().equals(PAGE_VIEW_CSAS)) {
+          continue;
+        }
+        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
+            < expectedScalablePushQueries
+            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
+          return false;
+        }
+      }
+      return true;
+    }, is(true));
   }
 }

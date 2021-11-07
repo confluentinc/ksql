@@ -90,6 +90,11 @@ public interface Locator {
      *         {@link RoutingOptions} as invalid candidates for routing.
      */
     KsqlPartitionLocation removeFilteredHosts();
+
+    /**
+     * @return a {@code KsqlPartitionLocation} without the head node.
+     */
+    KsqlPartitionLocation removeHeadHost();
   }
 
   /**

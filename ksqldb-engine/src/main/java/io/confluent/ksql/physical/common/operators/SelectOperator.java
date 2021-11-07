@@ -20,12 +20,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
-import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.streams.materialization.TableRow;
-import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.physical.common.QueryRow;
+import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
 import java.util.List;
@@ -68,34 +67,34 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
 
   @Override
   public Object next() {
-    Optional<TableRow> result = Optional.empty();
+    Optional<QueryRow> result = Optional.empty();
     while (result.equals(Optional.empty())) {
-      final TableRow row = (TableRow) child.next();
+      final QueryRow row = (QueryRow) child.next();
       if (row == null) {
         return null;
+      }
+      if (row.getOffsetRange().isPresent()) {
+        return row;
       }
       result = transformRow(row);
     }
     return result.get();
   }
 
-  private Optional<TableRow> transformRow(final TableRow tableRow) {
+  private Optional<QueryRow> transformRow(final QueryRow queryRow) {
     final GenericRow intermediate = PhysicalOperatorUtil.getIntermediateRow(
-        tableRow, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
+        queryRow, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
     return transformer.transform(
-        tableRow.key(),
+        queryRow.key(),
         intermediate,
-        new PullProcessingContext(tableRow.rowTime()))
-        .map(r -> {
-          if (logicalNode.isWindowed()) {
-            return WindowedRow.of(
-                logicalNode.getIntermediateSchema(),
-                ((WindowedRow) tableRow).windowedKey(),
-                r,
-                tableRow.rowTime());
-          }
-          return Row.of(logicalNode.getIntermediateSchema(), tableRow.key(), r, tableRow.rowTime());
-        });
+        new PullProcessingContext(queryRow.rowTime()))
+        .map(r -> QueryRowImpl.of(
+            logicalNode.getIntermediateSchema(),
+            queryRow.key(),
+            queryRow.window(),
+            r,
+            queryRow.rowTime()
+        ));
   }
 
   @Override

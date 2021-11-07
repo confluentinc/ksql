@@ -52,6 +52,7 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
 import io.confluent.ksql.api.client.ConnectorType;
+import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
@@ -85,7 +86,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -108,7 +108,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -317,6 +316,18 @@ public class ClientIntegrationTest {
     for (final StreamedQueryResult streamedQueryResult : streamedQueryResults) {
       assertThat(streamedQueryResult.isComplete(), is(false));
     }
+  }
+
+  @Test
+  public void shouldOnlyWarnForDuplicateIfNotExists() throws Exception {
+    // When
+    ExecuteStatementResult result;
+    client.executeStatement("CREATE STREAM FOO (id INT KEY, bar VARCHAR) WITH(value_format='json', kafka_topic='foo', partitions=6);").get();
+    client.executeStatement("CREATE STREAM IF NOT EXISTS BAR AS SELECT * FROM FOO EMIT CHANGES;").get();
+    result = client.executeStatement("CREATE STREAM IF NOT EXISTS BAR AS SELECT * FROM FOO EMIT CHANGES;").get();
+
+    //Then
+    assertThat(result.queryId(), is(Optional.empty()));
   }
 
   @Test
@@ -710,7 +721,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 400 response from server"));
-    assertThat(e.getCause().getMessage(), containsString("Source NONEXISTENT does not exist"));
+    assertThat(e.getCause().getMessage(), containsString("Stream NONEXISTENT does not exist"));
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
   }
 

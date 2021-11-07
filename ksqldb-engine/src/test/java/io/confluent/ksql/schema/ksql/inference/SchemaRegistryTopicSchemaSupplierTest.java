@@ -94,6 +94,7 @@ public class SchemaRegistryTopicSchemaSupplierTest {
     when(parsedSchema.canonicalString()).thenReturn(AVRO_SCHEMA);
 
     when(format.getSchemaTranslator(any())).thenReturn(schemaTranslator);
+    when(format.getSchemaTranslator(any(), any())).thenReturn(schemaTranslator);
     when(schemaTranslator.toColumns(eq(parsedSchema), any(), anyBoolean()))
         .thenReturn(ImmutableList.of(column1));
     when(schemaTranslator.name()).thenReturn("AVRO");

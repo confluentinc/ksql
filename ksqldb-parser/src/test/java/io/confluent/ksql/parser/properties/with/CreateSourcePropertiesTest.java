@@ -47,6 +47,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -280,8 +281,8 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(CreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
-            .put(CreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
+            .put(CommonCreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
+            .put(CommonCreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
             .build());
 
     // Then:

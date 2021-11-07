@@ -39,6 +39,21 @@
       ]
     },
     {
+      "name": "timestamp column of TIMESTAMP type",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, ID bigint, EVENT_TS TIMESTAMP) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='EVENT_TS');",
+        "CREATE STREAM OUTPUT AS SELECT K, ID, EVENT_TS FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ID": 1, "EVENT_TS":  1526075913000}},
+        {"topic": "test_topic", "value": {"ID": 2, "EVENT_TS":  1589234313000}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"ID": 1, "EVENT_TS": 1526075913000}, "timestamp": 1526075913000},
+        {"topic": "OUTPUT", "value": {"ID": 2, "EVENT_TS": 1589234313000}, "timestamp": 1589234313000}
+      ]
+    },
+    {
       "name": "override output timestamp for CSAS",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -146,7 +161,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Timestamp column, `EVENT_TS`, should be LONG(INT64) or a String with a timestamp_format specified"
+        "message": "Timestamp column, `EVENT_TS`, should be LONG(INT64), TIMESTAMP, or a String with a timestamp_format specified"
       }
     }
   ]

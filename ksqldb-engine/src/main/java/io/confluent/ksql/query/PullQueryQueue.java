@@ -17,11 +17,15 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.pull.PullQueryRow;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.RowMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -103,22 +107,22 @@ public class PullQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
+  public KeyValueMetadata<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
       throws InterruptedException {
-    return pullQueryRowToKeyValue(rowQueue.poll(timeout, unit));
+    return pullQueryRowToKeyValueMetadata(rowQueue.poll(timeout, unit));
   }
 
   @Override
-  public KeyValue<List<?>, GenericRow> poll() {
-    return pullQueryRowToKeyValue(rowQueue.poll());
+  public KeyValueMetadata<List<?>, GenericRow> poll() {
+    return  pullQueryRowToKeyValueMetadata(rowQueue.poll());
   }
 
   @Override
-  public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+  public void drainTo(final Collection<? super KeyValueMetadata<List<?>, GenericRow>> collection) {
     final List<PullQueryRow> list = new ArrayList<>();
     drainRowsTo(list);
     list.stream()
-        .map(PullQueryQueue::pullQueryRowToKeyValue)
+        .map(PullQueryQueue::pullQueryRowToKeyValueMetadata)
         .forEach(collection::add);
   }
 
@@ -182,11 +186,17 @@ public class PullQueryQueue implements BlockingRowQueue {
     return true;
   }
 
-  private static KeyValue<List<?>, GenericRow> pullQueryRowToKeyValue(final PullQueryRow row) {
+  private static KeyValueMetadata<List<?>, GenericRow> pullQueryRowToKeyValueMetadata(
+      final PullQueryRow row) {
     if (row == null) {
       return null;
     }
-    return KeyValue.keyValue(null, row.getGenericRow());
+
+    if (row.getConsistencyOffsetVector().isPresent()) {
+      return new KeyValueMetadata<>(new RowMetadata(
+          Optional.empty(), row.getConsistencyOffsetVector()));
+    }
+    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()));
   }
 
   /**
@@ -228,6 +238,15 @@ public class PullQueryQueue implements BlockingRowQueue {
       rowQueue.put(row);
     } catch (InterruptedException e) {
       LOG.error("Interrupted while trying to put row into queue", e);
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  public void putConsistencyVector(final ConsistencyOffsetVector consistencyOffsetVector) {
+    try {
+      rowQueue.put(new PullQueryRow(null, null, null, Optional.of(consistencyOffsetVector)));
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while trying to put consistency token into queue", e);
       Thread.currentThread().interrupt();
     }
   }

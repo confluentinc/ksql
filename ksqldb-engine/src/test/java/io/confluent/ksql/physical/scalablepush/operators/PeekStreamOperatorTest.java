@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.planner.plan.DataSourceNode;
@@ -31,9 +32,9 @@ public class PeekStreamOperatorTest {
   @Captor
   private ArgumentCaptor<ProcessingQueue> processingQueueCaptor;
   @Mock
-  private TableRow row1;
+  private QueryRow row1;
   @Mock
-  private TableRow row2;
+  private QueryRow row2;
   @Mock
   private Runnable newRowCallback;
   @Mock

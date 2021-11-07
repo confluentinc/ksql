@@ -102,4 +102,43 @@ public class FormatFactoryTest {
     assertThat(format, is(FormatFactory.AVRO));
   }
 
+  @Test
+  public void shouldThrowWhenCreatingFromUnsupportedProperty() {
+    // Given:
+    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of("KEY_SCHEMA_ID", "1"));
+    final FormatInfo kafkaFormat = FormatInfo.of("KAFKA", ImmutableMap.of("VALUE_SCHEMA_ID", "1"));
+    final FormatInfo delimitedFormat = FormatInfo.of("delimited",
+        ImmutableMap.of("KEY_SCHEMA_ID", "123"));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(format)
+    );
+    final Exception kafkaException = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(kafkaFormat)
+    );
+    final Exception delimitedException = assertThrows(
+        KsqlException.class,
+        () -> FormatFactory.of(delimitedFormat)
+    );
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("JSON does not support the following configs: [KEY_SCHEMA_ID]"));
+    assertThat(kafkaException.getMessage(),
+        containsString("KAFKA does not support the following configs: [VALUE_SCHEMA_ID]"));
+    assertThat(delimitedException.getMessage(),
+        containsString("DELIMITED does not support the following configs: [KEY_SCHEMA_ID]"));
+  }
+
+  @Test
+  public void shouldNotThrowWhenCreatingFromSupportedProperty() {
+    // Given:
+    final FormatInfo formatInfo = FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "1"));
+
+    // When: Then:
+    assertThat(FormatFactory.of(formatInfo), is(FormatFactory.AVRO));
+  }
+
 }

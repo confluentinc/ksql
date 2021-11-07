@@ -35,6 +35,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -91,7 +92,9 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties,
-      final Consumer<List<StreamedRow>> rowConsumer
+      final Consumer<List<StreamedRow>> rowConsumer,
+      final CompletableFuture<Void> shouldCloseConnection,
+      final Optional<String> serializedOffsetVector
   ) {
     throw new UnsupportedOperationException();
   }

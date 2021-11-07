@@ -56,8 +56,10 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -147,6 +149,18 @@ public class QueryEndpoint {
               statement.getStatement(), statement.getStatementText(), properties);
       final DataSource dataSource = analysis.getFrom().getDataSource();
       final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
+      Optional<ConsistencyOffsetVector> consistencyOffsetVector = Optional.empty();
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)
+          && requestProperties.containsKey(
+              KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR)) {
+        final String serializedCV = (String)requestProperties.get(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR);
+        // serializedCV will be null on the first request as the consistency vector is initialized
+        // at the server
+        consistencyOffsetVector = serializedCV != null
+            ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
+            : Optional.of(new ConsistencyOffsetVector());
+      }
       switch (dataSourceType) {
         case KTABLE:
           return createTablePullQueryPublisher(
@@ -156,7 +170,8 @@ public class QueryEndpoint {
               statement,
               pullQueryMetrics,
               workerExecutor,
-              metricsCallbackHolder
+              metricsCallbackHolder,
+              consistencyOffsetVector
           );
         case KSTREAM:
           return createStreamPullQueryPublisher(
@@ -312,7 +327,8 @@ public class QueryEndpoint {
       final ConfiguredStatement<Query> statement,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final WorkerExecutor workerExecutor,
-      final MetricsCallbackHolder metricsCallbackHolder
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
@@ -344,7 +360,8 @@ public class QueryEndpoint {
           routingOptions,
           plannerOptions,
           pullQueryMetrics,
-          false
+          false,
+          consistencyOffsetVector
       );
 
       resultForMetrics.set(result);
@@ -448,6 +465,11 @@ public class QueryEndpoint {
     public QueryId getQueryId() {
       return queryMetadata.getQueryId();
     }
+
+    @Override
+    public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+      return Optional.empty();
+    }
   }
 
   private static class KsqlPullQueryHandle implements QueryHandle {
@@ -505,6 +527,11 @@ public class QueryEndpoint {
     @Override
     public QueryId getQueryId() {
       return result.getQueryId();
+    }
+
+    @Override
+    public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+      return result.getConsistencyOffsetVector();
     }
   }
 
@@ -565,6 +592,11 @@ public class QueryEndpoint {
     @Override
     public QueryId getQueryId() {
       return scalablePushQueryMetadata.getQueryId();
+    }
+
+    @Override
+    public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+      return Optional.empty();
     }
   }
 }

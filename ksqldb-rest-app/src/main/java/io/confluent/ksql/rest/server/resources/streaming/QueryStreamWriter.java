@@ -22,10 +22,11 @@ import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import java.io.EOFException;
@@ -100,7 +101,7 @@ class QueryStreamWriter implements StreamingOutput {
       final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
       while (!connectionClosed && queryMetadata.isRunning() && !limitReached && !complete) {
-        final KeyValue<List<?>, GenericRow> row = rowQueue.poll(
+        final KeyValueMetadata<List<?>, GenericRow> row = rowQueue.poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
@@ -171,13 +172,22 @@ class QueryStreamWriter implements StreamingOutput {
 
     storedSchema.value().forEach(projectionSchema::valueColumn);
 
+    // No session consistency offered for push or stream pull queries
     return StreamedRow.header(queryId, projectionSchema.build());
   }
 
-  private StreamedRow buildRow(final KeyValue<List<?>, GenericRow> row) {
-    return row.value() == null
-        ? StreamedRow.tombstone(tombstoneFactory.createRow(row))
-        : StreamedRow.pushRow(row.value());
+  private StreamedRow buildRow(final KeyValueMetadata<List<?>, GenericRow> row) {
+    if (row.getKeyValue().value() == null) {
+      return StreamedRow.tombstone(tombstoneFactory.createRow(row.getKeyValue()));
+    } else {
+      if (row.getRowMetadata().isPresent()
+          && row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
+        return StreamedRow.continuationToken(new PushContinuationToken(
+            row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
+      } else {
+        return StreamedRow.pushRow(row.getKeyValue().value());
+      }
+    }
   }
 
   private void outputException(final OutputStream out, final Throwable exception) {
@@ -205,10 +215,10 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private void drain(final OutputStream out) throws IOException {
-    final List<KeyValue<List<?>, GenericRow>> rows = Lists.newArrayList();
+    final List<KeyValueMetadata<List<?>, GenericRow>> rows = Lists.newArrayList();
     queryMetadata.getRowQueue().drainTo(rows);
 
-    for (final KeyValue<List<?>, GenericRow> row : rows) {
+    for (final KeyValueMetadata<List<?>, GenericRow> row : rows) {
       write(out, buildRow(row));
     }
   }

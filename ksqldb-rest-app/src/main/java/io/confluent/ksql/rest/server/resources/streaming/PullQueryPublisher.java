@@ -34,13 +34,15 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
@@ -63,6 +65,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final ConcurrencyLimiter concurrencyLimiter;
   private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting routing;
+  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -79,7 +82,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
       final SlidingWindowRateLimiter pullBandRateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -93,6 +97,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.concurrencyLimiter = concurrencyLimiter;
     this.pullBandRateLimiter = requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
     this.routing = requireNonNull(routing, "routing");
+    this.consistencyOffsetVector = requireNonNull(
+        consistencyOffsetVector, "consistencyOffsetVector");
   }
 
   @Override
@@ -124,7 +130,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
           routingOptions,
           plannerOptions,
           pullQueryMetrics,
-          true
+          true,
+          consistencyOffsetVector
       );
 
       final PullQueryResult finalResult = result;
@@ -188,19 +195,31 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       this.subscriber = requireNonNull(subscriber, "subscriber");
       this.result = requireNonNull(result, "result");
 
-      result.onCompletion(v -> setDone());
+      result.onCompletion(v -> {
+        result.getConsistencyOffsetVector().ifPresent(
+            result.getPullQueryQueue()::putConsistencyVector);
+        setDone();
+      });
       result.onException(this::setError);
     }
 
     @Override
     Collection<StreamedRow> poll() {
-      final List<KeyValue<List<?>, GenericRow>> rows = Lists.newLinkedList();
+      final List<KeyValueMetadata<List<?>, GenericRow>> rows = Lists.newLinkedList();
       result.getPullQueryQueue().drainTo(rows);
       if (rows.isEmpty()) {
         return null;
       } else {
         return rows.stream()
-            .map(kv -> StreamedRow.pushRow(kv.value()))
+            .map(kv -> {
+              if (kv.getRowMetadata().isPresent()
+                  && kv.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
+                return StreamedRow.consistencyToken(new ConsistencyToken(
+                    kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
+              } else {
+                return StreamedRow.pushRow(kv.getKeyValue().value());
+              }
+            })
             .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }

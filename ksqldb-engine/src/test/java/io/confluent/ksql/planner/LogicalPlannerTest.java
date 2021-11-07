@@ -74,6 +74,8 @@ public class LogicalPlannerTest {
         .getSources()
         .get(0)
         .getSources()
+        .get(0)
+        .getSources()
         .get(0))
         .getDataSource();
     assertThat(dataSource

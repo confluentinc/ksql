@@ -1,5 +1,6 @@
 package io.confluent.ksql.query;
 
+import java.util.OptionalInt;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -133,7 +134,7 @@ public class PullQueryQueueTest {
   }
 
   private void givenQueue() {
-    queue = new PullQueryQueue(QUEUE_SIZE, 1);
+    queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.empty());
 
     queue.setLimitHandler(limitHandler);
     queue.setQueuedCallback(queuedCallback);

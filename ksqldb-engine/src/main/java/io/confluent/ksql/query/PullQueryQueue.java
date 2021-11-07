@@ -21,6 +21,7 @@ import io.confluent.ksql.util.KeyValue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +54,7 @@ public class PullQueryQueue implements BlockingRowQueue {
   private final long offerTimeoutMs;
   private AtomicBoolean closed = new AtomicBoolean(false);
   private AtomicLong totalRowsQueued = new AtomicLong(0);
+  private final OptionalInt limit;
 
   /**
    * The callback run when we've hit the end of the data. Specifically, this happens when
@@ -64,17 +66,19 @@ public class PullQueryQueue implements BlockingRowQueue {
    */
   private Runnable queuedCallback;
 
-  public PullQueryQueue() {
-    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS);
+  public PullQueryQueue(OptionalInt limit) {
+    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
   }
 
   public PullQueryQueue(
       final int queueSizeLimit,
-      final long offerTimeoutMs) {
+      final long offerTimeoutMs,
+      final OptionalInt limit) {
     this.queuedCallback = () -> { };
     this.limitHandler = () -> { };
     this.rowQueue = new ArrayBlockingQueue<>(queueSizeLimit);
     this.offerTimeoutMs = offerTimeoutMs;
+    this.limit = limit;
   }
 
   @Override
@@ -199,6 +203,9 @@ public class PullQueryQueue implements BlockingRowQueue {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
           totalRowsQueued.incrementAndGet();
           queuedCallback.run();
+          if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
+            close();
+          }
           return true;
         }
       }

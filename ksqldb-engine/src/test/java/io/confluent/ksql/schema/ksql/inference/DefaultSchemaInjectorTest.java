@@ -507,7 +507,7 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldSetUnwrappingForKeySchemaIfUnsupported() {
+  public void shouldSetUnwrappingForKeySchemaIfSupported() {
     // Given:
     givenFormatsAndProps("avro", "delimited", ImmutableMap.of());
 
@@ -537,6 +537,27 @@ public class DefaultSchemaInjectorTest {
         Optional.empty(),
         FormatInfo.of("PROTOBUF"),
         SerdeFeatures.of()
+    );
+  }
+
+  @Test
+  public void shouldSetUnwrappingForValueSchemaIfPresent() {
+    // Given:
+    givenFormatsAndProps(
+        "delimited",
+        "avro",
+        ImmutableMap.of("WRAP_SINGLE_VALUE", new BooleanLiteral("false"))
+    );
+
+    // When:
+    injector.inject(ctStatement);
+
+    // Then:
+    verify(schemaSupplier).getValueSchema(
+        KAFKA_TOPIC,
+        Optional.empty(),
+        FormatInfo.of("AVRO"),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     );
   }
 

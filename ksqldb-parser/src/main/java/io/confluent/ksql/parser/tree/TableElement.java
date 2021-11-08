@@ -52,6 +52,15 @@ public final class TableElement extends AstNode {
     public boolean isKey() {
       return this == KEY || this == PRIMARY_KEY;
     }
+
+    public static Namespace of(final SqlBaseParser.TableElementContext context) {
+      if (context.headerType() != null) {
+        return Namespace.HEADERS;
+      }
+      return context.KEY() == null
+          ? Namespace.VALUE
+          : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY;
+    }
   }
 
   private final Namespace namespace;
@@ -132,14 +141,5 @@ public final class TableElement extends AstNode {
         + ", type=" + type
         + ", namespace=" + namespace
         + '}';
-  }
-
-  public static Namespace getNamespaceFromContext(final SqlBaseParser.TableElementContext context) {
-    if (context.headerType() != null) {
-      return Namespace.HEADERS;
-    }
-    return context.KEY() == null
-        ? Namespace.VALUE
-        : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY;
   }
 }

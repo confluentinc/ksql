@@ -40,6 +40,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -65,6 +66,36 @@ public class ListPropertiesExecutorTest {
   }
 
   @Test
+  public void shouldContainInternalField() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getInternal(), equalTo(true));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getInternal(), equalTo(false));
+  }
+
+  @Test
+  public void shouldContainLevelField() {
+    // When:
+    final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
+        engine.configure("LIST PROPERTIES;"),
+        mock(SessionProperties.class),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).getEntity().orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getLevel(), equalTo("SERVER"));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE).getLevel(), equalTo("QUERY"));
+  }
+
+  @Test
   public void shouldListProperties() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
@@ -76,7 +107,7 @@ public class ListPropertiesExecutorTest {
 
     // Then:
     assertThat(
-        toMap(properties),
+        toStringMap(properties),
         equalTo(engine.getKsqlConfig().getAllConfigPropsWithSecretsObfuscated()));
     assertThat(properties.getOverwrittenProperties(), is(empty()));
   }
@@ -178,7 +209,15 @@ public class ListPropertiesExecutorTest {
     }
   }
 
-  private static Map<String, String> toMap(final PropertiesList properties) {
+  private static Map<String, Property> toMap(final PropertiesList properties) {
+    final Map<String, Property> map = new HashMap<>();
+    for (final Property property : properties.getProperties()) {
+      map.put(property.getName(), property);
+    }
+    return map;
+  }
+
+  private static Map<String, String> toStringMap(final PropertiesList properties) {
     final Map<String, String> map = new HashMap<>();
     for (final Property property : properties.getProperties()) {
       map.put(property.getName(), property.getValue());

@@ -225,7 +225,7 @@ public class LogicalPlanner {
       }
     }
 
-    if (analysis.getLimitClause().isPresent()) {
+    if (!isScalablePush && analysis.getLimitClause().isPresent()) {
       currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
     }
 

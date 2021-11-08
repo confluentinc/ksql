@@ -53,7 +53,7 @@ There will also be new byte conversion functions to help decode header data:
 
 ### Queries
 
-The headers columns will be usable in any query like any other column, except `INSERT SELECT` and `INSERT VALUES` statements will fail if trying to insert into a headers column. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.
+The headers columns will be usable as selection items, function arguments or predicates in any query like any other column, except for `INSERT SELECT` and `INSERT VALUES` statements. They will fail if trying to insert into a headers column. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.
 
 ### Schema
 

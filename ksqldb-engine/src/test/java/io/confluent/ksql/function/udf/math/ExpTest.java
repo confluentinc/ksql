@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.math;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.nullValue;
 
 import org.junit.Before;
@@ -39,22 +40,22 @@ public class ExpTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.exp(-1), is(0.36787944117144233));
-    assertThat(udf.exp(-1L), is(0.36787944117144233));
-    assertThat(udf.exp(-1.0), is(0.36787944117144233));
+    assertThat(udf.exp(-1), is(closeTo(0.36787944117144233, 0.00000000000000005)));
+    assertThat(udf.exp(-1L), is(closeTo(0.36787944117144233, 0.00000000000000005)));
+    assertThat(udf.exp(-1.0), is(closeTo(0.36787944117144233, 0.00000000000000005)));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.exp(0), is(1.0));
-    assertThat(udf.exp(0L), is(1.0));
-    assertThat(udf.exp(0.0), is(1.0));
+    assertThat(udf.exp(0), is(closeTo(1.0, 0.1)));
+    assertThat(udf.exp(0L), is(closeTo(1.0, 0.1)));
+    assertThat(udf.exp(0.0), is(closeTo(1.0, 0.1)));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.exp(1), is(2.718281828459045));
-    assertThat(udf.exp(1L), is(2.718281828459045));
-    assertThat(udf.exp(1.0), is(2.718281828459045));
+    assertThat(udf.exp(1), is(closeTo(2.718281828459045, 0.00000000000005)));
+    assertThat(udf.exp(1L), is(closeTo(2.718281828459045, 0.00000000000005)));
+    assertThat(udf.exp(1.0), is(closeTo(2.718281828459045, 0.00000000000005)));
   }
 }

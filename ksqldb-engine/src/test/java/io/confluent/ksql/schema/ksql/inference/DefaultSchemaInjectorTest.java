@@ -53,7 +53,9 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -384,7 +386,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldInjectKeyAndMaintainValueColumnsForCs() {
     // Given:
-    givenFormatsAndProps("protobuf", "delimited", ImmutableMap.of());
+    givenKeyButNotValueInferenceSupported();
     when(cs.getElements()).thenReturn(SOME_VALUE_ELEMENTS);
 
     // When:
@@ -397,14 +399,14 @@ public class DefaultSchemaInjectorTest {
         "CREATE STREAM `cs` ("
             + "`key` STRING KEY, "
             + "`bob` STRING) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', KEY_SCHEMA_ID=18, VALUE_FORMAT='delimited');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', KEY_SCHEMA_ID=18, VALUE_FORMAT='delimited');"
     ));
   }
 
   @Test
   public void shouldInjectKeyAndMaintainValueColumnsForCt() {
     // Given:
-    givenFormatsAndProps("protobuf", "delimited", ImmutableMap.of());
+    givenKeyButNotValueInferenceSupported();
     when(ct.getElements()).thenReturn(SOME_VALUE_ELEMENTS);
 
     // When:
@@ -417,7 +419,7 @@ public class DefaultSchemaInjectorTest {
         "CREATE TABLE `ct` ("
             + "`key` STRING PRIMARY KEY, "
             + "`bob` STRING) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', KEY_SCHEMA_ID=18, VALUE_FORMAT='delimited');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', KEY_SCHEMA_ID=18, VALUE_FORMAT='delimited');"
     ));
   }
 
@@ -454,10 +456,7 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldGetKeySchemaWithSchemaId() {
     // Given:
-    givenFormatsAndProps(
-        "protobuf",
-        "kafka",
-        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    givenKeyButNotValueInferenceSupported(ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
 
     // When:
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
@@ -508,6 +507,23 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
+  public void shouldSetUnwrappingForKeySchemaIfUnsupported() {
+    // Given:
+    givenFormatsAndProps("avro", "delimited", ImmutableMap.of());
+
+    // When:
+    injector.inject(ctStatement);
+
+    // Then:
+    verify(schemaSupplier).getKeySchema(
+        KAFKA_TOPIC,
+        Optional.empty(),
+        FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.CtKey")),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
+    );
+  }
+
+  @Test
   public void shouldNotSetUnwrappingForKeySchemaIfUnsupported() {
     // Given:
     givenFormatsAndProps("protobuf", "delimited", ImmutableMap.of());
@@ -525,44 +541,6 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldThrowIfKeyInferenceHasUnwrapSingleProperty() {
-    // Given
-    givenFormatsAndProps(
-        "avro",
-        "avro",
-        ImmutableMap.of("key_schema_id", new IntegerLiteral(123)));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> injector.inject(csStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString("WRAP_SINGLES should be enabled to use schema inference"));
-  }
-
-  @Test
-  public void shouldThrowIfValueInferenceHasUnwrapSingleProperty() {
-    // Given
-    givenFormatsAndProps(
-        "kafka",
-        "avro",
-        ImmutableMap.of("WRAP_SINGLE_VALUE", new BooleanLiteral(false)));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> injector.inject(csStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString("WRAP_SINGLES should be enabled to use schema inference"));
-  }
-
-  @Test
   public void shouldThrowIfKeyFormatDoesNotSupportSchemaIdInference() {
     // Given
     givenValueButNotKeyInferenceSupported(
@@ -576,7 +554,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("does not support the following configs: [KEY_SCHEMA_ID]"));
+        containsString("KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided!"));
   }
 
   @Test
@@ -596,7 +574,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("does not support the following configs: [VALUE_SCHEMA_ID]"));
+        containsString("VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided!"));
   }
 
   @Test

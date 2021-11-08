@@ -127,7 +127,7 @@ public class DefaultSchemaInjector implements Injector {
         || !formatSupportsSchemaInference(keyFormat))) {
       return Optional.empty();
     }
-    validateSchemaInference(keyFormat, serdeFeatures, true);
+    validateSchemaInference(keyFormat, true);
 
     return Optional.of(getSchema(
         props.getKafkaTopic(),
@@ -150,7 +150,7 @@ public class DefaultSchemaInjector implements Injector {
         || !formatSupportsSchemaInference(valueFormat))) {
       return Optional.empty();
     }
-    validateSchemaInference(valueFormat, serdeFeatures, false);
+    validateSchemaInference(valueFormat, false);
 
     return Optional.of(getSchema(
         props.getKafkaTopic(),
@@ -187,27 +187,20 @@ public class DefaultSchemaInjector implements Injector {
 
   private static void validateSchemaInference(
       final FormatInfo formatInfo,
-      final SerdeFeatures serdeFeatures,
       final boolean isKey
   ) {
     /*
      * Do validation when schemaId presents or we need to infer. Conditions to meet:
      *  1. If schema id is provided, format must support schema inference
-     *  2. We can only infer when singles are wrapped because unwrapped single inference will
-     *     add field with default ROWKEY|ROWVALUE name
      */
 
     final String schemaIdName =
         isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
     if (!formatSupportsSchemaInference(formatInfo)) {
-      final String msg = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
-          : CommonCreateConfigs.VALUE_FORMAT_PROPERTY + " should support schema inference "
-              + "when " + schemaIdName + " is provided or no table elements provided!";
+      final String msg = (isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+          : CommonCreateConfigs.VALUE_FORMAT_PROPERTY) + " should support schema inference "
+              + "when " + schemaIdName + " is provided!";
       throw new KsqlException(msg);
-    }
-    // Don't support UNWRAP_SINGLES when inferring from Schema Registry
-    if (serdeFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)) {
-      throw new KsqlException("WRAP_SINGLES should be enabled to use schema inference");
     }
   }
 

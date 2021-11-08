@@ -3,7 +3,7 @@
 **Author**: Chittaranjan Prasad (@cprasad1) | 
 **Release Target**: 0.25.0 | 
 **Status**: _In Discussion_ | 
-**Discussion**: _link to the design discussion PR_
+**Discussion**: https://github.com/confluentinc/ksql/pull/8298
 
 **tl;dr:** Users of pull queries don't have any way of restricting the number of rows returned by a pull query. The 
 `LIMIT` clause will enable users to save on computation, time and bandwidth costs by giving them an easy way to restrict 

@@ -123,7 +123,7 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.8</vertx.version>
+        <vertx.version>3.9.10</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -135,8 +135,8 @@
 
         <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against this -->
-        <netty.version>4.1.65.Final</netty.version>
-        <netty-codec-http2-version>4.1.65.Final</netty-codec-http2-version>
+        <netty.version>4.1.69.Final</netty.version>
+        <netty-codec-http2-version>4.1.69.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 

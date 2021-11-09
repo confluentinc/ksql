@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushOffsetRange;
 import java.time.Clock;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -98,17 +99,25 @@ public class CatchupConsumer extends ScalablePushConsumer {
     return checkCaughtUp();
   }
 
+  /**
+   * Called when a new assignment has been made with a call to {@link #newAssignment(Collection)}.
+   * If it's being called manually, a mapping of starting offsets is given.  This ensures that we
+   * take our current position to be the one we seek to rather than the last committed offsets.
+   * @param startingOffsets The starting offsets to use, if any.  Otherwise, we use the last
+   *     committed.
+   */
   protected void onNewAssignment(final Optional<Map<Integer, Long>> startingOffsets) {
-    System.out.println("onNewAssignment ");
     final Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
 
-    System.out.println("onNewAssignment assign");
     consumer.assign(tps);
     resetCurrentPosition(startingOffsets);
-    System.out.println("onNewAssignment doneReset");
     newAssignment = false;
   }
 
+  /**
+   * Called when a new assignment has been made with a call to {@link #newAssignment(Collection)}.
+   * Assumes it should take the current position to be the last committed offsets.
+   */
   @Override
   protected void onNewAssignment() {
     onNewAssignment(Optional.empty());
@@ -134,14 +143,18 @@ public class CatchupConsumer extends ScalablePushConsumer {
 
   @Override
   protected void subscribeOrAssign() {
+    // We should always have a latest consumer running
     final LatestConsumer latestConsumer = latestConsumerSupplier.get();
     Preconditions.checkNotNull(latestConsumer,
         "Latest should always be started before catchup is run");
+    // Assign current offsets from the latest consumer.  If the latest consumer doesn't have its
+    // assignment yet, this might be null, but we then count on the latest updating this consumer
+    // with the assignment when it's received.
     this.newAssignment(latestConsumer.getAssignment());
     final Map<Integer, Long> startingOffsets
         = offsetRange.getEndOffsets().getSparseRepresentation();
     onNewAssignment(Optional.of(startingOffsets));
-    System.out.println("subscribeOrAssign CATCHUP " + startingOffsets);
+    // Seek to the provided starting offsets
     for (TopicPartition tp : consumer.assignment()) {
       if (startingOffsets.containsKey(tp.partition()) && startingOffsets.get(tp.partition()) >= 0) {
         consumer.seek(tp, startingOffsets.get(tp.partition()));
@@ -152,34 +165,29 @@ public class CatchupConsumer extends ScalablePushConsumer {
   protected void afterOfferedRow(final ProcessingQueue processingQueue) {
     // Since we handle only one request at a time, we can afford to block and wait for the request.
     while (processingQueue.isAtLimit()) {
-      System.out.println("Sleeping for a bit");
+      LOG.info("Sleeping for a bit since queue is full");
       sleepMs.accept(1000L);
     }
   }
 
   private boolean checkCaughtUp() {
-    System.out.println("CHECKING CAUGHT UP!!");
-
+    LOG.info("Checking to see if we're caught up");
     final Supplier<Boolean> isCaughtUp = () -> {
       final LatestConsumer lc = latestConsumerSupplier.get();
-      System.out.println("LATEST IS " + lc);
       if (lc == null) {
         return false;
       }
       final Map<TopicPartition, Long> latestOffsets = lc.getCurrentOffsets();
-      System.out.println("latestOffsets " + latestOffsets);
       if (latestOffsets.isEmpty()) {
         return false;
       }
-      System.out.println("Comparing " + currentPositions + " and " + latestOffsets);
       return caughtUp(latestOffsets, currentPositions);
     };
 
     final Runnable switchOver = () -> {
-      System.out.println("SWITCHING OVER");
+      LOG.info("Switching over from catchup to latest");
       final LatestConsumer lc = latestConsumerSupplier.get();
       if (lc == null) {
-        System.out.println("NULL LATEST!");
         return;
       }
       for (final ProcessingQueue processingQueue : processingQueues.values()) {

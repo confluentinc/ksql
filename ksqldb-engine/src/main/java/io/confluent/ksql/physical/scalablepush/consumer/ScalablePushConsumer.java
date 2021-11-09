@@ -113,15 +113,11 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     for (int i = 0; i < partitions; i++) {
       currentPositions.put(new TopicPartition(topicName, i), -1L);
     }
-    System.out.println("Consumer got assignment " + topicPartitions.get()
-        + " about to get positions");
     for (TopicPartition tp : topicPartitions.get()) {
       currentPositions.put(tp, startingOffsets
           .map(offsets -> offsets.get(tp.partition()))
           .orElse(consumer.position(tp)));
     }
-    System.out.println("Consumer got assignment " + topicPartitions.get()
-        + " and current position " + currentPositions);
     LOG.info("Consumer got assignment {} and current position {}", topicPartitions.get(),
         currentPositions);
   }
@@ -190,12 +186,10 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   private void computeProgressToken(
       final Optional<PushOffsetVector> givenStartOffsetVector
   ) {
-    System.out.println("END TOKEN " + currentPositions);
     final PushOffsetVector endOffsetVector
         = getOffsetVector(currentPositions, topicName, partitions);
     final PushOffsetVector startOffsetVector = givenStartOffsetVector.orElse(endOffsetVector);
 
-    System.out.println("Sending tokens start " + startOffsetVector + " end " + endOffsetVector);
     handleProgressToken(startOffsetVector, endOffsetVector);
   }
 
@@ -218,7 +212,6 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     final PushOffsetRange range = new PushOffsetRange(
         Optional.of(startOffsetVector), endOffsetVector);
     for (ProcessingQueue queue : processingQueues.values()) {
-      System.out.println("Consumer: " + consumer.assignment() + " range" + range);
       final QueryRow row = OffsetsRow.of(clock.millis(), range);
       queue.offer(row);
     }
@@ -232,8 +225,6 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     numRowsReceived.incrementAndGet();
     for (ProcessingQueue queue : processingQueues.values()) {
       try {
-        System.out.println("Consumer: " + consumer.assignment()
-            + " Sending down row key " + key + " value " + value);
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
         final QueryRow row = RowUtil.createRow(key, value, timestamp, windowed, logicalSchema);

@@ -359,7 +359,6 @@ final class EngineExecutor {
           );
       final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
           .map(PushOffsetRange::deserialize);
-      System.out.println("KICKING OFF CATCHUP " + offsetRange);
       final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
       final PushPhysicalPlanManager physicalPlanManager = new PushPhysicalPlanManager(
           pushPhysicalPlanCreator, catchupConsumerGroup, offsetRange);

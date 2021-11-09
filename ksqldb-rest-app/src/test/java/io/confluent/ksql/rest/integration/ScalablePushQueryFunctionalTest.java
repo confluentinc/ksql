@@ -225,7 +225,6 @@ public class ScalablePushQueryFunctionalTest {
         FormatFactory.KAFKA, FormatFactory.JSON);
 
     assertThatEventually(() -> {
-      System.out.println("GOT ROWS " + subscriber.getRows());
       return subscriber.getUniqueRows().size();
         },
         is(pageViewDataProvider.data().size() + 1));
@@ -298,10 +297,7 @@ public class ScalablePushQueryFunctionalTest {
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewAdditionalDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
 
-    assertThatEventually(() -> {
-      System.out.println("Unique rows " + subscriber.getUniqueRows());
-      return subscriber.getUniqueRows().size();
-      },
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + pageViewAdditionalDataProvider.data().size() + 1));
 
     List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()

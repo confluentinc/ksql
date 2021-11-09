@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -81,7 +79,8 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
   public boolean shouldOutputContinuationToken() {
     if (getHasBeenForwarded()) {
       return true;
-    } else if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED)) {
+    } else if (configOverrides.containsKey(
+        KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED)) {
       return (Boolean) configOverrides.get(
           KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED);
     }

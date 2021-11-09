@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.scalablepush;
 
-import java.util.List;
 import java.util.Optional;
 
 /**

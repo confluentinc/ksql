@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ public class PushOffsetVector implements OffsetVector {
     }
     Preconditions.checkState(offsetsOther.size() == offsets.get().size(),
         "Should be equal other:" + offsetsOther.size() + ",  offsets:" + offsets.get().size());
-    ImmutableList.Builder<Long> builder = ImmutableList.builder();
+    final ImmutableList.Builder<Long> builder = ImmutableList.builder();
     int partition = 0;
     for (Long offset : offsets.get()) {
       builder.add(Math.max(offsetsOther.get(partition), offset));
@@ -66,7 +67,7 @@ public class PushOffsetVector implements OffsetVector {
   }
 
   public PushOffsetVector mergeCopy(final OffsetVector other) {
-    PushOffsetVector copy = copy();
+    final PushOffsetVector copy = copy();
     copy.merge(other);
     return copy;
   }
@@ -101,11 +102,11 @@ public class PushOffsetVector implements OffsetVector {
   @JsonIgnore
   public Map<Integer, Long> getSparseRepresentation() {
     int i = 0;
-    Map<Integer, Long> offsets = new HashMap<>();
+    final Map<Integer, Long> offsets = new HashMap<>();
     for (Long offset : getOffsets()) {
       offsets.put(i++, offset);
     }
-    return offsets;
+    return ImmutableMap.copyOf(offsets);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")

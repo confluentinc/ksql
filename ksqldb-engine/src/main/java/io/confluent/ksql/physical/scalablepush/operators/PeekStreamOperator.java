@@ -23,7 +23,6 @@ import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry.CatchupMetad
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.PushOffsetRange;
 import java.util.List;
 import java.util.Optional;
 

@@ -239,8 +239,8 @@ public class ScalablePushRegistry {
       if (latestConsumer != null && !latestConsumer.isClosed()) {
         latestConsumer.unregister(processingQueue);
       }
-      catchupConsumers.
-          computeIfPresent(processingQueue.getQueryId(), (queryId, catchupConsumer) -> {
+      catchupConsumers
+          .computeIfPresent(processingQueue.getQueryId(), (queryId, catchupConsumer) -> {
             catchupConsumer.unregister(processingQueue);
             catchupConsumer.closeAsync();
             return null;
@@ -547,7 +547,7 @@ public class ScalablePushRegistry {
   private void deleteConsumerGroup(final String consumerGroupId) {
     LOG.info("Cleaning up consumer group " + consumerGroupId);
     try {
-      Map<TopicPartition, OffsetAndMetadata> metadata =
+      final Map<TopicPartition, OffsetAndMetadata> metadata =
           serviceContext
               .getConsumerGroupClient()
               .listConsumerGroupOffsets(consumerGroupId);
@@ -561,16 +561,6 @@ public class ScalablePushRegistry {
       LOG.error("Failed to delete consumer group " + consumerGroupId, t);
     }
   }
-
-  public void simulateDropNextMessages(int messages) {
-    final LatestConsumer latestConsumer = this.latestConsumer.get();
-    latestConsumer.simulateDropNextMessages(messages);
-  }
-
-//  public void simulateDropNextMessages(int messages) {
-//    final LatestConsumer latestConsumer = this.latestConsumer.get();
-//    latestConsumer.simulateDropNextMessages(messages);
-//  }
 
   public static class CatchupMetadata {
 

@@ -35,13 +35,14 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.OffsetVector;
@@ -50,7 +51,6 @@ import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.RowMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
-import java.io.Closeable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -180,6 +180,7 @@ public class PushRouting implements AutoCloseable {
    * Connects to all of the hosts provided.
    * @return A future for a PushConnectionsHandle, which can be used to terminate connections.
    */
+  @SuppressWarnings("checkstyle:ParameterNumber")
   private CompletableFuture<PushConnectionsHandle> connectToHosts(
       final ServiceContext serviceContext,
       final PushPhysicalPlanManager pushPhysicalPlanManager,
@@ -273,6 +274,7 @@ public class PushRouting implements AutoCloseable {
         });
   }
 
+  @SuppressWarnings("checkstyle:ParameterNumber")
   @VisibleForTesting
   static CompletableFuture<RoutingResult> executeOrRouteQuery(
       final KsqlNode node,
@@ -380,7 +382,8 @@ public class PushRouting implements AutoCloseable {
         .put(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
 
     if (shouldCatchupFromOffsets) {
-      System.out.println("Forwarding node needs to catchup starting at " + offsetsTracker.getOffsets());
+      System.out.println("Forwarding node needs to catchup starting at "
+          + offsetsTracker.getOffsets());
       requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
           offsetsTracker.getSerializedOffsetRange());
       requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP,
@@ -574,7 +577,7 @@ public class PushRouting implements AutoCloseable {
     protected final PushRoutingOptions pushRoutingOptions;
     protected boolean closed;
 
-    public StreamSubscriber(final Context context,
+    StreamSubscriber(final Context context,
         final TransientQueryQueue transientQueryQueue,
         final CompletableFuture<Void> callback,
         final KsqlNode node,
@@ -615,7 +618,18 @@ public class PushRouting implements AutoCloseable {
       context.runOnContext(v -> cancel());
     }
 
-    protected Optional<PushOffsetRange> handleProgressToken(
+    /**
+     * Handle receiving a {@link PushOffsetRange}. This logic checks for gaps in the rows received
+     * and will close the connection if found, finishing the callback with a
+     * {@link GapFoundException}. If no gap is found, then the {@link OffsetsTracker} is updated.
+     * @param offsetRangeOptional The offsets received.  If empty, this method is a noop.
+     * @param isSourceNode If the node running this is the source node. If not, gaps are ignored,
+     *     since the source is where they're dealt with.
+     * @return The optional range response which represents an updated range, merged with the
+     *     current tracked offset, which is appropriate to return to the user. If empty, while
+     *     offsetRangeOptional is not, this signifies that a gap has been found.
+     */
+    protected Optional<PushOffsetRange> handleContinuationToken(
         final Optional<PushOffsetRange> offsetRangeOptional,
         final boolean isSourceNode
     ) {
@@ -623,7 +637,7 @@ public class PushRouting implements AutoCloseable {
         return offsetRangeOptional;
       }
       final PushOffsetRange offsetRange = offsetRangeOptional.get();
-      final PushOffsetVector currentOffsets = offsetsTracker.getOffsets();
+      final PushOffsetVector currentOffsets = offsetsTracker.getOffsets().copy();
       Preconditions.checkState(offsetRange.getStartOffsets().isPresent());
       final PushOffsetVector startOffsets = currentOffsets.mergeCopy(
           offsetRange.getStartOffsets().get());
@@ -631,9 +645,10 @@ public class PushRouting implements AutoCloseable {
       final PushOffsetRange updatedToken
           = new PushOffsetRange(Optional.of(startOffsets), endOffsets);
       if (isSourceNode && !offsetRange.getStartOffsets().get().lessThanOrEqualTo(currentOffsets)) {
-        LOG.warn(name() + "Found a gap in offsets for {} and id {}: start: {}, current: {}", node, queryId,
-            offsetRange.getStartOffsets(), offsetsTracker.getOffsets());
-        System.out.println(name() + " Found gap in offsets start: " +  offsetRange.getStartOffsets() + " current: " + offsetsTracker.getOffsets());
+        LOG.warn(name() + "Found a gap in offsets for {} and id {}: start: {}, current: {}", node,
+            queryId, offsetRange.getStartOffsets(), offsetsTracker.getOffsets());
+        System.out.println(name() + " Found gap in offsets start: "
+            +  offsetRange.getStartOffsets() + " current: " + offsetsTracker.getOffsets());
         callback.completeExceptionally(new GapFoundException());
         close();
         return Optional.empty();
@@ -668,41 +683,21 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected synchronized void handleValue(final StreamedRow row) {
-      System.out.println("REMOTE Got row " + row + " token " + row.getContinuationToken().map(t -> PushOffsetRange.deserialize(t.getContinuationToken())));
+      System.out.println("REMOTE Got row " + row + " token "
+          + row.getContinuationToken()
+          .map(t -> PushOffsetRange.deserialize(t.getContinuationToken())));
       if (closed) {
         return;
       }
       if (row.getFinalMessage().isPresent()) {
         close();
         return;
-      }
-
-      if (row.getRow().isPresent() || row.getContinuationToken().isPresent()) {
-        final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
-        final Optional<PushOffsetRange> currentOffsetRange = handleProgressToken(
-            row.getContinuationToken().map(t -> PushOffsetRange.deserialize(t.getContinuationToken())), isSourceNode);
-        System.out.println("REMOTE Got row " + row + " range " + currentOffsetRange);
-        if (row.getContinuationToken().isPresent() && !currentOffsetRange.isPresent()) {
+      } else if (row.getRow().isPresent() || row.getContinuationToken().isPresent()) {
+        if (!handleQueueableRow(row.getRow(), row.getContinuationToken())) {
+          LOG.warn("Unable to handle queueable row");
           return;
         }
-        if (!currentOffsetRange.isPresent() || pushRoutingOptions.shouldOutputContinuationToken()) {
-          final Optional<RowMetadata> rowMetadata = currentOffsetRange.map(
-              or -> new RowMetadata(Optional.of(or)));
-          final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
-              ? new KeyValueMetadata<>(rowMetadata.get())
-              : new KeyValueMetadata<>(
-                  new KeyValue<>(null, GenericRow.fromList(row.getRow().get().getColumns())));
-          System.out.println("ALAN: REMOTE Outputting " + node + " value " + row.getRow().get().getColumns() + " row metadata " + rowMetadata + " for query " + queryId);
-          if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
-            callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
-            close();
-            return;
-          }
-        } else {
-          LOG.info("Not outputting continuation token " + currentOffsetRange.get());
-        }
-      }
-      if (row.getErrorMessage().isPresent()) {
+      } else if (row.getErrorMessage().isPresent()) {
         final KsqlErrorMessage errorMessage = row.getErrorMessage().get();
         LOG.error("Received error from remote node {} and id {}: {}", node, queryId, errorMessage);
         callback.completeExceptionally(new KsqlException("Remote server had an error: "
@@ -711,6 +706,38 @@ public class PushRouting implements AutoCloseable {
         return;
       }
       makeRequest(1);
+    }
+
+    private boolean handleQueueableRow(
+        final Optional<DataRow> dataRow,
+        final Optional<PushContinuationToken> continuationToken) {
+      final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
+      final Optional<PushOffsetRange> currentOffsetRange = handleContinuationToken(
+          continuationToken
+              .map(t -> PushOffsetRange.deserialize(t.getContinuationToken())), isSourceNode);
+      System.out.println("REMOTE Got row " + dataRow + " range " + currentOffsetRange);
+      if (continuationToken.isPresent() && !currentOffsetRange.isPresent()) {
+        return false;
+      }
+      if (!currentOffsetRange.isPresent() || pushRoutingOptions.shouldOutputContinuationToken()) {
+        final Optional<RowMetadata> rowMetadata = currentOffsetRange.map(
+            or -> new RowMetadata(Optional.of(or)));
+        final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
+            ? new KeyValueMetadata<>(rowMetadata.get())
+            : new KeyValueMetadata<>(
+                new KeyValue<>(null, GenericRow.fromList(dataRow.get().getColumns())));
+        System.out.println("ALAN: REMOTE Outputting " + node + " value "
+            + dataRow.get().getColumns() + " row metadata " + rowMetadata + " for query "
+            + queryId);
+        if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
+          callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
+          close();
+          return false;
+        }
+      } else {
+        LOG.info("Not outputting continuation token " + currentOffsetRange.get());
+      }
+      return true;
     }
 
     public String name() {
@@ -738,14 +765,15 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected synchronized void handleValue(final QueryRow row) {
-      System.out.println("handleValue " + row.value() + " closed " + closed + " range " + row.getOffsetRange());
+      System.out.println("handleValue " + row.value() + " closed " + closed + " range "
+          + row.getOffsetRange());
       if (closed) {
         return;
       }
 
       final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
       final Optional<PushOffsetRange> currentOffsetRange
-          = handleProgressToken(row.getOffsetRange(), isSourceNode);
+          = handleContinuationToken(row.getOffsetRange(), isSourceNode);
       if (!currentOffsetRange.isPresent() && row.getOffsetRange().isPresent()) {
         return;
       }
@@ -755,7 +783,8 @@ public class PushRouting implements AutoCloseable {
         final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
             ? new KeyValueMetadata<>(rowMetadata.get())
             : new KeyValueMetadata<>(new KeyValue<>(null, row.value()));
-        System.out.println("ALAN: Outputting " + node + " value " + row.value() + " row metadata " + rowMetadata + " for query " + queryId);
+        System.out.println("ALAN: Outputting " + node + " value " + row.value() + " row metadata "
+            + rowMetadata + " for query " + queryId);
         if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
           callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
           close();
@@ -815,7 +844,8 @@ public class PushRouting implements AutoCloseable {
       closed = true;
       System.out.println("CLOSING HANDLE");
       for (Map.Entry<KsqlNode, RoutingResult> result : results.entrySet()) {
-        System.out.println("CLOSING result" + result.getKey() + ": " + result.getValue().getStatus());
+        System.out.println("CLOSING result" + result.getKey() + ": "
+            + result.getValue().getStatus());
         result.getValue().close();
       }
       // Completes normally, unless already completed exceptionally.

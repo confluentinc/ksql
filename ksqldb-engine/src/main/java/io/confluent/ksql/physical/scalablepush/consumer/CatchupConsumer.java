@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import com.google.common.base.Preconditions;
@@ -29,15 +44,15 @@ public class CatchupConsumer extends ScalablePushConsumer {
   private AtomicBoolean signalledLatest = new AtomicBoolean(false);
 
   public CatchupConsumer(
-      String topicName,
-      boolean windowed,
-      LogicalSchema logicalSchema,
-      KafkaConsumer<Object, GenericRow> consumer,
-      Supplier<LatestConsumer> latestConsumerSupplier,
-      CatchupCoordinator catchupCoordinator,
-      PushOffsetRange offsetRange,
-      Clock clock,
-      Consumer<Long> sleepMs
+      final String topicName,
+      final boolean windowed,
+      final LogicalSchema logicalSchema,
+      final KafkaConsumer<Object, GenericRow> consumer,
+      final Supplier<LatestConsumer> latestConsumerSupplier,
+      final CatchupCoordinator catchupCoordinator,
+      final PushOffsetRange offsetRange,
+      final Clock clock,
+      final Consumer<Long> sleepMs
   ) {
     super(topicName, windowed, logicalSchema, consumer, clock);
     this.latestConsumerSupplier = latestConsumerSupplier;
@@ -47,14 +62,14 @@ public class CatchupConsumer extends ScalablePushConsumer {
   }
 
   public CatchupConsumer(
-      String topicName,
-      boolean windowed,
-      LogicalSchema logicalSchema,
-      KafkaConsumer<Object, GenericRow> consumer,
-      Supplier<LatestConsumer> latestConsumerSupplier,
-      CatchupCoordinator catchupCoordinator,
-      PushOffsetRange offsetRange,
-      Clock clock
+      final String topicName,
+      final boolean windowed,
+      final LogicalSchema logicalSchema,
+      final KafkaConsumer<Object, GenericRow> consumer,
+      final Supplier<LatestConsumer> latestConsumerSupplier,
+      final CatchupCoordinator catchupCoordinator,
+      final PushOffsetRange offsetRange,
+      final Clock clock
   ) {
     this(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier, catchupCoordinator,
         offsetRange, clock, CatchupConsumer::sleep);
@@ -85,7 +100,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
 
   protected void onNewAssignment(final Optional<Map<Integer, Long>> startingOffsets) {
     System.out.println("onNewAssignment ");
-    Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
+    final Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
 
     System.out.println("onNewAssignment assign");
     consumer.assign(tps);
@@ -102,10 +117,10 @@ public class CatchupConsumer extends ScalablePushConsumer {
   /**
    * The first time we start up a LatestConsumer, if it doesn't already have an assignment, we need
    * to wait for it to give us that assignment by calling {@link #newAssignment}
-   * @return
+   * @return The assignment given by latest
    */
   protected Set<TopicPartition> waitForNewAssignmentFromLatestConsumer() {
-    long startMs = clock.millis();
+    final long startMs = clock.millis();
     Set<TopicPartition> tps = this.topicPartitions.get();
     while (tps == null) {
       if (clock.millis() - startMs > WAIT_FOR_ASSIGNMENT_MS) {
@@ -123,7 +138,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
     Preconditions.checkNotNull(latestConsumer,
         "Latest should always be started before catchup is run");
     this.newAssignment(latestConsumer.getAssignment());
-    Map<Integer, Long> startingOffsets = offsetRange.getEndOffsets().getSparseRepresentation();
+    final Map<Integer, Long> startingOffsets
+        = offsetRange.getEndOffsets().getSparseRepresentation();
     onNewAssignment(Optional.of(startingOffsets));
     System.out.println("subscribeOrAssign CATCHUP " + startingOffsets);
     for (TopicPartition tp : consumer.assignment()) {
@@ -145,12 +161,12 @@ public class CatchupConsumer extends ScalablePushConsumer {
     System.out.println("CHECKING CAUGHT UP!!");
 
     final Supplier<Boolean> isCaughtUp = () -> {
-      LatestConsumer lc = latestConsumerSupplier.get();
+      final LatestConsumer lc = latestConsumerSupplier.get();
       System.out.println("LATEST IS " + lc);
       if (lc == null) {
         return false;
       }
-      Map<TopicPartition, Long> latestOffsets = lc.getCurrentOffsets();
+      final Map<TopicPartition, Long> latestOffsets = lc.getCurrentOffsets();
       System.out.println("latestOffsets " + latestOffsets);
       if (latestOffsets.isEmpty()) {
         return false;
@@ -161,7 +177,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
 
     final Runnable switchOver = () -> {
       System.out.println("SWITCHING OVER");
-      LatestConsumer lc = latestConsumerSupplier.get();
+      final LatestConsumer lc = latestConsumerSupplier.get();
       if (lc == null) {
         System.out.println("NULL LATEST!");
         return;
@@ -182,7 +198,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
     if (!latestOffsets.keySet().equals(offsets.keySet())) {
       return false;
     } else {
-      for (TopicPartition tp : latestOffsets.keySet()) {
+      for (final TopicPartition tp : latestOffsets.keySet()) {
         final Long latestOffset = latestOffsets.get(tp);
         final Long offset = offsets.get(tp);
         if (latestOffset == null || offset == null) {

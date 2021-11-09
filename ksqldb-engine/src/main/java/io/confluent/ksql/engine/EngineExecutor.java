@@ -108,7 +108,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -365,6 +364,7 @@ final class EngineExecutor {
       final PushPhysicalPlanManager physicalPlanManager = new PushPhysicalPlanManager(
           pushPhysicalPlanCreator, catchupConsumerGroup, offsetRange);
       final PushPhysicalPlan physicalPlan = physicalPlanManager.getPhysicalPlan();
+      plan = physicalPlan;
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());

@@ -39,10 +39,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.concurrent.GuardedBy;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -71,8 +69,6 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       = new ConcurrentHashMap<>();
   private volatile boolean closed = false;
   private AtomicLong numRowsReceived = new AtomicLong(0);
-  private volatile boolean simulationNetworkFailureMode = false;
-  private AtomicInteger simulateFailureOfNextNumMessages = new AtomicInteger(0);
 
   protected AtomicReference<Set<TopicPartition>> topicPartitions = new AtomicReference<>();
   private final AtomicReference<Map<TopicPartition, OffsetAndMetadata>> latestCommittedOffsets
@@ -117,19 +113,15 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     for (int i = 0; i < partitions; i++) {
       currentPositions.put(new TopicPartition(topicName, i), -1L);
     }
-    System.out.println("Consumer got assignment " + topicPartitions.get() + " about to get positions");
-    try {
-      for (TopicPartition tp : topicPartitions.get()) {
-        currentPositions.put(tp, startingOffsets
-            .map(offsets -> offsets.get(tp.partition()))
-            .orElse(consumer.position(tp)));
-      }
-    } catch (Throwable t) {
-      t.printStackTrace();
-      System.out.println("Consumer things assignment is  " + consumer.assignment());
-      throw t;
+    System.out.println("Consumer got assignment " + topicPartitions.get()
+        + " about to get positions");
+    for (TopicPartition tp : topicPartitions.get()) {
+      currentPositions.put(tp, startingOffsets
+          .map(offsets -> offsets.get(tp.partition()))
+          .orElse(consumer.position(tp)));
     }
-    System.out.println("Consumer got assignment " + topicPartitions.get() + " and current position " + currentPositions);
+    System.out.println("Consumer got assignment " + topicPartitions.get()
+        + " and current position " + currentPositions);
     LOG.info("Consumer got assignment {} and current position {}", topicPartitions.get(),
         currentPositions);
   }
@@ -195,18 +187,13 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     latestCommittedOffsets.set(ImmutableMap.copyOf(offsets));
   }
 
-//  private void updateCurrentPositions() {
-//    for (TopicPartition tp : topicPartitions.get()) {
-//      currentPositions.put(tp, consumer.position(tp));
-//    }
-//  }
-
   private void computeProgressToken(
       final Optional<PushOffsetVector> givenStartOffsetVector
   ) {
     System.out.println("END TOKEN " + currentPositions);
-    PushOffsetVector endOffsetVector = getOffsetVector(currentPositions, topicName, partitions);
-    PushOffsetVector startOffsetVector = givenStartOffsetVector.orElse(endOffsetVector);
+    final PushOffsetVector endOffsetVector
+        = getOffsetVector(currentPositions, topicName, partitions);
+    final PushOffsetVector startOffsetVector = givenStartOffsetVector.orElse(endOffsetVector);
 
     System.out.println("Sending tokens start " + startOffsetVector + " end " + endOffsetVector);
     handleProgressToken(startOffsetVector, endOffsetVector);
@@ -217,9 +204,9 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       final String topic,
       final int numPartitions
   ) {
-    List<Long> offsetList = new ArrayList<>();
+    final List<Long> offsetList = new ArrayList<>();
     for (int i = 0; i < numPartitions; i++) {
-      TopicPartition tp = new TopicPartition(topic, i);
+      final TopicPartition tp = new TopicPartition(topic, i);
       offsetList.add(offsets.getOrDefault(tp, -1L));
     }
     return new PushOffsetVector(offsetList);
@@ -243,13 +230,10 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       return false;
     }
     numRowsReceived.incrementAndGet();
-    if (simulationNetworkFailureMode && simulateFailureOfNextNumMessages.get() > 0) {
-      simulateFailureOfNextNumMessages.decrementAndGet();
-      return false;
-    }
     for (ProcessingQueue queue : processingQueues.values()) {
       try {
-        System.out.println("Consumer: " + consumer.assignment() + " Sending down row key " + key + " value " + value);
+        System.out.println("Consumer: " + consumer.assignment()
+            + " Sending down row key " + key + " value " + value);
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
         final QueryRow row = RowUtil.createRow(key, value, timestamp, windowed, logicalSchema);
@@ -335,10 +319,5 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     for (ProcessingQueue queue : processingQueues.values()) {
       queue.onError();
     }
-  }
-
-  public void simulateDropNextMessages(int messages) {
-    simulationNetworkFailureMode = true;
-    simulateFailureOfNextNumMessages.set(messages);
   }
 }

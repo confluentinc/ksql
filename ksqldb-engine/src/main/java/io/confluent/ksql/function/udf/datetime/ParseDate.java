@@ -63,7 +63,7 @@ public class ParseDate {
         throw new KsqlFunctionException("Date format contains time field.");
       }
       return new Date(time);
-    } catch (final ExecutionException | ParseException e) {
+    } catch (final ExecutionException | RuntimeException | ParseException e) {
       throw new KsqlFunctionException("Failed to parse date '" + formattedDate
           + "' with formatter '" + formatPattern
           + "': " + e.getMessage(), e);

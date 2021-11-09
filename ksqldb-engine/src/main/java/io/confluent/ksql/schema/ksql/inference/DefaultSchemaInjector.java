@@ -139,7 +139,6 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     final CreateSourceProperties props = statement.getStatement().getProperties();
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
-    final SerdeFeatures serdeFeatures = props.getValueSerdeFeatures();
 
     if (!shouldInferSchema(props.getValueSchemaId(), statement, valueFormat, false)) {
       return Optional.empty();
@@ -149,7 +148,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getValueSchemaId(),
         valueFormat,
-        serdeFeatures,
+        props.getValueSerdeFeatures(),
         statement.getStatementText(),
         false
     ));

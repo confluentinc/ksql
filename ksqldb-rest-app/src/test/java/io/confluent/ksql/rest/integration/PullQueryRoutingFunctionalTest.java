@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer0;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer1;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer2;
@@ -338,8 +339,7 @@ public class PullQueryRoutingFunctionalTest {
 
     // check that we get all rows back
     assertThat(rows_2, hasSize(HEADER + 5));
-    assertEquals(rows_0.stream().map(row -> row.getRow()).collect(Collectors.toList()),
-                 rows_2.stream().map(row -> row.getRow()).collect(Collectors.toList()));
+    assertEquals(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
     // issue pull query with limit after partitioning active
     final List<StreamedRow> rows_3 = makePullQueryRequest(clusterFormation.router.getApp(),

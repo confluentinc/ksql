@@ -51,6 +51,8 @@ There will also be new byte conversion functions to help decode header data:
 * `BIGINT_FROM_BYTES(bytes, byte_order='big', signed=true)` - The input byte array must be exactly 8 bytes long. Signed conversions will by handled by `ByteBuffer`'s `getLong` method. Unsigned conversions will be manually calculated. If the result does not fit into a BIGINT then the method will throw an error.
 * `DOUBLE_FROM_BYTES(bytes, byte_order='big')` - The input byte array must be exactly 8 bytes long. The conversion will by handled by `ByteBuffer`'s `getDouble` method.
 
+In all of these cases, when an error is thrown, then the error gets written to the processing log. If the function is a part of the projection, then `null` will be writtin to the output column. If it's a part of the predicate, then the whole record will be skipped. This is consistent with how errors are handled when functions with value column argments throw errors.
+
 ### Queries
 
 The headers columns will be usable as selection items, function arguments or predicates in any query like any other column, except for `INSERT SELECT` and `INSERT VALUES` statements. They will fail if trying to insert into a headers column. However, when persistent queries project header-backed columns, the header values are copied into the output row’s value (or key), not to headers in the output record.

@@ -354,7 +354,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void testLimitTableScanLogicalPlan() {
-    final String simpleQuery = "SELECT * FROM test1 LIMIT 3;";
+    final String simpleQuery = "SELECT * FROM test2 LIMIT 3;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan, instanceOf(KsqlBareOutputNode.class));

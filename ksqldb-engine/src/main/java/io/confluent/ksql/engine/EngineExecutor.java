@@ -68,6 +68,7 @@ import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanCreator;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanManager;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
@@ -361,8 +362,9 @@ final class EngineExecutor {
           .map(PushOffsetRange::deserialize);
       System.out.println("KICKING OFF CATCHUP " + offsetRange);
       final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
-      final PushPhysicalPlan physicalPlan
-          = pushPhysicalPlanCreator.create(offsetRange, catchupConsumerGroup);
+      final PushPhysicalPlanManager physicalPlanManager = new PushPhysicalPlanManager(
+          pushPhysicalPlanCreator, catchupConsumerGroup, offsetRange);
+      final PushPhysicalPlan physicalPlan = physicalPlanManager.getPhysicalPlan();
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -373,11 +375,11 @@ final class EngineExecutor {
           : ResultType.STREAM;
 
       final PushQueryQueuePopulator populator = () ->
-          pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
-              physicalPlan.getOutputSchema(), transientQueryQueue, scalablePushQueryMetrics,
-                  pushPhysicalPlanCreator, offsetRange);
+          pushRouting.handlePushQuery(serviceContext, physicalPlanManager, statement,
+              pushRoutingOptions, physicalPlan.getOutputSchema(), transientQueryQueue,
+              scalablePushQueryMetrics, offsetRange);
       final PushQueryPreparer preparer = () ->
-          pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
+          pushRouting.preparePushQuery(physicalPlanManager, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),

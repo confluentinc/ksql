@@ -1,7 +1,10 @@
 package io.confluent.ksql.physical.scalablepush;
 
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.util.PushOffsetRange;
+import io.vertx.core.Context;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -30,9 +33,31 @@ public class PushPhysicalPlanManager {
   public void reset(final Optional<PushOffsetRange> newOffsetRange) {
     final PushPhysicalPlan newPlan = pushPhysicalPlanCreator.create(newOffsetRange,
         Optional.of(pushPhysicalPlan.get().getCatchupConsumerGroupId()));
+    pushPhysicalPlan.set(newPlan);
   }
 
   public boolean isClosed() {
     return pushPhysicalPlan.get().isClosed();
+  }
+
+  public ScalablePushRegistry getScalablePushRegistry() {
+    return pushPhysicalPlan.get().getScalablePushRegistry();
+  }
+
+  public String getCatchupConsumerGroupId() {
+    return pushPhysicalPlan.get().getCatchupConsumerGroupId();
+  }
+
+  public BufferedPublisher<QueryRow> execute() {
+    return pushPhysicalPlan.get().execute();
+  }
+
+  public Runnable closeable() {
+    final PushPhysicalPlan plan = pushPhysicalPlan.get();
+    return plan::close;
+  }
+
+  public Context getContext() {
+    return pushPhysicalPlan.get().getContext();
   }
 }

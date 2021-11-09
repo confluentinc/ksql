@@ -15,14 +15,6 @@
 
 package io.confluent.ksql.planner;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThrows;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -32,15 +24,19 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.JoinNode;
+import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -48,7 +44,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import org.junit.Assert;
+import static org.junit.Assert.assertThrows;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -348,6 +350,27 @@ public class LogicalPlannerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Suppression is currently disabled. You can enable it by setting ksql.suppress.enabled to true"));
+  }
+
+  @Test
+  public void testLimitTableScanLogicalPlan() {
+    final String simpleQuery = "SELECT * FROM test1 LIMIT 3;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    assertThat(logicalPlan, instanceOf(KsqlBareOutputNode.class));
+
+    final PlanNode finalProjectNode = logicalPlan.getSources().get(0);
+
+    assertThat(finalProjectNode, instanceOf(FinalProjectNode.class));
+
+    final PlanNode queryLimitNode = finalProjectNode.getSources().get(0);
+
+    assertThat(queryLimitNode, instanceOf(QueryLimitNode.class));
+    assertThat(((QueryLimitNode) queryLimitNode).getLimit(), equalTo(3));
+
+    final PlanNode dataSourceNode = queryLimitNode.getSources().get(0);
+
+    assertThat(dataSourceNode, instanceOf(DataSourceNode.class));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

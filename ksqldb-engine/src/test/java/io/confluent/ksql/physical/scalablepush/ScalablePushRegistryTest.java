@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -487,6 +488,33 @@ public class ScalablePushRegistryTest {
     assertThat(registry.latestNumRegistered(), is(0));
     assertThat(registry.isLatestRunning(), is(false));
     assertThat(registry.anyCatchupsRunning(), is(false));
+  }
+
+  @Test
+  public void shouldThrowErrorOnTooManyCatchups() {
+    // Given:
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS)).thenReturn(1);
+
+    // When:
+    registry.register(processingQueue,
+        Optional.of(new CatchupMetadata(pushOffsetRange, CATCHUP_CONSUMER_GROUP)));
+    assertThat(registry.isLatestRunning(), is(true));
+    assertThatEventually(registry::latestNumRegistered, is(0));
+    assertThatEventually(registry::catchupNumRegistered, is(1));
+    final Exception e = assertThrows(
+        RuntimeException.class,
+        () -> registry.register(processingQueue2,
+            Optional.of(new CatchupMetadata(pushOffsetRange, CATCHUP_CONSUMER_GROUP)))
+    );
+    registry.unregister(processingQueue);
+
+    // Then:
+    assertThat(e.getMessage(), is("Too many catchups registered"));
+    verify(processingQueue, never()).onError();
+    verify(processingQueue2).onError();
+    assertThat(registry.isLatestRunning(), is(false));
+    assertThat(registry.latestNumRegistered(), is(0));
+    assertThat(registry.catchupNumRegistered(), is(0));
   }
 
   public static class TestLatestConsumer extends LatestConsumer {

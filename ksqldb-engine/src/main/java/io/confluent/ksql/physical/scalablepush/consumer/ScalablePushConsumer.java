@@ -89,9 +89,9 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   }
 
 
-  protected abstract boolean onEmptyRecords();
+  protected abstract void onEmptyRecords();
 
-  protected abstract boolean afterCommit();
+  protected abstract void afterCommit();
 
   protected abstract void onNewAssignment();
 

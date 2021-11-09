@@ -368,8 +368,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED
       = "ksql.query.push.v2.continuation.tokens.enabled";
   public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC =
-      "Whether to output continuation tokens";
+      "Whether to output continuation tokens to the user.";
   public static final boolean KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS
+      = "ksql.query.push.v2.max.catchup.consumers";
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC =
+      "The maximum number of concurrent catchup consumers.";
+  public static final int KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT = 5;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -1103,6 +1109,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS,
+            Type.INT,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

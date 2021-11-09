@@ -108,15 +108,13 @@ public class LatestConsumer extends ScalablePushConsumer {
   }
 
   @Override
-  protected boolean onEmptyRecords() {
+  protected void onEmptyRecords() {
     catchupCoordinator.checkShouldWaitForCatchup();
-    return false;
   }
 
   @Override
-  protected boolean afterCommit() {
+  protected void afterCommit() {
     catchupCoordinator.checkShouldWaitForCatchup();
-    return false;
   }
 
   @Override

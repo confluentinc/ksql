@@ -34,6 +34,11 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A consumer which runs alongside a {@link LatestConsumer}, keeping the same assignments that
+ * latest has. This allows a given {@link CatchupConsumer} to eventually catchup and coordinate a
+ * swap over so that the catchup can be closed.
+ */
 public class CatchupConsumer extends ScalablePushConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(CatchupConsumer.class);
   private static final long WAIT_FOR_ASSIGNMENT_MS = 15000;
@@ -90,13 +95,13 @@ public class CatchupConsumer extends ScalablePushConsumer {
   }
 
   @Override
-  protected boolean onEmptyRecords() {
-    return checkCaughtUp();
+  protected void onEmptyRecords() {
+    checkCaughtUp();
   }
 
   @Override
-  protected boolean afterCommit() {
-    return checkCaughtUp();
+  protected void afterCommit() {
+    checkCaughtUp();
   }
 
   /**
@@ -170,6 +175,11 @@ public class CatchupConsumer extends ScalablePushConsumer {
     }
   }
 
+  /**
+   * Checks if the catchup consumer is caught up and will even switch over to latest and close this
+   * consumer if finished.
+   * @return If the catchup consumer has switched over.
+   */
   private boolean checkCaughtUp() {
     LOG.info("Checking to see if we're caught up");
     final Supplier<Boolean> isCaughtUp = () -> {
@@ -199,6 +209,12 @@ public class CatchupConsumer extends ScalablePushConsumer {
     return catchupCoordinator.checkShouldCatchUp(signalledLatest, isCaughtUp, switchOver);
   }
 
+  /**
+   * Checks if the catchup consumer is caught up.
+   * @param latestOffsets The offsets from the latest consumer
+   * @param offsets The offsets from this consumer
+   * @return If the catchup consumer is caught up
+   */
   private static boolean caughtUp(
       final Map<TopicPartition, Long> latestOffsets,
       final Map<TopicPartition, Long> offsets

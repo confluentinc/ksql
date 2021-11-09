@@ -34,6 +34,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushOffsetVector;
@@ -201,9 +202,10 @@ public class ScalablePushRegistry {
     }
     try {
       if (catchupMetadata.isPresent()) {
-        if (catchupCounter.get() > 1) {
+        if (catchupCounter.get() >=
+            ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS)) {
           processingQueue.onError();
-          return;
+          throw new KsqlException("Too many catchups registered");
         }
         // Latest much be running for a catchup consumer to exist.
         startLatestIfNotRunning(Optional.empty());
@@ -373,7 +375,8 @@ public class ScalablePushRegistry {
         consumerProperties, ksqlTopic, serviceContext, ksqlConfig, sourceApplicationId,
         KafkaConsumerFactory::create, LatestConsumer::new, CatchupConsumer::new,
         Executors.newSingleThreadExecutor(),
-        Executors.newScheduledThreadPool(5)));
+        Executors.newScheduledThreadPool(
+            ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS))));
   }
 
   /**

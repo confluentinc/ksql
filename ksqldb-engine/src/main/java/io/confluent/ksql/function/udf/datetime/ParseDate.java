@@ -26,10 +26,10 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Date;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.time.FastDateFormat;
 
 @UdfDescription(
     name = "parse_date",
@@ -43,14 +43,11 @@ public class ParseDate {
 
   private static final long MILLIS_IN_DAY = TimeUnit.DAYS.toMillis(1);
 
-  private final LoadingCache<String, SimpleDateFormat> formatters =
+  private final LoadingCache<String, FastDateFormat> formatters =
       CacheBuilder.newBuilder()
           .maximumSize(1000)
-          .build(CacheLoader.from(pattern -> {
-            final SimpleDateFormat parser = new SimpleDateFormat(pattern);
-            parser.setTimeZone(TimeZone.getTimeZone("GMT"));
-            return parser;
-          }));
+          .build(CacheLoader.from(pattern ->
+              FastDateFormat.getInstance(pattern, TimeZone.getTimeZone("GMT"))));
 
   @Udf(description = "Converts a string representation of a date in the given format"
       + " into a DATE value.")
@@ -66,7 +63,7 @@ public class ParseDate {
         throw new KsqlFunctionException("Date format contains time field.");
       }
       return new Date(time);
-    } catch (final RuntimeException | ParseException | ExecutionException e) {
+    } catch (final ExecutionException | ParseException e) {
       throw new KsqlFunctionException("Failed to parse date '" + formattedDate
           + "' with formatter '" + formatPattern
           + "': " + e.getMessage(), e);

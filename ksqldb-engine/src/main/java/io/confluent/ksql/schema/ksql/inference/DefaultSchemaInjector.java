@@ -183,7 +183,8 @@ public class DefaultSchemaInjector implements Injector {
       final FormatInfo formatInfo,
       final boolean isKey
   ) {
-    boolean hasTableElements = isKey ? hasKeyElements(statement) : hasValueElements(statement);
+    final boolean hasTableElements =
+        isKey ? hasKeyElements(statement) : hasValueElements(statement);
 
     /*
      * Conditions for schema inference:
@@ -204,7 +205,7 @@ public class DefaultSchemaInjector implements Injector {
     if (!formatSupportsSchemaInference(formatInfo)) {
       final String msg = (isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
           : CommonCreateConfigs.VALUE_FORMAT_PROPERTY) + " should support schema inference "
-              + "when " + schemaIdName + " is provided!";
+          + "when " + schemaIdName + " is provided!";
       throw new KsqlException(msg);
     }
 

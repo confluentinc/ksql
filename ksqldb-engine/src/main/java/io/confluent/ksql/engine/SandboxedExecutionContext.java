@@ -37,6 +37,7 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
@@ -183,7 +184,8 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final RoutingOptions routingOptions,
       final QueryPlannerOptions queryPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final boolean startImmediately
+      final boolean startImmediately,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     return EngineExecutor.create(
         engineContext,
@@ -196,7 +198,8 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         routingOptions,
         queryPlannerOptions,
         pullQueryMetrics,
-        startImmediately
+        startImmediately,
+        consistencyOffsetVector
     );
   }
 

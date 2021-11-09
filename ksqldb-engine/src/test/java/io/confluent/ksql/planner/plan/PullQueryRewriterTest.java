@@ -38,6 +38,14 @@ public class PullQueryRewriterTest {
             + "(ORDERS.ITEMID = 'c'))))");
   }
 
+  @Test
+  public void shouldRewriteBetweenPredicate() {
+    assertRewrite("ORDERS", "ORDERID BETWEEN 2 AND 5",
+            "((ORDERS.ORDERID >= 2) AND (ORDERS.ORDERID <= 5))");
+    assertRewrite("ORDERS", "ORDERS.ITEMID BETWEEN 'a' AND 'b'",
+            "((ORDERS.ITEMID >= 'a') AND (ORDERS.ITEMID <= 'b'))");
+  }
+
   private void assertRewrite(final String table, final String expressionStr,
       final String expectedStr) {
     Expression expression = getWhereExpression(table, expressionStr);

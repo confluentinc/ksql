@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.HEADERS;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
@@ -55,6 +56,9 @@ public class TableElementTest {
         )
         .addEqualityGroup(
             new TableElement(PRIMARY_KEY, NAME, new Type(SqlTypes.STRING))
+        )
+        .addEqualityGroup(
+            new TableElement(HEADERS, NAME, new Type(SqlTypes.STRING))
         )
         .testEquals();
   }

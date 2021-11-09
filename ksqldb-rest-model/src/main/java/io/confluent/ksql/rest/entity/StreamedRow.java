@@ -53,6 +53,7 @@ public final class StreamedRow {
   private final Optional<String> finalMessage;
   private final Optional<KsqlHostInfoEntity> sourceHost;
   private final Optional<PushContinuationToken> continuationToken;
+  private final Optional<ConsistencyToken> consistencyToken;
 
   /**
    * The header used in queries.
@@ -76,6 +77,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -87,6 +89,7 @@ public final class StreamedRow {
     return new StreamedRow(
         Optional.empty(),
         Optional.of(DataRow.row(value.values())),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -104,7 +107,8 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        Optional.of(pushContinuationToken)
+        Optional.of(pushContinuationToken),
+        Optional.empty()
     );
   }
 
@@ -121,6 +125,7 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.empty(),
         sourceHost,
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -129,6 +134,7 @@ public final class StreamedRow {
     return new StreamedRow(
         Optional.empty(),
         Optional.of(DataRow.tombstone(columns.values())),
+        Optional.empty(),
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
@@ -143,6 +149,7 @@ public final class StreamedRow {
         Optional.of(new KsqlErrorMessage(errorCode, exception)),
         Optional.empty(),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
     );
   }
@@ -154,9 +161,26 @@ public final class StreamedRow {
         Optional.empty(),
         Optional.of(finalMessage),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
     );
   }
+
+  /**
+   * Row that contains the serialized consistency offset vector
+   */
+  public static StreamedRow consistencyToken(final ConsistencyToken consistencyToken) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(consistencyToken)
+    );
+  }
+
 
   @JsonCreator
   private StreamedRow(
@@ -165,7 +189,8 @@ public final class StreamedRow {
       @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
       @JsonProperty("finalMessage") final Optional<String> finalMessage,
       @JsonProperty("sourceHost") final Optional<KsqlHostInfoEntity> sourceHost,
-      @JsonProperty("continuationToken") final Optional<PushContinuationToken> continuationToken
+      @JsonProperty("continuationToken") final Optional<PushContinuationToken> continuationToken,
+      @JsonProperty("consistencyToken") final Optional<ConsistencyToken> consistencyToken
   ) {
     this.header = requireNonNull(header, "header");
     this.row = requireNonNull(row, "row");
@@ -173,8 +198,9 @@ public final class StreamedRow {
     this.finalMessage = requireNonNull(finalMessage, "finalMessage");
     this.sourceHost = requireNonNull(sourceHost, "sourceHost");
     this.continuationToken = requireNonNull(continuationToken, "continuationToken");
-
-    checkUnion(header, row, errorMessage, finalMessage, continuationToken);
+    this.consistencyToken = requireNonNull(
+        consistencyToken, "consistencyToken");
+    checkUnion(header, row, errorMessage, finalMessage, continuationToken, consistencyToken);
   }
 
   public Optional<Header> getHeader() {
@@ -201,6 +227,10 @@ public final class StreamedRow {
     return continuationToken;
   }
 
+  public Optional<ConsistencyToken> getConsistencyToken() {
+    return consistencyToken;
+  }
+
   @JsonIgnore
   public boolean isTerminal() {
     return finalMessage.isPresent() || errorMessage.isPresent();
@@ -220,12 +250,14 @@ public final class StreamedRow {
         && Objects.equals(errorMessage, that.errorMessage)
         && Objects.equals(finalMessage, that.finalMessage)
         && Objects.equals(sourceHost, that.sourceHost)
-        && Objects.equals(continuationToken, that.continuationToken);
+        && Objects.equals(continuationToken, that.continuationToken)
+        && Objects.equals(consistencyToken, that.consistencyToken);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost, continuationToken);
+    return Objects.hash(header, row, errorMessage, finalMessage, sourceHost, continuationToken,
+                        consistencyToken);
   }
 
   @Override

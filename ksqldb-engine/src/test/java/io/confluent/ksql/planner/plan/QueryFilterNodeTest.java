@@ -29,6 +29,7 @@ import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
+import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -37,6 +38,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -1622,5 +1624,56 @@ public class QueryFilterNodeTest {
     assertThat(keys.size(), is(1));
     assertThat(keys.get(0), isA((Class) KeyConstraint.class));
     assertThat(((KeyConstraint) keys.get(0)).isRangeOperator(), is(true));
+  }
+
+  @Test
+  public void shouldThrowNonStringForLike() {
+    // Given:
+    final Expression expression = new LikePredicate(
+            new StringLiteral("a"),
+            new IntegerLiteral(10),
+            Optional.empty());
+
+    // When:
+    final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> new QueryFilterNode(
+                    NODE_ID,
+                    source,
+                    expression,
+                    metaStore,
+                    ksqlConfig,
+                    false,
+                    plannerOptions
+            ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Like condition must be between strings"));
+  }
+
+  @Test
+  public void shouldThrowNotKeyColumnForBetween() {
+    // Given:
+    final Expression expression = new BetweenPredicate(
+            new StringLiteral("a"),
+            new StringLiteral("b"),
+            new IntegerLiteral(10)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> new QueryFilterNode(
+                    NODE_ID,
+                    source,
+                    expression,
+                    metaStore,
+                    ksqlConfig,
+                    false,
+                    plannerOptions
+            ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("A comparison must directly reference a key column"));
   }
 }

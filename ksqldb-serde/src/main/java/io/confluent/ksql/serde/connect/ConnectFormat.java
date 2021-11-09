@@ -21,6 +21,8 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.SchemaTranslationPolicies;
+import io.confluent.ksql.serde.SchemaTranslationPolicy;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
@@ -52,16 +54,19 @@ import org.apache.kafka.connect.errors.DataException;
  */
 public abstract class ConnectFormat implements Format {
 
-  // Schema Props:
-  public static final String KEY_SCHEMA_ID = "KEY_SCHEMA_ID";
-  public static final String VALUE_SCHEMA_ID = "VALUE_SCHEMA_ID";
-
   @Override
   public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties) {
+    return getSchemaTranslator(formatProperties,
+        SchemaTranslationPolicies.of(SchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
+  }
+
+  @Override
+  public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties,
+      final SchemaTranslationPolicies policies) {
     return new ConnectFormatSchemaTranslator(
         this,
         formatProperties,
-        getConnectKsqlSchemaTranslator(formatProperties)
+        new ConnectKsqlSchemaTranslator(policies)
     );
   }
 
@@ -137,19 +142,6 @@ public abstract class ConnectFormat implements Format {
       Class<T> targetType,
       boolean isKey
   );
-
-  protected ConnectKsqlSchemaTranslator getConnectKsqlSchemaTranslator(
-      final Map<String, String> formatProperties) {
-    if (formatProperties.containsKey(KEY_SCHEMA_ID) || formatProperties.containsKey(
-        VALUE_SCHEMA_ID)) {
-      return new ConnectKsqlSchemaTranslator(ConnectSchemaTranslationPolicies.of(
-          ConnectSchemaTranslationPolicy.ORIGINAL_FIELD_NAME));
-    }
-
-    // Use uppercase policy by default
-    return new ConnectKsqlSchemaTranslator(
-        ConnectSchemaTranslationPolicies.of(ConnectSchemaTranslationPolicy.UPPERCASE_FIELD_NAME));
-  }
 
   private static class ListToStructSerializer implements Serializer<List<?>> {
 

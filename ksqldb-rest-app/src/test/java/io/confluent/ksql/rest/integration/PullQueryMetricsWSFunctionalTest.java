@@ -224,7 +224,9 @@ public class PullQueryMetricsWSFunctionalTest {
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         Optional.of(MediaType.APPLICATION_JSON),
         Optional.of(MediaType.APPLICATION_JSON),
-        Optional.of(SUPER_USER)
+        Optional.of(SUPER_USER),
+        Optional.empty(),
+        Optional.empty()
     );
 
     RestIntegrationTestUtil.makeWsRequest(
@@ -232,7 +234,9 @@ public class PullQueryMetricsWSFunctionalTest {
         "SELECT * from " + PAGE_VIEW_STREAM + " WHERE PAGEID='" + A_STREAM_KEY + "';",
         Optional.of(MediaType.APPLICATION_JSON),
         Optional.of(MediaType.APPLICATION_JSON),
-        Optional.of(SUPER_USER)
+        Optional.of(SUPER_USER),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:

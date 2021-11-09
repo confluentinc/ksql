@@ -22,8 +22,10 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -45,6 +47,7 @@ public class PullQueryResult {
   private final RoutingNodeType routingNodeType;
   private final Supplier<Long> rowsProcessedSupplier;
   private final CompletableFuture<Void> shouldCancelRequests;
+  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   // This future is used to keep track of all of the callbacks since we allow for adding them both
   // before and after the pull query has been started.  When the pull query has completed, it will
@@ -52,7 +55,8 @@ public class PullQueryResult {
   private CompletableFuture<Void> future = new CompletableFuture<>();
   private boolean started = false;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "ParameterNumber"})
   public PullQueryResult(
       final LogicalSchema schema,
       final PullQueryQueuePopulator populator,
@@ -63,7 +67,8 @@ public class PullQueryResult {
       final PullPhysicalPlanType planType,
       final RoutingNodeType routingNodeType,
       final Supplier<Long> rowsProcessedSupplier,
-      final CompletableFuture<Void> shouldCancelRequests
+      final CompletableFuture<Void> shouldCancelRequests,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     this.schema = schema;
     this.populator = populator;
@@ -75,6 +80,8 @@ public class PullQueryResult {
     this.routingNodeType = routingNodeType;
     this.rowsProcessedSupplier = rowsProcessedSupplier;
     this.shouldCancelRequests = shouldCancelRequests;
+    this.consistencyOffsetVector = Objects.requireNonNull(
+        consistencyOffsetVector, "consistencyOffsetVector");
   }
 
   public LogicalSchema getSchema() {
@@ -88,6 +95,10 @@ public class PullQueryResult {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public PullQueryQueue getPullQueryQueue() {
     return pullQueryQueue;
+  }
+
+  public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+    return consistencyOffsetVector;
   }
 
   public void start() {

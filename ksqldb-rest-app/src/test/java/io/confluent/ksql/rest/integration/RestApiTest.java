@@ -1,4 +1,4 @@
-/*
+  /*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
@@ -74,6 +74,7 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -221,6 +222,7 @@ public class RestApiTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .build();
 
   @ClassRule
@@ -279,7 +281,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -304,7 +308,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -327,7 +333,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -352,7 +360,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -382,7 +392,9 @@ public class RestApiTest {
     final List<String> messages = makeWebSocketRequest(
         "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -754,7 +766,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType()
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -775,7 +789,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -796,7 +812,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -816,7 +834,9 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty()
     );
 
     // Then:
@@ -891,12 +911,62 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
+    // Given:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+  }
+
+  @Test
+  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
+    // Given:
+    Map<String, Object> requestProperties = ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
+        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty(),
+        Optional.of(requestProperties)
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
+                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+  }
+
+  @Test
   public void shouldPrintTopicOverWebSocket() {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON);
+        MediaType.APPLICATION_JSON,
+        Optional.empty(),
+        Optional.empty());
 
     // Then:
     assertThat(messages, hasSize(LIMIT + 1));
@@ -1005,14 +1075,18 @@ public class RestApiTest {
   private static List<String> makeWebSocketRequest(
       final String sql,
       final String mediaType,
-      final String contentType
+      final String contentType,
+      final Optional<Map<String, Object>> overrides,
+      final Optional<Map<String, Object>> requestProperties
   ) {
     return RestIntegrationTestUtil.makeWsRequest(
         REST_APP.getWsListener(),
         sql,
         Optional.of(mediaType),
         Optional.of(contentType),
-        Optional.of(SUPER_USER)
+        Optional.of(SUPER_USER),
+        overrides,
+        requestProperties
     );
   }
 

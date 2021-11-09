@@ -27,11 +27,9 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.util.RowUtil;
-import io.netty.buffer.ByteBuf;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -224,5 +222,4 @@ public class RowImplTest {
         )
         .testEquals();
   }
-
 }

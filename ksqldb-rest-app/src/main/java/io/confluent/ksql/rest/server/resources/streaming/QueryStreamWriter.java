@@ -172,6 +172,7 @@ class QueryStreamWriter implements StreamingOutput {
 
     storedSchema.value().forEach(projectionSchema::valueColumn);
 
+    // No session consistency offered for push or stream pull queries
     return StreamedRow.header(queryId, projectionSchema.build());
   }
 

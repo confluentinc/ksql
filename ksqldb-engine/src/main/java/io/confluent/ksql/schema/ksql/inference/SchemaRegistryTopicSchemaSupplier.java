@@ -176,8 +176,11 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
     ));
   }
 
-  private static SchemaResult notFound(final String topicName, final boolean isKey,
-      final Optional<Integer> schemaId) {
+  private static SchemaResult notFound(
+      final String topicName,
+      final boolean isKey,
+      final Optional<Integer> schemaId
+  ) {
     final String subject = getSRSubject(topicName, isKey);
     final String schemaIdMsg =
         schemaId.isPresent() ? "Schema Id: " + schemaId.get() + System.lineSeparator() : "";

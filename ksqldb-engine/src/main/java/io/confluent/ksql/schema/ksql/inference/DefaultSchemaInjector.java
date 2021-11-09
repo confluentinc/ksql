@@ -118,22 +118,17 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSourceProperties props = csStmt.getProperties();
     final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName());
 
-    // until we support user-configuration of single key wrapping/unwrapping, we choose
-    // to have key schema inference always result in an unwrapped key
-    final SerdeFeatures serdeFeatures = SerdeFeaturesFactory.buildKeyFeatures(
-        FormatFactory.of(keyFormat), true);
-
-    if (!props.getKeySchemaId().isPresent() && (hasKeyElements(statement)
-        || !formatSupportsSchemaInference(keyFormat))) {
+    if (!shouldInferSchema(props.getKeySchemaId(), statement, keyFormat, true)) {
       return Optional.empty();
     }
-    validateSchemaInference(keyFormat, true);
 
     return Optional.of(getSchema(
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
-        serdeFeatures,
+        // until we support user-configuration of single key wrapping/unwrapping, we choose
+        // to have key schema inference always result in an unwrapped key
+        SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
         statement.getStatementText(),
         true
     ));
@@ -146,11 +141,9 @@ public class DefaultSchemaInjector implements Injector {
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
     final SerdeFeatures serdeFeatures = props.getValueSerdeFeatures();
 
-    if (!props.getValueSchemaId().isPresent() && (hasValueElements(statement)
-        || !formatSupportsSchemaInference(valueFormat))) {
+    if (!shouldInferSchema(props.getValueSchemaId(), statement, valueFormat, false)) {
       return Optional.empty();
     }
-    validateSchemaInference(valueFormat, false);
 
     return Optional.of(getSchema(
         props.getKafkaTopic(),
@@ -185,10 +178,23 @@ public class DefaultSchemaInjector implements Injector {
     return result.schemaAndId.get();
   }
 
-  private static void validateSchemaInference(
+  private static boolean shouldInferSchema(
+      final Optional<Integer> schemaId,
+      final ConfiguredStatement<CreateSource> statement,
       final FormatInfo formatInfo,
       final boolean isKey
   ) {
+    boolean hasTableElements = isKey ? hasKeyElements(statement) : hasValueElements(statement);
+
+    /*
+     * Conditions for schema inference:
+     *   1. key_schema_id or value_schema_id property exist or
+     *   2. Table elements doesn't exist and format support schema inference
+     */
+    if (!schemaId.isPresent() && (hasTableElements || !formatSupportsSchemaInference(formatInfo))) {
+      return false;
+    }
+
     /*
      * Do validation when schemaId presents or we need to infer. Conditions to meet:
      *  1. If schema id is provided, format must support schema inference
@@ -202,6 +208,8 @@ public class DefaultSchemaInjector implements Injector {
               + "when " + schemaIdName + " is provided!";
       throw new KsqlException(msg);
     }
+
+    return true;
   }
 
   private static boolean hasKeyElements(

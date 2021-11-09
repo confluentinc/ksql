@@ -190,13 +190,17 @@
       ]
     },
     {
-      "name": "on CTAS - AVRO",
-      "format": ["AVRO"],
+      "name": "on CTAS range scan",
+      "format": ["JSON", "PROTOBUF"],
       "statements": [
         "CREATE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}', partitions=5);",
         "CREATE TABLE ridersNearMountainView AS SELECT ROUND(GEO_DISTANCE(latitude, longitude, 37.4133, -122.1162), -1) AS distanceInMiles, COLLECT_LIST(profileId) AS riders, COUNT(*) AS count FROM riderLocations GROUP BY ROUND(GEO_DISTANCE(latitude, longitude, 37.4133, -122.1162), -1);",
-        "SELECT * FROM ridersNearMountainView;",
-        "SELECT * FROM ridersNearMountainView LIMIT 5;"
+        "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES > 70;",
+        "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES < 100;",
+        "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES > 70 AND DISTANCEINMILES < 140;",
+        "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES > 70                           LIMIT 3;",
+        "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES < 100                          LIMIT 3;",
+        "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES > 70 AND DISTANCEINMILES < 140 LIMIT 2;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1000001, "key": "which", "value": {"latitude": 37.7877, "longitude": -122.4205}},
@@ -223,23 +227,44 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[10.0,["there"],1]}}                         ,
-          {"row":{"columns":[90.0,["think","three","right"],3]}}         ,
-          {"row":{"columns":[160.0,["other"],1]}}                        ,
-          {"row":{"columns":[50.0,["which","these"],2]}}                 ,
-          {"row":{"columns":[0.0,["would","their","about"],3]}}          ,
           {"row":{"columns":[80.0,["where"],1]}}                         ,
           {"row":{"columns":[110.0,["words","could","first","write"],4]}},
           {"row":{"columns":[120.0,["after","years"],2]}}                ,
-          {"row":{"columns":[150.0,["water"],1]}}
+          {"row":{"columns":[150.0,["water"],1]}}                        ,
+          {"row":{"columns":[90.0,["think","three","right"],3]}}         ,
+          {"row":{"columns":[160.0,["other"],1]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[0.0,["would","their","about"],3]}}          ,
+          {"row":{"columns":[0.0,["would","their","about"],3]}},
+          {"row":{"columns":[80.0,["where"],1]}}               ,
+          {"row":{"columns":[50.0,["which","these"],2]}}       ,
+          {"row":{"columns":[10.0,["there"],1]}}               ,
+          {"row":{"columns":[90.0,["think","three","right"],3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
           {"row":{"columns":[80.0,["where"],1]}}                         ,
           {"row":{"columns":[110.0,["words","could","first","write"],4]}},
           {"row":{"columns":[120.0,["after","years"],2]}}                ,
-          {"row":{"columns":[150.0,["water"],1]}}
+          {"row":{"columns":[90.0,["think","three","right"],3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
+          {"row":{"columns":[80.0,["where"],1]}}                         ,
+          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
+          {"row":{"columns":[120.0,["after","years"],2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
+          {"row":{"columns":[0.0,["would","their","about"],3]}},
+          {"row":{"columns":[80.0,["where"],1]}}               ,
+          {"row":{"columns":[50.0,["which","these"],2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
+          {"row":{"columns":[80.0,["where"],1]}}                         ,
+          {"row":{"columns":[110.0,["words","could","first","write"],4]}}
         ]}
       ]
     }

@@ -99,6 +99,21 @@ public class SchemaParserTest {
   }
 
   @Test
+  public void shouldParseValidSchemaWithHeaderField() {
+    // Given:
+    final String schema = "K STRING HEADERS, bar INT";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(Namespace.HEADERS, ColumnName.of("K"), new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
+    ));
+  }
+
+  @Test
   public void shouldParseQuotedSchema() {
     // Given:
     final String schema = "`END` VARCHAR";

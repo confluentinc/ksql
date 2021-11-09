@@ -140,6 +140,11 @@ public class SqlFormatterTest {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"))
   );
 
+  private static final TableElements ELEMENTS_WITH_HEADER = TableElements.of(
+      new TableElement(Namespace.HEADERS, ColumnName.of("k3"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
+  );
+  
   private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
       new TableElement(Namespace.KEY, ColumnName.of("k3"), new Type(SqlTypes.STRING)),
       new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
@@ -220,6 +225,25 @@ public class SqlFormatterTest {
     );
 
     metaStore.putSource(ksqlTableTable, false);
+  }
+
+  @Test
+  public void shouldFormatCreateStreamStatementWithHeader() {
+    // Given:
+    final CreateStream createStream = new CreateStream(
+        TEST,
+        ELEMENTS_WITH_HEADER,
+        false,
+        false,
+        SOME_WITH_PROPS,
+        false);
+
+    // When:
+    final String sql = SqlFormatter.formatSql(createStream);
+
+    // Then:
+    assertThat(sql, is("CREATE STREAM TEST (`k3` STRING HEADERS, `Foo` STRING) "
+        + "WITH (KAFKA_TOPIC='topic_test', VALUE_FORMAT='JSON');"));
   }
 
   @Test

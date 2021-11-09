@@ -15,22 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
-import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -49,6 +33,13 @@ import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsume
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer1;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer2;
 import io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.Shutoffs;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.utils.TestUtils;
@@ -61,6 +52,7 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import io.confluent.ksql.util.UserDataProvider;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
@@ -76,8 +68,15 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
+import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import org.junit.After;
-import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -293,6 +292,64 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
+  public void shouldReturnLimitRowsMultiHostSetup() {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+            clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
+
+
+    final String sqlTableScan = "SELECT * FROM " + output + ";";
+    final String sqlLimit = "SELECT * FROM " + output + " LIMIT 3;";
+
+    //issue table scan first
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
+            sqlTableScan, null, USER_CREDS);
+
+    //check that we got back all the rows
+    assertThat(rows_0, hasSize(HEADER + 5));
+
+    // issue pull query with limit
+    final List<StreamedRow> rows_1 = makePullQueryRequest(clusterFormation.router.getApp(),
+            sqlLimit, null, USER_CREDS);
+
+    // check that we only got limit number of rows
+    assertThat(rows_1, hasSize(HEADER + 3));
+
+    // Partition off the active
+    clusterFormation.active.getShutoffs().shutOffAll();
+
+    waitForRemoteServerToChangeStatus(
+            clusterFormation.router.getApp(),
+            clusterFormation.standBy.getHost(),
+            HighAvailabilityTestUtil::remoteServerIsUp,
+            USER_CREDS);
+    waitForRemoteServerToChangeStatus(
+            clusterFormation.router.getApp(),
+            clusterFormation.active.getHost(),
+            HighAvailabilityTestUtil::remoteServerIsDown,
+            USER_CREDS);
+
+
+    // issue table scan after partitioning active
+    final List<StreamedRow> rows_2 = makePullQueryRequest(clusterFormation.router.getApp(),
+            sqlTableScan, null, USER_CREDS);
+
+    // check that we get all rows back
+    assertThat(rows_2, hasSize(HEADER + 5));
+    assertEquals(rows_0.stream().map(row -> row.getRow()).collect(Collectors.toList()),
+                 rows_2.stream().map(row -> row.getRow()).collect(Collectors.toList()));
+
+    // issue pull query with limit after partitioning active
+    final List<StreamedRow> rows_3 = makePullQueryRequest(clusterFormation.router.getApp(),
+            sqlLimit, null, USER_CREDS);
+
+    // check that we only got limit number of rows
+    assertThat(rows_3, hasSize(HEADER + 3));
+  }
+
+  @Test
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
@@ -480,7 +537,7 @@ public class PullQueryRoutingFunctionalTest {
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);
-    Assert.assertEquals(40001, errorMessage.getErrorCode());
+    assertEquals(40001, errorMessage.getErrorCode());
     assertThat(errorMessage.getMessage(), containsString("Partition 0 failed to find valid host."));
     assertThat(errorMessage.getMessage(), containsString("was not selected because Host is not alive as of "));
     assertThat(errorMessage.getMessage(), containsString("was not selected because Host excluded because lag 5 exceeds maximum allowed lag 3"));

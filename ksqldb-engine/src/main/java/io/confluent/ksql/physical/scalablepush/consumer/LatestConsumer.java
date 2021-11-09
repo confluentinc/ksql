@@ -97,7 +97,7 @@ public class LatestConsumer extends ScalablePushConsumer {
               return;
             }
             newAssignment(collection);
-            resetCurrentPosition();
+            updateCurrentPositions();
             catchupAssignmentUpdater.accept(collection);
             if (!gotFirstAssignment) {
               maybeSeekToEnd();
@@ -153,7 +153,7 @@ public class LatestConsumer extends ScalablePushConsumer {
     }
     if (!foundAtLeastOneRecent) {
       consumer.seekToEnd(topicPartitions);
-      resetCurrentPosition();
+      updateCurrentPositions();
       LOG.info("LatestConsumer seeking to end {}", currentPositions);
     }
   }

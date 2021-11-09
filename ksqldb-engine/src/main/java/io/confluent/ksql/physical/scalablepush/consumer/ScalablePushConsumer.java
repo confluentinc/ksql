@@ -105,11 +105,11 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     topicPartitions.set(tps != null ? ImmutableSet.copyOf(tps) : null);
   }
 
-  protected void resetCurrentPosition() {
-    resetCurrentPosition(Optional.empty());
+  protected void updateCurrentPositions() {
+    updateCurrentPositions(Optional.empty());
   }
 
-  protected void resetCurrentPosition(final Optional<Map<Integer, Long>> startingOffsets) {
+  protected void updateCurrentPositions(final Optional<Map<Integer, Long>> startingOffsets) {
     for (int i = 0; i < partitions; i++) {
       currentPositions.put(new TopicPartition(topicName, i), -1L);
     }
@@ -151,7 +151,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
         final PushOffsetVector startOffsetVector
             = getOffsetVector(currentPositions, topicName, partitions);
         if (records.isEmpty()) {
-          resetCurrentPosition();
+          updateCurrentPositions();
           computeProgressToken(Optional.of(startOffsetVector));
           onEmptyRecords();
           continue;
@@ -161,7 +161,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
           handleRow(rec.key(), rec.value(), rec.timestamp());
         }
 
-        resetCurrentPosition();
+        updateCurrentPositions();
         computeProgressToken(Optional.of(startOffsetVector));
         try {
           consumer.commitSync();

@@ -448,8 +448,6 @@ public class ScalablePushRegistry {
   private void runLatest(final LatestConsumer latestConsumerToRun) {
     try (LatestConsumer latestConsumer = latestConsumerToRun) {
       latestConsumer.run();
-    } catch (WakeupException e) {
-      LOG.info("Interrupted kafka consumer on shutdown", e);
     } catch (Throwable t) {
       LOG.error("Got error while running latest", t);
       latestConsumerToRun.onError();
@@ -523,8 +521,6 @@ public class ScalablePushRegistry {
   ) {
     try (CatchupConsumer catchupConsumer = catchupConsumerToRun) {
       catchupConsumer.run();
-    } catch (WakeupException e) {
-      LOG.info("Interrupted kafka consumer on shutdown", e);
     } catch (Throwable t) {
       LOG.error("Got error while running catchup", t);
       catchupConsumerToRun.onError();

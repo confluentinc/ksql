@@ -115,7 +115,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
     final Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
 
     consumer.assign(tps);
-    resetCurrentPosition(startingOffsets);
+    updateCurrentPositions(startingOffsets);
     newAssignment = false;
   }
 

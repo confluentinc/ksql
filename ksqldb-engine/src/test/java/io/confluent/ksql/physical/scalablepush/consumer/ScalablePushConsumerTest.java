@@ -212,7 +212,7 @@ public class ScalablePushConsumerTest {
               return RECORDS_JUST0;
             } else if (count.get() == 2) {
               consumer.newAssignment(ImmutableList.of(TP1));
-              consumer.resetCurrentPosition();
+              consumer.updateCurrentPositions();
               return RECORDS_JUST1;
             } else {
               consumer.close();
@@ -252,7 +252,7 @@ public class ScalablePushConsumerTest {
             count.incrementAndGet();
             if (count.get() == 2) {
               consumer.newAssignment(ImmutableList.of(TP0, TP1));
-              consumer.resetCurrentPosition();
+              consumer.updateCurrentPositions();
               consumer.close();
             }
             return EMPTY_RECORDS;
@@ -332,7 +332,7 @@ public class ScalablePushConsumerTest {
       // Simulate getting an assignment after a call to subscribeOrAssign
       newAssignment(initialAssignment);
       if (initialAssignment != null) {
-        resetCurrentPosition();
+        updateCurrentPositions();
       }
     }
 

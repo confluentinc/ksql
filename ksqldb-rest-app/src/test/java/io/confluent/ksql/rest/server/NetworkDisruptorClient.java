@@ -140,8 +140,8 @@ public class NetworkDisruptorClient implements SimpleKsqlClient {
       return publishers;
     }
 
-    public void setFailEverything() {
-      isFaulty.set(true);
+    public void setFaulty(boolean faulty) {
+      isFaulty.set(faulty);
     }
 
     public boolean isFaulty() {

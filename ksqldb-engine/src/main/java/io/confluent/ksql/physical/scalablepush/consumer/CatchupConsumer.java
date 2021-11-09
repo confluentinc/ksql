@@ -4,12 +4,11 @@ import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PushOffsetRange;
 import java.time.Clock;
-import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -84,31 +83,21 @@ public class CatchupConsumer extends ScalablePushConsumer {
     return checkCaughtUp();
   }
 
-  @Override
-  protected void onNewAssignment() {
+  protected void onNewAssignment(final Optional<Map<Integer, Long>> startingOffsets) {
     System.out.println("onNewAssignment ");
     Set<TopicPartition> tps = waitForNewAssignmentFromLatestConsumer();
 
     System.out.println("onNewAssignment assign");
     consumer.assign(tps);
-    resetCurrentPosition();
+    resetCurrentPosition(startingOffsets);
     System.out.println("onNewAssignment doneReset");
     newAssignment = false;
   }
 
-//  @Override
-//  protected void resetCurrentPosition() {
-//    final Map<Integer, Long> offsets = offsetRange.getEndOffsets().getSparseRepresentation();
-//    for (int i = 0; i < partitions; i++) {
-//      currentPositions.put(new TopicPartition(topicName, i), -1L);
-//    }
-//    for (TopicPartition tp : topicPartitions.get()) {
-//      currentPositions.put(tp, Math.max(offsets.get(tp.partition()), consumer.position(tp)));
-//    }
-//    System.out.println("Consumer got assignment " + topicPartitions.get() + " and current position " + currentPositions);
-//    LOG.info("Consumer got assignment {} and current position {}", topicPartitions.get(),
-//        currentPositions);
-//  }
+  @Override
+  protected void onNewAssignment() {
+    onNewAssignment(Optional.empty());
+  }
 
   /**
    * The first time we start up a LatestConsumer, if it doesn't already have an assignment, we need
@@ -134,8 +123,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
     Preconditions.checkNotNull(latestConsumer,
         "Latest should always be started before catchup is run");
     this.newAssignment(latestConsumer.getAssignment());
-    onNewAssignment();
     Map<Integer, Long> startingOffsets = offsetRange.getEndOffsets().getSparseRepresentation();
+    onNewAssignment(Optional.of(startingOffsets));
     System.out.println("subscribeOrAssign CATCHUP " + startingOffsets);
     for (TopicPartition tp : consumer.assignment()) {
       if (startingOffsets.containsKey(tp.partition()) && startingOffsets.get(tp.partition()) >= 0) {

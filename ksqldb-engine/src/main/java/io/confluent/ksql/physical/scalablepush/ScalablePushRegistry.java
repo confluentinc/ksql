@@ -290,6 +290,15 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
+  public long latestNumRowsReceived() {
+    final LatestConsumer latestConsumer = this.latestConsumer.get();
+    if (latestConsumer != null && !latestConsumer.isClosed()) {
+      return latestConsumer.getNumRowsReceived();
+    }
+    return 0;
+  }
+
+  @VisibleForTesting
   public int catchupNumRegistered() {
     int total = 0;
     for (CatchupConsumer catchupConsumer : catchupConsumers.values()) {
@@ -552,6 +561,16 @@ public class ScalablePushRegistry {
       LOG.error("Failed to delete consumer group " + consumerGroupId, t);
     }
   }
+
+  public void simulateDropNextMessages(int messages) {
+    final LatestConsumer latestConsumer = this.latestConsumer.get();
+    latestConsumer.simulateDropNextMessages(messages);
+  }
+
+//  public void simulateDropNextMessages(int messages) {
+//    final LatestConsumer latestConsumer = this.latestConsumer.get();
+//    latestConsumer.simulateDropNextMessages(messages);
+//  }
 
   public static class CatchupMetadata {
 

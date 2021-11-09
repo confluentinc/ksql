@@ -384,6 +384,7 @@ public class PushRouting implements AutoCloseable {
         .put(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
 
     if (shouldCatchupFromOffsets) {
+      System.out.println("Forwarding node needs to catchup starting at " + offsetsTracker.getOffsets());
       requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
           offsetsTracker.getSerializedOffsetRange());
       requestPropertiesBuilder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CATCHUP_CONSUMER_GROUP,
@@ -621,7 +622,8 @@ public class PushRouting implements AutoCloseable {
     }
 
     protected Optional<PushOffsetRange> handleProgressToken(
-        final Optional<PushOffsetRange> offsetRangeOptional
+        final Optional<PushOffsetRange> offsetRangeOptional,
+        final boolean isSourceNode
     ) {
       if (!offsetRangeOptional.isPresent()) {
         return offsetRangeOptional;
@@ -634,7 +636,7 @@ public class PushRouting implements AutoCloseable {
       final PushOffsetVector endOffsets = currentOffsets.mergeCopy(offsetRange.getEndOffsets());
       final PushOffsetRange updatedToken
           = new PushOffsetRange(Optional.of(startOffsets), endOffsets);
-      if (!offsetRange.getStartOffsets().get().lessThanOrEqualTo(currentOffsets)) {
+      if (isSourceNode && !offsetRange.getStartOffsets().get().lessThanOrEqualTo(currentOffsets)) {
         LOG.warn(name() + "Found a gap in offsets for {} and id {}: start: {}, current: {}", node, queryId,
             offsetRange.getStartOffsets(), offsetsTracker.getOffsets());
         System.out.println(name() + " Found gap in offsets start: " +  offsetRange.getStartOffsets() + " current: " + offsetsTracker.getOffsets());
@@ -672,7 +674,7 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected synchronized void handleValue(final StreamedRow row) {
-      System.out.println("REMOTE Got row " + row + " token " + row.getContinuationToken());
+      System.out.println("REMOTE Got row " + row + " token " + row.getContinuationToken().map(t -> PushOffsetRange.deserialize(t.getContinuationToken())));
       if (closed) {
         return;
       }
@@ -680,9 +682,11 @@ public class PushRouting implements AutoCloseable {
         close();
         return;
       }
+
       if (row.getRow().isPresent() || row.getContinuationToken().isPresent()) {
+        final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
         final Optional<PushOffsetRange> currentOffsetRange = handleProgressToken(
-            row.getContinuationToken().map(t -> PushOffsetRange.deserialize(t.getContinuationToken())));
+            row.getContinuationToken().map(t -> PushOffsetRange.deserialize(t.getContinuationToken())), isSourceNode);
         System.out.println("REMOTE Got row " + row + " range " + currentOffsetRange);
         if (row.getContinuationToken().isPresent() && !currentOffsetRange.isPresent()) {
           return;
@@ -694,6 +698,7 @@ public class PushRouting implements AutoCloseable {
               ? new KeyValueMetadata<>(rowMetadata.get())
               : new KeyValueMetadata<>(
                   new KeyValue<>(null, GenericRow.fromList(row.getRow().get().getColumns())));
+          System.out.println("ALAN: REMOTE Outputting " + node + " value " + row.getRow().get().getColumns() + " row metadata " + rowMetadata + " for query " + queryId);
           if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
             callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
             close();
@@ -744,7 +749,9 @@ public class PushRouting implements AutoCloseable {
         return;
       }
 
-      final Optional<PushOffsetRange> currentOffsetRange = handleProgressToken(row.getOffsetRange());
+      final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
+      final Optional<PushOffsetRange> currentOffsetRange
+          = handleProgressToken(row.getOffsetRange(), isSourceNode);
       if (!currentOffsetRange.isPresent() && row.getOffsetRange().isPresent()) {
         return;
       }
@@ -754,7 +761,7 @@ public class PushRouting implements AutoCloseable {
         final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
             ? new KeyValueMetadata<>(rowMetadata.get())
             : new KeyValueMetadata<>(new KeyValue<>(null, row.value()));
-        System.out.println("Outputting " + row.value() + " row metadata " + rowMetadata + " for query " + queryId);
+        System.out.println("ALAN: Outputting " + node + " value " + row.value() + " row metadata " + rowMetadata + " for query " + queryId);
         if (!transientQueryQueue.acceptRowNonBlocking(keyValueMetadata)) {
           callback.completeExceptionally(new KsqlException("Hit limit of request queue"));
           close();
@@ -891,8 +898,9 @@ public class PushRouting implements AutoCloseable {
     }
 
     public void updateFromToken(final OffsetVector update) {
+      System.out.println("ALAN: updateFromToken from " + currentOffsets);
       currentOffsets.merge(update);
-      System.out.println("updateFromToken to " + currentOffsets);
+      System.out.println("ALAN: updateFromToken to " + currentOffsets);
     }
   }
 

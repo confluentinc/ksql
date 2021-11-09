@@ -39,8 +39,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.annotation.concurrent.GuardedBy;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -69,6 +71,8 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       = new ConcurrentHashMap<>();
   private volatile boolean closed = false;
   private AtomicLong numRowsReceived = new AtomicLong(0);
+  private volatile boolean simulationNetworkFailureMode = false;
+  private AtomicInteger simulateFailureOfNextNumMessages = new AtomicInteger(0);
 
   protected AtomicReference<Set<TopicPartition>> topicPartitions = new AtomicReference<>();
   private final AtomicReference<Map<TopicPartition, OffsetAndMetadata>> latestCommittedOffsets
@@ -106,13 +110,19 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
   }
 
   protected void resetCurrentPosition() {
+    resetCurrentPosition(Optional.empty());
+  }
+
+  protected void resetCurrentPosition(final Optional<Map<Integer, Long>> startingOffsets) {
     for (int i = 0; i < partitions; i++) {
       currentPositions.put(new TopicPartition(topicName, i), -1L);
     }
     System.out.println("Consumer got assignment " + topicPartitions.get() + " about to get positions");
     try {
       for (TopicPartition tp : topicPartitions.get()) {
-        currentPositions.put(tp, consumer.position(tp));
+        currentPositions.put(tp, startingOffsets
+            .map(offsets -> offsets.get(tp.partition()))
+            .orElse(consumer.position(tp)));
       }
     } catch (Throwable t) {
       t.printStackTrace();
@@ -144,23 +154,25 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
         if (this.topicPartitions.get() == null) {
           continue;
         }
-        if (records.isEmpty()) {
-          resetCurrentPosition();
-          onEmptyRecords();
-          continue;
-        }
 
         if (newAssignment) {
           newAssignment = false;
           onNewAssignment();
         }
 
+        final PushOffsetVector startOffsetVector
+            = getOffsetVector(currentPositions, topicName, partitions);
+        if (records.isEmpty()) {
+          resetCurrentPosition();
+          computeProgressToken(Optional.of(startOffsetVector));
+          onEmptyRecords();
+          continue;
+        }
+
         for (ConsumerRecord<?, GenericRow> rec : records) {
           handleRow(rec.key(), rec.value(), rec.timestamp());
         }
 
-        PushOffsetVector startOffsetVector
-            = getOffsetVector(currentPositions, topicName, partitions);
         resetCurrentPosition();
         computeProgressToken(Optional.of(startOffsetVector));
         try {
@@ -219,6 +231,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     final PushOffsetRange range = new PushOffsetRange(
         Optional.of(startOffsetVector), endOffsetVector);
     for (ProcessingQueue queue : processingQueues.values()) {
+      System.out.println("Consumer: " + consumer.assignment() + " range" + range);
       final QueryRow row = OffsetsRow.of(clock.millis(), range);
       queue.offer(row);
     }
@@ -230,8 +243,13 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       return false;
     }
     numRowsReceived.incrementAndGet();
+    if (simulationNetworkFailureMode && simulateFailureOfNextNumMessages.get() > 0) {
+      simulateFailureOfNextNumMessages.decrementAndGet();
+      return false;
+    }
     for (ProcessingQueue queue : processingQueues.values()) {
       try {
+        System.out.println("Consumer: " + consumer.assignment() + " Sending down row key " + key + " value " + value);
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
         final QueryRow row = RowUtil.createRow(key, value, timestamp, windowed, logicalSchema);
@@ -317,5 +335,10 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     for (ProcessingQueue queue : processingQueues.values()) {
       queue.onError();
     }
+  }
+
+  public void simulateDropNextMessages(int messages) {
+    simulationNetworkFailureMode = true;
+    simulateFailureOfNextNumMessages.set(messages);
   }
 }

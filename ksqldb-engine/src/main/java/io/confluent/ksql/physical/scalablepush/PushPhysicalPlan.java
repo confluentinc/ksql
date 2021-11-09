@@ -71,11 +71,12 @@ public class PushPhysicalPlan {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.catchupConsumerGroupId = catchupConsumerGroupId;
+    this.catchupConsumerGroupId =
+        Objects.requireNonNull(catchupConsumerGroupId, "catchupConsumerGroupId");
     this.scalablePushRegistry =
         Objects.requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.dataSourceOperator = dataSourceOperator;
-    this.context = context;
+    this.context = Objects.requireNonNull(context, "context");
     this.querySourceType = Objects.requireNonNull(querySourceType, "querySourceType");
   }
 

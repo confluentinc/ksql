@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -55,7 +56,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -93,13 +93,13 @@ public class ScalablePushQueryFunctionalTest {
     }
   }
 
+  private static final NetworkState NETWORK_STATE0 = new NetworkState();
   private static final NetworkState NETWORK_STATE1 = new NetworkState();
-  private static final NetworkState NETWORK_STATE2 = new NetworkState();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE1)
+      .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE0)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
@@ -114,7 +114,7 @@ public class ScalablePushQueryFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE2)
+      .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
@@ -200,8 +200,8 @@ public class ScalablePushQueryFunctionalTest {
     REST_APP_0.closePersistentQueries();
     REST_APP_0.dropSourcesExcept();
     REST_APP_1.stop();
+    NETWORK_STATE0.clear();
     NETWORK_STATE1.clear();
-    NETWORK_STATE2.clear();
   }
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {
@@ -295,9 +295,6 @@ public class ScalablePushQueryFunctionalTest {
 
     REST_APP_1.stop();
 
-//    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewTwoRows,
-//        FormatFactory.KAFKA, FormatFactory.JSON);
-
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewAdditionalDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
 
@@ -312,7 +309,7 @@ public class ScalablePushQueryFunctionalTest {
         .collect(Collectors.toList());
 
     assertFirstBatchOfRows(orderedRows);
-    //assertSecondBatchOfRows(orderedRows);
+    assertSecondBatchOfRows(orderedRows);
   }
 
   @Test
@@ -335,40 +332,12 @@ public class ScalablePushQueryFunctionalTest {
     assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + 1));
 
-//    ConcurrentHashSet<PartitionOffset> droppedMessages = new ConcurrentHashSet<>();
-//    droppedMessages.add(new PartitionOffset(1, 1));
-//    for (final PersistentQueryMetadata metadata : REST_APP_0.getEngine().getPersistentQueries()) {
-//      metadata.getScalablePushRegistry().get().simulateDroppedMessages(droppedMessages);
-//    }
-//    for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine().getPersistentQueries()) {
-//      metadata.getScalablePushRegistry().get().simulateDroppedMessages(droppedMessages);
-//    }
+    failNetworkConnectionsToServer1ThenIntroduceGap();
 
-    for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
-        .getPersistentQueries()) {
-      metadata.getScalablePushRegistry().get().setKeepLatestConsumerOnLastRequest();
-    }
-
-    NETWORK_STATE1.setFailEverything();
-    List<BufferedPublisher<StreamedRow>> publishers = NETWORK_STATE1.getPublishers().stream()
-        .map(CompletableFuture::join)
-        .map(RestResponse::getResponse)
-        .collect(Collectors.toList());
-    publishers.forEach(BasePublisher::close);
-
-    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewTwoRows,
-        FormatFactory.KAFKA, FormatFactory.JSON);
-
-    // Figure out how to wait for this.
-    Thread.sleep(5000);
-
-    // This simulates a failure
+    // This simulates a failure of the server too
     REST_APP_1.stop();
 
-    assertThatEventually(() -> {
-          System.out.println("Unique rows " + subscriber.getUniqueRows());
-          return subscriber.getUniqueRows().size();
-        },
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + pageViewTwoRows.data().size() + 1));
 
     List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
@@ -402,25 +371,10 @@ public class ScalablePushQueryFunctionalTest {
     assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + 1));
 
-    for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
-        .getPersistentQueries()) {
-      metadata.getScalablePushRegistry().get().setKeepLatestConsumerOnLastRequest();
-    }
+    failNetworkConnectionsToServer1ThenIntroduceGap();
+    NETWORK_STATE0.setFaulty(false);
 
-    List<BufferedPublisher<StreamedRow>> publishers = NETWORK_STATE1.getPublishers().stream()
-        .map(CompletableFuture::join)
-        .map(RestResponse::getResponse)
-        .collect(Collectors.toList());
-    publishers.forEach(BasePublisher::close);
-
-    // One row for each partition to be sure that whatever assignment, REST_APP_1 misses a message
-    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewTwoRows,
-        FormatFactory.KAFKA, FormatFactory.JSON);
-
-    assertThatEventually(() -> {
-          System.out.println("Unique rows " + subscriber.getUniqueRows());
-          return subscriber.getUniqueRows().size();
-        },
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + pageViewTwoRows.data().size() + 1));
 
     List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
@@ -548,6 +502,50 @@ public class ScalablePushQueryFunctionalTest {
     }
 
     return res.getResponse();
+  }
+
+  private void closeNetworkConnections(final NetworkState networkState) {
+    final List<BufferedPublisher<StreamedRow>> publishers = networkState.getPublishers().stream()
+        .map(CompletableFuture::join)
+        .map(RestResponse::getResponse)
+        .collect(Collectors.toList());
+    publishers.forEach(BasePublisher::close);
+  }
+
+  private void failNetworkConnectionsToServer1ThenIntroduceGap() {
+    // First ensure that latest continues running even after we close connections.
+    for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
+        .getPersistentQueries()) {
+      metadata.getScalablePushRegistry().get().setKeepLatestConsumerOnLastRequest();
+    }
+
+    // First get the number of rows currently processed
+    final PersistentQueryMetadata persistentQueryMetadata =
+        Iterables.getLast(REST_APP_1.getEngine().getPersistentQueries());
+    long numRows = persistentQueryMetadata.getScalablePushRegistry().get().latestNumRowsReceived();
+
+    // Fail new connections from server0 to server1
+    NETWORK_STATE0.setFaulty(true);
+    // Close existing connections
+    closeNetworkConnections(NETWORK_STATE0);
+
+    // Wait for the existing connection to be unregistered
+    assertThatEventually(
+        () -> persistentQueryMetadata.getScalablePushRegistry().get().latestNumRegistered(), is(0));
+
+    // One row for each partition to be sure that whatever assignment, REST_APP_1 misses a message
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewTwoRows,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
+    // Ensure that the server processes those rows and commits the offsets so that any subsequent
+    // connections will have a gap
+    assertThatEventually(
+        () -> {
+          final PersistentQueryMetadata pqm =
+              Iterables.getLast(REST_APP_1.getEngine().getPersistentQueries());
+          long numRowsUpdated = pqm.getScalablePushRegistry().get().latestNumRowsReceived();
+          return numRowsUpdated > numRows;
+        }, is (true));
   }
 
 //  class TestConsumerPartitionAssignor implements ConsumerPartitionAssignor {

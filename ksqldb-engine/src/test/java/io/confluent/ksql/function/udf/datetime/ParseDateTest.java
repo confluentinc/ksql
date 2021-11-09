@@ -64,17 +64,6 @@ public class ParseDateTest {
   }
 
   @Test
-  public void shouldRejectIncompleteDates() {
-    // When:
-    final Exception e = assertThrows(
-        KsqlFunctionException.class,
-        () -> udf.parseDate("2021-01", "yyyy-dd"));
-
-    // Then:
-    assertThat(e.getMessage(), is("Failed to parse date '2021-01' with formatter 'yyyy-dd': Cannot create DATE out of the fields provided."));
-  }
-
-  @Test
   public void shouldConvertCaseInsensitiveStringToDate() {
     // When:
     final Date result = udf.parseDate("01-dec-2021", "dd-MMM-yyyy");

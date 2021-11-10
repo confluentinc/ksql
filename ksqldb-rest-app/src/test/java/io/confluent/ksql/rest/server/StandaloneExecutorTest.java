@@ -125,7 +125,7 @@ public class StandaloneExecutorTest {
   );
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
 
   private static final SourceName SOME_NAME = SourceName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";

@@ -40,6 +40,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -74,19 +75,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultSchemaInjectorTest {
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
 
   private static final TableElements SOME_KEY_ELEMENTS_STREAM = TableElements.of(
-      new TableElement(Namespace.KEY, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING), KEY_CONSTRAINT));
   private static final TableElements SOME_KEY_ELEMENTS_TABLE = TableElements.of(
-      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT));
   private static final TableElements SOME_VALUE_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_STREAM = TableElements.of(
-      new TableElement(Namespace.KEY, ColumnName.of("k"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("k"), new Type(SqlTypes.STRING), KEY_CONSTRAINT),
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_TABLE = TableElements.of(
-      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("k"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
+      new TableElement(ColumnName.of("k"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT),
+      new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
 
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> BASE_PROPS = ImmutableMap.of(
@@ -112,26 +118,25 @@ public class DefaultSchemaInjectorTest {
   private static final List<? extends SimpleColumn> SR_VALUE_SCHEMA = LOGICAL_SCHEMA.value();
 
   private static final TableElements INFERRED_KSQL_KEY_SCHEMA_STREAM = TableElements.of(
-      new TableElement(Namespace.KEY, ColumnName.of("key"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("key"), new Type(SqlTypes.STRING), KEY_CONSTRAINT)
   );
   private static final TableElements INFERRED_KSQL_KEY_SCHEMA_TABLE = TableElements.of(
-      new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("key"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("key"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT)
   );
   private static final TableElements INFERRED_KSQL_VALUE_SCHEMA = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("intField"), new Type(SqlTypes.INTEGER)),
-      new TableElement(Namespace.VALUE, ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
-      new TableElement(Namespace.VALUE, ColumnName.of("doubleField"), new Type(SqlTypes.DOUBLE)),
-      new TableElement(Namespace.VALUE, ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
-      new TableElement(Namespace.VALUE, ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
-      new TableElement(Namespace.VALUE, ColumnName.of("mapField"), new Type(SqlTypes.map(
+      new TableElement(ColumnName.of("intField"), new Type(SqlTypes.INTEGER)),
+      new TableElement(ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
+      new TableElement(ColumnName.of("doubleField"), new Type(SqlTypes.DOUBLE)),
+      new TableElement(ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
+      new TableElement(ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
+      new TableElement(ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
+      new TableElement(ColumnName.of("mapField"), new Type(SqlTypes.map(
           SqlTypes.STRING, SqlTypes.BIGINT
       ))),
-      new TableElement(Namespace.VALUE, ColumnName.of("structField"), new Type(SqlStruct.builder()
+      new TableElement(ColumnName.of("structField"), new Type(SqlStruct.builder()
           .field("s0", SqlTypes.BIGINT)
           .build())),
-      new TableElement(Namespace.VALUE,
-          ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))
+      new TableElement(ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))
       ));
 
   private static final int KEY_SCHEMA_ID = 18;

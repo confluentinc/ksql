@@ -86,6 +86,7 @@ import io.confluent.ksql.parser.SqlBaseParser.UnquotedIdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.WithinExpressionContext;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -114,6 +115,7 @@ public class QueryAnonymizer {
     private int streamCount = 1;
     private int columnCount = 1;
     private int tableCount = 1;
+    private int headerCount = 1;
     private int udfCount = 1;
     private int sourceCount = 1;
     private final Hashtable<String, String> anonTable = new Hashtable<>();
@@ -693,12 +695,23 @@ public class QueryAnonymizer {
       final String newName = getAnonColumnName(columnName);
       stringBuilder.append(String.format("%1$s %2$s", newName, visit(context.type())));
 
-      if (context.PRIMARY() != null) {
-        stringBuilder.append(" PRIMARY");
-      }
-      if (context.KEY() != null) {
+      final ColumnConstraints constraints =
+          ParserUtil.getColumnConstraints(context.columnConstraints());
+
+      if (constraints.isPrimaryKey()) {
+        stringBuilder.append(" PRIMARY KEY");
+      } else if (constraints.isKey()) {
         stringBuilder.append(" KEY");
+      } else if (constraints.isHeaders()) {
+        if (constraints.getHeaderKey().isPresent()) {
+          stringBuilder.append(" HEADER('")
+              .append(getAnonHeaderName(constraints.getHeaderKey().get()))
+              .append("')");
+        } else {
+          stringBuilder.append(" HEADERS");
+        }
       }
+
       return stringBuilder.toString();
     }
 
@@ -940,6 +953,7 @@ public class QueryAnonymizer {
         case ("DOUBLE"):
         case ("STRING"):
         case ("VARCHAR"):
+        case ("BYTES"):
           return context.getText().toUpperCase();
         default:
           return "CUSTOM_TYPE";
@@ -964,6 +978,10 @@ public class QueryAnonymizer {
 
     private String getAnonTableName(final String originName) {
       return getAnonName(originName, "table", tableCount++);
+    }
+
+    private String getAnonHeaderName(final String originName) {
+      return getAnonName(originName, "header", headerCount++);
     }
 
     private String getAnonName(final String originName, final String genericName, final int count) {

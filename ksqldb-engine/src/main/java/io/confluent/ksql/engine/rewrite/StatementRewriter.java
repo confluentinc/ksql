@@ -352,9 +352,9 @@ public final class StatementRewriter<C> {
       }
       return new TableElement(
           node.getLocation(),
-          node.getNamespace(),
           node.getName(),
-          (Type) processExpression(node.getType(), context)
+          (Type) processExpression(node.getType(), context),
+          node.getConstraints()
       );
     }
 

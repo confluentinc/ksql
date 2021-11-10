@@ -21,7 +21,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.SqlBaseParser;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -52,32 +51,35 @@ public final class TableElement extends AstNode {
     public boolean isKey() {
       return this == KEY || this == PRIMARY_KEY;
     }
-
-    public static Namespace of(final SqlBaseParser.TableElementContext context) {
-      if (context.headerType() != null) {
-        return Namespace.HEADERS;
-      }
-      return context.KEY() == null
-          ? Namespace.VALUE
-          : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY;
-    }
   }
 
   private final Namespace namespace;
   private final ColumnName name;
   private final Type type;
+  private final ColumnConstraints constraints;
 
   /**
-   * @param namespace indicates if the element is part of the key or value.
    * @param name the name of the element.
    * @param type the sql type of the element.
    */
   public TableElement(
-      final Namespace namespace,
       final ColumnName name,
       final Type type
   ) {
-    this(Optional.empty(), namespace, name, type);
+    this(name, type, ColumnConstraints.NO_COLUMN_CONSTRAINTS);
+  }
+
+  /**
+   * @param name the name of the element.
+   * @param type the sql type of the element.
+   * @param constraints the constraints of the element.
+   */
+  public TableElement(
+      final ColumnName name,
+      final Type type,
+      final ColumnConstraints constraints
+  ) {
+    this(Optional.empty(), name, type, constraints);
   }
 
   /**
@@ -88,14 +90,25 @@ public final class TableElement extends AstNode {
    */
   public TableElement(
       final Optional<NodeLocation> location,
-      final Namespace namespace,
       final ColumnName name,
-      final Type type
+      final Type type,
+      final ColumnConstraints constraints
   ) {
     super(location);
-    this.namespace = requireNonNull(namespace, "namespace");
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
+    this.constraints = requireNonNull(constraints, "constraints");
+
+    //
+    if (constraints.isPrimaryKey()) {
+      namespace = Namespace.PRIMARY_KEY;
+    } else if (constraints.isKey()) {
+      namespace = Namespace.KEY;
+    } else if (constraints.isHeaders() || constraints.getHeaderKey().isPresent()) {
+      namespace = Namespace.HEADERS;
+    } else {
+      namespace = Namespace.VALUE;
+    }
   }
 
   public ColumnName getName() {
@@ -108,6 +121,10 @@ public final class TableElement extends AstNode {
 
   public Namespace getNamespace() {
     return namespace;
+  }
+
+  public ColumnConstraints getConstraints() {
+    return constraints;
   }
 
   @Override
@@ -126,12 +143,12 @@ public final class TableElement extends AstNode {
     final TableElement o = (TableElement) obj;
     return Objects.equals(this.name, o.name)
         && Objects.equals(this.type, o.type)
-        && Objects.equals(this.namespace, o.namespace);
+        && Objects.equals(this.constraints, o.constraints);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, namespace);
+    return Objects.hash(name, type, constraints);
   }
 
   @Override
@@ -139,7 +156,7 @@ public final class TableElement extends AstNode {
     return "TableElement{"
         + "name='" + name + '\''
         + ", type=" + type
-        + ", namespace=" + namespace
+        + ", constraints=" + constraints
         + '}';
   }
 }

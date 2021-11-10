@@ -36,11 +36,14 @@ import org.junit.Test;
 
 public class CreateTableTest {
 
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
   private static final SourceName SOME_NAME = SourceName.of("bob");
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, ColumnName.of("Bob"), new Type(SqlTypes.STRING))
+      new TableElement(ColumnName.of("Bob"), new Type(SqlTypes.STRING))
   );
   private static final CreateSourceProperties SOME_PROPS = CreateSourceProperties.from(
       ImmutableMap.of(
@@ -95,15 +98,15 @@ public class CreateTableTest {
     final TableElements invalidElements = TableElements.of(
         new TableElement(
             Optional.of(loc),
-            Namespace.KEY,
             name,
-            new Type(SqlTypes.STRING)
+            new Type(SqlTypes.STRING),
+            KEY_CONSTRAINT
         ),
         new TableElement(
             Optional.of(new NodeLocation(3, 4)),
-            Namespace.VALUE,
             ColumnName.of("values are always valid"),
-            new Type(SqlTypes.STRING)
+            new Type(SqlTypes.STRING),
+            ColumnConstraints.NO_COLUMN_CONSTRAINTS
         )
     );
 

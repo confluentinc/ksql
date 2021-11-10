@@ -706,7 +706,12 @@ public final class SqlFormatter {
           postFix = " KEY";
           break;
         case HEADERS:
-          postFix = " HEADERS";
+          if (e.getConstraints().getHeaderKey().isPresent()) {
+            postFix = " HEADER('" + e.getConstraints().getHeaderKey().get() + "')";
+          } else {
+            postFix = " HEADERS";
+          }
+
           break;
         default:
           postFix = "";

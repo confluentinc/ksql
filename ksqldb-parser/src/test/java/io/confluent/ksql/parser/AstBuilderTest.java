@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -54,6 +55,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
@@ -879,6 +881,23 @@ public class AstBuilderTest {
     final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
 
     // Then:
+    final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
     assertEquals(createStream.getElements().stream().findFirst().get().getNamespace(), Namespace.HEADERS);
+    assertThat(column.getConstraints().getHeaderKey(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldSupportSingleHeaderColumn() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADER('h1')) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
+
+    // Then:
+    final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
+    assertEquals(column.getNamespace(), Namespace.HEADERS);
+    assertThat(column.getConstraints().getHeaderKey(), is(Optional.of("h1")));
   }
 }

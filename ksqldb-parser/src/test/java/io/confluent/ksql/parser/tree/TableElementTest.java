@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.parser.tree.ColumnConstraints.NO_COLUMN_CONSTRAINTS;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.HEADERS;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
 import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
@@ -37,28 +38,44 @@ public class TableElementTest {
 
   private static final ColumnName NAME = ColumnName.of("name");
 
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
+
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints HEADERS_CONSTRAINT =
+      new ColumnConstraints.Builder().headers().build();
+
+  private static final ColumnConstraints HEADER_SINGLE_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().header("k1").build();
+
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableElement(A_LOCATION, VALUE, NAME, new Type(SqlTypes.STRING)),
-            new TableElement(VALUE, NAME, new Type(SqlTypes.STRING))
+            new TableElement(A_LOCATION, NAME, new Type(SqlTypes.STRING), NO_COLUMN_CONSTRAINTS),
+            new TableElement(NAME, new Type(SqlTypes.STRING), NO_COLUMN_CONSTRAINTS)
         )
         .addEqualityGroup(
-            new TableElement(VALUE, ColumnName.of("different"), new Type(SqlTypes.STRING))
+            new TableElement(ColumnName.of("different"), new Type(SqlTypes.STRING),
+                NO_COLUMN_CONSTRAINTS)
         )
         .addEqualityGroup(
-            new TableElement(VALUE, NAME, new Type(SqlTypes.INTEGER))
+            new TableElement(NAME, new Type(SqlTypes.INTEGER), NO_COLUMN_CONSTRAINTS)
         )
         .addEqualityGroup(
-            new TableElement(KEY, NAME, new Type(SqlTypes.STRING))
+            new TableElement(NAME, new Type(SqlTypes.STRING), KEY_CONSTRAINT)
         )
         .addEqualityGroup(
-            new TableElement(PRIMARY_KEY, NAME, new Type(SqlTypes.STRING))
+            new TableElement(NAME, new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT)
         )
         .addEqualityGroup(
-            new TableElement(HEADERS, NAME, new Type(SqlTypes.STRING))
+            new TableElement(NAME, new Type(SqlTypes.STRING), HEADERS_CONSTRAINT)
+        )
+        .addEqualityGroup(
+            new TableElement(NAME, new Type(SqlTypes.STRING), HEADER_SINGLE_KEY_CONSTRAINT)
         )
         .testEquals();
   }
@@ -67,7 +84,7 @@ public class TableElementTest {
   public void shouldReturnName() {
     // Given:
     final TableElement element =
-        new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
+        new TableElement(NAME, new Type(SqlTypes.STRING), NO_COLUMN_CONSTRAINTS);
 
     // Then:
     assertThat(element.getName(), is(NAME));
@@ -76,7 +93,7 @@ public class TableElementTest {
   @Test
   public void shouldReturnType() {
     // Given:
-    final TableElement element = new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
+    final TableElement element = new TableElement(NAME, new Type(SqlTypes.STRING));
 
     // Then:
     assertThat(element.getType(), is(new Type(SqlTypes.STRING)));
@@ -85,9 +102,49 @@ public class TableElementTest {
   @Test
   public void shouldReturnNamespace() {
     // Given:
-    final TableElement valueElement = new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING));
 
     // Then:
     assertThat(valueElement.getNamespace(), is(VALUE));
+  }
+
+  @Test
+  public void shouldReturnKeyNamespaceOnPrimaryKey() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        PRIMARY_KEY_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getNamespace(), is(PRIMARY_KEY));
+  }
+
+  @Test
+  public void shouldReturnKeyNamespace() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        KEY_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getNamespace(), is(KEY));
+  }
+
+  @Test
+  public void shouldReturnHeadersNamespace() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        HEADERS_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getNamespace(), is(HEADERS));
+  }
+
+  @Test
+  public void shouldReturnHeadersNamespaceOnSingleHeaderKey() {
+    // Given:
+    final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
+        HEADER_SINGLE_KEY_CONSTRAINT);
+
+    // Then:
+    assertThat(valueElement.getNamespace(), is(HEADERS));
   }
 }

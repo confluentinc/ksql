@@ -61,6 +61,44 @@
       "outputs": [{"topic": "OUTPUT", "value": {"c1": 4}}]
     },
     {
+      "name": "validate key schema id wrong format without elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', key_format='kafka', value_format='protobuf', key_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided!"
+      }
+    },
+    {
+      "name": "validate value schema id wrong format without elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', key_format='protobuf', value_format='kafka', value_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; }",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided!"
+      }
+    },
+    {
       "name": "validate unwrapped value without elements OK - AVRO",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo', wrap_single_value=false);",

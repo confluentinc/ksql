@@ -107,7 +107,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
         case HttpStatus.SC_NOT_FOUND:
         case HttpStatus.SC_UNAUTHORIZED:
         case HttpStatus.SC_FORBIDDEN:
-          return notFound(topicName, isKey);
+          return notFound(topicName, isKey, schemaId);
         default:
           throw new KsqlException("Schema registry fetch for topic " + (isKey ? "key" : "value")
               + " request failed. Topic: " + topicName, e);
@@ -172,18 +172,25 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + System.lineSeparator()
             + "expected format: " + expectedFormat
             + System.lineSeparator()
-            + "actual format: " + actualFormat
+            + "actual format from Schema Registry: " + actualFormat
     ));
   }
 
-  private static SchemaResult notFound(final String topicName, final boolean isKey) {
+  private static SchemaResult notFound(
+      final String topicName,
+      final boolean isKey,
+      final Optional<Integer> schemaId
+  ) {
     final String subject = getSRSubject(topicName, isKey);
+    final String schemaIdMsg =
+        schemaId.isPresent() ? "Schema Id: " + schemaId.get() + System.lineSeparator() : "";
     return SchemaResult.failure(new KsqlException(
         "Schema for message " + (isKey ? "keys" : "values") + " on topic '" + topicName + "'"
             + " does not exist in the Schema Registry."
             + System.lineSeparator()
             + "Subject: " + subject
             + System.lineSeparator()
+            + schemaIdMsg
             + "Possible causes include:"
             + System.lineSeparator()
             + "- The topic itself does not exist"

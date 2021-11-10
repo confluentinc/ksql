@@ -562,6 +562,45 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
+  public void shouldThrowIfKeyFormatDoesNotSupportSchemaIdInference() {
+    // Given
+    givenValueButNotKeyInferenceSupported(
+        ImmutableMap.of("key_schema_id", new IntegerLiteral(123)));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. "
+            + "Current format is KAFKA."));
+  }
+
+  @Test
+  public void shouldThrowIfValueFormatDoesNotSupportSchemaIdInference() {
+    // Given
+    givenKeyButNotValueInferenceSupported(
+        ImmutableMap.of("value_schema_id", new IntegerLiteral(123),
+            "WRAP_SINGLE_VALUE", new BooleanLiteral(true)));
+    when(cs.getElements()).thenReturn(SOME_KEY_ELEMENTS_STREAM);
+
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(csStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. "
+            + "Current format is DELIMITED"));
+  }
+
+  @Test
   public void shouldThrowIfSchemaSupplierThrows() {
     // Given:
     givenKeyAndValueInferenceSupported();

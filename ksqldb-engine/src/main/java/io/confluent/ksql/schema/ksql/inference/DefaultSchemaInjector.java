@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
@@ -87,8 +88,8 @@ public class DefaultSchemaInjector implements Injector {
       throw e;
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
-          ErrorMessageUtil.buildErrorMessage(e), 
-          statement.getStatementText(), 
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
           e.getCause());
     }
   }
@@ -117,7 +118,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSourceProperties props = csStmt.getProperties();
     final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName());
 
-    if (hasKeyElements(statement) || !formatSupportsSchemaInference(keyFormat)) {
+    if (!shouldInferSchema(props.getKeySchemaId(), statement, keyFormat, true)) {
       return Optional.empty();
     }
 
@@ -139,7 +140,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSourceProperties props = statement.getStatement().getProperties();
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
 
-    if (hasValueElements(statement) || !formatSupportsSchemaInference(valueFormat)) {
+    if (!shouldInferSchema(props.getValueSchemaId(), statement, valueFormat, false)) {
       return Optional.empty();
     }
 
@@ -174,6 +175,39 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     return result.schemaAndId.get();
+  }
+
+  private static boolean shouldInferSchema(
+      final Optional<Integer> schemaId,
+      final ConfiguredStatement<CreateSource> statement,
+      final FormatInfo formatInfo,
+      final boolean isKey
+  ) {
+    /*
+     * Conditions for schema inference:
+     *   1. key_schema_id or value_schema_id property exist or
+     *   2. Table elements doesn't exist and format support schema inference
+     *
+     * Do validation when schemaId presents, so we need to infer schema. Conditions to meet:
+     *  1. If schema id is provided, format must support schema inference
+     */
+    if (schemaId.isPresent()) {
+      if (!formatSupportsSchemaInference(formatInfo)) {
+        final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+        final String schemaIdName =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        final String msg = String.format("%s should support schema inference when %s is provided. "
+            + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
+        throw new KsqlException(msg);
+      }
+      return true;
+    }
+
+    final boolean hasTableElements =
+        isKey ? hasKeyElements(statement) : hasValueElements(statement);
+
+    return !hasTableElements && formatSupportsSchemaInference(formatInfo);
   }
 
   private static boolean hasKeyElements(

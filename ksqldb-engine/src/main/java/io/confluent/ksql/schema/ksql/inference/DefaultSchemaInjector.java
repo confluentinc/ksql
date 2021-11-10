@@ -264,7 +264,7 @@ public class DefaultSchemaInjector implements Injector {
     if (!difference.isEmpty()) {
       throw new KsqlException("The following " + (isKey ? "key " : "value ")
           + "columns are changed, missing or reordered: "
-          + difference);
+          + difference + ". Schema from schema registry is " + inferredColumns);
     }
   }
 

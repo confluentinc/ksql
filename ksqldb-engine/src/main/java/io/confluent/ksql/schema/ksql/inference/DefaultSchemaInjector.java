@@ -183,33 +183,31 @@ public class DefaultSchemaInjector implements Injector {
       final FormatInfo formatInfo,
       final boolean isKey
   ) {
-    final boolean hasTableElements =
-        isKey ? hasKeyElements(statement) : hasValueElements(statement);
-
     /*
      * Conditions for schema inference:
      *   1. key_schema_id or value_schema_id property exist or
      *   2. Table elements doesn't exist and format support schema inference
-     */
-    if (!schemaId.isPresent() && (hasTableElements || !formatSupportsSchemaInference(formatInfo))) {
-      return false;
-    }
-
-    /*
-     * Do validation when schemaId presents or we need to infer. Conditions to meet:
+     *
+     * Do validation when schemaId presents, so we need to infer schema. Conditions to meet:
      *  1. If schema id is provided, format must support schema inference
      */
-
-    final String schemaIdName =
-        isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
-    if (!formatSupportsSchemaInference(formatInfo)) {
-      final String msg = (isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
-          : CommonCreateConfigs.VALUE_FORMAT_PROPERTY) + " should support schema inference "
-          + "when " + schemaIdName + " is provided!";
-      throw new KsqlException(msg);
+    if (schemaId.isPresent()) {
+      if (!formatSupportsSchemaInference(formatInfo)) {
+        final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+        final String schemaIdName =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        final String msg = String.format("%s should support schema inference when %s is provided. "
+            + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
+        throw new KsqlException(msg);
+      }
+      return true;
     }
 
-    return true;
+    final boolean hasTableElements =
+        isKey ? hasKeyElements(statement) : hasValueElements(statement);
+
+    return !hasTableElements && formatSupportsSchemaInference(formatInfo);
   }
 
   private static boolean hasKeyElements(

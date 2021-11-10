@@ -575,7 +575,8 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided!"));
+        containsString("KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. "
+            + "Current format is KAFKA."));
   }
 
   @Test
@@ -595,7 +596,8 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided!"));
+        containsString("VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. "
+            + "Current format is DELIMITED"));
   }
 
   @Test

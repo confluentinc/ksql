@@ -539,18 +539,20 @@ public class RestTestExecutor implements Closeable {
             "could not get expected value from test record: " + expected));
     final long expectedTimestamp = expected.timestamp().orElse(actualTimestamp);
 
-    final AssertionError error = new AssertionError(
-        "Expected <" + expectedKey + ", " + expectedValue + "> "
+    final String errorMessage = "Expected <" + expectedKey + ", " + expectedValue + "> "
             + "with timestamp=" + expectedTimestamp
             + " but was <" + actualKey + ", " + actualValue + "> "
-            + "with timestamp=" + actualTimestamp);
+            + "with timestamp=" + actualTimestamp;
+
+    final AssertionError error = new AssertionError(errorMessage);
 
     if (!Objects.equals(actualKey, expectedKey)) {
       throw error;
     }
 
-    if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {
-      throw error;
+    final Optional<String> detailedMessage = ExpectedRecordComparator.matches(actualValue, expectedValue);
+    if (detailedMessage.isPresent()) {
+      throw new AssertionError(errorMessage + " caused " + detailedMessage.get());
     }
 
     if (actualTimestamp != expectedTimestamp) {

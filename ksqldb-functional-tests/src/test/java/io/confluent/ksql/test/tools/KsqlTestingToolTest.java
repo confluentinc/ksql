@@ -123,8 +123,10 @@ public class KsqlTestingToolTest {
         Optional.empty());
 
     // Then:
-    assertThat(errContent.toString(UTF_8),
-        containsString("Test failed: Topic 'S1', message 0: Expected <\"1001\", \"101\"> with timestamp=0 but was <101, \"101\"> with timestamp=0\n"));
+    final String expected = "Test failed: Topic 'S1', message 0: Expected <\"1001\", \"101\"> with timestamp=0 "
+            + "but was <101, \"101\"> with timestamp=0 caused 101 not match \"1001\"\n";
+
+    assertThat(errContent.toString(UTF_8), containsString(expected));
   }
 
   @Test

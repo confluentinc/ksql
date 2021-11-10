@@ -27,14 +27,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import com.google.common.collect.Lists;
+import io.vertx.core.json.Json;
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
+import org.jetbrains.annotations.NotNull;
+
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toSet;
 
 public final class ExpectedRecordComparator {
 
-  private static final Map<JsonNodeType, BiPredicate<Object, JsonNode>> COMPARATORS =
-      ImmutableMap.<JsonNodeType, BiPredicate<Object, JsonNode>>builder()
+  private static final Map<JsonNodeType, BiFunction<Object, JsonNode, Optional<String>>> COMPARATORS =
+      ImmutableMap.<JsonNodeType, BiFunction<Object, JsonNode, Optional<String>>>builder()
           .put(JsonNodeType.OBJECT, ExpectedRecordComparator::compareStruct)
           .put(JsonNodeType.ARRAY, ExpectedRecordComparator::compareArray)
           .put(JsonNodeType.NUMBER, ExpectedRecordComparator::compareNumber)
@@ -46,27 +58,27 @@ public final class ExpectedRecordComparator {
   private ExpectedRecordComparator() {
   }
 
-  public static boolean matches(final Object actualValue, final JsonNode expectedValue) {
-    return comparator(expectedValue).test(actualValue, expectedValue);
+  public static Optional<String> matches(final Object actualValue, final JsonNode expectedValue) {
+    return comparator(expectedValue).apply(actualValue, expectedValue);
   }
 
-  private static boolean compareStruct(final Object actualValue, final JsonNode expectedValue) {
+  private static Optional<String> compareStruct(final Object actualValue, final JsonNode expectedValue) {
     final ObjectNode expected = (ObjectNode) expectedValue;
     final Function<String, Object> getter;
-    final int numFields;
+    final Set<?> actualKeys;
 
     if (actualValue instanceof Struct) {
       getter = ((Struct) actualValue)::get;
-      numFields = ((Struct) actualValue).schema().fields().size();
+      actualKeys = ((Struct) actualValue).schema().fields().stream().map(Field::name).collect(toSet());
     } else if (actualValue instanceof Map) {
       getter = ((Map<?, ?>) actualValue)::get;
-      numFields = ((Map<?, ?>) actualValue).size();
+      actualKeys = ((Map<?, ?>) actualValue).keySet();
     } else {
-      return false;
+      return Optional.of(actualValue + " is not a Struct");
     }
 
-    if (numFields != expected.size()) {
-      return false;
+    if (actualKeys.size() != expected.size()) {
+      return Optional.of(format("fields %s not match %s", actualKeys, getFieldNames(expected)));
     }
 
     final Iterator<Entry<String, JsonNode>> fields = expected.fields();
@@ -78,22 +90,28 @@ public final class ExpectedRecordComparator {
         key = getter.apply(field.getKey().toUpperCase());
       }
 
-      if (!comparator(field.getValue()).test(key, field.getValue())) {
-        return false;
+      final Optional<String> error = comparator(field.getValue()).apply(key, field.getValue());
+      if (error.isPresent()) {
+        return Optional.of(format("%s = %s but expected %s (%s)", field.getKey(), key, field.getValue(), error.get()));
       }
     }
-    return true;
+    return Optional.empty();
   }
 
-  private static boolean compareArray(final Object actualValue, final JsonNode expectedValue) {
+  @NotNull
+  private static Set<String> getFieldNames(final ObjectNode expected) {
+    return Lists.newArrayList(expected.fields()).stream().map(Entry::getKey).collect(toSet());
+  }
+
+  private static Optional<String> compareArray(final Object actualValue, final JsonNode expectedValue) {
     final ArrayNode expected = (ArrayNode) expectedValue;
     if (!(actualValue instanceof List)) {
-      return false;
+      return Optional.of(actualValue + " is not an array");
     }
 
     final List<?> actual = (List<?>) actualValue;
     if (actual.size() != expected.size()) {
-      return false;
+      return Optional.of(format("%s has %s instead of expected %s", actualValue, actual.size(), expected.size()));
     }
 
     final Iterator<JsonNode> elements = expected.elements();
@@ -101,82 +119,107 @@ public final class ExpectedRecordComparator {
     int i = 0;
     while (elements.hasNext()) {
       final JsonNode el = elements.next();
-      if (!comparator(el).test(actual.get(i), el)) {
-        return false;
+      final Object value = actual.get(i);
+      final Optional<String> error = comparator(el).apply(value, el);
+      if (error.isPresent()) {
+        return Optional.of(format("%s not match %s: %s", value, el, error.get()));
       }
       i++;
     }
 
-    return true;
+    return Optional.empty();
   }
 
-  private static boolean compareNumber(final Object actualValue, final JsonNode expectedValue) {
+  private static Optional<String> compareNumber(final Object actualValue, final JsonNode expectedValue) {
     final NumericNode expected = (NumericNode) expectedValue;
+    final Optional<String> error = Optional.of(format("%s not match %s", actualValue, expectedValue));
 
     if (actualValue instanceof Integer) {
-      return expected.intValue() == (Integer) actualValue;
+      return error.filter(e -> expected.intValue() != (Integer) actualValue);
     }
 
     if (actualValue instanceof Long) {
-      return expected.longValue() == (Long) actualValue;
+      return error.filter(e -> expected.longValue() != (Long) actualValue);
     }
 
     if (actualValue instanceof Double) {
-      return expected.doubleValue() == (Double) actualValue;
+      return error.filter(e -> expected.doubleValue() != (Double) actualValue);
     }
 
     if (actualValue instanceof BigDecimal) {
       return compareDecimal((BigDecimal) actualValue, expected);
     }
-    return false;
+    return Optional.of(actualValue + " is not a number");
   }
 
-  private static boolean compareDecimal(final BigDecimal actualValue, final NumericNode expected) {
+  private static Optional<String> compareDecimal(final BigDecimal actualValue, final NumericNode expected) {
     if (expected.isInt() || expected.isLong()) {
       // Only match if actual has no decimal places:
       if (actualValue.scale() > 0) {
-        return false;
+        return Optional.of(format("%s not match %s", actualValue, expected));
       }
 
-      return expected.longValue() == actualValue.longValueExact();
+      return expected.longValue() == actualValue.longValueExact()
+              ? Optional.empty()
+              : Optional.of(format("%s not match %s", actualValue, expected));
     }
 
     if (!expected.isBigDecimal()) {
       // we don't want to risk comparing a BigDecimal with something of lower precision
-      return false;
+      return Optional.of(format("%s not match %s", actualValue, expected));
     }
 
     try {
-      return expected.decimalValue().equals(actualValue);
+
+      return expected.decimalValue().equals(actualValue)
+              ? Optional.empty()
+              : Optional.of(format("%s not match %s", actualValue, expected));
+
     } catch (final ArithmeticException e) {
       // the scale of the expected value cannot match the scale of the actual value
       // without rounding
-      return false;
+      return Optional.of(format("ArithmeticException in %s", expected));
     }
   }
 
-  private static boolean compareText(final Object actualValue, final JsonNode expectedValue) {
+  private static Optional<String> compareText(final Object actualValue, final JsonNode expectedValue) {
     final TextNode expected = (TextNode) expectedValue;
+
     if (actualValue instanceof String) {
-      return expected.asText().equals(actualValue);
+
+      return expected.asText().equals(actualValue)
+              ? Optional.empty()
+              : Optional.of(format("%s not match %s", actualValue, expected));
     }
+
     if (actualValue instanceof BigDecimal) {
-      return new BigDecimal(expected.asText()).equals(actualValue);
+
+      return new BigDecimal(expected.asText()).equals(actualValue)
+              ? Optional.empty()
+              : Optional.of(format("%s not match %s", actualValue, expected));
     }
-    return false;
+
+    return Optional.of(format("%s is not a string", actualValue));
   }
 
-  private static boolean compareBoolean(final Object actualValue, final JsonNode expectedValue) {
-    return actualValue instanceof Boolean && expectedValue.asBoolean() == (Boolean) actualValue;
+  private static Optional<String> compareBoolean(final Object actualValue, final JsonNode expectedValue) {
+
+    if (!(actualValue instanceof Boolean)) {
+      return Optional.of(format("%s is not a boolean", actualValue));
+    }
+
+    return expectedValue.asBoolean() == (Boolean) actualValue
+            ? Optional.empty()
+            : Optional.of(format("%s not match %s", actualValue, expectedValue));
   }
 
-  private static boolean compareNull(final Object actualValue, final JsonNode expectedValue) {
-    return actualValue == null;
+  private static Optional<String> compareNull(final Object actualValue, final JsonNode expectedValue) {
+    return actualValue == null ? Optional.empty() : Optional.of(format("%s is not null", actualValue));
   }
 
-  private static BiPredicate<Object, JsonNode> comparator(final JsonNode node) {
+  private static BiFunction<Object, JsonNode, Optional<String>> comparator(final JsonNode node) {
     final JsonNodeType type = node == null ? JsonNodeType.NULL : node.getNodeType();
-    final BiPredicate<Object, JsonNode> predicate = COMPARATORS.get(type);
+    final BiFunction<Object, JsonNode, Optional<String>> predicate = COMPARATORS.get(type);
 
     if (predicate == null) {
       throw new IllegalArgumentException(

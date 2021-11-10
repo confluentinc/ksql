@@ -84,6 +84,7 @@ import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.jetbrains.annotations.NotNull;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class TestExecutor implements Closeable {
@@ -637,32 +638,47 @@ public class TestExecutor implements Closeable {
             "could not get expected value from test record: " + expectedRecord));
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
 
-    final AssertionError error = new AssertionError(
-        "Topic '" + topicName + "', message " + messageIndex
+    final String errorMessage = "Topic '" + topicName + "', message " + messageIndex
             + ": Expected <" + expectedKey + ", " + expectedValue + "> "
             + "with timestamp=" + expectedTimestamp
-            + " but was " + getProducerRecordInString(actualProducerRecord));
+            + " but was " + getProducerRecordInString(actualProducerRecord);
+
+    final AssertionError error = new AssertionError(errorMessage);
 
     if (expectedRecord.getWindow() != null) {
       final Windowed<?> windowed = (Windowed<?>) actualKey;
-      if (!new WindowData(windowed).equals(expectedRecord.getWindow())
-          || !ExpectedRecordComparator.matches(((Windowed<?>) actualKey).key(), expectedKey)) {
+      if (!new WindowData(windowed).equals(expectedRecord.getWindow())) {
         throw error;
+      } else {
+
+        final Optional<String> detailedMessage
+                = ExpectedRecordComparator.matches(((Windowed<?>) actualKey).key(), expectedKey);
+
+        if (detailedMessage.isPresent()) {
+          throw getDetailedAssertionError(errorMessage, detailedMessage.get());
+        }
       }
     } else {
-      if (!ExpectedRecordComparator.matches(actualKey, expectedKey)) {
-        throw error;
+      final Optional<String> detailedMessage = ExpectedRecordComparator.matches(actualKey, expectedKey);
+      if (detailedMessage.isPresent()) {
+        throw getDetailedAssertionError(errorMessage, detailedMessage.get());
       }
     }
 
-    if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {
-      throw error;
+    final Optional<String> detailedMessage = ExpectedRecordComparator.matches(actualValue, expectedValue);
+    if (detailedMessage.isPresent()) {
+      throw getDetailedAssertionError(errorMessage, detailedMessage.get());
     }
 
     if ((actualTimestamp != expectedTimestamp)
         && (!ranWithInsertStatements || expectedTimestamp != 0L)) {
       throw error;
     }
+  }
+
+  private static AssertionError getDetailedAssertionError(final String errorMessage, final String detailedMessage) {
+
+    return new AssertionError(errorMessage + " caused " + detailedMessage);
   }
 
   interface TopologyBuilder {

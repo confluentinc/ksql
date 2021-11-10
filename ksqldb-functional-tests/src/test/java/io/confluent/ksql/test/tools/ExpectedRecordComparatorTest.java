@@ -85,7 +85,7 @@ public class ExpectedRecordComparatorTest {
             + "Expected: " + expected
             + System.lineSeparator()
             + "Actual: " + actual,
-        ExpectedRecordComparator.matches(actual, expected)
+        !ExpectedRecordComparator.matches(actual, expected).isPresent()
     );
   }
 
@@ -96,7 +96,7 @@ public class ExpectedRecordComparatorTest {
             + "Expected: " + expected
             + System.lineSeparator()
             + "Actual: " + actual,
-        !ExpectedRecordComparator.matches(actual, expected)
+        ExpectedRecordComparator.matches(actual, expected).isPresent()
     );
   }
 }

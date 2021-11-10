@@ -7,10 +7,13 @@
       "name": "on stream",
       "format": ["JSON"],
       "statements": [
-        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}', partitions=5);",
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "SELECT * FROM riderLocations LIMIT 8;",
         "SELECT * FROM riderLocations LIMIT 0;",
         "SELECT * FROM riderLocations LIMIT 25;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1000001, "value": {"profileId": "which", "latitude": 37.7877, "longitude": -122.4205}},
@@ -77,10 +80,13 @@
       "name": "on source table - all unique keys",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE SOURCE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}', partitions=1);",
+        "CREATE SOURCE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "SELECT * FROM riderLocations LIMIT 8;",
         "SELECT * FROM riderLocations LIMIT 0;",
         "SELECT * FROM riderLocations LIMIT 25;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1000001, "key": "which", "value": {"latitude": 37.7877, "longitude": -122.4205}},
@@ -145,9 +151,12 @@
       "name": "on source table - repeated unique keys",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE SOURCE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}', partitions=1);",
+        "CREATE SOURCE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "SELECT * FROM riderLocations LIMIT 3;",
         "SELECT * FROM riderLocations;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1000001, "key": "which", "value": {"latitude": 37.7877, "longitude": -122.4205}},
@@ -193,12 +202,15 @@
       "name": "on CTAS",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}', partitions=5);",
+        "CREATE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE ridersNearMountainView AS SELECT ROUND(GEO_DISTANCE(latitude, longitude, 37.4133, -122.1162), -1) AS distanceInMiles, COLLECT_LIST(profileId) AS riders, COUNT(*) AS count FROM riderLocations GROUP BY ROUND(GEO_DISTANCE(latitude, longitude, 37.4133, -122.1162), -1);",
         "SELECT * FROM ridersNearMountainView;",
         "SELECT * FROM ridersNearMountainView LIMIT 4;",
         "SELECT * FROM ridersNearMountainView LIMIT 0;",
         "SELECT * FROM ridersNearMountainView LIMIT 25;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1000001, "key": "which", "value": {"latitude": 37.7877, "longitude": -122.4205}},
@@ -225,37 +237,37 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
-          {"row":{"columns":[120.0,["after","years"],2]}}                ,
-          {"row":{"columns":[150.0,["water"],1]}}                        ,
-          {"row":{"columns":[0.0,["would","their","about"],3]}}          ,
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[50.0,["which","these"],2]}}                 ,
-          {"row":{"columns":[10.0,["there"],1]}}                         ,
-          {"row":{"columns":[90.0,["think","three","right"],3]}}         ,
-          {"row":{"columns":[160.0,["other"],1]}}
+          {"row": {"columns": [0.0  , ["their", "about", "would"]         , 3]}},
+          {"row": {"columns": [10.0 , ["there"]                           , 1]}},
+          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}},
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}},
+          {"row": {"columns": [120.0, ["after", "years"]                  , 2]}},
+          {"row": {"columns": [150.0, ["water"]                           , 1]}},
+          {"row": {"columns": [160.0, ["other"]                           , 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[0.0,["would","their","about"],3]}}          ,
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
-          {"row":{"columns":[120.0,["after","years"],2]}}
+          {"row": {"columns": [0.0  , ["their", "about", "would"]         , 3]}},
+          {"row": {"columns": [10.0 , ["there"]                           , 1]}},
+          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}},
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
-          {"row":{"columns":[120.0,["after","years"],2]}}                ,
-          {"row":{"columns":[150.0,["water"],1]}}                        ,
-          {"row":{"columns":[0.0,["would","their","about"],3]}}          ,
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[50.0,["which","these"],2]}}                 ,
-          {"row":{"columns":[10.0,["there"],1]}}                         ,
-          {"row":{"columns":[90.0,["think","three","right"],3]}}         ,
-          {"row":{"columns":[160.0,["other"],1]}}
+          {"row": {"columns": [0.0  , ["their", "about", "would"]         , 3]}},
+          {"row": {"columns": [10.0 , ["there"]                           , 1]}},
+          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}},
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}},
+          {"row": {"columns": [120.0, ["after", "years"]                  , 2]}},
+          {"row": {"columns": [150.0, ["water"]                           , 1]}},
+          {"row": {"columns": [160.0, ["other"]                           , 1]}}
         ]}
       ]
     },
@@ -263,7 +275,7 @@
       "name": "on CTAS range scan",
       "format": ["JSON", "PROTOBUF"],
       "statements": [
-        "CREATE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}', partitions=5);",
+        "CREATE TABLE riderLocations (profileId STRING PRIMARY KEY, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE ridersNearMountainView AS SELECT ROUND(GEO_DISTANCE(latitude, longitude, 37.4133, -122.1162), -1) AS distanceInMiles, COLLECT_LIST(profileId) AS riders, COUNT(*) AS count FROM riderLocations GROUP BY ROUND(GEO_DISTANCE(latitude, longitude, 37.4133, -122.1162), -1);",
         "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES > 70;",
         "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES < 100;",
@@ -272,6 +284,9 @@
         "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES < 100                          LIMIT 3;",
         "SELECT * FROM ridersNearMountainView WHERE DISTANCEINMILES > 70 AND DISTANCEINMILES < 140 LIMIT 2;"
       ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
+      ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1000001, "key": "which", "value": {"latitude": 37.7877, "longitude": -122.4205}},
         {"topic": "test_topic", "timestamp": 1000002, "key": "there", "value": {"latitude": 37.3903, "longitude": -122.0643}},
@@ -297,44 +312,44 @@
         {"admin": {"@type": "currentStatus"}},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
-          {"row":{"columns":[120.0,["after","years"],2]}}                ,
-          {"row":{"columns":[150.0,["water"],1]}}                        ,
-          {"row":{"columns":[90.0,["think","three","right"],3]}}         ,
-          {"row":{"columns":[160.0,["other"],1]}}
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}},
+          {"row": {"columns": [120.0, ["after", "years"]                  , 2]}},
+          {"row": {"columns": [150.0, ["water"]                           , 1]}},
+          {"row": {"columns": [160.0, ["other"]                           , 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[0.0,["would","their","about"],3]}},
-          {"row":{"columns":[80.0,["where"],1]}}               ,
-          {"row":{"columns":[50.0,["which","these"],2]}}       ,
-          {"row":{"columns":[10.0,["there"],1]}}               ,
-          {"row":{"columns":[90.0,["think","three","right"],3]}}
+          {"row": {"columns": [0.0  , ["their", "about", "would"]         , 3]}},
+          {"row": {"columns": [10.0 , ["there"]                           , 1]}},
+          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}},
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
-          {"row":{"columns":[120.0,["after","years"],2]}}                ,
-          {"row":{"columns":[90.0,["think","three","right"],3]}}
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}},
+          {"row": {"columns": [120.0, ["after", "years"]                  , 2]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}},
-          {"row":{"columns":[120.0,["after","years"],2]}}
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}},
+          {"row": {"columns": [120.0, ["after", "years"]                  , 2]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[0.0,["would","their","about"],3]}},
-          {"row":{"columns":[80.0,["where"],1]}}               ,
-          {"row":{"columns":[50.0,["which","these"],2]}}
+          {"row": {"columns": [0.0  , ["their", "about", "would"]         , 3]}},
+          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}},
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
-          {"row":{"columns":[80.0,["where"],1]}}                         ,
-          {"row":{"columns":[110.0,["words","could","first","write"],4]}}
+          {"row": {"columns": [80.0 , ["where"]                           , 1]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}}
         ]}
       ]
     }

@@ -339,7 +339,7 @@ public class PullQueryRoutingFunctionalTest {
 
     // check that we get all rows back
     assertThat(rows_2, hasSize(HEADER + 5));
-    assertEquals(rows_0, is(matchersRowsAnyOrder(rows_2)));
+    assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
     // issue pull query with limit after partitioning active
     final List<StreamedRow> rows_3 = makePullQueryRequest(clusterFormation.router.getApp(),

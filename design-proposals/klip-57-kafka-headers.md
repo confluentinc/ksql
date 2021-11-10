@@ -24,13 +24,12 @@ So far, ksqlDB exposes the timestamp, partition and offset of Kafka records as p
 
 ### Syntax
 
-Unlike other pseudocolumns, if a user wants to access headers, they will create a column with the `HEADERS` keyword. This column will be populated with the full list of header keys and values. There can be any number of HEADERS columns.
+Unlike other pseudocolumns, if a user wants to access headers, they will create a column with the `HEADERS` keyword. This column will be populated with the full list of header keys and values. There can only be one HEADERS column.
 ```
 ksql> CREATE STREAM A (
-    my_headers ARRAY<STRUCT<key STRING, value BYTES>> HEADERS,
-    my_headers_2 ARRAY<STRUCT<key STRING, value BYTES>> HEADERS);
+    my_headers ARRAY<STRUCT<key STRING, value BYTES>> HEADERS);
 ```
-The type of a header backed column must be exactly `ARRAY<STRUCT<key STRING, value BYTES>>`. An error will be thrown if that is not the case.
+If there are multiple HEADERS columns, then an error will be thrown. The type of a header backed column must be exactly `ARRAY<STRUCT<key STRING, value BYTES>>`. An error will be thrown if that is not the case.
 ```
 ksql> CREATE STREAM B (my_headers ARRAY<BYTES> HEADERS);
 Error: Columns specified with the HEADERS keyword must be typed as ARRAY<STRUCT<key STRING, value BYTES>>.
@@ -39,7 +38,7 @@ Users can also mark a column with `HEADER(<key>)`, which will populate the colum
 ```
 ksql> CREATE STREAM B (value BYTES HEADER(<key>), value_2 BYTES HEADER(<key_2>));
 ```
-If the key is not present in the header, then the value in the column will be `null`.
+If there is a column labelled `HEADERS`, then no there can be no `HEADER(<key>)` columns. Otherwise, there can be multiple `HEADER(<key>)` columns, but no two can share the same key. If the key is not present in the header, then the value in the column will be `null`.
 
 Sources created with schema inferencing can have header columns, they would just have to be specified. For example, the statement `CREATE STREAM A (my_headers ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='a', value_format='avro');` will create a stream with columns from Schema Registry, as well as one header column.
 

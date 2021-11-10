@@ -337,19 +337,19 @@
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
           {"row": {"columns": [80.0 , ["where"]                           , 1]}},
-          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}},
-          {"row": {"columns": [120.0, ["after", "years"]                  , 2]}}
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}},
+          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
           {"row": {"columns": [0.0  , ["their", "about", "would"]         , 3]}},
-          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}},
-          {"row": {"columns": [80.0 , ["where"]                           , 1]}}
+          {"row": {"columns": [10.0 , ["there"]                           , 1]}},
+          {"row": {"columns": [50.0 , ["which", "these"]                  , 2]}}
         ]},
         {"query": [
           {"header":{"schema":"`DISTANCEINMILES` DOUBLE KEY, `RIDERS` ARRAY<STRING>, `COUNT` BIGINT"}},
           {"row": {"columns": [80.0 , ["where"]                           , 1]}},
-          {"row": {"columns": [110.0, ["words", "could", "write", "first"], 4]}}
+          {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}}
         ]}
       ]
     }

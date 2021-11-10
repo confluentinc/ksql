@@ -210,7 +210,6 @@ public class PullQueryRoutingFunctionalTest {
       .withFaultyKsqlClient(APP_SHUTOFFS_1::getKsqlOutgoing)
       .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
           + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer1.class.getName())
-      .withProperty(StreamsConfig.CLIENT_ID_CONFIG, "REST_APP_1")
       .withProperties(COMMON_CONFIG)
       .build();
 
@@ -224,7 +223,6 @@ public class PullQueryRoutingFunctionalTest {
       .withFaultyKsqlClient(APP_SHUTOFFS_2::getKsqlOutgoing)
       .withProperty(KSQL_STREAMS_PREFIX + CONSUMER_PREFIX
           + ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, FaultyKafkaConsumer2.class.getName())
-      .withProperty(StreamsConfig.CLIENT_ID_CONFIG, "REST_APP_2")
       .withProperties(COMMON_CONFIG)
       .build();
 

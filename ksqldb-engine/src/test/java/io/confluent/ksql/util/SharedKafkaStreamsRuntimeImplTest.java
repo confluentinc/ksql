@@ -84,7 +84,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.singleton(SourceName.of("foo")));
         sharedKafkaStreamsRuntimeImpl.register(
             queryErrorClassifier,
-            Collections.emptyMap(),
             persistentQueriesInSharedRuntimes,
             queryId);
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -109,7 +108,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
             () -> sharedKafkaStreamsRuntimeImpl.register(
                 queryErrorClassifier,
-                Collections.emptyMap(),
                 persistentQueriesInSharedRuntimes,
                 queryId2));
         //Then

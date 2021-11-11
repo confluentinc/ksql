@@ -1365,11 +1365,6 @@ public class KsqlConfig extends AbstractConfig {
     return ksqlStreamConfigProps.containsKey(key) || originals().containsKey(key);
   }
 
-  public boolean propertyIsPossibleItem(final String propertyName) {
-    return new KsqlConfigResolver().resolve(propertyName, true).isPresent()
-        || keyExistsInConfigMap(propertyName);
-  }
-
   public Map<String, Object> getKsqlStreamConfigProps(final String applicationId) {
     final Map<String, Object> map = new HashMap<>(getKsqlStreamConfigProps());
     map.put(

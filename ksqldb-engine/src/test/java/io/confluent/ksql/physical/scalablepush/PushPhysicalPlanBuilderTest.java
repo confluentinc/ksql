@@ -39,6 +39,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PushPhysicalPlanBuilderTest {
+  private static final String CONSUMER_GROUP = "cg";
+
   @Mock
   private ProcessingLogContext logContext;
   @Mock
@@ -83,6 +85,7 @@ public class PushPhysicalPlanBuilderTest {
     when(filterNode.getCompiledWhereClause()).thenReturn(expressionEvaluator);
     when(expressionEvaluator.getExpressionType()).thenReturn(SqlTypes.BOOLEAN);
     when(projectNode.getSchema()).thenReturn(logicalSchema);
+    when(scalablePushRegistry.getCatchupConsumerId(any())).thenReturn(CONSUMER_GROUP);
   }
 
   @Test

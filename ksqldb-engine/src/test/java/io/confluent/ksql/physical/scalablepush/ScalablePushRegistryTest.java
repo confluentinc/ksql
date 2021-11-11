@@ -162,6 +162,7 @@ public class ScalablePushRegistryTest {
         ksqlConfig, SOURCE_APP_ID,
         kafkaConsumerFactory, latestConsumerFactory, catchupConsumerFactory, executorService,
         catchupService);
+    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS)).thenReturn(10);
   }
 
   @After

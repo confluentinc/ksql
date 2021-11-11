@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -76,7 +77,9 @@ public class RequestValidatorTest {
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Mock
-  private SandboxEngine ksqlEngine;
+  private KsqlEngine ksqlEngine;
+  @Mock
+  private SandboxEngine sandboxEngine;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -98,10 +101,10 @@ public class RequestValidatorTest {
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
-    when(ksqlEngine.prepare(any(), any()))
+    when(sandboxEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
             KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
-    executionContext = ksqlEngine;
+    executionContext = sandboxEngine;
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(Integer.MAX_VALUE);
@@ -117,6 +120,7 @@ public class RequestValidatorTest {
     metaStore.putSource(source, false);
     metaStore.putSource(sink, false);
 
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     givenRequestValidator(ImmutableMap.of());
   }
 
@@ -134,7 +138,7 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then
-    verify(ksqlEngine).prepare(statements.get(0), sessionVariables);
+    verify(sandboxEngine).prepare(statements.get(0), sessionVariables);
     verify(sessionProperties).getSessionVariables();
   }
 
@@ -150,7 +154,7 @@ public class RequestValidatorTest {
     validator.validate(serviceContext, statements, sessionProperties, "sql");
 
     // Then
-    verify(ksqlEngine).prepare(statements.get(0), Collections.emptyMap());
+    verify(sandboxEngine).prepare(statements.get(0), Collections.emptyMap());
     verify(sessionProperties, never()).getSessionVariables();
   }
 
@@ -340,7 +344,7 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
-        ksqlConfig,
+        ksqlEngine,
         distributedStatementValidator
     );
   }
@@ -349,7 +353,7 @@ public class RequestValidatorTest {
   private void givenPersistentQueryCount(final int value) {
     final List<PersistentQueryMetadata> queries = mock(List.class);
     when(queries.size()).thenReturn(value);
-    when(ksqlEngine.getPersistentQueries()).thenReturn(queries);
+    when(sandboxEngine.getPersistentQueries()).thenReturn(queries);
   }
 
   @Sandbox

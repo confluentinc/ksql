@@ -587,14 +587,7 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected void handleComplete() {
-      close();
-    }
-
-    @Override
-    protected void handleError(final Throwable t) {
-      LOG.error("Received error from remote node {} for id {}: {}", node, queryId, t.getMessage(),
-          t);
-      callback.completeExceptionally(t);
+      LOG.info("Received complete from remote node {} for id {}", node, queryId);
       close();
     }
 
@@ -718,6 +711,17 @@ public class PushRouting implements AutoCloseable {
       return true;
     }
 
+    @Override
+    protected void handleError(final Throwable t) {
+      LOG.error("Received error from remote node {} for id {}: {}", node, queryId, t.getMessage(),
+          t);
+
+      // Anything at this level, we just treat as a network error and we let it close normally
+      LOG.info("Ignoring transient network error for node {} for id {}", node, queryId);
+
+      close();
+    }
+
     public String name() {
       return "Remote";
     }
@@ -769,6 +773,16 @@ public class PushRouting implements AutoCloseable {
       }
 
       makeRequest(1);
+    }
+
+    @Override
+    protected void handleError(final Throwable t) {
+      LOG.error("Received error from remote node {} for id {}: {}", node, queryId, t.getMessage(),
+          t);
+
+      // If any error happens locally, we consider it fatal to the overall request
+      callback.completeExceptionally(t);
+      close();
     }
 
     public String name() {

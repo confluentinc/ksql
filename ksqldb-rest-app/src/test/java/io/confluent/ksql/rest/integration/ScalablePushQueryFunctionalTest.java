@@ -41,7 +41,6 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -166,7 +165,7 @@ public class ScalablePushQueryFunctionalTest {
     }
     final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
     pageViewDataProvider = new PageViewDataProvider(prefix);
-    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
+    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, true);
     TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
 
     RestIntegrationTestUtil.createStream(REST_APP_0, pageViewDataProvider);
@@ -235,7 +234,6 @@ public class ScalablePushQueryFunctionalTest {
         header, complete);
 
     header.get();
-    assertExpectedScalablePushQueries(1, false);
 
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
@@ -366,18 +364,16 @@ public class ScalablePushQueryFunctionalTest {
   ) {
     assertThatEventually(() -> {
       for (final PersistentQueryMetadata metadata : REST_APP_0.getEngine().getPersistentQueries()) {
-        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
-            < expectedScalablePushQueries
-            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
+        if (metadata.getScalablePushRegistry().get().numRegistered()
+            < expectedScalablePushQueries) {
           return false;
         }
       }
       if (app1) {
         for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
             .getPersistentQueries()) {
-          if (metadata.getScalablePushRegistry().get().latestNumRegistered()
-              < expectedScalablePushQueries
-              || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
+          if (metadata.getScalablePushRegistry().get().numRegistered()
+              < expectedScalablePushQueries) {
             return false;
           }
         }

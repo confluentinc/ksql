@@ -159,7 +159,7 @@ public class PushPhysicalPlanTest {
       Thread.sleep(100);
     }
 
-    assertThat(subscriber.getError().getMessage(), containsString("Internal error occurred"));
+    assertThat(subscriber.getError().getMessage(), containsString("Persistent query has error"));
     assertThat(subscriber.getValues().size(), is(1));
     assertThat(subscriber.getValues().get(0), is(ROW1));
     assertThat(pushPhysicalPlan.isClosed(), is(true));

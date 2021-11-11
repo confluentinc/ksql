@@ -57,7 +57,6 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
-import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
@@ -66,6 +65,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,15 +155,14 @@ public class RestTestExecutor implements Closeable {
         return;
       }
 
-      final boolean waitForActivePushQueryToProduceInput = testCase.getInputConditions().isPresent()
-          && testCase.getInputConditions().get().getWaitForActivePushQuery();
-      final Optional<InputConditionsParameters> postInputConditionRunnable;
-      if (!waitForActivePushQueryToProduceInput) {
+      final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
+          && testCase.getInputConditions().get().getWaitForQueryHeader();
+      final Optional<Runnable> postQueryHeaderRunnable;
+      if (!waitForQueryHeaderToProduceInput) {
         produceInputs(testCase.getInputsByTopic());
-        postInputConditionRunnable = Optional.empty();
+        postQueryHeaderRunnable = Optional.empty();
       } else {
-        postInputConditionRunnable = Optional.of(new InputConditionsParameters(
-            this::waitForActivePushQuery, () -> produceInputs(testCase.getInputsByTopic())));
+        postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
       }
 
       if (!testCase.expectedError().isPresent()
@@ -172,7 +171,7 @@ public class RestTestExecutor implements Closeable {
       }
 
       final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
-          postInputConditionRunnable);
+          postQueryHeaderRunnable);
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
       }
@@ -330,20 +329,20 @@ public class RestTestExecutor implements Closeable {
   private List<RqttResponse> sendQueryStatements(
       final RestTestCase testCase,
       final List<String> statements,
-      final Optional<InputConditionsParameters> inputConditionsParameters
+      final Optional<Runnable> afterHeader
   ) {
     // We only produce inputs after the first query at the moment to simplify things
-    final boolean[] runAfterInputConditions = new boolean[1];
+    final boolean[] runAfterHeader = new boolean[1];
     return statements.stream()
         .map(stmt -> {
-          if (inputConditionsParameters.isPresent() && !runAfterInputConditions[0]) {
-            runAfterInputConditions[0] = true;
+          if (afterHeader.isPresent() && !runAfterHeader[0]) {
+            runAfterHeader[0] = true;
             Optional<List<StreamedRow>> rows =
-                sendQueryStatement(testCase, stmt, inputConditionsParameters.get());
+                sendQueryStatement(testCase, stmt, afterHeader.get());
             return rows;
-          } else if (inputConditionsParameters.isPresent() && runAfterInputConditions[0]) {
+          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
             throw new AssertionError(
-                "Can only have one query when using inputConditions");
+                "Can only have one query when using waitForQueryHeader");
           }
           return sendQueryStatement(testCase, stmt);
         })
@@ -370,7 +369,7 @@ public class RestTestExecutor implements Closeable {
   private Optional<List<StreamedRow>> sendQueryStatement(
       final RestTestCase testCase,
       final String sql,
-      final InputConditionsParameters inputConditionsParameters
+      final Runnable afterHeader
   ) {
     final RestResponse<StreamPublisher<StreamedRow>> resp
         = restClient.makeQueryRequestStreamed(sql, null);
@@ -380,12 +379,12 @@ public class RestTestExecutor implements Closeable {
       return Optional.empty();
     }
 
-    return handleRowPublisher(resp.getResponse(), inputConditionsParameters);
+    return handleRowPublisher(resp.getResponse(), afterHeader);
   }
 
   private Optional<List<StreamedRow>> handleRowPublisher(
       final StreamPublisher<StreamedRow> publisher,
-      final InputConditionsParameters inputConditionsParameters
+      final Runnable afterHeader
   ) {
     final CompletableFuture<List<StreamedRow>> future = new CompletableFuture<>();
     final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
@@ -395,8 +394,7 @@ public class RestTestExecutor implements Closeable {
 
     try {
       header.get();
-      inputConditionsParameters.getWaitForInputConditionsToBeMet().run();
-      inputConditionsParameters.getAfterInputConditions().run();
+      afterHeader.run();
       return Optional.of(future.get());
     } catch (Exception e) {
       LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
@@ -404,31 +402,6 @@ public class RestTestExecutor implements Closeable {
     } finally {
       subscriber.close();
       publisher.close();
-    }
-  }
-
-  private void waitForActivePushQuery() {
-    final long queryRunningThreshold = System.currentTimeMillis()
-        + MAX_QUERY_RUNNING_CHECK.toMillis();
-    while (System.currentTimeMillis() < queryRunningThreshold) {
-      int num = 0;
-      for (QueryMetadata queryMetadata : engine.getAllLiveQueries()) {
-        if (queryMetadata instanceof TransientQueryMetadata
-            && ((TransientQueryMetadata) queryMetadata).isRunning()) {
-          num++;
-        }
-      }
-      for (PersistentQueryMetadata queryMetadata : engine.getPersistentQueries()) {
-        if (queryMetadata.getScalablePushRegistry().isPresent()
-            && queryMetadata.getScalablePushRegistry().get().numRegistered() > 0) {
-          num += queryMetadata.getScalablePushRegistry().get().numRegistered();
-        }
-      }
-      if (num == 0) {
-        threadYield();
-      } else {
-        break;
-      }
     }
   }
 
@@ -979,27 +952,5 @@ public class RestTestExecutor implements Closeable {
   private enum MatchOperator {
     EQUALS,
     STARTS_WITH
-  }
-
-  private static class InputConditionsParameters {
-
-    private final Runnable waitForInputConditionsToBeMet;
-    private final Runnable afterInputConditions;
-
-    public InputConditionsParameters(
-        final Runnable waitForInputConditionsToBeMet,
-        final Runnable afterInputConditions
-    ) {
-      this.waitForInputConditionsToBeMet = waitForInputConditionsToBeMet;
-      this.afterInputConditions = afterInputConditions;
-    }
-
-    public Runnable getWaitForInputConditionsToBeMet() {
-      return waitForInputConditionsToBeMet;
-    }
-
-    public Runnable getAfterInputConditions() {
-      return afterInputConditions;
-    }
   }
 }

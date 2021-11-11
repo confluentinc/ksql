@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.scalablepush.operators;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
@@ -37,7 +36,6 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
 
   private long rowsRead = 0;
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
       final DataSourceNode logicalNode,
@@ -87,10 +85,6 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
     return null;
   }
 
-  @SuppressFBWarnings(
-      value = "EI_EXPOSE_REP",
-      justification = "scalablePushRegistry is meant to be exposed"
-  )
   @Override
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;

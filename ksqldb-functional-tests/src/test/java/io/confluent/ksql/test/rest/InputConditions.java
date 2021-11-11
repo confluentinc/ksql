@@ -5,12 +5,12 @@ import java.util.Objects;
 
 public class InputConditions {
 
-  private final boolean waitForActivePushQuery;
+  private final boolean waitForQueryHeader;
 
   public InputConditions(
-      @JsonProperty("waitForActivePushQuery") final boolean waitForActivePushQuery
+      @JsonProperty("waitForQueryHeader") final boolean waitForQueryHeader
   ) {
-    this.waitForActivePushQuery = waitForActivePushQuery;
+    this.waitForQueryHeader = waitForQueryHeader;
   }
 
   @Override
@@ -22,15 +22,15 @@ public class InputConditions {
       return false;
     }
     final InputConditions that = (InputConditions) o;
-    return waitForActivePushQuery == that.waitForActivePushQuery;
+    return waitForQueryHeader == that.waitForQueryHeader;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(waitForActivePushQuery);
+    return Objects.hash(waitForQueryHeader);
   }
 
-  public boolean getWaitForActivePushQuery() {
-    return waitForActivePushQuery;
+  public boolean getWaitForQueryHeader() {
+    return waitForQueryHeader;
   }
 }

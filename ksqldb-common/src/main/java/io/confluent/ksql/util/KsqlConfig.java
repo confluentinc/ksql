@@ -42,7 +42,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -343,21 +342,6 @@ public class KsqlConfig extends AbstractConfig {
           + "or the default code generator. They should produce the same results, but may have "
           + "different performance characteristics.";
   public static final boolean KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DEFAULT = true;
-
-  public static final String KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS
-      = "ksql.query.push.v2.new.latest.delay.ms";
-  public static final String KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC =
-      "The delay in ms for a new latest consumer to start processing records."
-          + "If new nodes are added to the cluster, a longer delay makes it less likely that"
-          + "stragglers requests will miss a record and be forced to catchup.";
-  public static final long KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT = 5000;
-
-  public static final String KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS
-      = "ksql.query.push.v2.latest.reset.age.ms";
-  public static final String KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC =
-      "The maximum age in ms of existing committed offsets for latest consumer to"
-          + " adopt those offsets rather than seek to the end.";
-  public static final long KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT = 30000;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -1049,20 +1033,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS,
-            Type.LONG,
-            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS,
-            Type.LONG,
-            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC
-        )
-        .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
             Type.STRING,
             "",
@@ -1351,13 +1321,6 @@ public class KsqlConfig extends AbstractConfig {
   public Map<String, Object> getProducerClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(ProducerConfig.configNames()));
-    map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
-    return Collections.unmodifiableMap(map);
-  }
-
-  public Map<String, Object> getConsumerClientConfigProps() {
-    final Map<String, Object> map = new HashMap<>();
-    map.putAll(getConfigsFor(ConsumerConfig.configNames()));
     map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
     return Collections.unmodifiableMap(map);
   }

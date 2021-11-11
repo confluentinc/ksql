@@ -171,7 +171,6 @@ public class PushPhysicalPlan {
     return schema;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;
   }
@@ -200,7 +199,7 @@ public class PushPhysicalPlan {
     }
 
     public void reportHasError() {
-      sendError(new RuntimeException("Internal error occurred"));
+      sendError(new RuntimeException("Persistent query has error"));
     }
 
     public void sendException(final Throwable e) {

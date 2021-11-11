@@ -38,10 +38,8 @@ import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.Vertx;
 import java.util.List;
@@ -59,13 +57,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.junit.rules.Timeout;
 
 @Category({IntegrationTest.class})
 public class ScalablePushBandwidthThrottleIntegrationTest {
   private static final String RATE_LIMIT_MESSAGE = "Host is at bandwidth rate limit for push queries.";
-  private static final PageViewDataProvider TEST_DATA_PROVIDER = new PageViewDataProvider(
-      "PAGEVIEW", Batch.BATCH4);
+  private static final PageViewDataProvider TEST_DATA_PROVIDER = new PageViewDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
 
@@ -79,7 +75,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED , true)
       .withProperty(KSQL_QUERY_PUSH_V2_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG , 1)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty("auto.offset.reset", "latest")
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
@@ -94,12 +89,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   @Rule
   public final RuleChain CHAIN_TEST = RuleChain
       .outerRule(REST_APP);
-
-  @Rule
-  public final Timeout timeout = Timeout.builder()
-      .withTimeout(2, TimeUnit.MINUTES)
-      .withLookingForStuckThread(true)
-      .build();
 
   private Vertx vertx;
   private KsqlRestClient restClient;
@@ -135,23 +124,16 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   public void scalablePushBandwidthThrottleTestHTTP1() {
     assertAllPersistentQueriesRunning();
     String veryLong = createDataSize(100000);
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";
 
     // scalable push query should succeed 10 times
     for (int i = 0; i < 11; i += 1) {
-      final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
-      final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
       makeRequestAndSetupSubscriber(sql,
           ImmutableMap.of("auto.offset.reset", "latest"),
           header, complete );
-      assertExpectedScalablePushQueries(1);
-      // Produce exactly one row, or else other rows produced can complete other requests and it
-      // confuses the test.
       TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
-      // header, row, limit reached message
-      assertThatEventually(() ->  subscriber.getRows().size(), is (3));
-      subscriber.close();
-      publisher.close();
     }
 
     // scalable push query should fail on 11th try since it exceeds 1MB bandwidth limit
@@ -170,23 +152,16 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       throws ExecutionException, InterruptedException {
     assertAllPersistentQueriesRunning();
     String veryLong = createDataSize(100000);
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";
 
     // scalable push query should succeed 10 times
     for (int i = 0; i < 11; i += 1) {
-      final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
-      final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
       makeRequestAndSetupSubscriberAsync(sql,
           ImmutableMap.of("auto.offset.reset", "latest"),
-          header, complete);
-      assertExpectedScalablePushQueries(1);
-      // Produce exactly one row, or else other rows produced can complete other requests and it
-      // confuses the test.
+          header, complete );
       TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
-      // header, row
-      assertThatEventually(() ->  subscriber.getRows().size(), is (2));
-      subscriber.close();
-      publisher.close();
     }
 
     // scalable push query should fail on 11th try since it exceeds 1MB bandwidth limit
@@ -267,21 +242,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
     assertThatEventually(() -> {
       for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
         if (metadata.getState() != State.RUNNING) {
-          return false;
-        }
-      }
-      return true;
-    }, is(true));
-  }
-
-  private void assertExpectedScalablePushQueries(
-      final int expectedScalablePushQueries
-  ) {
-    assertThatEventually(() -> {
-      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
-        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
-            < expectedScalablePushQueries
-            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
           return false;
         }
       }

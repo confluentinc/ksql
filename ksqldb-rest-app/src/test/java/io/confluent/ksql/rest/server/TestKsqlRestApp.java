@@ -23,7 +23,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -34,7 +33,6 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
-import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.NetworkDisruptorClient.NetworkState;
@@ -68,7 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -606,15 +603,12 @@ public class TestKsqlRestApp extends ExternalResource {
 
     private InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory;
 
-    private NetworkState networkState;
-
     private Builder(final Supplier<String> bootstrapServers) {
       this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps),
               DisabledKsqlClient::instance);
       this.internalSimpleKsqlClientFactory = TestDefaultKsqlClientFactory::instance;
-      this.networkState = new NetworkState();
     }
 
     @SuppressWarnings("unused") // Part of public API

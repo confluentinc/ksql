@@ -222,8 +222,9 @@ public class CatchupConsumer extends ScalablePushConsumer {
     if (!latestOffsets.keySet().equals(offsets.keySet())) {
       return false;
     } else {
-      for (final TopicPartition tp : latestOffsets.keySet()) {
-        final Long latestOffset = latestOffsets.get(tp);
+      for (final Map.Entry<TopicPartition, Long> entry : latestOffsets.entrySet()) {
+        final TopicPartition tp = entry.getKey();
+        final Long latestOffset = entry.getValue();
         final Long offset = offsets.get(tp);
         if (latestOffset == null || offset == null) {
           return false;

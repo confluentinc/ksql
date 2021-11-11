@@ -1,5 +1,6 @@
 package io.confluent.ksql.rest.server;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
@@ -27,9 +28,7 @@ public class NetworkDisruptorClient implements SimpleKsqlClient {
   private final SimpleKsqlClient workingClient;
   private final NetworkState networkState;
 
-  private AtomicReference<CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>>>
-      lastQueryPublisher = new AtomicReference<>();
-
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public NetworkDisruptorClient(
       final SimpleKsqlClient workingClient,
       final NetworkState networkState
@@ -136,6 +135,7 @@ public class NetworkDisruptorClient implements SimpleKsqlClient {
       publishers.add(publisherFuture);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>>> getPublishers() {
       return publishers;
     }

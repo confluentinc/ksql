@@ -90,7 +90,8 @@ public class RequestHandler {
               : Collections.emptyMap())
       );
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
-          SessionConfig.of(this.ksqlEngine.getKsqlConfig(), sessionProperties.getMutableScopedProperties())
+          SessionConfig.of(this.ksqlEngine.getKsqlConfig(),
+              sessionProperties.getMutableScopedProperties())
       );
 
       FeatureFlagChecker.throwOnDisabledFeatures(configured);

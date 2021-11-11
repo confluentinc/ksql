@@ -138,14 +138,6 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldReturnTrueIfPropertyIsPossible() {
-    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
-
-    assertThat(ksqlConfig.propertyIsPossibleItem(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), equalTo(true));
-    assertThat(ksqlConfig.propertyIsPossibleItem("TEST"), equalTo(false));
-  }
-
-  @Test
   public void shouldSetStreamsConfigConsumerKsqlPrefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(
         Collections.singletonMap(

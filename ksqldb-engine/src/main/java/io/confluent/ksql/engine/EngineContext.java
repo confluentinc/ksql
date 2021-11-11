@@ -139,10 +139,6 @@ final class EngineContext {
     return metaStore;
   }
 
-  KsqlConfig getKsqlConfig() {
-    return ksqlConfig;
-  }
-
   ServiceContext getServiceContext() {
     return serviceContext;
   }

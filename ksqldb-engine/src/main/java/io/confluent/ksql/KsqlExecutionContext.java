@@ -37,7 +37,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -72,11 +71,6 @@ public interface KsqlExecutionContext {
    * @return the service context used for this execution context
    */
   ServiceContext getServiceContext();
-
-  /**
-   * @return the ksql config used for this execution context
-   */
-  KsqlConfig getKsqlConfig();
 
   /**
    * @return the processing log context used to track errors during processing.

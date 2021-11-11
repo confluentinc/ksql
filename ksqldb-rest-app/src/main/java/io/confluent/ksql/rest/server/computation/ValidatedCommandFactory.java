@@ -123,9 +123,7 @@ public final class ValidatedCommandFactory {
     final String propertyName = alterSystemProperty.getPropertyName();
     final String propertyValue = alterSystemProperty.getPropertyValue();
 
-    final KsqlConfig config = context.getKsqlConfig();
-    if (!config.propertyIsPossibleItem(alterSystemProperty.getPropertyName())
-        || PropertiesList.InternalPropertiesList.contains(propertyName)) {
+    if (!PropertiesList.EditablePropertyList.contains(propertyName)) {
       throw new ConfigException(
           String.format("Failed to set %s to %s. Caused by: "
                   + "Not recognizable as ksql, streams, consumer, or producer property: %s %n",

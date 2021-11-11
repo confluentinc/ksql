@@ -112,24 +112,7 @@ public class ValidatedCommandFactoryTest {
   }
 
   @Test
-  public void shouldRaiseExceptionIfPropertyIsInternalForAlterSystemStatement() {
-    final KsqlConfig config = mock(KsqlConfig.class);
-    when(config.propertyIsPossibleItem("ksql.connect.url")).thenReturn(true);
-    when(executionContext.getKsqlConfig()).thenReturn(config);
-
-    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.connect.url'='http://confluent.io';" , alterSystemProperty);
-    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.connect.url");
-    when(alterSystemProperty.getPropertyValue()).thenReturn("http://confluent.io");
-
-    assertThrows(ConfigException.class,
-        () -> commandFactory.create(configuredStatement, executionContext));
-  }
-
-  @Test
-  public void shouldRaiseExceptionIfKeyDoesNotExistInConfigListForAlterSystemStatement() {
-    final KsqlConfig config = mock(KsqlConfig.class);
-    when(executionContext.getKsqlConfig()).thenReturn(config);
-
+  public void shouldRaiseExceptionIfKeyDoesNotExistEditablePropertiesList() {
     configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
     when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");

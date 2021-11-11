@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SandboxedSharedKafkaStreamsRuntimeTest {
+public class ValidationSharedKafkaStreamsRuntimeImplTest {
 
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
@@ -67,12 +67,12 @@ public class SandboxedSharedKafkaStreamsRuntimeTest {
   @Mock
   private NamedTopology namedTopology;
 
-  private SandboxedSharedKafkaStreamsRuntime validationSharedKafkaStreamsRuntime;
+  private ValidationSharedKafkaStreamsRuntimeImpl validationSharedKafkaStreamsRuntime;
 
   @Before
   public void setUp() throws Exception {
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
-    validationSharedKafkaStreamsRuntime = new SandboxedSharedKafkaStreamsRuntime(
+    validationSharedKafkaStreamsRuntime = new ValidationSharedKafkaStreamsRuntimeImpl(
         kafkaStreamsBuilder,
         5,
         streamProps

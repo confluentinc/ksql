@@ -18,7 +18,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-import org.apache.kafka.streams.KafkaStreams;
+
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ValidationSharedKafkaStreamsRuntimeImplTest {
+public class SandboxedSharedKafkaStreamsRuntimeTest {
 
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
@@ -53,7 +53,7 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
 
   @Mock
-  private PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimes;
+  private BinPackedPersistentQueryMetadata persistentQueriesInSharedRuntimes;
 
   @Mock
   private QueryErrorClassifier queryErrorClassifier;
@@ -67,12 +67,12 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
   @Mock
   private NamedTopology namedTopology;
 
-  private ValidationSharedKafkaStreamsRuntimeImpl validationSharedKafkaStreamsRuntime;
+  private SandboxedSharedKafkaStreamsRuntime validationSharedKafkaStreamsRuntime;
 
   @Before
   public void setUp() throws Exception {
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
-    validationSharedKafkaStreamsRuntime = new ValidationSharedKafkaStreamsRuntimeImpl(
+    validationSharedKafkaStreamsRuntime = new SandboxedSharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         5,
         streamProps
@@ -83,7 +83,6 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
     validationSharedKafkaStreamsRuntime.markSources(queryId, Collections.singleton(SourceName.of("foo")));
     validationSharedKafkaStreamsRuntime.register(
         queryErrorClassifier,
-        Collections.emptyMap(),
         persistentQueriesInSharedRuntimes,
         queryId);
     when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -107,7 +106,6 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> validationSharedKafkaStreamsRuntime.register(
             queryErrorClassifier,
-            Collections.emptyMap(),
             persistentQueriesInSharedRuntimes,
             queryId2));
     //Then

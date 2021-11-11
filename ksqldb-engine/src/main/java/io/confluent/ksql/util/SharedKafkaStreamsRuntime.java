@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
@@ -25,57 +28,141 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+public abstract class SharedKafkaStreamsRuntime {
 
-public interface SharedKafkaStreamsRuntime {
+  private final Logger log = LoggerFactory.getLogger(SharedKafkaStreamsRuntime.class);
 
-  void markSources(QueryId queryId, Set<SourceName> sourceNames);
+  protected final KafkaStreamsBuilder kafkaStreamsBuilder;
+  protected final KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  protected final ImmutableMap<String, Object> streamsProperties;
+  protected final QueryMetadataImpl.TimeBoundedQueue runtimeErrors;
+  protected final Map<QueryId, BinPackedPersistentQueryMetadata> binPackedQueries;
+  protected final Map<QueryId, Set<SourceName>> sources;
 
-  void register(
+  protected SharedKafkaStreamsRuntime(
+      final KafkaStreamsBuilder kafkaStreamsBuilder,
+      final Map<String, Object> streamsProperties,
+      final QueryMetadataImpl.TimeBoundedQueue runtimeErrors) {
+    this.kafkaStreamsBuilder = kafkaStreamsBuilder;
+    this.kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+    this.runtimeErrors = runtimeErrors;
+    this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
+    this.binPackedQueries = new ConcurrentHashMap<>();
+    this.sources = new ConcurrentHashMap<>();
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+  }
+
+  public void markSources(final QueryId queryId, final Set<SourceName> sourceNames) {
+    sources.put(queryId, sourceNames);
+    log.info(
+        "Marking source {} for query {} the mapping for this runtime is {}",
+        sourceNames,
+        queryId.toString(),
+        sourceNames
+    );
+  }
+
+  public abstract void register(
       QueryErrorClassifier errorClassifier,
-      Map<String, Object> streamsProperties,
-      PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
-      QueryId queryId);
+      BinPackedPersistentQueryMetadata binpackedPersistentQueryMetadata,
+      QueryId queryId
+  );
 
-  StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
+  public abstract StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       Throwable e
   );
 
-  KafkaStreams getKafkaStreams();
+  public abstract void stop(QueryId queryId);
 
-  KafkaStreams.State state();
+  public abstract void close();
 
-  Collection<StreamsMetadata> allMetadata();
+  public abstract void start(QueryId queryId);
 
-  Set<StreamsTaskMetadata> getTaskMetadata();
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streams must be exposed")
+  public KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
 
-  boolean isError(QueryId queryId);
+  public KafkaStreams.State state() {
+    return kafkaStreams.state();
+  }
 
-  void stop(QueryId queryId);
+  public Collection<StreamsMetadata> allMetadata() {
+    return kafkaStreams.metadataForAllStreamsClients();
+  }
 
-  void close();
+  public Set<StreamsTaskMetadata> getTaskMetadata() {
+    return kafkaStreams.metadataForLocalThreads()
+        .stream()
+        .flatMap(t -> t.activeTasks().stream())
+        .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
+        .collect(Collectors.toSet());
+  }
 
-  void start(QueryId queryId);
+  public boolean isError(final QueryId queryId) {
+    return !runtimeErrors.toImmutableList().isEmpty();
+  }
 
-  List<QueryError> getQueryErrors();
+  public List<QueryError> getRuntimeErrors() {
+    return runtimeErrors.toImmutableList();
+  }
 
-  Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(QueryId queryId);
+  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
+    try {
+      return kafkaStreams.allLocalStorePartitionLags();
+    } catch (IllegalStateException | StreamsException e) {
+      log.error(e.getMessage());
+      return ImmutableMap.of();
+    }
+  }
 
-  Map<String, Object> getStreamProperties();
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is immutable")
+  public Map<String, Object> getStreamProperties() {
+    return streamsProperties;
+  }
 
-  Set<SourceName> getSources();
+  public Set<SourceName> getSources() {
+    return ImmutableSet.copyOf(
+        sources
+            .values()
+            .stream()
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet()));
+  }
 
-  Set<QueryId> getQueries();
+  public Set<QueryId> getQueries() {
+    return ImmutableSet.copyOf(sources.keySet());
+  }
 
-  KafkaStreamsBuilder getKafkaStreamsBuilder();
+  public KafkaStreamsBuilder getKafkaStreamsBuilder() {
+    return kafkaStreamsBuilder;
+  }
 
-  Map<String, PersistentQueriesInSharedRuntimesImpl> getMetadata();
+  public Map<QueryId, BinPackedPersistentQueryMetadata> getBinPackedQueries() {
+    return ImmutableMap.copyOf(binPackedQueries);
+  }
 
-  Map<QueryId, Set<SourceName>> getSourcesMap();
+  public Map<QueryId, Set<SourceName>> getSourcesMap() {
+    return ImmutableMap.copyOf(sources);
+  }
 
-  void addQueryError(QueryError e);
+  public void addRuntimeError(final QueryError e) {
+    runtimeErrors.add(e);
+  }
+
+  public String getApplicationId() {
+    return getStreamProperties().get(StreamsConfig.APPLICATION_ID_CONFIG).toString();
+  }
 }

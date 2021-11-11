@@ -19,7 +19,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-import org.apache.kafka.streams.KafkaStreams;
+
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -54,7 +54,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
 
     @Mock
-    private PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimes;
+    private BinPackedPersistentQueryMetadata persistentQueriesInSharedRuntimes;
 
     @Mock
     private QueryErrorClassifier queryErrorClassifier;

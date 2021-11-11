@@ -121,7 +121,7 @@ public interface QueryRegistry {
       ExecutionStep<?> physicalPlan,
       String planSummary,
       KsqlConstants.PersistentQueryType persistentQueryType,
-      Optional<String> usesSharedRuntimes
+      Optional<String> sharedRuntimeId
   );
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 

@@ -36,7 +36,6 @@ public final class SandboxedPersistentQueryMetadataImpl extends PersistentQueryM
 
   @Override
   public void close() {
-    closed = true;
     getListener().onClose(this);
   }
 

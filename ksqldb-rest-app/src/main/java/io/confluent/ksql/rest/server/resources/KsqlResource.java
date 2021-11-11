@@ -200,7 +200,6 @@ public class KsqlResource implements KsqlConfigurable {
             commandRunnerWarning
         ),
         ksqlEngine,
-        config,
         new DefaultCommandQueueSync(
             commandRunner.getCommandQueue(),
             KsqlResource::shouldSynchronize,

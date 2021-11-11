@@ -42,7 +42,6 @@ public class RequestHandler {
 
   private final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors;
   private final KsqlEngine ksqlEngine;
-  private final KsqlConfig ksqlConfig;
   private final DistributingExecutor distributor;
   private final CommandQueueSync commandQueueSync;
 
@@ -53,18 +52,15 @@ public class RequestHandler {
    *                        statement
    * @param ksqlEngine      the primary KSQL engine - the state of this engine <b>will</b>
    *                        be directly modified by this class
-   * @param ksqlConfig      a configuration
    */
   public RequestHandler(
       final Map<Class<? extends Statement>, StatementExecutor<?>> customExecutors,
       final DistributingExecutor distributor,
       final KsqlEngine ksqlEngine,
-      final KsqlConfig ksqlConfig,
       final CommandQueueSync commandQueueSync
   ) {
     this.customExecutors = Objects.requireNonNull(customExecutors, "customExecutors");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.distributor = Objects.requireNonNull(distributor, "distributor");
     this.commandQueueSync = Objects.requireNonNull(commandQueueSync, "commandQueueSync");
   }
@@ -77,7 +73,7 @@ public class RequestHandler {
       return (boolean) substitutionEnabled;
     }
 
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+    return this.ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
   }
 
   public KsqlEntityList execute(
@@ -94,7 +90,7 @@ public class RequestHandler {
               : Collections.emptyMap())
       );
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
-          SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
+          SessionConfig.of(this.ksqlEngine.getKsqlConfig(), sessionProperties.getMutableScopedProperties())
       );
 
       FeatureFlagChecker.throwOnDisabledFeatures(configured);

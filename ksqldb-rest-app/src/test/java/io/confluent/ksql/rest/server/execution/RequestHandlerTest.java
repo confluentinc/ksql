@@ -95,6 +95,7 @@ public class RequestHandlerTest {
     when(distributor.execute(any(), any(), any())).thenReturn(response);
     when(response.getEntity()).thenReturn(Optional.of(entity));
     when(sessionProperties.getMutableScopedProperties()).thenReturn(ImmutableMap.of());
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     doNothing().when(sync).waitFor(any(), any());
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
@@ -269,7 +270,6 @@ public class RequestHandlerTest {
         executors,
         distributor,
         ksqlEngine,
-        ksqlConfig,
         sync
     );
   }

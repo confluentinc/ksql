@@ -126,6 +126,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS =
       KSQL_CONNECT_PREFIX + "basic.auth.credentials.fail.on.unreadable";
 
+  public static final String CONNECT_REQUEST_HEADERS_PLUGIN =
+      KSQL_CONNECT_PREFIX + "request.headers.plugin";
+  private static final String CONNECT_REQUEST_HEADERS_PLUGIN_DOC =
+      "Custom extension to allow for more fine-grained control of connector requests made by "
+          + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
+
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -848,6 +854,12 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             "If true, failure to load basic auth credentials for connector auth will result "
                 + "in an error. If false, failure will result in a warn log and empty credentials."
+        ).define(
+            CONNECT_REQUEST_HEADERS_PLUGIN,
+            Type.CLASS,
+            null,
+            ConfigDef.Importance.LOW,
+            CONNECT_REQUEST_HEADERS_PLUGIN_DOC
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,

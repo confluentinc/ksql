@@ -15,7 +15,8 @@
 
 package io.confluent.ksql.services;
 
-import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
+import io.confluent.ksql.connect.ConnectRequestHeadersExtension;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.FileWatcher;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.FileInputStream;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
@@ -52,17 +54,27 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   private static final Logger log = LoggerFactory.getLogger(DefaultConnectClientFactory.class);
 
   private final KsqlConfig ksqlConfig;
+  private final Optional<ConnectRequestHeadersExtension> requestHeadersExtension;
   private volatile Optional<String> connectAuthHeader;
   private FileWatcher credentialsFileWatcher;
+
 
   public DefaultConnectClientFactory(
       final KsqlConfig ksqlConfig
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    this.requestHeadersExtension = Optional.ofNullable(
+        ksqlConfig.getConfiguredInstance(
+            KsqlConfig.CONNECT_REQUEST_HEADERS_PLUGIN,
+            ConnectRequestHeadersExtension.class
+        ));
   }
 
   @Override
-  public synchronized DefaultConnectClient get(final Optional<String> ksqlAuthHeader) {
+  public synchronized DefaultConnectClient get(
+      final Optional<String> ksqlAuthHeader,
+      final Optional<KsqlPrincipal> userPrincipal
+  ) {
     if (connectAuthHeader == null) {
       connectAuthHeader = buildAuthHeader();
     }
@@ -70,7 +82,10 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     return new DefaultConnectClient(
         ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
         // if no explicit header specified, then forward incoming request header
-        connectAuthHeader.isPresent() ? connectAuthHeader : ksqlAuthHeader
+        connectAuthHeader.isPresent() ? connectAuthHeader : ksqlAuthHeader,
+        requestHeadersExtension
+            .map(extension -> extension.getHeaders(userPrincipal))
+            .orElse(Collections.emptyMap())
     );
   }
 

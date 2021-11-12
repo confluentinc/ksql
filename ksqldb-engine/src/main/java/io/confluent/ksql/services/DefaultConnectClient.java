@@ -29,6 +29,7 @@ import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,6 +37,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
@@ -73,13 +75,17 @@ public class DefaultConnectClient implements ConnectClient {
 
   private final URI connectUri;
   private final Optional<String> authHeader;
+  private final Map<String, String> additionalRequestHeaders;
 
   public DefaultConnectClient(
       final String connectUri,
-      final Optional<String> authHeader
+      final Optional<String> authHeader,
+      final Map<String, String> additionalRequestHeaders
   ) {
     Objects.requireNonNull(connectUri, "connectUri");
     this.authHeader = Objects.requireNonNull(authHeader, "authHeader");
+    this.additionalRequestHeaders =
+        Objects.requireNonNull(additionalRequestHeaders, "additionalRequestHeaders");
 
     try {
       this.connectUri = new URI(connectUri);
@@ -320,10 +326,25 @@ public class DefaultConnectClient implements ConnectClient {
     return authHeader;
   }
 
+  @VisibleForTesting
+  Map<String, String> getAdditionalRequestHeaders() {
+    return additionalRequestHeaders;
+  }
+
   private Header[] headers() {
-    return authHeader.isPresent()
-        ? new Header[]{new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())}
-        : new Header[]{};
+    final List<Header> headers = new ArrayList<>();
+
+    authHeader.ifPresent(header -> headers.add(
+        new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())));
+
+    if (!additionalRequestHeaders.isEmpty()) {
+      final List<Header> additionalHeaders = additionalRequestHeaders.entrySet().stream()
+          .map(e -> new BasicHeader(e.getKey(), e.getValue()))
+          .collect(Collectors.toList());
+      headers.addAll(additionalHeaders);
+    }
+
+    return headers.toArray(new Header[0]);
   }
 
   private String resolveUri(final String relativePath) {

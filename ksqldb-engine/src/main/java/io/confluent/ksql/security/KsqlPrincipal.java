@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,14 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.auth;
+package io.confluent.ksql.security;
 
-import io.confluent.ksql.security.KsqlPrincipal;
-import java.util.Optional;
+import java.security.Principal;
+import java.util.Map;
 
-public interface ApiSecurityContext {
+public interface KsqlPrincipal extends Principal {
 
-  Optional<KsqlPrincipal> getPrincipal();
+  Map<String, Object> getUserProperties();
 
-  Optional<String> getAuthToken();
+  static KsqlPrincipal from(final Principal principal) {
+    return principal instanceof KsqlPrincipal
+        ? (KsqlPrincipal) principal
+        : new DefaultKsqlPrincipal(principal);
+  }
 }

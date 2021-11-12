@@ -126,7 +126,7 @@ public enum CustomExecutors {
         sessionProperties,
         executionCtx,
         serviceCtx
-        );
+    );
   }
 
   private static StatementExecutor insertValuesExecutor() {

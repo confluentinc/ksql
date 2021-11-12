@@ -21,11 +21,11 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
+import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import java.security.Principal;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -60,7 +60,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   @Override
   public KsqlSecurityContext provide(final ApiSecurityContext apiSecurityContext) {
 
-    final Optional<Principal> principal = apiSecurityContext.getPrincipal();
+    final Optional<KsqlPrincipal> principal = apiSecurityContext.getPrincipal();
     final Optional<String> authHeader = apiSecurityContext.getAuthToken();
 
     // A user context is not necessary if a user context provider is not present or the user
@@ -78,7 +78,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
       return new KsqlSecurityContext(
           principal,
           defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory,
-              connectClientFactory, sharedClient)
+              connectClientFactory, sharedClient, principal)
       );
     }
 
@@ -91,7 +91,8 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
                 provider.getKafkaClientSupplier(principal.get()),
                 provider.getSchemaRegistryClientFactory(principal.get()),
                 connectClientFactory,
-                sharedClient)))
+                sharedClient,
+                principal)))
         .get();
   }
 

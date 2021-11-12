@@ -61,7 +61,7 @@ public final class KsqlContextTestUtil {
         adminClient,
         kafkaTopicClient,
         () -> schemaRegistryClient,
-        new DefaultConnectClientFactory(ksqlConfig).get(Optional.empty())
+        new DefaultConnectClientFactory(ksqlConfig).get(Optional.empty(), Optional.empty())
     );
 
     final String metricsPrefix = "instance-" + COUNTER.getAndIncrement() + "-";

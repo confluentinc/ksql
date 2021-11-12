@@ -103,7 +103,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
+import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
@@ -639,7 +639,7 @@ public final class KsqlRestApplication implements Executable {
 
     final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
-            schemaRegistryClientFactory, connectClientFactory, sharedClient));
+            schemaRegistryClientFactory, connectClientFactory, sharedClient, Optional.empty()));
     final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
     final String ksqlServerId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     updatedRestProps.putAll(
@@ -652,7 +652,8 @@ public final class KsqlRestApplication implements Executable {
             Optional.empty(),
             schemaRegistryClientFactory,
             connectClientFactory,
-            sharedClient));
+            sharedClient,
+            Optional.empty()));
 
     return buildApplication(
         "",

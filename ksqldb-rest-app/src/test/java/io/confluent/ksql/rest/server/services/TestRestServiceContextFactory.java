@@ -7,6 +7,7 @@ import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -20,14 +21,16 @@ public class TestRestServiceContextFactory {
   public static DefaultServiceContextFactory createDefault(
       final InternalSimpleKsqlClientFactory ksqlClientFactory
   ) {
-    return (ksqlConfig, authHeader, srClientFactory, connectClientFactory, sharedClient) -> {
+    return (ksqlConfig, authHeader, srClientFactory,
+            connectClientFactory, sharedClient, userPrincipal) -> {
       return createUser(ksqlClientFactory).create(
           ksqlConfig,
           authHeader,
           new DefaultKafkaClientSupplier(),
           srClientFactory,
           connectClientFactory,
-          sharedClient
+          sharedClient,
+          userPrincipal
       );
     };
   }
@@ -36,13 +39,13 @@ public class TestRestServiceContextFactory {
     final InternalSimpleKsqlClientFactory ksqlClientFactory
   ) {
     return (ksqlConfig, authHeader, kafkaClientSupplier,
-            srClientFactory, connectClientFactory, sharedClient) -> {
+            srClientFactory, connectClientFactory, sharedClient, userPrincipal) -> {
       return ServiceContextFactory.create(
           ksqlConfig,
           kafkaClientSupplier,
           srClientFactory,
           () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-              authHeader),
+              authHeader, Collections.emptyMap()),
           () -> ksqlClientFactory.create(authHeader, sharedClient)
       );
     };

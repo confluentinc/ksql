@@ -571,7 +571,10 @@ public class TestExecutor implements Closeable {
         () -> kafkaClientSupplier.getAdmin(Collections.emptyMap()),
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
-        () -> new DefaultConnectClient("http://localhost:8083", Optional.empty()),
+        () -> new DefaultConnectClient(
+            "http://localhost:8083",
+            Optional.empty(),
+            Collections.emptyMap()),
         DisabledKsqlClient::instance,
         new StubKafkaConsumerGroupClient()
     );

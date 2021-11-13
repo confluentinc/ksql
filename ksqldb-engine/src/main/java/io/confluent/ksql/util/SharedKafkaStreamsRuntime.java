@@ -48,7 +48,7 @@ public abstract class SharedKafkaStreamsRuntime {
   protected final KafkaStreamsNamedTopologyWrapper kafkaStreams;
   protected final ImmutableMap<String, Object> streamsProperties;
   protected final QueryMetadataImpl.TimeBoundedQueue runtimeErrors;
-  protected final Map<QueryId, BinPackedPersistentQueryMetadata> binPackedQueries;
+  protected final Map<QueryId, BinPackedPersistentQueryMetadata> collocatedQueries;
   protected final Map<QueryId, Set<SourceName>> sources;
 
   protected SharedKafkaStreamsRuntime(
@@ -59,7 +59,7 @@ public abstract class SharedKafkaStreamsRuntime {
     this.kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
     this.runtimeErrors = runtimeErrors;
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
-    this.binPackedQueries = new ConcurrentHashMap<>();
+    this.collocatedQueries = new ConcurrentHashMap<>();
     this.sources = new ConcurrentHashMap<>();
     kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
@@ -150,8 +150,8 @@ public abstract class SharedKafkaStreamsRuntime {
     return kafkaStreamsBuilder;
   }
 
-  public Map<QueryId, BinPackedPersistentQueryMetadata> getBinPackedQueries() {
-    return ImmutableMap.copyOf(binPackedQueries);
+  public Map<QueryId, BinPackedPersistentQueryMetadata> getCollocatedQueries() {
+    return ImmutableMap.copyOf(collocatedQueries);
   }
 
   public Map<QueryId, Set<SourceName>> getSourcesMap() {

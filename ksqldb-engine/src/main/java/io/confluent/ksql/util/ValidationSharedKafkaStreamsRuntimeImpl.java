@@ -41,7 +41,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
         new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 0)
     );
 
-    for (BinPackedPersistentQueryMetadata query : sharedRuntime.binPackedQueries.values()) {
+    for (BinPackedPersistentQueryMetadata query : sharedRuntime.collocatedQueries.values()) {
       //kafkaStreams.addNamedTopology(queryMetadata.getTopology());
     }
   }
@@ -88,8 +88,8 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
         sources.put(queryId, binpackedPersistentQueryMetadata.getSourceNames());
       }
     }
-    binPackedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    log.debug("mapping {}", binPackedQueries);
+    collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
+    log.debug("mapping {}", collocatedQueries);
   }
 
   @Override

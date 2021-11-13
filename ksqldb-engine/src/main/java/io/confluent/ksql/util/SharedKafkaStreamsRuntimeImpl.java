@@ -63,8 +63,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       }
     }
     this.errorClassifier = errorClassifier;
-    binPackedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    log.info("mapping {}", binPackedQueries);
+    collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
+    log.info("mapping {}", collocatedQueries);
   }
 
   @Override
@@ -88,8 +88,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
               Throwables.getStackTraceAsString(e),
               errorType
           );
-      for (BinPackedPersistentQueryMetadata query: binPackedQueries.values()) {
-        query.getListener().onError(binPackedQueries.get(query.getQueryId()), queryError);
+      for (BinPackedPersistentQueryMetadata query: collocatedQueries.values()) {
+        query.getListener().onError(collocatedQueries.get(query.getQueryId()), queryError);
       }
       runtimeErrors.add(queryError);
       log.error(
@@ -105,7 +105,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void stop(final QueryId queryId) {
     log.info("Attempting to stop Query: " + queryId.toString());
-    if (binPackedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
+    if (collocatedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         kafkaStreams.removeNamedTopology(queryId.toString());
       } else {
@@ -125,9 +125,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void start(final QueryId queryId) {
-    if (binPackedQueries.containsKey(queryId) && !binPackedQueries.get(queryId).everStarted) {
+    if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(binPackedQueries.get(queryId).getTopology());
+        kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology());
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);
       }

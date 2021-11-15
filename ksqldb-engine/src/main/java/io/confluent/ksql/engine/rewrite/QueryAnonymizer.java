@@ -88,8 +88,6 @@ import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.WithinExpressionContext;
 import io.confluent.ksql.parser.tree.ColumnConstraints;
-
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;

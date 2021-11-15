@@ -83,7 +83,7 @@ public class RequestValidator {
       return (boolean) substitutionEnabled;
     }
 
-    return ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
   }
 
   /**

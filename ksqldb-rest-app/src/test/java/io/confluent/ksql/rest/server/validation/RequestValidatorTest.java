@@ -37,7 +37,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -119,7 +118,6 @@ public class RequestValidatorTest {
     metaStore.putSource(source, false);
     metaStore.putSource(sink, false);
 
-    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     givenRequestValidator(ImmutableMap.of());
   }
 

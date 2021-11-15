@@ -8,5 +8,6 @@ dockerfile {
     dockerRepos = ['confluentinc/ksql-cli']
     extraBuildArgs = '-Ddocker.skip=false'
     extraDeployArgs = '-Ddocker.skip=true'
+    disableConcurrentBuilds = true
 }
 

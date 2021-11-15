@@ -67,7 +67,6 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;

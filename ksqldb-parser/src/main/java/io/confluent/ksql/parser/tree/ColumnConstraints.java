@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
 import com.google.errorprone.annotations.Immutable;
-
 import java.util.Objects;
 import java.util.Optional;
 

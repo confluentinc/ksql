@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Explain;
@@ -56,7 +57,6 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -882,8 +882,7 @@ public class AstBuilderTest {
 
     // Then:
     final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
-    assertEquals(createStream.getElements().stream().findFirst().get().getNamespace(), Namespace.HEADERS);
-    assertThat(column.getConstraints().getHeaderKey(), is(Optional.empty()));
+    assertThat(column.getConstraints(), is((new ColumnConstraints.Builder()).headers().build()));
   }
 
   @Test
@@ -897,7 +896,7 @@ public class AstBuilderTest {
 
     // Then:
     final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
-    assertEquals(column.getNamespace(), Namespace.HEADERS);
-    assertThat(column.getConstraints().getHeaderKey(), is(Optional.of("h1")));
+    assertThat(column.getConstraints(),
+        is((new ColumnConstraints.Builder()).header("h1").build()));
   }
 }

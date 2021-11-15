@@ -29,31 +29,6 @@ import java.util.Optional;
  */
 @Immutable
 public final class TableElement extends AstNode {
-
-  public enum Namespace {
-    /**
-     * Table's have PRIMARY KEYs:
-     */
-    PRIMARY_KEY,
-    /**
-     * Stream's just have KEYs:
-     */
-    KEY,
-    /**
-     * Non-key colunns:
-     */
-    VALUE,
-    /**
-     * Header-backed columns
-     */
-    HEADERS;
-
-    public boolean isKey() {
-      return this == KEY || this == PRIMARY_KEY;
-    }
-  }
-
-  private final Namespace namespace;
   private final ColumnName name;
   private final Type type;
   private final ColumnConstraints constraints;
@@ -98,17 +73,6 @@ public final class TableElement extends AstNode {
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
     this.constraints = requireNonNull(constraints, "constraints");
-
-    //
-    if (constraints.isPrimaryKey()) {
-      namespace = Namespace.PRIMARY_KEY;
-    } else if (constraints.isKey()) {
-      namespace = Namespace.KEY;
-    } else if (constraints.isHeaders() || constraints.getHeaderKey().isPresent()) {
-      namespace = Namespace.HEADERS;
-    } else {
-      namespace = Namespace.VALUE;
-    }
   }
 
   public ColumnName getName() {
@@ -119,9 +83,6 @@ public final class TableElement extends AstNode {
     return type;
   }
 
-  public Namespace getNamespace() {
-    return namespace;
-  }
 
   public ColumnConstraints getConstraints() {
     return constraints;

@@ -219,14 +219,16 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> e.getNamespace().isKey());
+        .map(TableElement::getConstraints)
+        .anyMatch(c -> c.isKey() || c.isPrimaryKey());
   }
 
   private static boolean hasValueElements(
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> !e.getNamespace().isKey());
+        .map(TableElement::getConstraints)
+        .anyMatch(e -> !e.isKey() && !e.isPrimaryKey() && !e.isHeaders());
   }
 
   private static boolean formatSupportsSchemaInference(final FormatInfo format) {
@@ -292,14 +294,17 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> e.getNamespace().isKey());
+        .filter(e -> e.getConstraints().isKey()
+            || e.getConstraints().isPrimaryKey());
   }
 
   private static Stream<TableElement> getValueColumns(
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> !e.getNamespace().isKey());
+        .filter(e -> !e.getConstraints().isKey()
+            && !e.getConstraints().isPrimaryKey()
+            && !e.getConstraints().isHeaders());
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

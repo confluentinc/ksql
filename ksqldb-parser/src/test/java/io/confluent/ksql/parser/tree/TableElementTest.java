@@ -16,10 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import static io.confluent.ksql.parser.tree.ColumnConstraints.NO_COLUMN_CONSTRAINTS;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.HEADERS;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -100,51 +96,51 @@ public class TableElementTest {
   }
 
   @Test
-  public void shouldReturnNamespace() {
+  public void shouldReturnEmptyConstraints() {
     // Given:
     final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING));
 
     // Then:
-    assertThat(valueElement.getNamespace(), is(VALUE));
+    assertThat(valueElement.getConstraints(), is(NO_COLUMN_CONSTRAINTS));
   }
 
   @Test
-  public void shouldReturnKeyNamespaceOnPrimaryKey() {
+  public void shouldReturnPrimaryKey() {
     // Given:
     final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
         PRIMARY_KEY_CONSTRAINT);
 
     // Then:
-    assertThat(valueElement.getNamespace(), is(PRIMARY_KEY));
+    assertThat(valueElement.getConstraints(), is(PRIMARY_KEY_CONSTRAINT));
   }
 
   @Test
-  public void shouldReturnKeyNamespace() {
+  public void shouldReturnKeyConstraint() {
     // Given:
     final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
         KEY_CONSTRAINT);
 
     // Then:
-    assertThat(valueElement.getNamespace(), is(KEY));
+    assertThat(valueElement.getConstraints(), is(KEY_CONSTRAINT));
   }
 
   @Test
-  public void shouldReturnHeadersNamespace() {
+  public void shouldReturnHeadersConstraint() {
     // Given:
     final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
         HEADERS_CONSTRAINT);
 
     // Then:
-    assertThat(valueElement.getNamespace(), is(HEADERS));
+    assertThat(valueElement.getConstraints(), is(HEADERS_CONSTRAINT));
   }
 
   @Test
-  public void shouldReturnHeadersNamespaceOnSingleHeaderKey() {
+  public void shouldReturnSingleHeaderKeyConstraint() {
     // Given:
     final TableElement valueElement = new TableElement(NAME, new Type(SqlTypes.STRING),
         HEADER_SINGLE_KEY_CONSTRAINT);
 
     // Then:
-    assertThat(valueElement.getNamespace(), is(HEADERS));
+    assertThat(valueElement.getConstraints(), is(HEADER_SINGLE_KEY_CONSTRAINT));
   }
 }

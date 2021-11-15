@@ -20,12 +20,12 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
@@ -63,6 +63,11 @@ import java.util.stream.Stream;
  * {@code statement} is returned unchanged.
  */
 public class DefaultSchemaInjector implements Injector {
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
 
   private final TopicSchemaSupplier schemaSupplier;
 
@@ -214,14 +219,16 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> e.getNamespace().isKey());
+        .map(TableElement::getConstraints)
+        .anyMatch(c -> c.isKey() || c.isPrimaryKey());
   }
 
   private static boolean hasValueElements(
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> !e.getNamespace().isKey());
+        .map(TableElement::getConstraints)
+        .anyMatch(e -> !e.isKey() && !e.isPrimaryKey() && !e.isHeaders());
   }
 
   private static boolean formatSupportsSchemaInference(final FormatInfo format) {
@@ -252,9 +259,9 @@ public class DefaultSchemaInjector implements Injector {
     final List<TableElement> elements = new ArrayList<>();
 
     if (keySchema.isPresent()) {
-      final Namespace namespace = getKeyNamespace(preparedStatement.getStatement());
+      final ColumnConstraints constraints = getKeyConstraints(preparedStatement.getStatement());
       keySchema.get().columns.stream()
-          .map(col -> new TableElement(namespace, col.name(), new Type(col.type())))
+          .map(col -> new TableElement(col.name(), new Type(col.type()), constraints))
           .forEach(elements::add);
     } else {
       getKeyColumns(preparedStatement)
@@ -263,7 +270,7 @@ public class DefaultSchemaInjector implements Injector {
 
     if (valueSchema.isPresent()) {
       valueSchema.get().columns.stream()
-          .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
+          .map(col -> new TableElement(col.name(), new Type(col.type())))
           .forEach(elements::add);
     } else {
       getValueColumns(preparedStatement)
@@ -273,11 +280,11 @@ public class DefaultSchemaInjector implements Injector {
     return TableElements.of(elements);
   }
 
-  private static Namespace getKeyNamespace(final CreateSource statement) {
+  private static ColumnConstraints getKeyConstraints(final CreateSource statement) {
     if (statement instanceof CreateStream) {
-      return Namespace.KEY;
+      return KEY_CONSTRAINT;
     } else if (statement instanceof CreateTable) {
-      return Namespace.PRIMARY_KEY;
+      return PRIMARY_KEY_CONSTRAINT;
     } else {
       throw new IllegalArgumentException("Unrecognized statement type: " + statement);
     }
@@ -287,14 +294,17 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> e.getNamespace().isKey());
+        .filter(e -> e.getConstraints().isKey()
+            || e.getConstraints().isPrimaryKey());
   }
 
   private static Stream<TableElement> getValueColumns(
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> !e.getNamespace().isKey());
+        .filter(e -> !e.getConstraints().isKey()
+            && !e.getConstraints().isPrimaryKey()
+            && !e.getConstraints().isHeaders());
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

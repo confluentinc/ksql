@@ -88,7 +88,7 @@ public final class TableElements implements Iterable<TableElement> {
       final ColumnName fieldName = tableElement.getName();
       final SqlType fieldType = tableElement.getType().getSqlType();
 
-      if (tableElement.getNamespace().isKey()) {
+      if (tableElement.getConstraints().isKey() || tableElement.getConstraints().isPrimaryKey()) {
         builder.keyColumn(fieldName, fieldType);
       } else {
         builder.valueColumn(fieldName, fieldType);

@@ -107,7 +107,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
-  private KsqlConfig ksqlConfig;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -177,7 +176,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
 
     cleanupService.startAsync();
   }
@@ -324,13 +322,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
   }
 
+  @Override
   public KsqlConfig getKsqlConfig() {
-    return this.ksqlConfig.cloneWithoutOverride();
+    return this.primaryContext.getKsqlConfig();
   }
 
+  @Override
   public void alterSystemProperty(final String propertyName, final String propertyValue) {
     final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
-    this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
+    this.primaryContext.alterSystemProperty(overrides);
   }
 
   public StreamPullQueryMetadata createStreamPullQuery(
@@ -520,7 +520,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     try {
       cleanupService.stopAsync().awaitTerminated(
-          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS),
+          this.primaryContext.getKsqlConfig()
+              .getLong(KsqlConfig.KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS),
           TimeUnit.MILLISECONDS);
     } catch (final TimeoutException e) {
       log.warn("Timed out while closing cleanup service. "
@@ -566,6 +567,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String queryText,
       final Map<String, Object> configOverrides) {
 
+    final KsqlConfig ksqlConfig = this.primaryContext.getKsqlConfig();
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         getMetaStore(),
         "",

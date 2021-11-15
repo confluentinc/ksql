@@ -37,7 +37,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -77,8 +76,6 @@ public class RequestValidatorTest {
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
 
   @Mock
-  private KsqlEngine ksqlEngine;
-  @Mock
   private SandboxEngine sandboxEngine;
   @Mock
   private KsqlConfig ksqlConfig;
@@ -104,6 +101,7 @@ public class RequestValidatorTest {
     when(sandboxEngine.prepare(any(), any()))
         .thenAnswer(invocation ->
             KSQL_PARSER.prepare(invocation.getArgument(0), metaStore));
+    when(sandboxEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     executionContext = sandboxEngine;
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
@@ -120,7 +118,6 @@ public class RequestValidatorTest {
     metaStore.putSource(source, false);
     metaStore.putSource(sink, false);
 
-    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
     givenRequestValidator(ImmutableMap.of());
   }
 
@@ -344,7 +341,6 @@ public class RequestValidatorTest {
         customValidators,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
-        ksqlEngine,
         distributedStatementValidator
     );
   }

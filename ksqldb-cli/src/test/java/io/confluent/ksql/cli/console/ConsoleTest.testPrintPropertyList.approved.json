@@ -5,19 +5,19 @@
     "name" : "k1",
     "scope" : "KSQL",
     "value" : "1",
-    "internal" : false,
+    "editable" : false,
     "level" : "SERVER"
   }, {
     "name" : "k2",
     "scope" : "KSQL",
     "value" : "v2",
-    "internal" : false,
+    "editable" : false,
     "level" : "SERVER"
   }, {
     "name" : "k3",
     "scope" : "KSQL",
     "value" : "true",
-    "internal" : false,
+    "editable" : false,
     "level" : "SERVER"
   } ],
   "overwrittenProperties" : [ ],

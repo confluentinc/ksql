@@ -183,7 +183,6 @@ public class KsqlResource implements KsqlConfigurable {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        ksqlEngine,
         new ValidatedCommandFactory()
     );
 

@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.util.Map;
+import java.util.UUID;
 
 public class CommandIdAssigner {
 
@@ -148,7 +149,7 @@ public class CommandIdAssigner {
   private static CommandId getAlterSystemCommandId(final AlterSystemProperty alterSystemProperty) {
     return new CommandId(
         Type.CLUSTER,
-        alterSystemProperty.toString(),
+        String.format("%s: %s", UUID.randomUUID(), alterSystemProperty.toString()),
         Action.ALTER
     );
   }

@@ -2088,6 +2088,7 @@ public class KsqlEngineTest {
     // Then:
     final Object valueAfter = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
     assertThat(valueAfter, not(equalTo(valueBefore)));
+    assertThat(valueAfter, equalTo("3000"));
   }
 
   @Test

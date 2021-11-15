@@ -24,7 +24,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.PropertiesList;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -112,7 +112,8 @@ public final class ValidatedCommandFactory {
       return createForAlterSystemQuery(statement, context);
     }
 
-    return createForPlannedQuery(statement, serviceContext, context);
+    return createForPlannedQuery(statement.withConfig(context.getKsqlConfig()),
+        serviceContext, context);
   }
 
   private static Command createForAlterSystemQuery(
@@ -123,7 +124,9 @@ public final class ValidatedCommandFactory {
     final String propertyName = alterSystemProperty.getPropertyName();
     final String propertyValue = alterSystemProperty.getPropertyValue();
 
-    if (!PropertiesList.EditablePropertyList.contains(propertyName)) {
+    // validate
+    context.alterSystemProperty(propertyName, propertyValue);
+    if (!Property.isEditable(propertyName)) {
       throw new ConfigException(
           String.format("Failed to set %s to %s. Caused by: "
                   + "Not recognizable as ksql, streams, consumer, or producer property: %s %n",

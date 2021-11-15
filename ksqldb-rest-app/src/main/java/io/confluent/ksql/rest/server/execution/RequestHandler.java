@@ -89,16 +89,10 @@ public class RequestHandler {
               ? sessionProperties.getSessionVariables()
               : Collections.emptyMap())
       );
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
-          SessionConfig.of(this.ksqlEngine.getKsqlConfig(),
-              sessionProperties.getMutableScopedProperties())
-      );
-
-      FeatureFlagChecker.throwOnDisabledFeatures(configured);
 
       executeStatement(
           securityContext,
-          configured,
+          prepared,
           sessionProperties,
           entities
       ).ifPresent(entities::add);
@@ -109,13 +103,20 @@ public class RequestHandler {
   @SuppressWarnings("unchecked")
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final KsqlSecurityContext securityContext,
-      final ConfiguredStatement<T> configured,
+      final PreparedStatement<T> prepared,
       final SessionProperties sessionProperties,
       final KsqlEntityList entities
   ) {
-    final Class<? extends Statement> statementClass = configured.getStatement().getClass();
+    final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
     
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
+
+    final ConfiguredStatement<T> configured = ConfiguredStatement.of(prepared,
+        SessionConfig.of(this.ksqlEngine.getKsqlConfig(),
+            sessionProperties.getMutableScopedProperties())
+    );
+
+    FeatureFlagChecker.throwOnDisabledFeatures(configured);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>) customExecutors.getOrDefault(
         statementClass,

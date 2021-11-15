@@ -94,6 +94,7 @@ public class ValidatedCommandFactoryTest {
   @Before
   public void setup() {
     commandFactory = new ValidatedCommandFactory();
+    when(executionContext.getKsqlConfig()).thenReturn(config);
   }
 
   @Test
@@ -113,6 +114,15 @@ public class ValidatedCommandFactoryTest {
 
   @Test
   public void shouldRaiseExceptionIfKeyDoesNotExistEditablePropertiesList() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+
+    commandFactory.create(configuredStatement, executionContext);
+  }
+
+  @Test
+  public void shouldNotRaiseExceptionWhenPrefixIsAdded() {
     configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
     when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");

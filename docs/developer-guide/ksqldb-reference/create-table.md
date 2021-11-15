@@ -29,17 +29,16 @@ information, see [Parallelization](/operate-and-deploy/performance-guidelines/#p
 
 ### PRIMARY KEY
 
-A ksqlDB TABLE works much like tables in other SQL systems. A table has zero or
+A ksqlDB table works much like tables in other SQL systems. A table has zero or
 more rows. Each row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY`
 can't be `NULL`.
 
 If an incoming message in the underlying {{ site.ak }} topic has the same key
 as an existing row, it _replaces_ the existing row in the table. But if the
-message's value is `NULL`, it _deletes_ the row, as long as it has a later
-timestamp / `ROWTIME` than the existing row.
+message's value is `null`, it _deletes_ the row.
 
 !!! tip
-    A message that has a `NULL` value is known as a _tombstone_, because it
+    A message that has a `null` value is known as a _tombstone_, because it
     causes the existing row to be deleted.
 
 This situation is handled differently by [ksqlDB STREAM](../create-stream), as

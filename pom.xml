@@ -30,6 +30,7 @@
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
         <version>[7.1.0-0, 7.1.1-0)</version>
+        <relativePath>../common/parent</relativePath>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>

@@ -9,5 +9,6 @@ dockerfile {
     dockerPush = false
     dockerScan = false
     dockerImageClean = false
+    disableConcurrentBuilds = true
 }
 

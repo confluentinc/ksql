@@ -86,37 +86,12 @@ public class DefaultSchemaInjectorTest {
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT));
   private static final TableElements SOME_VALUE_ELEMENTS = TableElements.of(
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
-  private static final TableElements SUBSET_KEY_ELEMENTS_TABLE = TableElements.of(
-      new TableElement(ColumnName.of("key"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT));
-  private static final TableElements SUBSET_VALUE_ELEMENTS = TableElements.of(
-      new TableElement(ColumnName.of("intField"), new Type(SqlTypes.INTEGER)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_STREAM = TableElements.of(
       new TableElement(ColumnName.of("k"), new Type(SqlTypes.STRING), KEY_CONSTRAINT),
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_TABLE = TableElements.of(
       new TableElement(ColumnName.of("k"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT),
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
-
-  private static final TableElements REORDERED_VALUE_ELEMENTS = TableElements.of(
-      new TableElement(ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
-      new TableElement(ColumnName.of("intField"), new Type(SqlTypes.INTEGER)));
-  private static final TableElements EXTRA_VALUE_ELEMENTS = TableElements.of(
-      new TableElement(ColumnName.of("intField"), new Type(SqlTypes.INTEGER)),
-      new TableElement(ColumnName.of("bigIntField"), new Type(SqlTypes.BIGINT)),
-      new TableElement(ColumnName.of("doubleField"), new Type(SqlTypes.DOUBLE)),
-      new TableElement(ColumnName.of("stringField"), new Type(SqlTypes.STRING)),
-      new TableElement(ColumnName.of("booleanField"), new Type(SqlTypes.BOOLEAN)),
-      new TableElement(ColumnName.of("arrayField"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
-      new TableElement(ColumnName.of("mapField"), new Type(SqlTypes.map(
-          SqlTypes.STRING, SqlTypes.BIGINT
-      ))),
-      new TableElement(ColumnName.of("structField"), new Type(SqlStruct.builder()
-          .field("s0", SqlTypes.BIGINT)
-          .build())),
-      new TableElement(ColumnName.of("decimalField"), new Type(SqlTypes.decimal(4, 2))),
-      new TableElement(ColumnName.of("extraField"), new Type(SqlTypes.array(SqlTypes.INTEGER)))
-  );
-
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> BASE_PROPS = ImmutableMap.of(
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)

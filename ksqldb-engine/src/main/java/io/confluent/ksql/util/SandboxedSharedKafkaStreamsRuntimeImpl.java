@@ -16,16 +16,18 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.query.KafkaStreamsBuilder;
-import io.confluent.ksql.query.QueryErrorClassifier;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse;
+
+import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +39,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   ) {
     super(
         sharedRuntime.getKafkaStreamsBuilder(),
-        getSandboxStreamsProperties(sharedRuntime),
-        new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 0)
+        getSandboxStreamsProperties(sharedRuntime)
     );
 
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
@@ -48,14 +49,9 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   public SandboxedSharedKafkaStreamsRuntimeImpl(
       final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final int maxQueryErrorsQueueSize,
       final Map<String, Object> streamsProperties
   ) {
-    super(
-        kafkaStreamsBuilder,
-        streamsProperties,
-        new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize)
-    );
+    super(kafkaStreamsBuilder, streamsProperties);
   }
 
   private static Map<String, Object> getSandboxStreamsProperties(
@@ -73,8 +69,12 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
+  public TimeBoundedQueue getNewQueryErrorQueue() {
+    return new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 0);
+  }
+
+  @Override
   public void register(
-      final QueryErrorClassifier errorClassifier,
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
@@ -95,10 +95,12 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
-  public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      final Throwable e
-  ) {
-    return StreamThreadExceptionResponse.REPLACE_THREAD;
+  public List<QueryError> getRuntimeErrors() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  public void addRuntimeError(final QueryError e) {
   }
 
   @Override
@@ -114,6 +116,10 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public void start(final QueryId queryId) {
+  }
+
+  public SandboxedSharedKafkaStreamsRuntimeImpl getSandboxedRuntime() {
+    return this;
   }
 
 }

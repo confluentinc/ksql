@@ -23,16 +23,18 @@ public final class SandboxedBinPackedPersistentQueryMetadataImpl
     extends BinPackedPersistentQueryMetadataImpl {
   public static SandboxedBinPackedPersistentQueryMetadataImpl of(
       final BinPackedPersistentQueryMetadataImpl queryMetadata,
-      final QueryMetadata.Listener listener
+      final QueryMetadata.Listener listener,
+      final SandboxedSharedKafkaStreamsRuntimeImpl sandboxedRuntime
   ) {
-    return new SandboxedBinPackedPersistentQueryMetadataImpl(queryMetadata, listener);
+    return new SandboxedBinPackedPersistentQueryMetadataImpl(queryMetadata, listener, sandboxedRuntime);
   }
 
   private SandboxedBinPackedPersistentQueryMetadataImpl(
       final BinPackedPersistentQueryMetadataImpl queryMetadata,
-      final QueryMetadata.Listener listener
+      final QueryMetadata.Listener listener,
+      final SandboxedSharedKafkaStreamsRuntimeImpl sandboxedRuntime
   ) {
-    super(queryMetadata, listener);
+    super(queryMetadata, listener, sandboxedRuntime);
   }
 
   @Override

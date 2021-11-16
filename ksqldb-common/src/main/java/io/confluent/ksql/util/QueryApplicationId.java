@@ -22,7 +22,17 @@ import io.confluent.ksql.query.QueryId;
  */
 public final class QueryApplicationId {
 
+  private static String SANDBOXED_ID_SUFFIX = "__validation";
+
   private QueryApplicationId() {
+  }
+
+  public static String getSandboxedRuntimeId(final String originalAppId) {
+    return originalAppId + SANDBOXED_ID_SUFFIX;
+  }
+
+  public static String extractOriginalIdFromSandboxedRuntimeId(final String sandboxedRuntimeId) {
+    return sandboxedRuntimeId.substring(0, sandboxedRuntimeId.lastIndexOf(SANDBOXED_ID_SUFFIX));
   }
 
   public static String buildSharedRuntimeId(

@@ -17,6 +17,7 @@ package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
+import static io.confluent.ksql.util.QueryApplicationId.getSandboxedRuntimeId;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -116,7 +117,7 @@ final class QueryBuilder {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final List<SharedKafkaStreamsRuntime> streams,
+      final Map<String, SharedKafkaStreamsRuntime> sharedRuntimesByAppId,
       final boolean real
   ) {
     this(
@@ -132,7 +133,7 @@ final class QueryBuilder {
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
         ),
-        streams,
+        sharedRuntimesByAppId,
         real
     );
   }
@@ -440,12 +441,6 @@ final class QueryBuilder {
                     applicationId
             ));
 
-    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-            .and(new AuthorizationClassifier(applicationId));
-    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
-            .map(userErrorClassifiers::and)
-            .orElse(userErrorClassifiers);
-
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
         result,
@@ -474,10 +469,20 @@ final class QueryBuilder {
         getUncaughtExceptionProcessingLogger(queryId),
         sinkDataSource,
         listener,
-        classifier,
         streamsProperties,
         scalablePushRegistry
     );
+  }
+
+  private QueryErrorClassifier getConfiguredQueryErrorClassifier(
+      final KsqlConfig ksqlConfig,
+      final String applicationId
+  ) {
+    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
+        .and(new AuthorizationClassifier(applicationId));
+    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
+        .map(userErrorClassifiers::and)
+        .orElse(userErrorClassifiers);
   }
 
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
@@ -495,7 +500,6 @@ final class QueryBuilder {
     if (real) {
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
               buildSharedRuntimeId(ksqlConfig, true, streams.size()),
               queryID
@@ -504,9 +508,9 @@ final class QueryBuilder {
     } else {
       stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              buildSharedRuntimeId(ksqlConfig, true, streams.size()) + "-validation",
+              getSandboxedRuntimeId(
+                  buildSharedRuntimeId(ksqlConfig, true, streams.size())),
               queryID
           )
       );

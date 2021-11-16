@@ -153,6 +153,7 @@
         <netty-codec-http2-version>4.1.69.Final</netty-codec-http2-version>
         <!-- Brought in by both schema registry and connect, we need to pick a version -->
         <jersey-common>2.34</jersey-common>
+        <kafka.version>3.2.0-SNAPSHOT</kafka.version>
     </properties>
 
     <dependencyManagement>

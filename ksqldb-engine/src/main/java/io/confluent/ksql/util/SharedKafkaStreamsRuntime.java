@@ -21,7 +21,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
-import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import java.util.Collection;
@@ -35,8 +34,9 @@ import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+
+import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,21 +47,18 @@ public abstract class SharedKafkaStreamsRuntime {
   protected final KafkaStreamsBuilder kafkaStreamsBuilder;
   protected final KafkaStreamsNamedTopologyWrapper kafkaStreams;
   protected final ImmutableMap<String, Object> streamsProperties;
-  protected final QueryMetadataImpl.TimeBoundedQueue runtimeErrors;
+
   protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
   protected final Map<QueryId, Set<SourceName>> sources;
 
   protected SharedKafkaStreamsRuntime(
       final KafkaStreamsBuilder kafkaStreamsBuilder,
-      final Map<String, Object> streamsProperties,
-      final QueryMetadataImpl.TimeBoundedQueue runtimeErrors) {
+      final Map<String, Object> streamsProperties) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
     this.kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
-    this.runtimeErrors = runtimeErrors;
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     this.collocatedQueries = new ConcurrentHashMap<>();
     this.sources = new ConcurrentHashMap<>();
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   public void markSources(final QueryId queryId, final Set<SourceName> sourceNames) {
@@ -74,15 +71,16 @@ public abstract class SharedKafkaStreamsRuntime {
     );
   }
 
+  public abstract TimeBoundedQueue getNewQueryErrorQueue();
+
   public abstract void register(
-      QueryErrorClassifier errorClassifier,
       BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       QueryId queryId
   );
 
-  public abstract StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      Throwable e
-  );
+  public abstract List<QueryError> getRuntimeErrors();
+
+  public abstract void addRuntimeError(final QueryError e);
 
   public abstract void stop(QueryId queryId);
 
@@ -112,11 +110,8 @@ public abstract class SharedKafkaStreamsRuntime {
   }
 
   public boolean isError(final QueryId queryId) {
-    return !runtimeErrors.toImmutableList().isEmpty();
-  }
-
-  public List<QueryError> getRuntimeErrors() {
-    return runtimeErrors.toImmutableList();
+    return !getRuntimeErrors().isEmpty()
+        || !collocatedQueries.get(queryId).getQueryErrors().isEmpty();
   }
 
   public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
@@ -156,10 +151,6 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public Map<QueryId, Set<SourceName>> getSourcesMap() {
     return ImmutableMap.copyOf(sources);
-  }
-
-  public void addRuntimeError(final QueryError e) {
-    runtimeErrors.add(e);
   }
 
   public String getApplicationId() {

@@ -70,7 +70,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
     validationSharedKafkaStreamsRuntime = new SandboxedSharedKafkaStreamsRuntimeImpl(
         kafkaStreamsBuilder,
-        5,
         streamProps
     );
     when(queryId.toString()).thenReturn("query 1");
@@ -78,7 +77,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
 
     validationSharedKafkaStreamsRuntime.markSources(queryId, Collections.singleton(SourceName.of("foo")));
     validationSharedKafkaStreamsRuntime.register(
-        queryErrorClassifier,
         persistentQueriesInSharedRuntimes,
         queryId);
     when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -101,7 +99,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     //When:
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> validationSharedKafkaStreamsRuntime.register(
-            queryErrorClassifier,
             persistentQueriesInSharedRuntimes,
             queryId2));
     //Then

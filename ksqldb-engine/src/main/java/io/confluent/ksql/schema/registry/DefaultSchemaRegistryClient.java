@@ -58,6 +58,10 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
     throw configException;
   }
 
+  public int register(final String s, final ParsedSchema parsedSchema, final boolean normalize) {
+    throw configException;
+  }
+
   @Override
   public int register(final String s, final ParsedSchema parsedSchema, final int i, final int i1) {
     throw configException;
@@ -90,6 +94,11 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
 
   @Override
   public int getVersion(final String s, final ParsedSchema parsedSchema) {
+    throw configException;
+  }
+
+  @Override
+  public int getVersion(final String s, final ParsedSchema parsedSchema, final boolean normalize) {
     throw configException;
   }
 
@@ -140,6 +149,11 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
 
   @Override
   public int getId(final String s, final ParsedSchema parsedSchema) {
+    throw configException;
+  }
+
+  @Override
+  public int getId(final String s, final ParsedSchema parsedSchema, final boolean normalize) {
     throw configException;
   }
 

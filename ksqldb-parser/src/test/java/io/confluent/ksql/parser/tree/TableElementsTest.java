@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -27,10 +28,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.tree.ColumnConstraints.Builder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -47,6 +50,7 @@ public class TableElementsTest {
 
   private static final Type INT_TYPE = new Type(SqlTypes.INTEGER);
   private static final Type STRING_TYPE = new Type(SqlTypes.STRING);
+  private static final Type BYTES_TYPE = new Type(SqlTypes.BYTES);
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -287,6 +291,44 @@ public class TableElementsTest {
   }
 
   @Test
+  public void shouldBuildLogicalSchemaWithWithHeaders() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement("v0", INT_TYPE),
+        tableElement("h0", new Type(HEADERS_TYPE), HEADERS_CONSTRAINT)
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema();
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .headerColumn(ColumnName.of("h0"), Optional.empty())
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildLogicalSchemaWithWithExtractedHeader() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement("v0", INT_TYPE),
+        tableElement("h0", BYTES_TYPE, new Builder().header("key").build())
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema();
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .headerColumn(ColumnName.of("h0"), Optional.of("key"))
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldBuildLogicalSchemaWithWithPrimaryKey() {
     // Given:
     final TableElements tableElements = TableElements.of(
@@ -306,12 +348,13 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldBuildLogicalSchemaWithKeyAndValueColumnsInterleaved() {
+  public void shouldBuildLogicalSchemaWithKeyHeaderAndValueColumnsInterleaved() {
     // Given:
     final TableElements tableElements = TableElements.of(
         tableElement("v0", INT_TYPE),
         tableElement("k0", INT_TYPE, KEY_CONSTRAINT),
         tableElement("v1", STRING_TYPE),
+        tableElement("h1", BYTES_TYPE, new Builder().header("key").build()),
         tableElement("k1", INT_TYPE, KEY_CONSTRAINT)
     );
 
@@ -323,6 +366,7 @@ public class TableElementsTest {
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+        .headerColumn(ColumnName.of("h1"), Optional.of("key"))
         .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
         .build()
     ));

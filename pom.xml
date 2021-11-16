@@ -670,7 +670,7 @@
                     <source>1.8</source>
                     <target>1.8</target>
                     <compilerArgs>
-                        <arg>-Xlint:all,-serial,-options,-path</arg>
+                        <arg>-Xlint:all,-serial,-options,-path,-processing</arg>
                         <arg>-parameters</arg>
                         <arg>${compile.warnings-flag}</arg>
                     </compilerArgs>

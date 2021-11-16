@@ -55,6 +55,7 @@ public final class SandboxedSchemaRegistryClientTest {
           // when adding, ensure you also add a suitable test to SupportedMethods below.
           .ignore("register", String.class, Schema.class)
           .ignore("register", String.class, ParsedSchema.class)
+          .ignore("register", String.class, ParsedSchema.class, boolean.class)
           .ignore("register", String.class, Schema.class, int.class, int.class)
           .ignore("register", String.class, ParsedSchema.class, int.class, int.class)
           .ignore("getLatestSchemaMetadata", String.class)

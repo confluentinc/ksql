@@ -89,7 +89,7 @@ public class DefaultSchemaInjectorTest {
   private static final TableElements SUBSET_KEY_ELEMENTS_TABLE = TableElements.of(
       new TableElement(ColumnName.of("key"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT));
   private static final TableElements SUBSET_VALUE_ELEMENTS = TableElements.of(
-      new TableElement(ColumnName.of("intField"), new Type(SqlTypes.INTEGER), KEY_CONSTRAINT));
+      new TableElement(ColumnName.of("intField"), new Type(SqlTypes.INTEGER)));
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_STREAM = TableElements.of(
       new TableElement(ColumnName.of("k"), new Type(SqlTypes.STRING), KEY_CONSTRAINT),
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));

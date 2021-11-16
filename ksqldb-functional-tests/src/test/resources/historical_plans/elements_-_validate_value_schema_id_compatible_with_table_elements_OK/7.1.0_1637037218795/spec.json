@@ -1,0 +1,100 @@
+{
+  "version" : "7.1.0",
+  "timestamp" : 1637037218795,
+  "path" : "query-validation-tests/elements.json",
+  "schemas" : {
+    "CSAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`c1` INTEGER, `c2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
+    "CSAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`c1` INTEGER, `c2` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "validate value schema id compatible with table elements OK",
+    "inputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "c1" : 4,
+        "c2" : 1
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "input",
+      "key" : null,
+      "value" : {
+        "c1" : 4,
+        "c2" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "input",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  int32 c2 = 2;\n}\n",
+      "valueFormat" : "PROTOBUF",
+      "replicas" : 1,
+      "numPartitions" : 1
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (`c1` INT) WITH (kafka_topic='input', value_format='protobuf', value_schema_id=1);", "CREATE STREAM OUTPUT as SELECT * FROM input;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`c1` INTEGER, `c2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "OUTPUT",
+        "type" : "STREAM",
+        "schema" : "`c1` INTEGER, `c2` INTEGER",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "PROTOBUF",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "input",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  int32 c2 = 2;\n}\n"
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "PROTOBUF"
+          },
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  int32 c2 = 2;\n}\n"
+        } ]
+      }
+    }
+  }
+}

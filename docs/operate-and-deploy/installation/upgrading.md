@@ -137,9 +137,9 @@ This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes
 
-### Upgrading from ksqlDB 0.14.0 to 0.20.0
+### Upgrading from ksqlDB 0.14.0 to {{ site.ksqldbversion }}
 
-In-place upgrades are supported from ksqlDB 0.14.0 to 0.20.0.
+In-place upgrades are supported from ksqlDB 0.14.0 to {{ site.ksqldbversion }}.
 See the [changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md)
 for potential breaking changes that may affect the behavior or required syntax
 for new queries.

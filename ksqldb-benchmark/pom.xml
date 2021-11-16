@@ -103,7 +103,7 @@ questions.
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compilerArgs>
-            <arg>-Xlint:all,-serial,-processing</arg>
+            <arg>${compile.warnings-args}</arg>
             <arg>${compile.warnings-flag}</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>

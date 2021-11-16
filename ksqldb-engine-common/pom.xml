@@ -59,8 +59,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compilerArgs>
-            <arg>-Xlint:all,-serial</arg>
             <arg>${compile.warnings-flag}</arg>
+            <arg>${compile.warnings-args}</arg>
           </compilerArgs>
         </configuration>
       </plugin>

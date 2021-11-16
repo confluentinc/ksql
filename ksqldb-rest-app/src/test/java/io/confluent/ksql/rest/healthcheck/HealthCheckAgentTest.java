@@ -99,7 +99,7 @@ public class HealthCheckAgentTest {
 
     final DescribeTopicsResult topicsResult = mock(DescribeTopicsResult.class);
     givenDescribeTopicsReturns(topicsResult);
-    when(topicsResult.all()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
+    when(topicsResult.allTopicNames()).thenReturn(KafkaFuture.completedFuture(Collections.emptyMap()));
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of(

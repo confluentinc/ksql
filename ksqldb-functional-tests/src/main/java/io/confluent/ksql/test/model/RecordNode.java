@@ -147,6 +147,7 @@ public final class RecordNode {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private Object coerceRecord(
       final Object record,
       final ParsedSchema schema,

@@ -144,8 +144,8 @@ public class HealthCheckAgent {
         healthCheckAgent.serviceContext
             .getAdminClient()
             .describeTopics(Collections.singletonList(commandTopic),
-                new DescribeTopicsOptions().timeoutMs(DESCRIBE_TOPICS_TIMEOUT_MS))
-            .all()
+                            new DescribeTopicsOptions().timeoutMs(DESCRIBE_TOPICS_TIMEOUT_MS))
+            .allTopicNames()
             .get();
 
         isHealthy = true;

@@ -54,7 +54,9 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.http.WebsocketVersion;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -374,8 +376,10 @@ public final class RestIntegrationTestUtil {
       final Vertx vertx = Vertx.vertx();
       final HttpClient httpClient = vertx.createHttpClient(options);
       final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
-      final HttpClientRequest httpClientRequest = httpClient.request(method,
-          uri,
+      final HttpClientRequest httpClientRequest = httpClient.request(
+          method,
+          SocketAddress.inetSocketAddress(options.getDefaultPort(), options.getDefaultHost()),
+          new RequestOptions().setURI(uri),
           resp -> {
             resp.handler(buffer -> {
               try {

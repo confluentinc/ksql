@@ -390,7 +390,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private TopicDescription getTopicDescription(final Admin admin, final String sourceTopicName) {
     final KafkaFuture<TopicDescription> topicDescriptionKafkaFuture = admin
         .describeTopics(Collections.singletonList(sourceTopicName))
-        .values()
+        .topicNameValues()
         .get(sourceTopicName);
 
     try {

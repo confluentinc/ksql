@@ -601,6 +601,7 @@ public class TestExecutor implements Closeable {
         .forEach(kafka::writeRecord);
   }
 
+  @SuppressWarnings("unchecked")
   private static Object coerceRecordFields(final Object record) {
     if (!(record instanceof Map)) {
       return record;

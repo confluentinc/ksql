@@ -87,7 +87,7 @@ public class PersistentQuerySaturationMetrics implements Runnable {
     this.reporter = Objects.requireNonNull(reporter, "reporter");
     this.window = Objects.requireNonNull(window, "window");
     this.sampleMargin = Objects.requireNonNull(sampleMargin, "sampleMargin");
-    this.customTags = Objects.requireNonNull(customTags, "customTags");
+    PersistentQuerySaturationMetrics.customTags = Objects.requireNonNull(customTags, "customTags");
   }
 
   @Override

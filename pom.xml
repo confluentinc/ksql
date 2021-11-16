@@ -137,6 +137,7 @@
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
         <compile.warnings-flag>-Werror</compile.warnings-flag>
+        <compile.warnings-args>-Xlint:all,-serial,-processing</compile.warnings-args>
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
@@ -670,7 +671,7 @@
                     <source>1.8</source>
                     <target>1.8</target>
                     <compilerArgs>
-                        <arg>-Xlint:all,-serial,-options,-path,-processing</arg>
+                        <arg>${compile.warnings-args},-options,-path,</arg>
                         <arg>-parameters</arg>
                         <arg>${compile.warnings-flag}</arg>
                     </compilerArgs>

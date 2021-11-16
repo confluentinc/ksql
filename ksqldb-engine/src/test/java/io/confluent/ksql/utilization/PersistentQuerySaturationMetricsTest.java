@@ -355,6 +355,7 @@ public class PersistentQuerySaturationMetricsTest {
   private static final class GivenMetrics {
     final Map<MetricName, Metric> metrics = new HashMap<>();
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private GivenMetrics(final KafkaStreams kafkaStreams) {
       when(kafkaStreams.metrics()).thenReturn((Map) metrics);
     }

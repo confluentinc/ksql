@@ -179,7 +179,6 @@ public class ScalablePushConsumerTest {
               consumer.newAssignment(ImmutableList.of(TP1));
               return RECORDS_JUST1;
             } else {
-              consumer.close();
               return EMPTY_RECORDS;
             }
           });
@@ -211,7 +210,6 @@ public class ScalablePushConsumerTest {
             count.incrementAndGet();
             if (count.get() == 2) {
               consumer.newAssignment(ImmutableList.of(TP0, TP1));
-              consumer.close();
             }
             return EMPTY_RECORDS;
           });

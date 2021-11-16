@@ -52,10 +52,11 @@ public class StorageUtilizationMetricsReporterTest {
   @Captor
   private ArgumentCaptor<MetricValueProvider<?>> metricValueProvider;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     listener = new StorageUtilizationMetricsReporter(metrics);
-    when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
+    when(metrics.metricName(any(), any(), any(Map.class))).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
     StorageUtilizationMetricsReporter.setTags(BASE_TAGS);
   }
@@ -75,7 +76,7 @@ public class StorageUtilizationMetricsReporterTest {
     final File f = new File("/tmp/storage-test/");
     f.getParentFile().mkdirs();
     f.createNewFile();
-    listener.configureShared(f, metrics, BASE_TAGS);
+    StorageUtilizationMetricsReporter.configureShared(f, metrics, BASE_TAGS);
 
     // When:
     final Gauge<?> storageFreeGauge = verifyAndGetRegisteredMetric("node_storage_free_bytes", BASE_TAGS);

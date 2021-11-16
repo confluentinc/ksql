@@ -106,7 +106,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                  <configuration>
                      <compilerArgs>
-                         <arg>-Xlint:all,-serial,-rawtypes</arg>
+                         <arg>${compile.warnings-args},-rawtypes</arg>
                          <arg>${compile.warnings-flag}</arg>
                      </compilerArgs>
                  </configuration>

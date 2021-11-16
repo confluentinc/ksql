@@ -178,6 +178,7 @@ public class KsqlEngineTest {
         is(SourceName.of("FOO")));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateSourceTablesQueries() {
     // Given:

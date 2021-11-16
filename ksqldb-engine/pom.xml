@@ -190,7 +190,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all,-serial,-options,-path,-rawtypes</arg>
+                        <arg>${compile.warnings-args},-options,-path,-rawtypes</arg>
                         <arg>-parameters</arg>
                         <arg>${compile.warnings-flag}</arg>
                     </compilerArgs>

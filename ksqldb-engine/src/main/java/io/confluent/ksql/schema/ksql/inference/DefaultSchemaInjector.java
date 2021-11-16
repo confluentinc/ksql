@@ -127,7 +127,7 @@ public class DefaultSchemaInjector implements Injector {
       return Optional.empty();
     }
 
-    final SchemaAndId schemaAndId = getSchema(
+    return Optional.of(getSchema(
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
@@ -136,9 +136,7 @@ public class DefaultSchemaInjector implements Injector {
         SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
         statement.getStatementText(),
         true
-    );
-
-    return Optional.of(schemaAndId);
+    ));
   }
 
   private Optional<SchemaAndId> getValueSchema(
@@ -151,16 +149,14 @@ public class DefaultSchemaInjector implements Injector {
       return Optional.empty();
     }
 
-    final SchemaAndId schemaAndId = getSchema(
+    return Optional.of(getSchema(
         props.getKafkaTopic(),
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),
         statement.getStatementText(),
         false
-    );
-
-    return Optional.of(schemaAndId);
+    ));
   }
 
   private SchemaAndId getSchema(

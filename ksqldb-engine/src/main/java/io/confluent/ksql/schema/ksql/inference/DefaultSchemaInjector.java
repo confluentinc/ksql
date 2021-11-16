@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -31,8 +28,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
@@ -49,8 +44,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -145,8 +138,6 @@ public class DefaultSchemaInjector implements Injector {
         true
     );
 
-    checkColumnsCompatibility(props.getKeySchemaId(), statement, schemaAndId.columns, true);
-
     return Optional.of(schemaAndId);
   }
 
@@ -168,8 +159,6 @@ public class DefaultSchemaInjector implements Injector {
         statement.getStatementText(),
         false
     );
-
-    checkColumnsCompatibility(props.getValueSchemaId(), statement, schemaAndId.columns, false);
 
     return Optional.of(schemaAndId);
   }
@@ -211,6 +200,9 @@ public class DefaultSchemaInjector implements Injector {
      * Do validation when schemaId presents, so we need to infer schema. Conditions to meet:
      *  1. If schema id is provided, format must support schema inference
      */
+
+    final boolean hasTableElements =
+        isKey ? hasKeyElements(statement) : hasValueElements(statement);
     if (schemaId.isPresent()) {
       if (!formatSupportsSchemaInference(formatInfo)) {
         final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
@@ -221,56 +213,16 @@ public class DefaultSchemaInjector implements Injector {
             + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
         throw new KsqlException(msg);
       }
+      if (hasTableElements) {
+        final String schemaIdName =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        final String msg = "Table elements and " + schemaIdName + " cannot both exist for create "
+            + "statement.";
+        throw new KsqlException(msg);
+      }
       return true;
     }
-
-    final boolean hasTableElements =
-        isKey ? hasKeyElements(statement) : hasValueElements(statement);
-
     return !hasTableElements && formatSupportsSchemaInference(formatInfo);
-  }
-
-  private static void checkColumnsCompatibility(
-      final Optional<Integer> schemaId,
-      final ConfiguredStatement<CreateSource> statement,
-      final List<? extends SimpleColumn> connectColumns, final boolean isKey) {
-    /*
-     * Check inferred columns from schema id and provided columns compatibility. Conditions:
-     *   1. Schema id is provided
-     *   2. Table elements are provided
-     *   3. Inferred columns should be superset of columns from table elements
-     */
-    if (!schemaId.isPresent()) {
-      return;
-    }
-
-    if ((isKey && !hasKeyElements(statement)) || (!isKey && !hasValueElements(statement))) {
-      return;
-    }
-
-    final List<Column> tableColumns =
-        isKey ? statement.getStatement().getElements().toLogicalSchema().key()
-            : statement.getStatement().getElements().toLogicalSchema().value();
-
-    final Column.Namespace namespace = isKey ? Column.Namespace.KEY : Column.Namespace.VALUE;
-
-    final List<Column> inferredColumns = IntStream.range(0, connectColumns.size()).mapToObj(
-        i -> Column.of(
-            connectColumns.get(i).name(),
-            connectColumns.get(i).type(),
-            namespace,
-            i)
-    ).collect(Collectors.toList());
-
-    final ImmutableSet<Column> colA = ImmutableSet.copyOf(tableColumns);
-    final ImmutableSet<Column> colB = ImmutableSet.copyOf(inferredColumns);
-
-    final SetView<Column> difference = Sets.difference(colA, colB);
-    if (!difference.isEmpty()) {
-      throw new KsqlException("The following " + (isKey ? "key " : "value ")
-          + "columns are changed, missing or reordered: "
-          + difference + ". Schema from schema registry is " + inferredColumns);
-    }
   }
 
   private static boolean hasKeyElements(

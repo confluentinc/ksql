@@ -99,7 +99,7 @@
       }
     },
     {
-      "name": "validate key schema id not compatible with table elements FAILS - missing fields",
+      "name": "validate key schema id with table elements FAILS",
       "statements": [
         "CREATE STREAM INPUT (`c3` INT KEY) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', key_schema_id=1);"
       ],
@@ -114,11 +114,11 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The following key columns are changed, missing or reordered: [`c3` INTEGER KEY]. Schema from schema registry is [`c0` INTEGER KEY]"
+        "message": "Table elements and KEY_SCHEMA_ID cannot both exist for create statement."
       }
     },
     {
-      "name": "validate value schema id not compatible with table elements FAILS - missing fields",
+      "name": "validate value schema id with table elements FAILS",
       "statements": [
         "CREATE STREAM INPUT (`c1` INT, `c2` INT) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', value_schema_id=2);"
       ],
@@ -133,98 +133,8 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The following value columns are changed, missing or reordered: [`c2` INTEGER]. Schema from schema registry is [`c1` INTEGER]"
+        "message": "Table elements and VALUE_SCHEMA_ID cannot both exist for create statement."
       }
-    },
-    {
-      "name": "validate value schema id not compatible with table elements FAILS - wrong type",
-      "statements": [
-        "CREATE STREAM INPUT (`c1` VARCHAR) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', value_schema_id=2);"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1;}",
-          "valueFormat": "PROTOBUF",
-          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
-          "keyFormat": "PROTOBUF"
-        }
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The following value columns are changed, missing or reordered: [`c1` STRING]. Schema from schema registry is [`c1` INTEGER]"
-      }
-    },
-    {
-      "name": "validate value schema id not compatible with table elements FAILS - reordered fields",
-      "statements": [
-        "CREATE STREAM INPUT (`c2` INT, `c1` INT) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', value_schema_id=2);"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; int32 c2 = 2;}",
-          "valueFormat": "PROTOBUF",
-          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
-          "keyFormat": "PROTOBUF"
-        }
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "The following value columns are changed, missing or reordered: [`c2` INTEGER, `c1` INTEGER]. Schema from schema registry is [`c1` INTEGER, `c2` INTEGER]"
-      }
-    },
-    {
-      "name": "validate key schema id compatible with table elements OK",
-      "statements": [
-        "CREATE STREAM INPUT (`c0` INT KEY) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', key_schema_id=1);",
-        "CREATE STREAM OUTPUT as SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1;}",
-          "valueFormat": "PROTOBUF",
-          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
-          "keyFormat": "PROTOBUF"
-        }
-      ],
-      "inputs": [{"topic": "input", "key" : {"c0": 1}, "value": {"c1": 4}}],
-      "outputs": [{"topic": "input", "key" : {"c0": 1}, "value": {"c1": 4}}]
-    },
-    {
-      "name": "validate value schema id compatible with table elements OK",
-      "statements": [
-        "CREATE STREAM INPUT (`c1` INT) WITH (kafka_topic='input', value_format='protobuf', value_schema_id=1);",
-        "CREATE STREAM OUTPUT as SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; int32 c2 = 2;}",
-          "valueFormat": "PROTOBUF"
-        }
-      ],
-      "inputs": [{"topic": "input", "value": {"c1": 4, "c2": 1}}],
-      "outputs": [{"topic": "input", "value": {"c1": 4, "c2": 1}}]
-    },
-    {
-      "name": "validate key/value schema id compatible with table elements OK",
-      "statements": [
-        "CREATE STREAM INPUT (`c0` INT KEY, `c1` INT) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', key_schema_id=1, value_schema_id=2);",
-        "CREATE STREAM OUTPUT as SELECT * FROM input;"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; int32 c2 = 2;}",
-          "valueFormat": "PROTOBUF",
-          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
-          "keyFormat": "PROTOBUF"
-        }
-      ],
-      "inputs": [{"topic": "input", "key" : {"c0": 1}, "value": {"c1": 4, "c2": 1}}],
-      "outputs": [{"topic": "input", "key" : {"c0": 1}, "value": {"c1": 4, "c2": 1}}]
     },
     {
       "name": "validate unwrapped value without elements OK - AVRO",

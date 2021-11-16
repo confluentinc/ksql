@@ -452,34 +452,23 @@ public class DefaultSchemaInjectorTest {
   }
 
   @Test
-  public void shouldUseValueSchemaIdWhenTableElementsPresent() {
+  public void shouldThrowWhenTableElementsAndValueSchemaIdPresent() {
     // Given:
     givenFormatsAndProps(
         "protobuf",
         "avro",
         ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
-    when(ct.getElements()).thenReturn(SUBSET_VALUE_ELEMENTS);
+    when(ct.getElements()).thenReturn(SOME_VALUE_ELEMENTS);
 
     // When:
-    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
 
     // Then:
-    assertThat(result.getStatement().getElements(),
-        is(combineElements(INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
-         "CREATE TABLE `ct` ("
-            + "`key` STRING PRIMARY KEY, "
-            + "`intField` INTEGER, "
-            + "`bigIntField` BIGINT, "
-            + "`doubleField` DOUBLE, "
-            + "`stringField` STRING, "
-            + "`booleanField` BOOLEAN, "
-            + "`arrayField` ARRAY<INTEGER>, "
-            + "`mapField` MAP<STRING, BIGINT>, "
-            + "`structField` STRUCT<`s0` BIGINT>, "
-            + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', KEY_SCHEMA_ID=18, VALUE_FORMAT='avro', VALUE_SCHEMA_ID=42);"
-    ));
+    assertThat(e.getMessage(),
+        containsString("Table elements and VALUE_SCHEMA_ID cannot both exist for create statement."));
   }
 
   @Test
@@ -489,28 +478,17 @@ public class DefaultSchemaInjectorTest {
         "protobuf",
         "avro",
         ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
-    when(ct.getElements()).thenReturn(SUBSET_KEY_ELEMENTS_TABLE);
+    when(ct.getElements()).thenReturn(SOME_KEY_ELEMENTS_TABLE);
 
     // When:
-    final ConfiguredStatement<CreateTable> result = injector.inject(ctStatement);
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
 
     // Then:
-    assertThat(result.getStatement().getElements(),
-        is(combineElements(INFERRED_KSQL_KEY_SCHEMA_TABLE, INFERRED_KSQL_VALUE_SCHEMA)));
-    assertThat(result.getStatementText(), is(
-         "CREATE TABLE `ct` ("
-            + "`key` STRING PRIMARY KEY, "
-            + "`intField` INTEGER, "
-            + "`bigIntField` BIGINT, "
-            + "`doubleField` DOUBLE, "
-            + "`stringField` STRING, "
-            + "`booleanField` BOOLEAN, "
-            + "`arrayField` ARRAY<INTEGER>, "
-            + "`mapField` MAP<STRING, BIGINT>, "
-            + "`structField` STRUCT<`s0` BIGINT>, "
-            + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', KEY_SCHEMA_ID=42, VALUE_FORMAT='avro', VALUE_SCHEMA_ID=5);"
-    ));
+    assertThat(e.getMessage(),
+        containsString("Table elements and KEY_SCHEMA_ID cannot both exist for create statement."));
   }
 
   @Test
@@ -648,94 +626,6 @@ public class DefaultSchemaInjectorTest {
         Optional.empty(),
         FormatInfo.of("AVRO"),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
-    );
-  }
-
-  @Test
-  public void shouldThrowIfKeySchemaIdColumnsMissingInTableElements() {
-    // Given:
-    givenFormatsAndProps(
-        "protobuf",
-        "avro",
-        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
-    when(ct.getElements()).thenReturn(SOME_KEY_ELEMENTS_TABLE);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> injector.inject(ctStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString("The following key columns are changed, missing or reordered: [`bob` STRING KEY]"));
-  }
-
-  @Test
-  public void shouldThrowIfValueSchemaIdColumnsMissingInTableElements() {
-    // Given:
-    givenFormatsAndProps(
-        "protobuf",
-        "avro",
-        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
-    when(ct.getElements()).thenReturn(SOME_VALUE_ELEMENTS);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> injector.inject(ctStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString("The following value columns are changed, missing or reordered: [`bob` STRING]"));
-  }
-
-  @Test
-  public void shouldThrowIfValueSchemaIdColumnsReorderedInTableElements() {
-    // Given:
-    givenFormatsAndProps(
-        "protobuf",
-        "avro",
-        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
-    when(ct.getElements()).thenReturn(REORDERED_VALUE_ELEMENTS);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> injector.inject(ctStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString(
-            "The following value columns are changed, "
-                + "missing or reordered: [`bigIntField` BIGINT, `intField` INTEGER]"
-        )
-    );
-  }
-
-  @Test
-  public void shouldThrowIfValueSchemaIdColumnsNotInTableElements() {
-    // Given:
-    givenFormatsAndProps(
-        "protobuf",
-        "avro",
-        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
-    when(ct.getElements()).thenReturn(EXTRA_VALUE_ELEMENTS);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> injector.inject(ctStatement)
-    );
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString(
-            "The following value columns are changed, "
-            + "missing or reordered: [`extraField` ARRAY<INTEGER>]"
-        )
     );
   }
 

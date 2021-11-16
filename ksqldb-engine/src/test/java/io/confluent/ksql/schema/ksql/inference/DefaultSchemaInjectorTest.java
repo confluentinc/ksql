@@ -92,7 +92,6 @@ public class DefaultSchemaInjectorTest {
   private static final TableElements SOME_KEY_AND_VALUE_ELEMENTS_TABLE = TableElements.of(
       new TableElement(ColumnName.of("k"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT),
       new TableElement(ColumnName.of("bob"), new Type(SqlTypes.STRING)));
-
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> BASE_PROPS = ImmutableMap.of(
       "KAFKA_TOPIC", new StringLiteral(KAFKA_TOPIC)
@@ -425,6 +424,46 @@ public class DefaultSchemaInjectorTest {
             + "`bob` STRING) "
             + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', KEY_SCHEMA_ID=18, VALUE_FORMAT='delimited');"
     ));
+  }
+
+  @Test
+  public void shouldThrowWhenTableElementsAndValueSchemaIdPresent() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(SOME_VALUE_ELEMENTS);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Table elements and VALUE_SCHEMA_ID cannot both exist for create statement."));
+  }
+
+  @Test
+  public void shouldUseKeySchemaIdWhenTableElementsPresent() {
+    // Given:
+    givenFormatsAndProps(
+        "protobuf",
+        "avro",
+        ImmutableMap.of("KEY_SCHEMA_ID", new IntegerLiteral(42)));
+    when(ct.getElements()).thenReturn(SOME_KEY_ELEMENTS_TABLE);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> injector.inject(ctStatement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Table elements and KEY_SCHEMA_ID cannot both exist for create statement."));
   }
 
   @Test

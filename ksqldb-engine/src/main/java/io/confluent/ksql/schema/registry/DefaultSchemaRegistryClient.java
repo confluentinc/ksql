@@ -58,6 +58,7 @@ public class DefaultSchemaRegistryClient implements SchemaRegistryClient {
     throw configException;
   }
 
+  @Override
   public int register(final String s, final ParsedSchema parsedSchema, final boolean normalize) {
     throw configException;
   }

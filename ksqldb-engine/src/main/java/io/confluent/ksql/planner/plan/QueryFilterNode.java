@@ -491,7 +491,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
       final Optional<Column> col = schema.findColumn(columnName);
       if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
         final Object key = resolveKey(other, col.get(), metaStore, ksqlConfig, node);
-        getConstraint(col.get(), node, key);
+        setMostSelectiveConstraint(col.get(), node, key);
       }
       return null;
     }
@@ -583,7 +583,8 @@ public class QueryFilterNode extends SingleSourcePlanNode {
           .orElse(null);
     }
 
-    private void getConstraint(
+    //Pick the most selective constraint from the predicates
+    private void setMostSelectiveConstraint(
         final Column col,
         final ComparisonExpression node,
         final Object key) {

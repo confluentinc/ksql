@@ -1751,6 +1751,7 @@ public class QueryFilterNodeTest {
     assertThat(keys.get(0), instanceOf(KeyConstraint.class));
     final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
     assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(3)));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
   }
 
   @Test
@@ -1796,6 +1797,7 @@ public class QueryFilterNodeTest {
     assertThat(keys.get(0), instanceOf(KeyConstraint.class));
     final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
     assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1, 3)));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
   }
 
   @Test
@@ -1872,6 +1874,7 @@ public class QueryFilterNodeTest {
     assertThat(keys.get(0), instanceOf(KeyConstraint.class));
     final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
     assertThat(keyConstraint.getKey(), is(GenericKey.genericKey("v1")));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.GREATER_THAN));
   }
 
   @Test
@@ -1915,6 +1918,7 @@ public class QueryFilterNodeTest {
     assertThat(keys.get(0), instanceOf(KeyConstraint.class));
     final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
     assertThat(keyConstraint.getKey(), is(GenericKey.genericKey("v2")));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
   }
 
   @Test
@@ -1957,8 +1961,10 @@ public class QueryFilterNodeTest {
     assertThat(keys.get(0), instanceOf(KeyConstraint.class));
     final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(0);
     assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey("v1")));
+    assertThat(keyConstraint1.getOperator(), is(KeyConstraint.ConstraintOperator.GREATER_THAN));
     assertThat(keys.get(1), instanceOf(KeyConstraint.class));
     final KeyConstraint keyConstraint2 = (KeyConstraint) keys.get(1);
     assertThat(keyConstraint2.getKey(), is(GenericKey.genericKey("v2")));
+    assertThat(keyConstraint2.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
   }
 }

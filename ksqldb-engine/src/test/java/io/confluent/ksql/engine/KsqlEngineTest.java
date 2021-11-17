@@ -124,9 +124,11 @@ public class KsqlEngineTest {
 
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
+
   private ServiceContext sandboxServiceContext;
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
+
   private KsqlExecutionContext sandbox;
 
   @Before
@@ -1231,16 +1233,18 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpSharedRuntimesInternalTopicsOnCloseForPersistentQueries() {
     // Given:
-    final KsqlEngine ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+
+    KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore,
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
         new SequentialQueryIdGenerator(),
         new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true))
     );
+
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
         serviceContext,
-        ksqlEngine,
+        ksqlEngineWithSharedRuntimes,
         "create stream persistent with (KAFKA_TOPIC='rekey') as select * from orders partition by orderid EMIT CHANGES;",
         KSQL_CONFIG,
         Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
@@ -1251,8 +1255,7 @@ public class KsqlEngineTest {
     // When:
     query.get(0).close();
 
-    // Then (there are no transient queries, so no internal topics should be deleted):
-    awaitCleanupComplete();
+    awaitCleanupComplete(ksqlEngineWithSharedRuntimes);
     verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId() + "-" + query.get(0).getQueryId().toString());
   }
 
@@ -2115,6 +2118,10 @@ public class KsqlEngineTest {
   }
 
   private void awaitCleanupComplete() {
+    awaitCleanupComplete(ksqlEngine);
+  }
+
+  private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
     ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", "", false, "") {

@@ -73,7 +73,7 @@ an external `ksql.connect.url`.
 
 ## `ksql.fail.on.deserialization.error`
 
-**Per query:** yes
+**Per query:** no
 
 Indicates whether to fail if corrupt messages are read. ksqlDB decodes
 messages at runtime when reading from a Kafka topic. The decoding that
@@ -91,7 +91,7 @@ add the following setting to your ksqlDB Server properties file:
 
 ## `ksql.fail.on.production.error`
 
-**Per query:** yes
+**Per query:** no
 
 Indicates whether to fail if ksqlDB fails to publish a record to an output
 topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is

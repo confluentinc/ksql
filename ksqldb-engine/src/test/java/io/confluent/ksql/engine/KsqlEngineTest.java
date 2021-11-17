@@ -1234,7 +1234,7 @@ public class KsqlEngineTest {
   public void shouldCleanUpSharedRuntimesInternalTopicsOnCloseForPersistentQueries() {
     // Given:
 
-    KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
+    final KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore,
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),

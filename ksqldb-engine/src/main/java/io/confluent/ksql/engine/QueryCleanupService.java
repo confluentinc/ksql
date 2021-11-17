@@ -23,13 +23,10 @@ import io.confluent.ksql.services.ServiceContext;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,7 +142,8 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
             "internal topic schemas"
         );
 
-        tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId), "internal topics");
+        tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId),
+            "internal topics");
         tryRun(
             () -> serviceContext
                 .getConsumerGroupClient()
@@ -160,8 +158,8 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
             "internal topic schemas"
         );
         tryRun(
-          () -> serviceContext.getTopicClient().deleteInternalTopics(appId + "-" + queryId)
-          ,"internal topics"
+            () -> serviceContext.getTopicClient().deleteInternalTopics(appId + "-" + queryId),
+            "internal topics"
         );
 
       }

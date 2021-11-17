@@ -1,0 +1,46 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                       https://maven.apache.org/xsd/settings-1.0.0.xsd">
+ <profiles>
+    <profile>
+      <id>release</id>
+
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+
+      <repositories>
+        <repository>
+          <id>confluent-other</id>
+          <name>Confluent</name>
+          <url>https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com/7.1.0-beta210918170926/5/maven</url>
+        </repository>
+
+        <!-- needed for HTML API doc generation post-release only --> 
+        <repository>
+          <id>ksqldb-staging</id>
+          <name>ksqlDB staging</name>
+          <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+        </repository>
+      </repositories>
+
+      <pluginRepositories>
+
+        <pluginRepository>
+          <id>confluent-other</id>
+          <name>Confluent Plugin Repository</name>
+          <url>https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com/7.1.0-beta210918170926/5/maven</url>
+          <layout>default</layout>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+        </pluginRepository>
+
+      </pluginRepositories>
+  </profile>
+ </profiles>
+</settings>

@@ -59,6 +59,7 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
           new QueryCleanupService.QueryCleanupTask(
           serviceContext,
           appId,
+          "",
           false,
           stateDir)));
     }

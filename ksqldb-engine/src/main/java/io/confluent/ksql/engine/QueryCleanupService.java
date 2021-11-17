@@ -23,10 +23,13 @@ import io.confluent.ksql.services.ServiceContext;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +94,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
   public static class QueryCleanupTask implements Runnable {
     private final String appId;
+    private final String queryId;
     private final boolean isTransient;
     private final ServiceContext serviceContext;
     private String stateDir;
@@ -98,11 +102,13 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
+        final String queryId,
         final boolean isTransient,
         final String stateDir
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
+      this.queryId = Objects.requireNonNull(queryId, "queryId");
       this.isTransient = isTransient;
       this.stateDir = stateDir;
     }
@@ -111,35 +117,54 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       return appId;
     }
 
+    public String getQueryId() {
+      return queryId;
+    }
+
     @Override
     public void run() {
-      try {
-        final Path pathName = Paths.get(stateDir + "/" + appId);
-        final File directory = new File(String.valueOf(pathName.normalize()));
-        if (directory.exists()) {
-          FileUtils.deleteDirectory(directory);
-          LOG.warn("Deleted local state store for non-existing query {}. "
-                  + "This is not expected and was likely due to a "
-                  + "race condition when the query was dropped before.",
-              appId);
+      if (queryId.equals("")) {
+        try {
+          final Path pathName = Paths.get(stateDir + "/" + appId);
+          final File directory = new File(String.valueOf(pathName.normalize()));
+          if (directory.exists()) {
+            FileUtils.deleteDirectory(directory);
+            LOG.warn("Deleted local state store for non-existing query {}. "
+                    + "This is not expected and was likely due to a "
+                    + "race condition when the query was dropped before.",
+                appId);
+          }
+        } catch (Exception e) {
+          LOG.error("Error cleaning up state directory {}\n. {}", appId, e);
         }
-      } catch (Exception e) {
-        LOG.error("Error cleaning up state directory {}\n. {}", appId, e);
-      }
-      tryRun(
-          () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-            appId,
-            serviceContext.getSchemaRegistryClient(),
-            isTransient),
-          "internal topic schemas"
-      );
+        tryRun(
+            () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
+                appId,
+                serviceContext.getSchemaRegistryClient(),
+                isTransient),
+            "internal topic schemas"
+        );
 
-      tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId), "internal topics");
-      tryRun(
-          () -> serviceContext
-              .getConsumerGroupClient()
-              .deleteConsumerGroups(ImmutableSet.of(appId)),
-          "internal consumer groups");
+        tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId), "internal topics");
+        tryRun(
+            () -> serviceContext
+                .getConsumerGroupClient()
+                .deleteConsumerGroups(ImmutableSet.of(appId)),
+            "internal consumer groups");
+      } else {
+        tryRun(
+            () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
+                appId,
+                serviceContext.getSchemaRegistryClient(),
+                isTransient),
+            "internal topic schemas"
+        );
+        tryRun(
+          () -> serviceContext.getTopicClient().deleteInternalTopics(appId + "-" + queryId)
+          ,"internal topics"
+        );
+
+      }
     }
 
     private void tryRun(final Runnable runnable, final String resource) {

@@ -24,7 +24,6 @@ import java.time.Clock;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -155,27 +154,19 @@ public class LatestConsumer extends ScalablePushConsumer {
         consumer.offsetsForTimes(timestamps);
     final Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
         consumer.committed(topicPartitions);
-    final boolean allTimestampsNull = offsetAndTimestampMap.values().stream()
-        .allMatch(Objects::isNull);
-    // This means that no message was more recent than the given timestamp, but we may still have
-    // offsets committed, so just seek to the end.
-    if (allTimestampsNull) {
-      LOG.info("No timestamp data, so seeking to the end.");
-      seekToEnd(topicPartitions);
-      return;
-    }
+    // If even one partition has recent commits, then we don't seek to end.
+    boolean foundAtLeastOneRecent = false;
     for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : offsetAndTimestampMap.entrySet()) {
       final OffsetAndMetadata metadata = offsetAndMetadataMap.get(entry.getKey());
       if (metadata != null && entry.getValue() != null
-          && entry.getValue().offset() > metadata.offset()) {
-        seekToEnd(topicPartitions);
-        return;
+          && entry.getValue().offset() <= metadata.offset()) {
+        foundAtLeastOneRecent = true;
       }
     }
-  }
-
-  private void seekToEnd(final Set<TopicPartition> topicPartitions) {
-    consumer.seekToEnd(topicPartitions);
-    resetCurrentPosition();
+    if (!foundAtLeastOneRecent) {
+      consumer.seekToEnd(topicPartitions);
+      resetCurrentPosition();
+      LOG.info("LatestConsumer seeking to end {}", currentPositions);
+    }
   }
 }

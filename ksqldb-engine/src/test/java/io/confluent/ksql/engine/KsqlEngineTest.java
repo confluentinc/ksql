@@ -124,11 +124,9 @@ public class KsqlEngineTest {
 
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
-
   private ServiceContext sandboxServiceContext;
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
-
   private KsqlExecutionContext sandbox;
 
   @Before

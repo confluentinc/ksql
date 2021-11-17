@@ -130,7 +130,7 @@ public class PullPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
         seenSelectOperator = true;
       } else if (currentLogicalNode instanceof QueryLimitNode) {
-        currentPhysicalOp = translateLimitNode((QueryLimitNode) currentLogicalNode);
+        currentPhysicalOp = new LimitOperator((QueryLimitNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
             (DataSourceNode) currentLogicalNode);
@@ -195,16 +195,6 @@ public class PullPhysicalPlanBuilder {
                 QueryType.PULL_QUERY, contextStacker.push("SELECT").getQueryContext())
         );
     return new SelectOperator(logicalNode, logger);
-  }
-
-  private LimitOperator translateLimitNode(final QueryLimitNode logicalNode) {
-    final ProcessingLogger logger = processingLogContext
-            .getLoggerFactory()
-            .getLogger(
-                    QueryLoggerUtil.queryLoggerName(
-                            QueryType.PULL_QUERY, contextStacker.push("LIMIT").getQueryContext())
-            );
-    return new LimitOperator(logicalNode, logger);
   }
 
   private PullPhysicalPlanType getPlanType() {

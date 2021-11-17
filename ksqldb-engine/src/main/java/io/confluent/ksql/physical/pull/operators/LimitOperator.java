@@ -17,7 +17,6 @@ package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -28,20 +27,17 @@ import java.util.Objects;
 public class LimitOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
   private AbstractPhysicalOperator child;
   private final QueryLimitNode logicalNode;
-  private final ProcessingLogger logger;
   private final int limit;
   private int rowsReturned;
 
-  public LimitOperator(final QueryLimitNode logicalNode, final ProcessingLogger logger) {
-    this(logicalNode, logger, logicalNode.getLimit());
+  public LimitOperator(final QueryLimitNode logicalNode) {
+    this(logicalNode, logicalNode.getLimit());
   }
 
   @VisibleForTesting
   LimitOperator(final QueryLimitNode logicalNode,
-                final ProcessingLogger logger,
                 final int limit
   ) {
-    this.logger = Objects.requireNonNull(logger, "logger");
     this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
     this.limit = limit;
     this.rowsReturned = 0;

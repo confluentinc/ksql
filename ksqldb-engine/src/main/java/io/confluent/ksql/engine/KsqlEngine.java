@@ -510,7 +510,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     primaryContext.getQueryRegistry().close(closeQueries);
 
     try {
-      cleanupService.stopAsync().awaitTerminated(30, TimeUnit.SECONDS);
+      cleanupService.stopAsync().awaitTerminated(
+          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS),
+          TimeUnit.MILLISECONDS);
     } catch (final TimeoutException e) {
       log.warn("Timed out while closing cleanup service. "
               + "External resources for the following applications may be orphaned: {}",

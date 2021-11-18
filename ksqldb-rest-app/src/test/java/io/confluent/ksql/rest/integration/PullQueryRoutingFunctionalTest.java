@@ -15,6 +15,23 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -29,18 +46,10 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer0;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer1;
 import io.confluent.ksql.rest.integration.FaultyKafkaConsumer.FaultyKafkaConsumer2;
 import io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.Shutoffs;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.utils.TestUtils;
@@ -53,15 +62,18 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import io.confluent.ksql.util.UserDataProvider;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -69,15 +81,12 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import org.apache.kafka.streams.processor.TaskId;
+import org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration.AssignmentConfigs;
+import org.apache.kafka.streams.processor.internals.assignment.ClientState;
+import org.apache.kafka.streams.processor.internals.assignment.TaskAssignor;
 import org.junit.After;
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -163,6 +172,8 @@ public class PullQueryRoutingFunctionalTest {
       // plugin.  In practice, these are internal paths so we're not interested in testing auth
       // for them in these tests.
       .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, NoAuthPlugin.class)
+      .put(StreamsConfig.InternalConfig.INTERNAL_TASK_ASSIGNOR_CLASS,
+          StaticStreamsTaskAssignor.class.getName())
       .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -293,60 +304,30 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldReturnLimitRowsMultiHostSetup() {
+  public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-            clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
-
-
-    final String sqlTableScan = "SELECT * FROM " + output + ";";
-    final String sqlLimit = "SELECT * FROM " + output + " LIMIT 3;";
-
-    //issue table scan first
-    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
-            sqlTableScan, null, USER_CREDS);
-
-    //check that we got back all the rows
-    assertThat(rows_0, hasSize(HEADER + 5));
-
-    // issue pull query with limit
-    final List<StreamedRow> rows_1 = makePullQueryRequest(clusterFormation.router.getApp(),
-            sqlLimit, null, USER_CREDS);
-
-    // check that we only got limit number of rows
-    assertThat(rows_1, hasSize(HEADER + 3));
-
-    // Partition off the active
-    clusterFormation.active.getShutoffs().shutOffAll();
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
     waitForRemoteServerToChangeStatus(
-            clusterFormation.router.getApp(),
-            clusterFormation.standBy.getHost(),
-            HighAvailabilityTestUtil::remoteServerIsUp,
-            USER_CREDS);
-    waitForRemoteServerToChangeStatus(
-            clusterFormation.router.getApp(),
-            clusterFormation.active.getHost(),
-            HighAvailabilityTestUtil::remoteServerIsDown,
-            USER_CREDS);
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
 
+    // When:
+    List<StreamedRow> rows_0 =
+        makePullQueryRequest(clusterFormation.standBy.getApp(), sql, null, USER_CREDS);
 
-    // issue table scan after partitioning active
-    final List<StreamedRow> rows_2 = makePullQueryRequest(clusterFormation.router.getApp(),
-            sqlTableScan, null, USER_CREDS);
-
-    // check that we get all rows back
-    assertThat(rows_2, hasSize(HEADER + 5));
-    assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
-
-    // issue pull query with limit after partitioning active
-    final List<StreamedRow> rows_3 = makePullQueryRequest(clusterFormation.router.getApp(),
-            sqlLimit, null, USER_CREDS);
-
-    // check that we only got limit number of rows
-    assertThat(rows_3, hasSize(HEADER + 3));
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -537,7 +518,7 @@ public class PullQueryRoutingFunctionalTest {
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);
-    assertEquals(40001, errorMessage.getErrorCode());
+    Assert.assertEquals(40001, errorMessage.getErrorCode());
     assertThat(errorMessage.getMessage(), containsString("Partition 0 failed to find valid host."));
     assertThat(errorMessage.getMessage(), containsString("was not selected because Host is not alive as of "));
     assertThat(errorMessage.getMessage(), containsString("was not selected because Host excluded because lag 5 exceeds maximum allowed lag 3"));
@@ -675,6 +656,33 @@ public class PullQueryRoutingFunctionalTest {
     public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
         WorkerExecutor workerExecutor) {
       return CompletableFuture.completedFuture(null);
+    }
+  }
+
+  public static class StaticStreamsTaskAssignor implements TaskAssignor {
+    public StaticStreamsTaskAssignor() { }
+
+    @Override
+    public boolean assign(
+        final Map<UUID, ClientState> clients,
+        final Set<TaskId> allTaskIds,
+        final Set<TaskId> statefulTaskIds,
+        final AssignmentConfigs configs
+    ) {
+      Preconditions.checkState(configs.numStandbyReplicas == 1);
+      Preconditions.checkState(clients.size() == 3);
+      final List<ClientState> clientStates = clients.entrySet().stream()
+          .sorted(Comparator.comparing(Entry::getKey))
+          .map(Entry::getValue)
+          .collect(Collectors.toList());
+      final ClientState clientState1 = clientStates.get(0);
+      final ClientState clientState2 = clientStates.get(1);
+
+      clientState1.assignActiveTasks(allTaskIds);
+      for (TaskId taskId : allTaskIds) {
+        clientState2.assignStandby(taskId);
+      }
+      return false;
     }
   }
 }

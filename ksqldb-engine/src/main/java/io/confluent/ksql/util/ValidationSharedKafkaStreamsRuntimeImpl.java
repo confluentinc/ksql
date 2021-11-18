@@ -29,6 +29,8 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
+
 public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   private final Logger log = LoggerFactory.getLogger(ValidationSharedKafkaStreamsRuntimeImpl.class);
 
@@ -65,7 +67,8 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
         new ConcurrentHashMap<>(sharedKafkaStreamsRuntime.getStreamProperties());
     sandboxStreamsProperties.put(
         StreamsConfig.APPLICATION_ID_CONFIG,
-        "_confluent-ksql-" + UUID.randomUUID() + "-validation"
+        sharedKafkaStreamsRuntime.getStreamProperties().get(StreamsConfig.APPLICATION_ID_CONFIG)
+            + "-validation"
     );
     return sandboxStreamsProperties;
   }

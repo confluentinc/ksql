@@ -19,6 +19,7 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -27,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -42,9 +44,6 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
 
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
-
-  @Mock
-  private Map<String, Object> streamProps;
 
   @Mock
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
@@ -64,13 +63,12 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
   @Mock
   private QueryId queryId2;
 
-  @Mock
-  private NamedTopology namedTopology;
-
   private ValidationSharedKafkaStreamsRuntimeImpl validationSharedKafkaStreamsRuntime;
 
   @Before
   public void setUp() throws Exception {
+    final Map<String, Object> streamProps = new HashMap<>();
+    streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "SharedRuntimeId-validation");
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
     validationSharedKafkaStreamsRuntime = new ValidationSharedKafkaStreamsRuntimeImpl(
         kafkaStreamsBuilder,

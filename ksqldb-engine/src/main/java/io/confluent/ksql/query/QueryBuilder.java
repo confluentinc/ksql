@@ -16,6 +16,7 @@
 package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
+import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -501,27 +502,18 @@ final class QueryBuilder {
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-                  + serviceId
-                  + queryPrefix
-                  + streams.size()
-                  + "-"
-                  + UUID.randomUUID(),
-              queryID)
+              buildSharedRuntimeId(config.getConfig(true), true, streams.size()),
+              queryID
+          )
       );
     } else {
       stream = new ValidationSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-                  + serviceId
-                  + queryPrefix
-                  + streams.size()
-                  + "-"
-                  + UUID.randomUUID()
-                  + "-validation",
-              queryID)
+              buildSharedRuntimeId(config.getConfig(true), true, streams.size()) + "-validation",
+              queryID
+          )
       );
     }
     streams.add(stream);

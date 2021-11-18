@@ -55,6 +55,7 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
+import io.confluent.ksql.util.UserDataProviderBig;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
@@ -85,10 +86,10 @@ public class PullQueryLimitFunctionalTest {
 
     private static final String USER_TOPIC = "user_topic_";
     private static final String USERS_STREAM = "users";
-    private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
+    private static final UserDataProviderBig USER_PROVIDER = new UserDataProviderBig();
+    private static final int TOTAL_RECORDS = USER_PROVIDER.getNumRecords();
     private static final int HEADER = 1;
     private static final int LIMIT_REACHED_MESSAGE = 1;
-    private static final int TOTAL_RECORDS = 5;
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
     private static final int BASE_TIME = 1_000_000;
@@ -216,9 +217,9 @@ public class PullQueryLimitFunctionalTest {
 
     @Before
     public void setUp() {
-        //Create topic with 4 partition to control who is active and standby
+        //Create topic with 32 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
-        TEST_HARNESS.ensureTopics(4, topic);
+        TEST_HARNESS.ensureTopics(32, topic);
 
         TEST_HARNESS.produceRows(
                 topic,
@@ -267,7 +268,7 @@ public class PullQueryLimitFunctionalTest {
     @Test
     public void shouldReturnLimitRowsMultiHostSetupTable() {
         // Given:
-        final int NUM_LIMIT_ROWS = 3;
+        final int NUM_LIMIT_ROWS = 300;
         final int LIMIT_SUBSET_SIZE = HEADER + NUM_LIMIT_ROWS;
         ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
         waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
@@ -326,7 +327,7 @@ public class PullQueryLimitFunctionalTest {
     @Test
     public void shouldReturnLimitRowsMultiHostSetupStream() {
         // Given:
-        final int NUM_LIMIT_ROWS = 3;
+        final int NUM_LIMIT_ROWS = 200;
         final int LIMIT_SUBSET_SIZE = HEADER + NUM_LIMIT_ROWS + LIMIT_REACHED_MESSAGE;
         ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
         waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
@@ -383,8 +384,9 @@ public class PullQueryLimitFunctionalTest {
 
         // check that we got the same set of rows back with limit as pull query over streams reads from the beginning
         // We ignore the headers as they have different transient query id
-        assertThat(rows_1.subList(HEADER, LIMIT_SUBSET_SIZE),
-                is(rows_3.subList(HEADER, LIMIT_SUBSET_SIZE)));
+        //assertThat(rows_1, is(matchersRowsAnyOrder(rows_3)));
+        assertThat(rows_0.subList(HEADER, HEADER + TOTAL_RECORDS),
+                is(rows_2.subList(HEADER, HEADER + TOTAL_RECORDS)));
     }
 
     private ClusterFormation findClusterFormation(

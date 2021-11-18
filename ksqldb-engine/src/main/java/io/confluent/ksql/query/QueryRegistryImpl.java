@@ -123,9 +123,9 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
-    this.streams = original.streams.stream()
+    streams.addAll(original.streams.stream()
         .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
-        .collect(Collectors.toList());
+        .collect(Collectors.toList()));
 
     sandbox = true;
   }

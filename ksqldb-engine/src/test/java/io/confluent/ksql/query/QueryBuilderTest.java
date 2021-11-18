@@ -225,7 +225,6 @@ public class QueryBuilderTest {
     when(namedTopologyBuilder.build()).thenReturn(namedTopology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
-    when(kstream.filter(any())).thenReturn(kstream);
     sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryBuilder(

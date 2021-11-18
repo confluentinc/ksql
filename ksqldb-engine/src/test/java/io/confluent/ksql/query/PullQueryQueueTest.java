@@ -1,6 +1,5 @@
 package io.confluent.ksql.query;
 
-import java.util.OptionalInt;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -12,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import io.confluent.ksql.physical.pull.PullQueryRow;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

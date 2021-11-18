@@ -126,7 +126,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   public void start(final QueryId queryId) {
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology()).all().get();
+        kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology()).all().get();
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);
       }

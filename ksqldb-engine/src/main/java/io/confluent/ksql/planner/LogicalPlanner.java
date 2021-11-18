@@ -100,7 +100,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -166,7 +165,7 @@ public class LogicalPlanner {
       }
 
       if (analysis.getLimitClause().isPresent()) {
-        currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
+        currentNode = buildLimitNode(currentNode, analysis.getLimitClause().getAsInt());
       }
 
       currentNode = buildUserProjectNode(currentNode);
@@ -226,7 +225,7 @@ public class LogicalPlanner {
     }
 
     if (!isScalablePush && analysis.getLimitClause().isPresent()) {
-      currentNode = buildLimitNode(currentNode, analysis.getLimitClause());
+      currentNode = buildLimitNode(currentNode, analysis.getLimitClause().getAsInt());
     }
 
     currentNode = new QueryProjectNode(
@@ -435,7 +434,7 @@ public class LogicalPlanner {
 
   private QueryLimitNode buildLimitNode(
           final PlanNode sourcePlanNode,
-          final OptionalInt limit
+          final int limit
   ) {
     return new QueryLimitNode(new PlanNodeId("LimitClause"),
             sourcePlanNode, limit);

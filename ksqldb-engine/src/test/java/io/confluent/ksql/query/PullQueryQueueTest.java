@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.Lists;
 import io.confluent.ksql.physical.pull.PullQueryRow;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,7 @@ public class PullQueryQueueTest {
   private static final PullQueryRow VAL_TWO = mock(PullQueryRow.class);
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(10);
+  public final Timeout timeout = Timeout.seconds(100);
 
   @Mock
   private LimitHandler limitHandler;
@@ -141,6 +142,66 @@ public class PullQueryQueueTest {
     // Then: did not block and:
     assertThat(queue.size(), is(QUEUE_SIZE));
     verify(queuedCallback, times(QUEUE_SIZE)).run();
+  }
+
+  @Test
+  public void shouldOnlyAcceptLimitRows() {
+    // Given:
+    final int LIMIT_SIZE = 3;
+    queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.of(LIMIT_SIZE));
+
+    queue.setLimitHandler(limitHandler);
+    queue.setQueuedCallback(queuedCallback);
+
+    IntStream.range(0, QUEUE_SIZE)
+            .forEach(idx -> queue.acceptRow(VAL_ONE));
+
+    givenWillCloseQueueAsync();
+
+    // Then
+    assertThat(queue.getTotalRowsQueued(), is(new Long(LIMIT_SIZE)));
+    verify(queuedCallback, times(LIMIT_SIZE)).run();
+    verify(limitHandler, times(1)).limitReached();
+  }
+
+  @Test
+  public void shouldOnlyAcceptLimitRowsWhenLimitMoreThanCapacity() {
+    // Given:
+    final List<PullQueryRow> rows = Lists.newArrayList();
+    // limit is twice the queue capacity
+    final int LIMIT_SIZE = QUEUE_SIZE * 2;
+    queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.of(LIMIT_SIZE));
+
+    queue.setLimitHandler(limitHandler);
+    queue.setQueuedCallback(queuedCallback);
+
+    // fill up the queue the first time
+    IntStream.range(0, QUEUE_SIZE)
+            .forEach(idx -> queue.acceptRow(VAL_ONE));
+
+    //drain them as capacity reached
+    queue.drainRowsTo(rows);
+
+    // fill up the queue the second time
+    IntStream.range(0, QUEUE_SIZE)
+            .forEach(idx -> queue.acceptRow(VAL_ONE));
+
+    //drain them as capacity reached
+    queue.drainRowsTo(rows);
+
+    // assert that we have processed limit rows
+    assertThat(queue.getTotalRowsQueued(), is(new Long(LIMIT_SIZE)));
+
+    //try adding some more rows
+    IntStream.range(0, 3)
+            .forEach(idx -> queue.acceptRow(VAL_ONE));
+
+    givenWillCloseQueueAsync();
+
+    // Then
+    assertThat(rows.size(), is(LIMIT_SIZE));
+    verify(queuedCallback, times(LIMIT_SIZE)).run();
+    verify(limitHandler, times(1)).limitReached();
   }
 
   private void givenWillCloseQueueAsync() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -204,7 +204,7 @@ public class PullQueryLimitFunctionalTest {
 
     @Rule
     public final Timeout timeout = Timeout.builder()
-            .withTimeout(2, TimeUnit.MINUTES)
+            .withTimeout(4, TimeUnit.MINUTES)
             .withLookingForStuckThread(true)
             .build();
 
@@ -268,8 +268,8 @@ public class PullQueryLimitFunctionalTest {
     @Test
     public void shouldReturnLimitRowsMultiHostSetupTable() {
         // Given:
-        final int NUM_LIMIT_ROWS = 300;
-        final int LIMIT_SUBSET_SIZE = HEADER + NUM_LIMIT_ROWS;
+        final int numLimitRows = 300;
+        final int limitSubsetSize = HEADER + numLimitRows;
         ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
         waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
         waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
@@ -277,7 +277,7 @@ public class PullQueryLimitFunctionalTest {
 
 
         final String sqlTableScan = "SELECT * FROM " + output + ";";
-        final String sqlLimit = "SELECT * FROM " + output + " LIMIT " + NUM_LIMIT_ROWS + " ;";
+        final String sqlLimit = "SELECT * FROM " + output + " LIMIT " + numLimitRows + " ;";
 
         //issue table scan first
         final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
@@ -291,7 +291,7 @@ public class PullQueryLimitFunctionalTest {
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
-        assertThat(rows_1, hasSize(LIMIT_SUBSET_SIZE));
+        assertThat(rows_1, hasSize(limitSubsetSize));
 
         // Partition off the active
         clusterFormation.active.getShutoffs().shutOffAll();
@@ -321,14 +321,14 @@ public class PullQueryLimitFunctionalTest {
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
-        assertThat(rows_3, hasSize(LIMIT_SUBSET_SIZE));
+        assertThat(rows_3, hasSize(limitSubsetSize));
     }
 
     @Test
     public void shouldReturnLimitRowsMultiHostSetupStream() {
         // Given:
-        final int NUM_LIMIT_ROWS = 200;
-        final int LIMIT_SUBSET_SIZE = HEADER + NUM_LIMIT_ROWS + LIMIT_REACHED_MESSAGE;
+        final int numLimitRows = 200;
+        final int limitSubsetSize = HEADER + numLimitRows + LIMIT_REACHED_MESSAGE;
         ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
         waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
         waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
@@ -336,7 +336,7 @@ public class PullQueryLimitFunctionalTest {
 
 
         final String sqlStreamPull = "SELECT * FROM " + USERS_STREAM + ";";
-        final String sqlLimit = "SELECT * FROM " + USERS_STREAM + " LIMIT " + NUM_LIMIT_ROWS + " ;";
+        final String sqlLimit = "SELECT * FROM " + USERS_STREAM + " LIMIT " + numLimitRows + " ;";
 
         //scan the entire stream first
         final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
@@ -350,7 +350,7 @@ public class PullQueryLimitFunctionalTest {
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
-        assertThat(rows_1, hasSize(LIMIT_SUBSET_SIZE));
+        assertThat(rows_1, hasSize(limitSubsetSize));
 
         // Partition off the active
         clusterFormation.active.getShutoffs().shutOffAll();
@@ -380,13 +380,7 @@ public class PullQueryLimitFunctionalTest {
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
-        assertThat(rows_3, hasSize(LIMIT_SUBSET_SIZE));
-
-        // check that we got the same set of rows back with limit as pull query over streams reads from the beginning
-        // We ignore the headers as they have different transient query id
-        //assertThat(rows_1, is(matchersRowsAnyOrder(rows_3)));
-        assertThat(rows_0.subList(HEADER, HEADER + TOTAL_RECORDS),
-                is(rows_2.subList(HEADER, HEADER + TOTAL_RECORDS)));
+        assertThat(rows_3, hasSize(limitSubsetSize));
     }
 
     private ClusterFormation findClusterFormation(

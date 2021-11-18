@@ -19,7 +19,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-import org.apache.kafka.streams.KafkaStreams;
+
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -54,7 +54,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
 
     @Mock
-    private PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimes;
+    private BinPackedPersistentQueryMetadataImpl persistentQueriesInSharedRuntimes;
 
     @Mock
     private QueryErrorClassifier queryErrorClassifier;
@@ -84,7 +84,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.singleton(SourceName.of("foo")));
         sharedKafkaStreamsRuntimeImpl.register(
             queryErrorClassifier,
-            Collections.emptyMap(),
             persistentQueriesInSharedRuntimes,
             queryId);
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -109,7 +108,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
             () -> sharedKafkaStreamsRuntimeImpl.register(
                 queryErrorClassifier,
-                Collections.emptyMap(),
                 persistentQueriesInSharedRuntimes,
                 queryId2));
         //Then

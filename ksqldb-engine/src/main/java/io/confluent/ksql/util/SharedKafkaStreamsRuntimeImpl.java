@@ -47,7 +47,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void register(
       final QueryErrorClassifier errorClassifier,
-      final BinPackedPersistentQueryMetadata binpackedPersistentQueryMetadata,
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
     if (!sources.containsKey(queryId)) {
@@ -88,7 +88,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
               Throwables.getStackTraceAsString(e),
               errorType
           );
-      for (BinPackedPersistentQueryMetadata query: collocatedQueries.values()) {
+      for (BinPackedPersistentQueryMetadataImpl query: collocatedQueries.values()) {
         query.getListener().onError(collocatedQueries.get(query.getQueryId()), queryError);
       }
       runtimeErrors.add(queryError);

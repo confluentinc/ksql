@@ -54,7 +54,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
 
     @Mock
-    private BinPackedPersistentQueryMetadata persistentQueriesInSharedRuntimes;
+    private BinPackedPersistentQueryMetadataImpl persistentQueriesInSharedRuntimes;
 
     @Mock
     private QueryErrorClassifier queryErrorClassifier;

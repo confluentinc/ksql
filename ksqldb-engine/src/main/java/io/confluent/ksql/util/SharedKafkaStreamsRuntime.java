@@ -48,7 +48,7 @@ public abstract class SharedKafkaStreamsRuntime {
   protected final KafkaStreamsNamedTopologyWrapper kafkaStreams;
   protected final ImmutableMap<String, Object> streamsProperties;
   protected final QueryMetadataImpl.TimeBoundedQueue runtimeErrors;
-  protected final Map<QueryId, BinPackedPersistentQueryMetadata> collocatedQueries;
+  protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
   protected final Map<QueryId, Set<SourceName>> sources;
 
   protected SharedKafkaStreamsRuntime(
@@ -76,7 +76,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public abstract void register(
       QueryErrorClassifier errorClassifier,
-      BinPackedPersistentQueryMetadata binpackedPersistentQueryMetadata,
+      BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       QueryId queryId
   );
 
@@ -150,7 +150,7 @@ public abstract class SharedKafkaStreamsRuntime {
     return kafkaStreamsBuilder;
   }
 
-  public Map<QueryId, BinPackedPersistentQueryMetadata> getCollocatedQueries() {
+  public Map<QueryId, BinPackedPersistentQueryMetadataImpl> getCollocatedQueries() {
     return ImmutableMap.copyOf(collocatedQueries);
   }
 

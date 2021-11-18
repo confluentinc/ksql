@@ -55,7 +55,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadata;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -458,7 +458,7 @@ final class QueryBuilder {
         serviceContext
     );
 
-    return new BinPackedPersistentQueryMetadata(
+    return new BinPackedPersistentQueryMetadataImpl(
         persistentQueryType,
         statementText,
         querySchema,

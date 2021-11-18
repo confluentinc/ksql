@@ -54,10 +54,10 @@ import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BinPackedPersistentQueryMetadata implements PersistentQueryMetadata {
+public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMetadata {
 
   private static final Logger LOG = LoggerFactory
-      .getLogger(BinPackedPersistentQueryMetadata.class);
+      .getLogger(BinPackedPersistentQueryMetadataImpl.class);
 
   private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
@@ -93,7 +93,7 @@ public class BinPackedPersistentQueryMetadata implements PersistentQueryMetadata
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  public BinPackedPersistentQueryMetadata(
+  public BinPackedPersistentQueryMetadataImpl(
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
@@ -147,8 +147,8 @@ public class BinPackedPersistentQueryMetadata implements PersistentQueryMetadata
 
 
   // for creating sandbox instances
-  protected BinPackedPersistentQueryMetadata(
-          final BinPackedPersistentQueryMetadata original,
+  protected BinPackedPersistentQueryMetadataImpl(
+          final BinPackedPersistentQueryMetadataImpl original,
           final QueryMetadata.Listener listener
   ) {
     this.persistentQueryType = original.persistentQueryType;

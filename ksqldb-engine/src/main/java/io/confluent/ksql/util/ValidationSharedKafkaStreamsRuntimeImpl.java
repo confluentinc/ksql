@@ -41,7 +41,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
         new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 0)
     );
 
-    for (BinPackedPersistentQueryMetadata query : sharedRuntime.collocatedQueries.values()) {
+    for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
       //kafkaStreams.addNamedTopology(queryMetadata.getTopology());
     }
   }
@@ -73,7 +73,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
   @Override
   public void register(
       final QueryErrorClassifier errorClassifier,
-      final BinPackedPersistentQueryMetadata binpackedPersistentQueryMetadata,
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
     if (!sources.containsKey(queryId)) {
@@ -101,11 +101,11 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
 
   @Override
   public void stop(final QueryId queryId) {
-    log.trace("");
   }
 
   @Override
   public synchronized void close() {
+    log.debug("Closing validation runtime {}", getApplicationId());
     kafkaStreams.close();
     kafkaStreams.cleanUp();
   }

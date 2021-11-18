@@ -30,13 +30,13 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadata;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
@@ -105,9 +105,9 @@ public class QueryRegistryImpl implements QueryRegistry {
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
-      } else if (queryMetadata instanceof BinPackedPersistentQueryMetadata) {
-        final PersistentQueryMetadata sandboxed = SandboxedBinPackedPersistentQueryMetadata.of(
-                (BinPackedPersistentQueryMetadata) queryMetadata,
+      } else if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
+        final PersistentQueryMetadata sandboxed = SandboxedBinPackedPersistentQueryMetadataImpl.of(
+                (BinPackedPersistentQueryMetadataImpl) queryMetadata,
                 new ListenerImpl()
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);

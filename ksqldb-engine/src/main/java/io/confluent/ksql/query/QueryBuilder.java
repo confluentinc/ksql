@@ -65,10 +65,10 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -502,7 +502,7 @@ final class QueryBuilder {
           )
       );
     } else {
-      stream = new ValidationSharedKafkaStreamsRuntimeImpl(
+      stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(

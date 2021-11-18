@@ -29,10 +29,10 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThr
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
-  private final Logger log = LoggerFactory.getLogger(ValidationSharedKafkaStreamsRuntimeImpl.class);
+public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
+  private final Logger log = LoggerFactory.getLogger(SandboxedSharedKafkaStreamsRuntimeImpl.class);
 
-  public ValidationSharedKafkaStreamsRuntimeImpl(
+  public SandboxedSharedKafkaStreamsRuntimeImpl(
       final SharedKafkaStreamsRuntime sharedRuntime
   ) {
     super(
@@ -46,7 +46,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
     }
   }
 
-  public ValidationSharedKafkaStreamsRuntimeImpl(
+  public SandboxedSharedKafkaStreamsRuntimeImpl(
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final int maxQueryErrorsQueueSize,
       final Map<String, Object> streamsProperties

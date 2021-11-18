@@ -38,10 +38,10 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
+import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -133,7 +133,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         .map(Optional::get)
         .collect(Collectors.toList());
     this.streams = original.streams.stream()
-        .map(ValidationSharedKafkaStreamsRuntimeImpl::new)
+        .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
         .collect(Collectors.toList());
 
     sandbox = true;

@@ -196,6 +196,9 @@ public class DefaultSchemaInjector implements Injector {
      * Do validation when schemaId presents, so we need to infer schema. Conditions to meet:
      *  1. If schema id is provided, format must support schema inference
      */
+
+    final boolean hasTableElements =
+        isKey ? hasKeyElements(statement) : hasValueElements(statement);
     if (schemaId.isPresent()) {
       if (!formatSupportsSchemaInference(formatInfo)) {
         final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
@@ -206,12 +209,15 @@ public class DefaultSchemaInjector implements Injector {
             + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
         throw new KsqlException(msg);
       }
+      if (hasTableElements) {
+        final String schemaIdName =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        final String msg = "Table elements and " + schemaIdName + " cannot both exist for create "
+            + "statement.";
+        throw new KsqlException(msg);
+      }
       return true;
     }
-
-    final boolean hasTableElements =
-        isKey ? hasKeyElements(statement) : hasValueElements(statement);
-
     return !hasTableElements && formatSupportsSchemaInference(formatInfo);
   }
 

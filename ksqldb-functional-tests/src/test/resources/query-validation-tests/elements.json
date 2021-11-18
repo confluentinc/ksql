@@ -99,6 +99,44 @@
       }
     },
     {
+      "name": "validate key schema id with table elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT (`c3` INT KEY) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', key_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; int32 c2 = 2;}",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Table elements and KEY_SCHEMA_ID cannot both exist for create statement."
+      }
+    },
+    {
+      "name": "validate value schema id with table elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT (`c1` INT, `c2` INT) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', value_schema_id=2);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Table elements and VALUE_SCHEMA_ID cannot both exist for create statement."
+      }
+    },
+    {
       "name": "validate unwrapped value without elements OK - AVRO",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo', wrap_single_value=false);",

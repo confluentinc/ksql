@@ -1198,8 +1198,20 @@ public class QueryFilterNodeTest {
         expression2
     );
 
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions
+    );
+
     // Then:
-    expectTableScan(expression, false);
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(KeyConstraint.class));
   }
 
   @Test
@@ -1675,5 +1687,284 @@ public class QueryFilterNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("A comparison must directly reference a key column"));
+  }
+
+  @Test
+  public void shouldReturnNonKeyConstraintIntGreater() {
+    // Given:
+    final Expression expression = new ComparisonExpression(
+            Type.GREATER_THAN,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+            new IntegerLiteral(1)
+    );
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(NonKeyConstraint.class));
+  }
+
+  @Test
+  public void shouldReturnKeyConstraintInt() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression keyExp1 = new ComparisonExpression(
+            Type.GREATER_THAN,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+            new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+            Type.EQUAL,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+            new IntegerLiteral(3)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+            LogicalBinaryExpression.Type.AND,
+            keyExp1,
+            keyExp2
+    );
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions);
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(KeyConstraint.class));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(3)));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
+  }
+
+  @Test
+  public void shouldExtractMultiColKeySchema() {
+    // Given:
+    final LogicalSchema multiSchema = LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
+            .keyColumn(ColumnName.of("K2"), SqlTypes.INTEGER)
+            .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+            .build();
+    final Expression keyExp1 = new ComparisonExpression(
+            Type.EQUAL,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+            Type.EQUAL,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K2")),
+            new IntegerLiteral(3)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+            LogicalBinaryExpression.Type.AND,
+            keyExp1,
+            keyExp2
+    );
+
+    when(source.getSchema()).thenReturn(multiSchema);
+
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions);
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(KeyConstraint.class));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1, 3)));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
+  }
+
+  @Test
+  public void shouldNotExtractMultiColKeySchema() {
+    // Given:
+    final LogicalSchema multiSchema = LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
+            .keyColumn(ColumnName.of("K2"), SqlTypes.INTEGER)
+            .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+            .build();
+    final Expression keyExp1 = new ComparisonExpression(
+            Type.GREATER_THAN,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+            Type.EQUAL,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K2")),
+            new IntegerLiteral(3)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+            LogicalBinaryExpression.Type.AND,
+            keyExp1,
+            keyExp2
+    );
+
+    when(source.getSchema()).thenReturn(multiSchema);
+
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions);
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(NonKeyConstraint.class));
+  }
+
+  @Test
+  public void shouldReturnKeyConstraintStringGreater() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+            .build();
+    when(source.getSchema()).thenReturn(schema);
+    final Expression expression = new ComparisonExpression(
+            Type.GREATER_THAN,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new StringLiteral("v1")
+    );
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(KeyConstraint.class));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey("v1")));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.GREATER_THAN));
+  }
+
+  @Test
+  public void shouldReturnKeyConstraintString() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final LogicalSchema schema = LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+            .build();
+    when(source.getSchema()).thenReturn(schema);
+    final Expression keyExp1 = new ComparisonExpression(
+            Type.GREATER_THAN,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new StringLiteral("v1")
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+            Type.EQUAL,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new StringLiteral("v2")
+    );
+    final Expression expression = new LogicalBinaryExpression(
+            LogicalBinaryExpression.Type.AND,
+            keyExp1,
+            keyExp2
+    );
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions);
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), instanceOf(KeyConstraint.class));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey("v2")));
+    assertThat(keyConstraint.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
+  }
+
+  @Test
+  public void shouldReturnKeyConstraintStringForOr() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+            .keyColumn(ColumnName.of("K1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+            .build();
+    when(source.getSchema()).thenReturn(schema);
+    final Expression keyExp1 = new ComparisonExpression(
+            Type.GREATER_THAN,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new StringLiteral("v1")
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+            Type.EQUAL,
+            new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+            new StringLiteral("v2")
+    );
+    final Expression expression = new LogicalBinaryExpression(
+            LogicalBinaryExpression.Type.OR,
+            keyExp1,
+            keyExp2
+    );
+    QueryFilterNode filterNode = new QueryFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions);
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(keys.size(), is(2));
+    assertThat(keys.get(0), instanceOf(KeyConstraint.class));
+    final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey("v1")));
+    assertThat(keyConstraint1.getOperator(), is(KeyConstraint.ConstraintOperator.GREATER_THAN));
+    assertThat(keys.get(1), instanceOf(KeyConstraint.class));
+    final KeyConstraint keyConstraint2 = (KeyConstraint) keys.get(1);
+    assertThat(keyConstraint2.getKey(), is(GenericKey.genericKey("v2")));
+    assertThat(keyConstraint2.getOperator(), is(KeyConstraint.ConstraintOperator.EQUAL));
   }
 }

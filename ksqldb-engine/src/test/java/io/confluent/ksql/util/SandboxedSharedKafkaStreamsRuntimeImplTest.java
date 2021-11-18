@@ -14,22 +14,6 @@
  */
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.KafkaStreamsBuilder;
-import io.confluent.ksql.query.QueryErrorClassifier;
-import io.confluent.ksql.query.QueryId;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -37,14 +21,27 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryErrorClassifier;
+import io.confluent.ksql.query.QueryId;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 @RunWith(MockitoJUnitRunner.class)
-public class ValidationSharedKafkaStreamsRuntimeImplTest {
+public class SandboxedSharedKafkaStreamsRuntimeImplTest {
 
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
-
-  @Mock
-  private Map<String, Object> streamProps;
 
   @Mock
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
@@ -53,7 +50,7 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
 
   @Mock
-  private PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimes;
+  private BinPackedPersistentQueryMetadataImpl persistentQueriesInSharedRuntimes;
 
   @Mock
   private QueryErrorClassifier queryErrorClassifier;
@@ -64,15 +61,14 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
   @Mock
   private QueryId queryId2;
 
-  @Mock
-  private NamedTopology namedTopology;
-
-  private ValidationSharedKafkaStreamsRuntimeImpl validationSharedKafkaStreamsRuntime;
+  private SandboxedSharedKafkaStreamsRuntimeImpl validationSharedKafkaStreamsRuntime;
 
   @Before
   public void setUp() throws Exception {
+    final Map<String, Object> streamProps = new HashMap<>();
+    streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "SharedRuntimeId-validation");
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
-    validationSharedKafkaStreamsRuntime = new ValidationSharedKafkaStreamsRuntimeImpl(
+    validationSharedKafkaStreamsRuntime = new SandboxedSharedKafkaStreamsRuntimeImpl(
         kafkaStreamsBuilder,
         5,
         streamProps
@@ -83,7 +79,6 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
     validationSharedKafkaStreamsRuntime.markSources(queryId, Collections.singleton(SourceName.of("foo")));
     validationSharedKafkaStreamsRuntime.register(
         queryErrorClassifier,
-        Collections.emptyMap(),
         persistentQueriesInSharedRuntimes,
         queryId);
     when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
@@ -107,7 +102,6 @@ public class ValidationSharedKafkaStreamsRuntimeImplTest {
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> validationSharedKafkaStreamsRuntime.register(
             queryErrorClassifier,
-            Collections.emptyMap(),
             persistentQueriesInSharedRuntimes,
             queryId2));
     //Then

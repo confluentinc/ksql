@@ -162,13 +162,12 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
     LOG.info("Attempting to stop Query: " + queryId.toString());
     if (metadata.containsKey(queryId.toString()) && sources.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
-        kafkaStreams.removeNamedTopology(queryId.toString());
+        kafkaStreams.removeNamedTopology(queryId.toString()).all().get();
+        kafkaStreams.cleanUpNamedTopology(queryId.toString());
       } else {
         throw new IllegalStateException("Streams in not running but is in state"
             + kafkaStreams.state());
       }
-      //kafkaStreams.cleanUpNamedTopology(queryId.toString());
-      // Once remove is blocking this can be uncommented for now it breaks
     }
   }
 
@@ -180,7 +179,7 @@ public class SharedKafkaStreamsRuntimeImpl implements SharedKafkaStreamsRuntime 
   public void start(final QueryId queryId) {
     if (metadata.containsKey(queryId.toString()) && !metadata.get(queryId.toString()).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+        kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology()).all().get();
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);
       }

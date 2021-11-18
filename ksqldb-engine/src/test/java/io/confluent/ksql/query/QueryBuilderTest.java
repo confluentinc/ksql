@@ -80,6 +80,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -155,6 +158,8 @@ public class QueryBuilderTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
+  private NamedTopologyBuilder namedTopologyBuilder;
+  @Mock
   private FunctionRegistry functionRegistry;
   @Mock
   private KafkaStreams kafkaStreams;
@@ -162,6 +167,8 @@ public class QueryBuilderTest {
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
   @Mock
   private Topology topology;
+  @Mock
+  private NamedTopology namedTopology;
   @Mock
   private KsMaterializationFactory ksMaterializationFactory;
   @Mock
@@ -197,6 +204,7 @@ public class QueryBuilderTest {
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
+    when(kafkaStreamsNamedTopologyWrapper.newNamedTopologyBuilder(any(), any())).thenReturn(namedTopologyBuilder);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -214,9 +222,9 @@ public class QueryBuilderTest {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
+    when(namedTopologyBuilder.build()).thenReturn(namedTopology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
-    when(kstream.filter(any())).thenReturn(kstream);
     sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryBuilder(

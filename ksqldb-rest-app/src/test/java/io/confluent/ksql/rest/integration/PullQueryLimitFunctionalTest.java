@@ -1,5 +1,19 @@
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
+import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -49,20 +63,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
-
-import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extractQueryId;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
-import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 
 
 @Category({IntegrationTest.class})

@@ -359,19 +359,48 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan, instanceOf(KsqlBareOutputNode.class));
+    assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
 
     final PlanNode finalProjectNode = logicalPlan.getSources().get(0);
 
     assertThat(finalProjectNode, instanceOf(FinalProjectNode.class));
+    assertThat(finalProjectNode.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
 
     final PlanNode queryLimitNode = finalProjectNode.getSources().get(0);
 
     assertThat(queryLimitNode, instanceOf(QueryLimitNode.class));
     assertThat(((QueryLimitNode) queryLimitNode).getLimit(), equalTo(3));
+    assertThat(queryLimitNode.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
 
     final PlanNode dataSourceNode = queryLimitNode.getSources().get(0);
 
     assertThat(dataSourceNode, instanceOf(DataSourceNode.class));
+    assertThat(dataSourceNode.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
+  }
+
+  @Test
+  public void testLimitStreamPullQueryLogicalPlan() {
+    final String simpleQuery = "SELECT * FROM test1 LIMIT 3;";
+    final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
+
+    assertThat(logicalPlan, instanceOf(KsqlBareOutputNode.class));
+    assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
+
+    final PlanNode finalProjectNode = logicalPlan.getSources().get(0);
+
+    assertThat(finalProjectNode, instanceOf(FinalProjectNode.class));
+    assertThat(finalProjectNode.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
+
+    final PlanNode queryLimitNode = finalProjectNode.getSources().get(0);
+
+    assertThat(queryLimitNode, instanceOf(QueryLimitNode.class));
+    assertThat(((QueryLimitNode) queryLimitNode).getLimit(), equalTo(3));
+    assertThat(queryLimitNode.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
+
+    final PlanNode dataSourceNode = queryLimitNode.getSources().get(0);
+
+    assertThat(dataSourceNode, instanceOf(DataSourceNode.class));
+    assertThat(dataSourceNode.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

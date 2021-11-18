@@ -492,24 +492,21 @@ final class QueryBuilder {
     }
     final SharedKafkaStreamsRuntime stream;
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final String queryPrefix = ksqlConfig
-        .getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     if (real) {
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              buildSharedRuntimeId(config.getConfig(true), true, streams.size()),
+              buildSharedRuntimeId(ksqlConfig, true, streams.size()),
               queryID
           )
       );
     } else {
       stream = new ValidationSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              buildSharedRuntimeId(config.getConfig(true), true, streams.size()) + "-validation",
+              buildSharedRuntimeId(ksqlConfig, true, streams.size()) + "-validation",
               queryID
           )
       );

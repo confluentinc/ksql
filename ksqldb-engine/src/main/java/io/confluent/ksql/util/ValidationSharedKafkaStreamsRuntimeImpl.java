@@ -21,15 +21,12 @@ import io.confluent.ksql.query.QueryId;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   private final Logger log = LoggerFactory.getLogger(ValidationSharedKafkaStreamsRuntimeImpl.class);

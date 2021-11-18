@@ -18,7 +18,6 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.headersColumn;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.valueColumn;
-import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION;
@@ -45,7 +44,10 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConfig;
@@ -88,6 +90,11 @@ public class LogicalSchemaTest {
       .headerColumn(H0, Optional.of("key0"))
       .headerColumn(H1, Optional.of("key1"))
       .build();
+
+  private static final SqlType HEADERS_TYPE = SqlArray.of(
+      SqlStruct.builder()
+          .field("KEY", SqlTypes.STRING)
+          .field("VALUE", SqlTypes.BYTES).build());
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
@@ -256,6 +263,10 @@ public class LogicalSchemaTest {
 
     assertThat(SCHEMA_WITH_EXTRACTED_HEADERS.findColumn(H0), is(Optional.of(
         Column.of(H0, BYTES, Namespace.HEADERS, 0, Optional.of("key0"))
+    )));
+
+    assertThat(SCHEMA_WITH_EXTRACTED_HEADERS.findColumn(H1), is(Optional.of(
+        Column.of(H1, BYTES, Namespace.HEADERS, 1, Optional.of("key1"))
     )));
   }
 

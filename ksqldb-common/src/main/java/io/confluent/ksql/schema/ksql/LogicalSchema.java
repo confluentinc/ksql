@@ -579,9 +579,9 @@ public final class LogicalSchema {
         final Optional<String> headerKey
     ) {
       if (headerKey.isPresent()) {
-        addColumn(Column.of(columnName, SqlTypes.BYTES, HEADERS, 0, headerKey));
+        addColumn(Column.of(columnName, SqlTypes.BYTES, HEADERS, seenHeaders.size(), headerKey));
       } else {
-        addColumn(Column.of(columnName, HEADERS_TYPE, HEADERS, 0, headerKey));
+        addColumn(Column.of(columnName, HEADERS_TYPE, HEADERS, seenHeaders.size(), headerKey));
       }
       return this;
     }

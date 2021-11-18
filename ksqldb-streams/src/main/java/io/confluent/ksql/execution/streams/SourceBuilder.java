@@ -29,16 +29,22 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -121,7 +127,8 @@ final class SourceBuilder extends SourceBuilderBase {
 
     return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
         keyGenerator,
-        streamSource.getPseudoColumnVersion()));
+        streamSource.getPseudoColumnVersion(),
+        streamSource.getSourceSchema().headers()));
   }
 
   @Override
@@ -230,15 +237,20 @@ final class SourceBuilder extends SourceBuilderBase {
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
     private final int pseudoColumnsToAdd;
+    private final List<Column> headerColumns;
 
     AddRemainingPseudoAndKeyCols(
-        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
+        final Function<K, Collection<?>> keyGenerator,
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
           .count();
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -289,6 +301,17 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.appendAll(keyColumns);
+          if (headerColumns.size() > 0) {
+            row.append(Arrays.stream(processorContext.headers().toArray())
+                .map(header -> new Struct(SchemaBuilder.struct()
+                    .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+                    .optional()
+                    .build())
+                    .put("KEY", header.key())
+                    .put("VALUE", header.value()))
+                .collect(Collectors.toList()));
+          }
           return row;
         }
 

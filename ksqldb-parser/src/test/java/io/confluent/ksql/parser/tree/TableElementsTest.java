@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -30,6 +29,8 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.ColumnConstraints.Builder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -295,7 +296,10 @@ public class TableElementsTest {
     // Given:
     final TableElements tableElements = TableElements.of(
         tableElement("v0", INT_TYPE),
-        tableElement("h0", new Type(HEADERS_TYPE), HEADERS_CONSTRAINT)
+        tableElement("h0", new Type(SqlArray.of(
+            SqlStruct.builder()
+                .field("KEY", SqlTypes.STRING)
+                .field("VALUE", SqlTypes.BYTES).build())), HEADERS_CONSTRAINT)
     );
 
     // When:

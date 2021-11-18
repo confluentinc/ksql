@@ -21,6 +21,7 @@ import io.confluent.ksql.query.QueryId;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -65,6 +66,7 @@ public class ValidationSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsR
     sandboxStreamsProperties.put(
         StreamsConfig.APPLICATION_ID_CONFIG,
         sharedKafkaStreamsRuntime.getStreamProperties().get(StreamsConfig.APPLICATION_ID_CONFIG)
+            + UUID.randomUUID().toString()
             + "-validation"
     );
     return sandboxStreamsProperties;

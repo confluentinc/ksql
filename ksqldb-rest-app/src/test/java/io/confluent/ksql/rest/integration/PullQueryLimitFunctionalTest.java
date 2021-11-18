@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
@@ -54,16 +53,11 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.UserDataProvider;
 import io.confluent.ksql.util.UserDataProviderBig;
-import io.vertx.core.WorkerExecutor;
-import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
-import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -492,20 +486,6 @@ public class PullQueryLimitFunctionalTest {
 
         public HighAvailabilityTestUtil.Shutoffs getShutoffs() {
             return shutoffs;
-        }
-    }
-
-    // AuthenticationPlugin which never returns a Principal
-    public static class NoAuthPlugin implements AuthenticationPlugin {
-
-        @Override
-        public void configure(Map<String, ?> map) {
-        }
-
-        @Override
-        public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
-                                                       WorkerExecutor workerExecutor) {
-            return CompletableFuture.completedFuture(null);
         }
     }
 }

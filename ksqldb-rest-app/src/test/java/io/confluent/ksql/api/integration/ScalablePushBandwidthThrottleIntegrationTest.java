@@ -29,7 +29,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
@@ -126,6 +125,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
     if (vertx != null) {
       vertx.close();
     }
+    REST_APP.getServiceContext().close();
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
   }

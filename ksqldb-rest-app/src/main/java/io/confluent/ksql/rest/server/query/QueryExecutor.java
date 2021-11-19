@@ -20,8 +20,6 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.ApiJsonMapper;
-import io.confluent.ksql.rest.entity.KsqlMediaType;
-import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
@@ -33,7 +31,6 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.QueryMetricsUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
-import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
@@ -47,7 +44,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +51,6 @@ import org.slf4j.LoggerFactory;
 public class QueryExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(QueryExecutor.class);
-  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final KsqlEngine ksqlEngine;
   private final KsqlRestConfig ksqlRestConfig;

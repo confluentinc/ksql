@@ -15,19 +15,17 @@ You have a stream of events that represent a series of changes, known as a chang
 ## In action
 
 ```sql
-CREATE TABLE t1 AS
-    SELECT k,
-           LATEST_BY_OFFSET(v1) AS v1,
-           LATEST_BY_OFFSET(v2) AS v2,
-           LATEST_BY_OFFSET(v3) AS v3
+CREATE SOURCE TABLE t1 AS
+    SELECT k, v1, v2, v3
     FROM s1
     GROUP BY k
     EMIT CHANGES;
 ```
-
 ## Materializing a changelog stream
 
-In ksqlDB, you derive new tables by aggregating other streams and tables. To create a table that reflects the latest values for each key, use the `LATEST_BY_OFFSET` aggregation.
+In ksqlDB, you derive new tables by aggregating other streams and tables.
+To create a table that reflects the latest values for each key, use the 
+CREATE SOURCE TABLE statement.
 
 Begin by telling ksqlDB to start all queries from the earliest point in each topic.
 
@@ -84,14 +82,13 @@ INSERT INTO s1 (
 );
 ```
 
-Derive a table, `t1`, from stream `s1`. When you create a table, the columns in the `SELECT` clause must either be the column that you're grouping by or columns with an aggregation function applied. The `LATEST_BY_OFFSET` aggregation allows you to select any column and retains only the last value it receives, where "last" is in terms of offsets.
+Derive a table, `t1`, from stream `s1`. When you create a table, the columns
+in the `SELECT` clause must either be the column that you're grouping by or
+columns with an aggregation function applied.
 
 ```sql
-CREATE TABLE t1 AS
-    SELECT k,
-           LATEST_BY_OFFSET(v1) AS v1,
-           LATEST_BY_OFFSET(v2) AS v2,
-           LATEST_BY_OFFSET(v3) AS v3
+CREATE SOURCE TABLE t1 AS
+    SELECT k, v1, v2, v3
     FROM s1
     GROUP BY k
     EMIT CHANGES;

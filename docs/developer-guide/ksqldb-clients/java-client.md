@@ -966,13 +966,13 @@ allInsertsFuture.thenRun(() -> System.out.println("Seeded transaction events."))
 Create the anomalies tables:
 
 ```java
-String sql = "CREATE TABLE possible_anomalies WITH ("
+String sql = "CREATE SOURCE TABLE possible_anomalies WITH ("
              + "    kafka_topic = 'possible_anomalies',"
              + "    VALUE_AVRO_SCHEMA_FULL_NAME = 'io.ksqldb.tutorial.PossibleAnomaly'"
              + ")   AS"
              + "    SELECT card_number AS `card_number_key`,"
              + "           as_value(card_number) AS `card_number`,"
-             + "           latest_by_offset(email_address) AS `email_address`,"
+             + "           email_address AS `email_address`,"
              + "           count(*) AS `n_attempts`,"
              + "           sum(amount) AS `total_amount`,"
              + "           collect_list(tx_id) AS `tx_ids`,"

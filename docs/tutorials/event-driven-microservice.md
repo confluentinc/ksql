@@ -262,13 +262,13 @@ INSERT INTO transactions (
 If a single credit card is transacted many times within a short duration, there's probably something suspicious going on. A table is an ideal choice to model this because you want to aggregate events over time and find activity that spans multiple events. Run the following statement:
 
 ```sql
-CREATE TABLE possible_anomalies WITH (
+CREATE SOURCE TABLE possible_anomalies WITH (
     kafka_topic = 'possible_anomalies',
     VALUE_AVRO_SCHEMA_FULL_NAME = 'io.ksqldb.tutorial.PossibleAnomaly'
 )   AS
     SELECT card_number AS `card_number_key`,
            as_value(card_number) AS `card_number`,
-           latest_by_offset(email_address) AS `email_address`,
+           email_address AS `email_address`,
            count(*) AS `n_attempts`,
            sum(amount) AS `total_amount`,
            collect_list(tx_id) AS `tx_ids`,
@@ -287,7 +287,7 @@ Here's what this statement does:
 - The window retains data for the last `1000` days based on each row's timestamp. In general, you should choose your retention carefully. It is a trade-off between storing data longer and having larger state sizes. The very long retention period used in this tutorial is useful because the timestamps are fixed at the time of writing this and won't need to be adjusted often to account for retention.
 - The credit card number is selected twice. In the first instance, it becomes part of the underlying {{ site.ak }} record key, because it's present in the `group by` clause, which is used for sharding. In the second instance, the `as_value` function is used to make it available in the value, too. This is generally for convenience.
 - The individual transaction IDs and amounts that make up the window are collected as lists.
-- The last transaction's email address is "carried forward" with `latest_by_offset`.
+- The last transaction's email address is "carried forward" with CREATE SOURCE TABLE.
 - Column aliases are surrounded by backticks, which tells ksqlDB to use exactly that case. ksqlDB uppercases identity names by default.
 - The underlying {{ site.ak }} topic for this table is explicitly set to `possible_anomalies`.
 - The Avro schema that ksqlDB generates for the value portion of its records is recorded under the namespace `io.ksqldb.tutorial.PossibleAnomaly`. You'll use this later in the microservice.

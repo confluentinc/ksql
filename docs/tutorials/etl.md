@@ -449,10 +449,8 @@ CREATE STREAM shipments WITH (
 The goal is to create a unified view of the activity of shipped orders. To do this, we want to include as much customer information on each shipment as possible. Recall that the `orders` collection that we created in MongoDB only had an identifier for each customer, but not their name. Use this identifier to look up the rest of the information by using a stream/table join. To do this, you must re-key the stream into a table by the `id` field:
 
 ```sql
-CREATE TABLE customers_by_key AS
-    SELECT id,
-           latest_by_offset(name) AS name,
-           latest_by_offset(age) AS age
+CREATE SOURCE TABLE customers_by_key AS
+    SELECT id, name, age
     FROM customers
     GROUP BY id
     EMIT CHANGES;

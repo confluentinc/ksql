@@ -211,9 +211,9 @@ public class PullQueryLimitFunctionalTest {
 
     @Before
     public void setUp() {
-        //Create topic with 32 partition to control who is active and standby
+        //Create topic with 4 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
-        TEST_HARNESS.ensureTopics(32, topic);
+        TEST_HARNESS.ensureTopics(4, topic);
 
         TEST_HARNESS.produceRows(
                 topic,

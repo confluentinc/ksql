@@ -22,15 +22,11 @@ import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +48,7 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
     final Set<String> stateStoreNames =
         persistentQueries
         .stream()
-        .map( s -> {
+        .map(s -> {
           if (s instanceof BinPackedPersistentQueryMetadataImpl) {
             return s.getQueryApplicationId() + "/__" + s.getQueryId().toString() + "__";
           }
@@ -81,7 +77,9 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
           new QueryCleanupService.QueryCleanupTask(
           serviceContext,
           storeName.split("/")[0],
-           1 <  storeName.split("__").length ? Optional.of(storeName.split("__")[1]) : Optional.empty(),
+           1 <  storeName.split("__").length
+               ? Optional.of(storeName.split("__")[1])
+               : Optional.empty(),
           false,
           stateDir)));
     }

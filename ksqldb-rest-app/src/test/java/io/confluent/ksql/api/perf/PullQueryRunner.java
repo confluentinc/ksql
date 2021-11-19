@@ -127,7 +127,8 @@ public class PullQueryRunner extends BasePerfRunner {
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
-        final MetricsCallbackHolder metricsCallbackHolder) {
+        final MetricsCallbackHolder metricsCallbackHolder,
+        final Optional<Boolean> isInternalRequest) {
 //      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
 //      publishers.add(publisher);
 //      return CompletableFuture.completedFuture(publisher);

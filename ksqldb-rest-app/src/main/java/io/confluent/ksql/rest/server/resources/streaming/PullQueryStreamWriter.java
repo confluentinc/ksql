@@ -60,7 +60,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
   private AtomicBoolean closed = new AtomicBoolean(false);
   private boolean sentAtLeastOneRow = false;
 
-  PullQueryStreamWriter(
+  public PullQueryStreamWriter(
       final PullQueryResult result,
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
@@ -85,6 +85,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
         interruptWriterThread();
       }
     });
+    result.start();
   }
 
   @Override

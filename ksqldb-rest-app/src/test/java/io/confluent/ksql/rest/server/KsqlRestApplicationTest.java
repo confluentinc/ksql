@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
+import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -53,6 +54,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
@@ -139,19 +141,7 @@ public class KsqlRestApplicationTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
-  private RoutingFilterFactory routingFilterFactory;
-  @Mock
-  private RateLimiter rateLimiter;
-  @Mock
-  private ConcurrencyLimiter concurrencyLimiter;
-  @Mock
-  private SlidingWindowRateLimiter pullBandRateLimiter;
-  @Mock
-  private SlidingWindowRateLimiter scalablePushBandRateLimiter;
-  @Mock
-  private HARouting haRouting;
-  @Mock
-  private PushRouting pushRouting;
+  private QueryExecutor queryExecutor;
 
   @Mock
   private Vertx vertx;
@@ -496,14 +486,8 @@ public class KsqlRestApplicationTest {
         denyListPropertyValidator,
         Optional.empty(),
         Optional.empty(),
-        routingFilterFactory,
-        rateLimiter,
-        concurrencyLimiter,
-        pullBandRateLimiter,
-        scalablePushBandRateLimiter,
-        haRouting,
-        pushRouting,
-        Optional.empty()
+        Optional.empty(),
+        queryExecutor
     );
   }
 

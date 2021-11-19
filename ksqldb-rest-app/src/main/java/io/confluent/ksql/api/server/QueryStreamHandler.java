@@ -27,6 +27,7 @@ import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,12 +80,16 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       return;
     }
 
+    final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
+    final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
+    routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
         queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
         context, server.getWorkerExecutor(),
-        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder)
+        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder,
+        internalRequest)
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;

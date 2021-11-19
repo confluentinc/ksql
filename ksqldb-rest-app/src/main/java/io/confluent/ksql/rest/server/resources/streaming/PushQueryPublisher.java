@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
@@ -59,71 +60,19 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
 
   private final ListeningScheduledExecutorService exec;
   private final PushQueryMetadata queryMetadata;
+  private final MetricsCallbackHolder metricsCallbackHolder;
+  private final long startTimeNanos;
 
-  private PushQueryPublisher(
+  public PushQueryPublisher(
       final ListeningScheduledExecutorService exec,
-      final PushQueryMetadata queryMetadata
+      final PushQueryMetadata queryMetadata,
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final long startTimeNanos
   ) {
     this.exec = exec;
     this.queryMetadata = queryMetadata;
-  }
-
-  public static PushQueryPublisher createPushQueryPublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final Optional<LocalCommands> localCommands
-  ) {
-    final TransientQueryMetadata queryMetadata =
-        ksqlEngine.executeTransientQuery(serviceContext, query, true);
-
-    localCommands.ifPresent(lc -> lc.write(queryMetadata));
-
-    return new PushQueryPublisher(exec, queryMetadata);
-  }
-
-  public static PushQueryPublisher createScalablePushQueryPublisher(
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final ImmutableAnalysis analysis,
-      final PushRouting pushRouting,
-      final Context context,
-      final  Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
-      final long startTimeNanos,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter
-  ) {
-    final PushRoutingOptions routingOptions = new PushQueryConfigRoutingOptions(
-        ImmutableMap.of()
-    );
-
-    final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
-        query.getSessionConfig().getConfig(false),
-        query.getSessionConfig().getOverrides());
-
-    scalablePushBandRateLimiter.allow(KsqlQueryType.PUSH);
-
-    ScalablePushQueryMetadata pushQueryMetadata = null;
-    try {
-      pushQueryMetadata = ksqlEngine
-              .executeScalablePushQuery(analysis, serviceContext, query, pushRouting,
-                      routingOptions, plannerOptions, context, scalablePushQueryMetrics);
-
-      final ScalablePushQueryMetadata finalPushQueryMetadata = pushQueryMetadata;
-      pushQueryMetadata.onCompletionOrException((v, throwable) ->
-              scalablePushQueryMetrics.ifPresent(
-                      m -> recordMetrics(m, finalPushQueryMetadata, startTimeNanos)));
-      pushQueryMetadata.prepare();
-    } catch (Throwable t) {
-      if (pushQueryMetadata == null) {
-        scalablePushQueryMetrics.ifPresent(m -> recordErrorMetrics(m, startTimeNanos));
-      }
-      throw t;
-    }
-
-    return new PushQueryPublisher(exec, pushQueryMetadata);
+    this.metricsCallbackHolder = metricsCallbackHolder;
+    this.startTimeNanos = startTimeNanos;
   }
 
   @Override
@@ -135,30 +84,10 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     log.info("Running query {}", queryMetadata.getQueryId().toString());
     queryMetadata.start();
 
-    subscriber.onSubscribe(subscription);
-  }
+    WebSocketSubscriber<StreamedRow> webSocketSubscriber =
+        (WebSocketSubscriber<StreamedRow>) subscriber;
 
-
-  private static void recordMetrics(
-          final ScalablePushQueryMetrics metrics, final ScalablePushQueryMetadata metadata,
-          final long startTimeNanos) {
-
-    final QuerySourceType sourceType = metadata.getSourceType();
-    final RoutingNodeType routingNodeType = metadata.getRoutingNodeType();
-    // Note: we are not recording response size in this case because it is not
-    // accessible in the websocket endpoint.
-    metrics.recordConnectionDuration(startTimeNanos, sourceType, routingNodeType);
-    metrics.recordRowsReturned(metadata.getTotalRowsReturned(),
-        sourceType, routingNodeType);
-    metrics.recordRowsProcessed(metadata.getTotalRowsProcessed(),
-        sourceType, routingNodeType);
-  }
-
-  private static void recordErrorMetrics(
-          final ScalablePushQueryMetrics metrics, final long startTimeNanos) {
-    metrics.recordConnectionDurationForError(startTimeNanos);
-    metrics.recordZeroRowsReturnedForError();
-    metrics.recordZeroRowsProcessedForError();
+    webSocketSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);
   }
 
   static class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {

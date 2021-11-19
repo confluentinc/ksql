@@ -281,7 +281,7 @@ public class KsqlTesterTest {
   ) {
     // this is a hack that lets us close the driver (releasing the lock on the state
     // directory) without actually cleaning up the resources. This essentially simulates
-    // the behavior we have in QueryMetadata#close vs QueryMetadata#stop
+    // the behavior we have in QueryMetadataHolder#close vs QueryMetadataHolder#stop
     //
     // in production we have the additional safeguard of changelog topics, but the
     // test driver doesn't support pre-loading state stores from changelog topics,

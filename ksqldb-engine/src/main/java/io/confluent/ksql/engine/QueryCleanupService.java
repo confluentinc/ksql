@@ -24,6 +24,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -91,7 +92,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
   public static class QueryCleanupTask implements Runnable {
     private final String appId;
-    private final String queryId;
+    private final String ;
     private final boolean isTransient;
     private final ServiceContext serviceContext;
     private String stateDir;
@@ -99,7 +100,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
-        final String queryId,
+        final Optional<String> queryId,
         final boolean isTransient,
         final String stateDir
     ) {
@@ -120,7 +121,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
     @Override
     public void run() {
-      if (queryId.equals("")) {
+      if (!queryId.isPresent()) {
         try {
           final Path pathName = Paths.get(stateDir + "/" + appId);
           final File directory = new File(String.valueOf(pathName.normalize()));

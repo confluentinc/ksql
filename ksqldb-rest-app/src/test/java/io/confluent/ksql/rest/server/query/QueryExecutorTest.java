@@ -222,7 +222,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldRateLimit() {
     when(ksqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(),
-        anyBoolean()))
+        anyBoolean(), any()))
         .thenReturn(pullQueryResult);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
@@ -272,7 +272,7 @@ public class QueryExecutorTest {
   public void queryLoggerShouldNotReceiveStatementsWhenHandlePullQuery() {
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(ksqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(),
-        anyBoolean()))
+        anyBoolean(), any()))
         .thenReturn(pullQueryResult);
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       queryExecutor.handleStatement(serviceContext, ImmutableMap.of(), ImmutableMap.of(),
@@ -366,7 +366,7 @@ public class QueryExecutorTest {
   public void shouldRunTablePullQuery_success() {
     // Given:
     when(ksqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(),
-        anyBoolean()))
+        anyBoolean(), any()))
         .thenReturn(pullQueryResult);
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
@@ -381,7 +381,7 @@ public class QueryExecutorTest {
   public void shouldRunTablePullQuery_errorExecuting() {
     // Given:
     when(ksqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(),
-        anyBoolean()))
+        anyBoolean(), any()))
         .thenThrow(new RuntimeException("Error executing!"));
     when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 

@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.Random;
 
 public class UserDataProviderBig extends TestDataProvider {
-    private static final Random rand = new Random();
-
     private static final int NUM_ROWS = 1000;
 
     private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
@@ -63,6 +61,7 @@ public class UserDataProviderBig extends TestDataProvider {
     }
 
     private static Multimap<GenericKey, GenericRow> buildRows() {
+        final Random rand = new Random();
         for (int i = 0; i < NUM_ROWS; i++){
             String gender = GENDERS.get(rand.nextInt(2));
             String region = REGIONS.get(rand.nextInt(4));

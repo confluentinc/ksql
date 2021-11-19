@@ -98,8 +98,9 @@ public class FlatMapNode extends SingleSourcePlanNode {
     final ImmutableMap.Builder<Integer, Expression> buildContext = ImmutableMap
         .builder();
 
-    for (int idx = 0; idx < analysis.getSelectItems().size(); idx++) {
-      final SelectItem selectItem = analysis.getSelectItems().get(idx);
+    final List<SelectItem> selectItems = analysis.getSelectItems();
+    for (int idx = 0; idx < selectItems.size(); idx++) {
+      final SelectItem selectItem = selectItems.get(idx);
       if (!(selectItem instanceof SingleColumn)) {
         continue;
       }

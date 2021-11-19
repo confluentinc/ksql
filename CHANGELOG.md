@@ -1,5 +1,54 @@
 # Change Log
 
+## [0.23.1](https://github.com/confluentinc/ksql/releases/tag/v0.23.1-ksqldb) (2021-11-19)
+
+### Features
+
+* [UIF-1010] Add swiftype metatag for site of ksqldb ([#8308](https://github.com/confluentinc/ksql/pull/8308)) ([916f38b](https://github.com/confluentinc/ksql/commit/916f38b1e34f8b1108923f1edb5cf59adf1c2d85))
+* Add consistency vector handling to CLI and Java client ([#8264](https://github.com/confluentinc/ksql/pull/8264)) ([a651677](https://github.com/confluentinc/ksql/commit/a651677e95f888f0436e9daa40e780ecc9f66884))
+* add detailed scalable push query metrics with type breakdown ([#8178](https://github.com/confluentinc/ksql/pull/8178)) ([561af53](https://github.com/confluentinc/ksql/commit/561af5335a6178fd12fdd78f5728b9dff0c7890f))
+* add HEADERS column type to syntax ([#8314](https://github.com/confluentinc/ksql/pull/8314)) ([d7ef855](https://github.com/confluentinc/ksql/commit/d7ef855ddaba626ba78077bf2a2d17d166f292f9))
+* Add metrics for stream pull queries to WS ([#8174](https://github.com/confluentinc/ksql/pull/8174)) ([d75f254](https://github.com/confluentinc/ksql/commit/d75f25466ded174f7ae894db919c445c6a51de3a))
+* Add support for TIMESTAMP type in the WITH/TIMESTAMP property ([#8271](https://github.com/confluentinc/ksql/pull/8271)) ([ecb43e2](https://github.com/confluentinc/ksql/commit/ecb43e2ffb8450b3902968a2709c86898291dbc7))
+* enable fetching of subsets of partitions in HARouting ([#8161](https://github.com/confluentinc/ksql/pull/8161)) ([cf3cc04](https://github.com/confluentinc/ksql/commit/cf3cc044fe4274cb5a29db49bcf131e2516bc58f))
+* enable ROWPARTITION and ROWOFFSET pseudo columns (KLIP-50) ([#8245](https://github.com/confluentinc/ksql/pull/8245)) ([7bdc41d](https://github.com/confluentinc/ksql/commit/7bdc41d5e05910ce9778abc25246c5021dc290f8))
+* Moves Scalable Push Queries to use a KafkaConsumer ([#8238](https://github.com/confluentinc/ksql/pull/8238)) ([2bab232](https://github.com/confluentinc/ksql/commit/2bab2324702f0b53abf53ba1ff682cf414c088e1))
+* Re-enable GRACE period with new stream-stream joins semantics ([#8236](https://github.com/confluentinc/ksql/pull/8236)) ([f640f5e](https://github.com/confluentinc/ksql/commit/f640f5e40db333f3559cd540e4afe327aa84fc5d)), closes [#8020](https://github.com/confluentinc/ksql/issues/8020) [#8027](https://github.com/confluentinc/ksql/issues/8027) [#8028](https://github.com/confluentinc/ksql/issues/8028) [#8047](https://github.com/confluentinc/ksql/issues/8047)
+* Refactors to use KeyValueMetadata which includes RowMetadata ([#8261](https://github.com/confluentinc/ksql/pull/8261)) ([4275a42](https://github.com/confluentinc/ksql/commit/4275a42a6e59c76a7a2fb98044b5b19a34ca57b4))
+
+
+
+### Bug Fixes
+
+* Add user-friendly error message for SELECT null AS column ([#8276](https://github.com/confluentinc/ksql/pull/8276)) ([57b7dea](https://github.com/confluentinc/ksql/commit/57b7dea6cef876e0c4e06b699aaee7b3c9874874))
+* allow insertion of null values in migrations tool ([#8297](https://github.com/confluentinc/ksql/pull/8297)) ([f42d40a](https://github.com/confluentinc/ksql/commit/f42d40a5f12dfe9d4365f19d6592fe7ab4e936b0))
+* allow more time for consumer group cleanup ([#8189](https://github.com/confluentinc/ksql/pull/8189)) ([d2ff1ac](https://github.com/confluentinc/ksql/commit/d2ff1acbe8d59ad339e23118c69dd8e8e3cfcbcf))
+* Allows remote pull queries to be cancelled ([#8252](https://github.com/confluentinc/ksql/pull/8252)) ([4efa445](https://github.com/confluentinc/ksql/commit/4efa445b2a5e5ed4ee08d12393cd8482a628d434))
+* ClassCastException when dropping sources with 2+ insert queries ([#8205](https://github.com/confluentinc/ksql/pull/8205)) ([a7c6ebe](https://github.com/confluentinc/ksql/commit/a7c6ebeb946df62aed9d0ca1c8724e6f7dd6a18e))
+* close command runner when command topic is deleted ([#8208](https://github.com/confluentinc/ksql/pull/8208)) ([294171c](https://github.com/confluentinc/ksql/commit/294171c0e2a92391c3ad6bb453f4c6f6eaf96a29))
+* doesnt print error ([#8232](https://github.com/confluentinc/ksql/pull/8232)) ([901b968](https://github.com/confluentinc/ksql/commit/901b968c3530f08fb2e8b61c47d59420b2ec1a6e))
+* don't register stream pull queries as push ([#8217](https://github.com/confluentinc/ksql/pull/8217)) ([9c8aa67](https://github.com/confluentinc/ksql/commit/9c8aa67712c3d80e3f7648d96b3989fec24ede8a))
+* dont throw error on processing local commands, just log  ([#8310](https://github.com/confluentinc/ksql/pull/8310)) ([8bc57a2](https://github.com/confluentinc/ksql/commit/8bc57a2dd133455b03e91c194a469cb60e7053c7))
+* During ksql startup, avoid recreating deleted command topic when a valid backup exists [#7753](https://github.com/confluentinc/ksql/issues/7753) ([#8257](https://github.com/confluentinc/ksql/pull/8257)) ([f3f1d5c](https://github.com/confluentinc/ksql/commit/f3f1d5c4463f2d5e8056a6e6fcc2be1bd6e2596f))
+* fix_application_id_to_work_with_acls ([#8277](https://github.com/confluentinc/ksql/pull/8277)) ([64f58e8](https://github.com/confluentinc/ksql/commit/64f58e8a31d54b3f397550dd03d7d0ff5999028d))
+* get rows returned metric working ([#8230](https://github.com/confluentinc/ksql/pull/8230)) ([da4f71e](https://github.com/confluentinc/ksql/commit/da4f71e91089b5055b8bb514c4c1f910610fb722))
+* if not exists return type ([#8322](https://github.com/confluentinc/ksql/pull/8322)) ([9da204c](https://github.com/confluentinc/ksql/commit/9da204c4aa0d1b71c454a296e8a2172f3c66f2e2))
+* make parse_date able to parse partial dates ([#8330](https://github.com/confluentinc/ksql/pull/8330)) ([6a82026](https://github.com/confluentinc/ksql/commit/6a820269407152f3f07296eff2baeaa037453156))
+* make RQTT test insensitive to row ordering ([#8202](https://github.com/confluentinc/ksql/pull/8202)) ([68f05a0](https://github.com/confluentinc/ksql/commit/68f05a0e6b54d2990709a335981750cb1ba0bb0e))
+* Print only failed line on parsing exception ([#8282](https://github.com/confluentinc/ksql/pull/8282)) ([701db5f](https://github.com/confluentinc/ksql/commit/701db5f0c5ce0ce7218448286710527a3789f37d))
+* Pull query table scans support LIKE and BETWEEN operators ([#8299](https://github.com/confluentinc/ksql/pull/8299)) ([bc3ea64](https://github.com/confluentinc/ksql/commit/bc3ea64d355097cf16a8874b9b2b4d96d4c4cbbe))
+* Refactor ConnectFormatSchemaTranslator to take translator object instead of lamda function ([#8177](https://github.com/confluentinc/ksql/pull/8177)) ([6d3b351](https://github.com/confluentinc/ksql/commit/6d3b3510502e24b370b2178095bb003f98f8107a))
+* Specify source type in DROP referential integrity errors ([#8253](https://github.com/confluentinc/ksql/pull/8253)) ([03bd713](https://github.com/confluentinc/ksql/commit/03bd7137cfe894cb3435b7c1ceed0a34ea6f2534))
+* update error msg ([#8221](https://github.com/confluentinc/ksql/pull/8221)) ([8c30780](https://github.com/confluentinc/ksql/commit/8c30780a15e6bd2880f2bf5f447eaf9e746caa15))
+
+
+
+### Reverts
+
+* Revert "feat: Moves Scalable Push Queries to use a KafkaConsumer (#8238)" ([a813c38](https://github.com/confluentinc/ksql/commit/a813c38daefef0b2f5c6803fd0b1172e43a2348d)), closes [#8238](https://github.com/confluentinc/ksql/issues/8238)
+* Revert "docs: revert left/outer stream-stream join doc updates (#8030)" ([d5c0199](https://github.com/confluentinc/ksql/commit/d5c019947726ae44ea21d7c4dffaf8520899cf88)), closes [#8030](https://github.com/confluentinc/ksql/issues/8030)
+* Revert "docs: intent for klip-57: kafka headers" ([88d0d67](https://github.com/confluentinc/ksql/commit/88d0d67e2c9956fcb760b94d3e04764d7e68b02b))
+
 ## [0.22.0](https://github.com/confluentinc/ksql/releases/tag/v0.22.0-ksqldb) (2021-11-03)
 
 ### Features

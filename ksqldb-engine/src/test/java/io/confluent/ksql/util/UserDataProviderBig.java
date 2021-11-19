@@ -19,7 +19,6 @@ import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableListMultimap.Builder;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -30,7 +29,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class UserDataProviderBig extends TestDataProvider {
     private static final int NUM_ROWS = 1000;
@@ -56,15 +55,10 @@ public class UserDataProviderBig extends TestDataProvider {
         super("USER", PHYSICAL_SCHEMA, ROWS);
     }
 
-    public String getStringKey(final int position) {
-        return (String) Iterables.get(data().keySet(), position).get(0);
-    }
-
     private static Multimap<GenericKey, GenericRow> buildRows() {
-        final Random rand = new Random();
         for (int i = 0; i < NUM_ROWS; i++){
-            String gender = GENDERS.get(rand.nextInt(2));
-            String region = REGIONS.get(rand.nextInt(4));
+            String gender = GENDERS.get(ThreadLocalRandom.current().nextInt(2));
+            String region = REGIONS.get(ThreadLocalRandom.current().nextInt(4));
             BUILDER.put(genericKey("USER_" + i),
                     genericRow((long) i, gender, region));
         }

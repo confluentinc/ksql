@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -74,245 +75,144 @@ public class DeprecatedStatementsCheckerTest {
   }
 
   @Test
-  public void shouldDeprecateStreamStreamLeftJoinWithNoGrace() {
-    // Given
-    final Statement statement = parse(String.format(
-            "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS r WITHIN 1 SECOND ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
+  public void shouldDeprecateStreamStreamJoinsWithNoGrace() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS r WITHIN 1 SECOND ON l.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldDeprecateStreamStreamLeftJoinWithNoGraceOnMultiStreamStreamJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
-            + "LEFT JOIN %s AS r WITHIN 1 SECOND ON m.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        STREAM_3.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
+  public void shouldDeprecateStreamStreamJoinsWithNoGraceOnMultiStreamStreamJoinOrder1() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
+              + "%s JOIN %s AS r WITHIN 1 SECOND ON m.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_3.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldDeprecateStreamStreamLeftJoinWithNoGraceOnMultiStreamStreamTableJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS m WITHIN 1 SECOND ON l.K = m.K "
-            + "LEFT JOIN %s AS r ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        TABLE_1.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
+  public void shouldDeprecateStreamStreamJoinsWithNoGraceOnMultiStreamStreamJoinOrder2() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS r WITHIN 1 SECOND ON m.K = r.K "
+              + "%s JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_3.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldNotDeprecateStreamStreamLeftJoinWithGrace() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
+  public void shouldDeprecateStreamStreamJoinsWithNoGraceOnMultiStreamStreamTableJoinOrder1() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS m WITHIN 1 SECOND ON l.K = m.K "
+              + "%s JOIN %s AS r ON l.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          TABLE_1.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldNotDeprecateStreamStreamLeftJoinWithGraceOnMultiStreamStreamJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
-            + "LEFT JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON m.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        STREAM_3.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
+  public void shouldDeprecateStreamStreamJoinsWithNoGraceOnMultiStreamStreamTableJoinOrder2() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS r ON l.K = r.K "
+              + "%s JOIN %s AS m WITHIN 1 SECOND ON l.K = m.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          TABLE_1.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldNotDeprecateStreamStreamLeftJoinWithGraceOnMultiStreamStreamTableJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
-            + "LEFT JOIN %s AS r ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        TABLE_1.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
+  public void shouldNotDeprecateStreamStreamJoinsWithGrace() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkNoDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldDeprecateStreamStreamOuterJoinWithoutGrace() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "FULL OUTER JOIN %s AS r WITHIN 1 SECOND ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
+  public void shouldNotDeprecateStreamStreamJoinWithGraceOnMultiStreamStreamJoin() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkNoDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
+              + "%s JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON m.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_3.text()
+      ));
+    }
   }
 
   @Test
-  public void shouldDeprecateStreamStreamOuterJoinWithoutGraceOnMultiStreamStreamJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "FULL OUTER JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
-            + "FULL OUTER JOIN %s AS r WITHIN 1 SECOND ON m.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        STREAM_3.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
-  }
-
-  @Test
-  public void shouldNotDeprecateStreamStreamOuterJoinWithNoGraceOnMultiStreamStreamTableJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "FULL OUTER JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
-            + "FULL OUTER JOIN %s AS r ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        TABLE_1.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldNotDeprecateStreamStreamOuterJoinWithGrace() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "FULL OUTER JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldNotDeprecateStreamStreamOuterJoinWithGraceOnMultiStreamStreamJoin() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "FULL OUTER JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
-            + "FULL OUTER JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON m.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text(),
-        STREAM_3.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldNotDeprecateStreamStreamInnerJoinWithoutGrace() {
-    // Given
-    final Statement statement = parse(String.format(
-        "SELECT * FROM %s AS l "
-            + "JOIN %s AS r WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text()
-    ));
-
-    // When
-    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
-        statementsChecker.checkStatement(statement);
-
-    // Then
-    assertThat(deprecations, is(Optional.empty()));
+  public void shouldNotDeprecateStreamStreamJoinsWithGraceOnMultiStreamStreamTableJoin() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkNoDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K "
+              + "%s JOIN %s AS r ON l.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          TABLE_1.text()
+      ));
+    }
   }
 
   @Test
   public void shouldDeprecateStreamStreamJoinInsideCreateAs() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkDeprecatedStatement(String.format(
+          "CREATE STREAM DEPRECATED_QUERY AS "
+              + "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS r WITHIN 1 SECOND ON l.K = r.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text()
+      ));
+    }
+  }
+
+  private void checkDeprecatedStatement(final String statementText) {
     // Given
-    final Statement statement = parse(String.format(
-        "CREATE STREAM DEPRECATED_QUERY AS "
-            + "SELECT * FROM %s AS l "
-            + "LEFT JOIN %s AS r WITHIN 1 SECOND ON l.K = r.K;",
-        STREAM_1.text(),
-        STREAM_2.text()
-    ));
+    final Statement statement = parse(statementText);
 
     // When
     final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
@@ -320,6 +220,18 @@ public class DeprecatedStatementsCheckerTest {
 
     // Then
     assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
+  }
+
+  private void checkNoDeprecatedStatement(final String statementText) {
+    // Given
+    final Statement statement = parse(statementText);
+
+    // When
+    final Optional<DeprecatedStatementsChecker.Deprecations> deprecations =
+        statementsChecker.checkStatement(statement);
+
+    // Then
+    assertThat(deprecations, is(Optional.empty()));
   }
 
   private Statement parse(final String statementText) {

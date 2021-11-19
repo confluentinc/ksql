@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.analyzer.Analysis;
+import static io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
+
 import io.confluent.ksql.engine.rewrite.DataSourceExtractor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinedSource;
@@ -29,7 +29,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 public class DeprecatedStatementsChecker {
   public enum Deprecations {
@@ -59,44 +58,40 @@ public class DeprecatedStatementsChecker {
   }
 
   public Optional<Deprecations> checkStatement(final Statement statement) {
-    if (isLeftOrOuterStreamStreamJoinWithoutGraceStatement(statement)) {
+    if (isStreamStreamJoinWithoutGraceStatement(statement)) {
       return Optional.of(Deprecations.DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE);
     }
 
     return Optional.empty();
   }
 
-  private boolean isLeftOrOuterStreamStreamJoinWithoutGraceStatement(final Statement statement) {
+  private boolean isStreamStreamJoinWithoutGraceStatement(final Statement statement) {
     if (statement instanceof CreateAsSelect) {
-      return isLeftOrOuterStreamStreamJoinWithoutGraceQuery(
-          ((CreateAsSelect) statement).getQuery());
+      return isStreamStreamJoinWithoutGraceQuery(((CreateAsSelect) statement).getQuery());
     } else if (statement instanceof Query) {
-      return isLeftOrOuterStreamStreamJoinWithoutGraceQuery((Query) statement);
+      return isStreamStreamJoinWithoutGraceQuery((Query) statement);
     }
 
     return false;
   }
 
-  private boolean isLeftOrOuterStreamStreamJoinWithoutGraceQuery(final Query query) {
+  private boolean isStreamStreamJoinWithoutGraceQuery(final Query query) {
     if (query.getFrom() instanceof Join) {
       final Join join = (Join) query.getFrom();
 
       // check left joined source is a stream
-      if (!isStream(join.getLeft())) {
+      if (!isJoinedSourceStream(join.getLeft())) {
         return false;
       }
 
       for (final JoinedSource joinedSource : join.getRights()) {
-        final JoinedSource.Type joinType = joinedSource.getType();
-        if (joinType == JoinedSource.Type.LEFT || joinType == JoinedSource.Type.OUTER) {
-          // check right joined source is a stream
-          if (!isStream(joinedSource.getRelation())) {
-            break;
-          }
+        // check right joined source is a stream
+        if (!isJoinedSourceStream(joinedSource.getRelation())) {
+          break;
+        }
 
-          if (!joinedSource.getWithinExpression().flatMap(WithinExpression::getGrace).isPresent()) {
-            return true;
-          }
+        if (!joinedSource.getWithinExpression().flatMap(WithinExpression::getGrace).isPresent()) {
+          return true;
         }
       }
     }
@@ -104,19 +99,20 @@ public class DeprecatedStatementsChecker {
     return false;
   }
 
-  private boolean isStream(final Relation relation) {
-    for (final Analysis.AliasedDataSource source : extractDataSources(relation)) {
+  private boolean isJoinedSourceStream(final Relation relation) {
+    // DataSourceExtractor must be initialized everytime we need to extract data from a node
+    // because it changes its internal state to keep all sources found
+    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore, false);
+
+    // The relation object should have only one joined source, but the extract sources method
+    // returns a list. This loop checks all returned values are a Stream just to prevent throwing
+    // an exception if more than one value is returned.
+    for (final AliasedDataSource source : dataSourceExtractor.extractDataSources(relation)) {
       if (source.getDataSource().getDataSourceType() != DataSource.DataSourceType.KSTREAM) {
         return false;
       }
     }
 
     return true;
-  }
-
-  private Set<Analysis.AliasedDataSource> extractDataSources(final AstNode node) {
-    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore, false);
-    dataSourceExtractor.extractDataSources(node);
-    return dataSourceExtractor.getAllSources();
   }
 }

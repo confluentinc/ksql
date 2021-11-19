@@ -17,6 +17,7 @@ package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -54,8 +55,9 @@ public class DataSourceExtractor {
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
   }
 
-  public void extractDataSources(final AstNode node) {
+  public Set<Analysis.AliasedDataSource> extractDataSources(final AstNode node) {
     new Visitor().process(node, null);
+    return getAllSources();
   }
 
   public Set<AliasedDataSource> getAllSources() {

@@ -1,7 +1,22 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.server.query;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.RateLimiter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
@@ -19,7 +34,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
@@ -48,6 +62,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A {@link QueryExecutor} is responsible for executing query statement types, namely push and pull
+ * queries. This consolidates launching, certain error handling, and rate limiting all in one
+ * place. It's still up to the endpoints to take the {@link QueryMetadataHolder}, inspect it to
+ * find the type of query launched, then start and processes the output of the query.
+ */
 public class QueryExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(QueryExecutor.class);
@@ -65,6 +85,8 @@ public class QueryExecutor {
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
+  @SuppressWarnings("ParameterNumber")
+  @SuppressFBWarnings("EI_EXPOSE_REP2")
   public QueryExecutor(
       final KsqlEngine ksqlEngine,
       final KsqlRestConfig ksqlRestConfig,

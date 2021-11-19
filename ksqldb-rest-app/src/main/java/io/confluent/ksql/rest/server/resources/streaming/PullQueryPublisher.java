@@ -53,15 +53,15 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   @Override
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
-      final PullQuerySubscription subscription = new PullQuerySubscription(
-          exec, subscriber, result);
+    final PullQuerySubscription subscription = new PullQuerySubscription(
+        exec, subscriber, result);
 
-      result.start();
+    result.start();
 
-      WebSocketSubscriber<StreamedRow> webSocketSubscriber =
-          (WebSocketSubscriber<StreamedRow>) subscriber;
+    final WebSocketSubscriber<StreamedRow> webSocketSubscriber =
+        (WebSocketSubscriber<StreamedRow>) subscriber;
 
-      webSocketSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);
+    webSocketSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);
   }
 
   private static final class PullQuerySubscription

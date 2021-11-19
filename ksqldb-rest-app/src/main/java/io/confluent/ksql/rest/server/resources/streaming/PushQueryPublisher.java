@@ -45,7 +45,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
   private final MetricsCallbackHolder metricsCallbackHolder;
   private final long startTimeNanos;
 
-  public PushQueryPublisher(
+  PushQueryPublisher(
       final ListeningScheduledExecutorService exec,
       final PushQueryMetadata queryMetadata,
       final MetricsCallbackHolder metricsCallbackHolder,
@@ -66,7 +66,7 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
     log.info("Running query {}", queryMetadata.getQueryId().toString());
     queryMetadata.start();
 
-    WebSocketSubscriber<StreamedRow> webSocketSubscriber =
+    final WebSocketSubscriber<StreamedRow> webSocketSubscriber =
         (WebSocketSubscriber<StreamedRow>) subscriber;
 
     webSocketSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);

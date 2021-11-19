@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.server.query;
 
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -7,7 +22,11 @@ import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Optional;
 
-public class QueryMetadataHolder {
+/**
+ * Holds query metadata from running {@link QueryExecutor}.  This can be inspected by an endpoint
+ * to find out what type of query was executed and how to process the result.
+ */
+public final class QueryMetadataHolder {
 
   private final Optional<TransientQueryMetadata> pushQueryMetadata;
   private final Optional<StreamPullQueryMetadata> streamPullQueryMetadata;
@@ -76,6 +95,8 @@ public class QueryMetadataHolder {
     return scalablePushQueryMetadata;
   }
 
+  // Most endoints just want to handle something of this interface, for all push type queries,
+  // so it's not necessary to differentiate what type it is.
   public Optional<PushQueryMetadata> getPushQueryMetadata() {
     if (pushQueryMetadata.isPresent()) {
       return pushQueryMetadata.map(queryMetadata -> queryMetadata);

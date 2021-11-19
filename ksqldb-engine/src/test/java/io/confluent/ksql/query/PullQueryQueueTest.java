@@ -159,7 +159,7 @@ public class PullQueryQueueTest {
     givenWillCloseQueueAsync();
 
     // Then
-    assertThat(queue.getTotalRowsQueued(), is(new Long(LIMIT_SIZE)));
+    assertThat(queue.getTotalRowsQueued(), is(Long.valueOf(LIMIT_SIZE)));
     verify(queuedCallback, times(LIMIT_SIZE)).run();
     verify(limitHandler, times(1)).limitReached();
   }
@@ -190,7 +190,7 @@ public class PullQueryQueueTest {
     queue.drainRowsTo(rows);
 
     // assert that we have processed limit rows
-    assertThat(queue.getTotalRowsQueued(), is(new Long(LIMIT_SIZE)));
+    assertThat(queue.getTotalRowsQueued(), is(Long.valueOf(LIMIT_SIZE)));
 
     //try adding some more rows
     IntStream.range(0, 3)

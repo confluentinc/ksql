@@ -64,8 +64,10 @@ public class UserDataProviderBig extends TestDataProvider {
 
     private static Multimap<GenericKey, GenericRow> buildRows() {
         for (int i = 0; i < NUM_ROWS; i++){
+            String gender = GENDERS.get(rand.nextInt(2));
+            String region = REGIONS.get(rand.nextInt(4));
             BUILDER.put(genericKey("USER_" + i),
-                    genericRow((long) i, GENDERS.get(rand.nextInt(2)), REGIONS.get(rand.nextInt(4))));
+                    genericRow((long) i, gender, region));
         }
         return BUILDER.build();
     }

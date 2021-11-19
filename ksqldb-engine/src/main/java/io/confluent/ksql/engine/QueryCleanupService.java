@@ -136,9 +136,9 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       }
       tryRun(
           () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-              queryTopicPrefix,
-              serviceContext.getSchemaRegistryClient(),
-              isTransient),
+            queryTopicPrefix,
+            serviceContext.getSchemaRegistryClient(),
+            isTransient),
           "internal topic schemas"
       );
 

@@ -29,8 +29,8 @@
   <artifactId>ksqldb-api</artifactId>
 
   <properties>
-    <vertx.version>3.9.7</vertx.version>
-    <netty.version>4.1.62.Final</netty.version>
+    <vertx.version>3.9.10</vertx.version>
+    <netty.version>4.1.69.Final</netty.version>
     <reactive-streams.version>1.0.3</reactive-streams.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>

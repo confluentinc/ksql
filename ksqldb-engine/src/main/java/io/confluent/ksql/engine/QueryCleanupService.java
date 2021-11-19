@@ -92,77 +92,64 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
   public static class QueryCleanupTask implements Runnable {
     private final String appId;
-    private final String ;
+    private final String queryTopicPrefix;
+    private final Optional<String> topologyName;
+    private final String pathName;
     private final boolean isTransient;
     private final ServiceContext serviceContext;
-    private String stateDir;
 
     public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
-        final Optional<String> queryId,
+        final Optional<String> topologyName,
         final boolean isTransient,
         final String stateDir
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
-      this.queryId = Objects.requireNonNull(queryId, "queryId");
+      this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
+      queryTopicPrefix = topologyName.map(s -> appId + "-" + s).orElse(appId);
       this.isTransient = isTransient;
-      this.stateDir = stateDir;
+      pathName = topologyName
+          .map(s -> stateDir + "/" + appId + "/__" + s + "__")
+          .orElse(stateDir + "/" + appId);
     }
 
     public String getAppId() {
       return appId;
     }
 
-    public String getQueryId() {
-      return queryId;
-    }
-
     @Override
     public void run() {
-      if (!queryId.isPresent()) {
-        try {
-          final Path pathName = Paths.get(stateDir + "/" + appId);
-          final File directory = new File(String.valueOf(pathName.normalize()));
-          if (directory.exists()) {
-            FileUtils.deleteDirectory(directory);
-            LOG.warn("Deleted local state store for non-existing query {}. "
-                    + "This is not expected and was likely due to a "
-                    + "race condition when the query was dropped before.",
-                appId);
-          }
-        } catch (Exception e) {
-          LOG.error("Error cleaning up state directory {}\n. {}", appId, e);
+      try {
+        final Path pathName = Paths.get(this.pathName);
+        final File directory = new File(String.valueOf(pathName.normalize()));
+        if (directory.exists()) {
+          FileUtils.deleteDirectory(directory);
+          LOG.warn("Deleted local state store for non-existing query {}. "
+                  + "This is not expected and was likely due to a "
+                  + "race condition when the query was dropped before.",
+              queryTopicPrefix);
         }
-        tryRun(
-            () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-                appId,
-                serviceContext.getSchemaRegistryClient(),
-                isTransient),
-            "internal topic schemas"
-        );
+      } catch (Exception e) {
+        LOG.error("Error cleaning up state directory {}\n. {}", pathName, e);
+      }
+      tryRun(
+          () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
+              queryTopicPrefix,
+              serviceContext.getSchemaRegistryClient(),
+              isTransient),
+          "internal topic schemas"
+      );
 
-        tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(appId),
-            "internal topics");
+      tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix),
+          "internal topics");
+      if (!topologyName.isPresent()) {
         tryRun(
             () -> serviceContext
                 .getConsumerGroupClient()
                 .deleteConsumerGroups(ImmutableSet.of(appId)),
             "internal consumer groups");
-      } else {
-        tryRun(
-            () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-                appId + "-" + queryId ,
-                serviceContext.getSchemaRegistryClient(),
-                isTransient),
-            "internal topic schemas"
-        );
-        tryRun(
-            () -> serviceContext.getTopicClient().deleteInternalTopics(appId + "-" + queryId),
-            "internal topics"
-        );
-
       }
     }
 
@@ -172,10 +159,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       } catch (final Exception e) {
         LOG.warn("Failed to cleanup {} for {}", resource, appId, e);
       }
-    }
-
-    public void setStateDir(final String newStateDir) {
-      stateDir = newStateDir;
     }
   }
 

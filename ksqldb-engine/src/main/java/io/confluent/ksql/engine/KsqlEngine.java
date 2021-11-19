@@ -594,16 +594,16 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         final QueryMetadata query
     ) {
       final String applicationId = query.getQueryApplicationId();
-      Optional<String> queryID = Optional.empty();
+      Optional<String> topologyName = Optional.empty();
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-        queryID = Optional.of(query.getQueryId().toString());
+        topologyName = Optional.of(query.getQueryId().toString());
       }
       if (query.hasEverBeenStarted()) {
         cleanupService.addCleanupTask(
             new QueryCleanupService.QueryCleanupTask(
                 serviceContext,
                 applicationId,
-                queryID,
+                topologyName,
                 query instanceof TransientQueryMetadata,
                 ksqlConfig.getKsqlStreamConfigProps()
                     .getOrDefault(

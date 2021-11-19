@@ -98,6 +98,7 @@ class Analyzer {
   private final MetaStore metaStore;
   private final String topicPrefix;
   private final boolean rowpartitionRowoffsetEnabled;
+  private final boolean pullLimitClauseEnabled;
 
   /**
    * @param metaStore the metastore to use.
@@ -108,11 +109,14 @@ class Analyzer {
   Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean pullLimitClauseEnabled
+
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.pullLimitClauseEnabled = pullLimitClauseEnabled;
   }
 
   /**
@@ -147,7 +151,11 @@ class Analyzer {
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.analysis = new Analysis(query.getRefinement(), rowpartitionRowoffsetEnabled);
+      this.analysis = new Analysis(
+              query.getRefinement(),
+              rowpartitionRowoffsetEnabled,
+              pullLimitClauseEnabled);
+
       this.persistent = persistent;
     }
 

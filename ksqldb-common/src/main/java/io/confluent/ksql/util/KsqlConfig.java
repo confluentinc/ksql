@@ -312,6 +312,12 @@ public class KsqlConfig extends AbstractConfig {
           + "queries.";
   public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
+          = "ksql.query.pull.limit.clause.enabled";
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+          = "Enables the use of LIMIT clause in pull queries";
+  public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -1019,6 +1025,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_ENABLED,

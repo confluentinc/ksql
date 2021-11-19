@@ -67,6 +67,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AnalyzerFunctionalTest {
 
   private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
+  private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
 
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
@@ -86,7 +87,7 @@ public class AnalyzerFunctionalTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
     );
 
-    analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
@@ -100,7 +101,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -117,7 +118,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -133,7 +134,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -177,7 +178,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -193,7 +194,7 @@ public class AnalyzerFunctionalTest {
     final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statements.get(0);
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(avroMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
@@ -227,7 +228,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -250,7 +251,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -275,7 +276,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -298,7 +299,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -323,7 +324,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(
@@ -348,7 +349,7 @@ public class AnalyzerFunctionalTest {
 
     final Query query = createStreamAsSelect.getQuery();
 
-    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED);
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
     // When:
     final Exception e = assertThrows(

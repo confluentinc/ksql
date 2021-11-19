@@ -75,12 +75,14 @@ public class Analysis implements ImmutableAnalysis {
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
   private boolean orReplace = false;
   private final boolean rowpartitionRowoffsetEnabled;
+  private boolean pullLimitClauseEnabled = true;
 
   public Analysis(
       final Optional<RefinementInfo> refinementInfo,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean pullLimitClauseEnabled
   ) {
-    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled);
+    this(refinementInfo, SourceSchemas::new, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
   }
 
   @VisibleForTesting
@@ -88,11 +90,13 @@ public class Analysis implements ImmutableAnalysis {
       final Optional<RefinementInfo> refinementInfo,
       final BiFunction<Map<SourceName, LogicalSchema>, Boolean, SourceSchemas>
           sourceSchemasFactory,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean pullLimitClauseEnabled
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.pullLimitClauseEnabled  = pullLimitClauseEnabled;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -271,6 +275,10 @@ public class Analysis implements ImmutableAnalysis {
 
   public boolean getRowpartitionRowoffsetEnabled() {
     return rowpartitionRowoffsetEnabled;
+  }
+
+  public boolean getPullLimitClauseEnabled() {
+    return pullLimitClauseEnabled;
   }
 
   private LogicalSchema buildStreamsSchema(

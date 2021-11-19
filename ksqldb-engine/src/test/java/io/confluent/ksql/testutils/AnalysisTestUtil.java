@@ -45,8 +45,10 @@ public final class AnalysisTestUtil {
   ) {
     final boolean rowpartitionRowoffsetEnabled =
         ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+    final boolean pullLimitClauseEnabled =
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
 
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore, rowpartitionRowoffsetEnabled);
+    final Analyzer analyzer = new Analyzer(queryStr, metaStore, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -61,10 +63,11 @@ public final class AnalysisTestUtil {
     private Analyzer(
         final String queryStr,
         final MetaStore metaStore,
-        final boolean rowpartitionRowoffsetEnabled
+        final boolean rowpartitionRowoffsetEnabled,
+        final boolean pullLimitClauseEnabled
     ) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "", rowpartitionRowoffsetEnabled);
+          metaStore, "", rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
       final Statement statement =
           parseStatement(queryStr, metaStore, rowpartitionRowoffsetEnabled);
       final Query query = statement instanceof QueryContainer

@@ -352,6 +352,20 @@
           {"row": {"columns": [90.0 , ["right", "think", "three"]         , 3]}}
         ]}
       ]
+    },
+    {
+      "name": "error on stream when ksql.query.pull.limit.clause.enabled is set to false",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "SELECT * FROM riderLocations LIMIT 8;"
+      ],
+      "properties": {
+        "ksql.query.pull.limit.clause.enabled": false
+      },
+      "expectedError": {
+        "message": "LIMIT clause in pull queries is currently disabled. You can enable them by setting ksql.query.pull.limit.clause.enabled=true. See https://cnfl.io/queries for more info.\nAdd EMIT CHANGES if you intended to issue a push query."
+      }
     }
   ]
 }

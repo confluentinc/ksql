@@ -154,15 +154,19 @@ public class LatestConsumer extends ScalablePushConsumer {
         consumer.offsetsForTimes(timestamps);
     final Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
         consumer.committed(topicPartitions);
+    // If even one partition has recent commits, then we don't seek to end.
+    boolean foundAtLeastOneRecent = false;
     for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : offsetAndTimestampMap.entrySet()) {
       final OffsetAndMetadata metadata = offsetAndMetadataMap.get(entry.getKey());
       if (metadata != null && entry.getValue() != null
-          && entry.getValue().offset() > metadata.offset()) {
-        consumer.seekToEnd(topicPartitions);
-        resetCurrentPosition();
-        LOG.info("LatestConsumer seeking to end {}", currentPositions);
-        return;
+          && entry.getValue().offset() <= metadata.offset()) {
+        foundAtLeastOneRecent = true;
       }
+    }
+    if (!foundAtLeastOneRecent) {
+      consumer.seekToEnd(topicPartitions);
+      resetCurrentPosition();
+      LOG.info("LatestConsumer seeking to end {}", currentPositions);
     }
   }
 }

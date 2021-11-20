@@ -127,7 +127,7 @@ public class ScalablePushRegistry {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     // Even if it's closing async, we just call close anyway to try to do it immediately
     if (latestConsumer != null) {
-      latestConsumer.close();
+      latestConsumer.closeAsync();
     }
 
     executorService.shutdown();

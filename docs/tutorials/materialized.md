@@ -320,7 +320,7 @@ In the ksqlDB CLI, run the following statement:
 CREATE SOURCE TABLE support_view AS
     SELECT after->name AS name,
            count_distinct(after->reason) AS distinct_reasons,
-           after->reason as last_reason
+           after->reason AS last_reason
     FROM calls
     GROUP BY after->name
     EMIT CHANGES;

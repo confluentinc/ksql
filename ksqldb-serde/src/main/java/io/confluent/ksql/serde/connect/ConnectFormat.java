@@ -54,6 +54,9 @@ import org.apache.kafka.connect.errors.DataException;
  */
 public abstract class ConnectFormat implements Format {
 
+  public static String SR_KEY_SCHEMA_ID = "SR_KEY_SCHEMA_ID";
+  public static String SR_VALUE_SCHEMA_ID = "SR_VALUE_SCHEMA_ID";
+
   @Override
   public SchemaTranslator getSchemaTranslator(final Map<String, String> formatProperties) {
     return getSchemaTranslator(formatProperties,

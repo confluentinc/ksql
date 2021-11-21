@@ -135,6 +135,9 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    final Optional<Integer> keySchemaId = getKeySchemaId();
+    keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
+
     return builder.build();
   }
 
@@ -154,7 +157,19 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    final Optional<Integer> valueSchemaId = getValueSchemaId();
+    valueSchemaId.ifPresent(id ->
+        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
+
     return builder.build();
+  }
+
+  public Optional<Integer> getKeySchemaId() {
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.KEY_SCHEMA_ID));
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
   }
 
   public CreateSourceAsProperties withTopic(

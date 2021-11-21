@@ -20,10 +20,12 @@ import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
@@ -353,6 +355,22 @@ public class CreateSourceAsPropertiesTest {
     assertThat(e.getMessage(), containsString("Cannot supply both 'KEY_FORMAT' and 'FORMAT' properties, "
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldGetKeyAndValueSchemaIdFromFormat() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .put(KEY_SCHEMA_ID, new IntegerLiteral(123))
+            .put(VALUE_SCHEMA_ID, new IntegerLiteral(456))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "Avro"),
+        hasEntry(ConnectProperties.SCHEMA_ID, "123"));
+    assertThat(props.getValueFormatProperties(), hasEntry(ConnectProperties.SCHEMA_ID, "456"));
   }
 
   @Test

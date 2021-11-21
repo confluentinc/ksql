@@ -76,7 +76,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. Current format is KAFKA."
+        "message": "KAFKA does not support the following configs: [KEY_SCHEMA_ID]"
       }
     },
     {
@@ -95,7 +95,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. Current format is KAFKA."
+        "message": "KAFKA does not support the following configs: [VALUE_SCHEMA_ID]"
       }
     },
     {

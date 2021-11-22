@@ -70,7 +70,7 @@ public class KsqlConfigResolverTest {
   @Test
   public void shouldReturnUnresolvedForOtherKsqlFunctionProperty() {
     assertThat(
-        resolver.resolve("ksql.fail.on.production.error", true),
+        resolver.resolve(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop", true),
         is(unresolvedItem(KsqlConfig.KSQL_FUNCTIONS_PROPERTY_PREFIX + "some_udf.some.prop")));
   }
 

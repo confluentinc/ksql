@@ -19,7 +19,6 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INTERN
 import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INVALID_MESSAGE_TYPE;
 import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AGAIN_LATER;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.engine.KsqlEngine;

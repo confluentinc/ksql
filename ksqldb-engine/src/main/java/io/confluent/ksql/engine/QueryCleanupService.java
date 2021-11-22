@@ -109,6 +109,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       this.appId = Objects.requireNonNull(appId, "appId");
       this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
       queryTopicPrefix = topologyName.map(s -> appId + "-" + s).orElse(appId);
+      //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
       pathName = topologyName
           .map(s -> stateDir + "/" + appId + "/__" + s + "__")

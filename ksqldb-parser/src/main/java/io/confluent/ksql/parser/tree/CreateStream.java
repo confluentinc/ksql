@@ -53,6 +53,11 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
   }
 
   @Override
+  public SourceType getSourceType() {
+    return SourceType.STREAM;
+  }
+
+  @Override
   public CreateSource copyWith(
       final TableElements elements,
       final CreateSourceProperties properties

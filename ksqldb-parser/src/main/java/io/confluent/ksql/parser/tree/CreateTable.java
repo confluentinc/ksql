@@ -52,6 +52,11 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
   }
 
   @Override
+  public SourceType getSourceType() {
+    return SourceType.TABLE;
+  }
+
+  @Override
   public CreateSource copyWith(
       final TableElements elements,
       final CreateSourceProperties properties

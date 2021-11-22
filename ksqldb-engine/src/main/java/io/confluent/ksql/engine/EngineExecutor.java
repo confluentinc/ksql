@@ -590,13 +590,6 @@ final class EngineExecutor {
         queryPlan);
   }
 
-  private boolean isSourceStreamOrTable(final ConfiguredStatement<?> statement) {
-    return (statement.getStatement() instanceof CreateStream
-        && ((CreateStream) statement.getStatement()).isSource())
-        || (statement.getStatement() instanceof CreateTable
-        && ((CreateTable) statement.getStatement()).isSource());
-  }
-
   private boolean isSourceTableMaterializationEnabled() {
     // Do not get overridden configs because this must be set only from the Server side
     return config.getConfig(false)

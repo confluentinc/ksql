@@ -17,24 +17,19 @@ package io.confluent.ksql.version.metrics;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.Matchers.is;
-import static org.mockserver.integration.ClientAndServer.startClientAndServer;
-import static org.mockserver.model.HttpRequest.request;
 
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.support.metrics.BaseSupportConfig;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import org.mockserver.integration.ClientAndServer;
-import org.mockserver.socket.PortFactory;
 
 public class VersionCheckerIntegrationTest {
-
-  private static int proxyPort;
-  private static ClientAndServer mockServer;
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -42,14 +37,15 @@ public class VersionCheckerIntegrationTest {
       .withLookingForStuckThread(true)
       .build();
 
-  @BeforeClass
-  public static void startProxy() {
-    proxyPort = PortFactory.findFreePort();
-    mockServer = startClientAndServer(proxyPort);
-  }
+  @Rule
+  public WireMockRule wireMockRule = new WireMockRule(
+      WireMockConfiguration.wireMockConfig()
+          .dynamicPort()
+  );
 
   @Test
   public void testMetricsAgent() throws InterruptedException {
+    WireMock.stubFor(WireMock.post("/ksql/anon").willReturn(WireMock.ok()));
 
     final KsqlVersionCheckerAgent versionCheckerAgent = new KsqlVersionCheckerAgent(
         () -> false
@@ -59,13 +55,13 @@ public class VersionCheckerIntegrationTest {
         .CONFLUENT_SUPPORT_METRICS_ENDPOINT_SECURE_ENABLE_CONFIG, "false");
     versionCheckProps.setProperty(
         BaseSupportConfig.CONFLUENT_SUPPORT_PROXY_CONFIG,
-        "http://localhost:" + proxyPort
+        "http://localhost:" + wireMockRule.port()
     );
     versionCheckerAgent.start(KsqlModuleType.SERVER, versionCheckProps);
 
     assertThatEventually("Version not submitted", () -> {
           try {
-            mockServer.verify(request().withPath("/ksql/anon").withMethod("POST"));
+            WireMock.verify(WireMock.postRequestedFor(WireMock.urlPathEqualTo("/ksql/anon")));
             return true;
           } catch (final AssertionError e) {
             return false;

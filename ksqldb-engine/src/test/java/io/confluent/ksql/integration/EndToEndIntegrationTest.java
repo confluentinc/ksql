@@ -110,7 +110,7 @@ public class EndToEndIntegrationTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(
-        true, false
+        false
     );
   }
 

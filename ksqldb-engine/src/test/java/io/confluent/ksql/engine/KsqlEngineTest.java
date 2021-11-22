@@ -57,6 +57,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -68,6 +69,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -1227,6 +1229,36 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldCleanUpSharedRuntimesInternalTopicsOnCloseForPersistentQueries() {
+    // Given:
+
+    final KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator(),
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true))
+    );
+
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngineWithSharedRuntimes,
+        "create stream persistent with (KAFKA_TOPIC='rekey') as select * from orders partition by orderid EMIT CHANGES;",
+        KSQL_CONFIG,
+        Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
+    );
+
+    query.get(0).start();
+
+    // When:
+    query.get(0).close();
+
+    awaitCleanupComplete(ksqlEngineWithSharedRuntimes);
+    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId() + "-" + query.get(0).getQueryId().toString());
+  }
+
+
+  @Test
   public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
@@ -2084,9 +2116,13 @@ public class KsqlEngineTest {
   }
 
   private void awaitCleanupComplete() {
+    awaitCleanupComplete(ksqlEngine);
+  }
+
+  private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false, "") {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", Optional.empty(), false, "") {
       @Override
       public void run() {
         // do nothing

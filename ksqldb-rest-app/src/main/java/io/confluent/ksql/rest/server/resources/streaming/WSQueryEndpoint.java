@@ -232,7 +232,7 @@ public class WSQueryEndpoint {
     final QueryMetadataHolder queryMetadataHolder
         = queryExecutor.handleStatement(info.securityContext.getServiceContext(),
         info.request.getConfigOverrides(),
-        ImmutableMap.of(),
+        info.request.getRequestProperties(),
         statement,
         Optional.empty(),
         metricsCallbackHolder,

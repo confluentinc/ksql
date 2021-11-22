@@ -259,7 +259,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           OBJECT_MAPPER,
           result.getPullQueryQueue(),
           Clock.systemUTC(),
-          connectionClosedFuture);
+          connectionClosedFuture,
+          statement);
 
       return EndpointResponse.ok(pullQueryStreamWriter);
     } else if (queryMetadataHolder.getPushQueryMetadata().isPresent()) {

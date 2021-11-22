@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -182,10 +183,10 @@ public class ConsistencyOffsetVectorFunctionalTest {
         true
     );
 
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
-    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -196,11 +197,11 @@ public class ConsistencyOffsetVectorFunctionalTest {
     streamedQueryResult.poll();
 
     // Then
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                          is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
-    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -208,9 +209,10 @@ public class ConsistencyOffsetVectorFunctionalTest {
     // When
     final BatchedQueryResult batchedQueryResult = client.executeQuery(
         PULL_QUERY_ON_TABLE, ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true));
-    batchedQueryResult.get();
+    final List<Row> rows = batchedQueryResult.get();
 
     // Then
+    assertThat(rows, hasSize(1));
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();

@@ -43,9 +43,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -312,11 +316,16 @@ final class SourceBuilderUtils {
 
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
+    private final List<Column> headerColumns;
 
     AddKeyAndPseudoColumns(
-        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
+        final Function<K, Collection<?>> keyGenerator,
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -355,6 +364,17 @@ final class SourceBuilderUtils {
           }
 
           row.appendAll(keyColumns);
+          if (headerColumns.size() > 0) {
+            row.append(Arrays.stream(processorContext.headers().toArray())
+                .map(header -> new Struct(SchemaBuilder.struct()
+                    .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+                    .optional()
+                    .build())
+                    .put("KEY", header.key())
+                    .put("VALUE", header.value()))
+                .collect(Collectors.toList()));
+          }
           return row;
         }
 

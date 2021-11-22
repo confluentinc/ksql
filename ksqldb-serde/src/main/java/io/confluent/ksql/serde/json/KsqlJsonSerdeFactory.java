@@ -20,11 +20,13 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -40,13 +42,24 @@ import org.apache.kafka.connect.storage.Converter;
 class KsqlJsonSerdeFactory {
 
   private final boolean useSchemaRegistryFormat;
+  private final Optional<Integer> schemaId;
 
   /**
    * @param useSchemaRegistryFormat whether or not to require the magic byte and
    *                                schemaID as part of the JSON message
    */
   KsqlJsonSerdeFactory(final boolean useSchemaRegistryFormat) {
+    this(useSchemaRegistryFormat, Optional.empty());
+  }
+
+  /**
+   * @param useSchemaRegistryFormat whether or not to require the magic byte and
+   *                                schemaID as part of the JSON message
+   * @param schemaId optional schema id provided to use for serialization
+   */
+  KsqlJsonSerdeFactory(final boolean useSchemaRegistryFormat, final Optional<Integer> schemaId) {
     this.useSchemaRegistryFormat = useSchemaRegistryFormat;
+    this.schemaId = schemaId;
   }
 
   <T> Serde<T> createSerde(
@@ -83,7 +96,7 @@ class KsqlJsonSerdeFactory {
       final boolean isKey
   ) {
     final Converter converter = useSchemaRegistryFormat
-        ? getSchemaConverter(srFactory.get(), ksqlConfig, isKey)
+        ? getSchemaConverter(srFactory.get(), ksqlConfig, schemaId, isKey)
         : getConverter();
 
     return new KsqlConnectSerializer<>(
@@ -117,6 +130,7 @@ class KsqlJsonSerdeFactory {
   private static Converter getSchemaConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
+      final Optional<Integer> schemaId,
       final boolean isKey
   ) {
     final Map<String, Object> config = ksqlConfig
@@ -126,6 +140,11 @@ class KsqlJsonSerdeFactory {
         JsonSchemaConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+    if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      config.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+      config.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
+    }
     config.put(JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name());
 
     final Converter converter = new JsonSchemaConverter(schemaRegistryClient);

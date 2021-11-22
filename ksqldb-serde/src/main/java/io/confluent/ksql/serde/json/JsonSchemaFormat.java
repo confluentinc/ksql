@@ -24,6 +24,7 @@ import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -72,7 +73,11 @@ public class JsonSchemaFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return new KsqlJsonSerdeFactory(true)
+    final String schemaIdStr = isKey ? formatProps.get(ConnectFormat.KEY_SCHEMA_ID)
+        : formatProps.get(ConnectFormat.VALUE_SCHEMA_ID);
+    final Optional<Integer> schemaId = (schemaIdStr == null ? Optional.empty()
+        : Optional.of(Integer.parseInt(schemaIdStr)));
+    return new KsqlJsonSerdeFactory(true, schemaId)
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

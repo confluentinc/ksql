@@ -24,6 +24,7 @@ import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -79,9 +80,12 @@ public final class AvroFormat extends ConnectFormat {
     // Ensure schema is compatible by converting to Avro schema:
     getConnectSchemaTranslator(formatProps).fromConnectSchema(connectSchema);
 
-    final String schemaFullName = new AvroProperties(formatProps).getFullSchemaName();
+    final AvroProperties properties = new AvroProperties(formatProps);
+    final String schemaFullName = properties.getFullSchemaName();
+    final Optional<Integer> schemaId =
+        isKey ? properties.getKeySchemaId() : properties.getValueSchemaId();
 
-    return new KsqlAvroSerdeFactory(schemaFullName)
+    return new KsqlAvroSerdeFactory(schemaFullName, schemaId)
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 

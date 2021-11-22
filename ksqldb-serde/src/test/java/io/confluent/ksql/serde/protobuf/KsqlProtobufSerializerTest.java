@@ -24,6 +24,7 @@ import com.google.protobuf.Timestamp;
 import com.google.type.Date;
 import com.google.type.TimeOfDay;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -206,6 +207,7 @@ public class KsqlProtobufSerializerTest {
             ksqlConfig,
             () -> schemaRegistryClient,
             targetType,
+            Optional.empty(),
             false).serializer();
   }
 

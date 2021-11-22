@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -53,7 +54,7 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
+    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, Optional.empty(), false);
 
     // Then (did not throw)
   }
@@ -66,7 +67,7 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
+    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, Optional.empty(), false);
 
     // Then (did not throw)
   }

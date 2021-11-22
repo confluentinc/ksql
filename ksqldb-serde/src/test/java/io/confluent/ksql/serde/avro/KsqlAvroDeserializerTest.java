@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.Conversions.DecimalConversion;
 import org.apache.avro.LogicalTypes;
@@ -1588,7 +1589,7 @@ public class KsqlAvroDeserializerTest {
       final Class<T> targetType
   ) {
     final KsqlAvroSerdeFactory serdeFactory = new KsqlAvroSerdeFactory(
-        AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+        AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME, Optional.empty());
 
     final Deserializer<T> deserializer = serdeFactory.createSerde(
         schema,

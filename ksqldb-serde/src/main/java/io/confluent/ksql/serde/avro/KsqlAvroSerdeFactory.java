@@ -27,6 +27,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -39,9 +40,11 @@ import org.apache.kafka.connect.data.Schema;
 class KsqlAvroSerdeFactory {
 
   private final String fullSchemaName;
+  private final Optional<Integer> schemaId;
 
-  KsqlAvroSerdeFactory(final String fullSchemaName) {
+  KsqlAvroSerdeFactory(final String fullSchemaName, final Optional<Integer> schemaId) {
     this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
+    this.schemaId = schemaId;
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
@@ -93,7 +96,7 @@ class KsqlAvroSerdeFactory {
       final AvroDataTranslator translator = createAvroTranslator(schema);
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, isKey);
+          getAvroConverter(srFactory.get(), ksqlConfig, schemaId, isKey);
 
       return new KsqlConnectSerializer<>(
           translator.getAvroCompatibleSchema(),
@@ -115,7 +118,7 @@ class KsqlAvroSerdeFactory {
       final AvroDataTranslator translator = createAvroTranslator(schema);
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, isKey);
+          getAvroConverter(srFactory.get(), ksqlConfig, Optional.empty(), isKey);
 
       return new KsqlConnectDeserializer<>(avroConverter, translator, targetType);
     };
@@ -128,6 +131,7 @@ class KsqlAvroSerdeFactory {
   private static AvroConverter getAvroConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
+      final Optional<Integer> schemaId,
       final boolean isKey
   ) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
@@ -139,6 +143,12 @@ class KsqlAvroSerdeFactory {
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
 
     avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+
+    if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      avroConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+      avroConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
+    }
 
     avroConverter.configure(avroConfig, isKey);
     return avroConverter;

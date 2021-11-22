@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
@@ -36,6 +37,7 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -43,7 +45,6 @@ import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
@@ -51,6 +52,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.avro.Conversions.DecimalConversion;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Type;
@@ -100,8 +102,12 @@ public class KsqlAvroSerializerTest {
   private static final org.apache.avro.Schema BOOLEAN_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"boolean\"}");
 
+  private static final AvroSchema BOOLEAN_PARSED_AVRO_SCHEMA = new AvroSchema(BOOLEAN_AVRO_SCHEMA);
+
   private static final org.apache.avro.Schema INT_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"int\"}");
+
+  private static final AvroSchema INT_PARSED_AVRO_SCHEMA = new AvroSchema(INT_AVRO_SCHEMA);
 
   private static final org.apache.avro.Schema LONG_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"long\"}");
@@ -309,7 +315,6 @@ public class KsqlAvroSerializerTest {
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, true);
 
-    // Then:
     // Then:
     assertThat(deserialize(bytes), is(true));
     assertThat(avroSchemaStoredInSchemaRegistry(), is(BOOLEAN_AVRO_SCHEMA));
@@ -743,7 +748,8 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME,
+            Optional.empty())
             .createSerde(
                 schema,
                 ksqlConfig,
@@ -770,7 +776,7 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME, Optional.empty())
             .createSerde(
                 schema,
                 ksqlConfig,
@@ -1121,7 +1127,7 @@ public class KsqlAvroSerializerTest {
         .put("field0", ksqlValue);
 
     final Serializer<Struct> serializer =
-        new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName)
+        new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName, Optional.empty())
             .createSerde(
                 (ConnectSchema) ksqlRecordSchema,
                 ksqlConfig,
@@ -1137,6 +1143,24 @@ public class KsqlAvroSerializerTest {
 
     assertThat(avroRecord.getSchema().getNamespace(), is(schemaNamespace));
     assertThat(avroRecord.getSchema().getName(), is(schemaName));
+  }
+
+  @Test
+  public void shouldSerializePrimitiveWithSchemaId() throws Exception {
+    // Given:
+    int boolSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), BOOLEAN_PARSED_AVRO_SCHEMA);
+    final Serializer<Boolean> boolSerializer = givenSerializerForSchema(OPTIONAL_BOOLEAN_SCHEMA, Boolean.class, Optional.of(boolSchemaId));
+
+    int intSchemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), INT_PARSED_AVRO_SCHEMA);
+    final Serializer<Integer> intSerializer = givenSerializerForSchema(OPTIONAL_INT32_SCHEMA, Integer.class, Optional.of(intSchemaId));
+
+    // When:
+    final byte[] boolBytes = boolSerializer.serialize(SOME_TOPIC, true);
+    final byte[] intBytes = intSerializer.serialize(SOME_TOPIC, 123);
+
+    // Then:
+    assertThat(deserialize(boolBytes), is(true));
+    assertThat(deserialize(intBytes), is(123));
   }
 
   private static org.apache.avro.Schema legacyMapEntrySchema() {
@@ -1244,7 +1268,15 @@ public class KsqlAvroSerializerTest {
       final Schema schema,
       final Class<T> targetType
   ) {
-    return new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+    return givenSerializerForSchema(schema, targetType, Optional.empty());
+  }
+
+  private <T> Serializer<T> givenSerializerForSchema(
+      final Schema schema,
+      final Class<T> targetType,
+      final Optional<Integer> schemaId
+  ) {
+    return new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME, schemaId)
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,
@@ -1253,10 +1285,17 @@ public class KsqlAvroSerializerTest {
             false).serializer();
   }
 
+  private int givenPhysicalSchema(
+      final String subject,
+      final AvroSchema physicalSchema
+  ) throws Exception {
+    return schemaRegistryClient.register(subject, physicalSchema);
+  }
+
   private org.apache.avro.Schema avroSchemaStoredInSchemaRegistry() {
     try {
       final SchemaMetadata schemaMetadata = schemaRegistryClient
-          .getLatestSchemaMetadata(KsqlConstants.getSRSubject(SOME_TOPIC, false));
+          .getLatestSchemaMetadata(getSRSubject(SOME_TOPIC, false));
 
       return parseAvroSchema(schemaMetadata.getSchema());
     } catch (final Exception e) {

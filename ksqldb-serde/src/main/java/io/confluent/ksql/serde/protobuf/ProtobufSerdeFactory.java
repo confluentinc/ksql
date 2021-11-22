@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.protobuf;
 import io.confluent.connect.protobuf.ProtobufConverter;
 import io.confluent.connect.protobuf.ProtobufConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
@@ -27,6 +28,7 @@ import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -46,6 +48,7 @@ final class ProtobufSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Integer> schemaId,
       final boolean isKey) {
     validate(schema);
 
@@ -54,6 +57,7 @@ final class ProtobufSerdeFactory {
         ksqlConfig,
         srFactory,
         targetType,
+        schemaId,
         isKey
     );
     final Supplier<Deserializer<T>> deserializer = () -> createDeserializer(
@@ -83,9 +87,10 @@ final class ProtobufSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Integer> schemaId,
       final boolean isKey
   ) {
-    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, isKey);
+    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, schemaId, isKey);
 
     return new KsqlConnectSerializer<>(
         schema,
@@ -102,7 +107,8 @@ final class ProtobufSerdeFactory {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, isKey);
+    final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, Optional.empty(),
+        isKey);
 
     return new KsqlConnectDeserializer<>(
         converter,
@@ -114,6 +120,7 @@ final class ProtobufSerdeFactory {
   private static ProtobufConverter getConverter(
       final SchemaRegistryClient schemaRegistryClient,
       final KsqlConfig ksqlConfig,
+      final Optional<Integer> schemaId,
       final boolean isKey
   ) {
     final Map<String, Object> protobufConfig = ksqlConfig
@@ -123,6 +130,12 @@ final class ProtobufSerdeFactory {
         ProtobufConverterConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY)
     );
+
+    if (schemaId.isPresent()) {
+      // Disable auto registering schema if schema id is used
+      protobufConfig.put(AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS, false);
+      protobufConfig.put(AbstractKafkaSchemaSerDeConfig.USE_SCHEMA_ID, schemaId.get());
+    }
 
     final ProtobufConverter converter = new ProtobufConverter(schemaRegistryClient);
     converter.configure(protobufConfig, isKey);

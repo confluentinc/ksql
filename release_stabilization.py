@@ -45,7 +45,7 @@ class Callbacks:
         mvn_docker_args["docker.registry"] = DOCKER_UPSTREAM_REGISTRY
         mvn_docker_args["docker.test-registry"] = DOCKER_UPSTREAM_REGISTRY
         mvn_docker_args["docker.upstream-tag"] = CP_VERSION + "-latest"
-        mvn_docker_args["skip.docker.build"] = "true"
+        mvn_docker_args["skip.docker.build"] = "false"
         mvn_docker_args["skip.docker.test"] = "true"
         return mvn_docker_args
 

@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -265,7 +266,18 @@ public class DefaultSchemaInjector implements Injector {
     final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
-    return statement.copyWith(elements, statement.getProperties());
+    Optional<String> avroKeySchemaName = Optional.empty();
+    Optional<String> avroValueSchemaName = Optional.empty();
+    if (keySchema.isPresent() && keySchema.get().rawSchema.schemaType().equals(AvroSchema.TYPE)) {
+      avroKeySchemaName = Optional.ofNullable(keySchema.get().rawSchema.name());
+    }
+    if (valueSchema.isPresent() && valueSchema.get().rawSchema.schemaType()
+        .equals(AvroSchema.TYPE)) {
+      avroValueSchemaName = Optional.ofNullable(valueSchema.get().rawSchema.name());
+    }
+    final CreateSourceProperties properties = statement.getProperties().withKeyValueSchemaName(
+        avroKeySchemaName, avroValueSchemaName);
+    return statement.copyWith(elements, properties);
   }
 
   private static TableElements buildElements(

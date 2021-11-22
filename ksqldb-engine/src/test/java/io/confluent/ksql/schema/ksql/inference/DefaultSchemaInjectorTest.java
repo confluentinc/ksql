@@ -328,7 +328,8 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
+            + "KEY_FORMAT='protobuf', VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -355,7 +356,8 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
+            + "KEY_FORMAT='protobuf', VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -383,7 +385,8 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='json_sr');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', "
+            + "VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='json_sr');"
     ));
   }
 
@@ -411,7 +414,8 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='json_sr');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', "
+            + "VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='json_sr');"
     ));
   }
 
@@ -431,7 +435,8 @@ public class DefaultSchemaInjectorTest {
         "CREATE STREAM `cs` ("
             + "`key` STRING KEY, "
             + "`bob` STRING) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
+            + "KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
     ));
   }
 
@@ -451,7 +456,8 @@ public class DefaultSchemaInjectorTest {
         "CREATE TABLE `ct` ("
             + "`key` STRING PRIMARY KEY, "
             + "`bob` STRING) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
+            + "KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
     ));
   }
 
@@ -647,8 +653,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. "
-            + "Current format is KAFKA."));
+        containsString("KAFKA does not support the following configs: [KEY_SCHEMA_ID]"));
   }
 
   @Test
@@ -668,8 +673,7 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. "
-            + "Current format is DELIMITED"));
+        containsString("DELIMITED does not support the following configs: [VALUE_SCHEMA_ID]"));
   }
 
   @Test

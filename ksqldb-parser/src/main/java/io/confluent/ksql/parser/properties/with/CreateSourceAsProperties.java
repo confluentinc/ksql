@@ -119,7 +119,6 @@ public final class CreateSourceAsProperties {
       final String keyFormat
   ) {
     final Builder<String, String> builder = ImmutableMap.builder();
-
     final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
     if (schemaName != null) {
       builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
@@ -162,6 +161,19 @@ public final class CreateSourceAsProperties {
         builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
+  }
+
+  public CreateSourceAsProperties withKeyValueSchemaName(
+      final Optional<String> keySchemaName,
+      final Optional<String> valueSchemaName
+  ) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    keySchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME, new StringLiteral(s)));
+    valueSchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral(s)));
+
+    return new CreateSourceAsProperties(originals);
   }
 
   public Optional<Integer> getKeySchemaId() {

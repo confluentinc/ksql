@@ -97,7 +97,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(2, TimeUnit.MINUTES)
+      .withTimeout(3, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 
@@ -133,6 +133,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})
   @Test
   public void scalablePushBandwidthThrottleTestHTTP1() {
+
     assertAllPersistentQueriesRunning();
     String veryLong = createDataSize(100000);
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";

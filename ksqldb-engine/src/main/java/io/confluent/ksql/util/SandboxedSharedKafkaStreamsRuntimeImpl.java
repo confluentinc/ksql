@@ -42,7 +42,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     );
 
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
-      //kafkaStreams.addNamedTopology(queryMetadata.getTopology());
+      kafkaStreams.addNamedTopology(query.getTopology());
     }
   }
 

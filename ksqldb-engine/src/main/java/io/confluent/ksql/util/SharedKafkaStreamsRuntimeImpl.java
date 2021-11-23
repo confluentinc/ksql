@@ -23,6 +23,8 @@ import io.confluent.ksql.query.QueryId;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,8 +109,12 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Attempting to stop Query: " + queryId.toString());
     if (collocatedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
-        kafkaStreams.removeNamedTopology(queryId.toString()).all().get();
-        kafkaStreams.cleanUpNamedTopology(queryId.toString());
+        try {
+          kafkaStreams.removeNamedTopology(queryId.toString(), true).all().get(30, TimeUnit.SECONDS);
+          kafkaStreams.cleanUpNamedTopology(queryId.toString());
+        } catch (final TimeoutException ignored) {
+
+        }
       } else {
         throw new IllegalStateException("Streams in not running but is in state"
             + kafkaStreams.state());
@@ -126,7 +132,11 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   public void start(final QueryId queryId) {
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology()).all().get();
+        try {
+          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology()).all().get(30, TimeUnit.SECONDS);
+        } catch (final TimeoutException ignored) {
+
+        }
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);
       }

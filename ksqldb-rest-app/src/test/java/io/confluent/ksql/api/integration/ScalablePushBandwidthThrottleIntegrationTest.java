@@ -133,7 +133,6 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})
   @Test
   public void scalablePushBandwidthThrottleTestHTTP1() {
-
     assertAllPersistentQueriesRunning();
     String veryLong = createDataSize(100000);
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";

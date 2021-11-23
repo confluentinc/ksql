@@ -139,7 +139,9 @@ public final class AverageUdaf {
       @Override
       public Struct undo(final I valueToUndo,
                          final Struct aggregate) {
-
+        if (valueToUndo == null) {
+          return aggregate;
+        }
         return new Struct(structSchema)
             .put(SUM, subtracter.apply(aggregate, valueToUndo))
             .put(COUNT, aggregate.getInt64(COUNT) - 1);

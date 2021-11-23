@@ -28,10 +28,7 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 
 public class VersionCheckerIntegrationTest {
-
-  private static int proxyPort;
-  private static ClientAndProxy clientAndProxy;
-
+  
   @Rule
   public final Timeout timeout = Timeout.builder()
       .withTimeout(30, TimeUnit.SECONDS)

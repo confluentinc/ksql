@@ -19,6 +19,7 @@ import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
@@ -568,6 +569,23 @@ public class CreateSourcePropertiesTest {
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchema"));
+  }
+
+  @Test
+  public void shouldSetAvroNameOnAvroKeyFormatWithKeySchemaProperty() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .put(KEY_AVRO_SCHEMA_FULL_NAME, new StringLiteral("KeySchemaName"))
+            .build());
+
+    // When // Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        hasEntry(AvroFormat.FULL_SCHEMA_NAME, "KeySchemaName"));
   }
 
   @Test

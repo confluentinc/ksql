@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.properties.with;
 import static com.google.common.collect.ImmutableMap.of;
 import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.from;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
@@ -135,6 +136,22 @@ public class CreateSourceAsPropertiesTest {
 
     // Then:
     assertThat(avroSchemaName, is("io.confluent.ksql.avro_schemas.NameKey"));
+  }
+
+  @Test
+  public void shouldSetAvroSchemaNameForKey() {
+    // Given:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.of(KEY_FORMAT_PROPERTY, new StringLiteral("AVRO"),
+            KEY_AVRO_SCHEMA_FULL_NAME, new StringLiteral("KeySchemaName"))
+    );
+
+    // When:
+    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
+        .get(AvroFormat.FULL_SCHEMA_NAME);
+
+    // Then:
+    assertThat(avroSchemaName, is("KeySchemaName"));
   }
 
   @Test

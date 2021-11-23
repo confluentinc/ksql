@@ -191,19 +191,6 @@ public final class CreateSourceProperties {
     return SerdeFeatures.from(builder.build());
   }
 
-  public CreateSourceProperties withSchemaIds(
-      final Optional<Integer> keySchemaId,
-      final Optional<Integer> valueSchemaId
-  ) {
-    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
-    keySchemaId.ifPresent(id ->
-        originals.put(CommonCreateConfigs.KEY_SCHEMA_ID, new IntegerLiteral(id)));
-    valueSchemaId.ifPresent(id ->
-        originals.put(CommonCreateConfigs.VALUE_SCHEMA_ID, new IntegerLiteral(id)));
-
-    return new CreateSourceProperties(originals, durationParser);
-  }
-
   public CreateSourceProperties withPartitions(
       final int partitions
   ) {

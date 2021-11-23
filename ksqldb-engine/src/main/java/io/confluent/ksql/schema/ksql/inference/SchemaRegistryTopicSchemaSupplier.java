@@ -152,7 +152,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
       return multiColumnKeysNotSupported(topic, parsedSchema.canonicalString());
     }
 
-    return SchemaResult.success(SchemaAndId.schemaAndId(columns, id));
+    return SchemaResult.success(SchemaAndId.schemaAndId(columns, parsedSchema, id));
   }
 
   private static SchemaResult incorrectFormat(

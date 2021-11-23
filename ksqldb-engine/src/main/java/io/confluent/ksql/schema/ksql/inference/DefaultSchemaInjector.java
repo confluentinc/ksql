@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -35,6 +36,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -63,6 +65,7 @@ import java.util.stream.Stream;
  * {@code statement} is returned unchanged.
  */
 public class DefaultSchemaInjector implements Injector {
+
   private static final ColumnConstraints KEY_CONSTRAINT =
       new ColumnConstraints.Builder().key().build();
 
@@ -110,8 +113,22 @@ public class DefaultSchemaInjector implements Injector {
 
     final CreateSource withSchema = addSchemaFields(statement, keySchema, valueSchema);
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withSchema);
+
+    final ImmutableMap.Builder<String, Object> overrideBuilder =
+        ImmutableMap.builder();
+
+    // Only store raw schema if schema id is provided by user
+    if (withSchema.getProperties().getKeySchemaId().isPresent()) {
+      keySchema.map(
+          schemaAndId -> overrideBuilder.put(ConnectFormat.KEY_SCHEMA_ID, schemaAndId));
+    }
+    if (withSchema.getProperties().getValueSchemaId().isPresent()) {
+      valueSchema.map(
+          schemaAndId -> overrideBuilder.put(ConnectFormat.VALUE_SCHEMA_ID,
+              schemaAndId));
+    }
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, statement.getSessionConfig());
+        .of(prepared, statement.getSessionConfig().copyWith(overrideBuilder.build()));
 
     return Optional.of(configured);
   }
@@ -249,12 +266,7 @@ public class DefaultSchemaInjector implements Injector {
     final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
-    final CreateSourceProperties properties = statement.getProperties();
-
-    final CreateSourceProperties withSchemaIds = properties.withSchemaIds(
-        keySchema.map(s -> s.id),
-        valueSchema.map(s -> s.id));
-    return statement.copyWith(elements, withSchemaIds);
+    return statement.copyWith(elements, statement.getProperties());
   }
 
   private static TableElements buildElements(

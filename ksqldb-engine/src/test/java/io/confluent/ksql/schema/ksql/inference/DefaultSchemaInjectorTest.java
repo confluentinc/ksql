@@ -514,8 +514,6 @@ public class DefaultSchemaInjectorTest {
   @Test
   public void shouldGetValueSchemaWithSchemaId() {
     // Given:
-    when(sourceProperties.getValueSchemaId()).thenReturn(Optional.of(42));
-    when(sourceProperties.getKeySchemaId()).thenReturn(Optional.empty());
     givenValueButNotKeyInferenceSupported(ImmutableMap.of("VALUE_SCHEMA_ID", new IntegerLiteral(42)));
 
     // When:
@@ -523,8 +521,8 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(result.getStatementText(), containsString("VALUE_SCHEMA_ID=42"));
-    assertThat(result.getSessionConfig().getOverrides(), hasKey(ConnectFormat.SR_VALUE_SCHEMA_ID));
-    SchemaAndId schemaAndId = (SchemaAndId) result.getSessionConfig().getOverrides().get(ConnectFormat.SR_VALUE_SCHEMA_ID);
+    assertThat(result.getSessionConfig().getOverrides(), hasKey(ConnectFormat.VALUE_SCHEMA_ID));
+    SchemaAndId schemaAndId = (SchemaAndId) result.getSessionConfig().getOverrides().get(ConnectFormat.VALUE_SCHEMA_ID);
     assertThat(schemaAndId.id, is(42));
     assertThat(schemaAndId.rawSchema, sameInstance(VALUE_AVRO_SCHEMA));
     verify(schemaSupplier).getValueSchema(any(), eq(Optional.of(42)), any(), any());

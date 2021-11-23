@@ -23,6 +23,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -250,7 +251,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(nullValue()));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
   @Test
@@ -263,7 +264,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     // Then
     assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
-                         is(nullValue()));
+                         is(isEmptyString()));
   }
 
   @Test
@@ -275,7 +276,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(nullValue()));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
   @Test(timeout = 120000L)

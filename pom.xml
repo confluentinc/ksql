@@ -325,6 +325,12 @@
 
             <dependency>
                 <groupId>io.confluent</groupId>
+                <artifactId>common-docker</artifactId>
+                <version>${io.confluent.common-docker.version}</version>
+            </dependency>
+            
+            <dependency>
+                <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
             </dependency>

@@ -44,7 +44,7 @@ class Callbacks:
 
         mvn_docker_args["docker.registry"] = DOCKER_UPSTREAM_REGISTRY
         mvn_docker_args["docker.test-registry"] = DOCKER_UPSTREAM_REGISTRY
-        mvn_docker_args["docker.upstream-tag"] = CP_VERSION + "-latest"
+        mvn_docker_args["docker.upstream-tag"] = "latest"
         mvn_docker_args["skip.docker.build"] = "false"
         mvn_docker_args["skip.docker.test"] = "true"
         return mvn_docker_args
@@ -55,8 +55,9 @@ class Callbacks:
 
             # pull, tag, and push latest docker images
             for docker_repo in DOCKER_REPOS:
-                subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{v_version} {DOCKER_UPSTREAM_REGISTRY}{CCLOUD_DOCKER_REPO}:{v_version}"))
-                subprocess.run(shlex.split(f"docker push {DOCKER_UPSTREAM_REGISTRY}{CCLOUD_DOCKER_REPO}:{v_version}"))
+                subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{v_version} {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
+                subprocess.run(shlex.split(f"docker push {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
+
 
             return True
         except:

@@ -266,18 +266,24 @@ public class DefaultSchemaInjector implements Injector {
     final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
+    final CreateSourceProperties properties = statement.getProperties();
+
     Optional<String> avroKeySchemaName = Optional.empty();
     Optional<String> avroValueSchemaName = Optional.empty();
-    if (keySchema.isPresent() && keySchema.get().rawSchema.schemaType().equals(AvroSchema.TYPE)) {
+
+    // Only populate avro key and value schema names when schema ids are explicitly provided
+    // and fetched schema is avro format
+    if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()
+        && keySchema.get().rawSchema.schemaType().equals(AvroSchema.TYPE)) {
       avroKeySchemaName = Optional.ofNullable(keySchema.get().rawSchema.name());
     }
-    if (valueSchema.isPresent() && valueSchema.get().rawSchema.schemaType()
-        .equals(AvroSchema.TYPE)) {
+    if (properties.getValueSchemaId().isPresent() && valueSchema.isPresent()
+        && valueSchema.get().rawSchema.schemaType().equals(AvroSchema.TYPE)) {
       avroValueSchemaName = Optional.ofNullable(valueSchema.get().rawSchema.name());
     }
-    final CreateSourceProperties properties = statement.getProperties().withKeyValueSchemaName(
+    final CreateSourceProperties newProperties = statement.getProperties().withKeyValueSchemaName(
         avroKeySchemaName, avroValueSchemaName);
-    return statement.copyWith(elements, properties);
+    return statement.copyWith(elements, newProperties);
   }
 
   private static TableElements buildElements(

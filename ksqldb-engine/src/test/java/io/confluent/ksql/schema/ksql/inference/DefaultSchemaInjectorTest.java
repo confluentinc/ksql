@@ -328,8 +328,7 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
-            + "KEY_FORMAT='protobuf', VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -356,8 +355,7 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
-            + "KEY_FORMAT='protobuf', VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='avro');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='protobuf', VALUE_FORMAT='avro');"
     ));
   }
 
@@ -385,8 +383,7 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', "
-            + "VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='json_sr');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='json_sr');"
     ));
   }
 
@@ -414,8 +411,7 @@ public class DefaultSchemaInjectorTest {
             + "`mapField` MAP<STRING, BIGINT>, "
             + "`structField` STRUCT<`s0` BIGINT>, "
             + "`decimalField` DECIMAL(4, 2)) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', "
-            + "VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='json_sr');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_FORMAT='json_sr');"
     ));
   }
 
@@ -435,8 +431,7 @@ public class DefaultSchemaInjectorTest {
         "CREATE STREAM `cs` ("
             + "`key` STRING KEY, "
             + "`bob` STRING) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
-            + "KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
     ));
   }
 
@@ -456,8 +451,7 @@ public class DefaultSchemaInjectorTest {
         "CREATE TABLE `ct` ("
             + "`key` STRING PRIMARY KEY, "
             + "`bob` STRING) "
-            + "WITH (KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
-            + "KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
+            + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='avro', VALUE_FORMAT='delimited');"
     ));
   }
 
@@ -526,7 +520,15 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatementText(), containsString("VALUE_SCHEMA_ID=42"));
+    assertThat(result.getStatementText(), is(
+        "CREATE STREAM `cs` ("
+        + "`intField` INTEGER, `bigIntField` BIGINT, "
+        + "`doubleField` DOUBLE, `stringField` STRING, `booleanField` BOOLEAN, "
+        + "`arrayField` ARRAY<INTEGER>, `mapField` MAP<STRING, BIGINT>, "
+        + "`structField` STRUCT<`s0` BIGINT>, `decimalField` DECIMAL(4, 2)) WITH "
+        + "(KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', "
+        + "VALUE_FORMAT='json_sr', VALUE_SCHEMA_ID=42);"));
+
     assertThat(result.getSessionConfig().getOverrides(), hasKey(ConnectFormat.VALUE_SCHEMA_ID));
     SchemaAndId schemaAndId = (SchemaAndId) result.getSessionConfig().getOverrides().get(ConnectFormat.VALUE_SCHEMA_ID);
     assertThat(schemaAndId.id, is(42));
@@ -543,8 +545,12 @@ public class DefaultSchemaInjectorTest {
     final ConfiguredStatement<CreateStream> result = injector.inject(csStatement);
 
     // Then:
-    assertThat(result.getStatementText(), containsString("KEY_SCHEMA_ID=42"));
-
+    assertThat(result.getStatementText(), is(
+        "CREATE STREAM `cs` ("
+            + "`key` STRING KEY) WITH ("
+            + "KAFKA_TOPIC='some-topic', KEY_AVRO_SCHEMA_FULL_NAME='myrecord', "
+            + "KEY_FORMAT='avro', KEY_SCHEMA_ID=42, VALUE_FORMAT='delimited');"
+    ));
     verify(schemaSupplier).getKeySchema(any(), eq(Optional.of(42)), any(), any());
   }
 

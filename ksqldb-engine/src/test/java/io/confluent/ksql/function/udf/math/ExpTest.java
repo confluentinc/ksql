@@ -40,22 +40,22 @@ public class ExpTest {
 
   @Test
   public void shouldHandleNegative() {
-    assertThat(udf.exp(-1), is(closeTo(0.36787944117144233, 0.00000000000000005)));
-    assertThat(udf.exp(-1L), is(closeTo(0.36787944117144233, 0.00000000000000005)));
-    assertThat(udf.exp(-1.0), is(closeTo(0.36787944117144233, 0.00000000000000005)));
+    assertThat(udf.exp(-1), is(closeTo(0.36787944117144233, 1E-15)));
+    assertThat(udf.exp(-1L), is(closeTo(0.36787944117144233, 1E-15)));
+    assertThat(udf.exp(-1.0), is(closeTo(0.36787944117144233, 1E-15)));
   }
 
   @Test
   public void shouldHandleZero() {
-    assertThat(udf.exp(0), is(closeTo(1.0, 0.1)));
-    assertThat(udf.exp(0L), is(closeTo(1.0, 0.1)));
-    assertThat(udf.exp(0.0), is(closeTo(1.0, 0.1)));
+    assertThat(udf.exp(0), is(closeTo(1.0, 1E-15)));
+    assertThat(udf.exp(0L), is(closeTo(1.0, 1E-15)));
+    assertThat(udf.exp(0.0), is(closeTo(1.0, 1E-15)));
   }
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.exp(1), is(closeTo(2.718281828459045, 0.00000000000005)));
-    assertThat(udf.exp(1L), is(closeTo(2.718281828459045, 0.00000000000005)));
-    assertThat(udf.exp(1.0), is(closeTo(2.718281828459045, 0.00000000000005)));
+    assertThat(udf.exp(1), is(closeTo(2.718281828459045, 1E-15)));
+    assertThat(udf.exp(1L), is(closeTo(2.718281828459045, 1E-15)));
+    assertThat(udf.exp(1.0), is(closeTo(2.718281828459045, 1E-15)));
   }
 }

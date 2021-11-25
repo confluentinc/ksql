@@ -15,6 +15,7 @@
 package io.confluent.ksql.function.udf.math;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -51,8 +52,8 @@ public class SqrtTest {
 
   @Test
   public void shouldHandlePositive() {
-    assertThat(udf.sqrt(4), is(2.0));
-    assertThat(udf.sqrt(3), is(1.7320508075688772));
-    assertThat(udf.sqrt(1.0), is(1.0));
+    assertThat(udf.sqrt(4), is(closeTo(2.0, 1E-15)));
+    assertThat(udf.sqrt(3), is(closeTo(1.7320508075688772, 1E-15)));
+    assertThat(udf.sqrt(1.0), is(closeTo(1.0, 1E-15)));
   }
 }

@@ -36,7 +36,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
-import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -120,11 +119,11 @@ public class DefaultSchemaInjector implements Injector {
     // Only store raw schema if schema id is provided by user
     if (withSchema.getProperties().getKeySchemaId().isPresent()) {
       keySchema.map(
-          schemaAndId -> overrideBuilder.put(ConnectFormat.KEY_SCHEMA_ID, schemaAndId));
+          schemaAndId -> overrideBuilder.put(CommonCreateConfigs.KEY_SCHEMA_ID, schemaAndId));
     }
     if (withSchema.getProperties().getValueSchemaId().isPresent()) {
       valueSchema.map(
-          schemaAndId -> overrideBuilder.put(ConnectFormat.VALUE_SCHEMA_ID,
+          schemaAndId -> overrideBuilder.put(CommonCreateConfigs.VALUE_SCHEMA_ID,
               schemaAndId));
     }
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement

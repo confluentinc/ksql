@@ -46,7 +46,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -291,12 +291,12 @@ public class TopicDeleteInjectorTest {
     // Given:
     when(topic.getKeyFormat())
         .thenReturn(KeyFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo")),
+            FormatFactory.AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "foo")),
             SerdeFeatures.of(),
             Optional.empty()));
     when(topic.getValueFormat())
         .thenReturn(ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo")),
+            FormatFactory.AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "foo")),
             SerdeFeatures.of()));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))

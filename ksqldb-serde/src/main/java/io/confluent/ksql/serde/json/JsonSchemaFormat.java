@@ -52,7 +52,7 @@ public class JsonSchemaFormat extends ConnectFormat {
 
   @Override
   public Set<String> getSupportedProperties() {
-    return ImmutableSet.of();
+    return JsonSchemaProperties.SUPPORTED_PROPERTIES;
   }
 
   @Override

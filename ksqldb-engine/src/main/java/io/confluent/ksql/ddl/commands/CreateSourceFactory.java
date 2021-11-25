@@ -229,7 +229,12 @@ public final class CreateSourceFactory {
       final KsqlConfig ksqlConfig
   ) {
     final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, name);
+    // Validate format name and property
+    FormatFactory.of(keyFormat);
+
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
+    // Validate format name and property
+    FormatFactory.of(valueFormat);
 
     final SerdeFeatures keyFeatures = keySerdeFeaturesSupplier.build(
         schema,

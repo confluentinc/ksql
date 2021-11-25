@@ -41,6 +41,7 @@ import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -722,7 +723,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
       final Map<String, String> formatProps = ImmutableMap
-          .of(AvroFormat.FULL_SCHEMA_NAME, "test_" + topicName);
+          .of(ConnectProperties.FULL_SCHEMA_NAME, "test_" + topicName);
 
       final SchemaTranslator translator = new AvroFormat().getSchemaTranslator(formatProps);
 

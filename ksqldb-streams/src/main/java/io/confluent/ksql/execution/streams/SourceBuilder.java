@@ -15,6 +15,7 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
@@ -314,15 +315,7 @@ final class SourceBuilder extends SourceBuilderBase {
                   : ByteBuffer.wrap(header.value())
               );
             } else {
-              row.append(Arrays.stream(processorContext.headers().toArray())
-                  .map(header -> new Struct(SchemaBuilder.struct()
-                      .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
-                      .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
-                      .optional()
-                      .build())
-                      .put("KEY", header.key())
-                      .put("VALUE", ByteBuffer.wrap(header.value())))
-                  .collect(Collectors.toList()));
+              row.append(createHeaderData(processorContext.headers()));
             }
           }
 

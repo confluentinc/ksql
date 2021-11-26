@@ -33,6 +33,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Schema;
@@ -301,17 +303,29 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.appendAll(keyColumns);
-          if (headerColumns.size() > 0) {
-            row.append(Arrays.stream(processorContext.headers().toArray())
-                .map(header -> new Struct(SchemaBuilder.struct()
-                    .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
-                    .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
-                    .optional()
-                    .build())
-                    .put("KEY", header.key())
-                    .put("VALUE", header.value()))
-                .collect(Collectors.toList()));
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              final Header header =
+                  processorContext.headers().lastHeader(col.headerKey().get());
+              row.append(
+                  header == null
+                  ? null
+                  : ByteBuffer.wrap(header.value())
+              );
+            } else {
+              row.append(Arrays.stream(processorContext.headers().toArray())
+                  .map(header -> new Struct(SchemaBuilder.struct()
+                      .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+                      .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+                      .optional()
+                      .build())
+                      .put("KEY", header.key())
+                      .put("VALUE", ByteBuffer.wrap(header.value())))
+                  .collect(Collectors.toList()));
+            }
           }
+
           return row;
         }
 

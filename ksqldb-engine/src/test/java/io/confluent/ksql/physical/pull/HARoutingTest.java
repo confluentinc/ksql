@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -453,7 +454,7 @@ public class HARoutingTest {
     // Then:
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
-    verify(ksqlClient, times(4)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any());
+    verify(ksqlClient, atLeast(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any());
 
     assertThat(e.getCause().getMessage(), containsString("Exhausted standby hosts to try."));
 

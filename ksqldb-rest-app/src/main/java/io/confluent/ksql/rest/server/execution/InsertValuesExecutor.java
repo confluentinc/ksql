@@ -29,6 +29,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -50,6 +51,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -144,6 +146,10 @@ public class InsertValuesExecutor {
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
+    if (!verifyInsertValuesAllowed(insertValues.getColumns(), dataSource)) {
+      throw new KsqlException("Cannot insert into a HEADER column");
+    }
+
     final ProducerRecord<byte[], byte[]> record =
         buildRecord(statement, metaStore, dataSource, serviceContext);
 
@@ -162,6 +168,19 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
+  }
+
+  private boolean verifyInsertValuesAllowed(
+      final List<ColumnName> columns, final DataSource dataSource) {
+    if (columns.isEmpty() && !dataSource.getSchema().headers().isEmpty()) {
+      return false;
+    }
+    for (ColumnName columnName : columns) {
+      if (dataSource.getSchema().isHeaderColumn(columnName)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static DataSource getDataSource(

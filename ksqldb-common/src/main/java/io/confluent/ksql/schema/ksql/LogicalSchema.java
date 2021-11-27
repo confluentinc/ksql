@@ -302,6 +302,15 @@ public final class LogicalSchema {
   }
 
   /**
+   * @param columnName the column name to check
+   * @return {@code true} if the column matches the name of any key column.
+   */
+  public boolean isHeaderColumn(final ColumnName columnName) {
+    return findColumnMatching(withNamespace(HEADERS).and(withName(columnName)))
+        .isPresent();
+  }
+
+  /**
    * Returns True if this schema is compatible with {@code other} schema.
    */
   public boolean compatibleSchema(final LogicalSchema other) {

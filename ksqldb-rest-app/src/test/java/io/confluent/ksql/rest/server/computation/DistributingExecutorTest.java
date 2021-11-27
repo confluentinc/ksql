@@ -32,6 +32,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
@@ -39,6 +40,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -59,6 +61,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -406,6 +409,31 @@ public class DistributingExecutorTest {
     assertThat(e.getMessage(), containsString(
         "Cannot insert into read-only topic: "
             + "default_ksql_processing_log"));
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenInsertIntoSourceWithHeaders() {
+    // Given
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new InsertInto(SourceName.of("s1"), mock(Query.class)));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of())
+        );
+    final DataSource dataSource = mock(DataSource.class);
+    final LogicalSchema schema = mock(LogicalSchema.class);
+    doReturn(dataSource).when(metaStore).getSource(SourceName.of("s1"));
+    doReturn(schema).when(dataSource).getSchema();
+    doReturn(ImmutableList.of(ColumnName.of("a"))).when(schema).headers();
+    when(dataSource.getKafkaTopicName()).thenReturn("topic");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> distributor.execute(configured, executionContext, mock(KsqlSecurityContext.class))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot insert into a source with header columns"));
   }
 
   @Test

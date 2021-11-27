@@ -848,6 +848,14 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldMatchHeaderColumnName() {
+    assertThat(SOME_SCHEMA.isHeaderColumn(H0), is(true));
+    assertThat(SOME_SCHEMA.isHeaderColumn(ROWPARTITION_NAME), is(false));
+    assertThat(SOME_SCHEMA.isHeaderColumn(K0), is(false));
+    assertThat(SOME_SCHEMA.isHeaderColumn(F0), is(false));
+  }
+
+  @Test
   public void shouldMatchMetaColumnName() {
     assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME, ROWTIME_PSEUDOCOLUMN_VERSION), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));

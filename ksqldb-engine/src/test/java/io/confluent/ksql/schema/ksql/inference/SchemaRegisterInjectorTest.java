@@ -54,7 +54,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.FormatFactory;
@@ -71,6 +73,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -405,11 +408,27 @@ public class SchemaRegisterInjectorTest {
   }
 
   private void givenStatement(final String sql) {
+    givenStatement(sql, Optional.empty());
+  }
+
+  private void givenStatement(
+      final String sql,
+      final Optional<Pair<SchemaAndId, Boolean>> rawSchemaAndId
+  ) {
     final PreparedStatement<?> preparedStatement =
         parser.prepare(parser.parse(sql).get(0), metaStore);
+    final ImmutableMap<String, Object> overrides;
+    if (rawSchemaAndId.isPresent()) {
+      final String key = rawSchemaAndId.get().right?
+          CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+      overrides = ImmutableMap.<String, Object>builder()
+          .put(key, rawSchemaAndId.get().left).build();
+    } else {
+      overrides = ImmutableMap.of();
+    }
     statement = ConfiguredStatement.of(
         preparedStatement,
-        SessionConfig.of(config, ImmutableMap.of())
+        SessionConfig.of(config, overrides)
     );
     when(executionSandbox.plan(any(), eq(statement)))
         .thenReturn(ksqlPlan);

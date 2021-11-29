@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -68,20 +69,24 @@ public interface TopicSchemaSupplier {
 
     final int id;
     final List<? extends SimpleColumn> columns;
+    final ParsedSchema rawSchema;
 
     private SchemaAndId(
         final List<? extends SimpleColumn> columns,
+        final ParsedSchema rawSchema,
         final int id
     ) {
       this.id = id;
+      this.rawSchema = rawSchema;
       this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
     }
 
     static SchemaAndId schemaAndId(
         final List<? extends SimpleColumn> columns,
+        final ParsedSchema rawSchema,
         final int id
     ) {
-      return new SchemaAndId(columns, id);
+      return new SchemaAndId(columns, rawSchema, id);
     }
   }
 

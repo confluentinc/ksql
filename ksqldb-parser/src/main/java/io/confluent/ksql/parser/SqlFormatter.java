@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -698,16 +699,20 @@ public final class SqlFormatter {
 
     private static String formatTableElement(final TableElement e) {
       final String postFix;
-      switch (e.getNamespace()) {
-        case PRIMARY_KEY:
-          postFix = " PRIMARY KEY";
-          break;
-        case KEY:
-          postFix = " KEY";
-          break;
-        default:
-          postFix = "";
-          break;
+
+      final ColumnConstraints columnConstraints = e.getConstraints();
+      if (columnConstraints.isPrimaryKey()) {
+        postFix = " PRIMARY KEY";
+      } else if (columnConstraints.isKey()) {
+        postFix = " KEY";
+      } else if (columnConstraints.isHeaders()) {
+        if (columnConstraints.getHeaderKey().isPresent()) {
+          postFix = " HEADER('" + e.getConstraints().getHeaderKey().get() + "')";
+        } else {
+          postFix = " HEADERS";
+        }
+      } else {
+        postFix = "";
       }
 
       return escapedName(e.getName())

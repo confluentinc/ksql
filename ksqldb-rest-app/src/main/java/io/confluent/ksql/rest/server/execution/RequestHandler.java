@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.rest.util.FeatureFlagChecker;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -95,6 +96,8 @@ public class RequestHandler {
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
           SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
       );
+
+      FeatureFlagChecker.throwOnDisabledFeatures(configured);
 
       executeStatement(
           securityContext,

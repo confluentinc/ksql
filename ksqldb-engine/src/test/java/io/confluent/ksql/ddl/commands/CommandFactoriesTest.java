@@ -44,6 +44,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -52,7 +53,6 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -75,15 +75,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CommandFactoriesTest {
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
 
   private static final SourceName SOME_NAME = SourceName.of("bob");
   private static final SourceName TABLE_NAME = SourceName.of("tablename");
   private static final String sqlExpression = "sqlExpression";
   private static final TableElement ELEMENT1 =
-      tableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
+      tableElement("bob", new Type(SqlTypes.STRING));
   private static final TableElements SOME_ELEMENTS = TableElements.of(ELEMENT1);
   private static final TableElements ELEMENTS_WITH_PK = TableElements.of(
-      tableElement(Namespace.PRIMARY_KEY, "k", new Type(SqlTypes.STRING)),
+      tableElement("k", new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT),
       ELEMENT1
   );
   private static final String TOPIC_NAME = "some topic";
@@ -183,8 +185,8 @@ public class CommandFactoriesTest {
     // Given:
     final CreateStream statement = new CreateStream(SOME_NAME,
         TableElements.of(
-            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
-            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(SqlTypes.BIGINT)),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, true);
 
     // When:
@@ -214,8 +216,8 @@ public class CommandFactoriesTest {
     // Given:
     final CreateTable statement = new CreateTable(SOME_NAME,
         TableElements.of(
-            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
-            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(SqlTypes.BIGINT)),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, false);
 
     // When:
@@ -232,8 +234,8 @@ public class CommandFactoriesTest {
     // Given:
     final CreateTable statement = new CreateTable(SOME_NAME,
         TableElements.of(
-            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
-            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(SqlTypes.BIGINT)),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, true);
 
     // When:
@@ -250,8 +252,8 @@ public class CommandFactoriesTest {
     // Given:
     final CreateTable statement = new CreateTable(SOME_NAME,
         TableElements.of(
-            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
-            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(SqlTypes.BIGINT)),
+            tableElement( "COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, false);
 
     // When:
@@ -404,14 +406,21 @@ public class CommandFactoriesTest {
   }
 
   private static TableElement tableElement(
-      final Namespace namespace,
       final String name,
       final Type type
+  ) {
+    return tableElement(name, type, ColumnConstraints.NO_COLUMN_CONSTRAINTS);
+  }
+
+  private static TableElement tableElement(
+      final String name,
+      final Type type,
+      final ColumnConstraints constraints
   ) {
     final TableElement te = mock(TableElement.class, name);
     when(te.getName()).thenReturn(ColumnName.of(name));
     when(te.getType()).thenReturn(type);
-    when(te.getNamespace()).thenReturn(namespace);
+    when(te.getConstraints()).thenReturn(constraints);
     return te;
   }
 }

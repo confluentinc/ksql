@@ -25,7 +25,6 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
@@ -78,8 +77,7 @@ public interface SimpleKsqlClient {
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties,
       Consumer<List<StreamedRow>> rowConsumer,
-      CompletableFuture<Void> shouldCloseConnection,
-      Optional<String> serializedOffsetVector
+      CompletableFuture<Void> shouldCloseConnection
   );
 
   /**

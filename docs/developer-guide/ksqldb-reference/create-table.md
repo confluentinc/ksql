@@ -42,13 +42,20 @@ information, see [Parallelization](/operate-and-deploy/performance-guidelines/#p
 
 ### PRIMARY KEY
 
-A ksqlDB TABLE works much like tables in other SQL systems. A table has zero or more rows. Each
-row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY` can not be `NULL`. A message in the
-underlying Kafka topic with the same key as an existing row will _replace_ the existing row in the
-table, or _delete_ the row if the message's value is `NULL`, i.e. a _tombstone_, as long as it has
-a later timestamp / `ROWTIME`.
+A ksqlDB table works much like tables in other SQL systems. A table has zero or
+more rows. Each row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY`
+can't be `NULL`.
 
-This situation is handled differently by [ksqlDB STREAM](../create-stream), as shown in the following table.
+If an incoming message in the underlying {{ site.ak }} topic has the same key
+as an existing row, it _replaces_ the existing row in the table. But if the
+message's value is `null`, it _deletes_ the row.
+
+!!! tip
+    A message that has a `null` value is known as a _tombstone_, because it
+    causes the existing row to be deleted.
+
+This situation is handled differently by [ksqlDB STREAM](../create-stream), as
+shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
@@ -91,7 +98,7 @@ spare you from defining columns manually in your `CREATE TABLE` statements.
 
 Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 
 of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB when updating
-a row, during any windowing operations and during joins, where data from each side of a join is 
+a row during any windowing operations and during joins, where data from each side of a join is 
 generally processed in time order.  
 
 By default, `ROWTIME` is populated from the corresponding {{ site.ak }} message timestamp. Set `TIMESTAMP` in

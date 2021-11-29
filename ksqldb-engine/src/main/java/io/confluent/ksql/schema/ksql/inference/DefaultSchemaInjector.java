@@ -15,18 +15,20 @@
 
 package io.confluent.ksql.schema.ksql.inference;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.FormatFactory;
@@ -34,6 +36,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
+import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
@@ -63,6 +66,12 @@ import java.util.stream.Stream;
  */
 public class DefaultSchemaInjector implements Injector {
 
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
+
   private final TopicSchemaSupplier schemaSupplier;
 
   public DefaultSchemaInjector(final TopicSchemaSupplier schemaSupplier) {
@@ -87,8 +96,8 @@ public class DefaultSchemaInjector implements Injector {
       throw e;
     } catch (final KsqlException e) {
       throw new KsqlStatementException(
-          ErrorMessageUtil.buildErrorMessage(e), 
-          statement.getStatementText(), 
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
           e.getCause());
     }
   }
@@ -104,8 +113,22 @@ public class DefaultSchemaInjector implements Injector {
 
     final CreateSource withSchema = addSchemaFields(statement, keySchema, valueSchema);
     final PreparedStatement<CreateSource> prepared = buildPreparedStatement(withSchema);
+
+    final ImmutableMap.Builder<String, Object> overrideBuilder =
+        ImmutableMap.builder();
+
+    // Only store raw schema if schema id is provided by user
+    if (withSchema.getProperties().getKeySchemaId().isPresent()) {
+      keySchema.map(
+          schemaAndId -> overrideBuilder.put(ConnectFormat.KEY_SCHEMA_ID, schemaAndId));
+    }
+    if (withSchema.getProperties().getValueSchemaId().isPresent()) {
+      valueSchema.map(
+          schemaAndId -> overrideBuilder.put(ConnectFormat.VALUE_SCHEMA_ID,
+              schemaAndId));
+    }
     final ConfiguredStatement<CreateSource> configured = ConfiguredStatement
-        .of(prepared, statement.getSessionConfig());
+        .of(prepared, statement.getSessionConfig().copyWith(overrideBuilder.build()));
 
     return Optional.of(configured);
   }
@@ -117,7 +140,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSourceProperties props = csStmt.getProperties();
     final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName());
 
-    if (hasKeyElements(statement) || !formatSupportsSchemaInference(keyFormat)) {
+    if (!shouldInferSchema(props.getKeySchemaId(), statement, keyFormat, true)) {
       return Optional.empty();
     }
 
@@ -139,7 +162,7 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSourceProperties props = statement.getStatement().getProperties();
     final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
 
-    if (hasValueElements(statement) || !formatSupportsSchemaInference(valueFormat)) {
+    if (!shouldInferSchema(props.getValueSchemaId(), statement, valueFormat, false)) {
       return Optional.empty();
     }
 
@@ -176,18 +199,59 @@ public class DefaultSchemaInjector implements Injector {
     return result.schemaAndId.get();
   }
 
+  private static boolean shouldInferSchema(
+      final Optional<Integer> schemaId,
+      final ConfiguredStatement<CreateSource> statement,
+      final FormatInfo formatInfo,
+      final boolean isKey
+  ) {
+    /*
+     * Conditions for schema inference:
+     *   1. key_schema_id or value_schema_id property exist or
+     *   2. Table elements doesn't exist and format support schema inference
+     *
+     * Do validation when schemaId presents, so we need to infer schema. Conditions to meet:
+     *  1. If schema id is provided, format must support schema inference
+     */
+
+    final boolean hasTableElements =
+        isKey ? hasKeyElements(statement) : hasValueElements(statement);
+    if (schemaId.isPresent()) {
+      if (!formatSupportsSchemaInference(formatInfo)) {
+        final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+        final String schemaIdName =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        final String msg = String.format("%s should support schema inference when %s is provided. "
+            + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
+        throw new KsqlException(msg);
+      }
+      if (hasTableElements) {
+        final String schemaIdName =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        final String msg = "Table elements and " + schemaIdName + " cannot both exist for create "
+            + "statement.";
+        throw new KsqlException(msg);
+      }
+      return true;
+    }
+    return !hasTableElements && formatSupportsSchemaInference(formatInfo);
+  }
+
   private static boolean hasKeyElements(
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> e.getNamespace().isKey());
+        .map(TableElement::getConstraints)
+        .anyMatch(c -> c.isKey() || c.isPrimaryKey());
   }
 
   private static boolean hasValueElements(
       final ConfiguredStatement<CreateSource> statement
   ) {
     return statement.getStatement().getElements().stream()
-        .anyMatch(e -> !e.getNamespace().isKey());
+        .map(TableElement::getConstraints)
+        .anyMatch(e -> !e.isKey() && !e.isPrimaryKey() && !e.isHeaders());
   }
 
   private static boolean formatSupportsSchemaInference(final FormatInfo format) {
@@ -202,12 +266,7 @@ public class DefaultSchemaInjector implements Injector {
     final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
-    final CreateSourceProperties properties = statement.getProperties();
-
-    final CreateSourceProperties withSchemaIds = properties.withSchemaIds(
-        keySchema.map(s -> s.id),
-        valueSchema.map(s -> s.id));
-    return statement.copyWith(elements, withSchemaIds);
+    return statement.copyWith(elements, statement.getProperties());
   }
 
   private static TableElements buildElements(
@@ -218,9 +277,9 @@ public class DefaultSchemaInjector implements Injector {
     final List<TableElement> elements = new ArrayList<>();
 
     if (keySchema.isPresent()) {
-      final Namespace namespace = getKeyNamespace(preparedStatement.getStatement());
+      final ColumnConstraints constraints = getKeyConstraints(preparedStatement.getStatement());
       keySchema.get().columns.stream()
-          .map(col -> new TableElement(namespace, col.name(), new Type(col.type())))
+          .map(col -> new TableElement(col.name(), new Type(col.type()), constraints))
           .forEach(elements::add);
     } else {
       getKeyColumns(preparedStatement)
@@ -229,7 +288,7 @@ public class DefaultSchemaInjector implements Injector {
 
     if (valueSchema.isPresent()) {
       valueSchema.get().columns.stream()
-          .map(col -> new TableElement(Namespace.VALUE, col.name(), new Type(col.type())))
+          .map(col -> new TableElement(col.name(), new Type(col.type())))
           .forEach(elements::add);
     } else {
       getValueColumns(preparedStatement)
@@ -239,11 +298,11 @@ public class DefaultSchemaInjector implements Injector {
     return TableElements.of(elements);
   }
 
-  private static Namespace getKeyNamespace(final CreateSource statement) {
+  private static ColumnConstraints getKeyConstraints(final CreateSource statement) {
     if (statement instanceof CreateStream) {
-      return Namespace.KEY;
+      return KEY_CONSTRAINT;
     } else if (statement instanceof CreateTable) {
-      return Namespace.PRIMARY_KEY;
+      return PRIMARY_KEY_CONSTRAINT;
     } else {
       throw new IllegalArgumentException("Unrecognized statement type: " + statement);
     }
@@ -253,14 +312,17 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> e.getNamespace().isKey());
+        .filter(e -> e.getConstraints().isKey()
+            || e.getConstraints().isPrimaryKey());
   }
 
   private static Stream<TableElement> getValueColumns(
       final ConfiguredStatement<CreateSource> preparedStatement
   ) {
     return preparedStatement.getStatement().getElements().stream()
-        .filter(e -> !e.getNamespace().isKey());
+        .filter(e -> !e.getConstraints().isKey()
+            && !e.getConstraints().isPrimaryKey()
+            && !e.getConstraints().isHeaders());
   }
 
   private static PreparedStatement<CreateSource> buildPreparedStatement(

@@ -152,7 +152,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UndefineVariable;
@@ -1243,12 +1242,9 @@ public class AstBuilder {
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
       return new TableElement(
           getLocation(context),
-          context.KEY() == null
-              ? Namespace.VALUE
-              : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
-          typeParser.getType(context.type())
-      );
+          typeParser.getType(context.type()),
+          ParserUtil.getColumnConstraints(context.columnConstraints()));
     }
 
     @Override

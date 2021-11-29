@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
@@ -66,9 +67,13 @@ import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -76,6 +81,10 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.TaskId;
+import org.apache.kafka.streams.processor.internals.assignment.AssignorConfiguration.AssignmentConfigs;
+import org.apache.kafka.streams.processor.internals.assignment.ClientState;
+import org.apache.kafka.streams.processor.internals.assignment.TaskAssignor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -163,6 +172,8 @@ public class PullQueryRoutingFunctionalTest {
       // plugin.  In practice, these are internal paths so we're not interested in testing auth
       // for them in these tests.
       .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, NoAuthPlugin.class)
+      .put(StreamsConfig.InternalConfig.INTERNAL_TASK_ASSIGNOR_CLASS,
+          StaticStreamsTaskAssignor.class.getName())
       .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -290,6 +301,33 @@ public class PullQueryRoutingFunctionalTest {
     APP_SHUTOFFS_0.reset();
     APP_SHUTOFFS_1.reset();
     APP_SHUTOFFS_2.reset();
+  }
+
+  @Test
+  public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.standBy.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp,
+        USER_CREDS);
+
+    // When:
+    List<StreamedRow> rows_0 =
+        makePullQueryRequest(clusterFormation.standBy.getApp(), sql, null, USER_CREDS);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 1));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -618,6 +656,33 @@ public class PullQueryRoutingFunctionalTest {
     public CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
         WorkerExecutor workerExecutor) {
       return CompletableFuture.completedFuture(null);
+    }
+  }
+
+  public static class StaticStreamsTaskAssignor implements TaskAssignor {
+    public StaticStreamsTaskAssignor() { }
+
+    @Override
+    public boolean assign(
+        final Map<UUID, ClientState> clients,
+        final Set<TaskId> allTaskIds,
+        final Set<TaskId> statefulTaskIds,
+        final AssignmentConfigs configs
+    ) {
+      Preconditions.checkState(configs.numStandbyReplicas == 1);
+      Preconditions.checkState(clients.size() == 3);
+      final List<ClientState> clientStates = clients.entrySet().stream()
+          .sorted(Comparator.comparing(Entry::getKey))
+          .map(Entry::getValue)
+          .collect(Collectors.toList());
+      final ClientState clientState1 = clientStates.get(0);
+      final ClientState clientState2 = clientStates.get(1);
+
+      clientState1.assignActiveTasks(allTaskIds);
+      for (TaskId taskId : allTaskIds) {
+        clientState2.assignStandby(taskId);
+      }
+      return false;
     }
   }
 }

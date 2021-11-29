@@ -26,8 +26,8 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -39,6 +39,18 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaParserTest {
+
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
+
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints HEADERS_CONSTRAINT =
+      new ColumnConstraints.Builder().headers().build();
+
+  private static final ColumnConstraints HEADER_KEY1_CONSTRAINT =
+      new ColumnConstraints.Builder().header("k1").build();
 
   private static final ColumnName FOO = ColumnName.of("FOO");
   private static final ColumnName BAR = ColumnName.of("BAR");
@@ -62,8 +74,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.VALUE, FOO, new Type(SqlTypes.INTEGER)),
-        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING
+        new TableElement(FOO, new Type(SqlTypes.INTEGER)),
+        new TableElement(BAR, new Type(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING
         )))
     ));
   }
@@ -78,8 +90,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
+        new TableElement(ColumnName.of("K"), new Type(SqlTypes.STRING), KEY_CONSTRAINT),
+        new TableElement(BAR, new Type(SqlTypes.INTEGER))
     ));
   }
 
@@ -93,8 +105,38 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.PRIMARY_KEY, ColumnName.of("K"), new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
+        new TableElement(ColumnName.of("K"), new Type(SqlTypes.STRING), PRIMARY_KEY_CONSTRAINT),
+        new TableElement(BAR, new Type(SqlTypes.INTEGER))
+    ));
+  }
+
+  @Test
+  public void shouldParseValidSchemaWithHeaderField() {
+    // Given:
+    final String schema = "K STRING HEADERS, bar INT";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(ColumnName.of("K"), new Type(SqlTypes.STRING), HEADERS_CONSTRAINT),
+        new TableElement(BAR, new Type(SqlTypes.INTEGER))
+    ));
+  }
+
+  @Test
+  public void shouldParseValidSchemaWithSingleHeaderKeyField() {
+    // Given:
+    final String schema = "K STRING HEADER('k1'), bar INT";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(elements, contains(
+        new TableElement(ColumnName.of("K"), new Type(SqlTypes.STRING), HEADER_KEY1_CONSTRAINT),
+        new TableElement(BAR, new Type(SqlTypes.INTEGER))
     ));
   }
 
@@ -108,7 +150,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, hasItem(
-        new TableElement(Namespace.VALUE, ColumnName.of("END"), new Type(SqlTypes.STRING))
+        new TableElement(ColumnName.of("END"), new Type(SqlTypes.STRING))
     ));
   }
 
@@ -122,7 +164,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, hasItem(
-        new TableElement(Namespace.VALUE, ColumnName.of("End"), new Type(SqlTypes.STRING))
+        new TableElement(ColumnName.of("End"), new Type(SqlTypes.STRING))
     ));
   }
 

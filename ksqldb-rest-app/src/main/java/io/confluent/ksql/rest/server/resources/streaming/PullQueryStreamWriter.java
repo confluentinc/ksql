@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.pull.PullQueryRow;
 import io.confluent.ksql.query.PullQueryQueue;
@@ -28,10 +30,12 @@ import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -66,7 +70,8 @@ public class PullQueryStreamWriter implements StreamingOutput {
       final ObjectMapper objectMapper,
       final PullQueryQueue pullQueryQueue,
       final Clock clock,
-      final CompletableFuture<Void> connectionClosedFuture
+      final CompletableFuture<Void> connectionClosedFuture,
+      final PreparedStatement<Query> statement
   ) {
     this.result = Objects.requireNonNull(result, "result");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
@@ -85,6 +90,17 @@ public class PullQueryStreamWriter implements StreamingOutput {
         interruptWriterThread();
       }
     });
+    try {
+      result.start();
+    } catch (Exception e) {
+      throw new KsqlStatementException(
+          e.getMessage() == null
+              ? "Server Error" + Arrays.toString(e.getStackTrace())
+              : e.getMessage(),
+          statement.getStatementText(),
+          e
+      );
+    }
   }
 
   @Override

@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings({"checkstyle:ClassDataAbstractionCoupling", "checkstyle:CyclomaticComplexity"})
 public final class HARouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
@@ -225,7 +226,7 @@ public final class HARouting implements AutoCloseable {
 
     }
 
-    pullQueryQueue.close();;
+    pullQueryQueue.close();
   }
 
   private KsqlPartitionLocation nextNode(final KsqlPartitionLocation partition) {
@@ -340,10 +341,15 @@ public final class HARouting implements AutoCloseable {
         .map(location -> Integer.toString(location.getPartition()))
         .collect(Collectors.joining(","));
     // Add skip forward flag to properties
-    final Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
-        KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true,
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS, partitions);
+    final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
+        .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true)
+        .put(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true)
+        .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS, partitions);
+    if (consistencyOffsetVector.isPresent()) {
+      builder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          consistencyOffsetVector.get().serialize());
+    }
+    final Map<String, Object> requestProperties = builder.build();
     final RestResponse<Integer> response;
 
     try {
@@ -355,8 +361,7 @@ public final class HARouting implements AutoCloseable {
               statement.getSessionConfig().getOverrides(),
               requestProperties,
               streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema),
-              shouldCancelRequests,
-              consistencyOffsetVector.map(ConsistencyOffsetVector::serialize)
+              shouldCancelRequests
           );
     } catch (Exception e) {
       // If we threw some explicit exception, then let it bubble up. All of the row handling is
@@ -438,7 +443,11 @@ public final class HARouting implements AutoCloseable {
           }
 
           if (!row.getRow().isPresent()) {
-            throw new KsqlException("Missing row data on row " + i + " of chunk");
+            if (row.getConsistencyToken().isPresent()) {
+              continue;
+            } else {
+              throw new KsqlException("Missing row data on row " + i + " of chunk");
+            }
           }
 
           final List<?> r = row.getRow().get().getColumns();

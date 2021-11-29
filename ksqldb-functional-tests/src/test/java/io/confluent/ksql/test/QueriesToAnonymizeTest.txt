@@ -48,6 +48,8 @@ CREATE STREAM S1 (ID INT KEY, K INT, V0 bigint) WITH (kafka_topic='left', value_
 CREATE STREAM S1 (A INT KEY, B INT) WITH (kafka_topic='S1', value_format='JSON');
 CREATE TABLE T1 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='left', key_format='AVRO', value_format='JSON');
 CREATE STREAM S1 (ID INT KEY, A bigint, B STRUCT<C INT>) WITH (kafka_topic='left_topic', value_format='JSON');
+CREATE STREAM S1 (ID ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, A bigint, B STRUCT<C INT>) WITH (kafka_topic='left_topic', value_format='JSON');
+CREATE STREAM S1 (ID BYTES HEADER('h1'), A bigint, B STRUCT<C INT>) WITH (kafka_topic='left_topic', value_format='JSON');
 EXPLAIN SELECT * from S1;
 DROP STREAM IF EXISTS input2;
 INSERT INTO OUTPUT SELECT S1.K AS K, S1.ID + S2.ID as DATA, 1 as I FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON S1.k = S2.k;

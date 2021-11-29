@@ -21,15 +21,18 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -50,9 +53,12 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
@@ -73,6 +79,9 @@ public class AnalyzerFunctionalTest {
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName COL2 = ColumnName.of("COL2");
 
+  @Mock
+  private FunctionRegistry functionRegistry;
+
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
 
@@ -81,7 +90,7 @@ public class AnalyzerFunctionalTest {
 
   @Before
   public void init() {
-    jsonMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+    jsonMetaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
     avroMetaStore = MetaStoreFixture.getNewMetaStore(
         new InternalFunctionRegistry(),
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of())
@@ -92,6 +101,11 @@ public class AnalyzerFunctionalTest {
     query = parseSingle("Select COL0, COL1 from TEST1;");
 
     registerKafkaSource();
+  }
+
+  @After
+  public void tearDown() {
+    Mockito.reset(functionRegistry);
   }
 
   @Test
@@ -287,6 +301,25 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "N-way joins do not support multiple occurrences of the same source. Source: 'TEST2'"));
+  }
+
+  @Test
+  public void shouldFailOnTableFunctionInsideCaseFunction() {
+    // Given:
+    final Query query = parseSingle("SELECT CASE WHEN false then EXPLODE(ARRAY[1.2]) END FROM test1;");
+    final Analyzer analyzer = new Analyzer(jsonMetaStore, "", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+    when(functionRegistry.isTableFunction(FunctionName.of("EXPLODE"))).thenReturn(true);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> analyzer.analyze(query, Optional.empty())
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Table functions cannot be used in CASE: "
+            + "(CASE WHEN false THEN EXPLODE(ARRAY[1.2]) END)"));
   }
 
   @Test

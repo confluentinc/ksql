@@ -154,6 +154,14 @@ public final class BytesUtils {
     return -1;
   }
 
+  public static void checkBytesSize(final ByteBuffer buffer, final int size) {
+    final int bufferSize = getByteArray(buffer).length;
+    if (bufferSize != size) {
+      throw new KsqlException(
+          String.format("Number of bytes must be equal to %d, but found %d", size, bufferSize));
+    }
+  }
+
   @SuppressWarnings("ParameterName")
   private static boolean arrayEquals(
       final byte[] a,

@@ -17,9 +17,12 @@ package io.confluent.ksql.function.udf.conversions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 
+import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class DoubleFromBytesTest {
   private DoubleFromBytes udf = new DoubleFromBytes();
@@ -50,15 +53,49 @@ public class DoubleFromBytesTest {
   }
 
   @Test
-  public void shouldReturnNullOnInvalidBytesSize() {
-    assertThat(udf.doubleFromBytes(
-        ByteBuffer.wrap(new byte[]{1, 2, 3, 4})), is(nullValue()));
-    assertThat(udf.doubleFromBytes(
-        ByteBuffer.wrap(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9})), is(nullValue()));
+  public void shouldThrowOnInvalidBytesSizes() {
+    final Exception e1 = assertThrows(
+        KsqlException.class,
+        () -> udf.doubleFromBytes(ByteBuffer.wrap(new byte[]{1, 2, 3, 4})));
+
+    assertThat(e1.getMessage(), is("Number of bytes must be equal to 8, but found 4"));
+
+    final Exception e2 = assertThrows(
+        KsqlException.class,
+        () -> udf.doubleFromBytes(ByteBuffer.wrap(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9})));
+
+    assertThat(e2.getMessage(), is("Number of bytes must be equal to 8, but found 9"));
+  }
+
+  @Test
+  public void shouldConvertLittleEndianBytesToInteger() {
+    final ByteBuffer buffer = toByteBuffer(532.8738323, ByteOrder.LITTLE_ENDIAN);
+    assertThat(udf.doubleFromBytes(buffer, "LITTLE_ENDIAN"), is(532.8738323));
+  }
+
+  @Test
+  public void shouldConvertBigEndianBytesToInteger() {
+    final ByteBuffer buffer = toByteBuffer(532.8738323).order(ByteOrder.BIG_ENDIAN);
+    assertThat(udf.doubleFromBytes(buffer, "BIG_ENDIAN"), is(532.8738323));
+  }
+
+  @Test
+  public void shouldThrowOnUnknownByteOrder() {
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> udf.doubleFromBytes(toByteBuffer(532.8738323), "weep!"));
+
+    assertThat(e.getMessage(),
+        is("Byte order must be BIG_ENDIAN or LITTLE_ENDIAN. Unknown byte order 'weep!'."));
   }
 
   private ByteBuffer toByteBuffer(final double n) {
+    return toByteBuffer(n, ByteOrder.BIG_ENDIAN);
+  }
+
+  private ByteBuffer toByteBuffer(final double n, final ByteOrder byteOrder) {
     final ByteBuffer buffer = ByteBuffer.allocate(8);
+    buffer.order(byteOrder);
     buffer.putDouble(n);
     return buffer;
   }

@@ -20,7 +20,9 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 @UdfDescription(
     name = "int_from_bytes",
@@ -33,17 +35,36 @@ public class IntFromBytes {
 
   @Udf(description = "Converts a BYTES value to a INT type.")
   public Integer intFromBytes(
-      @UdfParameter(description = "The bytes value to convert.") final ByteBuffer value
+      @UdfParameter(description = "The bytes value to convert.")
+      final ByteBuffer value
   ) {
+    return intFromBytes(value, ByteOrder.BIG_ENDIAN);
+  }
+
+  @Udf(description = "Converts a BYTES value to a INT type.")
+  public Integer intFromBytes(
+      @UdfParameter(description = "The bytes value to convert.")
+      final ByteBuffer value,
+      @UdfParameter(description = "The byte order of the number bytes representation")
+      final String byteOrder
+  ) {
+    if (byteOrder.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
+      return intFromBytes(value, ByteOrder.BIG_ENDIAN);
+    } else if (byteOrder.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
+      return intFromBytes(value, ByteOrder.LITTLE_ENDIAN);
+    } else {
+      throw new KsqlException(String.format(
+          "Byte order must be BIG_ENDIAN or LITTLE_ENDIAN. Unknown byte order '%s'.", byteOrder));
+    }
+  }
+
+  private Integer intFromBytes(final ByteBuffer value, final ByteOrder byteOrder) {
     if (value == null) {
       return null;
     }
 
-    if (BytesUtils.getByteArray(value).length != BYTES_LENGTH) {
-      return null;
-    }
-
+    BytesUtils.checkBytesSize(value, BYTES_LENGTH);
     value.rewind();
-    return value.getInt();
+    return value.order(byteOrder).getInt();
   }
 }

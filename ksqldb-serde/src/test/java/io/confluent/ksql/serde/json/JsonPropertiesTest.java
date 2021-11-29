@@ -18,12 +18,10 @@ package io.confluent.ksql.serde.json;
 import static io.confluent.ksql.serde.connect.ConnectProperties.FULL_SCHEMA_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
@@ -61,7 +59,7 @@ public class JsonPropertiesTest {
 
     // When:
     final Exception e = assertThrows(UnsupportedOperationException.class,
-        properties::getFullSchemaName);
+        properties::getDefaultFullSchemaName);
 
     // Then:
     assertThat(e.getMessage(), is("JSON does not implement Schema Registry support"));

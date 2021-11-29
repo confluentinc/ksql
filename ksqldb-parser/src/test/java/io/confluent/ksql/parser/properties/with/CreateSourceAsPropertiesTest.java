@@ -170,11 +170,12 @@ public class CreateSourceAsPropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormatProperties().get(ConnectProperties.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormatProperties(),
+        hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "schema"));
   }
 
   @Test
-  public void shouldSetFullKeySchemaName() {
+  public void shouldSetKeyFullSchemaName() {
     // Given:
     final CreateSourceAsProperties props = CreateSourceAsProperties
         .from(ImmutableMap.<String, Literal>builder()
@@ -182,7 +183,7 @@ public class CreateSourceAsPropertiesTest {
             .put(KEY_SCHEMA_FULL_NAME, new StringLiteral("KeySchema"))
             .build());
 
-    // When / Then:
+    // Then:
     assertThat(props.getKeyFormatProperties("json_sr", "foo"),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchema"));
   }

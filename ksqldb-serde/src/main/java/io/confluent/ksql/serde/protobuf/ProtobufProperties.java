@@ -39,6 +39,7 @@ public class ProtobufProperties extends ConnectProperties {
 
   @Override
   public String getDefaultFullSchemaName() {
+    // Return null to be backward compatible for unset schema name
     return null;
   }
 }

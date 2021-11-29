@@ -17,9 +17,10 @@ package io.confluent.ksql.serde.json;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
 
-public class JsonSchemaProperties extends JsonProperties {
+public class JsonSchemaProperties extends ConnectProperties {
 
   static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of(
       FULL_SCHEMA_NAME,
@@ -38,6 +39,7 @@ public class JsonSchemaProperties extends JsonProperties {
 
   @Override
   public String getDefaultFullSchemaName() {
+    // Return null to be backward compatible for unset schema name
     return null;
   }
 }

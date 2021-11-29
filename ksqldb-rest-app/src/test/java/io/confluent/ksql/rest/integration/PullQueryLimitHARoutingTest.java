@@ -36,8 +36,6 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
-import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -51,7 +49,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
-import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProviderBig;
 import java.io.IOException;
@@ -65,7 +62,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,7 +72,7 @@ import org.junit.rules.Timeout;
 
 
 @Category({IntegrationTest.class})
-public class PullQueryLimitFunctionalTest {
+public class PullQueryLimitHARoutingTest {
 
     private static final String USER_TOPIC = "user_topic_";
     private static final String USERS_STREAM = "users";
@@ -92,6 +88,8 @@ public class PullQueryLimitFunctionalTest {
     private String queryId;
     private String topic;
 
+    private static final Optional<BasicCredentials> USER_CREDS = Optional.empty();
+
     private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
             LogicalSchema.builder()
                     .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
@@ -100,19 +98,6 @@ public class PullQueryLimitFunctionalTest {
             SerdeFeatures.of(),
             SerdeFeatures.of()
     );
-
-    private static final String PROPS_JAAS_REALM = "KsqlServer-Props";
-    private static final String KSQL_RESOURCE = "ksql-user";
-    private static final String USER_WITH_ACCESS = "harry";
-    private static final String USER_WITH_ACCESS_PWD = "changeme";
-    private static final Optional<BasicCredentials> USER_CREDS
-            = Optional.of(BasicCredentials.of(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD));
-
-    @ClassRule
-    public static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
-            .builder(PROPS_JAAS_REALM)
-            .addUser(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD, KSQL_RESOURCE)
-            .build();
 
     private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
             .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
@@ -125,14 +110,6 @@ public class PullQueryLimitFunctionalTest {
             .put(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
             .put(KsqlConfig.KSQL_STREAMS_PREFIX + "num.standby.replicas", 1)
             .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-            .put(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG, KsqlRestConfig.AUTHENTICATION_METHOD_BASIC)
-            .put(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
-            .put(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_RESOURCE)
-            .put(KsqlRestConfig.AUTHENTICATION_SKIP_PATHS_CONFIG, "/heartbeat,/lag")
-            // In order to whitelist the above paths for auth, we need to install a noop authentication
-            // plugin.  In practice, these are internal paths so we're not interested in testing auth
-            // for them in these tests.
-            .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, PullQueryRoutingFunctionalTest.NoAuthPlugin.class)
             .build();
 
     private static final HighAvailabilityTestUtil.Shutoffs APP_SHUTOFFS_0 = new HighAvailabilityTestUtil.Shutoffs();
@@ -193,7 +170,6 @@ public class PullQueryLimitFunctionalTest {
     public static final RuleChain CHAIN = RuleChain
             .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
             .around(TEST_HARNESS)
-            .around(JAAS_CONFIG)
             .around(TMP);
 
     @Rule
@@ -201,13 +177,6 @@ public class PullQueryLimitFunctionalTest {
             .withTimeout(4, TimeUnit.MINUTES)
             .withLookingForStuckThread(true)
             .build();
-
-    @BeforeClass
-    public static void setUpClass() {
-        FaultyKafkaConsumer.FaultyKafkaConsumer0.setPauseOffset(APP_SHUTOFFS_0::getKafkaPauseOffset);
-        FaultyKafkaConsumer.FaultyKafkaConsumer1.setPauseOffset(APP_SHUTOFFS_1::getKafkaPauseOffset);
-        FaultyKafkaConsumer.FaultyKafkaConsumer2.setPauseOffset(APP_SHUTOFFS_2::getKafkaPauseOffset);
-    }
 
     @Before
     public void setUp() {
@@ -264,7 +233,7 @@ public class PullQueryLimitFunctionalTest {
         // Given:
         final int numLimitRows = 300;
         final int limitSubsetSize = HEADER + numLimitRows;
-        ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+        ClusterFormation clusterFormation = new ClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
         waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
         waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
                 clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
@@ -323,7 +292,7 @@ public class PullQueryLimitFunctionalTest {
         // Given:
         final int numLimitRows = 200;
         final int limitSubsetSize = HEADER + numLimitRows + LIMIT_REACHED_MESSAGE;
-        ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+        ClusterFormation clusterFormation = new ClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
         waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
         waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
                 clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
@@ -377,52 +346,15 @@ public class PullQueryLimitFunctionalTest {
         assertThat(rows_3, hasSize(limitSubsetSize));
     }
 
-    private ClusterFormation findClusterFormation(
-            TestApp testApp0, TestApp testApp1, TestApp testApp2) {
-        ClusterFormation clusterFormation = new ClusterFormation();
-        ClusterStatusResponse clusterStatusResponse
-                = HighAvailabilityTestUtil.sendClusterStatusRequest(testApp0.getApp(), USER_CREDS);
-        ActiveStandbyEntity entity0 = clusterStatusResponse.getClusterStatus().get(testApp0.getHost())
-                .getActiveStandbyPerQuery().get(queryId);
-        ActiveStandbyEntity entity1 = clusterStatusResponse.getClusterStatus().get(testApp1.getHost())
-                .getActiveStandbyPerQuery().get(queryId);
-
-        // find active
-        if (!entity0.getActiveStores().isEmpty() && !entity0.getActivePartitions().isEmpty()) {
-            clusterFormation.setActive(testApp0);
-        } else if (!entity1.getActiveStores().isEmpty() && !entity1.getActivePartitions().isEmpty()) {
-            clusterFormation.setActive(testApp1);
-        } else {
-            clusterFormation.setActive(testApp2);
-        }
-
-        //find standby
-        if (!entity0.getStandByStores().isEmpty() && !entity0.getStandByPartitions().isEmpty()) {
-            clusterFormation.setStandBy(testApp0);
-        } else if (!entity1.getStandByStores().isEmpty() && !entity1.getStandByPartitions().isEmpty()) {
-            clusterFormation.setStandBy(testApp1);
-        } else {
-            clusterFormation.setStandBy(testApp2);
-        }
-
-        //find router
-        if (entity0.getStandByStores().isEmpty() && entity0.getActiveStores().isEmpty()) {
-            clusterFormation.setRouter(testApp0);
-        } else if (entity1.getStandByStores().isEmpty() && entity1.getActiveStores().isEmpty()) {
-            clusterFormation.setRouter(testApp1);
-        } else {
-            clusterFormation.setRouter(testApp2);
-        }
-
-        return clusterFormation;
-    }
-
     static class ClusterFormation {
         TestApp active;
         TestApp standBy;
         TestApp router;
 
-        ClusterFormation() {
+        ClusterFormation(final TestApp active, final TestApp standBy, final TestApp router) {
+            this.active = active;
+            this.standBy = standBy;
+            this.router = router;
         }
 
         public void setActive(final TestApp active) {

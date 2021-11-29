@@ -16,7 +16,6 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -268,21 +267,22 @@ public class DefaultSchemaInjector implements Injector {
     final CreateSource statement = preparedStatement.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    Optional<String> avroKeySchemaName = Optional.empty();
-    Optional<String> avroValueSchemaName = Optional.empty();
+    final Optional<String> keySchemaName;
+    final Optional<String> valueSchemaName;
 
-    // Only populate avro key and value schema names when schema ids are explicitly provided
-    // and fetched schema is avro format
-    if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()
-        && keySchema.get().rawSchema.schemaType().equals(AvroSchema.TYPE)) {
-      avroKeySchemaName = Optional.ofNullable(keySchema.get().rawSchema.name());
+    // Only populate key and value schema names when schema ids are explicitly provided
+    if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()) {
+      keySchemaName = Optional.ofNullable(keySchema.get().rawSchema.name());
+    } else {
+      keySchemaName = Optional.empty();
     }
-    if (properties.getValueSchemaId().isPresent() && valueSchema.isPresent()
-        && valueSchema.get().rawSchema.schemaType().equals(AvroSchema.TYPE)) {
-      avroValueSchemaName = Optional.ofNullable(valueSchema.get().rawSchema.name());
+    if (properties.getValueSchemaId().isPresent() && valueSchema.isPresent()) {
+      valueSchemaName = Optional.ofNullable(valueSchema.get().rawSchema.name());
+    } else {
+      valueSchemaName = Optional.empty();
     }
     final CreateSourceProperties newProperties = statement.getProperties().withKeyValueSchemaName(
-        avroKeySchemaName, avroValueSchemaName);
+        keySchemaName, valueSchemaName);
     return statement.copyWith(elements, newProperties);
   }
 

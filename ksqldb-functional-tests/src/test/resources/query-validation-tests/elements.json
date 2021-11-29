@@ -76,7 +76,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KAFKA does not support the following configs: [KEY_SCHEMA_ID]"
+        "message": "KAFKA does not support the following configs: [schemaId]"
       }
     },
     {
@@ -95,7 +95,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KAFKA does not support the following configs: [VALUE_SCHEMA_ID]"
+        "message": "KAFKA does not support the following configs: [schemaId]"
       }
     },
     {

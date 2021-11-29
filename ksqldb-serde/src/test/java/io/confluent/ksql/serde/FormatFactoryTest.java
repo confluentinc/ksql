@@ -135,11 +135,11 @@ public class FormatFactoryTest {
   @Test
   public void shouldNotThrowWhenCreatingFromSupportedProperty() {
     // Given:
-    final FormatInfo formatInfo = FormatInfo.of("AVRO", ImmutableMap.of("KEY_SCHEMA_ID", "1", "fullSchemaName", "2"));
+    final FormatInfo formatInfo = FormatInfo.of("AVRO", ImmutableMap.of("schemaId", "1", "fullSchemaName", "2"));
     final FormatInfo protobufInfo = FormatInfo.of("PROTOBUF",
-        ImmutableMap.of("VALUE_SCHEMA_ID", "1"));
+        ImmutableMap.of("schemaId", "1"));
     final FormatInfo jsonSRFormatInfo = FormatInfo.of("JSON_SR",
-        ImmutableMap.of("KEY_SCHEMA_ID", "123"));
+        ImmutableMap.of("schemaId", "123"));
 
     // When: Then:
     assertThat(FormatFactory.of(formatInfo), is(FormatFactory.AVRO));

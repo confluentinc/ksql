@@ -201,13 +201,12 @@ public class KsqlProtobufSerializerTest {
       final Schema schema,
       final Class<T> targetType
   ) {
-    return ProtobufSerdeFactory
+    return new ProtobufSerdeFactory(ImmutableMap.of())
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,
             () -> schemaRegistryClient,
             targetType,
-            Optional.empty(),
             false).serializer();
   }
 

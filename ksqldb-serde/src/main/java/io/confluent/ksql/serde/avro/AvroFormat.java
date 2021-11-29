@@ -80,12 +80,7 @@ public final class AvroFormat extends ConnectFormat {
     // Ensure schema is compatible by converting to Avro schema:
     getConnectSchemaTranslator(formatProps).fromConnectSchema(connectSchema);
 
-    final AvroProperties properties = new AvroProperties(formatProps);
-    final String schemaFullName = properties.getFullSchemaName();
-    final Optional<Integer> schemaId =
-        isKey ? properties.getKeySchemaId() : properties.getValueSchemaId();
-
-    return new KsqlAvroSerdeFactory(schemaFullName, schemaId)
+    return new KsqlAvroSerdeFactory(new AvroProperties(formatProps))
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 

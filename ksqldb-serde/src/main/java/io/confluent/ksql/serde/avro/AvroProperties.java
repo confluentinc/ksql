@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Properties that can be set on the Avro format.
@@ -51,15 +50,5 @@ class AvroProperties extends ConnectProperties {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public ImmutableSet<String> getSupportedProperties() {
     return SUPPORTED_PROPERTIES;
-  }
-
-  Optional<Integer> getKeySchemaId() {
-    final String schemaId = properties.get(ConnectFormat.KEY_SCHEMA_ID);
-    return schemaId == null ? Optional.empty() : Optional.of(Integer.parseInt(schemaId));
-  }
-
-  Optional<Integer> getValueSchemaId() {
-    final String schemaId = properties.get(ConnectFormat.VALUE_SCHEMA_ID);
-    return schemaId == null ? Optional.empty() : Optional.of(Integer.parseInt(schemaId));
   }
 }

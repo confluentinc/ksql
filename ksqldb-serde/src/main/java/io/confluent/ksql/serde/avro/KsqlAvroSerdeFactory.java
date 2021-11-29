@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
@@ -40,14 +41,18 @@ import org.apache.kafka.connect.data.Schema;
 class KsqlAvroSerdeFactory {
 
   private final String fullSchemaName;
-  private final Optional<Integer> schemaId;
+  private final AvroProperties properties;
 
-  KsqlAvroSerdeFactory(final String fullSchemaName, final Optional<Integer> schemaId) {
-    this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
-    this.schemaId = schemaId;
+  KsqlAvroSerdeFactory(final AvroProperties properties) {
+    this.properties = Objects.requireNonNull(properties, "properties");
+    this.fullSchemaName = Objects.requireNonNull(properties.getFullSchemaName(), "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
+  }
+
+  KsqlAvroSerdeFactory(final ImmutableMap<String, String> properties) {
+    this(new AvroProperties(properties));
   }
 
   <T> Serde<T> createSerde(
@@ -96,7 +101,7 @@ class KsqlAvroSerdeFactory {
       final AvroDataTranslator translator = createAvroTranslator(schema);
 
       final AvroConverter avroConverter =
-          getAvroConverter(srFactory.get(), ksqlConfig, schemaId, isKey);
+          getAvroConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey);
 
       return new KsqlConnectSerializer<>(
           translator.getAvroCompatibleSchema(),

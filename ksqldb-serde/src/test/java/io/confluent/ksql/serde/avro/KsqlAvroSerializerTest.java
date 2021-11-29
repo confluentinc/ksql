@@ -43,6 +43,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -748,9 +749,10 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME,
-            Optional.empty())
-            .createSerde(
+        () -> new KsqlAvroSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        ).createSerde(
                 schema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
@@ -776,8 +778,10 @@ public class KsqlAvroSerializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME, Optional.empty())
-            .createSerde(
+        () -> new KsqlAvroSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME)
+        ).createSerde(
                 schema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
@@ -1127,8 +1131,10 @@ public class KsqlAvroSerializerTest {
         .put("field0", ksqlValue);
 
     final Serializer<Struct> serializer =
-        new KsqlAvroSerdeFactory(schemaNamespace + "." + schemaName, Optional.empty())
-            .createSerde(
+        new KsqlAvroSerdeFactory(
+            ImmutableMap.of(
+                ConnectProperties.FULL_SCHEMA_NAME, schemaNamespace + "." + schemaName)
+        ).createSerde(
                 (ConnectSchema) ksqlRecordSchema,
                 ksqlConfig,
                 () -> schemaRegistryClient,
@@ -1276,7 +1282,10 @@ public class KsqlAvroSerializerTest {
       final Class<T> targetType,
       final Optional<Integer> schemaId
   ) {
-    return new KsqlAvroSerdeFactory(AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME, schemaId)
+    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+    builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+    schemaId.ifPresent(integer -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(integer)));
+    return new KsqlAvroSerdeFactory(builder.build())
         .createSerde(
             (ConnectSchema) schema,
             ksqlConfig,

@@ -73,11 +73,7 @@ public class ProtobufFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    final String schemaIdStr = isKey ? formatProps.get(ConnectFormat.KEY_SCHEMA_ID)
-        : formatProps.get(ConnectFormat.VALUE_SCHEMA_ID);
-    final Optional<Integer> schemaId = (schemaIdStr == null ? Optional.empty()
-        : Optional.of(Integer.parseInt(schemaIdStr)));
-    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType, schemaId,
-        isKey);
+    return new ProtobufSerdeFactory(new ProtobufProperties(formatProps))
+        .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -73,11 +74,7 @@ public class JsonSchemaFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    final String schemaIdStr = isKey ? formatProps.get(ConnectFormat.KEY_SCHEMA_ID)
-        : formatProps.get(ConnectFormat.VALUE_SCHEMA_ID);
-    final Optional<Integer> schemaId = (schemaIdStr == null ? Optional.empty()
-        : Optional.of(Integer.parseInt(schemaIdStr)));
-    return new KsqlJsonSerdeFactory(true, schemaId)
+    return new KsqlJsonSerdeFactory(new JsonSchemaProperties(formatProps))
         .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

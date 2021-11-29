@@ -26,6 +26,7 @@ import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -42,24 +43,19 @@ import org.apache.kafka.connect.storage.Converter;
 class KsqlJsonSerdeFactory {
 
   private final boolean useSchemaRegistryFormat;
-  private final Optional<Integer> schemaId;
+  private final JsonSchemaProperties properties;
 
-  /**
-   * @param useSchemaRegistryFormat whether or not to require the magic byte and
-   *                                schemaID as part of the JSON message
-   */
-  KsqlJsonSerdeFactory(final boolean useSchemaRegistryFormat) {
-    this(useSchemaRegistryFormat, Optional.empty());
+  KsqlJsonSerdeFactory() {
+    useSchemaRegistryFormat = false;
+    properties = null;
   }
 
   /**
-   * @param useSchemaRegistryFormat whether or not to require the magic byte and
-   *                                schemaID as part of the JSON message
-   * @param schemaId optional schema id provided to use for serialization
+   * @param properties JsonSchemaFormat properties
    */
-  KsqlJsonSerdeFactory(final boolean useSchemaRegistryFormat, final Optional<Integer> schemaId) {
-    this.useSchemaRegistryFormat = useSchemaRegistryFormat;
-    this.schemaId = schemaId;
+  KsqlJsonSerdeFactory(final JsonSchemaProperties properties) {
+    this.useSchemaRegistryFormat = true;
+    this.properties = Objects.requireNonNull(properties, "properties");
   }
 
   <T> Serde<T> createSerde(
@@ -96,7 +92,7 @@ class KsqlJsonSerdeFactory {
       final boolean isKey
   ) {
     final Converter converter = useSchemaRegistryFormat
-        ? getSchemaConverter(srFactory.get(), ksqlConfig, schemaId, isKey)
+        ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
         : getConverter();
 
     return new KsqlConnectSerializer<>(

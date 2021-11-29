@@ -274,7 +274,7 @@ public class KsqlJsonSerializerTest {
   @Test
   public void shouldSerializeKeyAndRegisterKeySubject() throws IOException, RestClientException {
     // Given;
-    final Serializer<Boolean> serializer = new KsqlJsonSerdeFactory(useSchemas)
+    final Serializer<Boolean> serializer = givenJsonSerdeFactory()
         .createSerde((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA, config, () -> srClient, Boolean.class, true)
         .serializer();
 
@@ -536,7 +536,7 @@ public class KsqlJsonSerializerTest {
             .build())
         .build();
 
-    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory(false);
+    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory();
 
     // When:
     final Exception e = assertThrows(
@@ -563,7 +563,7 @@ public class KsqlJsonSerializerTest {
             .build())
         .build();
 
-    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory(false);
+    final KsqlJsonSerdeFactory factory = new KsqlJsonSerdeFactory();
 
     // When:
     final Exception e = assertThrows(
@@ -702,8 +702,16 @@ public class KsqlJsonSerializerTest {
   }
 
   private <T> Serializer<T> givenSerializerForSchema(final Schema schema, final Class<T> type) {
-    return new KsqlJsonSerdeFactory(useSchemas)
+    final KsqlJsonSerdeFactory factory = useSchemas ?
+        new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of())) :
+        new KsqlJsonSerdeFactory();
+    return factory
         .createSerde((ConnectSchema) schema, config, () -> srClient, type, false)
         .serializer();
+  }
+
+  private KsqlJsonSerdeFactory givenJsonSerdeFactory() {
+     return useSchemas ? new KsqlJsonSerdeFactory(new JsonSchemaProperties(ImmutableMap.of())) :
+        new KsqlJsonSerdeFactory();
   }
 }

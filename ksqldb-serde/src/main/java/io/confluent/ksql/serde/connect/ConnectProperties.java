@@ -46,7 +46,7 @@ public abstract class ConnectProperties {
     return properties.getOrDefault(FULL_SCHEMA_NAME, getDefaultFullSchemaName());
   }
 
-  Optional<Integer> getSchemaId() {
+  public Optional<Integer> getSchemaId() {
     final String schemaId = properties.get(SCHEMA_ID);
     return schemaId == null ? Optional.empty() : Optional.of(Integer.parseInt(schemaId));
   }

@@ -35,6 +35,7 @@ import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -1588,8 +1589,10 @@ public class KsqlAvroDeserializerTest {
       final ConnectSchema schema,
       final Class<T> targetType
   ) {
+    final ImmutableMap<String, String> formatProperties = ImmutableMap.of(
+        ConnectProperties.FULL_SCHEMA_NAME, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
     final KsqlAvroSerdeFactory serdeFactory = new KsqlAvroSerdeFactory(
-        AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME, Optional.empty());
+        new AvroProperties(formatProperties));
 
     final Deserializer<T> deserializer = serdeFactory.createSerde(
         schema,

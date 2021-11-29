@@ -326,6 +326,13 @@ final class SourceBuilderUtils {
         .collect(Collectors.toList());
   }
 
+  static ByteBuffer extractHeader(final Headers headers, final String key) {
+    final Header header = headers.lastHeader(key);
+    return header == null
+        ? null
+        : ByteBuffer.wrap(header.value());
+  }
+
   static class AddKeyAndPseudoColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
@@ -381,13 +388,7 @@ final class SourceBuilderUtils {
           row.appendAll(keyColumns);
           for (final Column col : headerColumns) {
             if (col.headerKey().isPresent()) {
-              final Header header =
-                  processorContext.headers().lastHeader(col.headerKey().get());
-              row.append(
-                  header == null
-                      ? null
-                      : ByteBuffer.wrap(header.value())
-              );
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
             } else {
               row.append(createHeaderData(processorContext.headers()));
             }

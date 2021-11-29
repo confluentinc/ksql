@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.extractHeader;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
@@ -34,13 +35,11 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -302,13 +301,7 @@ final class SourceBuilder extends SourceBuilderBase {
 
           for (final Column col : headerColumns) {
             if (col.headerKey().isPresent()) {
-              final Header header =
-                  processorContext.headers().lastHeader(col.headerKey().get());
-              row.append(
-                  header == null
-                  ? null
-                  : ByteBuffer.wrap(header.value())
-              );
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
             } else {
               row.append(createHeaderData(processorContext.headers()));
             }

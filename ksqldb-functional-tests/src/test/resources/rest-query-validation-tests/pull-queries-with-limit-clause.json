@@ -366,6 +366,90 @@
       "expectedError": {
         "message": "LIMIT clause in pull queries is currently disabled. You can enable them by setting ksql.query.pull.limit.clause.enabled=true. See https://cnfl.io/queries for more info.\nAdd EMIT CHANGES if you intended to issue a push query."
       }
+    },
+    {
+      "name": "windowed - single column from multi-column key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, COL INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COL, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID, COL;",
+        "SELECT * FROM AGGREGATE;",
+        "SELECT * FROM AGGREGATE LIMIT 5;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": -1, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 10, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 12545, "key": 10, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12445, "key": 11, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 13445, "key": 11, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 50, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 50, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 101, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 75, "value": {"col": 1}},
+        {"topic": "test_topic", "timestamp": 14345, "key": 75, "value": {"col": 2}},
+        {"topic": "test_topic", "timestamp": 14445, "key": 75, "value": {"col": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COL` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10,2,12000,13000,2]}} ,
+          {"row":{"columns":[101,1,12000,13000,1]}},
+          {"row":{"columns":[-1,1,12000,13000,1]}} ,
+          {"row":{"columns":[11,1,12000,13000,2]}} ,
+          {"row":{"columns":[11,1,13000,14000,1]}} ,
+          {"row":{"columns":[10,1,12000,13000,1]}} ,
+          {"row":{"columns":[50,1,12000,13000,1]}} ,
+          {"row":{"columns":[50,2,13000,14000,1]}} ,
+          {"row":{"columns":[75,1,12000,13000,1]}} ,
+          {"row":{"columns":[75,2,14000,15000,2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COL` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10,1,12000,13000,1]}},
+          {"row":{"columns":[50,1,12000,13000,1]}},
+          {"row":{"columns":[50,2,13000,14000,1]}},
+          {"row":{"columns":[75,1,12000,13000,1]}},
+          {"row":{"columns":[75,2,14000,15000,2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "table table outer join - PROTOBUF",
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='PROTOBUF');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='PROTOBUF');",
+        "CREATE TABLE OUTER_JOIN as SELECT ROWKEY AS ID, t.id, tt.id, name, value, f1, f2 FROM test t FULL OUTER join TEST_TABLE tt on t.id = tt.id;",
+        "SELECT * FROM OUTER_JOIN;",
+        "SELECT * FROM OUTER_JOIN LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "right_topic", "key": 1, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 1, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 15, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "left_topic", "key": 1, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 16000}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `T_ID` BIGINT, `TT_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}},
+          {"row":{"columns":[1, 1, 1, "bar", 99, "a", 10]}},
+          {"row":{"columns":[15, 0, 15, "" , 0, "c", 20]}},
+          {"row":{"columns":[10, 10, 0, "100", 5, "", 0]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `T_ID` BIGINT, `TT_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}},
+          {"row":{"columns":[1, 1, 1, "bar", 99, "a", 10]}},
+          {"row":{"columns":[15, 0, 15, "" , 0, "c", 20]}}
+        ]}
+      ]
     }
   ]
 }

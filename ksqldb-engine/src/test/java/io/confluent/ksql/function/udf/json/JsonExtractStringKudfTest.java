@@ -47,6 +47,15 @@ public class JsonExtractStringKudfTest {
   }
 
   @Test
+  public void shouldExtractJsonFieldWithAtCharacter() {
+    // When:
+    final String result = udf.extract("{\"@type\": \"foo\"}", "$.@type");
+
+    // Then:
+    assertThat(result, is("foo"));
+  }
+
+  @Test
   public void shouldExtractJsonDoc() {
     // When:
     final String result = udf.extract(JSON_DOC, "$.thing1");

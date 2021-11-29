@@ -1156,7 +1156,7 @@ public class InsertValuesExecutorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Cannot insert into a HEADER column"));
+    assertThat(e.getMessage(), is("Cannot insert into HEADER columns: HEAD0"));
   }
 
   @Test
@@ -1181,7 +1181,7 @@ public class InsertValuesExecutorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Cannot insert into a HEADER column"));
+    assertThat(e.getMessage(), is("Cannot insert into HEADER columns: HEAD0, HEAD1"));
   }
 
   @Test
@@ -1225,7 +1225,7 @@ public class InsertValuesExecutorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Cannot insert into a HEADER column"));
+    assertThat(e.getMessage(), is("Cannot insert into HEADER columns: HEAD0"));
   }
 
   private static ConfiguredStatement<InsertValues> givenInsertValues(

@@ -32,6 +32,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
@@ -58,6 +59,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hc.core5.http.HttpStatus;
@@ -146,9 +148,7 @@ public class InsertValuesExecutor {
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
-    if (!verifyInsertValuesAllowed(insertValues.getColumns(), dataSource)) {
-      throw new KsqlException("Cannot insert into a HEADER column");
-    }
+    validateInsert(insertValues.getColumns(), dataSource);
 
     final ProducerRecord<byte[], byte[]> record =
         buildRecord(statement, metaStore, dataSource, serviceContext);
@@ -170,17 +170,23 @@ public class InsertValuesExecutor {
     }
   }
 
-  private boolean verifyInsertValuesAllowed(
-      final List<ColumnName> columns, final DataSource dataSource) {
-    if (columns.isEmpty() && !dataSource.getSchema().headers().isEmpty()) {
-      return false;
+  private void validateInsert(final List<ColumnName> columns, final DataSource dataSource) {
+    final List<String> headerColumns;
+    if (columns.isEmpty()) {
+      headerColumns = dataSource.getSchema().headers()
+          .stream()
+          .map(column -> column.name().text())
+          .collect(Collectors.toList());
+    } else {
+      headerColumns = columns.stream()
+          .filter(columnName -> dataSource.getSchema().isHeaderColumn(columnName))
+          .map(ColumnName::text)
+          .collect(Collectors.toList());
     }
-    for (ColumnName columnName : columns) {
-      if (dataSource.getSchema().isHeaderColumn(columnName)) {
-        return false;
-      }
+    if (!headerColumns.isEmpty()) {
+      throw new KsqlException("Cannot insert into HEADER columns: "
+          + String.join(", ", headerColumns));
     }
-    return true;
   }
 
   private static DataSource getDataSource(

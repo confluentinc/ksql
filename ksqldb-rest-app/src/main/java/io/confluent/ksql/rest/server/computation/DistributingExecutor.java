@@ -282,7 +282,8 @@ public class DistributingExecutor {
     }
 
     if (!dataSource.getSchema().headers().isEmpty()) {
-      throw new KsqlException("Cannot insert into a source with header columns");
+      throw new KsqlException("Cannot insert into " + insertInto.getTarget().text()
+          + " because it has header columns");
     }
   }
 }

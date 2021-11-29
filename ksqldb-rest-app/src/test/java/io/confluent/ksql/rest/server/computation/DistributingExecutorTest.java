@@ -433,7 +433,7 @@ public class DistributingExecutorTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), is("Cannot insert into a source with header columns"));
+    assertThat(e.getMessage(), is("Cannot insert into s1 because it has header columns"));
   }
 
   @Test

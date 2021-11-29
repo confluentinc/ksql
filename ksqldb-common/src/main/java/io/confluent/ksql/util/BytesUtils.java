@@ -15,7 +15,6 @@
 package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.BaseEncoding;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -24,6 +23,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import javax.xml.bind.DatatypeConverter;
 
 public final class BytesUtils {
   public enum Encoding {
@@ -179,11 +179,11 @@ public final class BytesUtils {
   }
 
   private static String hexEncoding(final byte[] value) {
-    return BaseEncoding.base16().encode(value);
+    return DatatypeConverter.printHexBinary(value);
   }
 
   private static byte[] hexDecoding(final String value) {
-    return BaseEncoding.base16().decode(value);
+    return DatatypeConverter.parseHexBinary(value);
   }
 
   private static String utf8Encoding(final byte[] value) {

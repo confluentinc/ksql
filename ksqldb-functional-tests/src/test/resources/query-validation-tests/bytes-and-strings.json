@@ -11,11 +11,13 @@
       ],
       "inputs": [
         {"topic": "test_topic", "key": null, "value": "21,IQ=="},
-        {"topic": "test_topic", "key": null, "value": "23,Iw=="}
+        {"topic": "test_topic", "key": null, "value": "23,Iw=="},
+        {"topic": "test_topic", "key": null, "value": "1aB2,GrI="}
       ],
       "outputs": [
         {"topic": "TS", "key": null, "value": "21,IQ==,21"},
-        {"topic": "TS", "key": null, "value": "23,Iw==,23"}
+        {"topic": "TS", "key": null, "value": "23,Iw==,23"},
+        {"topic": "TS", "key": null, "value": "1AB2,GrI=,1AB2"}
       ],
       "post": {
         "sources": [

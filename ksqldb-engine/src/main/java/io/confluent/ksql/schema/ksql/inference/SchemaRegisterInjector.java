@@ -204,9 +204,9 @@ public class SchemaRegisterInjector implements Injector {
       );
     } else {
       registerRawSchema(
-          kvRawSchema.left,
+          kvRawSchema.right,
           kafkaTopic,
-          keyFormat,
+          valueFormat,
           config,
           statementText,
           getSRSubject(kafkaTopic, false),
@@ -223,31 +223,31 @@ public class SchemaRegisterInjector implements Injector {
       final String subject,
       final Boolean isKey
   ) {
+    final String schemaIdPropStr = isKey ? "key_schema_id" : "value_schema_id";
     final Format format = FormatFactory.of(formatInfo);
     if (!canRegister(format, config, topic)) {
-      throw new KsqlStatementException("Format "
+      throw new KsqlStatementException(schemaIdPropStr + " is provided but format "
           + format.name() + " doesn't support registering in Schema Registry",
           statementText);
     }
 
     final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
     if (!translator.name().equals(schemaAndId.rawSchema.schemaType())) {
-      final String kvStr = isKey ? "key" : "value";
       throw new KsqlStatementException(String.format(
-          "Format and fetched schema type using %s_schema_id %d are different. Format: [%s], "
+          "Format and fetched schema type using %s %d are different. Format: [%s], "
               + "Fetched schema type: [%s].",
-          kvStr, schemaAndId.id, format.name(), translator.name()), statementText);
+          schemaIdPropStr, schemaAndId.id, format.name(), schemaAndId.rawSchema.schemaType()),
+          statementText);
     }
 
     final int id = registerRawSchema(serviceContext.getSchemaRegistryClient(),
         schemaAndId.rawSchema, topic, subject, statementText, isKey);
 
     if (id != schemaAndId.id) {
-      final String kvStr = isKey ? "key" : "value";
       throw new KsqlStatementException(
           "Schema id registered is "
               + id
-              + " which is different from provided " + kvStr + "_schema_id " + schemaAndId.id + "."
+              + " which is different from provided " + schemaIdPropStr + " " + schemaAndId.id + "."
               + System.lineSeparator()
               + "Topic: " + topic
               + System.lineSeparator()

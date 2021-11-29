@@ -1,43 +1,45 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638169755962,
+  "timestamp" : 1638217460179,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`c1` INTEGER",
+      "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },
       "valueFormat" : {
-        "format" : "AVRO",
+        "format" : "JSON_SR",
         "properties" : {
-          "fullSchemaName" : "blah",
           "schemaId" : "1"
         }
       }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`c1` INTEGER",
+      "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },
       "valueFormat" : {
-        "format" : "AVRO"
+        "format" : "JSON_SR",
+        "properties" : {
+          "schemaId" : "1"
+        }
       }
     }
   },
   "testCase" : {
-    "name" : "validate schema id without elements OK - AVRO",
+    "name" : "validate schema id without value elements OK - JSON_SR SCHEMA",
     "inputs" : [ {
       "topic" : "input",
-      "key" : null,
+      "key" : 42,
       "value" : {
         "c1" : 4
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : null,
+      "key" : 42,
       "value" : {
         "c1" : 4
       }
@@ -45,42 +47,42 @@
     "topics" : [ {
       "name" : "input",
       "valueSchema" : {
-        "type" : "record",
-        "name" : "blah",
-        "fields" : [ {
-          "name" : "c1",
-          "type" : "int"
-        } ]
+        "type" : "object",
+        "properties" : {
+          "c1" : {
+            "type" : "integer"
+          }
+        }
       },
-      "valueFormat" : "AVRO",
+      "valueFormat" : "JSON",
       "replicas" : 1,
       "numPartitions" : 1
     }, {
       "name" : "OUTPUT",
       "replicas" : 1,
-      "numPartitions" : 4
+      "numPartitions" : 1
     } ],
-    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo', value_schema_id=1);", "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;" ],
+    "statements" : [ "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='JSON_SR', value_schema_id=1);", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`c1` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "valueFormat" : "AVRO",
+        "valueFormat" : "JSON_SR",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`c1` INTEGER",
+        "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "valueFormat" : "AVRO",
+        "valueFormat" : "JSON_SR",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
@@ -92,21 +94,19 @@
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO",
+            "format" : "JSON_SR",
             "properties" : {
-              "fullSchemaName" : "blah",
               "schemaId" : "1"
             }
           },
           "partitions" : 1,
           "valueSchema" : {
-            "type" : "record",
-            "name" : "blah",
-            "fields" : [ {
-              "name" : "c1",
-              "type" : "int"
-            } ],
-            "connect.name" : "blah"
+            "type" : "object",
+            "properties" : {
+              "c1" : {
+                "type" : "integer"
+              }
+            }
           }
         }, {
           "name" : "OUTPUT",
@@ -114,18 +114,25 @@
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "JSON_SR",
+            "properties" : {
+              "schemaId" : "1"
+            }
           },
           "partitions" : 4,
           "valueSchema" : {
-            "type" : "record",
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "fields" : [ {
-              "name" : "c1",
-              "type" : [ "null", "int" ],
-              "default" : null
-            } ]
+            "type" : "object",
+            "properties" : {
+              "c1" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int64"
+                } ]
+              }
+            }
           }
         } ]
       }

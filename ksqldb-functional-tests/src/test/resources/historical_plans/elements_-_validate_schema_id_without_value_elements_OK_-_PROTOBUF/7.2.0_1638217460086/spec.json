@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638169756233,
+  "timestamp" : 1638217460086,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -9,9 +9,9 @@
         "format" : "KAFKA"
       },
       "valueFormat" : {
-        "format" : "AVRO",
+        "format" : "PROTOBUF",
         "properties" : {
-          "fullSchemaName" : "blah",
+          "fullSchemaName" : "ConnectDefault1",
           "schemaId" : "1"
         }
       }
@@ -22,12 +22,16 @@
         "format" : "KAFKA"
       },
       "valueFormat" : {
-        "format" : "AVRO"
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ConnectDefault1",
+          "schemaId" : "1"
+        }
       }
     }
   },
   "testCase" : {
-    "name" : "validate schema id without value elements OK - AVRO",
+    "name" : "validate schema id without value elements OK - PROTOBUF",
     "inputs" : [ {
       "topic" : "input",
       "key" : 42,
@@ -44,15 +48,8 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "valueSchema" : {
-        "type" : "record",
-        "name" : "blah",
-        "fields" : [ {
-          "name" : "c1",
-          "type" : "int"
-        } ]
-      },
-      "valueFormat" : "AVRO",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n}\n",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 1
     }, {
@@ -60,7 +57,7 @@
       "replicas" : 1,
       "numPartitions" : 1
     } ],
-    "statements" : [ "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='AvRo', value_schema_id=1);", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "statements" : [ "CREATE STREAM INPUT (rowkey int key) WITH (kafka_topic='input', value_format='PROTOBUF', value_schema_id=1);", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -69,7 +66,7 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "valueFormat" : "AVRO",
+        "valueFormat" : "PROTOBUF",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
@@ -80,7 +77,7 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "valueFormat" : "AVRO",
+        "valueFormat" : "PROTOBUF",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
@@ -92,41 +89,28 @@
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO",
+            "format" : "PROTOBUF",
             "properties" : {
-              "fullSchemaName" : "blah",
+              "fullSchemaName" : "ConnectDefault1",
               "schemaId" : "1"
             }
           },
           "partitions" : 1,
-          "valueSchema" : {
-            "type" : "record",
-            "name" : "blah",
-            "fields" : [ {
-              "name" : "c1",
-              "type" : "int"
-            } ],
-            "connect.name" : "blah"
-          }
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "AVRO"
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
+              "schemaId" : "1"
+            }
           },
           "partitions" : 4,
-          "valueSchema" : {
-            "type" : "record",
-            "name" : "KsqlDataSourceSchema",
-            "namespace" : "io.confluent.ksql.avro_schemas",
-            "fields" : [ {
-              "name" : "c1",
-              "type" : [ "null", "int" ],
-              "default" : null
-            } ]
-          }
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n}\n"
         } ]
       }
     }

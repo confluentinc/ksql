@@ -1,7 +1,7 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (`c0` INTEGER KEY, `c1` INTEGER) WITH (FORMAT='PROTOBUF', KAFKA_TOPIC='input', KEY_SCHEMA_ID=1, VALUE_SCHEMA_ID=2);",
+    "statementText" : "CREATE STREAM INPUT (`c0` INTEGER KEY, `c1` INTEGER) WITH (FORMAT='PROTOBUF', KAFKA_TOPIC='input', KEY_SCHEMA_FULL_NAME='ConnectDefault1', KEY_SCHEMA_ID=1, VALUE_AVRO_SCHEMA_FULL_NAME='ConnectDefault1', VALUE_SCHEMA_ID=2);",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
@@ -11,12 +11,14 @@
         "keyFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
+            "fullSchemaName" : "ConnectDefault1",
             "schemaId" : "1"
           }
         },
         "valueFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
+            "fullSchemaName" : "ConnectDefault1",
             "schemaId" : "2"
           }
         }
@@ -36,12 +38,14 @@
         "keyFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
+            "fullSchemaName" : "ConnectDefault1",
             "schemaId" : "1"
           }
         },
         "valueFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
+            "fullSchemaName" : "ConnectDefault1",
             "schemaId" : "2"
           }
         }
@@ -72,12 +76,14 @@
               "keyFormat" : {
                 "format" : "PROTOBUF",
                 "properties" : {
+                  "fullSchemaName" : "ConnectDefault1",
                   "schemaId" : "1"
                 }
               },
               "valueFormat" : {
                 "format" : "PROTOBUF",
                 "properties" : {
+                  "fullSchemaName" : "ConnectDefault1",
                   "schemaId" : "2"
                 }
               }
@@ -92,12 +98,14 @@
           "keyFormat" : {
             "format" : "PROTOBUF",
             "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
               "schemaId" : "1"
             }
           },
           "valueFormat" : {
             "format" : "PROTOBUF",
             "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
               "schemaId" : "2"
             }
           }

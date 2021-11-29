@@ -1,7 +1,7 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (`c1` INTEGER) WITH (KAFKA_TOPIC='input', KEY_FORMAT='KAFKA', VALUE_FORMAT='PROTOBUF', VALUE_SCHEMA_ID=1);",
+    "statementText" : "CREATE STREAM INPUT (`c1` INTEGER) WITH (KAFKA_TOPIC='input', KEY_FORMAT='KAFKA', VALUE_AVRO_SCHEMA_FULL_NAME='ConnectDefault1', VALUE_FORMAT='PROTOBUF', VALUE_SCHEMA_ID=1);",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
@@ -14,6 +14,7 @@
         "valueFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
+            "fullSchemaName" : "ConnectDefault1",
             "schemaId" : "1"
           }
         }
@@ -36,6 +37,7 @@
         "valueFormat" : {
           "format" : "PROTOBUF",
           "properties" : {
+            "fullSchemaName" : "ConnectDefault1",
             "schemaId" : "1"
           }
         }
@@ -69,6 +71,7 @@
               "valueFormat" : {
                 "format" : "PROTOBUF",
                 "properties" : {
+                  "fullSchemaName" : "ConnectDefault1",
                   "schemaId" : "1"
                 }
               }
@@ -85,6 +88,7 @@
           "valueFormat" : {
             "format" : "PROTOBUF",
             "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
               "schemaId" : "1"
             }
           }

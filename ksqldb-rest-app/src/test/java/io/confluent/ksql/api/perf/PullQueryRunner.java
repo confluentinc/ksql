@@ -66,7 +66,7 @@ public class PullQueryRunner extends BasePerfRunner {
   private static final JsonObject DEFAULT_PULL_QUERY_REQUEST_BODY = new JsonObject()
       .put("sql", DEFAULT_PULL_QUERY)
       .put("properties", new JsonObject().put("auto.offset.reset", "earliest"));
-  private static final List<KeyValue<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
+  private static final List<KeyValueMetadata<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
   private static final int MAX_CONCURRENT_REQUESTS = 100;
 
   private PullQueryEndpoints pullQueryEndpoints;
@@ -107,10 +107,10 @@ public class PullQueryRunner extends BasePerfRunner {
     Thread.sleep(500);
   }
 
-  private static List<KeyValue<List<?>, GenericRow>> generateResults() {
-    final List<KeyValue<List<?>, GenericRow>> results = new ArrayList<>();
+  private static List<KeyValueMetadata<List<?>, GenericRow>> generateResults() {
+    final List<KeyValueMetadata<List<?>, GenericRow>> results = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      results.add(keyValue(DEFAULT_KEY, DEFAULT_ROW));
+      results.add(new KeyValueMetadata<>(keyValue(DEFAULT_KEY, DEFAULT_ROW)));
     }
     return results;
   }
@@ -127,11 +127,11 @@ public class PullQueryRunner extends BasePerfRunner {
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
-        final MetricsCallbackHolder metricsCallbackHolder) {
-//      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
-//      publishers.add(publisher);
-//      return CompletableFuture.completedFuture(publisher);
-      return null;
+        final MetricsCallbackHolder metricsCallbackHolder,
+        final Optional<Boolean> isInternalRequest) {
+      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
+      publishers.add(publisher);
+      return CompletableFuture.completedFuture(publisher);
     }
 
     @Override

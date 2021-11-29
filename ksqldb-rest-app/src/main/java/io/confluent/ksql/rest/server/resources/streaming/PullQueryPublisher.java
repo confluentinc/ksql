@@ -18,166 +18,50 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.analyzer.ImmutableAnalysis;
-import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.PullQueryExecutionUtil;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
-import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValueMetadata;
-import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
-import io.confluent.ksql.util.KsqlConstants.RoutingNodeType;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
-  private final KsqlEngine ksqlEngine;
-  private final ServiceContext serviceContext;
   private final ListeningScheduledExecutorService exec;
-  private final ConfiguredStatement<Query> query;
-  private final ImmutableAnalysis analysis;
-  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final PullQueryResult result;
+  private final MetricsCallbackHolder metricsCallbackHolder;
   private final long startTimeNanos;
-  private final RoutingFilterFactory routingFilterFactory;
-  private final RateLimiter rateLimiter;
-  private final ConcurrencyLimiter concurrencyLimiter;
-  private final SlidingWindowRateLimiter pullBandRateLimiter;
-  private final HARouting routing;
-  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   @VisibleForTesting
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   PullQueryPublisher(
-      // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-      final KsqlEngine ksqlEngine,
-      final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
-      final ConfiguredStatement<Query> query,
-      final ImmutableAnalysis analysis,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long startTimeNanos,
-      final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter,
-      final ConcurrencyLimiter concurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final HARouting routing,
-      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+      final PullQueryResult result,
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final long startTimeNanos
   ) {
-    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
-    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.exec = requireNonNull(exec, "exec");
-    this.query = requireNonNull(query, "query");
-    this.analysis = requireNonNull(analysis, "analysis");
-    this.pullQueryMetrics = pullQueryMetrics;
+    this.result = requireNonNull(result, "result");
+    this.metricsCallbackHolder = metricsCallbackHolder;
     this.startTimeNanos = startTimeNanos;
-    this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
-    this.concurrencyLimiter = concurrencyLimiter;
-    this.pullBandRateLimiter = requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
-    this.routing = requireNonNull(routing, "routing");
-    this.consistencyOffsetVector = requireNonNull(
-        consistencyOffsetVector, "consistencyOffsetVector");
   }
 
   @Override
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
-    final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
-        query.getSessionConfig().getConfig(false),
-        query.getSessionConfig().getOverrides(),
-        ImmutableMap.of()
-    );
+    final PullQuerySubscription subscription = new PullQuerySubscription(
+        exec, subscriber, result);
 
-    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
-        query.getSessionConfig().getConfig(false),
-        query.getSessionConfig().getOverrides()
-    );
+    result.start();
 
-    PullQueryResult result = null;
-    Decrementer decrementer = null;
-    try {
-      PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-      decrementer = concurrencyLimiter.increment();
-      pullBandRateLimiter.allow(KsqlQueryType.PULL);
-      final Decrementer finalDecrementer = decrementer;
+    final WebSocketSubscriber<StreamedRow> webSocketSubscriber =
+        (WebSocketSubscriber<StreamedRow>) subscriber;
 
-      result = ksqlEngine.executeTablePullQuery(
-          analysis,
-          serviceContext,
-          query,
-          routing,
-          routingOptions,
-          plannerOptions,
-          pullQueryMetrics,
-          true,
-          consistencyOffsetVector
-      );
-
-      final PullQueryResult finalResult = result;
-      result.onCompletionOrException((v, throwable) -> {
-        finalDecrementer.decrementAtMostOnce();
-
-        pullQueryMetrics.ifPresent(m -> {
-          recordMetrics(m, finalResult);
-        });
-      });
-
-      final PullQuerySubscription subscription = new PullQuerySubscription(
-          exec, subscriber, result);
-
-      subscriber.onSubscribe(subscription);
-    } catch (Throwable t) {
-      if (decrementer != null) {
-        decrementer.decrementAtMostOnce();
-      }
-
-      if (result == null) {
-        pullQueryMetrics.ifPresent(this::recordErrorMetrics);
-      }
-      throw t;
-    }
-  }
-
-  private void recordMetrics(
-      final PullQueryExecutorMetrics metrics, final PullQueryResult result) {
-
-    final QuerySourceType sourceType = result.getSourceType();
-    final PullPhysicalPlanType planType = result.getPlanType();
-    final RoutingNodeType routingNodeType = result.getRoutingNodeType();
-    // Note: we are not recording response size in this case because it is not
-    // accessible in the websocket endpoint.
-    metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
-    metrics.recordRowsReturned(result.getTotalRowsReturned(),
-        sourceType, planType, routingNodeType);
-    metrics.recordRowsProcessed(result.getTotalRowsProcessed(),
-        sourceType, planType, routingNodeType);
-  }
-
-  private void recordErrorMetrics(final PullQueryExecutorMetrics metrics) {
-    metrics.recordLatencyForError(startTimeNanos);
-    metrics.recordZeroRowsReturnedForError();
-    metrics.recordZeroRowsProcessedForError();
+    webSocketSubscriber.onSubscribe(subscription, metricsCallbackHolder, startTimeNanos);
   }
 
   private static final class PullQuerySubscription

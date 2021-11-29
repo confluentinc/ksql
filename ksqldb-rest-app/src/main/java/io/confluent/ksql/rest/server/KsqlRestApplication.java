@@ -72,6 +72,7 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
+import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.HeartbeatResource;
@@ -189,7 +190,7 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<ClusterStatusResource> clusterStatusResource;
   private final Optional<LagReportingResource> lagReportingResource;
   private final HealthCheckResource healthCheckResource;
-  private final PushRouting pushQueryRouting;
+  private final QueryExecutor queryExecutor;
   private volatile ServerMetadataResource serverMetadataResource;
   private volatile WSQueryEndpoint wsQueryEndpoint;
   @SuppressWarnings("UnstableApiUsage")
@@ -198,14 +199,8 @@ public final class KsqlRestApplication implements Executable {
   private Server apiServer = null;
   private final CompletableFuture<Void> terminatedFuture = new CompletableFuture<>();
   private final DenyListPropertyValidator denyListPropertyValidator;
-  private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
-  private final RateLimiter pullQueryRateLimiter;
-  private final ConcurrencyLimiter pullConcurrencyLimiter;
-  private final SlidingWindowRateLimiter pullBandRateLimiter;
-  private final SlidingWindowRateLimiter scalablePushBandRateLimiter;
-  private final HARouting pullQueryRouting;
   private final Optional<LocalCommands> localCommands;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
@@ -244,14 +239,8 @@ public final class KsqlRestApplication implements Executable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
-      final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter pullQueryRateLimiter,
-      final ConcurrencyLimiter pullConcurrencyLimiter,
-      final SlidingWindowRateLimiter pullBandRateLimiter,
-      final SlidingWindowRateLimiter scalablePushBandRateLimiter,
-      final HARouting pullQueryRouting,
-      final PushRouting pushQueryRouting,
-      final Optional<LocalCommands> localCommands
+      final Optional<LocalCommands> localCommands,
+      final QueryExecutor queryExecutor
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -302,15 +291,8 @@ public final class KsqlRestApplication implements Executable {
     this.scalablePushQueryMetrics =
         requireNonNull(scalablePushQueryMetrics, "scalablePushQueryMetrics");
     log.debug("ksqlDB API server instance created");
-    this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.pullQueryRateLimiter = requireNonNull(pullQueryRateLimiter, "pullQueryRateLimiter");
-    this.pullConcurrencyLimiter = requireNonNull(pullConcurrencyLimiter, "pullConcurrencyLimiter");
-    this.pullBandRateLimiter = requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
-    this.scalablePushBandRateLimiter =
-        requireNonNull(scalablePushBandRateLimiter, "scalablePushBandRateLimiter");
-    this.pullQueryRouting = requireNonNull(pullQueryRouting, "pullQueryRouting");
-    this.pushQueryRouting = pushQueryRouting;
     this.localCommands = requireNonNull(localCommands, "localCommands");
+    this.queryExecutor = requireNonNull(queryExecutor, "queryExecutor");
   }
 
   @Override
@@ -350,16 +332,7 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        pullQueryMetrics,
-        scalablePushQueryMetrics,
-        routingFilterFactory,
-        pullQueryRateLimiter,
-        pullConcurrencyLimiter,
-        pullBandRateLimiter,
-        scalablePushBandRateLimiter,
-        pullQueryRouting,
-        localCommands,
-        pushQueryRouting
+        queryExecutor
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -367,8 +340,6 @@ public final class KsqlRestApplication implements Executable {
       final Endpoints endpoints = new KsqlServerEndpoints(
           ksqlEngine,
           ksqlConfigNoPort,
-          restConfig,
-          routingFilterFactory,
           ksqlSecurityContextProvider,
           ksqlResource,
           streamedQueryResource,
@@ -381,14 +352,7 @@ public final class KsqlRestApplication implements Executable {
           serverMetadataResource,
           wsQueryEndpoint,
           pullQueryMetrics,
-          scalablePushQueryMetrics,
-          pullQueryRateLimiter,
-          pullConcurrencyLimiter,
-          pullBandRateLimiter,
-          scalablePushBandRateLimiter,
-          pullQueryRouting,
-          pushQueryRouting,
-          localCommands
+          queryExecutor
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);
@@ -849,6 +813,21 @@ public final class KsqlRestApplication implements Executable {
 
     final Optional<LocalCommands> localCommands = createLocalCommands(restConfig, ksqlEngine);
 
+    final QueryExecutor queryExecutor = new QueryExecutor(
+        ksqlEngine,
+        restConfig,
+        ksqlConfig,
+        pullQueryMetrics,
+        scalablePushQueryMetrics,
+        pullQueryRateLimiter,
+        pullQueryConcurrencyLimiter,
+        pullBandRateLimiter,
+        scalablePushBandRateLimiter,
+        pullQueryRouting,
+        pushQueryRouting,
+        localCommands
+    );
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         restConfig,
@@ -860,16 +839,7 @@ public final class KsqlRestApplication implements Executable {
         authorizationValidator,
         errorHandler,
         denyListPropertyValidator,
-        pullQueryMetrics,
-        scalablePushQueryMetrics,
-        routingFilterFactory,
-        pullQueryRateLimiter,
-        pullQueryConcurrencyLimiter,
-        pullBandRateLimiter,
-        scalablePushBandRateLimiter,
-        pullQueryRouting,
-        pushQueryRouting,
-        localCommands
+        queryExecutor
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -943,14 +913,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         scalablePushQueryMetrics,
-        routingFilterFactory,
-        pullQueryRateLimiter,
-        pullQueryConcurrencyLimiter,
-        pullBandRateLimiter,
-        scalablePushBandRateLimiter,
-        pullQueryRouting,
-        pushQueryRouting,
-        localCommands
+        localCommands,
+        queryExecutor
     );
   }
 

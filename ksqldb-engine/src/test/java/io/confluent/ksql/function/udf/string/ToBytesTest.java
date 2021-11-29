@@ -42,6 +42,8 @@ public class ToBytesTest {
             is(ByteBuffer.wrap(new byte[]{})));
         assertThat(udf.toBytes("1a2B", "hex"),
             is(ByteBuffer.wrap(new byte[]{26, 43})));
+        assertThat(udf.toBytes("1A2B", "hex"),
+            is(ByteBuffer.wrap(new byte[]{26, 43})));
     }
 
     @Test

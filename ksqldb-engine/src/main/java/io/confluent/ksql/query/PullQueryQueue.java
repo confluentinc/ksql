@@ -208,11 +208,16 @@ public class PullQueryQueue implements BlockingRowQueue {
       if (row == null) {
         return false;
       }
+      if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
+        close();
+        return false;
+      }
 
       while (!closed.get()) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+          totalRowsQueued.incrementAndGet();
           queuedCallback.run();
-          if (limit.isPresent() && totalRowsQueued.incrementAndGet() >= limit.getAsInt()) {
+          if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
             close();
           }
           return true;

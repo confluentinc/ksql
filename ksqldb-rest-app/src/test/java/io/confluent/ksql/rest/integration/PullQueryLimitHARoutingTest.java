@@ -180,9 +180,9 @@ public class PullQueryLimitHARoutingTest {
 
     @Before
     public void setUp() {
-        //Create topic with 4 partition to control who is active and standby
+        //Create topic with 2 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
-        TEST_HARNESS.ensureTopics(4, topic);
+        TEST_HARNESS.ensureTopics(2, topic);
 
         TEST_HARNESS.produceRows(
                 topic,

@@ -45,7 +45,8 @@ class KsqlAvroSerdeFactory {
 
   KsqlAvroSerdeFactory(final AvroProperties properties) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.fullSchemaName = Objects.requireNonNull(properties.getFullSchemaName(), "fullSchemaName").trim();
+    this.fullSchemaName = Objects.requireNonNull(
+        properties.getFullSchemaName(), "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }

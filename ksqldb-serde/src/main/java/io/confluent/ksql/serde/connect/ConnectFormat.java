@@ -153,7 +153,7 @@ public abstract class ConnectFormat implements Format {
       boolean isKey
   );
 
-  protected abstract ConnectProperties getConnectProperties(final Map<String, String> properties);
+  protected abstract ConnectProperties getConnectProperties(Map<String, String> properties);
 
   private static class ListToStructSerializer implements Serializer<List<?>> {
 

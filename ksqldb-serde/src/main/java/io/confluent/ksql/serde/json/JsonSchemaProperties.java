@@ -27,7 +27,7 @@ public class JsonSchemaProperties extends ConnectProperties {
       SCHEMA_ID
   );
 
-  JsonSchemaProperties(final Map<String, String> formatProps) {
+  public JsonSchemaProperties(final Map<String, String> formatProps) {
     super(JsonSchemaFormat.NAME, formatProps);
   }
 

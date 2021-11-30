@@ -27,7 +27,7 @@ public class ProtobufProperties extends ConnectProperties {
       SCHEMA_ID
   );
 
-  ProtobufProperties(final Map<String, String> formatProps) {
+  public ProtobufProperties(final Map<String, String> formatProps) {
     super(ProtobufFormat.NAME, formatProps);
   }
 

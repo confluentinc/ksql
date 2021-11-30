@@ -213,7 +213,7 @@ public final class CreateSourceProperties {
     keySchemaName.ifPresent(
         s -> originals.put(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME, new StringLiteral(s)));
     valueSchemaName.ifPresent(
-        s -> originals.put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral(s)));
+        s -> originals.put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral(s)));
 
     return new CreateSourceProperties(originals, durationParser);
   }

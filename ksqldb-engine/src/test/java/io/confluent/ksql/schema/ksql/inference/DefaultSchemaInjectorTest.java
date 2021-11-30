@@ -532,7 +532,7 @@ public class DefaultSchemaInjectorTest {
         + "`structField` STRUCT<`s0` BIGINT>, "
         + "`decimalField` DECIMAL(4, 2)) "
         + "WITH (KAFKA_TOPIC='some-topic', KEY_FORMAT='kafka', "
-        + "VALUE_AVRO_SCHEMA_FULL_NAME='myrecord', VALUE_FORMAT='json_sr', VALUE_SCHEMA_ID=42);"));
+        + "VALUE_FORMAT='json_sr', VALUE_SCHEMA_FULL_NAME='myrecord', VALUE_SCHEMA_ID=42);"));
 
     assertThat(result.getSessionConfig().getOverrides(), hasKey(ConnectFormat.VALUE_SCHEMA_ID));
     SchemaAndId schemaAndId = (SchemaAndId) result.getSessionConfig().getOverrides().get(ConnectFormat.VALUE_SCHEMA_ID);

@@ -24,7 +24,7 @@ public class ConnectSchemasTest {
         .build();
 
     // When:
-    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value());
+    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value(), null);
 
     // Then:
     assertThat(result.type(), is(Type.STRUCT));
@@ -32,6 +32,21 @@ public class ConnectSchemasTest {
         connectField("Vic", 0, Schema.OPTIONAL_FLOAT64_SCHEMA),
         connectField("Bob", 1, Schema.OPTIONAL_INT64_SCHEMA)
     ));
+  }
+
+  @Test
+  public void shouldSetSchemaName() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("Vic"), DOUBLE)
+        .valueColumn(ColumnName.of("Bob"), BIGINT)
+        .build();
+
+    // When:
+    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value(), "name");
+
+    // Then:
+    assertThat(result.name(), is("name"));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

@@ -21,10 +21,10 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -62,6 +62,11 @@ public class ProtobufFormat extends ConnectFormat {
   ) {
     FormatProperties.validateProperties(name(), formatProps, getSupportedProperties());
     return new ProtobufSchemaTranslator();
+  }
+
+  @Override
+  protected ConnectProperties getConnectProperties(final Map<String, String> properties) {
+    return new ProtobufProperties(properties);
   }
 
   @Override

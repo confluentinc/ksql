@@ -21,10 +21,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
@@ -66,6 +66,11 @@ public final class AvroFormat extends ConnectFormat {
       final Map<String, String> formatProps
   ) {
     return new AvroSchemaTranslator(new AvroProperties(formatProps));
+  }
+
+  @Override
+  protected ConnectProperties getConnectProperties(final Map<String, String> properties) {
+    return new AvroProperties(properties);
   }
 
   @Override

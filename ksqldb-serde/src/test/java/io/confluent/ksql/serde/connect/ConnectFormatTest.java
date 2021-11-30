@@ -209,5 +209,10 @@ public class ConnectFormatTest {
     ) {
       return serde;
     }
+
+    @Override
+    protected ConnectProperties getConnectProperties(final Map<String, String> props) {
+      return null;
+    }
   }
 }

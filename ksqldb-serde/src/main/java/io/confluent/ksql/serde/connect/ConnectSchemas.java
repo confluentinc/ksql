@@ -34,7 +34,8 @@ public final class ConnectSchemas {
    * @param columns the list of columns.
    * @return the Struct schema.
    */
-  public static ConnectSchema columnsToConnectSchema(final List<? extends SimpleColumn> columns) {
+  public static ConnectSchema columnsToConnectSchema(final List<? extends SimpleColumn> columns,
+      final String name) {
     final SqlToConnectTypeConverter converter = SchemaConverters.sqlToConnectConverter();
 
     final SchemaBuilder builder = SchemaBuilder.struct();
@@ -42,6 +43,8 @@ public final class ConnectSchemas {
       final Schema colSchema = converter.toConnectSchema(column.type());
       builder.field(column.name().text(), colSchema);
     }
+
+    builder.name(name);
 
     return (ConnectSchema) builder.build();
   }

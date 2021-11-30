@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -135,7 +136,7 @@ public class HARoutingTest {
   private KsqlPartitionLocation location4;
   private KsqlPartitionLocation location5;
 
-  private PullQueryQueue pullQueryQueue = new PullQueryQueue();
+  private PullQueryQueue pullQueryQueue = new PullQueryQueue(OptionalInt.empty());
 
 
   @Mock

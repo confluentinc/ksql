@@ -41,6 +41,10 @@ public class PullQueryValidator implements QueryValidator {
       + System.lineSeparator()
       + "Add EMIT CHANGES if you intended to issue a push query.";
 
+  private static final String PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED
+      = "LIMIT clause in pull queries is currently disabled. "
+      + "You can enable them by setting ksql.query.pull.limit.clause.enabled=true.";
+
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
           analysis -> !analysis.getInto().isPresent(),
@@ -67,8 +71,9 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support HAVING clauses."
       ),
       Rule.of(
-          analysis -> !analysis.getLimitClause().isPresent(),
-          "Pull queries don't support LIMIT clauses."
+          analysis ->
+                  analysis.getPullLimitClauseEnabled() || !analysis.getLimitClause().isPresent(),
+          PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED
       ),
       Rule.of(
           analysis -> !analysis.getRefinementInfo().isPresent(),

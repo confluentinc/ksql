@@ -560,7 +560,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
         getMetaStore(),
         "",
-        getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides)
+        getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
     );
 
     final Analysis analysis;

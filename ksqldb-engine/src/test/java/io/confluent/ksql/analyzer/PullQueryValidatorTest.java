@@ -41,7 +41,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import java.util.OptionalInt;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -197,22 +196,6 @@ public class PullQueryValidatorTest {
     // Then:
     assertThat(e.getMessage(), containsString("Pull queries don't support HAVING clauses."));
   }
-
-  @Test
-  public void shouldThrowOnLimitClause() {
-    // Given:
-    when(analysis.getLimitClause()).thenReturn(OptionalInt.of(1));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> validator.validate(analysis)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Pull queries don't support LIMIT clauses."));
-  }
-
 
   @Test
   public void shouldThrowWhenSelectClauseContainsDisallowedColumns() {

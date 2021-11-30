@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
 public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
+  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN, LIMIT }
 
   final KeyFormat keyFormat;
   final KsqlConfig ksqlConfig;

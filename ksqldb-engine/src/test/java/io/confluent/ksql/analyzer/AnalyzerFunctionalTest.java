@@ -46,7 +46,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -121,7 +121,7 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(), is(FormatInfo.of(
         FormatFactory.AVRO.name(),
-        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "com.custom.schema"))
+        ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "com.custom.schema"))
     ));
   }
 
@@ -154,7 +154,7 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getNewTopic().get().getValueFormat(),
         is(FormatInfo.of(FormatFactory.AVRO.name(),
-            ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1"))));
+            ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "org.ac.s1"))));
   }
 
   @Test
@@ -167,7 +167,7 @@ public class AnalyzerFunctionalTest {
         "s0",
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
         ValueFormat.of(FormatInfo.of(
-            FormatFactory.AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "org.ac.s1")),
+            FormatFactory.AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "org.ac.s1")),
             SerdeFeatures.of())
     );
 

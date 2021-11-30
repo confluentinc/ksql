@@ -56,6 +56,11 @@ public class JsonFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getSupportedProperties() {
+    return JsonProperties.SUPPORTED_PROPERTIES;
+  }
+
+  @Override
   protected <T> Serde<T> getConnectSerde(
       final ConnectSchema connectSchema,
       final Map<String, String> formatProps,

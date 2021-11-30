@@ -36,6 +36,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,6 +47,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -311,6 +314,25 @@ final class SourceBuilderUtils {
         .push(MATERIALIZE_OP_NAME).getQueryContext();
   }
 
+  static List<Struct> createHeaderData(final Headers headers) {
+    return Arrays.stream(headers.toArray())
+        .map(header -> new Struct(SchemaBuilder.struct()
+            .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+            .optional()
+            .build())
+            .put("KEY", header.key())
+            .put("VALUE", ByteBuffer.wrap(header.value())))
+        .collect(Collectors.toList());
+  }
+
+  static ByteBuffer extractHeader(final Headers headers, final String key) {
+    final Header header = headers.lastHeader(key);
+    return header == null
+        ? null
+        : ByteBuffer.wrap(header.value());
+  }
+
   static class AddKeyAndPseudoColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
@@ -364,16 +386,12 @@ final class SourceBuilderUtils {
           }
 
           row.appendAll(keyColumns);
-          if (headerColumns.size() > 0) {
-            row.append(Arrays.stream(processorContext.headers().toArray())
-                .map(header -> new Struct(SchemaBuilder.struct()
-                    .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
-                    .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
-                    .optional()
-                    .build())
-                    .put("KEY", header.key())
-                    .put("VALUE", header.value()))
-                .collect(Collectors.toList()));
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
           }
           return row;
         }

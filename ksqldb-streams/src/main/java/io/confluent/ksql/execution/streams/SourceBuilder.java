@@ -15,6 +15,8 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.extractHeader;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
@@ -34,17 +36,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -301,17 +298,15 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.appendAll(keyColumns);
-          if (headerColumns.size() > 0) {
-            row.append(Arrays.stream(processorContext.headers().toArray())
-                .map(header -> new Struct(SchemaBuilder.struct()
-                    .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
-                    .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
-                    .optional()
-                    .build())
-                    .put("KEY", header.key())
-                    .put("VALUE", header.value()))
-                .collect(Collectors.toList()));
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
           }
+
           return row;
         }
 

@@ -127,7 +127,7 @@ public final class KsqlEngineTestUtil {
 
     final Optional<DefaultSchemaInjector> schemaInjector = srClient
         .map(SchemaRegistryTopicSchemaSupplier::new)
-        .map(DefaultSchemaInjector::new);
+        .map(supplier -> new DefaultSchemaInjector(supplier, engine, serviceContext));
 
     return statements.stream()
         .map(stmt ->

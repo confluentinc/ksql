@@ -89,6 +89,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -149,6 +150,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );
@@ -169,6 +171,7 @@ public class TestExecutorUtilTest {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService
     );

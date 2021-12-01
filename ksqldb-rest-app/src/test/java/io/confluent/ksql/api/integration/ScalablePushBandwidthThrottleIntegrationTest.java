@@ -134,11 +134,11 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   @Test
   public void scalablePushBandwidthThrottleTestHTTP1() {
     assertAllPersistentQueriesRunning();
-    String veryLong = createDataSize(100000);
+    String veryLong = createDataSize(300000);
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";
 
-    // scalable push query should succeed 10 times
-    for (int i = 0; i < 11; i += 1) {
+    // scalable push query should succeed 4 times
+    for (int i = 0; i < 4; i += 1) {
       final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
       final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
       makeRequestAndSetupSubscriber(sql,
@@ -154,14 +154,14 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
       publisher.close();
     }
 
-    // scalable push query should fail on 11th try since it exceeds 1MB bandwidth limit
-      try {
-        makeQueryRequest(sql,
-            ImmutableMap.of("auto.offset.reset", "latest"));
-        throw new AssertionError("New scalable push query should have exceeded bandwidth limit ");
-      } catch (KsqlException e) {
-        assertThat(e.getMessage(), is(RATE_LIMIT_MESSAGE));
-      }
+    // scalable push query should fail on 5th try since it exceeds 1MB bandwidth limit
+    try {
+      makeQueryRequest(sql,
+          ImmutableMap.of("auto.offset.reset", "latest"));
+      throw new AssertionError("New scalable push query should have exceeded bandwidth limit ");
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), is(RATE_LIMIT_MESSAGE));
+    }
   }
 
   @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})

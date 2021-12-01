@@ -26,25 +26,29 @@ import java.nio.ByteOrder;
 @UdfDescription(
     name = "bigint_from_bytes",
     category = FunctionCategory.CONVERSIONS,
-    description = "Converts a BYTES value to a BIGINT type.",
+    description = "Converts a BYTES value to an BIGINT value according to the specified"
+        + " byte order. BYTES must be 8 bytes long or a NULL value will be returned.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class BigIntFromBytes {
   private static final int BYTES_LENGTH = 8;
 
-  @Udf(description = "Converts a BYTES value to a BIGINT type.")
+  @Udf(description = "Converts a BYTES value to an BIGINT value using the 'BIG_ENDIAN' byte order."
+      + " BYTES must be 8 bytes long or a NULL value will be returned.")
   public Long bigIntFromBytes(
-      @UdfParameter(description = "The bytes value to convert.")
+      @UdfParameter(description = "The BYTES value to convert.")
       final ByteBuffer value
   ) {
     return bigIntFromBytes(value, ByteOrder.BIG_ENDIAN);
   }
 
-  @Udf(description = "Converts a BYTES value to a BIGINT type.")
+  @Udf(description = "Converts a BYTES value to an BIGINT value according to the specified"
+      + " byte order. BYTES must be 8 bytes long or a NULL value will be returned.")
   public Long bigIntFromBytes(
-      @UdfParameter(description = "The bytes value to convert.")
+      @UdfParameter(description = "The BYTES value to convert.")
       final ByteBuffer value,
-      @UdfParameter(description = "The byte order of the number bytes representation")
+      @UdfParameter(description = "The byte order. Valid orders are 'BIG_ENDIAN' and"
+          + " 'LITTLE_ENDIAN'. If omitted, 'BIG_ENDIAN' is used.")
       final String byteOrder
   ) {
     return bigIntFromBytes(value, BytesUtils.byteOrderType(byteOrder));

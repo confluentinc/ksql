@@ -26,25 +26,29 @@ import java.nio.ByteOrder;
 @UdfDescription(
     name = "double_from_bytes",
     category = FunctionCategory.CONVERSIONS,
-    description = "Converts a BYTES value to a DOUBLE type.",
+    description = "Converts a BYTES value to an DOUBLE value according to the specified"
+        + " byte order. BYTES must be 8 bytes long or a NULL value will be returned.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class DoubleFromBytes {
   private static final int BYTES_LENGTH = 8;
 
-  @Udf(description = "Converts a BYTES value to a DOUBLE type.")
+  @Udf(description = "Converts a BYTES value to an DOUBLE value using the 'BIG_ENDIAN' byte order."
+      + " BYTES must be 8 bytes long or a NULL value will be returned.")
   public Double doubleFromBytes(
-      @UdfParameter(description = "The bytes value to convert.")
+      @UdfParameter(description = "The BYTES value to convert.")
       final ByteBuffer value
   ) {
     return doubleFromBytes(value, ByteOrder.BIG_ENDIAN);
   }
 
-  @Udf(description = "Converts a BYTES value to a DOUBLE type.")
+  @Udf(description ="Converts a BYTES value to an DOUBLE value according to the specified"
+      + " byte order. BYTES must be 8 bytes long or a NULL value will be returned.")
   public Double doubleFromBytes(
-      @UdfParameter(description = "The bytes value to convert.")
+      @UdfParameter(description = "The BYTES value to convert.")
       final ByteBuffer value,
-      @UdfParameter(description = "The byte order of the number bytes representation")
+      @UdfParameter(description = "The byte order. Valid orders are 'BIG_ENDIAN' and"
+          + " 'LITTLE_ENDIAN'. If omitted, 'BIG_ENDIAN' is used.")
       final String byteOrder
   ) {
     return doubleFromBytes(value, BytesUtils.byteOrderType(byteOrder));

@@ -29,9 +29,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
+  private static final Logger LOG = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
 
   private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;
@@ -82,6 +85,7 @@ public class StreamQueryResponseHandler
       // This is the serialized consistency vector
       // Don't add it to the publisher's buffer since the user should not see it
       if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken")) {
+        LOG.info("Response contains consistency vector " + jsonObject);
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
       } else {

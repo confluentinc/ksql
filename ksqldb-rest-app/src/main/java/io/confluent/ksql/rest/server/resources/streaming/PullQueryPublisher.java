@@ -30,8 +30,11 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryPublisher.class);
 
   private final ListeningScheduledExecutorService exec;
   private final PullQueryResult result;
@@ -98,6 +101,11 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
             .map(kv -> {
               if (kv.getRowMetadata().isPresent()
                   && kv.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
+                LOG.info("Publisher adding consistency vector to response list "
+                             + kv.getRowMetadata().get().getConsistencyOffsetVector().get());
+                LOG.info(
+                    "Serialized consistency vector "
+                        + kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize());
                 return StreamedRow.consistencyToken(new ConsistencyToken(
                     kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
               } else {

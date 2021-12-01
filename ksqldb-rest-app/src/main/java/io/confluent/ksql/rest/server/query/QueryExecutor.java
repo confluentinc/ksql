@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.query;
 
-import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
@@ -23,7 +22,6 @@ import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
@@ -44,6 +42,7 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.QueryMetricsUtil;
+import io.confluent.ksql.rest.util.RateLimiter;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -304,7 +303,7 @@ public class QueryExecutor {
     Decrementer decrementer = null;
     try {
       if (!isAlreadyForwarded) {
-        PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+        rateLimiter.checkLimit();
         decrementer = concurrencyLimiter.increment();
       }
       pullBandRateLimiter.allow(KsqlQueryType.PULL);
@@ -374,7 +373,7 @@ public class QueryExecutor {
       final AtomicReference<Decrementer> refDecrementer) {
 
     // Apply the same rate, bandwidth and concurrency limits as with table pull queries
-    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    rateLimiter.checkLimit();
     pullBandRateLimiter.allow(KsqlQueryType.PULL);
     refDecrementer.set(concurrencyLimiter.increment());
 

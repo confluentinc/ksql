@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.engine;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -32,14 +30,6 @@ public final class PullQueryExecutionUtil {
 
   private PullQueryExecutionUtil() {
 
-  }
-
-  @VisibleForTesting
-  public static void checkRateLimit(final RateLimiter rateLimiter) {
-    if (!rateLimiter.tryAcquire()) {
-      throw new KsqlException("Host is at rate limit for pull queries. Currently set to "
-                                  + rateLimiter.getRate() + " qps.");
-    }
   }
 
   static PersistentQueryMetadata findMaterializingQuery(

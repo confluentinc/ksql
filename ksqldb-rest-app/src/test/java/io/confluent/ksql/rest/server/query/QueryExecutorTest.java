@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
@@ -45,6 +44,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
+import io.confluent.ksql.rest.util.RateLimiter;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.services.ServiceContext;
@@ -57,9 +57,11 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Before;
@@ -168,7 +170,12 @@ public class QueryExecutorTest {
     when(scalablePushQueryMetadata.getTotalRowsProcessed()).thenReturn(ROWS_PROCESSED);
     when(scalablePushQueryMetadata.getTotalRowsReturned()).thenReturn(ROWS_RETURNED);
 
-    rateLimiter = RateLimiter.create(1);
+    rateLimiter = new RateLimiter(
+        1,
+        "pull",
+        new Metrics(),
+        Collections.emptyMap()
+    );
     final Query pullQueryQuery = mock(Query.class);
     when(pullQueryQuery.isPullQuery()).thenReturn(true);
     final Query pushQueryQuery = mock(Query.class);

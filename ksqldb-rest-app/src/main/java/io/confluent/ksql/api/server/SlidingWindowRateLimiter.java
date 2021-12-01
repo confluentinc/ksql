@@ -22,8 +22,14 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Metrics;
+import org.apache.kafka.common.metrics.Sensor;
+import org.apache.kafka.common.metrics.stats.CumulativeCount;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,13 +64,20 @@ public class SlidingWindowRateLimiter {
    * Window size over which the throttle is supposed to be enforced measured in milliseconds.
    */
   private final long slidingWindowSizeMs;
+  private final Sensor rejectSensor;
 
   /**
    * Aggregate of query response sizes in the past hour
    */
-  private long numBytesInWindow;
+  private volatile long numBytesInWindow;
 
-  public SlidingWindowRateLimiter(final int requestLimitInMB, final long slidingWindowSizeMs) {
+  public SlidingWindowRateLimiter(
+      final int requestLimitInMB,
+      final long slidingWindowSizeMs,
+      final String metricNamespace,
+      final Metrics metrics,
+      final Map<String, String> metricsTags) {
+
     checkArgument(requestLimitInMB >= 0,
             "Query bandwidth limit can't be negative.");
     checkArgument(slidingWindowSizeMs >= 0,
@@ -74,6 +87,27 @@ public class SlidingWindowRateLimiter {
     this.slidingWindowSizeMs = slidingWindowSizeMs;
     this.responseSizesLog = new LinkedList<>();
     this.numBytesInWindow = 0;
+
+    metrics.addMetric(
+        new MetricName(
+            metricNamespace + "-bandwidth-limit-remaining",
+            ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "limits",
+            "The current value of the bandwidth limiter",
+            metricsTags
+        ),
+        (metricConfig, l) -> throttleLimit - numBytesInWindow
+    );
+
+    this.rejectSensor = metrics.sensor("bandwidth-limit-rejects");
+    rejectSensor.add(
+        new MetricName(
+            metricNamespace + "-bandwidth-limit-reject-count",
+            ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "limits",
+            "The number of requests rejected by this limiter",
+            metricsTags
+        ),
+        new CumulativeCount()
+    );
   }
 
   /**
@@ -98,6 +132,7 @@ public class SlidingWindowRateLimiter {
     if (this.numBytesInWindow > throttleLimit) {
       LOG.warn("Hit bandwidth rate limit of " + throttleLimit + "MB with use of "
           + numBytesInWindow + "MB");
+      rejectSensor.record();
       throw new KsqlApiException("Host is at bandwidth rate limit for "
           + ksqlQueryType.toString().toLowerCase() + " queries.",
           ERROR_CODE_BAD_REQUEST);

@@ -89,6 +89,8 @@ public abstract class ConnectFormat implements Format {
     } else {
       schemaName = null;
     }
+
+    // Set name to ConnectSchema so that value's schema will also have the name
     final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns(),
         schemaName);
     final ConnectSchema innerSchema = SerdeUtils

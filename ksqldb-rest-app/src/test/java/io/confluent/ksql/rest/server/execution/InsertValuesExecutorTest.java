@@ -923,7 +923,6 @@ public class InsertValuesExecutorTest {
         "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables"));
   }
 
-
   @Test
   public void shouldSupportInsertIntoWithSchemaInfereceMatch() throws Exception {
     // Given:

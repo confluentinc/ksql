@@ -562,6 +562,24 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
+  public void shouldRegisterKeyOverrideSchemaAvroForCreateAs()
+      throws IOException, RestClientException {
+    // Given:
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class))).thenReturn(1);
+    final SchemaAndId keySchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    final SchemaAndId valueSchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    givenStatement("CREATE STREAM sink WITH (key_schema_id=1, value_schema_id=1, partitions=1"
+        + ") AS SELECT * FROM SOURCE;", Pair.of(keySchemaAndId, valueSchemaAndId));
+
+    // When:
+    injector.inject(statement);
+
+    // Then:
+    verify(schemaRegistryClient).register("SINK-key", AVRO_SCHEMA);
+    verify(schemaRegistryClient).register("SINK-value", AVRO_SCHEMA);
+  }
+
+  @Test
   public void shouldRegisterValueOverrideSchemaProtobuf()
       throws IOException, RestClientException {
     // Given:

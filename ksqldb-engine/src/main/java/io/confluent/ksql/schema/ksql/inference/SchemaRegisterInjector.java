@@ -103,11 +103,10 @@ public class SchemaRegisterInjector implements Injector {
         .get(CommonCreateConfigs.KEY_SCHEMA_ID);
     final SchemaAndId rawValueSchema = (SchemaAndId) cs.getSessionConfig().getOverrides()
         .get(CommonCreateConfigs.VALUE_SCHEMA_ID);
-    final Pair<SchemaAndId, SchemaAndId> kvRawSchema = Pair.of(rawKeySchema, rawValueSchema);
 
     registerSchemas(
         schema,
-        kvRawSchema,
+        Pair.of(rawKeySchema, rawValueSchema),
         statement.getProperties().getKafkaTopic(),
         keyFormat,
         keyFeatures,
@@ -135,9 +134,14 @@ public class SchemaRegisterInjector implements Injector {
               + e.getMessage(), cas.getStatementText(), e);
     }
 
+    final SchemaAndId rawKeySchema = (SchemaAndId) cas.getSessionConfig().getOverrides()
+        .get(CommonCreateConfigs.KEY_SCHEMA_ID);
+    final SchemaAndId rawValueSchema = (SchemaAndId) cas.getSessionConfig().getOverrides()
+        .get(CommonCreateConfigs.VALUE_SCHEMA_ID);
+
     registerSchemas(
         createSourceCommand.getSchema(),
-        Pair.of(null, null),
+        Pair.of(rawKeySchema, rawValueSchema),
         createSourceCommand.getTopicName(),
         createSourceCommand.getFormats().getKeyFormat(),
         createSourceCommand.getFormats().getKeyFeatures(),
@@ -261,7 +265,10 @@ public class SchemaRegisterInjector implements Injector {
           statementText, e);
     }
 
-    if (id != schemaAndId.id) {
+    final boolean isSandbox = serviceContext instanceof SandboxedServiceContext;
+    // Skip checking sandbox client since sandbox client
+    // will return fixed id when register is called.
+    if (!isSandbox && id != schemaAndId.id) {
       final String schemaIdPropStr =
           isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
       throw new KsqlStatementException(

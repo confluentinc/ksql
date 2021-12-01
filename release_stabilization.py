@@ -33,9 +33,7 @@ class Callbacks:
         return build_args
 
     def maven_deploy_args(self):
-        deploy_args = ["-gs", f"{self.settings_path}","-DskipIntegrationTests", "-DversionFilter=true", "-U", "-DskipTests",
-                       "-DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven",
-                       "-DrepositoryId=confluent-artifactory-central", "-DnexusUrl=s3://staging-ksqldb-maven/maven"]
+        deploy_args = ["-gs", f"{self.settings_path}", "-DskipIntegrationTests", "-DversionFilter=true", "-U", "-DskipTests"]
         return deploy_args
 
     def maven_docker_build(self):

@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.client.KsqlClient;
-import io.confluent.ksql.services.DefaultConnectClient;
+import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
@@ -37,6 +37,7 @@ public final class RestServiceContextFactory {
         KsqlConfig config,
         Optional<String> authHeader,
         Supplier<SchemaRegistryClient> srClientFactory,
+        ConnectClientFactory connectClientFactory,
         KsqlClient sharedClient
     );
   }
@@ -48,6 +49,7 @@ public final class RestServiceContextFactory {
         Optional<String> authHeader,
         KafkaClientSupplier kafkaClientSupplier,
         Supplier<SchemaRegistryClient> srClientFactory,
+        ConnectClientFactory connectClientFactory,
         KsqlClient sharedClient
     );
   }
@@ -56,6 +58,7 @@ public final class RestServiceContextFactory {
       final KsqlConfig ksqlConfig,
       final Optional<String> authHeader,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient
   ) {
     return create(
@@ -63,6 +66,7 @@ public final class RestServiceContextFactory {
         authHeader,
         new DefaultKafkaClientSupplier(),
         schemaRegistryClientFactory,
+        connectClientFactory,
         sharedClient
     );
   }
@@ -72,14 +76,14 @@ public final class RestServiceContextFactory {
       final Optional<String> authHeader,
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory,
+      final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient
   ) {
     return ServiceContextFactory.create(
         ksqlConfig,
         kafkaClientSupplier,
         srClientFactory,
-        () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-            authHeader),
+        () -> connectClientFactory.get(authHeader),
         () -> new DefaultKsqlClient(authHeader, sharedClient)
     );
   }

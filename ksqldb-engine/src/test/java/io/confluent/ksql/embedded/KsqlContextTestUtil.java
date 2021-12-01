@@ -22,6 +22,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.DefaultConnectClient;
+import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -59,9 +60,7 @@ public final class KsqlContextTestUtil {
         adminClient,
         kafkaTopicClient,
         () -> schemaRegistryClient,
-        new DefaultConnectClient(
-            ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-            Optional.empty())
+        new DefaultConnectClientFactory(ksqlConfig).get(Optional.empty())
     );
 
     final String metricsPrefix = "instance-" + COUNTER.getAndIncrement() + "-";

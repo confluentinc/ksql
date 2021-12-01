@@ -101,6 +101,8 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
+import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -626,10 +628,11 @@ public final class KsqlRestApplication implements Executable {
     );
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
+    final ConnectClientFactory connectClientFactory = new DefaultConnectClientFactory(ksqlConfig);
 
     final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
-            schemaRegistryClientFactory, sharedClient));
+            schemaRegistryClientFactory, connectClientFactory, sharedClient));
     final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
     final String ksqlServerId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     updatedRestProps.putAll(
@@ -641,6 +644,7 @@ public final class KsqlRestApplication implements Executable {
             new KsqlConfig(updatedRestConfig.getKsqlConfigProperties()),
             Optional.empty(),
             schemaRegistryClientFactory,
+            connectClientFactory,
             sharedClient));
 
     return buildApplication(
@@ -650,6 +654,7 @@ public final class KsqlRestApplication implements Executable {
         Integer.MAX_VALUE,
         serviceContext,
         schemaRegistryClientFactory,
+        connectClientFactory,
         vertx,
         sharedClient
     );
@@ -663,6 +668,7 @@ public final class KsqlRestApplication implements Executable {
       final int maxStatementRetries,
       final ServiceContext serviceContext,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final ConnectClientFactory connectClientFactory,
       final Vertx vertx,
       final KsqlClient sharedClient) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
@@ -755,7 +761,10 @@ public final class KsqlRestApplication implements Executable {
         new DefaultKsqlSecurityContextProvider(
             securityExtension,
             RestServiceContextFactory::create,
-            RestServiceContextFactory::create, ksqlConfig, schemaRegistryClientFactory,
+            RestServiceContextFactory::create,
+            ksqlConfig,
+            schemaRegistryClientFactory,
+            connectClientFactory,
             sharedClient);
 
     final Optional<AuthenticationPlugin> securityHandlerPlugin = loadAuthenticationPlugin(

@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,7 +46,10 @@ import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class DefaultConnectClientTest {
 
   private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
@@ -83,18 +87,29 @@ public class DefaultConnectClientTest {
           .dynamicPort()
   );
 
+  @Parameterized.Parameters(name = "{1}")
+  public static Collection<String[]> pathPrefixes() {
+    return ImmutableList.of(new String[]{"", "no path prefix"}, new String[]{"/some/path/prefix", "with path prefix"});
+  }
+
+  private final String pathPrefix;
+
   private ConnectClient client;
+
+  public DefaultConnectClientTest(final String pathPrefix, final String testName) {
+    this.pathPrefix = pathPrefix;
+  }
 
   @Before
   public void setup() {
-    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port(), Optional.of(AUTH_HEADER));
+    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port() + pathPrefix, Optional.of(AUTH_HEADER));
   }
 
   @Test
   public void testCreate() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.post(WireMock.urlEqualTo("/connectors"))
+        WireMock.post(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_CREATED)
@@ -114,7 +129,7 @@ public class DefaultConnectClientTest {
   public void testCreateWithError() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.post(WireMock.urlEqualTo("/connectors"))
+        WireMock.post(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
@@ -134,7 +149,7 @@ public class DefaultConnectClientTest {
   public void testList() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
@@ -153,7 +168,7 @@ public class DefaultConnectClientTest {
   public void testListPlugins() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connector-plugins"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connector-plugins"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
@@ -172,7 +187,7 @@ public class DefaultConnectClientTest {
   public void testDescribe() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
@@ -191,7 +206,7 @@ public class DefaultConnectClientTest {
   public void testStatus() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo/status"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors/foo/status"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
@@ -218,7 +233,7 @@ public class DefaultConnectClientTest {
   public void testDelete() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.delete(WireMock.urlEqualTo("/connectors/foo"))
+        WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_NO_CONTENT))
@@ -236,7 +251,7 @@ public class DefaultConnectClientTest {
   public void testTopics() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors/foo/topics"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors/foo/topics"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
@@ -259,7 +274,7 @@ public class DefaultConnectClientTest {
   public void testListShouldRetryOnFailure() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
-        WireMock.get(WireMock.urlEqualTo("/connectors"))
+        WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connectors"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)

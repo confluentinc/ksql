@@ -21,12 +21,14 @@ import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.vertx.core.http.HttpHeaders;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,7 +99,7 @@ public class DefaultConnectClient implements ConnectClient {
           config);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
-          .post(connectUri.resolve(CONNECTORS))
+          .post(resolveUri(CONNECTORS))
           .setHeaders(headers())
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -129,7 +131,7 @@ public class DefaultConnectClient implements ConnectClient {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connectors", connectUri);
 
       final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(CONNECTORS))
+          .get(resolveUri(CONNECTORS))
           .setHeaders(headers())
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -154,7 +156,7 @@ public class DefaultConnectClient implements ConnectClient {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
       final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(CONNECTOR_PLUGINS))
+          .get(resolveUri(CONNECTOR_PLUGINS))
           .setHeaders(headers())
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -180,7 +182,7 @@ public class DefaultConnectClient implements ConnectClient {
           connector);
 
       final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
+          .get(resolveUri(CONNECTORS + "/" + connector + STATUS))
           .setHeaders(headers())
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -206,7 +208,7 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
-          .get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .get(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
           .setHeaders(headers())
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -232,7 +234,7 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<String> connectResponse = withRetries(() -> Request
-          .delete(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .delete(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
           .setHeaders(headers())
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -258,7 +260,7 @@ public class DefaultConnectClient implements ConnectClient {
           connectUri, connector);
 
       final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
-          () -> Request.get(connectUri.resolve(CONNECTORS + "/" + connector + TOPICS))
+          () -> Request.get(resolveUri(CONNECTORS + "/" + connector + TOPICS))
               .setHeaders(headers())
               .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
               .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
@@ -278,10 +280,33 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
+  @VisibleForTesting
+  Optional<String> getAuthHeader() {
+    return authHeader;
+  }
+
   private Header[] headers() {
     return authHeader.isPresent()
         ? new Header[]{new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())}
         : new Header[]{};
+  }
+
+  private String resolveUri(final String relativePath) {
+    try {
+      return new URI(
+          connectUri.getScheme(),
+          connectUri.getUserInfo(),
+          connectUri.getHost(),
+          connectUri.getPort(),
+          // concatenate relative path to existing path in order to support relative resolution;
+          // in contrast, URI.resolve() will resolve a path such as `/connectors` as an
+          // absolute path only.
+          Paths.get(connectUri.getPath(), relativePath).toString(),
+          connectUri.getQuery(),
+          connectUri.getFragment()).toString();
+    } catch (URISyntaxException e) {
+      throw new KsqlServerException("Failed to resolve URI", e);
+    }
   }
 
   @SuppressWarnings("unchecked")

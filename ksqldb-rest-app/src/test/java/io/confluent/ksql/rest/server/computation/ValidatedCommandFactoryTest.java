@@ -51,6 +51,9 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
@@ -126,6 +129,20 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
     when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+
+    assertThrows(ConfigException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
+  }
+
+  @Test
+  public void shouldRaiseExceptionWhenQueryIsRunningAndProcessingGuranteeIsAttemptedToChange() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'processing.guarantee'='exactly_once';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("processing.guarantee");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("exactly_once");
+
+    final List<PersistentQueryMetadata> persistentList = new ArrayList<>();
+    persistentList.add(query1);
+    when(executionContext.getPersistentQueries()).thenReturn(persistentList);
 
     assertThrows(ConfigException.class,
         () -> commandFactory.create(configuredStatement, executionContext));

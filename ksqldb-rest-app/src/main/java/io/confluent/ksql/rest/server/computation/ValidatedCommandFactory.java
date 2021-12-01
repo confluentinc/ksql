@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.apache.kafka.streams.StreamsConfig.PROCESSING_GUARANTEE_CONFIG;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.ConfigItem;
+import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
 import io.confluent.ksql.parser.tree.AlterSystemProperty;
@@ -33,6 +37,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -131,6 +136,17 @@ public final class ValidatedCommandFactory {
           String.format("Failed to set %s to %s. Caused by: "
                   + "Not recognizable as ksql, streams, consumer, or producer property: %s %n",
               propertyName, propertyValue, propertyName), null);
+    }
+
+    // verify that no persistent query is running when attempting to change 'processing.guarantee'
+    final KsqlConfigResolver resolver = new KsqlConfigResolver();
+    final Optional<ConfigItem> resolvedItem = resolver.resolve(propertyName, false);
+    if (resolvedItem.isPresent()
+        && Objects.equals(resolvedItem.get().getPropertyName(), PROCESSING_GUARANTEE_CONFIG)
+        && !context.getPersistentQueries().isEmpty()) {
+      throw new ConfigException(
+          String.format("Failed to set %s to %s. Please terminate all running queries "
+          + "before attempting to set %s", propertyName, propertyValue, propertyName), null);
     }
 
     return Command.of(statement);

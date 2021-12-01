@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -63,7 +64,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final String statementString;
   private final String executionPlan;
   private final String applicationId;
-  private final NamedTopology topology;
+  private NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final ImmutableMap<String, Object> overriddenProperties;
@@ -74,6 +75,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final ExecutionStep<?> physicalPlan;
   private final PhysicalSchema resultSchema;
   private final Listener listener;
+  private final Supplier<NamedTopology> namedTopologySupplier;
 
   private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -113,7 +115,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final Listener listener,
       final QueryErrorClassifier classifier,
       final Map<String, Object> streamsProperties,
-      final Optional<ScalablePushRegistry> scalablePushRegistry) {
+      final Optional<ScalablePushRegistry> scalablePushRegistry,
+      final Supplier<NamedTopology> namedTopologySupplier) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -143,6 +146,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.namedTopologySupplier = requireNonNull(namedTopologySupplier, "namedTopologySupplier");
   }
 
 
@@ -170,6 +174,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
+    this.namedTopologySupplier = original.namedTopologySupplier;
   }
 
   @Override
@@ -290,10 +295,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return applicationId;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topology is for reference")
   @Override
   public NamedTopology getTopology() {
-    return topology;
+    return namedTopologySupplier.get();
   }
 
   @Override

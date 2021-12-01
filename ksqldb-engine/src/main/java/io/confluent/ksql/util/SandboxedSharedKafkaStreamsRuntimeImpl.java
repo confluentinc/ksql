@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +43,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     );
 
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
-      //kafkaStreams.addNamedTopology(query.getTopology());
+      kafkaStreams.addNamedTopology(query.getTopology());
     }
   }
 
@@ -116,4 +117,14 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   public void start(final QueryId queryId) {
   }
 
+  public void restartStreamsRuntime() {
+    final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
+    for (final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata : collocatedQueries.values()) {
+      kafkaStreamsNamedTopologyWrapper.addNamedTopology(binPackedPersistentQueryMetadata.getTopology());
+    }
+    kafkaStreams.close();
+    kafkaStreams.cleanUp();
+    kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
+    kafkaStreams = kafkaStreamsNamedTopologyWrapper;
+  }
 }

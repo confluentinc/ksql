@@ -147,6 +147,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.namedTopologySupplier = requireNonNull(namedTopologySupplier, "namedTopologySupplier");
   }
 
 

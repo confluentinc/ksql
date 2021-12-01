@@ -28,11 +28,12 @@ class Callbacks:
         return self.leaf == 'cc-docker-ksql'
 
     def maven_build_args(self):
-        build_args = ["integration-test", "-DversionFilter=true", "-U", "-Dspotbugs.skip", "-Dcheckstyle.skip"]
+        build_args = ["-DskipTests", "-DskipIntegrationTests", "-DversionFilter=true", "-U", "-Dspotbugs.skip", "-Dcheckstyle.skip"]
         return build_args
 
     def maven_deploy_args(self):
-        deploy_args = ["-DversionFilter=true", "-U", "-DskipTests", "-DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven",
+        deploy_args = ["-DskipIntegrationTests", "-DversionFilter=true", "-U", "-DskipTests",
+                       "-DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven",
                        "-DrepositoryId=confluent-artifactory-central", "-DnexusUrl=s3://staging-ksqldb-maven/maven"]
         return deploy_args
 

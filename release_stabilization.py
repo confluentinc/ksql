@@ -55,7 +55,9 @@ class Callbacks:
 
             # pull, tag, and push latest docker images
             for docker_repo in DOCKER_REPOS:
-                subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{v_version} {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
+                print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}")
+                subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
+                print(f"docker push {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}")
                 subprocess.run(shlex.split(f"docker push {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
 
             return True

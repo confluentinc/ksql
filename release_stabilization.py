@@ -21,6 +21,7 @@ class Callbacks:
     def __init__(self, working_dir, leaf, dry_run):
         self.leaf = leaf
         self.working_dir = working_dir
+        self.settings_path = os.path.join(self.working_dir, 'maven-settings.xml')
 
     """This is a callback to Confluent's cloud release tooling,
     and allows us to have consistent versioning"""
@@ -28,11 +29,11 @@ class Callbacks:
         return self.leaf == 'cc-docker-ksql'
 
     def maven_build_args(self):
-        build_args = ["-DskipTests", "-DskipIntegrationTests", "-DversionFilter=true", "-U", "-Dspotbugs.skip", "-Dcheckstyle.skip"]
+        build_args = ["-gs", f"{self.settings_path}", "-DskipTests", "-DskipIntegrationTests", "-DversionFilter=true", "-U", "-Dspotbugs.skip", "-Dcheckstyle.skip"]
         return build_args
 
     def maven_deploy_args(self):
-        deploy_args = ["-DskipIntegrationTests", "-DversionFilter=true", "-U", "-DskipTests",
+        deploy_args = ["-gs", f"{self.settings_path}","-DskipIntegrationTests", "-DversionFilter=true", "-U", "-DskipTests",
                        "-DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven",
                        "-DrepositoryId=confluent-artifactory-central", "-DnexusUrl=s3://staging-ksqldb-maven/maven"]
         return deploy_args

@@ -15,18 +15,32 @@
 
 package io.confluent.ksql.api.auth;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.util.Base64;
 import java.util.Objects;
 
 /**
  * Principal implementation created when authenticating with the JaasAuthProvider
  */
-class JaasPrincipal implements Principal {
+public class JaasPrincipal implements Principal {
 
   private final String name;
 
-  JaasPrincipal(final String name) {
+  private final String token;
+
+  public JaasPrincipal(final String name, final String password) {
     this.name = Objects.requireNonNull(name);
+    this.token = createToken(name, Objects.requireNonNull(password));
+  }
+
+  private String createToken(final String name, final String secret) {
+    return Base64.getEncoder().encodeToString((name + ":" + secret)
+        .getBytes(StandardCharsets.ISO_8859_1));
+  }
+
+  public String getToken() {
+    return token;
   }
 
   @Override

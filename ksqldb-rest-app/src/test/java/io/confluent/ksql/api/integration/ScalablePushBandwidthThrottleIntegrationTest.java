@@ -134,27 +134,25 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   @Test
   public void scalablePushBandwidthThrottleTestHTTP1() {
     assertAllPersistentQueriesRunning();
-    String veryLong = createDataSize(300000);
+    String veryLong = createDataSize(1200000);
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";
 
-    // scalable push query should succeed 4 times
-    for (int i = 0; i < 4; i += 1) {
-      final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
-      final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
-      makeRequestAndSetupSubscriber(sql,
-          ImmutableMap.of("auto.offset.reset", "latest"),
-          header, complete );
-      assertExpectedScalablePushQueries(1);
-      // Produce exactly one row, or else other rows produced can complete other requests and it
-      // confuses the test.
-      TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
-      // header, row, limit reached message
-      assertThatEventually(() ->  subscriber.getRows().size(), is (3));
-      subscriber.close();
-      publisher.close();
-    }
+    // scalable push query should succeed 1 time
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    makeRequestAndSetupSubscriber(sql,
+        ImmutableMap.of("auto.offset.reset", "latest"),
+        header, complete );
+    assertExpectedScalablePushQueries(1);
+    // Produce exactly one row, or else other rows produced can complete other requests and it
+    // confuses the test.
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
+    // header, row, limit reached message
+    assertThatEventually(() ->  subscriber.getRows().size(), is (3));
+    subscriber.close();
+    publisher.close();
 
-    // scalable push query should fail on 5th try since it exceeds 1MB bandwidth limit
+    // scalable push query should fail on 2nd try since it exceeds 1MB bandwidth limit
     try {
       makeQueryRequest(sql,
           ImmutableMap.of("auto.offset.reset", "latest"));

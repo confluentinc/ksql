@@ -20,7 +20,6 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.BytesUtils;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -48,14 +47,7 @@ public class BigIntFromBytes {
       @UdfParameter(description = "The byte order of the number bytes representation")
       final String byteOrder
   ) {
-    if (byteOrder.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
-      return bigIntFromBytes(value, ByteOrder.BIG_ENDIAN);
-    } else if (byteOrder.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
-      return bigIntFromBytes(value, ByteOrder.LITTLE_ENDIAN);
-    } else {
-      throw new KsqlException(String.format(
-          "Byte order must be BIG_ENDIAN or LITTLE_ENDIAN. Unknown byte order '%s'.", byteOrder));
-    }
+    return bigIntFromBytes(value, BytesUtils.byteOrderType(byteOrder));
   }
 
   private Long bigIntFromBytes(final ByteBuffer value, final ByteOrder byteOrder) {

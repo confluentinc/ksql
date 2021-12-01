@@ -16,12 +16,14 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import javax.xml.bind.DatatypeConverter;
 
@@ -64,6 +66,18 @@ public final class BytesUtils {
       Encoding.ASCII, v -> asciiDecoding(v),
       Encoding.BASE64, v -> base64Decoding(v)
   );
+
+  public static ByteOrder byteOrderType(final String byteOrderStr) {
+    if (byteOrderStr.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
+      return ByteOrder.BIG_ENDIAN;
+    } else if (byteOrderStr.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
+      return ByteOrder.LITTLE_ENDIAN;
+    } else {
+      throw new KsqlException(String.format(
+          "Byte order must be BIG_ENDIAN or LITTLE_ENDIAN. Unknown byte order '%s'.",
+          byteOrderStr));
+    }
+  }
 
   public static String encode(final byte[] value, final Encoding encoding) {
     final Function<byte[], String> encoder = ENCODERS.get(encoding);

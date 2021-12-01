@@ -21,10 +21,12 @@ import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPE
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_FULL_NAME;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME;
+import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA_ID;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPERTY;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_TYPE_PROPERTY;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -283,8 +285,8 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(CommonCreateConfigs.KEY_SCHEMA_ID, new StringLiteral("1"))
-            .put(CommonCreateConfigs.VALUE_SCHEMA_ID, new StringLiteral("2"))
+            .put(KEY_SCHEMA_ID, new StringLiteral("1"))
+            .put(VALUE_SCHEMA_ID, new StringLiteral("2"))
             .build());
 
     // Then:
@@ -517,6 +519,25 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
+  public void shouldGetKeyAndValueSchemaIdFromFormat() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .put(KEY_SCHEMA_ID, new IntegerLiteral(123))
+            .put(VALUE_SCHEMA_ID, new IntegerLiteral(456))
+            .build());
+
+    // When / Then:
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        hasEntry(ConnectProperties.SCHEMA_ID, "123"));
+    assertThat(props.getValueFormat().get().getProperties(),
+        hasEntry(ConnectProperties.SCHEMA_ID, "456"));
+  }
+
+  @Test
   public void shouldSetAvroNameOnAvroKeyFormat() {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
@@ -547,6 +568,23 @@ public class CreateSourcePropertiesTest {
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchema"));
+  }
+
+  @Test
+  public void shouldSetAvroNameOnAvroKeyFormatWithKeySchemaProperty() {
+    // Given:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("AVRO"))
+            .put(KEY_SCHEMA_FULL_NAME, new StringLiteral("KeySchemaName"))
+            .build());
+
+    // When // Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(
+        SourceName.of("foo")).get().getProperties(),
+        hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchemaName"));
   }
 
   @Test

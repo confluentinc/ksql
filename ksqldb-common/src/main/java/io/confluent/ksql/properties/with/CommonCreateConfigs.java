@@ -128,7 +128,7 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.LOW,
-            "The fully qualified name of the Avro schema to use"
+            "The fully qualified name of the Avro schema to use for value"
         )
         .define(
             KEY_SCHEMA_FULL_NAME,

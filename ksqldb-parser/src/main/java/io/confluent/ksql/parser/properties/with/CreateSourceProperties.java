@@ -143,7 +143,6 @@ public final class CreateSourceProperties {
 
   private Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
     final Builder<String, String> builder = ImmutableMap.builder();
-
     final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
     if (schemaName != null) {
       builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
@@ -158,6 +157,9 @@ public final class CreateSourceProperties {
     if (delimiter != null) {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
+
+    final Optional<Integer> keySchemaId = getKeySchemaId();
+    keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
 
     return builder.build();
   }
@@ -185,6 +187,10 @@ public final class CreateSourceProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    final Optional<Integer> valueSchemaId = getValueSchemaId();
+    valueSchemaId.ifPresent(id ->
+        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
+
     return builder.build();
   }
 
@@ -197,6 +203,19 @@ public final class CreateSourceProperties {
     }
 
     return SerdeFeatures.from(builder.build());
+  }
+
+  public CreateSourceProperties withKeyValueSchemaName(
+      final Optional<String> keySchemaName,
+      final Optional<String> valueSchemaName
+  ) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    keySchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME, new StringLiteral(s)));
+    valueSchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral(s)));
+
+    return new CreateSourceProperties(originals, durationParser);
   }
 
   public CreateSourceProperties withPartitions(

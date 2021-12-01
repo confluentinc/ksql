@@ -265,7 +265,25 @@ public class DefaultSchemaInjector implements Injector {
     final TableElements elements = buildElements(preparedStatement, keySchema, valueSchema);
 
     final CreateSource statement = preparedStatement.getStatement();
-    return statement.copyWith(elements, statement.getProperties());
+    final CreateSourceProperties properties = statement.getProperties();
+
+    final Optional<String> keySchemaName;
+    final Optional<String> valueSchemaName;
+
+    // Only populate key and value schema names when schema ids are explicitly provided
+    if (properties.getKeySchemaId().isPresent() && keySchema.isPresent()) {
+      keySchemaName = Optional.ofNullable(keySchema.get().rawSchema.name());
+    } else {
+      keySchemaName = Optional.empty();
+    }
+    if (properties.getValueSchemaId().isPresent() && valueSchema.isPresent()) {
+      valueSchemaName = Optional.ofNullable(valueSchema.get().rawSchema.name());
+    } else {
+      valueSchemaName = Optional.empty();
+    }
+    final CreateSourceProperties newProperties = statement.getProperties().withKeyValueSchemaName(
+        keySchemaName, valueSchemaName);
+    return statement.copyWith(elements, newProperties);
   }
 
   private static TableElements buildElements(

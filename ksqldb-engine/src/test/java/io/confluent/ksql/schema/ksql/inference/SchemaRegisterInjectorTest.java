@@ -337,7 +337,8 @@ public class SchemaRegisterInjectorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Could not register schema for topic"));
-    assertThat(e.getCause(), (hasProperty("message", is("FUBAR"))));
+    assertThat(e.getCause(), (hasProperty("message",
+        is("Could not register schema for topic: FUBAR"))));
   }
 
   @Test
@@ -428,22 +429,24 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "value_schema_id is provided but format JSON doesn't "
+        "VALUE_SCHEMA_ID is provided but format JSON doesn't "
             + "support registering in Schema Registry"));
   }
 
   @Test
-  public void shouldThrowWrongKeyFormatExceptionWithOverrideSchema() {
+  public void shouldThrowWrongKeyFormatExceptionWithOverrideSchema() throws Exception {
     // Given:
-    final SchemaAndId schemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    final SchemaAndId keySchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 1);
+    final SchemaAndId valueSchemaAndId = SchemaAndId.schemaAndId(SCHEMA.value(), AVRO_SCHEMA, 2);
     givenStatement("CREATE STREAM source (id int key, f1 varchar) "
         + "WITH ("
         + "kafka_topic='expectedName', "
         + "key_format='KAFKA', "
-        + "value_format='JSON', "
+        + "value_format='AVRO', "
         + "key_schema_id=1, "
+        + "value_schema_id=1, "
         + "partitions=1"
-        + ");", Pair.of(schemaAndId, null));
+        + ");", Pair.of(keySchemaAndId, valueSchemaAndId));
 
     // When:
     final Exception e = assertThrows(
@@ -453,8 +456,9 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "key_schema_id is provided but format KAFKA doesn't "
+        "KEY_SCHEMA_ID is provided but format KAFKA doesn't "
             + "support registering in Schema Registry"));
+    verify(schemaRegistryClient, never()).register(anyString(), any(ParsedSchema.class));
   }
 
   @Test
@@ -478,7 +482,7 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Format and fetched schema type using "
-        + "key_schema_id 1 are different. Format: [PROTOBUF], Fetched schema type: [AVRO]."));
+        + "KEY_SCHEMA_ID 1 are different. Format: [PROTOBUF], Fetched schema type: [AVRO]."));
   }
 
   @Test
@@ -502,7 +506,7 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Format and fetched schema type using "
-        + "value_schema_id 1 are different. Format: [PROTOBUF], Fetched schema type: [AVRO]."));
+        + "VALUE_SCHEMA_ID 1 are different. Format: [PROTOBUF], Fetched schema type: [AVRO]."));
   }
 
   @Test
@@ -528,7 +532,7 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Schema id registered is 2 which is "
-        + "different from provided value_schema_id 1."
+        + "different from provided VALUE_SCHEMA_ID 1."
         + System.lineSeparator()
         + "Topic: expectedName"
         + System.lineSeparator()

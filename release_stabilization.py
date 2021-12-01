@@ -5,6 +5,7 @@ import shlex
 from collections import OrderedDict
 
 DOCKER_REGISTRY = "confluent-docker-internal-stabilization.jfrog.io/"
+DOCKER_INTERNAL_REGISTRY = "confluent-docker-internal.jfrog.io/"
 DOCKER_UPSTREAM_REGISTRY = "confluent-docker.jfrog.io/"
 DOCKER_UPSTREAM_TAG = "v6.5.0"
 PACKAGES_MAVEN_URL = r'${env.ORG_GRADLE_PROJECT_mavenUrl}'
@@ -55,10 +56,10 @@ class Callbacks:
 
             # pull, tag, and push latest docker images
             for docker_repo in DOCKER_REPOS:
-                print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}")
-                subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
-                print(f"docker push {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}")
-                subprocess.run(shlex.split(f"docker push {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{v_version}"))
+                print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{v_version}")
+                subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{v_version}"))
+                print(f"docker push {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{v_version}")
+                subprocess.run(shlex.split(f"docker push {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{v_version}"))
 
             return True
         except:

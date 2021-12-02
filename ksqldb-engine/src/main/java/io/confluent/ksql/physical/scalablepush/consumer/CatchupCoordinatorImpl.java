@@ -16,59 +16,65 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.engine.QueryCleanupService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CatchupCoordinatorImpl implements CatchupCoordinator {
   private static final Logger LOG = LoggerFactory.getLogger(CatchupCoordinatorImpl.class);
 
-  private final AtomicInteger catchupJoiners = new AtomicInteger(0);
-  private final AtomicBoolean latestWaiting = new AtomicBoolean(false);
+  private int catchupJoiners = 0;
+  private boolean latestWaiting = false;
 
   @Override
   public synchronized void checkShouldWaitForCatchup() {
-      while (catchupJoiners.get() > 0) {
-        try {
-          latestWaiting.set(true);
-          this.wait();
-        } catch (InterruptedException e) {
-          LOG.error("Caught InterruptedException during catchup waiting", e);
-          Thread.currentThread().interrupt();
-        }
+    // If any catchup joiners are trying to catch up with us, we set latestWaiting and then wait
+    // on this object to be notified once the switchover is complete.
+    while (catchupJoiners > 0) {
+      try {
+        latestWaiting = true;
+        this.wait();
+      } catch (InterruptedException e) {
+        LOG.error("Caught InterruptedException during catchup waiting", e);
+        Thread.currentThread().interrupt();
+        throw new RuntimeException("InterruptedException during catchup waiting", e);
       }
-      latestWaiting.set(false);
+    }
+    latestWaiting = false;
   }
 
   @Override
   public synchronized boolean checkShouldCatchUp(
       final AtomicBoolean signalledLatest,
-      final Supplier<Boolean> isCaughtUp,
+      final Function<Boolean, Boolean> isCaughtUp,
       final Runnable switchOver
   ) {
-    // Check caught up first before grabbing the lock
-    if (latestWaiting.get() && isCaughtUp.get()) {
+    // If latest is waiting already, we check again that we're caught up, but not a soft check.
+    // This means that latest has been waiting and we're actually fully, message for message caught
+    // up (and may even be a few past).
+    if (latestWaiting && isCaughtUp.apply(false)) {
       LOG.info("Catchup is joining latest");
       if (signalledLatest.get()) {
-        catchupJoiners.decrementAndGet();
+        catchupJoiners--;
         this.notify();
       }
       switchOver.run();
       return true;
-    } else if (!signalledLatest.get()) {
+
+      // If we haven't yet signalled that we're ready to switch over by incrementing catchupJoiners,
+      // and we're soft caught up, then we tell latest to pause by incrementing catchupJoiners.
+    } else if (!signalledLatest.get() && isCaughtUp.apply(true)) {
       signalledLatest.set(true);
-      catchupJoiners.incrementAndGet();
+      catchupJoiners++;
     }
     return false;
   }
 
   @VisibleForTesting
   public synchronized void simulateWaitingInTest() {
-    if (catchupJoiners.get() > 0) {
-      latestWaiting.set(true);
+    if (catchupJoiners > 0) {
+      latestWaiting = true;
     }
   }
 }

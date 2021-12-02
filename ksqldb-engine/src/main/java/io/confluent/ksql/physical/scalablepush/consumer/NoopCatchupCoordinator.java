@@ -16,7 +16,7 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 public class NoopCatchupCoordinator implements CatchupCoordinator {
 
@@ -27,7 +27,7 @@ public class NoopCatchupCoordinator implements CatchupCoordinator {
   @Override
   public boolean checkShouldCatchUp(
       final AtomicBoolean blocked,
-      final Supplier<Boolean> isCaughtUp,
+      final Function<Boolean, Boolean> isCaughtUp,
       final Runnable switchOver) {
     return false;
   }

@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -140,7 +141,7 @@ public class ScalablePushRegistryTest {
     when(latestConsumerFactory.create(any(), anyBoolean(), any(), any(), any(), any(),
         any(), any())).thenReturn(latestConsumer, latestConsumer2);
     when(catchupConsumerFactory.create(any(), anyBoolean(), any(), any(), any(), any(),
-        any(), any())).thenReturn(catchupConsumer);
+        any(), any(), anyLong())).thenReturn(catchupConsumer);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
     when(keyFormat.isWindowed()).thenReturn(false);
     realExecutorService = Executors.newFixedThreadPool(2);
@@ -456,7 +457,7 @@ public class ScalablePushRegistryTest {
     // Given:
     doThrow(new RuntimeException("Error!"))
         .when(catchupConsumerFactory).create(
-        any(), anyBoolean(), any(), any(), any(), any(), any(), any());
+        any(), anyBoolean(), any(), any(), any(), any(), any(), any(), anyLong());
     AtomicBoolean isErrorQueue = new AtomicBoolean(false);
     doAnswer(a -> {
       isErrorQueue.set(true);
@@ -572,7 +573,7 @@ public class ScalablePushRegistryTest {
         PushOffsetRange pushOffsetRange, Clock clock) {
       super(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier,
           catchupCoordinator,
-          pushOffsetRange, clock);
+          pushOffsetRange, clock, 0);
     }
 
     public void setForceRun(boolean forceRun) {

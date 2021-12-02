@@ -58,7 +58,6 @@ import javax.annotation.concurrent.GuardedBy;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,8 +201,8 @@ public class ScalablePushRegistry {
     }
     try {
       if (catchupMetadata.isPresent()) {
-        if (catchupCounter.get() >=
-            ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS)) {
+        if (catchupCounter.get()
+            >= ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS)) {
           processingQueue.onError();
           throw new KsqlException("Too many catchups registered");
         }
@@ -484,7 +483,8 @@ public class ScalablePushRegistry {
           consumerGroup);
       catchupConsumer = catchupConsumerFactory.create(ksqlTopic.getKafkaTopicName(), isWindowed(),
           logicalSchema, consumer, latestConsumer::get, catchupCoordinator, offsetRange,
-          Clock.systemUTC());
+          Clock.systemUTC(),
+          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW));
       return catchupConsumer;
     } catch (Exception e) {
       LOG.error("Couldn't create catchup consumer", e);

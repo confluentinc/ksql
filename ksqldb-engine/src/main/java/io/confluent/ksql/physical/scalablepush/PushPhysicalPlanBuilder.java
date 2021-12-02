@@ -41,6 +41,7 @@ import io.confluent.ksql.util.PushOffsetRange;
 import io.vertx.core.Context;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -190,6 +191,6 @@ public class PushPhysicalPlanBuilder {
   }
 
   private QueryId uniqueQueryId() {
-    return new QueryId("SCALABLE_PUSH_QUERY_" + Math.abs(ThreadLocalRandom.current().nextLong()));
+    return new QueryId("SCALABLE_PUSH_QUERY_" + UUID.randomUUID());
   }
 }

@@ -318,7 +318,7 @@ public class ScalablePushConsumerTest {
     }
 
     @Override
-    protected void afterCommit() {
+    protected void afterBatchProcessed() {
       afterCommit++;
     }
 

@@ -113,7 +113,7 @@ public class LatestConsumer extends ScalablePushConsumer {
   }
 
   @Override
-  protected void afterCommit() {
+  protected void afterBatchProcessed() {
     catchupCoordinator.checkShouldWaitForCatchup();
   }
 
@@ -132,8 +132,6 @@ public class LatestConsumer extends ScalablePushConsumer {
     final Set<TopicPartition> topicPartitions = this.topicPartitions.get();
     final long maxAge = ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS);
     final long timeMs = clock.millis() - maxAge;
-    LOG.info("ALAN: MAX AGE {}, CURRENT TIME {}, Topic Partitions {}", maxAge, timeMs,
-        topicPartitions);
     final HashMap<TopicPartition, Long> timestamps = new HashMap<>();
     for (TopicPartition tp : topicPartitions) {
       timestamps.put(tp, timeMs);
@@ -142,6 +140,8 @@ public class LatestConsumer extends ScalablePushConsumer {
         consumer.offsetsForTimes(timestamps);
     final Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
         consumer.committed(topicPartitions);
+    LOG.info("Latest maybe seeking to end offsetAndTimestampMap {}, offsetAndMetadataMap {}",
+        offsetAndTimestampMap, offsetAndMetadataMap);
     // If even one partition has recent commits, then we don't seek to end.
     boolean foundAtLeastOneRecent = false;
     for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : offsetAndTimestampMap.entrySet()) {

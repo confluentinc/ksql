@@ -554,7 +554,7 @@ public class PushRouting implements AutoCloseable {
     }
   }
 
-  private static abstract class StreamSubscriber<T> extends BaseSubscriber<T> {
+  private abstract static class StreamSubscriber<T> extends BaseSubscriber<T> {
 
     protected final TransientQueryQueue transientQueryQueue;
     protected final CompletableFuture<Void> callback;

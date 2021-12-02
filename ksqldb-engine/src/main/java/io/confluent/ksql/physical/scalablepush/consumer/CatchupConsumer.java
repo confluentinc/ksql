@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -51,8 +52,10 @@ public class CatchupConsumer extends ScalablePushConsumer {
   private final PushOffsetRange offsetRange;
   private final Consumer<Long> sleepMs;
   private final BiConsumer<Object, Long> waitMs;
-  private AtomicBoolean signalledLatest = new AtomicBoolean(false);
+  private final long catchupWindow;
+  private final AtomicBoolean signalledLatest = new AtomicBoolean(false);
 
+  @SuppressWarnings("ParameterNumber")
   public CatchupConsumer(
       final String topicName,
       final boolean windowed,
@@ -63,7 +66,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
       final PushOffsetRange offsetRange,
       final Clock clock,
       final Consumer<Long> sleepMs,
-      final BiConsumer<Object, Long> waitMs
+      final BiConsumer<Object, Long> waitMs,
+      final long catchupWindow
   ) {
     super(topicName, windowed, logicalSchema, consumer, clock);
     this.latestConsumerSupplier = latestConsumerSupplier;
@@ -71,6 +75,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
     this.offsetRange = offsetRange;
     this.sleepMs = sleepMs;
     this.waitMs = waitMs;
+    this.catchupWindow = catchupWindow;
   }
 
   public CatchupConsumer(
@@ -81,10 +86,11 @@ public class CatchupConsumer extends ScalablePushConsumer {
       final Supplier<LatestConsumer> latestConsumerSupplier,
       final CatchupCoordinator catchupCoordinator,
       final PushOffsetRange offsetRange,
-      final Clock clock
+      final Clock clock,
+      final long catchupWindow
   ) {
     this(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier, catchupCoordinator,
-        offsetRange, clock, CatchupConsumer::sleep, CatchupConsumer::wait);
+        offsetRange, clock, CatchupConsumer::sleep, CatchupConsumer::wait, catchupWindow);
   }
 
   public interface CatchupConsumerFactory {
@@ -96,7 +102,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
         Supplier<LatestConsumer> latestConsumerSupplier,
         CatchupCoordinator catchupCoordinator,
         PushOffsetRange pushOffsetRange,
-        Clock clock
+        Clock clock,
+        long catchupWindow
     );
   }
 
@@ -106,7 +113,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
   }
 
   @Override
-  protected void afterCommit() {
+  protected void afterBatchProcessed() {
     checkCaughtUp();
   }
 
@@ -178,8 +185,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
   protected void afterOfferedRow(final ProcessingQueue processingQueue) {
     // Since we handle only one request at a time, we can afford to block and wait for the request.
     while (processingQueue.isAtLimit()) {
-      LOG.info("Sleeping for a bit since queue is full");
-      sleepMs.accept(1000L);
+      LOG.info("Sleeping for a bit since queue is full queryid {}", processingQueue.getQueryId());
+      sleepMs.accept(50L);
     }
   }
 
@@ -188,9 +195,9 @@ public class CatchupConsumer extends ScalablePushConsumer {
    * consumer if finished.
    * @return If the catchup consumer has switched over.
    */
-  private boolean checkCaughtUp() {
+  private void checkCaughtUp() {
     LOG.info("Checking to see if we're caught up");
-    final Supplier<Boolean> isCaughtUp = () -> {
+    final Function<Boolean, Boolean> isCaughtUp = softCaughtUp -> {
       final LatestConsumer lc = latestConsumerSupplier.get();
       if (lc == null) {
         return false;
@@ -199,33 +206,38 @@ public class CatchupConsumer extends ScalablePushConsumer {
       if (latestOffsets.isEmpty()) {
         return false;
       }
-      return caughtUp(latestOffsets, currentPositions.get());
+      return caughtUp(latestOffsets, currentPositions.get(), softCaughtUp, catchupWindow);
     };
 
     final Runnable switchOver = () -> {
-      LOG.info("Switching over from catchup to latest");
       final LatestConsumer lc = latestConsumerSupplier.get();
       if (lc == null) {
+        LOG.warn("Couldn't switch over to latest yet because it's not running");
         return;
       }
       for (final ProcessingQueue processingQueue : processingQueues.values()) {
+        LOG.info("Switching over from catchup queryid {} to latest", processingQueue.getQueryId());
         lc.register(processingQueue);
       }
       processingQueues.clear();
       close();
     };
-    return catchupCoordinator.checkShouldCatchUp(signalledLatest, isCaughtUp, switchOver);
+    catchupCoordinator.checkShouldCatchUp(signalledLatest, isCaughtUp, switchOver);
   }
 
   /**
    * Checks if the catchup consumer is caught up.
    * @param latestOffsets The offsets from the latest consumer
    * @param offsets The offsets from this consumer
+   * @param softCatchUp If we're doing a soft comparison, as in it's within a margin rather than
+   *                    fully caught up.
    * @return If the catchup consumer is caught up
    */
   private static boolean caughtUp(
       final Map<TopicPartition, Long> latestOffsets,
-      final Map<TopicPartition, Long> offsets
+      final Map<TopicPartition, Long> offsets,
+      final boolean softCatchUp,
+      final long catchupWindow
   ) {
     if (!latestOffsets.keySet().equals(offsets.keySet())) {
       return false;
@@ -237,7 +249,11 @@ public class CatchupConsumer extends ScalablePushConsumer {
         if (latestOffset == null || offset == null) {
           return false;
         }
-        if (offset < latestOffset) {
+        if (softCatchUp) {
+          if (offset < latestOffset && (latestOffset - offset) > catchupWindow) {
+            return false;
+          }
+        } else if (offset < latestOffset) {
           return false;
         }
       }

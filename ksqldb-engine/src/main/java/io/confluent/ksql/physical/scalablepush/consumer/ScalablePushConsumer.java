@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.physical.scalablepush.consumer;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
@@ -33,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,12 +38,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.concurrent.GuardedBy;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
@@ -91,7 +86,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
 
   protected abstract void onEmptyRecords();
 
-  protected abstract void afterCommit();
+  protected abstract void afterBatchProcessed();
 
   protected abstract void onNewAssignment();
 
@@ -174,7 +169,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
           LOG.warn("Failed to commit, likely due to rebalance.  Will wait for new assignment", e);
         }
 
-        afterCommit();
+        afterBatchProcessed();
       }
     } catch (WakeupException e) {
       // This is expected when we get closed.

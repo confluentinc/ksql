@@ -85,7 +85,7 @@ public class CatchupConsumerTest {
         new PushOffsetVector(ImmutableList.of(1L, 2L)));
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock)) {
+        offsetRange, clock, 0)) {
 
       runSuccessfulTest(consumer);
     }
@@ -103,7 +103,7 @@ public class CatchupConsumerTest {
         cRef.get().newAssignment(ImmutableSet.of(TP0, TP1));
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn, waitFn)) {
+        offsetRange, clock, sleepFn, waitFn, 0)) {
       cRef.set(consumer);
 
       runSuccessfulTest(consumer);
@@ -121,7 +121,7 @@ public class CatchupConsumerTest {
             1, CURRENT_TIME_MS + WAIT_FOR_ASSIGNMENT_MS + 1);
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn, waitFn)) {
+        offsetRange, clock, sleepFn, waitFn, 0)) {
 
       // When:
       consumer.register(queue);
@@ -144,7 +144,7 @@ public class CatchupConsumerTest {
     when(queue.isAtLimit()).thenReturn(false, true, true, false);
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn, waitFn)) {
+        offsetRange, clock, sleepFn, waitFn, 0)) {
 
       // When:
       consumer.register(queue);

@@ -57,6 +57,11 @@ public class ProtobufFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getInheritableProperties() {
+    return ProtobufProperties.INHERITABLE_PROPERTIES;
+  }
+
+  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {

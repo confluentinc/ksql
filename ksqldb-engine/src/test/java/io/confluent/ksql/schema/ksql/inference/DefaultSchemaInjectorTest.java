@@ -665,7 +665,8 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("KAFKA does not support the following configs: [schemaId]"));
+        containsString("KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. "
+            + "Current format is KAFKA."));
   }
 
   @Test
@@ -685,7 +686,8 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("DELIMITED does not support the following configs: [schemaId]"));
+        containsString("VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. "
+            + "Current format is DELIMITED."));
   }
 
   @Test

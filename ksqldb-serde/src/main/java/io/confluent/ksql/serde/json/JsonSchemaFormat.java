@@ -57,6 +57,11 @@ public class JsonSchemaFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getInheritableProperties() {
+    return JsonSchemaProperties.INHERITABLE_PROPERTIES;
+  }
+
+  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {

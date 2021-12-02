@@ -27,6 +27,10 @@ public class ProtobufProperties extends ConnectProperties {
       SCHEMA_ID
   );
 
+  static final ImmutableSet<String> INHERITABLE_PROPERTIES = ImmutableSet.of(
+      FULL_SCHEMA_NAME
+  );
+
   public ProtobufProperties(final Map<String, String> formatProps) {
     super(ProtobufFormat.NAME, formatProps);
   }

@@ -138,15 +138,15 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.listener = requireNonNull(listener, "listener");
+    this.namedTopologySupplier = requireNonNull(namedTopologySupplier, "namedTopologySupplier");
     this.materializationProvider = materializationProviderBuilder
             .flatMap(builder -> builder.apply(
                     this.sharedKafkaStreamsRuntime.getKafkaStreams(),
-                    getTopology()
+                    topology
             ));
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
-    this.namedTopologySupplier = requireNonNull(namedTopologySupplier, "namedTopologySupplier");
   }
 
 

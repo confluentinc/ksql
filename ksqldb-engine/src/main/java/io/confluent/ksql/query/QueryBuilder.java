@@ -477,7 +477,14 @@ final class QueryBuilder {
         classifier,
         queryOverrides,
         scalablePushRegistry,
-        () -> getNamedTopology(sharedKafkaStreamsRuntime, queryId, applicationId, queryOverrides, physicalPlan));
+        () -> getNamedTopology(
+            sharedKafkaStreamsRuntime,
+            queryId,
+            applicationId,
+            queryOverrides,
+            physicalPlan
+        )
+    );
   }
 
   public NamedTopology getNamedTopology(final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,

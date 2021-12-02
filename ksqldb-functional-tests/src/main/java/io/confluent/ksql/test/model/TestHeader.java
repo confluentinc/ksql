@@ -41,7 +41,7 @@ public class TestHeader implements Header {
 
   @Override
   public byte[] value() {
-    return value;
+    return Arrays.copyOf(value, value.length);
   }
 
   @Override

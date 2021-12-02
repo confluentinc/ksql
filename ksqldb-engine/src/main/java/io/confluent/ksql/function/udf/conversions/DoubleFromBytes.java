@@ -42,7 +42,7 @@ public class DoubleFromBytes {
     return doubleFromBytes(value, ByteOrder.BIG_ENDIAN);
   }
 
-  @Udf(description ="Converts a BYTES value to an DOUBLE value according to the specified"
+  @Udf(description = "Converts a BYTES value to an DOUBLE value according to the specified"
       + " byte order. BYTES must be 8 bytes long or a NULL value will be returned.")
   public Double doubleFromBytes(
       @UdfParameter(description = "The BYTES value to convert.")

@@ -29,6 +29,7 @@ import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -118,11 +119,14 @@ public final class CreateSourceAsProperties {
       final String keyFormat
   ) {
     final Builder<String, String> builder = ImmutableMap.builder();
-    if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
+    final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
+    if (schemaName != null) {
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
+    } else if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
       // ensure that the schema name for the key is unique to the sink - this allows
       // users to always generate valid, non-conflicting avro record definitions in
       // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
-      builder.put(AvroFormat.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.KEY_DELIMITER_PROPERTY);
@@ -130,15 +134,21 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    final Optional<Integer> keySchemaId = getKeySchemaId();
+    keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
+
     return builder.build();
   }
 
   public Map<String, String> getValueFormatProperties() {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
-    final String schemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
+    final String avroSchemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
+    final String schemaName =
+        avroSchemaName == null ? props.getString(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME)
+            : avroSchemaName;
     if (schemaName != null) {
-      builder.put(AvroFormat.FULL_SCHEMA_NAME, schemaName);
+      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
@@ -146,7 +156,32 @@ public final class CreateSourceAsProperties {
       builder.put(DelimitedFormat.DELIMITER, delimiter);
     }
 
+    final Optional<Integer> valueSchemaId = getValueSchemaId();
+    valueSchemaId.ifPresent(id ->
+        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
+
     return builder.build();
+  }
+
+  public CreateSourceAsProperties withKeyValueSchemaName(
+      final Optional<String> keySchemaName,
+      final Optional<String> valueSchemaName
+  ) {
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
+    keySchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME, new StringLiteral(s)));
+    valueSchemaName.ifPresent(
+        s -> originals.put(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME, new StringLiteral(s)));
+
+    return new CreateSourceAsProperties(originals);
+  }
+
+  public Optional<Integer> getKeySchemaId() {
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.KEY_SCHEMA_ID));
+  }
+
+  public Optional<Integer> getValueSchemaId() {
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
   }
 
   public CreateSourceAsProperties withTopic(

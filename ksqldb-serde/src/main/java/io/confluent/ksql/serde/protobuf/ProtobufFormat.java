@@ -52,7 +52,7 @@ public class ProtobufFormat extends ConnectFormat {
 
   @Override
   public Set<String> getSupportedProperties() {
-    return ImmutableSet.of();
+    return ProtobufProperties.SUPPORTED_PROPERTIES;
   }
 
   @Override

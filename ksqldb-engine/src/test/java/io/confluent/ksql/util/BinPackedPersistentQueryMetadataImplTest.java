@@ -42,7 +42,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PersistentQueriesInSharedRuntimesImplTest {
+public class BinPackedPersistentQueryMetadataImplTest {
     private static final String SQL = "sql";
     private static final String EXECUTION_PLAN = "execution plan";
     private static final QueryId QUERY_ID = new QueryId("queryId");
@@ -79,7 +79,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
 
     @Before
     public void setUp()  {
-        query = new PersistentQueriesInSharedRuntimesImpl(
+        query = new BinPackedPersistentQueryMetadataImpl(
             KsqlConstants.PersistentQueryType.CREATE_AS,
             SQL,
             physicalSchema,

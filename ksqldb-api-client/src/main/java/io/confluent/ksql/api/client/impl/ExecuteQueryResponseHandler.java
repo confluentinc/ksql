@@ -75,6 +75,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
       // This is the serialized consistency vector
       // Don't add it to the result list since the user should not see it
       if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken")) {
+        log.info("Response contains consistency vector " + jsonObject);
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
       } else {

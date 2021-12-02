@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +58,7 @@ public class PullQueryQueue implements BlockingRowQueue {
   private final long offerTimeoutMs;
   private AtomicBoolean closed = new AtomicBoolean(false);
   private AtomicLong totalRowsQueued = new AtomicLong(0);
+  private final OptionalInt limit;
 
   /**
    * The callback run when we've hit the end of the data. Specifically, this happens when
@@ -68,17 +70,19 @@ public class PullQueryQueue implements BlockingRowQueue {
    */
   private Runnable queuedCallback;
 
-  public PullQueryQueue() {
-    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS);
+  public PullQueryQueue(final OptionalInt limit) {
+    this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
   }
 
   public PullQueryQueue(
       final int queueSizeLimit,
-      final long offerTimeoutMs) {
+      final long offerTimeoutMs,
+      final OptionalInt limit) {
     this.queuedCallback = () -> { };
     this.limitHandler = () -> { };
     this.rowQueue = new ArrayBlockingQueue<>(queueSizeLimit);
     this.offerTimeoutMs = offerTimeoutMs;
+    this.limit = limit;
   }
 
   @Override
@@ -189,6 +193,7 @@ public class PullQueryQueue implements BlockingRowQueue {
     }
 
     if (row.getConsistencyOffsetVector().isPresent()) {
+      LOG.info("Poll consistency vector from queue " + row.getConsistencyOffsetVector());
       return new KeyValueMetadata<>(new RowMetadata(
           Optional.empty(), row.getConsistencyOffsetVector()));
     }
@@ -204,11 +209,18 @@ public class PullQueryQueue implements BlockingRowQueue {
       if (row == null) {
         return false;
       }
+      if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
+        close();
+        return false;
+      }
 
       while (!closed.get()) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
           totalRowsQueued.incrementAndGet();
           queuedCallback.run();
+          if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
+            close();
+          }
           return true;
         }
       }
@@ -237,6 +249,7 @@ public class PullQueryQueue implements BlockingRowQueue {
 
   public void putConsistencyVector(final ConsistencyOffsetVector consistencyOffsetVector) {
     try {
+      LOG.info("Push consistency token to queue " + consistencyOffsetVector);
       rowQueue.put(new PullQueryRow(null, null, null, Optional.of(consistencyOffsetVector)));
     } catch (InterruptedException e) {
       LOG.error("Interrupted while trying to put consistency token into queue", e);

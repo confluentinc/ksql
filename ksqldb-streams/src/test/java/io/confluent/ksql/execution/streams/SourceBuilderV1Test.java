@@ -34,6 +34,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
@@ -67,12 +68,21 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import javax.ws.rs.HEAD;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -107,6 +117,7 @@ public class SourceBuilderV1Test {
       .keyColumn(K0, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
+      .headerColumn(ColumnName.of("headers"), Optional.empty())
       .build();
 
   private static final LogicalSchema MULTI_COL_SOURCE_SCHEMA = LogicalSchema.builder()
@@ -114,6 +125,9 @@ public class SourceBuilderV1Test {
       .keyColumn(K1, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
+      .headerColumn(ColumnName.of("header1"), Optional.of("a"))
+      .headerColumn(ColumnName.of("header2"), Optional.of("b"))
+      .headerColumn(ColumnName.of("header3"), Optional.of("c"))
       .build();
 
   private static final double A_KEY = 10.11;
@@ -152,6 +166,28 @@ public class SourceBuilderV1Test {
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES);
   private static final String TOPIC_NAME = "topic";
+  private final Headers HEADERS = new RecordHeaders(ImmutableList.of(
+      new RecordHeader("a", new byte[] {20}),
+      new RecordHeader("b", new byte[] {25}))
+  );
+  private final ByteBuffer HEADER_A = ByteBuffer.wrap(new byte[] {20});
+  private final ByteBuffer HEADER_B = ByteBuffer.wrap(new byte[] {25});
+  private final List<Struct> HEADER_DATA = ImmutableList.of(
+      new Struct(SchemaBuilder.struct()
+          .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+          .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+          .optional()
+          .build())
+          .put("KEY", "a")
+          .put("VALUE", HEADER_A),
+      new Struct(SchemaBuilder.struct()
+          .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+          .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+          .optional()
+          .build())
+          .put("KEY", "b")
+          .put("VALUE", HEADER_B)
+  );
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
   @Mock
@@ -233,6 +269,7 @@ public class SourceBuilderV1Test {
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(processorCtx.partition()).thenReturn(A_ROWPARTITION);
     when(processorCtx.offset()).thenReturn(A_ROWOFFSET);
+    when(processorCtx.headers()).thenReturn(HEADERS);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
     when(streamsFactories.getMaterializedFactory()).thenReturn(materializationFactory);
@@ -591,7 +628,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, HEADER_DATA)));
   }
 
   @Test
@@ -605,7 +642,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, HEADER_DATA)));
   }
 
   @Test
@@ -619,7 +656,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, HEADER_DATA)));
   }
 
   @Test
@@ -635,7 +672,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, HEADER_DATA)));
   }
 
   @Test
@@ -652,7 +689,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, HEADER_DATA)));
   }
 
   @Test
@@ -668,7 +705,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, HEADER_DATA)));
   }
 
   @Test
@@ -685,7 +722,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, HEADER_DATA)));
   }
 
   @Test
@@ -701,7 +738,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, 1d, 2d)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, 1d, 2d, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -718,7 +755,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -734,7 +771,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, 2d)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, 2d, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -751,7 +788,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -767,7 +804,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -784,7 +821,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -800,7 +837,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -817,7 +854,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null, HEADER_A, HEADER_B, null)));
   }
 
   @Test
@@ -837,7 +874,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        "baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
   }
 
   @Test
@@ -857,7 +894,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
   }
 
   @Test
@@ -877,7 +914,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
   }
 
   @Test
@@ -897,7 +934,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
   }
 
   @Test
@@ -918,7 +955,7 @@ public class SourceBuilderV1Test {
     // Then:
     assertThat(withTimestamp,
         equalTo(GenericRow.genericRow(
-            "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+            "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
   }
 
   @Test
@@ -938,7 +975,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
+        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
   }
 
   @Test

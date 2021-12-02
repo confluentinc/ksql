@@ -61,11 +61,14 @@ class QueryEngine {
       final boolean rowpartitionRowoffsetEnabled
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+    final Boolean pullLimitClauseEnabled = config.getBoolean(
+            KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
 
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore,
             outputPrefix,
-            rowpartitionRowoffsetEnabled
+            rowpartitionRowoffsetEnabled,
+            pullLimitClauseEnabled
         );
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);

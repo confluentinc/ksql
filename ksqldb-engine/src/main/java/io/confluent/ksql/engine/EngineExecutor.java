@@ -59,7 +59,6 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
@@ -264,7 +263,7 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue();
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
@@ -513,7 +512,9 @@ final class EngineExecutor {
     // keys are added if selecting all columns.
     final Select select = new Select(
         createTable.getElements().stream()
-            .filter(column -> column.getNamespace() == TableElement.Namespace.VALUE)
+            .filter(column -> !column.getConstraints().isKey()
+                && !column.getConstraints().isPrimaryKey()
+                && !column.getConstraints().isHeaders())
             .map(column -> new SingleColumn(
                 new UnqualifiedColumnReferenceExp(column.getName()),
                 Optional.of(column.getName())))
@@ -587,13 +588,6 @@ final class EngineExecutor {
         statement.getStatementText(),
         Optional.of(ddlCommand),
         queryPlan);
-  }
-
-  private boolean isSourceStreamOrTable(final ConfiguredStatement<?> statement) {
-    return (statement.getStatement() instanceof CreateStream
-        && ((CreateStream) statement.getStatement()).isSource())
-        || (statement.getStatement() instanceof CreateTable
-        && ((CreateTable) statement.getStatement()).isSource());
   }
 
   private boolean isSourceTableMaterializationEnabled() {

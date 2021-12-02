@@ -54,10 +54,10 @@ import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMetadata {
+public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMetadata {
 
   private static final Logger LOG = LoggerFactory
-      .getLogger(PersistentQueriesInSharedRuntimesImpl.class);
+      .getLogger(BinPackedPersistentQueryMetadataImpl.class);
 
   private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
@@ -93,7 +93,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  public PersistentQueriesInSharedRuntimesImpl(
+  public BinPackedPersistentQueryMetadataImpl(
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
@@ -119,7 +119,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.applicationId = Objects.requireNonNull(applicationId, "applicationId");
-    this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
+    this.topology = Objects.requireNonNull(topology, "namedTopology");
     this.sharedKafkaStreamsRuntime =
         Objects.requireNonNull(sharedKafkaStreamsRuntime, "sharedKafkaStreamsRuntime");
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
@@ -147,8 +147,8 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
 
   // for creating sandbox instances
-  protected PersistentQueriesInSharedRuntimesImpl(
-          final PersistentQueriesInSharedRuntimesImpl original,
+  protected BinPackedPersistentQueryMetadataImpl(
+          final BinPackedPersistentQueryMetadataImpl original,
           final QueryMetadata.Listener listener
   ) {
     this.persistentQueryType = original.persistentQueryType;
@@ -348,7 +348,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public List<QueryError> getQueryErrors() {
-    return sharedKafkaStreamsRuntime.getQueryErrors();
+    return sharedKafkaStreamsRuntime.getRuntimeErrors();
   }
 
   @Override
@@ -359,7 +359,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
         QueryError.Type.USER
     );
     listener.onError(this, corruptionQueryError);
-    sharedKafkaStreamsRuntime.addQueryError(corruptionQueryError);
+    sharedKafkaStreamsRuntime.addRuntimeError(corruptionQueryError);
     corruptionCommandTopic = true;
   }
 
@@ -380,7 +380,6 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     if (!everStarted) {
       sharedKafkaStreamsRuntime.register(
           classifier,
-          streamsProperties,
           this,
           queryId
       );

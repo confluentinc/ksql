@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.schema.ksql.Column.Namespace.HEADERS;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.KEY;
 import static io.confluent.ksql.schema.ksql.Column.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWOFFSET_TYPE;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWPARTITION_NAME;
@@ -36,9 +38,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DuplicateColumnException;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -86,6 +90,14 @@ public final class LogicalSchema {
   public List<Column> value() {
     return byNamespace()
         .get(VALUE);
+  }
+
+  /**
+   * @return the headers in the schema.
+   */
+  public List<Column> headers() {
+    return byNamespace()
+        .get(HEADERS);
   }
 
   /**
@@ -290,6 +302,15 @@ public final class LogicalSchema {
   }
 
   /**
+   * @param columnName the column name to check
+   * @return {@code true} if the column matches the name of any key column.
+   */
+  public boolean isHeaderColumn(final ColumnName columnName) {
+    return findColumnMatching(withNamespace(HEADERS).and(withName(columnName)))
+        .isPresent();
+  }
+
+  /**
    * Returns True if this schema is compatible with {@code other} schema.
    */
   public boolean compatibleSchema(final LogicalSchema other) {
@@ -372,16 +393,18 @@ public final class LogicalSchema {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> key = byNamespace.get(Namespace.KEY);
+    final List<Column> headers = byNamespace.get(HEADERS);
 
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     final List<Column> keyColumns = keyColumns(byNamespace);
 
-    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+    final List<Column> nonPseudoAndKeyCols = nonPseudoHeaderAndKeyColsAsValueCols(
         byNamespace, pseudoColumnVersion);
 
     builder.addAll(keyColumns);
     builder.addAll(nonPseudoAndKeyCols);
+    builder.addAll(headers);
 
     int valueIndex = nonPseudoAndKeyCols.size();
 
@@ -414,6 +437,10 @@ public final class LogicalSchema {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
+    for (final Column c : headers) {
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
+
     if (windowedKey) {
       builder.add(
           Column.of(WINDOWSTART_NAME, WINDOWBOUND_TYPE, VALUE, valueIndex++));
@@ -434,11 +461,13 @@ public final class LogicalSchema {
     final Map<Namespace, List<Column>> byNamespace = byNamespace();
 
     final List<Column> keyColumns = keyColumns(byNamespace);
+    final List<Column> headerColumns = byNamespace.get(HEADERS);
 
-    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+    final List<Column> nonPseudoAndKeyCols = nonPseudoHeaderAndKeyColsAsValueCols(
         byNamespace, pseudoColumnVersion);
 
     builder.addAll(keyColumns);
+    builder.addAll(headerColumns);
     builder.addAll(nonPseudoAndKeyCols);
 
     return new LogicalSchema(builder.build());
@@ -457,7 +486,7 @@ public final class LogicalSchema {
 
     final List<Column> keyColumns = keyColumns(byNamespace);
 
-    final List<Column> nonPseudoAndKeyCols = nonPseudoAndKeyColsAsValueCols(
+    final List<Column> nonPseudoAndKeyCols = nonPseudoHeaderAndKeyColsAsValueCols(
         byNamespace, pseudoColumnVersion);
 
     int valueIndex = nonPseudoAndKeyCols.size();
@@ -476,13 +505,14 @@ public final class LogicalSchema {
   }
 
   /**
-   * Adds columns, except for key and pseudocolumns, to an immutable list and returns the list
+   * Adds columns, except for key, header and pseudocolumns, to an immutable list and returns the
+   * list
    * @param byNamespace map of columns grouped by key and value
    * @param pseudoColumnVersion the pseudocolumn version used to evaluate if a column is a system
    *                            column or not
    * @return an immutable list containing the non pseudo and key columns in this LogicalSchema
    * */
-  private List<Column> nonPseudoAndKeyColsAsValueCols(
+  private List<Column> nonPseudoHeaderAndKeyColsAsValueCols(
       final Map<Namespace, List<Column>> byNamespace,
       final int pseudoColumnVersion
   ) {
@@ -498,6 +528,11 @@ public final class LogicalSchema {
 
       if (findColumnMatching(
           withNamespace(Namespace.KEY).and(withName(c.name()))).isPresent()) {
+        continue;
+      }
+
+      if (findColumnMatching(
+          withNamespace(Namespace.HEADERS).and(withName(c.name()))).isPresent()) {
         continue;
       }
 
@@ -533,15 +568,31 @@ public final class LogicalSchema {
     private final ImmutableList.Builder<Column> columns = ImmutableList.builder();
     private final Set<ColumnName> seenKeys = new HashSet<>();
     private final Set<ColumnName> seenValues = new HashSet<>();
+    private final Set<ColumnName> seenHeaders = new HashSet<>();
+    private final Set<String> seenHeaderKeys = new HashSet<>();
 
     private Builder(final ImmutableList<Column> columns) {
       columns.forEach(col -> {
         if (col.namespace() == KEY) {
           keyColumn(col.name(), col.type());
+        } else if (col.namespace() == HEADERS) {
+          headerColumn(col.name(), col.headerKey());
         } else {
           valueColumn(col.name(), col.type());
         }
       });
+    }
+
+    public Builder headerColumn(
+        final ColumnName columnName,
+        final Optional<String> headerKey
+    ) {
+      if (headerKey.isPresent()) {
+        addColumn(Column.of(columnName, SqlTypes.BYTES, HEADERS, seenHeaders.size(), headerKey));
+      } else {
+        addColumn(Column.of(columnName, HEADERS_TYPE, HEADERS, seenHeaders.size(), headerKey));
+      }
+      return this;
     }
 
     public Builder keyColumns(final Iterable<? extends SimpleColumn> columns) {
@@ -590,6 +641,24 @@ public final class LogicalSchema {
           }
           break;
 
+        case HEADERS:
+          if (!seenHeaders.add(column.name())) {
+            throw new DuplicateColumnException(column.namespace(), column);
+          }
+
+          if (seenHeaderKeys.contains(null)) {
+            throw new KsqlException("Schema already contains a HEADERS column.");
+          }
+
+          if (column.headerKey().isPresent()) {
+            if (!seenHeaderKeys.add(column.headerKey().get())) {
+              throw new KsqlException("Schema already contains a HEADER('"
+                  + column.headerKey().get() + "') column.");
+            }
+          } else {
+            seenHeaderKeys.add(null);
+          }
+          break;
         default:
           throw new UnsupportedOperationException("Unsupported column type: " + column);
       }

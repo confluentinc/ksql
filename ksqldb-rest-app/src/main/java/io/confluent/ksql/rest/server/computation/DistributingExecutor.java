@@ -163,7 +163,7 @@ public class DistributingExecutor {
         .inject(statement);
 
     if (injected.getStatement() instanceof InsertInto) {
-      throwIfInsertOnReadOnlyTopic(
+      validateInsertIntoQueries(
           executionContext.getMetaStore(),
           (InsertInto) injected.getStatement()
       );
@@ -266,7 +266,7 @@ public class DistributingExecutor {
     }
   }
 
-  private void throwIfInsertOnReadOnlyTopic(
+  private void validateInsertIntoQueries(
       final MetaStore metaStore,
       final InsertInto insertInto
   ) {
@@ -279,6 +279,11 @@ public class DistributingExecutor {
     if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert into read-only topic: "
           + dataSource.getKafkaTopicName());
+    }
+
+    if (!dataSource.getSchema().headers().isEmpty()) {
+      throw new KsqlException("Cannot insert into " + insertInto.getTarget().text()
+          + " because it has header columns");
     }
   }
 }

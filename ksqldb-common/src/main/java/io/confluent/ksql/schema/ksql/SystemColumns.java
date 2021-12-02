@@ -23,6 +23,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -60,6 +62,11 @@ public final class SystemColumns {
       WINDOWSTART_NAME,
       WINDOWEND_NAME
   );
+
+  public static final SqlType HEADERS_TYPE = SqlArray.of(
+      SqlStruct.builder()
+          .field("KEY", SqlTypes.STRING)
+          .field("VALUE", SqlTypes.BYTES).build());
 
   private static final List<PseudoColumn> pseudoColumns = ImmutableList.of(
       PseudoColumn.of(

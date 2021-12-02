@@ -97,7 +97,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(2, TimeUnit.MINUTES)
+      .withTimeout(4, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 

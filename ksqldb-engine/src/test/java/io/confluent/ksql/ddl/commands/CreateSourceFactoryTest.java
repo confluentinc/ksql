@@ -18,9 +18,6 @@ package io.confluent.ksql.ddl.commands;
 import static io.confluent.ksql.model.WindowType.HOPPING;
 import static io.confluent.ksql.model.WindowType.SESSION;
 import static io.confluent.ksql.model.WindowType.TUMBLING;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.PRIMARY_KEY;
-import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.schema.ksql.ColumnMatchers.keyColumn;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
 import static io.confluent.ksql.schema.ksql.SystemColumns.WINDOWEND_NAME;
@@ -62,10 +59,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.TableElement;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -81,7 +78,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -90,7 +87,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,22 +95,27 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateSourceFactoryTest {
+  private static final ColumnConstraints KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().key().build();
+
+  private static final ColumnConstraints PRIMARY_KEY_CONSTRAINT =
+      new ColumnConstraints.Builder().primaryKey().build();
 
   private static final SourceName SOME_NAME = SourceName.of("bob");
 
   private static final SourceName TABLE_NAME = SourceName.of("table_bob");
 
   private static final TableElement EXPLICIT_KEY =
-      tableElement(Namespace.KEY, "k", new Type(SqlTypes.INTEGER));
+      tableElement("k", new Type(SqlTypes.INTEGER), KEY_CONSTRAINT);
 
   private static final TableElement EXPLICIT_PRIMARY_KEY =
-      tableElement(Namespace.PRIMARY_KEY, "k", new Type(SqlTypes.INTEGER));
+      tableElement("k", new Type(SqlTypes.INTEGER), PRIMARY_KEY_CONSTRAINT);
 
   private static final TableElement ELEMENT1 =
-      tableElement(VALUE, "bob", new Type(SqlTypes.STRING));
+      tableElement("bob", new Type(SqlTypes.STRING));
 
   private static final TableElement ELEMENT2 =
-      tableElement(VALUE, "hojjat", new Type(BIGINT));
+      tableElement("hojjat", new Type(BIGINT));
 
   private static final TableElements ONE_KEY_ONE_VALUE = TableElements.of(
       EXPLICIT_KEY,
@@ -308,8 +309,8 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
-            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(BIGINT), PRIMARY_KEY_CONSTRAINT),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, false);
 
     // When:
@@ -327,8 +328,8 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
-            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(BIGINT), PRIMARY_KEY_CONSTRAINT),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, true);
 
     // When:
@@ -718,7 +719,7 @@ public class CreateSourceFactoryTest {
     final CreateStream statement = new CreateStream(
         SOME_NAME,
         TableElements.of(
-            tableElement(Namespace.KEY, "k", new Type(SqlTypes.STRING)),
+            tableElement("k", new Type(SqlTypes.STRING), KEY_CONSTRAINT),
             ELEMENT1,
             ELEMENT2
         ),
@@ -831,7 +832,7 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(
         cmd.getFormats().getValueFormat(),
-        is(FormatInfo.of(AVRO.name(), ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "full.schema.name"))));
+        is(FormatInfo.of(AVRO.name(), ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "full.schema.name"))));
   }
 
   @Test
@@ -902,7 +903,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, ROWTIME_NAME.text(), new Type(BIGINT))),
+        TableElements.of(tableElement(ROWTIME_NAME.text(), new Type(BIGINT))),
         false,
         true,
         withProperties,
@@ -925,7 +926,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(Namespace.KEY, ROWTIME_NAME.text(), new Type(BIGINT))),
+        TableElements.of(tableElement(ROWTIME_NAME.text(), new Type(BIGINT), KEY_CONSTRAINT)),
         false,
         true,
         withProperties,
@@ -948,7 +949,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, WINDOWSTART_NAME.text(), new Type(BIGINT))),
+        TableElements.of(tableElement(WINDOWSTART_NAME.text(), new Type(BIGINT))),
         false,
         true,
         withProperties,
@@ -971,7 +972,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, WINDOWEND_NAME.text(), new Type(BIGINT))),
+        TableElements.of(tableElement(WINDOWEND_NAME.text(), new Type(BIGINT))),
         false,
         true,
         withProperties,
@@ -994,7 +995,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, "k", new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement("k", new Type(SqlTypes.STRING), KEY_CONSTRAINT)),
         false,
         true,
         withProperties,
@@ -1012,7 +1013,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, "k", new Type(SqlTypes.INTEGER))),
+        TableElements.of(tableElement("k", new Type(SqlTypes.INTEGER), KEY_CONSTRAINT)),
         false,
         true,
         withProperties,
@@ -1034,7 +1035,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, "someKey", new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement("someKey", new Type(SqlTypes.STRING), KEY_CONSTRAINT)),
         false,
         true,
         withProperties,
@@ -1110,8 +1111,8 @@ public class CreateSourceFactoryTest {
     //Given
     final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
         TableElements.of(
-            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
-            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(BIGINT), PRIMARY_KEY_CONSTRAINT),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, true, withProperties, false);
 
     // When:
@@ -1127,8 +1128,8 @@ public class CreateSourceFactoryTest {
     //Given
     final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
         TableElements.of(
-            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
-            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(BIGINT), PRIMARY_KEY_CONSTRAINT),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         false, false, withProperties, false);
 
     // When:
@@ -1190,8 +1191,8 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
         TableElements.of(
-            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
-            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(BIGINT), PRIMARY_KEY_CONSTRAINT),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         true, false, withProperties, true);
 
     // When:
@@ -1218,8 +1219,8 @@ public class CreateSourceFactoryTest {
 
     final CreateTable ddlStatement = new CreateTable(existingTableName,
         TableElements.of(
-            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
-            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement("COL1", new Type(BIGINT), PRIMARY_KEY_CONSTRAINT),
+            tableElement("COL2", new Type(SqlTypes.STRING))),
         true, false, withProperties, false);
 
     // When:
@@ -1245,14 +1246,21 @@ public class CreateSourceFactoryTest {
   }
 
   private static TableElement tableElement(
-      final Namespace namespace,
       final String name,
       final Type type
+  ) {
+    return tableElement(name, type, ColumnConstraints.NO_COLUMN_CONSTRAINTS);
+  }
+
+  private static TableElement tableElement(
+      final String name,
+      final Type type,
+      final ColumnConstraints constraints
   ) {
     final TableElement te = mock(TableElement.class, name);
     when(te.getName()).thenReturn(ColumnName.of(name));
     when(te.getType()).thenReturn(type);
-    when(te.getNamespace()).thenReturn(namespace);
+    when(te.getConstraints()).thenReturn(constraints);
     return te;
   }
 

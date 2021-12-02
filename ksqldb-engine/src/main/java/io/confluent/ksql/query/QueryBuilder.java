@@ -16,6 +16,7 @@
 package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
+import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -55,20 +56,19 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -79,7 +79,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -90,8 +89,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 /**
  * A builder for creating queries metadata.
@@ -381,12 +381,8 @@ final class QueryBuilder {
     final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
         sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         queryId);
-
-    final String applicationId = sharedKafkaStreamsRuntime
-            .getStreamProperties()
-            .get(StreamsConfig.APPLICATION_ID_CONFIG)
-            .toString();
-    final Map<String, Object> streamsProperties = sharedKafkaStreamsRuntime.getStreamProperties();
+    final String applicationId = sharedKafkaStreamsRuntime.getApplicationId();
+    final Map<String, Object> queryOverrides = sharedKafkaStreamsRuntime.getStreamProperties();
 
     final LogicalSchema logicalSchema;
     final KeyFormat keyFormat;
@@ -418,18 +414,21 @@ final class QueryBuilder {
         keyFormat.getFeatures(),
         valueFormat.getFeatures()
     );
-    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
-            queryId.toString()
-    );
+
+    final NamedTopologyBuilder namedTopologyBuilder =
+        ((KafkaStreamsNamedTopologyWrapper) sharedKafkaStreamsRuntime.getKafkaStreams())
+            .newNamedTopologyBuilder(
+                queryId.toString(),
+                PropertiesUtil.asProperties(queryOverrides)
+            );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
             queryId,
-            namedTopologyStreamsBuilder
+            namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology = namedTopologyStreamsBuilder
-            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
+    final NamedTopology topology = namedTopologyBuilder.build();
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -437,7 +436,7 @@ final class QueryBuilder {
                     info,
                     querySchema,
                     keyFormat,
-                    streamsProperties,
+                    queryOverrides,
                     applicationId
             ));
 
@@ -451,14 +450,14 @@ final class QueryBuilder {
         querySchema.logicalSchema(),
         result,
         allPersistentQueries,
-        streamsProperties,
+        queryOverrides,
         applicationId,
         ksqlConfig,
         ksqlTopic,
         serviceContext
     );
 
-    return new PersistentQueriesInSharedRuntimesImpl(
+    return new BinPackedPersistentQueryMetadataImpl(
         persistentQueryType,
         statementText,
         querySchema,
@@ -476,7 +475,7 @@ final class QueryBuilder {
         sinkDataSource,
         listener,
         classifier,
-        streamsProperties,
+        queryOverrides,
         scalablePushRegistry
     );
   }
@@ -493,35 +492,23 @@ final class QueryBuilder {
     }
     final SharedKafkaStreamsRuntime stream;
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final String queryPrefix = ksqlConfig
-        .getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     if (real) {
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-                  + serviceId
-                  + queryPrefix
-                  + streams.size()
-                  + "-"
-                  + UUID.randomUUID(),
-              queryID)
+              buildSharedRuntimeId(ksqlConfig, true, streams.size()),
+              queryID
+          )
       );
     } else {
-      stream = new ValidationSharedKafkaStreamsRuntimeImpl(
+      stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-                  + serviceId
-                  + queryPrefix
-                  + streams.size()
-                  + "-"
-                  + UUID.randomUUID()
-                  + "-validation",
-              queryID)
+              buildSharedRuntimeId(ksqlConfig, true, streams.size()) + "-validation",
+              queryID
+          )
       );
     }
     streams.add(stream);

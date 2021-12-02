@@ -32,6 +32,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_ENABLE_ACCESS_VALIDATOR;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_ENABLE_UDFS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_ERROR_CLASSIFIER_REGEX_PREFIX;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_EXT_DIR;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY;
@@ -146,7 +147,8 @@ public class PropertiesList extends KsqlEntity {
       KSQL_UDF_SECURITY_MANAGER_ENABLED,
       KSQL_VARIABLE_SUBSTITUTION_ENABLE,
       METRIC_REPORTER_CLASSES_CONFIG,
-      SCHEMA_REGISTRY_URL_PROPERTY
+      SCHEMA_REGISTRY_URL_PROPERTY,
+      KSQL_HEADERS_COLUMNS_ENABLED
   );
 
   private static final List<String> QueryLevelPropertyList = ImmutableList.of(

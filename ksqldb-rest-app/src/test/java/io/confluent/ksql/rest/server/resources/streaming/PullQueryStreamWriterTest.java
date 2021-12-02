@@ -15,6 +15,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.pull.PullQueryRow;
 import io.confluent.ksql.query.PullQueryQueue;
@@ -70,6 +72,8 @@ public class PullQueryStreamWriterTest {
   private PullQueryQueue pullQueryQueue;
   @Mock
   private Clock clock;
+  @Mock
+  private PreparedStatement<Query> statement;
 
   @Captor
   private ArgumentCaptor<Consumer<Throwable>> throwableConsumerCapture;
@@ -86,7 +90,7 @@ public class PullQueryStreamWriterTest {
     when(pullQueryResult.getSchema()).thenReturn(SCHEMA);
     doNothing().when(pullQueryResult).onCompletion(completeCapture.capture());
     writer = new PullQueryStreamWriter(pullQueryResult, 1000, ApiJsonMapper.INSTANCE.get(),
-        pullQueryQueue, clock, new CompletableFuture<>());
+        pullQueryQueue, clock, new CompletableFuture<>(), statement);
 
     executorService = Executors.newSingleThreadScheduledExecutor();
 

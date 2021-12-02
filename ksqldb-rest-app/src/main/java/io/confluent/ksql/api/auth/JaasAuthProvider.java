@@ -128,7 +128,7 @@ public class JaasAuthProvider implements AuthProvider {
     // We do the actual authorization here not in the User class
     final boolean authorized = validateRoles(lc, allowedRoles);
 
-    promise.complete(new JaasUser(username, authorized));
+    promise.complete(new JaasUser(username, password, authorized));
   }
 
   private static boolean validateRoles(final LoginContext lc, final List<String> allowedRoles) {
@@ -149,8 +149,9 @@ public class JaasAuthProvider implements AuthProvider {
     private final Principal principal;
     private boolean authorized;
 
-    JaasUser(final String username, final boolean authorized) {
-      this.principal = new JaasPrincipal(Objects.requireNonNull(username));
+    JaasUser(final String username, final String password, final boolean authorized) {
+      this.principal = new JaasPrincipal(Objects.requireNonNull(username),
+          Objects.requireNonNull(password));
       this.authorized = authorized;
     }
 

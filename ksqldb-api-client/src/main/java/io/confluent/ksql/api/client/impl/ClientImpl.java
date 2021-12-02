@@ -114,7 +114,7 @@ public class ClientImpl implements Client {
     this.serverSocketAddress =
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
     this.sessionVariables = new HashMap<>();
-    this.serializedConsistencyVector = new AtomicReference<>();
+    this.serializedConsistencyVector = new AtomicReference<>("");
     this.requestProperties = new HashMap<>();
   }
 

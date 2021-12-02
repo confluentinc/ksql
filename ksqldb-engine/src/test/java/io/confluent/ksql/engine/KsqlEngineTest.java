@@ -58,7 +58,6 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -84,7 +83,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
+import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -100,10 +99,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.common.metrics.Metrics;
+
 import org.apache.kafka.streams.KafkaStreams;
-import org.easymock.EasyMock;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -1092,7 +1090,7 @@ public class KsqlEngineTest {
         if (q instanceof TransientQueryMetadata) {
           assertTrue(sq instanceof SandboxedTransientQueryMetadata);
         } else {
-          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl || sq instanceof SandboxedPersistentQueriesInSharedRuntimesImpl);
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl || sq instanceof SandboxedBinPackedPersistentQueryMetadataImpl);
         }
       }
     }
@@ -1229,6 +1227,36 @@ public class KsqlEngineTest {
     awaitCleanupComplete();
     verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
+
+  @Test
+  public void shouldCleanUpSharedRuntimesInternalTopicsOnCloseForPersistentQueries() {
+    // Given:
+
+    final KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator(),
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true))
+    );
+
+    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngineWithSharedRuntimes,
+        "create stream persistent with (KAFKA_TOPIC='rekey') as select * from orders partition by orderid EMIT CHANGES;",
+        KSQL_CONFIG,
+        Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
+    );
+
+    query.get(0).start();
+
+    // When:
+    query.get(0).close();
+
+    awaitCleanupComplete(ksqlEngineWithSharedRuntimes);
+    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId() + "-" + query.get(0).getQueryId().toString());
+  }
+
 
   @Test
   public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
@@ -2088,9 +2116,13 @@ public class KsqlEngineTest {
   }
 
   private void awaitCleanupComplete() {
+    awaitCleanupComplete(ksqlEngine);
+  }
+
+  private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false, "") {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", Optional.empty(), false, "") {
       @Override
       public void run() {
         // do nothing

@@ -913,8 +913,9 @@ public class RestApiTest {
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
     // Given:
+    Map<String, Object> configOverrides =  ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
     Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
 
     // When:
@@ -922,7 +923,7 @@ public class RestApiTest {
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
         MediaType.APPLICATION_JSON,
-        Optional.empty(),
+        Optional.of(configOverrides),
         Optional.of(requestProperties)
     );
 
@@ -937,8 +938,9 @@ public class RestApiTest {
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
     // Given:
+    Map<String, Object> configOverrides =  ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
     Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
 
     // When:
@@ -946,7 +948,7 @@ public class RestApiTest {
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        Optional.empty(),
+        Optional.of(configOverrides),
         Optional.of(requestProperties)
     );
 

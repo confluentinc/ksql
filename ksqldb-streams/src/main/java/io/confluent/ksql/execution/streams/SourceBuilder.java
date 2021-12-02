@@ -15,6 +15,8 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.extractHeader;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
@@ -29,6 +31,7 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -121,7 +124,8 @@ final class SourceBuilder extends SourceBuilderBase {
 
     return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
         keyGenerator,
-        streamSource.getPseudoColumnVersion()));
+        streamSource.getPseudoColumnVersion(),
+        streamSource.getSourceSchema().headers()));
   }
 
   @Override
@@ -230,15 +234,20 @@ final class SourceBuilder extends SourceBuilderBase {
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
     private final int pseudoColumnsToAdd;
+    private final List<Column> headerColumns;
 
     AddRemainingPseudoAndKeyCols(
-        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
+        final Function<K, Collection<?>> keyGenerator,
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
           .count();
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -289,6 +298,15 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.appendAll(keyColumns);
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
+          }
+
           return row;
         }
 

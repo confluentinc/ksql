@@ -40,6 +40,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,40 +123,44 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
       throw new IllegalStateException("Already ran consumer");
     }
     started = true;
-    initialize();
-    subscribeOrAssign();
-    while (!closed) {
-      final ConsumerRecords<?, GenericRow> records = consumer.poll(POLL_TIMEOUT);
-      // No assignment yet
-      if (this.topicPartitions.get() == null) {
-        continue;
-      }
-      if (records.isEmpty()) {
+    try {
+      initialize();
+      subscribeOrAssign();
+      while (!closed) {
+        final ConsumerRecords<?, GenericRow> records = consumer.poll(POLL_TIMEOUT);
+        // No assignment yet
+        if (this.topicPartitions.get() == null) {
+          continue;
+        }
+        if (records.isEmpty()) {
+          updateCurrentPositions();
+          onEmptyRecords();
+          continue;
+        }
+
+        if (newAssignment) {
+          newAssignment = false;
+          onNewAssignment();
+        }
+
+        for (ConsumerRecord<?, GenericRow> rec : records) {
+          handleRow(rec.key(), rec.value(), rec.timestamp());
+        }
+
         updateCurrentPositions();
-        onEmptyRecords();
-        continue;
-      }
+        try {
+          consumer.commitSync();
+          final Map<TopicPartition, OffsetAndMetadata> offsets
+              = consumer.committed(new HashSet<>(topicPartitions.get()));
+          latestCommittedOffsets.set(ImmutableMap.copyOf(offsets));
+        } catch (CommitFailedException e) {
+          LOG.warn("Failed to commit, likely due to rebalance.  Will wait for new assignment", e);
+        }
 
-      if (newAssignment) {
-        newAssignment = false;
-        onNewAssignment();
+        afterCommit();
       }
-
-      for (ConsumerRecord<?, GenericRow> rec : records) {
-        handleRow(rec.key(), rec.value(), rec.timestamp());
-      }
-
-      updateCurrentPositions();
-      try {
-        consumer.commitSync();
-        final Map<TopicPartition, OffsetAndMetadata> offsets
-            = consumer.committed(new HashSet<>(topicPartitions.get()));
-        latestCommittedOffsets.set(ImmutableMap.copyOf(offsets));
-      } catch (CommitFailedException e) {
-        LOG.warn("Failed to commit, likely due to rebalance.  Will wait for new assignment", e);
-      }
-
-      afterCommit();
+    } catch (WakeupException e) {
+      // This is expected when we get closed.
     }
   }
 
@@ -209,6 +214,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     for (final ProcessingQueue processingQueue : processingQueues.values()) {
       processingQueue.close();
     }
+    consumer.wakeup();
   }
 
   public boolean isClosed() {

@@ -41,8 +41,11 @@ import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.ex
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.expectPollW;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyRows;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyRowsW;
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -54,7 +57,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.query.QueryId;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -224,6 +230,32 @@ public class ScalablePushConsumerTest {
       assertThat(consumer.getNewAssignment(), is (0));
       assertThat(consumer.getAfterCommit(), is (0));
       assertThat(consumer.getEmptyRecords(), is (1));
+    }
+  }
+
+  @Test
+  public void shouldRunConsumer_closeAsync() {
+    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    AtomicReference<TestScalablePushConsumer> ref = new AtomicReference<>();
+    try {
+      when(kafkaConsumer.poll(any())).thenAnswer(a -> EMPTY_RECORDS);
+      executorService.submit(() -> {
+        try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
+            null)) {
+          ref.set(consumer);
+
+          consumer.register(queue);
+
+          consumer.run();
+          ref.set(null);
+        }
+      });
+
+      assertThatEventually(ref::get, notNullValue());
+      ref.get().closeAsync();
+      assertThatEventually(ref::get, nullValue());
+    } finally {
+      executorService.shutdownNow();
     }
   }
 

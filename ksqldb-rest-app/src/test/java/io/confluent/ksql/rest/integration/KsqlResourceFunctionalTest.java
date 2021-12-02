@@ -46,6 +46,7 @@ import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -172,7 +173,7 @@ public class KsqlResourceFunctionalTest {
     );
 
     final SchemaTranslator translator = new AvroFormat()
-        .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value"));
+        .getSchemaTranslator(ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "books_value"));
 
     final ParsedSchema keySchema = translator.toParsedSchema(
         PersistenceSchema.from(

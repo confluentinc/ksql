@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.Set;
@@ -44,6 +45,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.lang3.text.translate.LookupTranslator;
+import org.apache.logging.log4j.util.Strings;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ParserUtil {
@@ -235,5 +237,28 @@ public final class ParserUtil {
     final Set<String> allVocab = ParserKeywordValidatorUtil.getKsqlReservedWords();
 
     return allVocab.contains(token.toLowerCase());
+  }
+
+  public static ColumnConstraints getColumnConstraints(
+      final SqlBaseParser.ColumnConstraintsContext context
+  ) {
+    if (context == null) {
+      return ColumnConstraints.NO_COLUMN_CONSTRAINTS;
+    }
+
+    ColumnConstraints.Builder builder = new ColumnConstraints.Builder();
+    if (context.KEY() != null) {
+      if (context.PRIMARY() != null) {
+        builder = builder.primaryKey();
+      } else {
+        builder = builder.key();
+      }
+    } else if (context.HEADERS() != null) {
+      builder = builder.headers();
+    } else if (context.HEADER() != null) {
+      builder = builder.header(Strings.trimToNull(unquote(context.STRING().getText(), "'")));
+    }
+
+    return builder.build();
   }
 }

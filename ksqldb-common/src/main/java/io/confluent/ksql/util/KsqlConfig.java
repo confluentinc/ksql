@@ -312,6 +312,12 @@ public class KsqlConfig extends AbstractConfig {
           + "queries.";
   public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
+          = "ksql.query.pull.limit.clause.enabled";
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+          = "Enables the use of LIMIT clause in pull queries";
+  public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -466,6 +472,16 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
           + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";
 
+  public static final String KSQL_HEADERS_COLUMNS_ENABLED =
+      "ksql.headers.columns.enabled";
+  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = false;
+  public static final String KSQL_HEADERS_COLUMNS_ENABLED_DOC =
+      "Feature flag that allows the use of kafka headers columns on streams and tables. "
+          + "If false, the HEADERS and HEADER(<key>) columns constraints won't be allowed "
+          + "in CREATE statements. Current CREATE statements found in the KSQL command topic "
+          + "that contains headers columns will work with the headers functionality to prevent "
+          + "a degraded command topic situation when restarting ksqlDB.";
+
   public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
       "ksql.source.table.materialization.enabled";
   private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
@@ -535,6 +551,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
       = "Enable variable substitution on SQL statements.";
+
+  public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS
+      = "ksql.query.cleanup.shutdown.timeout.ms";
+  public static final long KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT = 30000;
+  public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
+      = "The total time that the query cleanup spends trying to clean things up on shutdown.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1021,6 +1043,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC
         )
         .define(
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+        )
+        .define(
             KSQL_QUERY_PUSH_V2_ENABLED,
             Type.BOOLEAN,
             KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT,
@@ -1178,6 +1207,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS,
+            Type.LONG,
+            KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_HEADERS_COLUMNS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_HEADERS_COLUMNS_ENABLED_DOC
         )
         .withClientSslSupport();
 

@@ -39,6 +39,8 @@ public final class CommonCreateConfigs {
 
   // Persistence Props:
   public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
+  public static final String KEY_SCHEMA_FULL_NAME = "KEY_SCHEMA_FULL_NAME";
+  public static final String VALUE_SCHEMA_FULL_NAME = "VALUE_SCHEMA_FULL_NAME";
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String KEY_FORMAT_PROPERTY = "KEY_FORMAT";
   public static final String FORMAT_PROPERTY = "FORMAT";
@@ -126,7 +128,21 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.LOW,
-            "The fully qualified name of the Avro schema to use"
+            "The fully qualified name of the Avro schema to use for value"
+        )
+        .define(
+            KEY_SCHEMA_FULL_NAME,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "The fully qualified name of the schema to use"
+        )
+        .define(
+            VALUE_SCHEMA_FULL_NAME,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "The fully qualified name of the schema to use"
         )
         .define(
             KEY_DELIMITER_PROPERTY,
@@ -177,22 +193,35 @@ public final class CommonCreateConfigs {
 
   public static void validateKeyValueFormats(final Map<String, Object> configs) {
     final Object value = configs.get(FORMAT_PROPERTY);
-    if (value == null) {
+    if (value != null) {
+      if (configs.get(KEY_FORMAT_PROPERTY) != null) {
+        throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
+            + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY
+            + "' sets both key and value "
+            + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+            + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+      }
+      if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
+        throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
+            + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY
+            + "' sets both key and value "
+            + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+            + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+      }
+    }
+
+    final Object avroValueSchemaFullName = configs.get(VALUE_AVRO_SCHEMA_FULL_NAME);
+    if (avroValueSchemaFullName == null) {
       return;
     }
 
-    if (configs.get(KEY_FORMAT_PROPERTY) != null) {
-      throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
-          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
-          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
-          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+    final Object valueSchemaFullName = configs.get(VALUE_SCHEMA_FULL_NAME);
+    if (valueSchemaFullName != null) {
+      throw new KsqlException("Cannot supply both '" + VALUE_AVRO_SCHEMA_FULL_NAME + "' and '"
+          + VALUE_SCHEMA_FULL_NAME + "' properties. Please only set '" + VALUE_SCHEMA_FULL_NAME
+          + "'.");
     }
-    if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
-      throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
-          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
-          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
-          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
-    }
+
   }
 
   private CommonCreateConfigs() {

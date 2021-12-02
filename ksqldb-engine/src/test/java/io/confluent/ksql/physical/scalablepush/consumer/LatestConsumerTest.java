@@ -52,6 +52,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -128,6 +130,37 @@ public class LatestConsumerTest {
       when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
           ImmutableMap.of(TP0, new OffsetAndTimestamp(2L, 30000L),
               TP1, new OffsetAndTimestamp(2L, 30000L))
+      );
+      when(kafkaConsumer.committed(ImmutableSet.of(TP0, TP1))).thenReturn(
+          ImmutableMap.of(TP0, new OffsetAndMetadata(1L),
+              TP1, new OffsetAndMetadata(1L))
+      );
+
+      consumer.register(queue);
+      consumer.run();
+
+      verify(kafkaConsumer).seekToEnd(ImmutableSet.of(TP0, TP1));
+      verifyRows(
+          queue,
+          ImmutableList.of(RECORD0_2, RECORD0_3, RECORD1_2, RECORD1_3));
+      assertThat(consumer.getCurrentOffsets(), is(ImmutableMap.of(TP0, 4L, TP1, 4L)));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldRunConsumer_seekToEnd_noTimestamps() {
+    try (LatestConsumer consumer = new LatestConsumer(
+        TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
+        catchupAssignmentUpdater, ksqlConfig, clock)) {
+      expectPoll(kafkaConsumer, consumer, RECORDS_FROM_OFFSET2, EMPTY_RECORDS);
+      when(kafkaConsumer.position(TP0)).thenReturn(1L, 4L);
+      when(kafkaConsumer.position(TP1)).thenReturn(1L, 4L);
+      Map<TopicPartition, OffsetAndTimestamp> timestamps = new HashMap<>();
+      timestamps.put(TP0, null);
+      timestamps.put(TP1, null);
+      when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
+          timestamps
       );
       when(kafkaConsumer.committed(ImmutableSet.of(TP0, TP1))).thenReturn(
           ImmutableMap.of(TP0, new OffsetAndMetadata(1L),

@@ -79,12 +79,14 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       return;
     }
 
+    final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
         queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
         context, server.getWorkerExecutor(),
-        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder)
+        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder,
+        internalRequest)
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;

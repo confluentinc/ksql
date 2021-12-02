@@ -127,11 +127,13 @@ tableElements
     ;
 
 tableElement
-    : identifier type (((PRIMARY)? KEY) | headerType)?
+    : identifier type columnConstraints?
     ;
 
-headerType
-    : HEADERS
+columnConstraints
+    : ((PRIMARY)? KEY)
+    | HEADERS
+    | HEADER '(' STRING ')'
     ;
 
 tableProperties
@@ -543,6 +545,7 @@ ALTER: 'ALTER';
 VARIABLES: 'VARIABLES';
 PLUGINS: 'PLUGINS';
 HEADERS: 'HEADERS';
+HEADER: 'HEADER';
 
 IF: 'IF';
 

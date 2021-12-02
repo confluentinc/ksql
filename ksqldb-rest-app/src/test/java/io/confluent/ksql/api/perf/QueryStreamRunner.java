@@ -106,7 +106,8 @@ public class QueryStreamRunner extends BasePerfRunner {
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
-        final MetricsCallbackHolder metricsCallbackHolder) {
+        final MetricsCallbackHolder metricsCallbackHolder,
+        final Optional<Boolean> isInternalRequest) {
       QueryStreamPublisher publisher = new QueryStreamPublisher(context,
           server.getWorkerExecutor());
       publisher.setQueryHandle(new TestQueryHandle(), false, false);

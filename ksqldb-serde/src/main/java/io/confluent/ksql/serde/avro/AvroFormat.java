@@ -37,8 +37,6 @@ public final class AvroFormat extends ConnectFormat {
       SerdeFeature.UNWRAP_SINGLES
   );
 
-  public static final String FULL_SCHEMA_NAME = AvroProperties.FULL_SCHEMA_NAME;
-
   public static final String NAME = "AVRO";
 
   @Override

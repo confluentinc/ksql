@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Test;
 
@@ -50,7 +50,7 @@ public class FormatFactoryTest {
   @Test
   public void shouldThrowOnNonAvroWithAvroSchemaName() {
     // Given:
-    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "foo"));
+    final FormatInfo format = FormatInfo.of("JSON", ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, "foo"));
 
     // When:
     final Exception e = assertThrows(
@@ -65,7 +65,7 @@ public class FormatFactoryTest {
   @Test
   public void shouldThrowOnEmptyAvroSchemaName() {
     // Given:
-    final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, " "));
+    final FormatInfo format = FormatInfo.of("AVRO", ImmutableMap.of(ConnectProperties.FULL_SCHEMA_NAME, " "));
 
     // When:
     final Exception e = assertThrows(
@@ -135,10 +135,16 @@ public class FormatFactoryTest {
   @Test
   public void shouldNotThrowWhenCreatingFromSupportedProperty() {
     // Given:
-    final FormatInfo formatInfo = FormatInfo.of("AVRO", ImmutableMap.of("fullSchemaName", "1"));
+    final FormatInfo avroFormatInfo = FormatInfo.of("AVRO",
+        ImmutableMap.of("schemaId", "1", "fullSchemaName", "avroName"));
+    final FormatInfo protobufFormatInfo = FormatInfo.of("PROTOBUF",
+        ImmutableMap.of("schemaId", "1", "fullSchemaName", "protoName"));
+    final FormatInfo jsonSRFormatInfo = FormatInfo.of("JSON_SR",
+        ImmutableMap.of("schemaId", "123", "fullSchemaName", "jsonName"));
 
     // When: Then:
-    assertThat(FormatFactory.of(formatInfo), is(FormatFactory.AVRO));
+    assertThat(FormatFactory.of(avroFormatInfo), is(FormatFactory.AVRO));
+    assertThat(FormatFactory.of(protobufFormatInfo), is(FormatFactory.PROTOBUF));
+    assertThat(FormatFactory.of(jsonSRFormatInfo), is(FormatFactory.JSON_SR));
   }
-
 }

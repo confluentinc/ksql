@@ -76,7 +76,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "KEY_FORMAT should support schema inference when KEY_SCHEMA_ID is provided. Current format is KAFKA."
+        "message": "KAFKA does not support the following configs: [schemaId]"
       }
     },
     {
@@ -95,7 +95,45 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "VALUE_FORMAT should support schema inference when VALUE_SCHEMA_ID is provided. Current format is KAFKA."
+        "message": "KAFKA does not support the following configs: [schemaId]"
+      }
+    },
+    {
+      "name": "validate key schema id with table elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT (`c3` INT KEY) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', key_schema_id=1);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; int32 c2 = 2;}",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Table elements and KEY_SCHEMA_ID cannot both exist for create statement."
+      }
+    },
+    {
+      "name": "validate value schema id with table elements FAILS",
+      "statements": [
+        "CREATE STREAM INPUT (`c1` INT, `c2` INT) WITH (kafka_topic='input', key_format='protobuf', value_format='protobuf', value_schema_id=2);"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1;}",
+          "valueFormat": "PROTOBUF",
+          "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c0 = 1; }",
+          "keyFormat": "PROTOBUF"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Table elements and VALUE_SCHEMA_ID cannot both exist for create statement."
       }
     },
     {
@@ -1146,7 +1184,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Tables require a PRIMARY KEY. Please define the PRIMARY KEY.\nUse a partial schema to define the primary key and still load the value columns from the Schema Registry, for example:\n\tCREATE TABLE INPUT (ID INT PRIMARY KEY) WITH (...);"
+        "message": "Tables require a PRIMARY KEY. Please define the PRIMARY KEY."
       }
     },
     {

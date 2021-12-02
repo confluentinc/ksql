@@ -19,6 +19,7 @@ import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,6 +48,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -109,6 +111,8 @@ public class InsertValuesExecutorTest {
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName INT_COL = ColumnName.of("INT");
+  private static final ColumnName HEAD0 = ColumnName.of("HEAD0");
+  private static final ColumnName HEAD1 = ColumnName.of("HEAD1");
 
   private static final LogicalSchema SINGLE_VALUE_COLUMN_SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
@@ -119,6 +123,21 @@ public class InsertValuesExecutorTest {
       .keyColumn(K0, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(COL1, SqlTypes.BIGINT)
+      .build();
+
+  private static final LogicalSchema SCHEMA_WITH_HEADERS = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(COL1, SqlTypes.BIGINT)
+      .headerColumn(HEAD0, Optional.empty())
+      .build();
+
+  private static final LogicalSchema SCHEMA_WITH_KEY_HEADERS = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(COL1, SqlTypes.BIGINT)
+      .headerColumn(HEAD0, Optional.of("a"))
+      .headerColumn(HEAD1, Optional.of("b"))
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
@@ -1114,6 +1133,99 @@ public class InsertValuesExecutorTest {
     assertThat(e.getMessage(), containsString(
         "Authorization denied to Write on Schema Registry subject: ["
             + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
+  }
+
+  @Test
+  public void shouldThrowOnInsertHeaders() {
+    // Given:
+    givenSourceStreamWithSchema(SCHEMA_WITH_HEADERS, SerdeFeatures.of(), SerdeFeatures.of());
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allColumnNames(SCHEMA_WITH_HEADERS),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L),
+            new NullLiteral()
+        )
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot insert into HEADER columns: HEAD0"));
+  }
+
+  @Test
+  public void shouldThrowOnInsertKeyHeaders() {
+    // Given:
+    givenSourceStreamWithSchema(SCHEMA_WITH_KEY_HEADERS, SerdeFeatures.of(), SerdeFeatures.of());
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allColumnNames(SCHEMA_WITH_KEY_HEADERS),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L),
+            new NullLiteral(),
+            new NullLiteral()
+        )
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot insert into HEADER columns: HEAD0, HEAD1"));
+  }
+
+  @Test
+  public void shouldInsertValuesIntoHeaderSchemaValueColumns() {
+    // Given:
+    givenSourceStreamWithSchema(SCHEMA_WITH_HEADERS, SerdeFeatures.of(), SerdeFeatures.of());
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L)
+        )
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldThrowOnInsertAllWithHeaders() {
+    // Given:
+    givenSourceStreamWithSchema(SCHEMA_WITH_HEADERS, SerdeFeatures.of(), SerdeFeatures.of());
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L),
+            new NullLiteral()
+        )
+    );
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot insert into HEADER columns: HEAD0"));
   }
 
   private static ConfiguredStatement<InsertValues> givenInsertValues(

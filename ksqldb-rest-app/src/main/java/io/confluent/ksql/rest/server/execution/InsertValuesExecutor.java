@@ -29,6 +29,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -50,12 +51,14 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hc.core5.http.HttpStatus;
@@ -144,6 +147,8 @@ public class InsertValuesExecutor {
 
     final DataSource dataSource = getDataSource(config, metaStore, insertValues);
 
+    validateInsert(insertValues.getColumns(), dataSource);
+
     final ProducerRecord<byte[], byte[]> record =
         buildRecord(statement, metaStore, dataSource, serviceContext);
 
@@ -161,6 +166,25 @@ public class InsertValuesExecutor {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
+    }
+  }
+
+  private void validateInsert(final List<ColumnName> columns, final DataSource dataSource) {
+    final List<String> headerColumns;
+    if (columns.isEmpty()) {
+      headerColumns = dataSource.getSchema().headers()
+          .stream()
+          .map(column -> column.name().text())
+          .collect(Collectors.toList());
+    } else {
+      headerColumns = columns.stream()
+          .filter(columnName -> dataSource.getSchema().isHeaderColumn(columnName))
+          .map(ColumnName::text)
+          .collect(Collectors.toList());
+    }
+    if (!headerColumns.isEmpty()) {
+      throw new KsqlException("Cannot insert into HEADER columns: "
+          + String.join(", ", headerColumns));
     }
   }
 

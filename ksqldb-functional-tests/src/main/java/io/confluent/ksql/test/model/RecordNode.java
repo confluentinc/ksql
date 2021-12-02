@@ -226,7 +226,8 @@ public final class RecordNode {
       final Optional<List<TestHeader>> headers = JsonParsingUtil
           .getOptional("headers", node, jp, new TypeReference<List<TestHeader>>() {});
 
-      return new RecordNode(topic, key.orElse(NullNode.getInstance()), value, timestamp, window, headers);
+      return new RecordNode(
+          topic, key.orElse(NullNode.getInstance()), value, timestamp, window, headers);
     }
   }
 

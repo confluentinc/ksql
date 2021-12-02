@@ -193,6 +193,7 @@ public class PullQueryQueue implements BlockingRowQueue {
     }
 
     if (row.getConsistencyOffsetVector().isPresent()) {
+      LOG.info("Poll consistency vector from queue " + row.getConsistencyOffsetVector());
       return new KeyValueMetadata<>(new RowMetadata(
           Optional.empty(), row.getConsistencyOffsetVector()));
     }
@@ -248,6 +249,7 @@ public class PullQueryQueue implements BlockingRowQueue {
 
   public void putConsistencyVector(final ConsistencyOffsetVector consistencyOffsetVector) {
     try {
+      LOG.info("Push consistency token to queue " + consistencyOffsetVector);
       rowQueue.put(new PullQueryRow(null, null, null, Optional.of(consistencyOffsetVector)));
     } catch (InterruptedException e) {
       LOG.error("Interrupted while trying to put consistency token into queue", e);

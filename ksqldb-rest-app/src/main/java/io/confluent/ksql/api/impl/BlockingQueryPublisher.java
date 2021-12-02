@@ -157,21 +157,29 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     });
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @SuppressFBWarnings(
       value = "IS2_INCONSISTENT_SYNC",
       justification = "Vert.x ensures this is executed on event loop only")
   private void doSend() {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     checkContext();
     int num = 0;
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
         if (complete && isPullQuery && !addedCT.get()) {
+          if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+            log.info("Publisher add consistency token to queue");
+          }
           queryHandle.getConsistencyOffsetVector().ifPresent(
               ((PullQueryQueue)queue)::putConsistencyVector);
           addedCT.set(true);
         }
         if (complete && queue.isEmpty()) {
+          if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+            log.info("Publisher send complete flag");
+          }
           ctx.runOnContext(v -> sendComplete());
         }
         num++;

@@ -559,7 +559,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
 
-    verifyPullQueryRows(batchedQueryResult.get());
+    verifyPullQueryRows(batchedQueryResult.get()); 
   }
 
   @Test

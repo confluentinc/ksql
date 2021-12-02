@@ -84,17 +84,20 @@ public class SchemaRegisterInjector implements Injector {
     final CreateSource statement = cs.getStatement();
     final LogicalSchema schema = statement.getElements().toLogicalSchema();
 
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(
+    final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
         statement.getProperties(), statement.getName());
+    final Format keyFormat = tryGetFormat(keyFormatInfo, true, cs.getStatementText());
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
-        FormatFactory.of(keyFormat)
+        keyFormat
     );
 
-    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(statement.getProperties());
+    final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(
+        statement.getProperties());
+    final Format valueFormat = tryGetFormat(valueFormatInfo, false, cs.getStatementText());
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
-        FormatFactory.of(valueFormat),
+        valueFormat,
         statement.getProperties().getValueSerdeFeatures(),
         cs.getSessionConfig().getConfig(false)
     );
@@ -108,14 +111,34 @@ public class SchemaRegisterInjector implements Injector {
         schema,
         Pair.of(rawKeySchema, rawValueSchema),
         statement.getProperties().getKafkaTopic(),
-        keyFormat,
+        keyFormatInfo,
         keyFeatures,
-        valueFormat,
+        valueFormatInfo,
         valFeatures,
         cs.getSessionConfig().getConfig(false),
         cs.getStatementText(),
         false
     );
+  }
+
+  private static Format tryGetFormat(
+      final FormatInfo formatInfo,
+      final boolean isKey,
+      final String statementText
+  ) {
+    try {
+      return FormatFactory.of(formatInfo);
+    } catch (KsqlException e) {
+      if (e.getMessage().contains("does not support the following configs: [schemaId]")) {
+        final String idMsg =
+            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+        throw new KsqlStatementException(
+            idMsg + " is provided but format " + formatInfo.getFormat()
+                + " doesn't support registering in Schema Registry",
+            statementText, e);
+      }
+      throw e;
+    }
   }
 
   private void registerForCreateAs(final ConfiguredStatement<? extends CreateAsSelect> cas) {
@@ -195,7 +218,7 @@ public class SchemaRegisterInjector implements Injector {
       );
     }
 
-    // Do all santity checks before register anything
+    // Do all sanity checks before register anything
     if (registerRawKey) {
       // validate
       sanityCheck(kvRawSchema.left, keyFormat, kafkaTopic, config, statementText, true);

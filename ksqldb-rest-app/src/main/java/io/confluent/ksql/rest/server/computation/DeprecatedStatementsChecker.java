@@ -32,8 +32,8 @@ import java.util.Optional;
 
 public class DeprecatedStatementsChecker {
   public enum Deprecations {
-    DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE(
-        "DEPRECATION NOTICE: Left/Outer stream-stream joins statements without a GRACE PERIOD "
+    DEPRECATED_STREAM_STREAM_JOIN_WITH_NO_GRACE(
+        "DEPRECATION NOTICE: Stream-stream joins statements without a GRACE PERIOD "
             + "will not be accepted in a future ksqlDB version.\n"
             + "Please use the GRACE PERIOD clause as specified in "
             + "https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/"
@@ -59,7 +59,7 @@ public class DeprecatedStatementsChecker {
 
   public Optional<Deprecations> checkStatement(final Statement statement) {
     if (isStreamStreamJoinWithoutGraceStatement(statement)) {
-      return Optional.of(Deprecations.DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE);
+      return Optional.of(Deprecations.DEPRECATED_STREAM_STREAM_JOIN_WITH_NO_GRACE);
     }
 
     return Optional.empty();

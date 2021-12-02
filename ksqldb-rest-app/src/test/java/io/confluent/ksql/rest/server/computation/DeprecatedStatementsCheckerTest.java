@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import static io.confluent.ksql.rest.server.computation.DeprecatedStatementsChecker.Deprecations.DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE;
+import static io.confluent.ksql.rest.server.computation.DeprecatedStatementsChecker.Deprecations.DEPRECATED_STREAM_STREAM_JOIN_WITH_NO_GRACE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -219,7 +219,7 @@ public class DeprecatedStatementsCheckerTest {
         statementsChecker.checkStatement(statement);
 
     // Then
-    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_OUTER_JOIN_WITH_NO_GRACE)));
+    assertThat(deprecations, is(Optional.of(DEPRECATED_STREAM_STREAM_JOIN_WITH_NO_GRACE)));
   }
 
   private void checkNoDeprecatedStatement(final String statementText) {

@@ -68,9 +68,11 @@ public final class BytesUtils {
   );
 
   public static ByteOrder byteOrderType(final String byteOrderStr) {
-    if (byteOrderStr.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
+    if (byteOrderStr != null
+        && byteOrderStr.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
       return ByteOrder.BIG_ENDIAN;
-    } else if (byteOrderStr.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
+    } else if (byteOrderStr != null
+        && byteOrderStr.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
       return ByteOrder.LITTLE_ENDIAN;
     } else {
       throw new KsqlException(String.format(

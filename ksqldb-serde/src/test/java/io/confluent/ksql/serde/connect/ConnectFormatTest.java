@@ -140,7 +140,7 @@ public class ConnectFormatTest {
   public void shouldGetFullSchemaName() {
     // Given:
     when(format.getSupportedProperties()).thenReturn(ImmutableSet.of(ConnectProperties.FULL_SCHEMA_NAME));
-    when(format.getConnectProperties(any())).thenReturn(connectProperties);
+    when(format.asConnectProperties(any())).thenReturn(connectProperties);
     when(connectProperties.getFullSchemaName()).thenReturn("SomeSchemaName");
     final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);
     when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
@@ -150,7 +150,7 @@ public class ConnectFormatTest {
 
     // Then:
     verify(format, times(1)).getSupportedProperties();
-    verify(format, times(1)).getConnectProperties(formatProps);
+    verify(format, times(1)).asConnectProperties(formatProps);
     verify(connectProperties, times(1)).getFullSchemaName();
   }
 
@@ -230,7 +230,7 @@ public class ConnectFormatTest {
     }
 
     @Override
-    protected ConnectProperties getConnectProperties(final Map<String, String> props) {
+    protected ConnectProperties asConnectProperties(final Map<String, String> props) {
       return null;
     }
   }

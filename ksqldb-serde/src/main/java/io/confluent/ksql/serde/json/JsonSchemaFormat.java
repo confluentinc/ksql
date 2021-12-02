@@ -70,7 +70,7 @@ public class JsonSchemaFormat extends ConnectFormat {
   }
 
   @Override
-  protected ConnectProperties getConnectProperties(final Map<String, String> properties) {
+  protected ConnectProperties asConnectProperties(final Map<String, String> properties) {
     return new JsonSchemaProperties(properties);
   }
 

@@ -51,7 +51,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
       final ConnectKsqlSchemaTranslator connectKsqlSchemaTranslator
   ) {
     this.format = requireNonNull(format, "format");
-    this.connectProperties = this.format.getConnectProperties(formatProps);
+    this.connectProperties = this.format.asConnectProperties(formatProps);
     this.connectSrTranslator = requireNonNull(format.getConnectSchemaTranslator(formatProps));
     this.connectKsqlTranslator = requireNonNull(connectKsqlSchemaTranslator);
   }

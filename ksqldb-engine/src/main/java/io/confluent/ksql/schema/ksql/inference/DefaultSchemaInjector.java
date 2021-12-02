@@ -218,8 +218,8 @@ public class DefaultSchemaInjector implements Injector {
         : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
     final String schemaIdName =
         isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
-    final String formatPropMsg = String.format("%s should support schema inference when %s is provided. "
-        + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
+    final String formatPropMsg = String.format("%s should support schema inference when %s is "
+        + "provided. Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
 
     final Format format;
     try {

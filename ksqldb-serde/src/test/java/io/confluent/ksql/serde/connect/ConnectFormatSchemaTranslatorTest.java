@@ -77,7 +77,7 @@ public class ConnectFormatSchemaTranslatorTest {
     when(connectSchema.type()).thenReturn(Type.STRUCT);
 
     when(format.getConnectSchemaTranslator(any())).thenReturn(innerTranslator);
-    when(format.getConnectProperties(anyMap())).thenAnswer(
+    when(format.asConnectProperties(anyMap())).thenAnswer(
         i -> new AvroProperties((Map<String, String>) i.getArguments()[0]));
 
     translator = new ConnectFormatSchemaTranslator(format, formatProps, connectKsqlTranslator);

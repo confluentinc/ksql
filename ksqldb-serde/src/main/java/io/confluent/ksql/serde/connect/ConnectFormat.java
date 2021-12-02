@@ -85,7 +85,7 @@ public abstract class ConnectFormat implements Format {
 
     final String schemaName;
     if (getSupportedProperties().contains(ConnectProperties.FULL_SCHEMA_NAME)) {
-      schemaName = getConnectProperties(formatProps).getFullSchemaName();
+      schemaName = asConnectProperties(formatProps).getFullSchemaName();
     } else {
       schemaName = null;
     }
@@ -155,7 +155,7 @@ public abstract class ConnectFormat implements Format {
       boolean isKey
   );
 
-  protected abstract ConnectProperties getConnectProperties(Map<String, String> properties);
+  protected abstract ConnectProperties asConnectProperties(Map<String, String> properties);
 
   private static class ListToStructSerializer implements Serializer<List<?>> {
 

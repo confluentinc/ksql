@@ -739,8 +739,8 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < numRows; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-//      StreamedRow sr = StreamedRow.pushRow(row);
-//      expectedResponse.add(sr);
+      StreamedRow sr = StreamedRow.pushRow(row);
+      expectedResponse.add(sr);
     }
     if (limitReached) {
       expectedResponse.add(StreamedRow.finalMessage("Limit reached"));

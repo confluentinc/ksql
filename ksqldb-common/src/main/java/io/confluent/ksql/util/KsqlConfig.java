@@ -377,6 +377,13 @@ public class KsqlConfig extends AbstractConfig {
       "The maximum number of concurrent catchup consumers.";
   public static final int KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT = 5;
 
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW
+      = "ksql.query.push.v2.catchup.consumer.msg.window";
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC =
+      "How close the catchup consumer must be to the latest before it will stop the latest to join"
+          + " with it.";
+  public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -1116,6 +1123,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

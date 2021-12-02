@@ -141,7 +141,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     try {
       initialize();
       subscribeOrAssign();
-      while (!isClosed()) {
+      while (!closed) {
         final ConsumerRecords<?, GenericRow> records = consumer.poll(POLL_TIMEOUT);
         // No assignment yet
         if (this.topicPartitions.get() == null) {
@@ -262,7 +262,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
     consumer.wakeup();
   }
 
-  public synchronized boolean isClosed() {
+  public boolean isClosed() {
     return closed;
   }
 

@@ -16,13 +16,18 @@
 package io.confluent.ksql.schema.registry;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.serializers.protobuf.AbstractKafkaProtobufSerializer;
+import io.confluent.kafka.serializers.subject.DefaultReferenceSubjectNameStrategy;
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -94,14 +99,12 @@ public final class SchemaRegistryUtil {
     }
   }
 
-
   public static boolean subjectExists(
       final SchemaRegistryClient srClient,
       final String subject
   ) {
     return getLatestSchema(srClient, subject).isPresent();
   }
-
 
   public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
@@ -230,5 +233,42 @@ public final class SchemaRegistryUtil {
     }
   }
 
+  public static int registerSchema(
+      final SchemaRegistryClient srClient,
+      final ParsedSchema parsedSchema,
+      final String topic,
+      final String subject,
+      final boolean isKey
+  ) throws KsqlSchemaAuthorizationException, KsqlException {
+    try {
+      if (parsedSchema instanceof ProtobufSchema) {
+        final ProtobufSchema resolved = AbstractKafkaProtobufSerializer.resolveDependencies(
+            srClient,
+            true,
+            false,
+            true,
+            null,
+            new DefaultReferenceSubjectNameStrategy(),
+            topic,
+            isKey,
+            (ProtobufSchema) parsedSchema
+        );
+        return srClient.register(subject, resolved);
+      } else {
+        return srClient.register(subject, parsedSchema);
+      }
+    } catch (IOException | RestClientException e) {
+      if (SchemaRegistryUtil.isAuthErrorCode(e)) {
+        final AclOperation deniedOperation = SchemaRegistryUtil.getDeniedOperation(e.getMessage());
 
+        if (deniedOperation != AclOperation.UNKNOWN) {
+          throw new KsqlSchemaAuthorizationException(
+              deniedOperation,
+              subject);
+        }
+      }
+
+      throw new KsqlException("Could not register schema for topic: " + e.getMessage(), e);
+    }
+  }
 }

@@ -1,5 +1,6 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
+import static io.confluent.ksql.physical.scalablepush.consumer.CatchupConsumer.WAIT_FOR_ASSIGNMENT_MS;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.EMPTY_RECORDS;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_1;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_2;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.PushOffsetVector;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -62,6 +64,8 @@ public class CatchupConsumerTest {
   private LatestConsumer latestConsumer;
   @Mock
   private Consumer<Long> sleepFn;
+  @Mock
+  private BiConsumer<Object, Long> waitFn;
 
   private CatchupCoordinatorImpl catchupCoordinator = new CatchupCoordinatorImpl();
 
@@ -94,11 +98,12 @@ public class CatchupConsumerTest {
         new PushOffsetVector(ImmutableList.of(1L, 2L)));
     when(latestConsumer.getAssignment()).thenReturn(null);
     AtomicReference<CatchupConsumer> cRef = new AtomicReference<>();
-    // Rather than sleep, simulate the latest getting an assignment
-    final Consumer<Long> sleepFn = sleep -> cRef.get().newAssignment(ImmutableSet.of(TP0, TP1));
+    // Rather than wait, simulate the latest getting an assignment
+    final BiConsumer<Object, Long> waitFn = (o, wait) ->
+        cRef.get().newAssignment(ImmutableSet.of(TP0, TP1));
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn)) {
+        offsetRange, clock, sleepFn, waitFn)) {
       cRef.set(consumer);
 
       runSuccessfulTest(consumer);
@@ -112,10 +117,11 @@ public class CatchupConsumerTest {
         new PushOffsetVector(ImmutableList.of(1L, 2L)));
     when(latestConsumer.getAssignment()).thenReturn(null);
     when(clock.millis()).thenReturn(
-        CURRENT_TIME_MS, CURRENT_TIME_MS + 10000, CURRENT_TIME_MS + 20000);
+        CURRENT_TIME_MS, CURRENT_TIME_MS + WAIT_FOR_ASSIGNMENT_MS -
+            1, CURRENT_TIME_MS + WAIT_FOR_ASSIGNMENT_MS + 1);
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn)) {
+        offsetRange, clock, sleepFn, waitFn)) {
 
       // When:
       consumer.register(queue);
@@ -138,7 +144,7 @@ public class CatchupConsumerTest {
     when(queue.isAtLimit()).thenReturn(false, true, true, false);
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn)) {
+        offsetRange, clock, sleepFn, waitFn)) {
 
       // When:
       consumer.register(queue);

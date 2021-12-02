@@ -554,7 +554,7 @@ public class PushRouting implements AutoCloseable {
     }
   }
 
-  private static class StreamSubscriber<T> extends BaseSubscriber<T> {
+  private static abstract class StreamSubscriber<T> extends BaseSubscriber<T> {
 
     protected final TransientQueryQueue transientQueryQueue;
     protected final CompletableFuture<Void> callback;
@@ -637,9 +637,7 @@ public class PushRouting implements AutoCloseable {
       return Optional.of(updatedToken);
     }
 
-    public String name() {
-      return "common";
-    }
+    public abstract String name();
   }
 
   /**

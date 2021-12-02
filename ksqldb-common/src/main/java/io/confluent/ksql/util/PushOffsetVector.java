@@ -30,7 +30,10 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * OffsetVector for push query continuation tokens.
+ * OffsetVector for push query continuation tokens. This class is similar to
+ * {@link ConsistencyOffsetVector} and it's possible that they will be merged in the future. They
+ * both represent offsets associated with a source topic, though they are serialized and
+ * deserialized a bit differently.
  */
 public class PushOffsetVector implements OffsetVector {
 

@@ -118,6 +118,14 @@ public class LatestConsumerTest {
       expectPoll(kafkaConsumer, consumer, RECORDS1, RECORDS2, EMPTY_RECORDS);
       when(kafkaConsumer.position(TP0)).thenReturn(0L, 2L, 3L);
       when(kafkaConsumer.position(TP1)).thenReturn(0L, 1L, 3L);
+      when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
+          ImmutableMap.of(TP0, new OffsetAndTimestamp(0L, 30000L),
+              TP1, new OffsetAndTimestamp(0L, 30000L))
+      );
+      when(kafkaConsumer.committed(ImmutableSet.of(TP0, TP1))).thenReturn(
+          ImmutableMap.of(TP0, new OffsetAndMetadata(0L),
+              TP1, new OffsetAndMetadata(0L))
+      );
 
       consumer.register(queue);
       consumer.run();

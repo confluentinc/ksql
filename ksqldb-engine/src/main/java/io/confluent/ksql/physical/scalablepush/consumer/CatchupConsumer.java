@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.scalablepush.consumer;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -41,12 +43,14 @@ import org.slf4j.LoggerFactory;
  */
 public class CatchupConsumer extends ScalablePushConsumer {
   private static final Logger LOG = LoggerFactory.getLogger(CatchupConsumer.class);
-  private static final long WAIT_FOR_ASSIGNMENT_MS = 15000;
+  @VisibleForTesting
+  static final long WAIT_FOR_ASSIGNMENT_MS = 15000;
 
   private final Supplier<LatestConsumer> latestConsumerSupplier;
   private final CatchupCoordinator catchupCoordinator;
   private final PushOffsetRange offsetRange;
   private final Consumer<Long> sleepMs;
+  private final BiConsumer<Object, Long> waitMs;
   private AtomicBoolean signalledLatest = new AtomicBoolean(false);
 
   public CatchupConsumer(
@@ -58,13 +62,15 @@ public class CatchupConsumer extends ScalablePushConsumer {
       final CatchupCoordinator catchupCoordinator,
       final PushOffsetRange offsetRange,
       final Clock clock,
-      final Consumer<Long> sleepMs
+      final Consumer<Long> sleepMs,
+      final BiConsumer<Object, Long> waitMs
   ) {
     super(topicName, windowed, logicalSchema, consumer, clock);
     this.latestConsumerSupplier = latestConsumerSupplier;
     this.catchupCoordinator = catchupCoordinator;
     this.offsetRange = offsetRange;
     this.sleepMs = sleepMs;
+    this.waitMs = waitMs;
   }
 
   public CatchupConsumer(
@@ -78,7 +84,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
       final Clock clock
   ) {
     this(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier, catchupCoordinator,
-        offsetRange, clock, CatchupConsumer::sleep);
+        offsetRange, clock, CatchupConsumer::sleep, CatchupConsumer::wait);
   }
 
   public interface CatchupConsumerFactory {
@@ -133,14 +139,16 @@ public class CatchupConsumer extends ScalablePushConsumer {
    * to wait for it to give us that assignment by calling {@link #newAssignment}
    * @return The assignment given by latest
    */
-  protected Set<TopicPartition> waitForNewAssignmentFromLatestConsumer() {
+  protected synchronized Set<TopicPartition> waitForNewAssignmentFromLatestConsumer() {
     final long startMs = clock.millis();
     Set<TopicPartition> tps = this.topicPartitions.get();
     while (tps == null) {
-      if (clock.millis() - startMs > WAIT_FOR_ASSIGNMENT_MS) {
+      final long timeMs = clock.millis();
+      final long elapsedMs = timeMs - startMs;
+      if (elapsedMs >= WAIT_FOR_ASSIGNMENT_MS) {
         throw new KsqlException("Timed out waiting for assignment from Latest");
       }
-      sleepMs.accept(100L);
+      waitMs.accept(this, WAIT_FOR_ASSIGNMENT_MS - elapsedMs);
       tps = this.topicPartitions.get();
     }
     return tps;
@@ -191,7 +199,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
       if (latestOffsets.isEmpty()) {
         return false;
       }
-      return caughtUp(latestOffsets, currentPositions);
+      return caughtUp(latestOffsets, currentPositions.get());
     };
 
     final Runnable switchOver = () -> {
@@ -243,6 +251,16 @@ public class CatchupConsumer extends ScalablePushConsumer {
     } catch (InterruptedException e) {
       LOG.warn("Interrupted while sleeping", e);
       Thread.currentThread().interrupt();
+    }
+  }
+
+  private static void wait(final Object object, final long waitMs) {
+    try {
+      object.wait(waitMs);
+    } catch (InterruptedException e) {
+      LOG.warn("Interrupted while sleeping", e);
+      Thread.currentThread().interrupt();
+      throw new KsqlException("Interrupted while waiting for assignment");
     }
   }
 }

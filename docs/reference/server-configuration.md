@@ -443,6 +443,13 @@ becomes `_confluent-ksql-default__command_topic`).
     separator character of some form, like a dash or underscore, as
     this makes the internal topic names easier to read.
 
+## `ksql.source.table.materialization.enabled`
+
+Controls whether the SOURCE table feature is enabled. If you specify the SOURCE
+clause when you create a table, you can execute pull queries against the table.
+For more information, see
+[SOURCE Tables](/developer-guide/ksqldb-reference/create-table/#source-tables).
+
 ## `ksql.streams.auto.offset.reset`
 
 Determines what to do when there is no initial offset in {{ site.aktm }}

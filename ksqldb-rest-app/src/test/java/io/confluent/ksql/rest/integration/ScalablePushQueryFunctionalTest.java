@@ -44,13 +44,18 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PushOffsetRange;
+import io.confluent.ksql.util.PushOffsetVector;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -216,6 +221,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -224,9 +230,7 @@ public class ScalablePushQueryFunctionalTest {
     TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
         FormatFactory.KAFKA, FormatFactory.JSON);
 
-    assertThatEventually(() -> {
-      return subscriber.getUniqueRows().size();
-        },
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + 1));
     List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
         .sorted(this::compareByTimestamp)
@@ -244,6 +248,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -281,6 +286,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -317,6 +323,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -356,6 +363,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -382,6 +390,35 @@ public class ScalablePushQueryFunctionalTest {
         is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_4", "PAGE_1", 10)))));
     assertThat(orderedRows.get(9),
         is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_0", "PAGE_5", 11)))));
+  }
+
+  @Test
+  public void shouldCatchupFromSomeToken() throws ExecutionException, InterruptedException {
+    assertAllPersistentQueriesRunning(true);
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    final PushOffsetRange range = new PushOffsetRange(
+        Optional.empty(), new PushOffsetVector(ImmutableList.of(0L, 0L)));
+    makeRequestAndSetupSubscriber(
+        "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
+        ImmutableMap.of("auto.offset.reset", "latest"),
+        ImmutableMap.of(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+            range.serialize()),
+        header, complete);
+
+    header.get();
+    assertExpectedScalablePushQueries(1, true);
+
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
+        is(pageViewDataProvider.data().size() + 1));
+    List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
+        .sorted(this::compareByTimestamp)
+        .collect(Collectors.toList());
+
+    assertFirstBatchOfRows(orderedRows);
   }
 
   private void assertFirstBatchOfRows(final List<StreamedRow> orderedRows) {
@@ -477,20 +514,22 @@ public class ScalablePushQueryFunctionalTest {
   private void makeRequestAndSetupSubscriber(
       final String sql,
       final Map<String, ?> properties,
+      final Map<String, ?> requestProperties,
       final CompletableFuture<StreamedRow> header,
       final CompletableFuture<List<StreamedRow>> future
   ) {
-    publisher = makeQueryRequest(sql, properties);
+    publisher = makeQueryRequest(sql, properties, requestProperties);
     subscriber = new QueryStreamSubscriber(publisher.getContext(), future, header);
     publisher.subscribe(subscriber);
   }
 
   StreamPublisher<StreamedRow> makeQueryRequest(
       final String sql,
-      final Map<String, ?> properties
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties
   ) {
     final RestResponse<StreamPublisher<StreamedRow>> res =
-        restClient.makeQueryRequestStreamed(sql, null, properties);
+        restClient.makeQueryRequestStreamed(sql, null, properties, requestProperties);
 
     if (res.isErroneous()) {
       throw new AssertionError("Failed to await result."

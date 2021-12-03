@@ -197,12 +197,22 @@ public final class KsqlRestClient implements Closeable {
       final Long commandSeqNum,
       final Map<String, ?> properties
   ) {
+    return makeQueryRequestStreamed(ksql, commandSeqNum, properties, Collections.emptyMap());
+  }
+
+  public RestResponse<StreamPublisher<StreamedRow>> makeQueryRequestStreamed(
+      final String ksql,
+      final Long commandSeqNum,
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties
+  ) {
     KsqlTarget target = target();
-    final Map<String, Object> requestProperties = new HashMap<>();
+    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
     if (ConsistencyOffsetVector.isConsistencyVectorEnabled(localProperties.toMap())) {
       final String serializedCV = serializedConsistencyVector.get();
       // KsqlRequest:serializeClassValues throws NPE for null value
-      requestProperties.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+      requestPropertiesToSend.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedCV == null ? "" : serializedCV);
     }
     if (properties != null) {

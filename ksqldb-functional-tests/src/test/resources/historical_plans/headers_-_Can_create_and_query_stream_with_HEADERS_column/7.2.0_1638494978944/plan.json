@@ -1,12 +1,12 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM L (A INTEGER KEY, B INTEGER, C BYTES HEADER('abc')) WITH (KAFKA_TOPIC='LEFT', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM SOURCE1 (K STRING KEY, H ARRAY<STRUCT<KEY STRING, VALUE BYTES>> HEADERS, V BIGINT) WITH (KAFKA_TOPIC='stream-source', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "L",
-      "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` BYTES HEADER('abc')",
-      "topicName" : "LEFT",
+      "sourceName" : "SOURCE1",
+      "schema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+      "topicName" : "stream-source",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA"
@@ -20,30 +20,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM R (A INTEGER KEY, B INTEGER, C BYTES HEADER('def')) WITH (KAFKA_TOPIC='RIGHT', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "R",
-      "schema" : "`A` INTEGER KEY, `B` INTEGER, `C` BYTES HEADER('def')",
-      "topicName" : "RIGHT",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "valueFormat" : {
-          "format" : "JSON"
-        }
-      },
-      "orReplace" : false,
-      "isSource" : false
-    }
-  }, {
-    "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT *\nFROM L L\nINNER JOIN R R WITHIN 10 SECONDS ON ((L.A = R.A))\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT *\nFROM SOURCE1 SOURCE1\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`L_A` INTEGER KEY, `L_B` INTEGER, `L_C` BYTES, `R_A` INTEGER, `R_B` INTEGER, `R_C` BYTES",
+      "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -57,7 +38,7 @@
       "isSource" : false
     },
     "queryPlan" : {
-      "sources" : [ "L", "R" ],
+      "sources" : [ "SOURCE1" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
@@ -70,12 +51,12 @@
             "queryContext" : "Project"
           },
           "source" : {
-            "@type" : "streamStreamJoinV1",
+            "@type" : "streamSourceV1",
             "properties" : {
-              "queryContext" : "Join"
+              "queryContext" : "KsqlTopic/Source"
             },
-            "joinType" : "INNER",
-            "leftInternalFormats" : {
+            "topicName" : "stream-source",
+            "formats" : {
               "keyFormat" : {
                 "format" : "KAFKA"
               },
@@ -83,70 +64,11 @@
                 "format" : "JSON"
               }
             },
-            "rightInternalFormats" : {
-              "keyFormat" : {
-                "format" : "KAFKA"
-              },
-              "valueFormat" : {
-                "format" : "JSON"
-              }
-            },
-            "leftSource" : {
-              "@type" : "streamSelectV1",
-              "properties" : {
-                "queryContext" : "PrependAliasLeft"
-              },
-              "source" : {
-                "@type" : "streamSourceV1",
-                "properties" : {
-                  "queryContext" : "KafkaTopic_Left/Source"
-                },
-                "topicName" : "LEFT",
-                "formats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA"
-                  },
-                  "valueFormat" : {
-                    "format" : "JSON"
-                  }
-                },
-                "sourceSchema" : "`A` INTEGER KEY, `B` INTEGER, `C` BYTES HEADER('abc')",
-                "pseudoColumnVersion" : 1
-              },
-              "keyColumnNames" : [ "L_A" ],
-              "selectExpressions" : [ "B AS L_B", "ROWTIME AS L_ROWTIME", "ROWPARTITION AS L_ROWPARTITION", "ROWOFFSET AS L_ROWOFFSET", "A AS L_A", "C AS L_C" ]
-            },
-            "rightSource" : {
-              "@type" : "streamSelectV1",
-              "properties" : {
-                "queryContext" : "PrependAliasRight"
-              },
-              "source" : {
-                "@type" : "streamSourceV1",
-                "properties" : {
-                  "queryContext" : "KafkaTopic_Right/Source"
-                },
-                "topicName" : "RIGHT",
-                "formats" : {
-                  "keyFormat" : {
-                    "format" : "KAFKA"
-                  },
-                  "valueFormat" : {
-                    "format" : "JSON"
-                  }
-                },
-                "sourceSchema" : "`A` INTEGER KEY, `B` INTEGER, `C` BYTES HEADER('def')",
-                "pseudoColumnVersion" : 1
-              },
-              "keyColumnNames" : [ "R_A" ],
-              "selectExpressions" : [ "B AS R_B", "ROWTIME AS R_ROWTIME", "ROWPARTITION AS R_ROWPARTITION", "ROWOFFSET AS R_ROWOFFSET", "A AS R_A", "C AS R_C" ]
-            },
-            "beforeMillis" : 10.000000000,
-            "afterMillis" : 10.000000000,
-            "keyColName" : "L_A"
+            "sourceSchema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+            "pseudoColumnVersion" : 1
           },
-          "keyColumnNames" : [ "L_A" ],
-          "selectExpressions" : [ "L_B AS L_B", "L_C AS L_C", "R_A AS R_A", "R_B AS R_B", "R_C AS R_C" ]
+          "keyColumnNames" : [ "K" ],
+          "selectExpressions" : [ "V AS V", "H AS H" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -168,7 +90,7 @@
     "metric.reporters" : "",
     "ksql.transient.prefix" : "transient_",
     "ksql.query.status.running.threshold.seconds" : "300",
-    "ksql.headers.columns.enabled" : "false",
+    "ksql.headers.columns.enabled" : "true",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.query.pull.stream.enabled" : "true",

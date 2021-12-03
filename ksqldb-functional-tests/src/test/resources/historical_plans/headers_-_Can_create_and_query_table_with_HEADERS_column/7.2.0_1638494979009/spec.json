@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638350009335,
+  "timestamp" : 1638494979009,
   "path" : "query-validation-tests/headers.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source.Materialized" : {
@@ -47,13 +47,18 @@
       "key" : "k1",
       "value" : {
         "v" : 40000
-      }
+      },
+      "headers" : [ ]
     }, {
       "topic" : "stream-source",
       "key" : "k2",
       "value" : {
         "v" : 40000
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
@@ -61,7 +66,8 @@
       "value" : {
         "V" : 40000,
         "H" : [ ]
-      }
+      },
+      "headers" : [ ]
     }, {
       "topic" : "OUTPUT",
       "key" : "k2",
@@ -71,7 +77,11 @@
           "KEY" : "abc",
           "VALUE" : "IQ=="
         } ]
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     } ],
     "topics" : [ {
       "name" : "OUTPUT",

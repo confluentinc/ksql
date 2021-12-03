@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE SOURCE1 (K STRING PRIMARY KEY, H ARRAY<STRUCT<KEY STRING, VALUE BYTES>> HEADERS, V BIGINT) WITH (KAFKA_TOPIC='stream-source', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (KAFKA_TOPIC='stream-source', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
-      "@type" : "createTableV1",
+      "@type" : "createStreamV1",
       "sourceName" : "SOURCE1",
-      "schema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+      "schema" : "`K` STRING KEY, `H1` BYTES HEADER('abc'), `V` BIGINT",
       "topicName" : "stream-source",
       "formats" : {
         "keyFormat" : {
@@ -20,11 +20,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE OUTPUT AS SELECT *\nFROM SOURCE1 SOURCE1\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  SOURCE1.K K,\n  LEN(SOURCE1.H1) LENGTH\nFROM SOURCE1 SOURCE1\nEMIT CHANGES",
     "ddlCommand" : {
-      "@type" : "createTableV1",
+      "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
+      "schema" : "`K` STRING KEY, `LENGTH` INTEGER",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -41,17 +41,17 @@
       "sources" : [ "SOURCE1" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
-        "@type" : "tableSinkV1",
+        "@type" : "streamSinkV1",
         "properties" : {
           "queryContext" : "OUTPUT"
         },
         "source" : {
-          "@type" : "tableSelectV1",
+          "@type" : "streamSelectV1",
           "properties" : {
             "queryContext" : "Project"
           },
           "source" : {
-            "@type" : "tableSourceV2",
+            "@type" : "streamSourceV1",
             "properties" : {
               "queryContext" : "KsqlTopic/Source"
             },
@@ -64,27 +64,11 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
-            "pseudoColumnVersion" : 1,
-            "stateStoreFormats" : {
-              "keyFormat" : {
-                "format" : "KAFKA"
-              },
-              "valueFormat" : {
-                "format" : "JSON"
-              }
-            }
+            "sourceSchema" : "`K` STRING KEY, `H1` BYTES HEADER('abc'), `V` BIGINT",
+            "pseudoColumnVersion" : 1
           },
           "keyColumnNames" : [ "K" ],
-          "selectExpressions" : [ "V AS V", "H AS H" ],
-          "internalFormats" : {
-            "keyFormat" : {
-              "format" : "KAFKA"
-            },
-            "valueFormat" : {
-              "format" : "JSON"
-            }
-          }
+          "selectExpressions" : [ "LEN(H1) AS LENGTH" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -96,7 +80,7 @@
         },
         "topicName" : "OUTPUT"
       },
-      "queryId" : "CTAS_OUTPUT_0"
+      "queryId" : "CSAS_OUTPUT_0"
     }
   } ],
   "configs" : {
@@ -106,7 +90,7 @@
     "metric.reporters" : "",
     "ksql.transient.prefix" : "transient_",
     "ksql.query.status.running.threshold.seconds" : "300",
-    "ksql.headers.columns.enabled" : "false",
+    "ksql.headers.columns.enabled" : "true",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.query.pull.stream.enabled" : "true",

@@ -18,10 +18,17 @@ package io.confluent.ksql.test.model;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 import org.apache.kafka.common.header.Header;
 
+@JsonSerialize(using = TestHeader.Serializer.class)
 public class TestHeader implements Header {
   private final String key;
   private final byte[] value;
@@ -60,5 +67,20 @@ public class TestHeader implements Header {
   @Override
   public int hashCode() {
     return Objects.hash(key, value);
+  }
+
+  public static class Serializer extends JsonSerializer<TestHeader> {
+
+    @Override
+    public void serialize(
+        final TestHeader record,
+        final JsonGenerator jsonGenerator,
+        final SerializerProvider serializerProvider
+    ) throws IOException {
+      jsonGenerator.writeStartObject();
+      jsonGenerator.writeObjectField("KEY", record.key);
+      jsonGenerator.writeBinaryField("VALUE", record.value);
+      jsonGenerator.writeEndObject();
+    }
   }
 }

@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638350010080,
+  "timestamp" : 1638494979522,
   "path" : "query-validation-tests/headers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -31,13 +31,21 @@
       "key" : 10,
       "value" : {
         "AGE" : 22
-      }
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "input",
       "key" : 11,
       "value" : {
         "AGE" : 23
-      }
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "Iw=="
+      } ]
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
@@ -45,14 +53,22 @@
       "value" : {
         "ID" : 10,
         "AGE" : 22
-      }
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "OUTPUT",
       "key" : "Iw==",
       "value" : {
         "ID" : 11,
         "AGE" : 23
-      }
+      },
+      "headers" : [ {
+        "KEY" : "a",
+        "VALUE" : "Iw=="
+      } ]
     } ],
     "topics" : [ {
       "name" : "input",

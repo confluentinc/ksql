@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638350009639,
+  "timestamp" : 1638494979236,
   "path" : "query-validation-tests/headers.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -29,32 +29,52 @@
       "key" : "k1",
       "value" : {
         "v" : 40000
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "stream-source",
       "key" : "k2",
       "value" : {
         "v" : 40000
-      }
+      },
+      "headers" : [ {
+        "KEY" : "def",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "stream-source",
       "key" : "k3",
       "value" : {
         "v" : 400
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : "k1",
       "value" : {
         "V" : 40000
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "OUTPUT",
       "key" : "k3",
       "value" : {
         "V" : 400
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     } ],
     "topics" : [ {
       "name" : "OUTPUT",

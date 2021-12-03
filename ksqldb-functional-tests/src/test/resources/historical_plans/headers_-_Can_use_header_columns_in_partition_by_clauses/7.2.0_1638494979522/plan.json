@@ -1,44 +1,46 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SOURCE1 (K STRING KEY, V BIGINT, H1 BYTES HEADER('abc'), H2 BYTES HEADER('def')) WITH (KAFKA_TOPIC='stream-source', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM INPUT (ID INTEGER KEY, H ARRAY<STRUCT<KEY STRING, VALUE BYTES>> HEADERS, AGE INTEGER) WITH (FORMAT='JSON', KAFKA_TOPIC='input');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
-      "sourceName" : "SOURCE1",
-      "schema" : "`K` STRING KEY, `V` BIGINT, `H1` BYTES HEADER('abc'), `H2` BYTES HEADER('def')",
-      "topicName" : "stream-source",
+      "sourceName" : "INPUT",
+      "schema" : "`ID` INTEGER KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `AGE` INTEGER",
+      "topicName" : "input",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA"
+          "format" : "JSON"
         },
         "valueFormat" : {
           "format" : "JSON"
-        }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "orReplace" : false,
       "isSource" : false
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  SOURCE1.K K,\n  SOURCE1.H1 H1,\n  SOURCE1.H2 H2\nFROM SOURCE1 SOURCE1\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  INPUT.ID ID,\n  INPUT.AGE AGE,\n  INPUT.H[1]->VALUE VALUE\nFROM INPUT INPUT\nPARTITION BY INPUT.H[1]->VALUE\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`K` STRING KEY, `H1` BYTES, `H2` BYTES",
+      "schema" : "`VALUE` BYTES KEY, `ID` INTEGER, `AGE` INTEGER",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA"
+          "format" : "JSON"
         },
         "valueFormat" : {
           "format" : "JSON"
-        }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "orReplace" : false,
       "isSource" : false
     },
     "queryPlan" : {
-      "sources" : [ "SOURCE1" ],
+      "sources" : [ "INPUT" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
         "@type" : "streamSinkV1",
@@ -51,32 +53,41 @@
             "queryContext" : "Project"
           },
           "source" : {
-            "@type" : "streamSourceV1",
+            "@type" : "streamSelectKeyV2",
             "properties" : {
-              "queryContext" : "KsqlTopic/Source"
+              "queryContext" : "PartitionBy"
             },
-            "topicName" : "stream-source",
-            "formats" : {
-              "keyFormat" : {
-                "format" : "KAFKA"
+            "source" : {
+              "@type" : "streamSourceV1",
+              "properties" : {
+                "queryContext" : "KsqlTopic/Source"
               },
-              "valueFormat" : {
-                "format" : "JSON"
-              }
+              "topicName" : "input",
+              "formats" : {
+                "keyFormat" : {
+                  "format" : "JSON"
+                },
+                "valueFormat" : {
+                  "format" : "JSON"
+                },
+                "keyFeatures" : [ "UNWRAP_SINGLES" ]
+              },
+              "sourceSchema" : "`ID` INTEGER KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `AGE` INTEGER",
+              "pseudoColumnVersion" : 1
             },
-            "sourceSchema" : "`K` STRING KEY, `V` BIGINT, `H1` BYTES HEADER('abc'), `H2` BYTES HEADER('def')",
-            "pseudoColumnVersion" : 1
+            "keyExpression" : [ "H[1]->VALUE" ]
           },
-          "keyColumnNames" : [ "K" ],
-          "selectExpressions" : [ "H1 AS H1", "H2 AS H2" ]
+          "keyColumnNames" : [ "VALUE" ],
+          "selectExpressions" : [ "ID AS ID", "AGE AS AGE" ]
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "KAFKA"
+            "format" : "JSON"
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "keyFeatures" : [ "UNWRAP_SINGLES" ]
         },
         "topicName" : "OUTPUT"
       },
@@ -90,7 +101,7 @@
     "metric.reporters" : "",
     "ksql.transient.prefix" : "transient_",
     "ksql.query.status.running.threshold.seconds" : "300",
-    "ksql.headers.columns.enabled" : "false",
+    "ksql.headers.columns.enabled" : "true",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.query.pull.stream.enabled" : "true",

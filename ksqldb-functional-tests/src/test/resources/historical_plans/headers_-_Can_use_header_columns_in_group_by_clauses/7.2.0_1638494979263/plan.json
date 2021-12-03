@@ -1,93 +1,158 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SOURCE1 (K STRING KEY, H ARRAY<STRUCT<KEY STRING, VALUE BYTES>> HEADERS, V BIGINT) WITH (KAFKA_TOPIC='stream-source', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE TABLE TEST (ID INTEGER PRIMARY KEY, DATA STRING, HEAD BYTES HEADER('abc')) WITH (FORMAT='JSON', KAFKA_TOPIC='test_topic');",
     "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "SOURCE1",
-      "schema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
-      "topicName" : "stream-source",
+      "@type" : "createTableV1",
+      "sourceName" : "TEST",
+      "schema" : "`ID` INTEGER KEY, `DATA` STRING, `HEAD` BYTES HEADER('abc')",
+      "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA"
+          "format" : "JSON"
         },
         "valueFormat" : {
           "format" : "JSON"
-        }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "orReplace" : false,
       "isSource" : false
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  SOURCE1.K K,\n  SOURCE1.V V\nFROM SOURCE1 SOURCE1\nWHERE (SOURCE1.H[1]->KEY = 'abc')\nEMIT CHANGES",
+    "statementText" : "CREATE TABLE OUTPUT AS SELECT\n  TEST.HEAD NEW_KEY,\n  COUNT(*) COUNT\nFROM TEST TEST\nGROUP BY TEST.HEAD\nEMIT CHANGES",
     "ddlCommand" : {
-      "@type" : "createStreamV1",
+      "@type" : "createTableV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`K` STRING KEY, `V` BIGINT",
+      "schema" : "`NEW_KEY` BYTES KEY, `COUNT` BIGINT",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
-          "format" : "KAFKA"
+          "format" : "JSON"
         },
         "valueFormat" : {
           "format" : "JSON"
-        }
+        },
+        "keyFeatures" : [ "UNWRAP_SINGLES" ]
       },
       "orReplace" : false,
       "isSource" : false
     },
     "queryPlan" : {
-      "sources" : [ "SOURCE1" ],
+      "sources" : [ "TEST" ],
       "sink" : "OUTPUT",
       "physicalPlan" : {
-        "@type" : "streamSinkV1",
+        "@type" : "tableSinkV1",
         "properties" : {
           "queryContext" : "OUTPUT"
         },
         "source" : {
-          "@type" : "streamSelectV1",
+          "@type" : "tableSelectV1",
           "properties" : {
-            "queryContext" : "Project"
+            "queryContext" : "Aggregate/Project"
           },
           "source" : {
-            "@type" : "streamFilterV1",
+            "@type" : "tableAggregateV1",
             "properties" : {
-              "queryContext" : "WhereFilter"
+              "queryContext" : "Aggregate/Aggregate"
             },
             "source" : {
-              "@type" : "streamSourceV1",
+              "@type" : "tableGroupByV2",
               "properties" : {
-                "queryContext" : "KsqlTopic/Source"
+                "queryContext" : "Aggregate/GroupBy"
               },
-              "topicName" : "stream-source",
-              "formats" : {
+              "source" : {
+                "@type" : "tableSelectV1",
+                "properties" : {
+                  "queryContext" : "Aggregate/Prepare"
+                },
+                "source" : {
+                  "@type" : "tableSourceV2",
+                  "properties" : {
+                    "queryContext" : "KsqlTopic/Source"
+                  },
+                  "topicName" : "test_topic",
+                  "formats" : {
+                    "keyFormat" : {
+                      "format" : "JSON"
+                    },
+                    "valueFormat" : {
+                      "format" : "JSON"
+                    },
+                    "keyFeatures" : [ "UNWRAP_SINGLES" ]
+                  },
+                  "sourceSchema" : "`ID` INTEGER KEY, `DATA` STRING, `HEAD` BYTES HEADER('abc')",
+                  "pseudoColumnVersion" : 1,
+                  "stateStoreFormats" : {
+                    "keyFormat" : {
+                      "format" : "JSON"
+                    },
+                    "valueFormat" : {
+                      "format" : "JSON"
+                    },
+                    "keyFeatures" : [ "UNWRAP_SINGLES" ]
+                  }
+                },
+                "keyColumnNames" : [ "ID" ],
+                "selectExpressions" : [ "HEAD AS HEAD", "ROWTIME AS ROWTIME" ],
+                "internalFormats" : {
+                  "keyFormat" : {
+                    "format" : "JSON"
+                  },
+                  "valueFormat" : {
+                    "format" : "JSON"
+                  },
+                  "keyFeatures" : [ "UNWRAP_SINGLES" ]
+                }
+              },
+              "internalFormats" : {
                 "keyFormat" : {
-                  "format" : "KAFKA"
+                  "format" : "JSON"
                 },
                 "valueFormat" : {
                   "format" : "JSON"
-                }
+                },
+                "keyFeatures" : [ "UNWRAP_SINGLES" ]
               },
-              "sourceSchema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
-              "pseudoColumnVersion" : 1
+              "groupByExpressions" : [ "HEAD" ]
             },
-            "filterExpression" : "(H[1]->KEY = 'abc')"
+            "internalFormats" : {
+              "keyFormat" : {
+                "format" : "JSON"
+              },
+              "valueFormat" : {
+                "format" : "JSON"
+              },
+              "keyFeatures" : [ "UNWRAP_SINGLES" ]
+            },
+            "nonAggregateColumns" : [ "HEAD", "ROWTIME" ],
+            "aggregationFunctions" : [ "COUNT(ROWTIME)" ]
           },
-          "keyColumnNames" : [ "K" ],
-          "selectExpressions" : [ "V AS V" ]
+          "keyColumnNames" : [ "NEW_KEY" ],
+          "selectExpressions" : [ "KSQL_AGG_VARIABLE_0 AS COUNT" ],
+          "internalFormats" : {
+            "keyFormat" : {
+              "format" : "JSON"
+            },
+            "valueFormat" : {
+              "format" : "JSON"
+            },
+            "keyFeatures" : [ "UNWRAP_SINGLES" ]
+          }
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "KAFKA"
+            "format" : "JSON"
           },
           "valueFormat" : {
             "format" : "JSON"
-          }
+          },
+          "keyFeatures" : [ "UNWRAP_SINGLES" ]
         },
         "topicName" : "OUTPUT"
       },
-      "queryId" : "CSAS_OUTPUT_0"
+      "queryId" : "CTAS_OUTPUT_0"
     }
   } ],
   "configs" : {
@@ -97,7 +162,7 @@
     "metric.reporters" : "",
     "ksql.transient.prefix" : "transient_",
     "ksql.query.status.running.threshold.seconds" : "300",
-    "ksql.headers.columns.enabled" : "false",
+    "ksql.headers.columns.enabled" : "true",
     "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
     "ksql.output.topic.name.prefix" : "",
     "ksql.query.pull.stream.enabled" : "true",

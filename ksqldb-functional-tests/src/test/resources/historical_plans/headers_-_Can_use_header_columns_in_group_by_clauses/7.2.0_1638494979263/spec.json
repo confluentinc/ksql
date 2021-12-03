@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638350009686,
+  "timestamp" : 1638494979263,
   "path" : "query-validation-tests/headers.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.Project" : {
@@ -81,62 +81,102 @@
       "key" : 0,
       "value" : {
         "data" : "d1"
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "test_topic",
       "key" : 1,
       "value" : {
         "data" : "d2"
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     }, {
       "topic" : "test_topic",
       "key" : 2,
       "value" : {
         "data" : "d1"
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "test_topic",
       "key" : 3,
       "value" : {
         "data" : "d2"
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     }, {
       "topic" : "test_topic",
       "key" : 4,
       "value" : {
         "data" : "d1"
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
       "key" : "IQ==",
       "value" : {
         "COUNT" : 1
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "OUTPUT",
       "key" : "Iw==",
       "value" : {
         "COUNT" : 1
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     }, {
       "topic" : "OUTPUT",
       "key" : "IQ==",
       "value" : {
         "COUNT" : 2
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
     }, {
       "topic" : "OUTPUT",
       "key" : "Iw==",
       "value" : {
         "COUNT" : 2
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     }, {
       "topic" : "OUTPUT",
       "key" : "Iw==",
       "value" : {
         "COUNT" : 3
-      }
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
     } ],
     "topics" : [ {
       "name" : "OUTPUT",

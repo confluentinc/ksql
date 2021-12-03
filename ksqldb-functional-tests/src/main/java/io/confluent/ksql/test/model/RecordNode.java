@@ -249,6 +249,9 @@ public final class RecordNode {
       if (record.window.isPresent()) {
         jsonGenerator.writeObjectField("window", record.window);
       }
+      if (record.headers.isPresent()) {
+        jsonGenerator.writeObjectField("headers", record.headers.get());
+      }
       jsonGenerator.writeEndObject();
     }
   }

@@ -23,6 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
+import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
 import io.confluent.ksql.util.KsqlConfig;
@@ -41,6 +42,7 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.apache.kafka.connect.storage.Converter;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 @Immutable
 class KsqlJsonSerdeFactory {
 
@@ -108,12 +110,12 @@ class KsqlJsonSerdeFactory {
         ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
         : getConverter();
 
-    final ConnectDataTranslator dataTranslator = physicalSchema.map(
-            value -> new ConnectDataTranslator(schema, value))
-        .orElseGet(() -> new ConnectDataTranslator(schema));
+    final ConnectDataTranslator dataTranslator =
+        physicalSchema.isPresent() ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
+            : new ConnectDataTranslator(schema);
 
     return new KsqlConnectSerializer<>(
-        dataTranslator.getPhysicalOrOriginalSchema(),
+        dataTranslator.getSchema(),
         dataTranslator,
         converter,
         targetType

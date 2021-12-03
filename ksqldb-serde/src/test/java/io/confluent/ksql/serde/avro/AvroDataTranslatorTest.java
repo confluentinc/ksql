@@ -242,7 +242,7 @@ public class AvroDataTranslatorTest {
         new AvroDataTranslator(schema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
-    assertThat("Root required", translator.getOriginalSchema().isOptional(), is(false));
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
   }
 
   @Test
@@ -258,7 +258,7 @@ public class AvroDataTranslatorTest {
         new AvroDataTranslator(schema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
-    assertThat("Root required", translator.getOriginalSchema().isOptional(), is(false));
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
   }
 
   @Test
@@ -274,7 +274,7 @@ public class AvroDataTranslatorTest {
         new AvroDataTranslator(schema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
-    assertThat("Root required", translator.getOriginalSchema().isOptional(), is(false));
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
   }
 
   @Test
@@ -291,7 +291,7 @@ public class AvroDataTranslatorTest {
         new AvroDataTranslator(schema, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
     // Then:
-    assertThat("Root required", translator.getOriginalSchema().isOptional(), is(false));
+    assertThat("Root required", translator.getAvroCompatibleSchema().isOptional(), is(false));
   }
 
   @Test

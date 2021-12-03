@@ -43,7 +43,6 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   private final ConnectFormat format;
   private final ConnectSchemaTranslator connectSrTranslator;
   private final ConnectKsqlSchemaTranslator connectKsqlTranslator;
-  private final ConnectProperties connectProperties;
 
   ConnectFormatSchemaTranslator(
       final ConnectFormat format,
@@ -51,7 +50,6 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
       final ConnectKsqlSchemaTranslator connectKsqlSchemaTranslator
   ) {
     this.format = requireNonNull(format, "format");
-    this.connectProperties = this.format.asConnectProperties(formatProps);
     this.connectSrTranslator = requireNonNull(format.getConnectSchemaTranslator(formatProps));
     this.connectKsqlTranslator = requireNonNull(connectKsqlSchemaTranslator);
   }
@@ -95,11 +93,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   public ParsedSchema toParsedSchema(final PersistenceSchema schema) {
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), format.supportedFeatures());
 
-    final String schemaName =
-        connectProperties.getSupportedProperties().contains(ConnectProperties.FULL_SCHEMA_NAME)
-            ? connectProperties.getFullSchemaName() : null;
-    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns(),
-        schemaName);
+    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
     final ConnectSchema innerSchema = SerdeUtils
         .applySinglesUnwrapping(outerSchema, schema.features());
 

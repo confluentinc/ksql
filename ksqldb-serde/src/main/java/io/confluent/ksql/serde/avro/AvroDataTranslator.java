@@ -16,8 +16,8 @@
 package io.confluent.ksql.serde.avro;
 
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
-import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -38,44 +39,73 @@ import org.apache.kafka.connect.data.Struct;
  * <p>This includes ensuring field names are valid Avro field names and that nested types do not
  * have name clashes.
  */
-public class AvroDataTranslator implements DataTranslator {
+public class AvroDataTranslator extends ConnectDataTranslator {
 
-  private final DataTranslator innerTranslator;
   private final Schema ksqlSchema;
-  private final Schema avroCompatibleSchema;
 
   AvroDataTranslator(
       final Schema schema,
       final String schemaFullName
   ) {
+    super(AvroSchemas.getAvroCompatibleConnectSchema(schema, schemaFullName));
+
     this.ksqlSchema = AvroUtil
         .throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
-
-    this.avroCompatibleSchema = AvroSchemas.getAvroCompatibleConnectSchema(
-        schema, schemaFullName
-    );
-
-    this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
   }
 
-  Schema getAvroCompatibleSchema() {
-    return avroCompatibleSchema;
+  AvroDataTranslator(
+      final Schema schema,
+      final Schema physicalSchema
+  ) {
+    super(schema, physicalSchema);
+    this.ksqlSchema = AvroUtil
+        .throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
   }
 
   @Override
   public Object toKsqlRow(final Schema connectSchema, final Object connectObject) {
-    final Object avroCompatibleRow = innerTranslator.toKsqlRow(connectSchema, connectObject);
+    final Object avroCompatibleRow = super.toKsqlRow(connectSchema, connectObject);
     if (avroCompatibleRow == null) {
       return null;
     }
 
+    // If original data is serialized using physcial schema, don't need to replace back to original
+    // schema
+    if (getPhyiscalSchema().isPresent()) {
+      return avroCompatibleRow;
+    }
     return replaceSchema(ksqlSchema, avroCompatibleRow);
   }
 
   @Override
-  public Object toConnectRow(final Object ksqlData) {
-    final Object compatible = replaceSchema(avroCompatibleSchema, ksqlData);
-    return innerTranslator.toConnectRow(compatible);
+  protected Object toPhysicalSchemaRow(final Object ksqlData, final Schema schema) {
+    if (!(ksqlData instanceof Struct)) {
+      return ksqlData;
+    }
+    final Struct struct = new Struct(schema);
+    final Struct originalData = (Struct) ksqlData;
+    final Schema originalSchema = originalData.schema();
+
+    for (final Field field : schema.fields()) {
+      final Optional<Field> originalField = originalSchema.fields().stream().filter(f -> field.name().equals(f.name())).findFirst();
+      if (originalField.isPresent()) {
+        struct.put(field, originalData.get(originalField.get()));
+      } else {
+        if (field.schema().defaultValue() != null || field.schema().isOptional()) {
+          struct.put(field, field.schema().defaultValue());
+        } else {
+          throw new KsqlException("Missing default value for required Avro field: [" + field.name()
+              + "]. This field appears in Avro schema in Schema Registry");
+        }
+      }
+    }
+
+    return struct;
+  }
+
+  @Override
+  protected Object toOriginalSchemaRow(final Object ksqlData, final Schema schema) {
+    return replaceSchema(schema, ksqlData);
   }
 
   private static Struct convertStruct(

@@ -21,6 +21,7 @@ import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.connect.json.JsonSchemaConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
@@ -34,6 +35,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.json.DecimalFormat;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.json.JsonConverterConfig;
@@ -65,11 +67,21 @@ class KsqlJsonSerdeFactory {
       final Class<T> targetType,
       final boolean isKey
   ) {
+    final Optional<Schema> physicalSchema;
+    if (useSchemaRegistryFormat) {
+      physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
+          SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+              .get(), new JsonSchemaTranslator())) : Optional.empty();
+    } else {
+      physicalSchema = Optional.empty();
+    }
+
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
 
@@ -89,15 +101,20 @@ class KsqlJsonSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     final Converter converter = useSchemaRegistryFormat
         ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
         : getConverter();
 
+    final ConnectDataTranslator dataTranslator = physicalSchema.map(
+            value -> new ConnectDataTranslator(schema, value))
+        .orElseGet(() -> new ConnectDataTranslator(schema));
+
     return new KsqlConnectSerializer<>(
-        schema,
-        new ConnectDataTranslator(schema),
+        dataTranslator.getPhysicalOrOriginalSchema(),
+        dataTranslator,
         converter,
         targetType
     );

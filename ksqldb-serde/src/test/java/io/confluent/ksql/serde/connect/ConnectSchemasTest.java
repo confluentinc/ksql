@@ -24,7 +24,7 @@ public class ConnectSchemasTest {
         .build();
 
     // When:
-    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value(), null);
+    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value());
 
     // Then:
     assertThat(result.type(), is(Type.STRUCT));
@@ -43,7 +43,7 @@ public class ConnectSchemasTest {
         .build();
 
     // When:
-    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value(), "name");
+    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value());
 
     // Then:
     assertThat(result.name(), is("name"));

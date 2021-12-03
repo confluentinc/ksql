@@ -83,16 +83,7 @@ public abstract class ConnectFormat implements Format {
   ) {
     SerdeUtils.throwOnUnsupportedFeatures(schema.features(), supportedFeatures());
 
-    final String schemaName;
-    if (getSupportedProperties().contains(ConnectProperties.FULL_SCHEMA_NAME)) {
-      schemaName = asConnectProperties(formatProps).getFullSchemaName();
-    } else {
-      schemaName = null;
-    }
-
-    // Set name to ConnectSchema so that value's schema will also have the name
-    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns(),
-        schemaName);
+    final ConnectSchema outerSchema = ConnectSchemas.columnsToConnectSchema(schema.columns());
     final ConnectSchema innerSchema = SerdeUtils
         .applySinglesUnwrapping(outerSchema, schema.features());
 
@@ -154,8 +145,6 @@ public abstract class ConnectFormat implements Format {
       Class<T> targetType,
       boolean isKey
   );
-
-  protected abstract ConnectProperties asConnectProperties(Map<String, String> properties);
 
   private static class ListToStructSerializer implements Serializer<List<?>> {
 

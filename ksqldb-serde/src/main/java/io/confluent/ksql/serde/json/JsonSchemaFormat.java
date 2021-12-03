@@ -21,7 +21,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
-import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -67,11 +66,6 @@ public class JsonSchemaFormat extends ConnectFormat {
   ) {
     FormatProperties.validateProperties(name(), formatProps, getSupportedProperties());
     return new JsonSchemaTranslator();
-  }
-
-  @Override
-  protected ConnectProperties asConnectProperties(final Map<String, String> properties) {
-    return new JsonSchemaProperties(properties);
   }
 
   @Override

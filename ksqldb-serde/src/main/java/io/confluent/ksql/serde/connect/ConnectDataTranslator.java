@@ -18,9 +18,11 @@ package io.confluent.ksql.serde.connect;
 import io.confluent.ksql.serde.SerdeUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -41,8 +43,15 @@ public class ConnectDataTranslator implements DataTranslator {
 
   private final Schema schema;
 
+  private final Optional<Schema> phyiscalSchema;
+
   public ConnectDataTranslator(final Schema schema) {
+    this(schema, null);
+  }
+
+  public ConnectDataTranslator(final Schema schema, final Schema physicalSchema) {
     this.schema = Objects.requireNonNull(schema, "schema");
+    this.phyiscalSchema = Optional.ofNullable(physicalSchema);
   }
 
   @Override
@@ -54,7 +63,43 @@ public class ConnectDataTranslator implements DataTranslator {
     return toKsqlValue(schema, connectSchema, connectData, "");
   }
 
+  protected Optional<Schema> getPhyiscalSchema() {
+    return phyiscalSchema;
+  }
+
+  public Schema getOriginalSchema() {
+    return schema;
+  }
+
+  public Schema getPhysicalOrOriginalSchema() {
+    return phyiscalSchema.orElse(schema);
+  }
+
   public Object toConnectRow(final Object ksqlData) {
+    if (phyiscalSchema.isPresent()) {
+      return toPhysicalSchemaRow(ksqlData, phyiscalSchema.get());
+    }
+    return toOriginalSchemaRow(ksqlData, schema);
+  }
+
+  protected Object toOriginalSchemaRow(final Object ksqlData, final Schema schema) {
+    return ksqlData;
+  }
+
+  protected Object toPhysicalSchemaRow(final Object ksqlData, final Schema schema) {
+    // Set physical Schema to struct if exist
+    if (ksqlData instanceof Struct) {
+      Struct struct = new Struct(schema);
+      Struct source = (Struct) ksqlData;
+
+      for (final Field sourceField : source.schema().fields()) {
+        final Object value = source.get(sourceField);
+        struct.put(sourceField, value);
+      }
+
+      return struct;
+    }
+
     return ksqlData;
   }
 

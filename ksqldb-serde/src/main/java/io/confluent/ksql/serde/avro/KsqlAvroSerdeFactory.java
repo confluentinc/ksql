@@ -21,6 +21,7 @@ import io.confluent.connect.avro.AvroConverter;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -64,12 +65,16 @@ class KsqlAvroSerdeFactory {
       final boolean isKey
   ) {
     AvroUtil.throwOnInvalidSchema(schema);
+    final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
+        SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+            .get(), new AvroSchemaTranslator(properties))) : Optional.empty();
 
     final Supplier<Serializer<T>> serializerSupplier = createConnectSerializer(
         schema,
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
 
@@ -78,6 +83,7 @@ class KsqlAvroSerdeFactory {
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
 
@@ -96,16 +102,17 @@ class KsqlAvroSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     return () -> {
-      final AvroDataTranslator translator = createAvroTranslator(schema);
+      final AvroDataTranslator translator = createAvroTranslator(schema, physicalSchema);
 
       final AvroConverter avroConverter =
           getAvroConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey);
 
       return new KsqlConnectSerializer<>(
-          translator.getAvroCompatibleSchema(),
+          translator.getPhysicalOrOriginalSchema(),
           translator,
           avroConverter,
           targetType
@@ -118,10 +125,11 @@ class KsqlAvroSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     return () -> {
-      final AvroDataTranslator translator = createAvroTranslator(schema);
+      final AvroDataTranslator translator = createAvroTranslator(schema, physicalSchema);
 
       final AvroConverter avroConverter =
           getAvroConverter(srFactory.get(), ksqlConfig, Optional.empty(), isKey);
@@ -130,8 +138,10 @@ class KsqlAvroSerdeFactory {
     };
   }
 
-  private AvroDataTranslator createAvroTranslator(final Schema schema) {
-    return new AvroDataTranslator(schema, fullSchemaName);
+  private AvroDataTranslator createAvroTranslator(final Schema schema,
+      final Optional<Schema> physicalSchema) {
+    return physicalSchema.map(value -> new AvroDataTranslator(schema, value))
+        .orElseGet(() -> new AvroDataTranslator(schema, fullSchemaName));
   }
 
   private static AvroConverter getAvroConverter(

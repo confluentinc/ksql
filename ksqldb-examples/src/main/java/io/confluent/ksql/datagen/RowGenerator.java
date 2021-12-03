@@ -64,7 +64,7 @@ public class RowGenerator {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
     this.schema = buildLogicalSchema(generator, avroData, keyFieldName);
-    this.valueSchema = ConnectSchemas.columnsToConnectSchema(schema.value(), null);
+    this.valueSchema = ConnectSchemas.columnsToConnectSchema(schema.value());
     this.keyFieldIndex = schema.findValueColumn(ColumnName.of(keyFieldName))
         .map(Column::index)
         .orElseThrow(IllegalStateException::new);

@@ -84,10 +84,10 @@ public class StructuredTypesDataProvider extends TestDataProvider {
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(LOGICAL_SCHEMA, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of());
 
-  private static final Schema KEY_FIELD_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.key(), null)
+  private static final Schema KEY_FIELD_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.key())
       .field("K").schema();
 
-  private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value(), null);
+  private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value());
   private static final Schema STRUCT_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("STRUCT").schema();
   private static final Schema COMPLEX_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("COMPLEX").schema();
 

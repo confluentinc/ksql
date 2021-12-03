@@ -41,6 +41,7 @@ final class SandboxedSchemaRegistryClient {
         .swallow("register", anyParams(), 123)
         .swallow("getId", anyParams(), 123)
         .forward("getAllSubjects", methodParams(), delegate)
+        .forward("getSchemaById", methodParams(int.class), delegate)
         .forward("getLatestSchemaMetadata", methodParams(String.class), delegate)
         .forward("getSchemaBySubjectAndId", methodParams(String.class, int.class), delegate)
         .forward("testCompatibility",

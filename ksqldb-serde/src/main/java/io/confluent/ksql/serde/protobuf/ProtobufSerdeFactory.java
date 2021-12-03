@@ -21,6 +21,7 @@ import io.confluent.connect.protobuf.ProtobufConverterConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.schema.connect.SchemaWalker;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -61,11 +62,16 @@ final class ProtobufSerdeFactory {
       final boolean isKey) {
     validate(schema);
 
+    final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
+        SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
+            .get(), new ProtobufSchemaTranslator())) : Optional.empty();
+
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
     final Supplier<Deserializer<T>> deserializer = () -> createDeserializer(
@@ -73,6 +79,7 @@ final class ProtobufSerdeFactory {
         ksqlConfig,
         srFactory,
         targetType,
+        physicalSchema,
         isKey
     );
 
@@ -95,14 +102,17 @@ final class ProtobufSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig,
         properties.getSchemaId(), isKey);
-
+    final ConnectDataTranslator translator = physicalSchema.map(
+            value -> new ConnectDataTranslator(schema, value))
+        .orElseGet(() -> new ConnectDataTranslator(schema));
     return new KsqlConnectSerializer<>(
-        schema,
-        new ConnectDataTranslator(schema),
+        translator.getPhysicalOrOriginalSchema(),
+        translator,
         converter,
         targetType
     );
@@ -113,6 +123,7 @@ final class ProtobufSerdeFactory {
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
+      final Optional<Schema> physicalSchema,
       final boolean isKey
   ) {
     final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig, Optional.empty(),
@@ -120,7 +131,8 @@ final class ProtobufSerdeFactory {
 
     return new KsqlConnectDeserializer<>(
         converter,
-        new ConnectDataTranslator(schema),
+        physicalSchema.map(value -> new ConnectDataTranslator(schema, value))
+            .orElseGet(() -> new ConnectDataTranslator(schema)),
         targetType
     );
   }

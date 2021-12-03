@@ -21,7 +21,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
-import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -66,11 +65,6 @@ public final class AvroFormat extends ConnectFormat {
       final Map<String, String> formatProps
   ) {
     return new AvroSchemaTranslator(new AvroProperties(formatProps));
-  }
-
-  @Override
-  protected ConnectProperties asConnectProperties(final Map<String, String> properties) {
-    return new AvroProperties(properties);
   }
 
   @Override

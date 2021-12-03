@@ -219,7 +219,7 @@ public final class KsqlRestClient implements Closeable {
       target = target.properties(properties);
     }
     final RestResponse<StreamPublisher<StreamedRow>> response = target.postQueryRequestStreamed(
-        ksql, requestProperties, Optional.ofNullable(commandSeqNum));
+        ksql, requestPropertiesToSend, Optional.ofNullable(commandSeqNum));
     return response;
   }
 

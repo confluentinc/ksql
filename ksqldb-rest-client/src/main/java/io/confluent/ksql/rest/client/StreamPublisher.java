@@ -53,27 +53,25 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
     super(context);
     this.response = response;
     final RecordParser recordParser = RecordParser.newDelimited("\n", response);
-    recordParser.exceptionHandler(t -> {
-      bodyFuture.completeExceptionally(t);
-      sendError(new KsqlRestClientException("Error while parsing stream", t));
-    }).handler(buff -> {
-      if (buff.length() == 0) {
-        // Ignore empty buffer - the server can insert random newlines!
-        return;
-      }
-      final Buffer jsonMsg = toJsonMsg(buff, stripArray);
-      if (!accept(mapper.apply(jsonMsg))) {
-        if (!drainHandlerSet) {
-          recordParser.pause();
-          drainHandlerSet = true;
-          drainHandler(() -> {
-            drainHandlerSet = false;
-            recordParser.resume();
-          });
-        }
-      }
-    })
-    .endHandler(v -> complete());
+    recordParser.exceptionHandler(bodyFuture::completeExceptionally)
+        .handler(buff -> {
+          if (buff.length() == 0) {
+            // Ignore empty buffer - the server can insert random newlines!
+            return;
+          }
+          final Buffer jsonMsg = toJsonMsg(buff, stripArray);
+          if (!accept(mapper.apply(jsonMsg))) {
+            if (!drainHandlerSet) {
+              recordParser.pause();
+              drainHandlerSet = true;
+              drainHandler(() -> {
+                drainHandlerSet = false;
+                recordParser.resume();
+              });
+            }
+          }
+        })
+        .endHandler(v -> complete());
     response.request().connection().closeHandler(v ->  complete());
   }
 

@@ -30,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -53,6 +54,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
+import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
@@ -79,9 +81,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.test.TestRecord;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
@@ -96,6 +101,7 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+      .put(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   private final ServiceContext serviceContext;
@@ -433,7 +439,21 @@ public class TestExecutor implements Closeable {
 
     return "<" + producerRecord.key() + ", "
         + value + "> with timestamp="
-        + producerRecord.timestamp();
+        + producerRecord.timestamp()
+        + " and headers=[" + printHeaders(producerRecord.headers()) + "]";
+  }
+
+  private static String printHeaders(final Iterable<? extends Header> headers) {
+    return Streams.stream(headers)
+        .map(TestExecutor::printHeader)
+        .collect(Collectors.joining(", "));
+  }
+
+  private static String printHeader(final Header header) {
+    return String.format(
+            "{KEY=%s,VALUE=%s}",
+            header.key(),
+            BytesUtils.encode(header.value(), BytesUtils.Encoding.BASE64));
   }
 
   private static void verifyTopology(final TestCase testCase) {
@@ -499,10 +519,7 @@ public class TestExecutor implements Closeable {
       final Set<Topic> possibleSinkTopics
   ) {
     testDriver.getSourceTopic(producedRecord.topic())
-        .pipeInput(
-            producedRecord.key(),
-            producedRecord.value(),
-            producedRecord.timestamp());
+        .pipeInput(new TestRecord<>(producedRecord));
 
     testDriver.getSinkTopicName().ifPresent(topicName -> {
       final String sinkTopicName = topicName;
@@ -532,7 +549,8 @@ public class TestExecutor implements Closeable {
             null, // partition
             testRecord.timestamp(),
             testRecord.getKey(),
-            testRecord.getValue()
+            testRecord.getValue(),
+            testRecord.getHeaders()
         )));
   }
 
@@ -630,18 +648,21 @@ public class TestExecutor implements Closeable {
     final Object actualKey = coerceRecordFields(actualProducerRecord.key());
     final Object actualValue = coerceRecordFields(actualProducerRecord.value());
     final long actualTimestamp = actualProducerRecord.timestamp();
+    final Headers actualHeaders = actualProducerRecord.headers();
 
     final JsonNode expectedKey = expectedRecord.getJsonKey().orElse(NullNode.getInstance());
     final JsonNode expectedValue = expectedRecord.getJsonValue()
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expectedRecord));
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
+    final List<TestHeader> expectedHeaders = expectedRecord.headers().orElse(ImmutableList.of());
 
     final AssertionError error = new AssertionError(
         "Topic '" + topicName + "', message " + messageIndex
             + ": Expected <" + expectedKey + ", " + expectedValue + "> "
             + "with timestamp=" + expectedTimestamp
-            + " but was " + getProducerRecordInString(actualProducerRecord));
+            + " and headers=[" + printHeaders(expectedHeaders)
+            + "] but was " + getProducerRecordInString(actualProducerRecord));
 
     if (expectedRecord.getWindow() != null) {
       final Windowed<?> windowed = (Windowed<?>) actualKey;
@@ -656,6 +677,10 @@ public class TestExecutor implements Closeable {
     }
 
     if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {
+      throw error;
+    }
+
+    if (!ExpectedRecordComparator.matches(actualHeaders.toArray(), expectedHeaders)) {
       throw error;
     }
 

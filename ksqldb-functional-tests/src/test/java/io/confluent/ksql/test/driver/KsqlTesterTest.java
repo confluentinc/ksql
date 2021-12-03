@@ -106,6 +106,7 @@ public class KsqlTesterTest {
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+      .put(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @Rule

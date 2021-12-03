@@ -76,8 +76,8 @@ final class EngineContext {
   private final ProcessingLogContext processingLogContext;
   private final KsqlParser parser;
   private final QueryCleanupService cleanupService;
-  private final KsqlConfig ksqlConfig;
   private final QueryRegistry queryRegistry;
+  private KsqlConfig ksqlConfig;
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -122,7 +122,7 @@ final class EngineContext {
     this.queryRegistry = requireNonNull(queryRegistry, "queryRegistry");
   }
 
-  EngineContext createSandbox(final ServiceContext serviceContext) {
+  synchronized EngineContext createSandbox(final ServiceContext serviceContext) {
     return new EngineContext(
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
@@ -159,6 +159,14 @@ final class EngineContext {
     return queryRegistry;
   }
 
+  synchronized KsqlConfig getKsqlConfig() {
+    return ksqlConfig;
+  }
+
+  synchronized void alterSystemProperty(final Map<String, String> overrides) {
+    this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
+  }
+
   private ParsedStatement substituteVariables(
       final ParsedStatement stmt,
       final Map<String, String> variablesMap
@@ -168,7 +176,8 @@ final class EngineContext {
         : stmt ;
   }
 
-  PreparedStatement<?> prepare(final ParsedStatement stmt, final Map<String, String> variablesMap) {
+  synchronized PreparedStatement<?> prepare(final ParsedStatement stmt,
+      final Map<String, String> variablesMap) {
     try {
       final PreparedStatement<?> preparedStatement =
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);

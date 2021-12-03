@@ -102,6 +102,11 @@ import org.apache.avro.SchemaBuilder;
 
 import org.apache.kafka.streams.KafkaStreams;
 
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsConfig;
+import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -2064,6 +2069,26 @@ public class KsqlEngineTest {
     // Then:
     verifyNoMoreInteractions(topicClient);
     verifyNoMoreInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldRaiseExceptionIfValueIsErroneous() {
+    assertThrows(ConfigException.class, () ->
+        ksqlEngine.alterSystemProperty(StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG, "TEST"));
+  }
+
+  @Test
+  public void shouldOverrideKsqlConfigsWhenAlterSystemPropertyIsCalled() {
+    // Given:
+    final Object valueBefore = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
+
+    // When:
+    ksqlEngine.alterSystemProperty(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG, "3000");
+
+    // Then:
+    final Object valueAfter = ksqlEngine.getKsqlConfig().originals().get(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG);
+    assertThat(valueAfter, not(equalTo(valueBefore)));
+    assertThat(valueAfter, equalTo("3000"));
   }
 
   @Test

@@ -183,7 +183,6 @@ public class KsqlResource implements KsqlConfigurable {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        config,
         new ValidatedCommandFactory()
     );
 
@@ -200,7 +199,6 @@ public class KsqlResource implements KsqlConfigurable {
             commandRunnerWarning
         ),
         ksqlEngine,
-        config,
         new DefaultCommandQueueSync(
             commandRunner.getCommandQueue(),
             KsqlResource::shouldSynchronize,

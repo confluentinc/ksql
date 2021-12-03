@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,21 +35,25 @@ import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.Executor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,6 +76,8 @@ public class ValidatedCommandFactoryTest {
   @Mock
   private TerminateQuery terminateQuery;
   @Mock
+  private AlterSystemProperty alterSystemProperty;
+  @Mock
   private CreateStream plannedQuery;
   @Mock
   private KsqlConfig config;
@@ -87,6 +94,7 @@ public class ValidatedCommandFactoryTest {
   @Before
   public void setup() {
     commandFactory = new ValidatedCommandFactory();
+    when(executionContext.getKsqlConfig()).thenReturn(config);
   }
 
   @Test
@@ -102,6 +110,25 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(command, is(Command.of(configuredStatement)));
+  }
+
+  @Test
+  public void shouldRaiseExceptionIfKeyDoesNotExistEditablePropertiesList() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+
+    commandFactory.create(configuredStatement, executionContext);
+  }
+
+  @Test
+  public void shouldNotRaiseExceptionWhenPrefixIsAdded() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+
+    assertThrows(ConfigException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
   }
 
   @Test

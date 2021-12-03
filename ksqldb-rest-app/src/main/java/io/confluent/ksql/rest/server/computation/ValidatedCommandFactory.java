@@ -19,10 +19,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -32,6 +34,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Optional;
+import org.apache.kafka.common.config.ConfigException;
 
 /**
  * Creates commands that have been validated to successfully execute against
@@ -105,7 +108,32 @@ public final class ValidatedCommandFactory {
       return createForTerminateQuery(statement, context);
     }
 
-    return createForPlannedQuery(statement, serviceContext, context);
+    if (statement.getStatement() instanceof AlterSystemProperty) {
+      return createForAlterSystemQuery(statement, context);
+    }
+
+    return createForPlannedQuery(statement.withConfig(context.getKsqlConfig()),
+        serviceContext, context);
+  }
+
+  private static Command createForAlterSystemQuery(
+      final ConfiguredStatement<? extends Statement> statement,
+      final KsqlExecutionContext context
+  ) {
+    final AlterSystemProperty alterSystemProperty = (AlterSystemProperty) statement.getStatement();
+    final String propertyName = alterSystemProperty.getPropertyName();
+    final String propertyValue = alterSystemProperty.getPropertyValue();
+
+    // validate
+    context.alterSystemProperty(propertyName, propertyValue);
+    if (!Property.isEditable(propertyName)) {
+      throw new ConfigException(
+          String.format("Failed to set %s to %s. Caused by: "
+                  + "Not recognizable as ksql, streams, consumer, or producer property: %s %n",
+              propertyName, propertyValue, propertyName), null);
+    }
+
+    return Command.of(statement);
   }
 
   private static Command createForTerminateQuery(

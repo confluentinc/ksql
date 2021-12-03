@@ -101,6 +101,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
@@ -788,6 +789,13 @@ public class AstBuilder {
       final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
       final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
       return new SetProperty(getLocation(context), propertyName, propertyValue);
+    }
+
+    @Override
+    public Node visitAlterSystemProperty(final SqlBaseParser.AlterSystemPropertyContext context) {
+      final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
+      final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
+      return new AlterSystemProperty(getLocation(context), propertyName, propertyValue);
     }
 
     @Override

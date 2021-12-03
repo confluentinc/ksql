@@ -39,8 +39,10 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -66,7 +68,7 @@ public class ListPropertiesExecutorTest {
   }
 
   @Test
-  public void shouldContainInternalField() {
+  public void shouldContainAllowField() {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;"),
@@ -76,8 +78,8 @@ public class ListPropertiesExecutorTest {
     ).getEntity().orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(toMap(properties).get(KsqlConfig.KSQL_EXT_DIR).getInternal(), equalTo(true));
-    assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getInternal(), equalTo(false));
+    assertThat(toMap(properties).get("ksql.streams.commit.interval.ms").getEditable(), equalTo(true));
+    assertThat(toMap(properties).get(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG).getEditable(), equalTo(false));
   }
 
   @Test

@@ -56,6 +56,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -85,6 +86,7 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -100,6 +102,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -311,8 +314,6 @@ public class KsqlResourceTest {
   @Mock
   private Supplier<String> commandRunnerWarning;
   @Mock
-  private KsqlExecutionContext executionContext;
-  @Mock
   private Optional<PersistentQueryMetadata> persistentQuery;
 
   private KsqlResource ksqlResource;
@@ -350,7 +351,10 @@ public class KsqlResourceTest {
 
     realEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        metaStore
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator(),
+        ksqlConfig
     );
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
@@ -361,6 +365,7 @@ public class KsqlResourceTest {
         .thenReturn(transactionalProducer);
 
     ksqlEngine = realEngine;
+
     when(sandbox.getMetaStore()).thenAnswer(inv -> metaStore.copy());
 
     addTestTopicAndSources();
@@ -1624,6 +1629,7 @@ public class KsqlResourceTest {
                 .prepare(invocation.getArgument(0), Collections.emptyMap()));
     when(sandbox.plan(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
+    when(sandbox.getKsqlConfig()).thenReturn(ksqlConfig);
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -2262,6 +2268,8 @@ public class KsqlResourceTest {
             new DropSourceCommand(SourceName.of("bob"))
         )
     );
+    when(ksqlEngine.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(sandbox.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
@@ -2578,6 +2586,13 @@ public class KsqlResourceTest {
     final Map<String, Object> config = ksqlRestConfig.getKsqlConfigProperties();
     config.putAll(additionalConfig);
     ksqlConfig = new KsqlConfig(config);
+    ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
+        serviceContext,
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator(),
+        ksqlConfig
+    );
 
     setUpKsqlResource();
   }

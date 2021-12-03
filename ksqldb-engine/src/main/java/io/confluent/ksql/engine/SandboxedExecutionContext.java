@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -38,6 +39,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
@@ -63,6 +65,17 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext
   ) {
     this.engineContext = sourceContext.createSandbox(serviceContext);
+  }
+
+  @Override
+  public KsqlConfig getKsqlConfig() {
+    return this.engineContext.getKsqlConfig();
+  }
+
+  @Override
+  public void alterSystemProperty(final String propertyName, final String propertyValue) {
+    final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
+    this.engineContext.alterSystemProperty(overrides);
   }
 
   @Override

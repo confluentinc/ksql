@@ -66,24 +66,26 @@ class Callbacks:
             # clone kafka tutorials and checkout 'ksqldb-latest'
             print(f"git clone {KAFKA_TUTORIALS_URL}")
             subprocess.run(shlex.split(f"git clone {KAFKA_TUTORIALS_URL}"))
-            print(f"cd kafka-tutorials")
-            subprocess.run(shlex.split(f"cd kafka-tutorials"))
+            # print(f"cd kafka-tutorials")
+            # subprocess.run(shlex.split(f"cd kafka-tutorials"))
+            kafka_tutorials_cwd = os.path.join(self.working_dir, 'kafka-tutorials')
+            print(f"{kafka_tutorials_cwd}")
             print(f"git checkout {KAFKA_TUTORIALS_BRANCH}")
-            subprocess.run(shlex.split(f"git checkout {KAFKA_TUTORIALS_BRANCH}"))
+            subprocess.run(shlex.split(f"git checkout {KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
 
             # update kafka tutorials and kick off semaphore test
             update_ksqldb_version_path = os.path.join(self.working_dir, '/tools/update-ksqldb-version.sh')
             print(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}")
-            subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}"))
+            subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}"), cwd=kafka_tutorials_cwd)
 
             print(f"git diff")
-            subprocess.run(shlex.split(f"git diff"))
+            subprocess.run(shlex.split(f"git diff"), cwd=kafka_tutorials_cwd)
             print(f"git add _includes/*")
-            subprocess.run(shlex.split(f"git add _includes/*"))
+            subprocess.run(shlex.split(f"git add _includes/*"), cwd=kafka_tutorials_cwd)
             print(f"git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\"")
-            subprocess.run(shlex.split(f"git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""))
+            subprocess.run(shlex.split(f"git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""), cwd=kafka_tutorials_cwd)
             print(f"git push origin HEAD:{KAFKA_TUTORIALS_BRANCH}")
-            subprocess.run(shlex.split(f"git push origin HEAD:{KAFKA_TUTORIALS_BRANCH}"))
+            subprocess.run(shlex.split(f"git push origin HEAD:{KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
 
             return True
         except:

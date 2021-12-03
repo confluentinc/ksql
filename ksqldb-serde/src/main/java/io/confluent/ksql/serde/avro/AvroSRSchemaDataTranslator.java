@@ -47,6 +47,8 @@ public class AvroSRSchemaDataTranslator extends ConnectSRSchemaDataTranslator {
     final Struct originalData = (Struct) ksqlData;
     final Schema originalSchema = originalData.schema();
 
+    validate(originalSchema);
+
     for (final Field field : schema.fields()) {
       final Optional<Field> originalField = originalSchema.fields().stream()
           .filter(f -> field.name().equals(f.name())).findFirst();

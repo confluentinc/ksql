@@ -179,15 +179,39 @@ public class KsqlJsonSerializerTest {
   private static final JsonSchema NON_OPTIONAL_ITEM_JSON_SCHEMA = new JsonSchema(
       "{\"type\":\"object\",\"properties\":"
           + "{\"ITEMID\":{\"connect.index\":0,\"type\":\"integer\",\"connect.type\":\"int64\"},"
+          + "\"CATEGORIES\":{\"connect.index\":2,"
+          + "\"type\":\"array\",\"items\":{"
+          + "\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}},"
+          + "\"NAME\":{\"connect.index\":1,\"type\":\"string\"}}}"
+  );
+
+  private static final JsonSchema ITEM_JSON_SCHEMA_WITH_OPTIONAL_EXTRA_FIELD = new JsonSchema(
+      "{\"type\":\"object\",\"properties\":"
+          + "{\"ITEMID\":{\"connect.index\":0,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
           + "\"CATEGORIES\":{\"connect.index\":2,\"oneOf\":"
           + "[{\"type\":\"null\"},"
           + "{\"type\":\"array\",\"items\":{\"oneOf\":"
           + "[{\"type\":\"null\"},{\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
           + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
           + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}]}}]},"
-          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]},"
+          + "\"EXPIRATION_DATE\":{\"connect.index\":3,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\"}]}}}"
   );
 
+  private static final JsonSchema ITEM_JSON_SCHEMA_WITH_EXTRA_FIELD = new JsonSchema(
+      "{\"type\":\"object\",\"properties\":"
+          + "{\"ITEMID\":{\"connect.index\":0,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"CATEGORIES\":{\"connect.index\":2,\"oneOf\":"
+          + "[{\"type\":\"null\"},"
+          + "{\"type\":\"array\",\"items\":{\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"object\",\"properties\":{\"ID\":{\"connect.index\":0,\"oneOf\":"
+          + "[{\"type\":\"null\"},{\"type\":\"integer\",\"connect.type\":\"int64\"}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]}}}]}}]},"
+          + "\"NAME\":{\"connect.index\":1,\"oneOf\":[{\"type\":\"null\"},{\"type\":\"string\"}]},"
+          + "\"DATE\":{\"connect.index\":3,\"type\":\"integer\"}}}"
+  );
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][]{{"Plain JSON", false}, {"Magic byte prefixed", true}});
@@ -738,11 +762,12 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
-  public void shouldThrowIfOptionalSchemaNotCompatible() throws Exception {
+  public void shouldSerializeStructWithExtraOptionalFieldWithSchemaId() throws Exception {
     // Given:
-    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), NON_OPTIONAL_ITEM_JSON_SCHEMA);
+    final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ITEM_JSON_SCHEMA_WITH_OPTIONAL_EXTRA_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
-        Struct.class, Optional.of(schemaId), Optional.of("randomName"));
+        Struct.class, Optional.of(schemaId), Optional.empty());
     final Struct category = new Struct(CATEGORY_SCHEMA);
     category.put("ID", 1L);
     category.put("NAME", "Food");
@@ -751,6 +776,59 @@ public class KsqlJsonSerializerTest {
     item.put(ITEMID, 10L);
     item.put("NAME", "Item_10");
     item.put("CATEGORIES", Collections.singletonList(category));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, item);
+
+    // Then:
+    if (useSchemas) {
+      assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":"
+          + "[{\"ID\":1,\"NAME\":\"Food\"}],\"EXPIRATION_DATE\":null}"));
+    } else {
+       assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":"
+          + "[{\"ID\":1,\"NAME\":\"Food\"}]}"));
+    }
+  }
+
+  @Test
+  public void shouldSerializeWithExtraNonOptionalFieldWithSchemaId() throws Exception {
+    // Given:
+    final int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        ITEM_JSON_SCHEMA_WITH_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.empty());
+    final Struct category = new Struct(CATEGORY_SCHEMA);
+    category.put("ID", 1L);
+    category.put("NAME", "Food");
+
+    final Struct item = new Struct(NON_OPTIONAL_ITEM_SCHEMA);
+    item.put(ITEMID, 10L);
+    item.put("NAME", "Item_10");
+    item.put("CATEGORIES", Collections.singletonList(category));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, item);
+
+    // Then:
+    assertThat(asJsonString(bytes), is("{\"ITEMID\":10,\"NAME\":\"Item_10\",\"CATEGORIES\":"
+        + "[{\"ID\":1,\"NAME\":\"Food\"}]}"));
+  }
+
+  @Test
+  public void shouldThrowIfOptionalSchemaNotCompatible() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        NON_OPTIONAL_ITEM_JSON_SCHEMA);
+    final Serializer<Struct> serializer = givenSerializerForSchema(NON_OPTIONAL_ITEM_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.of("randomName"));
+    final Struct category = new Struct(CATEGORY_SCHEMA);
+    category.put("ID", 1L);
+    category.put("NAME", null);
+
+    final Struct item = new Struct(NON_OPTIONAL_ITEM_SCHEMA);
+    item.put(ITEMID, 10L);
+    item.put("NAME", "Food");
+    item.put("CATEGORIES", null);
 
     // When:
     if (useSchemas) {

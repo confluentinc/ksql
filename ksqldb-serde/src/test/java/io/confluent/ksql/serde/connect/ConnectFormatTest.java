@@ -19,15 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.name.ColumnName;
@@ -82,8 +79,6 @@ public class ConnectFormatTest {
   private Serializer serializer;
   @Mock
   private Deserializer deserializer;
-  @Mock
-  private ConnectProperties connectProperties;
 
   private TestFormat format;
   private Set<SerdeFeature> supportedFeatures;
@@ -134,22 +129,6 @@ public class ConnectFormatTest {
 
     assertThat(result.serializer(), instanceOf(UnwrappedSerializer.class));
     assertThat(result.deserializer(), instanceOf(UnwrappedDeserializer.class));
-  }
-
-  @Test
-  public void shouldGetFullSchemaName() {
-    // Given:
-    when(format.getSupportedProperties()).thenReturn(ImmutableSet.of(ConnectProperties.FULL_SCHEMA_NAME));
-    when(connectProperties.getFullSchemaName()).thenReturn("SomeSchemaName");
-    final SimpleColumn singleColumn = createColumn("bob", SqlTypes.INTEGER);
-    when(persistenceSchema.columns()).thenReturn(ImmutableList.of(singleColumn));
-
-    // When:
-    format.getSerde(persistenceSchema, formatProps, config, srFactory, false);
-
-    // Then:
-    verify(format, times(1)).getSupportedProperties();
-    verify(connectProperties, times(1)).getFullSchemaName();
   }
 
   @Test

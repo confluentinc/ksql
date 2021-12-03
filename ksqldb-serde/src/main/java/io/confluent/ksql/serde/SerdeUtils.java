@@ -58,10 +58,10 @@ public final class SerdeUtils {
   /**
    * Applies any single column unwrapping.
    *
-   * @param schema   the schema of the key or value columns. Must be a {@code Struct}.
+   * @param schema the schema of the key or value columns. Must be a {@code Struct}.
    * @param features the serde features to apply.
    * @return If the supplied {@code features} includes {@link SerdeFeature#UNWRAP_SINGLES} the
-   * returned schema will be unwrapped, i.e. an anonymous type.
+   *         returned schema will be unwrapped, i.e. an anonymous type.
    */
   public static ConnectSchema applySinglesUnwrapping(
       final Schema schema,

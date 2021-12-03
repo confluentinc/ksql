@@ -34,21 +34,6 @@ public class ConnectSchemasTest {
     ));
   }
 
-  @Test
-  public void shouldSetSchemaName() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("Vic"), DOUBLE)
-        .valueColumn(ColumnName.of("Bob"), BIGINT)
-        .build();
-
-    // When:
-    final ConnectSchema result = ConnectSchemas.columnsToConnectSchema(schema.value());
-
-    // Then:
-    assertThat(result.name(), is("name"));
-  }
-
   private static org.apache.kafka.connect.data.Field connectField(
       final String fieldName,
       final int index,

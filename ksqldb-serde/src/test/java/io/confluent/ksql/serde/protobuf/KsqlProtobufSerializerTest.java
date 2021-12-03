@@ -18,7 +18,6 @@ package io.confluent.ksql.serde.protobuf;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import com.google.type.Date;
@@ -105,6 +104,24 @@ public class KsqlProtobufSerializerTest {
               "message StructName {\n int64 id = 1;\n" +
               "int32 age = 2;\n" +
               "string name = 3;\n}\n"
+      );
+
+  private static final ParsedSchema PROTOBUF_STRUCT_SCHEMA_WITH_EXTRA_FIELD =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "message StructName {\n int64 id = 1;\n" +
+              "int32 age = 2;\n" +
+              "string name = 3;\n" +
+              "string address = 4;\n}\n"
+      );
+
+  private static final ParsedSchema PROTOBUF_STRUCT_SCHEMA_WITH_MISSING_FIELD =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "message StructName {\n int64 id = 1;\n" +
+              "string name = 2;\n}\n"
       );
 
   private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
@@ -222,9 +239,33 @@ public class KsqlProtobufSerializerTest {
   }
 
   @Test
-  public void shouldThrowIfSchemaNameNotCompatible() throws Exception {
+  public void shouldSerializeStructWithExtraFieldWithSchemaId() throws Exception {
     // Given:
-    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false), PROTOBUF_STRUCT_SCHEMA);
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        PROTOBUF_STRUCT_SCHEMA_WITH_EXTRA_FIELD);
+    final Serializer<Struct> serializer = givenSerializerForSchema(STRUCT_SCHEMA,
+        Struct.class, Optional.of(schemaId), Optional.of("StructName"));
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, STRUCT_RECORD);
+    final Message deserialized = deserialize(bytes);
+
+    // Then:
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("id")), is(123L));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("age")), is(20));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("name")), is("bob"));
+    assertThat(deserialized.getField(
+        deserialized.getDescriptorForType().findFieldByName("address")), is(""));
+  }
+
+  @Test
+  public void shouldThrowIfSchemaMissesFieldNotCompatible() throws Exception {
+    // Given:
+    int schemaId = givenPhysicalSchema(getSRSubject(SOME_TOPIC, false),
+        PROTOBUF_STRUCT_SCHEMA_WITH_MISSING_FIELD);
     final Serializer<Struct> serializer = givenSerializerForSchema(RANDOM_NAME_STRUCT_SCHEMA,
         Struct.class, Optional.of(schemaId), Optional.of("RandomName"));
 
@@ -236,8 +277,7 @@ public class KsqlProtobufSerializerTest {
 
     // Then:
     assertThat(e.getMessage(),
-        containsString("Error serializing message to topic: bob. "
-            + "Failed to serialize Protobuf data from topic bob"));
+        containsString("Schema from Schema Registry misses field with name: age"));
   }
 
   @SuppressWarnings("unchecked")

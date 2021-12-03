@@ -239,7 +239,7 @@ public class PullQueryLimitHARoutingTest {
         for (TestApp testApp : ALL_TEST_APPS) {
             waitForRemoteServerToChangeStatus(TEST_APP_0.getApp(),
                     testApp.getHost(),
-                    HighAvailabilityTestUtil.lagsReported(TEST_APP_0.getHost(), Optional.of(10L),
+                    HighAvailabilityTestUtil.lagsReported(testApp.getHost(), Optional.of(10L),
                             10),
                     USER_CREDS);
         }
@@ -301,7 +301,7 @@ public class PullQueryLimitHARoutingTest {
         for (TestApp testApp : ALL_TEST_APPS) {
             waitForRemoteServerToChangeStatus(TEST_APP_0.getApp(),
                     testApp.getHost(),
-                    HighAvailabilityTestUtil.lagsReported(TEST_APP_0.getHost(), Optional.of(10L),
+                    HighAvailabilityTestUtil.lagsReported(testApp.getHost(), Optional.of(10L),
                             10),
                     USER_CREDS);
         }

@@ -16,6 +16,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +65,20 @@ public final class BytesUtils {
       Encoding.ASCII, v -> asciiDecoding(v),
       Encoding.BASE64, v -> base64Decoding(v)
   );
+
+  public static ByteOrder byteOrderType(final String byteOrderStr) {
+    if (byteOrderStr != null
+        && byteOrderStr.equalsIgnoreCase(ByteOrder.BIG_ENDIAN.toString())) {
+      return ByteOrder.BIG_ENDIAN;
+    } else if (byteOrderStr != null
+        && byteOrderStr.equalsIgnoreCase(ByteOrder.LITTLE_ENDIAN.toString())) {
+      return ByteOrder.LITTLE_ENDIAN;
+    } else {
+      throw new KsqlException(String.format(
+          "Byte order must be BIG_ENDIAN or LITTLE_ENDIAN. Unknown byte order '%s'.",
+          byteOrderStr));
+    }
+  }
 
   public static String encode(final byte[] value, final Encoding encoding) {
     final Function<byte[], String> encoder = ENCODERS.get(encoding);
@@ -152,6 +167,14 @@ public final class BytesUtils {
     }
 
     return -1;
+  }
+
+  public static void checkBytesSize(final ByteBuffer buffer, final int size) {
+    final int bufferSize = getByteArray(buffer).length;
+    if (bufferSize != size) {
+      throw new KsqlException(
+          String.format("Number of bytes must be equal to %d, but found %d", size, bufferSize));
+    }
   }
 
   @SuppressWarnings("ParameterName")

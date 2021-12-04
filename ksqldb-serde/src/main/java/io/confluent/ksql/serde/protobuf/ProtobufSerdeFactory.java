@@ -108,7 +108,7 @@ final class ProtobufSerdeFactory {
   ) {
     final ProtobufConverter converter = getConverter(srFactory.get(), ksqlConfig,
         properties.getSchemaId(), isKey);
-    final ConnectDataTranslator translator = getDataTranslator(schema, physicalSchema);
+    final ConnectDataTranslator translator = getDataTranslator(schema, physicalSchema, false);
     return new KsqlConnectSerializer<>(
         translator.getSchema(),
         translator,
@@ -130,15 +130,19 @@ final class ProtobufSerdeFactory {
 
     return new KsqlConnectDeserializer<>(
         converter,
-        getDataTranslator(schema, physicalSchema),
+        getDataTranslator(schema, physicalSchema, true),
         targetType
     );
   }
 
   private static ConnectDataTranslator getDataTranslator(final Schema schema,
-      final Optional<Schema> physicalSchema) {
-    return physicalSchema.isPresent() ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
-        : new ConnectDataTranslator(schema);
+      final Optional<Schema> physicalSchema, final boolean isDeserializer) {
+    // If physical schema exists, we use physical schema to translate to connect data. During
+    // deserialization, if physical schema exists, we use original schema to translate to ksql data.
+    if (!physicalSchema.isPresent() || isDeserializer) {
+      return new ConnectDataTranslator(schema);
+    }
+    return new ConnectSRSchemaDataTranslator(physicalSchema.get());
   }
 
   private static ProtobufConverter getConverter(

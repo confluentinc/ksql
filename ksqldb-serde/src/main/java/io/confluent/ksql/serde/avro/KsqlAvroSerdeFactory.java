@@ -109,7 +109,7 @@ class KsqlAvroSerdeFactory {
       final boolean isKey
   ) {
     return () -> {
-      final DataTranslator translator = createAvroTranslator(schema, physicalSchema);
+      final DataTranslator translator = createAvroTranslator(schema, physicalSchema, false);
       final Schema compatibleSchema = translator instanceof AvroDataTranslator
           ? ((AvroDataTranslator) translator).getAvroCompatibleSchema()
           : ((ConnectDataTranslator) translator).getSchema();
@@ -135,7 +135,7 @@ class KsqlAvroSerdeFactory {
       final boolean isKey
   ) {
     return () -> {
-      final DataTranslator translator = createAvroTranslator(schema, physicalSchema);
+      final DataTranslator translator = createAvroTranslator(schema, physicalSchema, true);
 
       final AvroConverter avroConverter =
           getAvroConverter(srFactory.get(), ksqlConfig, Optional.empty(), isKey);
@@ -145,11 +145,13 @@ class KsqlAvroSerdeFactory {
   }
 
   private DataTranslator createAvroTranslator(final Schema schema,
-      final Optional<Schema> physicalSchema) {
-    if (physicalSchema.isPresent()) {
-      return new AvroSRSchemaDataTranslator(physicalSchema.get());
-    }
-    return new AvroDataTranslator(schema, fullSchemaName);
+      final Optional<Schema> physicalSchema, final boolean isDeserializer) {
+    // If physical schema exists, we use physical schema to translate to connect data. During
+    // deserialization, if physical schema exists, we use original schema to translate to ksql data.
+    return physicalSchema.<DataTranslator>map(
+            value -> isDeserializer ? new ConnectDataTranslator(schema)
+                : new AvroSRSchemaDataTranslator(value))
+        .orElseGet(() -> new AvroDataTranslator(schema, fullSchemaName));
   }
 
   private static AvroConverter getAvroConverter(

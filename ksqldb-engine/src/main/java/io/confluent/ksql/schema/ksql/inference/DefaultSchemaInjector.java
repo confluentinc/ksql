@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaAndId;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
@@ -213,28 +214,36 @@ public class DefaultSchemaInjector implements Injector {
      *  1. If schema id is provided, format must support schema inference
      */
 
+    final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
+        : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
+    final String schemaIdName =
+        isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
+    final String formatPropMsg = String.format("%s should support schema inference when %s is "
+        + "provided. Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
+
+    final Format format;
+    try {
+      format = FormatFactory.of(formatInfo);
+    } catch (KsqlException e) {
+      if (e.getMessage().contains("does not support the following configs: [schemaId]")) {
+        throw new KsqlException(formatPropMsg);
+      }
+      throw e;
+    }
     final boolean hasTableElements =
         isKey ? hasKeyElements(statement) : hasValueElements(statement);
     if (schemaId.isPresent()) {
-      if (!formatSupportsSchemaInference(formatInfo)) {
-        final String formatProp = isKey ? CommonCreateConfigs.KEY_FORMAT_PROPERTY
-            : CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
-        final String schemaIdName =
-            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
-        final String msg = String.format("%s should support schema inference when %s is provided. "
-            + "Current format is %s.", formatProp, schemaIdName, formatInfo.getFormat());
-        throw new KsqlException(msg);
+      if (!formatSupportsSchemaInference(format)) {
+        throw new KsqlException(formatPropMsg);
       }
       if (hasTableElements) {
-        final String schemaIdName =
-            isKey ? CommonCreateConfigs.KEY_SCHEMA_ID : CommonCreateConfigs.VALUE_SCHEMA_ID;
         final String msg = "Table elements and " + schemaIdName + " cannot both exist for create "
             + "statement.";
         throw new KsqlException(msg);
       }
       return true;
     }
-    return !hasTableElements && formatSupportsSchemaInference(formatInfo);
+    return !hasTableElements && formatSupportsSchemaInference(format);
   }
 
   private static boolean hasKeyElements(
@@ -253,8 +262,8 @@ public class DefaultSchemaInjector implements Injector {
         .anyMatch(e -> !e.isKey() && !e.isPrimaryKey() && !e.isHeaders());
   }
 
-  private static boolean formatSupportsSchemaInference(final FormatInfo format) {
-    return FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
+  private static boolean formatSupportsSchemaInference(final Format format) {
+    return format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE);
   }
 
   private static CreateSource addSchemaFields(

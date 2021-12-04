@@ -24,11 +24,7 @@ public class JsonProperties extends ConnectProperties {
 
   static final ImmutableSet<String> SUPPORTED_PROPERTIES = ImmutableSet.of();
 
-  JsonProperties(final String name, final Map<String, String> formatProps) {
-    super(name, formatProps);
-  }
-
-  JsonProperties(final Map<String, String> formatProps) {
+  public JsonProperties(final Map<String, String> formatProps) {
     super(JsonFormat.NAME, formatProps);
   }
 

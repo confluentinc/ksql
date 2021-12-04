@@ -25,7 +25,7 @@ import java.util.Map;
  * Properties that can be set on the Avro format.
  */
 @Immutable
-class AvroProperties extends ConnectProperties {
+public class AvroProperties extends ConnectProperties {
 
   static final String AVRO_SCHEMA_NAMESPACE = "io.confluent.ksql.avro_schemas";
   static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
@@ -37,7 +37,7 @@ class AvroProperties extends ConnectProperties {
       SCHEMA_ID
   );
 
-  AvroProperties(final Map<String, String> formatProps) {
+  public AvroProperties(final Map<String, String> formatProps) {
     super(AvroFormat.NAME, formatProps);
   }
 

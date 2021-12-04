@@ -56,6 +56,11 @@ public class ProtobufFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getInheritableProperties() {
+    return ProtobufProperties.INHERITABLE_PROPERTIES;
+  }
+
+  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {
@@ -72,6 +77,7 @@ public class ProtobufFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType, isKey);
+    return new ProtobufSerdeFactory(new ProtobufProperties(formatProps))
+        .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

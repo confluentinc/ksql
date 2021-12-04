@@ -1,43 +1,32 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638217460208,
+  "timestamp" : 1638433521919,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
+      "schema" : "`ID` INTEGER KEY, `c1` BIGINT",
       "keyFormat" : {
-        "format" : "JSON_SR",
-        "properties" : {
-          "schemaId" : "1"
-        },
-        "features" : [ "UNWRAP_SINGLES" ]
+        "format" : "KAFKA"
       },
       "valueFormat" : {
         "format" : "JSON_SR",
         "properties" : {
-          "schemaId" : "2"
+          "schemaId" : "1"
         }
       }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
+      "schema" : "`ID` INTEGER KEY, `c1` BIGINT",
       "keyFormat" : {
-        "format" : "JSON_SR",
-        "properties" : {
-          "schemaId" : "1"
-        },
-        "features" : [ "UNWRAP_SINGLES" ]
+        "format" : "KAFKA"
       },
       "valueFormat" : {
-        "format" : "JSON_SR",
-        "properties" : {
-          "schemaId" : "2"
-        }
+        "format" : "JSON_SR"
       }
     }
   },
   "testCase" : {
-    "name" : "validate schema id without key value elements OK - JSON_SR SCHEMA",
+    "name" : "validate schema id without value elements OK - custom key name",
     "inputs" : [ {
       "topic" : "input",
       "key" : 42,
@@ -54,14 +43,6 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "keySchema" : {
-        "oneOf" : [ {
-          "type" : "null"
-        }, {
-          "type" : "integer",
-          "connect.type" : "int32"
-        } ]
-      },
       "valueSchema" : {
         "type" : "object",
         "properties" : {
@@ -70,7 +51,6 @@
           }
         }
       },
-      "keyFormat" : "JSON",
       "valueFormat" : "JSON",
       "replicas" : 1,
       "numPartitions" : 1
@@ -79,28 +59,28 @@
       "replicas" : 1,
       "numPartitions" : 1
     } ],
-    "statements" : [ "CREATE STREAM INPUT WITH (kafka_topic='input', format='JSON_SR', key_schema_id=1, value_schema_id=2);", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
+    "statements" : [ "CREATE STREAM INPUT (id int key) WITH (kafka_topic='input', value_format='JSON_SR', value_schema_id=1);", "CREATE STREAM OUTPUT AS SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
+        "schema" : "`ID` INTEGER KEY, `c1` BIGINT",
         "keyFormat" : {
-          "format" : "JSON_SR"
+          "format" : "KAFKA"
         },
         "valueFormat" : "JSON_SR",
-        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ROWKEY` INTEGER KEY, `c1` BIGINT",
+        "schema" : "`ID` INTEGER KEY, `c1` BIGINT",
         "keyFormat" : {
-          "format" : "JSON_SR"
+          "format" : "KAFKA"
         },
         "valueFormat" : "JSON_SR",
-        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
       } ],
@@ -108,27 +88,15 @@
         "topics" : [ {
           "name" : "input",
           "keyFormat" : {
-            "format" : "JSON_SR",
-            "properties" : {
-              "schemaId" : "1"
-            },
-            "features" : [ "UNWRAP_SINGLES" ]
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON_SR",
             "properties" : {
-              "schemaId" : "2"
+              "schemaId" : "1"
             }
           },
           "partitions" : 1,
-          "keySchema" : {
-            "oneOf" : [ {
-              "type" : "null"
-            }, {
-              "type" : "integer",
-              "connect.type" : "int32"
-            } ]
-          },
           "valueSchema" : {
             "type" : "object",
             "properties" : {
@@ -140,27 +108,12 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "format" : "JSON_SR",
-            "properties" : {
-              "schemaId" : "1"
-            },
-            "features" : [ "UNWRAP_SINGLES" ]
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "JSON_SR",
-            "properties" : {
-              "schemaId" : "2"
-            }
+            "format" : "JSON_SR"
           },
           "partitions" : 4,
-          "keySchema" : {
-            "oneOf" : [ {
-              "type" : "null"
-            }, {
-              "type" : "integer",
-              "connect.type" : "int32"
-            } ]
-          },
           "valueSchema" : {
             "type" : "object",
             "properties" : {

@@ -27,7 +27,9 @@ public class JsonSchemaProperties extends ConnectProperties {
       SCHEMA_ID
   );
 
-  JsonSchemaProperties(final Map<String, String> formatProps) {
+  static final ImmutableSet<String> INHERITABLE_PROPERTIES = ImmutableSet.of();
+
+  public JsonSchemaProperties(final Map<String, String> formatProps) {
     super(JsonSchemaFormat.NAME, formatProps);
   }
 

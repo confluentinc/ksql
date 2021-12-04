@@ -17,6 +17,8 @@ package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -68,6 +70,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("getId", String.class, ParsedSchema.class, boolean.class)
           .ignore("getId", String.class, Schema.class)
           .ignore("getVersion", String.class, ParsedSchema.class)
+          .ignore("getSchemaById", int.class)
           .build();
     }
 
@@ -177,6 +180,18 @@ public final class SandboxedSchemaRegistryClientTest {
 
       // Then:
       assertThat(version, is(6));
+    }
+
+    @Test
+    public void shouldGetSchemaById() throws Exception {
+      // Given:
+      when(delegate.getSchemaById(anyInt())).thenReturn(parsedSchema);
+
+      // When:
+      final ParsedSchema retSchema = sandboxedClient.getSchemaById(1);
+
+      // Then:
+      assertThat(retSchema, is(parsedSchema));
     }
 
     @Test

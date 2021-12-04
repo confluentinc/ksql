@@ -16,7 +16,6 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.util.KsqlException;
-import java.util.Optional;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;

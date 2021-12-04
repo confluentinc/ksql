@@ -255,7 +255,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldReadTimeTypesFromConnect() {
+  public void shouldReadTimeTypesAndHeadersFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
@@ -266,7 +266,7 @@ public class ConnectIntegrationTest {
         .put("topic.creation.default.partitions", "1")
         .build());
 
-    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
+    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
     makeKsqlRequest("CREATE STREAM TIME_STREAM (PAYLOAD TIME) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
     makeKsqlRequest("CREATE STREAM DATE_STREAM (PAYLOAD DATE) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
 
@@ -280,6 +280,7 @@ public class ConnectIntegrationTest {
     assertThat("successfully queried TIME_STREAM", queryTime.isSuccessful());
     assertThat("successfully queried DATE_STREAM", queryDate.isSuccessful());
     assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+    assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(1), is("[]"));
     assertThat(queryTime.getResponse().get(1).getRow().get().getColumns().get(0), is("00:00"));
     assertThat(queryDate.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01"));
   }

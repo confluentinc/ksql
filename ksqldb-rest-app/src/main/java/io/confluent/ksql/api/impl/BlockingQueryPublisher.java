@@ -24,6 +24,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -55,6 +56,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private QueryHandle queryHandle;
   private ImmutableList<String> columnNames;
   private ImmutableList<String> columnTypes;
+  private LogicalSchema logicalSchema;
   private QueryId queryId;
   private boolean complete;
   private volatile boolean closed;
@@ -69,6 +71,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       final boolean isScalablePushQuery) {
     this.columnNames = ImmutableList.copyOf(queryHandle.getColumnNames());
     this.columnTypes = ImmutableList.copyOf(queryHandle.getColumnTypes());
+    this.logicalSchema = queryHandle.getLogicalSchema();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
     this.isScalablePushQuery = isScalablePushQuery;
@@ -117,6 +120,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<String> getColumnTypes() {
     return columnTypes;
+  }
+
+  @Override
+  public LogicalSchema geLogicalSchema() {
+    return logicalSchema;
   }
 
   public void close() {

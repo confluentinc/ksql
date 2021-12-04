@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +31,8 @@ public interface QueryHandle {
   List<String> getColumnNames();
 
   List<String> getColumnTypes();
+
+  LogicalSchema getLogicalSchema();
 
   void start();
 

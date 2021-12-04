@@ -33,6 +33,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.query.QueryMetadataHolder;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -184,6 +185,11 @@ public class QueryEndpoint {
     }
 
     @Override
+    public LogicalSchema getLogicalSchema() {
+      return queryMetadata.getLogicalSchema();
+    }
+
+    @Override
     public void start() {
       queryMetadata.start();
     }
@@ -237,6 +243,11 @@ public class QueryEndpoint {
     @Override
     public List<String> getColumnTypes() {
       return colTypesFromSchema(result.getSchema().columns());
+    }
+
+    @Override
+    public LogicalSchema getLogicalSchema() {
+      return result.getSchema();
     }
 
     @Override

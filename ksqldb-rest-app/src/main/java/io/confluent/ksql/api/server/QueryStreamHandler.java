@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.api.server.ServerUtils.checkHttp2;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.apache.hc.core5.http.HeaderElements.CHUNKED_ENCODING;
+import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
@@ -24,6 +27,7 @@ import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,36 +43,50 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);
 
   static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
+  static final String JSON_CONTENT_TYPE = "application/vnd.ksqlapi.json.v1";
 
   private final Endpoints endpoints;
   private final ConnectionQueryManager connectionQueryManager;
   private final Context context;
   private final Server server;
+  private final boolean jsonDefault;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryStreamHandler(final Endpoints endpoints,
       final ConnectionQueryManager connectionQueryManager,
       final Context context,
-      final Server server) {
+      final Server server,
+      final boolean jsonDefault
+  ) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.connectionQueryManager = Objects.requireNonNull(connectionQueryManager);
     this.context = Objects.requireNonNull(context);
     this.server = Objects.requireNonNull(server);
+    this.jsonDefault = jsonDefault;
   }
 
   @Override
   public void handle(final RoutingContext routingContext) {
-
-    if (!checkHttp2(routingContext)) {
-      return;
+    // We must set it to allow chunked encoding if we're using http1.1
+    if (routingContext.request().version() == HttpVersion.HTTP_1_1) {
+      routingContext.response().putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
+    } else if (routingContext.request().version() == HttpVersion.HTTP_2) {
+      // Nothing required
+    } else {
+      routingContext.fail(BAD_REQUEST.code(),
+          new KsqlApiException("This endpoint is only available when using HTTP1.1 or HTTP2",
+              ERROR_CODE_BAD_REQUEST));
     }
 
     final String contentType = routingContext.getAcceptableContentType();
     final QueryStreamResponseWriter queryStreamResponseWriter;
-    if (DELIMITED_CONTENT_TYPE.equals(contentType) || contentType == null) {
+    if (DELIMITED_CONTENT_TYPE.equals(contentType) || (contentType == null && !jsonDefault)) {
       // Default
       queryStreamResponseWriter =
           new DelimitedQueryStreamResponseWriter(routingContext.response());
+    } else if (JSON_CONTENT_TYPE.equals(contentType) || (contentType == null && jsonDefault)) {
+      queryStreamResponseWriter =
+          new JsonStreamedRowResponseWriter(routingContext.response());
     } else {
       queryStreamResponseWriter = new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -93,8 +111,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
           if (queryPublisher.isPullQuery()) {
             metadata = new QueryResponseMetadata(
+                queryPublisher.queryId().toString(),
                 queryPublisher.getColumnNames(),
-                queryPublisher.getColumnTypes());
+                queryPublisher.getColumnTypes(),
+                queryPublisher.geLogicalSchema());
 
             // When response is complete, publisher should be closed
             routingContext.response().endHandler(v -> {
@@ -109,7 +129,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             metadata = new QueryResponseMetadata(
                 queryPublisher.queryId().toString(),
                 queryPublisher.getColumnNames(),
-                queryPublisher.getColumnTypes());
+                queryPublisher.getColumnTypes(),
+                queryPublisher.geLogicalSchema());
             routingContext.response().endHandler(v -> {
               queryPublisher.close();
               metricsCallbackHolder.reportMetrics(
@@ -125,7 +146,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             metadata = new QueryResponseMetadata(
                 query.getId().toString(),
                 queryPublisher.getColumnNames(),
-                queryPublisher.getColumnTypes());
+                queryPublisher.getColumnTypes(),
+                queryPublisher.geLogicalSchema());
 
             // When response is complete, publisher should be closed and query unregistered
             routingContext.response().endHandler(v -> {

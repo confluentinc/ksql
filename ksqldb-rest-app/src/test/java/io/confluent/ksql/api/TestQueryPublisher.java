@@ -20,6 +20,7 @@ import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
@@ -94,6 +95,11 @@ public class TestQueryPublisher
   @Override
   public List<String> getColumnTypes() {
     return rowGenerator.getColumnTypes();
+  }
+
+  @Override
+  public LogicalSchema geLogicalSchema() {
+    return null;
   }
 
   @Override

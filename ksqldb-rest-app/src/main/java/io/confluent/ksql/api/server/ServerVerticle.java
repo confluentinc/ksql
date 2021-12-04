@@ -61,6 +61,7 @@ public class ServerVerticle extends AbstractVerticle {
 
   private static final String JSON_CONTENT_TYPE = "application/json";
   private static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
+  private static final String KSQL_JSON_CONTENT_TYPE = "application/vnd.ksqlapi.json.v1";
 
   private final Endpoints endpoints;
   private final HttpServerOptions httpServerOptions;
@@ -141,8 +142,9 @@ public class ServerVerticle extends AbstractVerticle {
     router.route(HttpMethod.POST, "/query-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)
+        .produces(KSQL_JSON_CONTENT_TYPE)
         .handler(BodyHandler.create(false))
-        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server));
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, false));
     router.route(HttpMethod.POST, "/inserts-stream")
         .produces(DELIMITED_CONTENT_TYPE)
         .produces(JSON_CONTENT_TYPE)

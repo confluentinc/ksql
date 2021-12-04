@@ -17,6 +17,7 @@ package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.List;
 import org.reactivestreams.Publisher;
@@ -37,6 +38,11 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
    * @return List the types of the columns in the query results
    */
   List<String> getColumnTypes();
+
+  /**
+   * @return The logical schema associated with the query results
+   */
+  LogicalSchema geLogicalSchema();
 
   /**
    * Close the publisher

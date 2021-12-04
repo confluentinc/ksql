@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -81,6 +82,7 @@ public class ConnectIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule

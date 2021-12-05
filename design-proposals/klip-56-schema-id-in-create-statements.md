@@ -116,4 +116,5 @@ Add newly supported properties to:
 ## Security Implications
 No
 
+## References
 [^1]: [Avro Kafka Serializer](https://github.com/confluentinc/schema-registry/blob/802dc1a4dfbca7919375e28dfe2cbe793ae57e0c/avro-serializer/src/main/java/io/confluent/kafka/serializers/AbstractKafkaAvroSerializer.java#L116)

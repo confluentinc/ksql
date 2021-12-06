@@ -82,9 +82,9 @@ class Callbacks:
             # update kafka tutorials and kick off semaphore test
             update_ksqldb_version_path = os.path.join(self.working_dir, '/tools/update-ksqldb-version.sh')
             print(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}")
-            subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}"), cwd=kafka_tutorials_cwd)
+            subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}"))
 
-            print(f"git {git_cmd_kafka_tutorial}")
+            print(f"{git_cmd_kafka_tutorial} diff")
             subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} diff"), cwd=kafka_tutorials_cwd)
             print(f"{git_cmd_kafka_tutorial} add _includes/*")
             subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} add _includes/*"), cwd=kafka_tutorials_cwd)

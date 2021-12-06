@@ -20,7 +20,6 @@ import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.extrac
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequest;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makeAdminRequestWithResponse;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.makePullQueryRequest;
-import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForClusterToBeDiscovered;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForRemoteServerToChangeStatus;
 import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitForStreamsMetadataToInitialize;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
@@ -166,6 +165,8 @@ public class PullQueryLimitHARoutingTest {
     public final TestApp TEST_APP_1 = new TestApp(HOST1, REST_APP_1, APP_SHUTOFFS_1);
     public final TestApp TEST_APP_2 = new TestApp(HOST2, REST_APP_2, APP_SHUTOFFS_2);
 
+    public final List<TestApp> ALL_TEST_APPS = ImmutableList.of(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
             .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
@@ -180,9 +181,9 @@ public class PullQueryLimitHARoutingTest {
 
     @Before
     public void setUp() {
-        //Create topic with 2 partition to control who is active and standby
+        //Create topic with 4 partition to control who is active and standby
         topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
-        TEST_HARNESS.ensureTopics(2, topic);
+        TEST_HARNESS.ensureTopics(4, topic);
 
         TEST_HARNESS.produceRows(
                 topic,
@@ -233,54 +234,57 @@ public class PullQueryLimitHARoutingTest {
         // Given:
         final int numLimitRows = 300;
         final int limitSubsetSize = HEADER + numLimitRows;
-        ClusterFormation clusterFormation = new ClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-        waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
-        waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-                clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
+        // check for lags reported for every app
+        for (TestApp testApp : ALL_TEST_APPS) {
+            waitForRemoteServerToChangeStatus(TEST_APP_0.getApp(),
+                    testApp.getHost(),
+                    HighAvailabilityTestUtil.lagsReported(testApp.getHost(), Optional.of(10L),
+                            10),
+                    USER_CREDS);
+        }
 
         final String sqlTableScan = "SELECT * FROM " + output + ";";
         final String sqlLimit = "SELECT * FROM " + output + " LIMIT " + numLimitRows + " ;";
 
         //issue table scan first
-        final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
+        final List<StreamedRow> rows_0 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlTableScan, null, USER_CREDS);
 
         //check that we got back all the rows
         assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS));
 
         // issue pull query with limit
-        final List<StreamedRow> rows_1 = makePullQueryRequest(clusterFormation.router.getApp(),
+        final List<StreamedRow> rows_1 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
         assertThat(rows_1, hasSize(limitSubsetSize));
 
-        // Partition off the active
-        clusterFormation.active.getShutoffs().shutOffAll();
+        // Partition off one test app
+        TEST_APP_1.getShutoffs().shutOffAll();
 
         waitForRemoteServerToChangeStatus(
-                clusterFormation.router.getApp(),
-                clusterFormation.standBy.getHost(),
+                TEST_APP_0.getApp(),
+                TEST_APP_2.getHost(),
                 HighAvailabilityTestUtil::remoteServerIsUp,
                 USER_CREDS);
         waitForRemoteServerToChangeStatus(
-                clusterFormation.router.getApp(),
-                clusterFormation.active.getHost(),
+                TEST_APP_0.getApp(),
+                TEST_APP_1.getHost(),
                 HighAvailabilityTestUtil::remoteServerIsDown,
                 USER_CREDS);
 
-
-        // issue table scan after partitioning active
-        final List<StreamedRow> rows_2 = makePullQueryRequest(clusterFormation.router.getApp(),
+        // issue table scan after partitioning an app
+        final List<StreamedRow> rows_2 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlTableScan, null, USER_CREDS);
 
         // check that we get all rows back
         assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS));
         assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
-        // issue pull query with limit after partitioning active
-        final List<StreamedRow> rows_3 = makePullQueryRequest(clusterFormation.router.getApp(),
+        // issue pull query with limit after partitioning an app
+        final List<StreamedRow> rows_3 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
@@ -292,90 +296,62 @@ public class PullQueryLimitHARoutingTest {
         // Given:
         final int numLimitRows = 200;
         final int limitSubsetSize = HEADER + numLimitRows + LIMIT_REACHED_MESSAGE;
-        ClusterFormation clusterFormation = new ClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-        waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
-        waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-                clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
 
+        // check for lags reported for every app
+        for (TestApp testApp : ALL_TEST_APPS) {
+            waitForRemoteServerToChangeStatus(TEST_APP_0.getApp(),
+                    testApp.getHost(),
+                    HighAvailabilityTestUtil.lagsReported(testApp.getHost(), Optional.of(10L),
+                            10),
+                    USER_CREDS);
+        }
 
         final String sqlStreamPull = "SELECT * FROM " + USERS_STREAM + ";";
         final String sqlLimit = "SELECT * FROM " + USERS_STREAM + " LIMIT " + numLimitRows + " ;";
 
         //scan the entire stream first
-        final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
+        final List<StreamedRow> rows_0 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlStreamPull, null, USER_CREDS);
 
         //check that we got back all the rows
         assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS));
 
         //issue pull query on stream with limit
-        final List<StreamedRow> rows_1 = makePullQueryRequest(clusterFormation.router.getApp(),
+        final List<StreamedRow> rows_1 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
         assertThat(rows_1, hasSize(limitSubsetSize));
 
-        // Partition off the active
-        clusterFormation.active.getShutoffs().shutOffAll();
+        // Partition off an app
+        TEST_APP_1.getShutoffs().shutOffAll();
 
         waitForRemoteServerToChangeStatus(
-                clusterFormation.router.getApp(),
-                clusterFormation.standBy.getHost(),
+                TEST_APP_0.getApp(),
+                TEST_APP_2.getHost(),
                 HighAvailabilityTestUtil::remoteServerIsUp,
                 USER_CREDS);
         waitForRemoteServerToChangeStatus(
-                clusterFormation.router.getApp(),
-                clusterFormation.active.getHost(),
+                TEST_APP_0.getApp(),
+                TEST_APP_1.getHost(),
                 HighAvailabilityTestUtil::remoteServerIsDown,
                 USER_CREDS);
 
 
-        // issue stream scan after partitioning active
-        final List<StreamedRow> rows_2 = makePullQueryRequest(clusterFormation.router.getApp(),
+        // issue stream scan after partitioning an app
+        final List<StreamedRow> rows_2 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlStreamPull, null, USER_CREDS);
 
         // check that we get all rows back
         assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS));
         assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
-        // issue pull query with limit after partitioning active
-        final List<StreamedRow> rows_3 = makePullQueryRequest(clusterFormation.router.getApp(),
+        // issue pull query with limit after partitioning an app
+        final List<StreamedRow> rows_3 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
         assertThat(rows_3, hasSize(limitSubsetSize));
-    }
-
-    static class ClusterFormation {
-        TestApp active;
-        TestApp standBy;
-        TestApp router;
-
-        ClusterFormation(final TestApp active, final TestApp standBy, final TestApp router) {
-            this.active = active;
-            this.standBy = standBy;
-            this.router = router;
-        }
-
-        public void setActive(final TestApp active) {
-            this.active = active;
-        }
-
-        public void setStandBy(final TestApp standBy) {
-            this.standBy = standBy;
-        }
-
-        public void setRouter(final TestApp router) {
-            this.router = router;
-        }
-
-        public String toString() {
-            return new StringBuilder()
-                    .append("Active = ").append(active.getHost())
-                    .append(", Standby = ").append(standBy.getHost())
-                    .append(", Router = ").append(router.getHost())
-                    .toString();
-        }
     }
 
     private void waitForTableRows() {

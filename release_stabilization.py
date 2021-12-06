@@ -19,6 +19,7 @@ DOCKER_REPOS = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
 DOCKER_ARTIFACT = 'confluentinc/ksqldb-docker'
 KAFKA_TUTORIALS_BRANCH = 'ksqldb-latest'
 KAFKA_TUTORIALS_URL = "git@github.com:confluentinc/kafka-tutorials.git"
+GIT_CMD_KAFKA_TUTORIAL = "git --git-dir=./kafka-tutorials/.git --work-tree=./kafka-tutorials"
 
 class Callbacks:
     def __init__(self, working_dir, leaf, dry_run):
@@ -63,32 +64,34 @@ class Callbacks:
                 print(f"docker push {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{version}")
                 subprocess.run(shlex.split(f"docker push {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{version}"))
 
+            git_cmd_kafka_tutorial = f"git --git-dir={self.working_dir}/kafka-tutorials/.git --work-tree={self.working_dir}/kafka-tutorials"
+            print(f"{git_cmd_kafka_tutorial}")
             # clone kafka tutorials and checkout 'ksqldb-latest'
             kafka_tutorials_cwd = os.path.join(self.working_dir, 'kafka-tutorials')
             print(f"{kafka_tutorials_cwd}")
 
-            print(f"git clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}")
-            subprocess.run(shlex.split(f"git clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}"))
+            print(f"{git_cmd_kafka_tutorial} clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}"))
             # print(f"cd kafka-tutorials")
             # subprocess.run(shlex.split(f"cd kafka-tutorials"))
 
 
-            print(f"git checkout {KAFKA_TUTORIALS_BRANCH}")
-            subprocess.run(shlex.split(f"git checkout {KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
+            print(f"{git_cmd_kafka_tutorial} checkout {KAFKA_TUTORIALS_BRANCH}")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} checkout {KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
 
             # update kafka tutorials and kick off semaphore test
             update_ksqldb_version_path = os.path.join(self.working_dir, '/tools/update-ksqldb-version.sh')
             print(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}")
             subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}"), cwd=kafka_tutorials_cwd)
 
-            print(f"git diff")
-            subprocess.run(shlex.split(f"git diff"), cwd=kafka_tutorials_cwd)
-            print(f"git add _includes/*")
-            subprocess.run(shlex.split(f"git add _includes/*"), cwd=kafka_tutorials_cwd)
-            print(f"git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\"")
-            subprocess.run(shlex.split(f"git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""), cwd=kafka_tutorials_cwd)
-            print(f"git push origin HEAD:{KAFKA_TUTORIALS_BRANCH}")
-            subprocess.run(shlex.split(f"git push origin HEAD:{KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
+            print(f"git {git_cmd_kafka_tutorial}")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} diff"), cwd=kafka_tutorials_cwd)
+            print(f"{git_cmd_kafka_tutorial} add _includes/*")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} add _includes/*"), cwd=kafka_tutorials_cwd)
+            print(f"{git_cmd_kafka_tutorial} commit --allow-empty -m \"build: set ksql version to ${version}\"")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} commit --allow-empty -m \"build: set ksql version to ${version}\""), cwd=kafka_tutorials_cwd)
+            print(f"{git_cmd_kafka_tutorial} push origin HEAD:{KAFKA_TUTORIALS_BRANCH}")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} push origin HEAD:{KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
 
             return True
         except:

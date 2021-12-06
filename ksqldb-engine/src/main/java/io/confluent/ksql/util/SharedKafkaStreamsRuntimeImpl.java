@@ -23,6 +23,8 @@ import io.confluent.ksql.query.QueryId;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,13 +109,18 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Attempting to stop Query: " + queryId.toString());
     if (collocatedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
-        kafkaStreams.removeNamedTopology(queryId.toString());
+        try {
+          kafkaStreams.removeNamedTopology(queryId.toString()).all().get();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (ExecutionException e) {
+          e.printStackTrace();
+        }
       } else {
         throw new IllegalStateException("Streams in not running but is in state"
             + kafkaStreams.state());
       }
-      //kafkaStreams.cleanUpNamedTopology(queryId.toString());
-      // Once remove is blocking this can be uncommented for now it breaks
+      kafkaStreams.cleanUpNamedTopology(queryId.toString());
     }
   }
 
@@ -127,7 +134,13 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   public void start(final QueryId queryId) {
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology());
+        try {
+          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology()).all().get();
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        } catch (ExecutionException e) {
+          e.printStackTrace();
+        }
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);
       }

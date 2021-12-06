@@ -21,7 +21,7 @@ CREATE TABLE t1 AS
     EMIT CHANGES;
 ```
 
-## Materializing a changelog table
+## Materializing a changelog
 
 In ksqlDB, you derive new tables by aggregating other streams and tables. To create a table that reflects the latest values for each key, declare the `changelog` as a table.
 

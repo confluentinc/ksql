@@ -64,13 +64,14 @@ import java.util.stream.Stream;
 /**
  * An injector which injects key and/or value columns into the supplied {@code statement}.
  *
- * <p>Key columns are only injected only for CT/CS or C*AS statement.
+ * <p>Key columns are only injected for CT/CS or C*AS statement.
  * <p>For CT/CS statement, the conditions are:</p>
  * <ul>
- * <li>The statement does not defined any key columns or has KEY_SCHEMA_ID property set</li>
+ * <li>The statement does not defined any key columns or has KEY_SCHEMA_ID property set.
+ *     If KEY_SCHEMA_ID is set, no key columns should be defined and vice versa.</li>
  * <li>The key format of the statement supports schema inference.</li>
  * </ul>
- * And similarly for value columns.
+ * And similarly for value columns for property VALUE_SCHEMA_ID.
  *
  * <p>If key and/or value columns are present, then they are passed through unchanged.
  *
@@ -80,7 +81,7 @@ import java.util.stream.Stream;
  * <li>The statement has KEY_SCHEMA_ID property set</li>
  * <li>The key format of the statement supports schema inference.</li>
  * </ul>
- * And similarly for value columns.
+ * And similarly for value columns for property VALUE_SCHEMA_ID.
  *
  * {@code statement} is returned unchanged.
  */

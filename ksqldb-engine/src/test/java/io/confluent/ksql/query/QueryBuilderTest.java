@@ -73,12 +73,14 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
@@ -189,6 +191,10 @@ public class QueryBuilderTest {
   private QueryMetadata.Listener queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
+  @Mock
+  private AddNamedTopologyResult addNamedTopologyResult;
+  @Mock
+  private KafkaFuture<Void> future;
 
   private QueryBuilder queryBuilder;
   private final Stacker stacker = new Stacker();
@@ -205,6 +211,7 @@ public class QueryBuilderTest {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(kafkaStreamsNamedTopologyWrapper.newNamedTopologyBuilder(any(), any())).thenReturn(namedTopologyBuilder);
+    when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -225,6 +232,7 @@ public class QueryBuilderTest {
     when(namedTopologyBuilder.build()).thenReturn(namedTopology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
+    when(addNamedTopologyResult.all()).thenReturn(future);
     sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryBuilder(

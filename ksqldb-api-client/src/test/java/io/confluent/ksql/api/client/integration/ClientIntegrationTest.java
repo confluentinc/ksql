@@ -86,6 +86,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -110,7 +111,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.storage.StringConverter;
@@ -138,15 +142,17 @@ public class ClientIntegrationTest {
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
       ImmutableList.of("K", "STR", "LONG", "DEC", "BYTES_", "ARRAY", "MAP", "STRUCT", "COMPLEX",
-          "TIMESTAMP", "DATE", "TIME");
+          "TIMESTAMP", "DATE", "TIME", "HEAD");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRUCT", "STRING", "BIGINT", "DECIMAL",
-          "BYTES", "ARRAY", "MAP", "STRUCT", "STRUCT", "TIMESTAMP", "DATE", "TIME"));
+          "BYTES", "ARRAY", "MAP", "STRUCT", "STRUCT", "TIMESTAMP", "DATE", "TIME", "BYTES"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS =
       convertToClientRows(TEST_DATA_PROVIDER.data());
 
   private static final Format KEY_FORMAT = FormatFactory.JSON;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
+  private static final Supplier<Long> TS_SUPPLIER = () -> 0L;
+  private static final Supplier<List<Header>> HEADERS_SUPPLIER = () -> ImmutableList.of(new RecordHeader("h0", new byte[] {23}));
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final String AN_AGG_KEY = "STRUCT(F1 := ARRAY['a'])";
@@ -206,6 +212,7 @@ public class ClientIntegrationTest {
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -219,7 +226,7 @@ public class ClientIntegrationTest {
   @BeforeClass
   public static void setUpClass() throws Exception {
     TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC);
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
 
@@ -883,7 +890,7 @@ public class ClientIntegrationTest {
             + "COMPLEX STRUCT<`DECIMAL` DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, "
             + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
             + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
-            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>, TIMESTAMP TIMESTAMP, DATE DATE, TIME TIME) "
+            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>, TIMESTAMP TIMESTAMP, DATE DATE, TIME TIME, HEAD BYTES HEADER('h0')) "
             + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
   }
 
@@ -1213,6 +1220,9 @@ public class ClientIntegrationTest {
       for (final Object value : entry.getValue().values()) {
         addObjectToKsqlArray(expectedRow, value);
       }
+
+      // Add header column
+      expectedRow.add(new byte[] {23});
 
       expectedRows.add(expectedRow);
     }

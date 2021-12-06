@@ -54,7 +54,8 @@ partitions=1, key_format='avro', value_format='avro');
 * `CS/CT` command
   * Corresponding `key_format`/`value_format` or `format` property must exist and the format must support `SCHEMA_INFERENCE` (protobuf, avro, json_sr format currently).
   * The fetched schema format from _schema_registry_ must match specified format in `WITH` clause. For example, if schema format for schema ID in _schema_registry_ is `avro` but specified format in `WITH` clause is `protobuf`, an exception will be thrown.
-  * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown. Format of schema fetched from _schema registry_ must match the defined format in statement.
+  * Schema with specified ID MUST exist in _schema_registry_, otherwise an exception will be thrown. 
+  * Corresponding key/value _table elements_ must be empty if `key_schema_id` or `value_schema_id` is provided.
 
 * `CAS` command
   * For `key_format` and `value_format` properties, if `*_schema_id` is provided:

@@ -64,12 +64,15 @@ class Callbacks:
                 subprocess.run(shlex.split(f"docker push {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{version}"))
 
             # clone kafka tutorials and checkout 'ksqldb-latest'
-            print(f"git clone {KAFKA_TUTORIALS_URL}")
-            subprocess.run(shlex.split(f"git clone {KAFKA_TUTORIALS_URL}"))
-            # print(f"cd kafka-tutorials")
-            # subprocess.run(shlex.split(f"cd kafka-tutorials"))
             kafka_tutorials_cwd = os.path.join(self.working_dir, 'kafka-tutorials')
             print(f"{kafka_tutorials_cwd}")
+
+            print(f"git clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}")
+            subprocess.run(shlex.split(f"git clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}"))
+            # print(f"cd kafka-tutorials")
+            # subprocess.run(shlex.split(f"cd kafka-tutorials"))
+
+
             print(f"git checkout {KAFKA_TUTORIALS_BRANCH}")
             subprocess.run(shlex.split(f"git checkout {KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
 

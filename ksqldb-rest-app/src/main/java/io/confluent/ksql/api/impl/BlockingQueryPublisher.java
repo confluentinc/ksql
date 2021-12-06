@@ -29,7 +29,6 @@ import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,15 +58,14 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private QueryId queryId;
   private boolean complete;
   private volatile boolean closed;
-  private AtomicBoolean addedCT;
 
   public BlockingQueryPublisher(final Context ctx,
       final WorkerExecutor workerExecutor) {
     super(ctx);
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
-    this.addedCT = new AtomicBoolean(false);
   }
 
+  @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
   public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
       final boolean isScalablePushQuery) {
     this.columnNames = ImmutableList.copyOf(queryHandle.getColumnNames());
@@ -78,9 +76,23 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     this.queryId = queryHandle.getQueryId();
     this.queue.setQueuedCallback(this::maybeSend);
     this.queue.setLimitHandler(() -> {
+      if (isPullQuery) {
+        if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+          log.info("Limit handler: Add consistency token to queue");
+        }
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+        maybeSend();
+      }
+      if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+        log.info("Limit handler: Set complete to true");
+      }
       complete = true;
       // This allows us to hit the limit without having to queue one last row
       if (queue.isEmpty()) {
+        if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+          log.info("Limit handler: Send complete flag");
+        }
         ctx.runOnContext(v -> sendComplete());
       }
     });
@@ -90,9 +102,23 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     // we should be returning a "Limit Reached" message as we do in the HTTP/1 endpoint when
     // we hit the limit, but for query completion, we should just end the response stream.
     this.queue.setCompletionHandler(() -> {
+      if (isPullQuery) {
+        if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+          log.info("Completion handler: Add consistency token to queue");
+        }
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+        maybeSend();
+      }
+      if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+        log.info("Completion handler: Set complete to true");
+      }
       complete = true;
       // This allows us to finish the query immediately if the query is already fully streamed.
       if (queue.isEmpty()) {
+        if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+          log.info("Completion handler: Send complete flag");
+        }
         ctx.runOnContext(v -> sendComplete());
       }
     });
@@ -167,18 +193,16 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     int num = 0;
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
+        if (queryHandle.getConsistencyOffsetVector().isPresent()) {
+          log.info("doSend: Polling from queue");
+        }
         doOnNext(queue.poll());
-        if (complete && isPullQuery && !addedCT.get()) {
-          if (queryHandle.getConsistencyOffsetVector().isPresent()) {
-            log.info("Publisher add consistency token to queue");
-          }
-          queryHandle.getConsistencyOffsetVector().ifPresent(
-              ((PullQueryQueue)queue)::putConsistencyVector);
-          addedCT.set(true);
+        if (queryHandle.getConsistencyOffsetVector().isPresent() && queue.isEmpty()) {
+          log.info("doSend: Queue is empty after poll");
         }
         if (complete && queue.isEmpty()) {
           if (queryHandle.getConsistencyOffsetVector().isPresent()) {
-            log.info("Publisher send complete flag");
+            log.info("doSend: send complete flag");
           }
           ctx.runOnContext(v -> sendComplete());
         }

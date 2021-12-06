@@ -350,7 +350,7 @@ public class DefaultSchemaInjector implements Injector {
     return result.schemaAndId.get();
   }
 
-  @SuppressWarnings("checkstyle:CyclomaticComplexity")
+  @SuppressWarnings({"checkstyle:CyclomaticComplexity", "checkstyle:NPathComplexity"})
   private static boolean shouldInferSchema(
       final Optional<Integer> schemaId,
       final ConfiguredStatement<? extends Statement> statement,

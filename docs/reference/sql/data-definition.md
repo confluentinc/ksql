@@ -29,6 +29,10 @@ data locality, and enables you to integrate with the wider {{ site.ak }}
 ecosystem, which uses the same key/value data model. By default, a column is a
 value column. Marking a column as a `(PRIMARY) KEY` makes it a key column.
 
+!!! important
+    You must declare a PRIMARY KEY when you create a table on a {{ site.ak }}
+    topic.
+
 Internally, each row is backed by a [Kafka record](../../../overview/apache-kafka-primer/#records).
 In {{ site.ak }}, the key and value parts of a record are
 [serialized](../../../overview/apache-kafka-primer/#serializers) independently.

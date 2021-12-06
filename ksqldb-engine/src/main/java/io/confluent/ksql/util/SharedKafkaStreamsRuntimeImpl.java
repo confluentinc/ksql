@@ -117,6 +117,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           kafkaStreams.cleanUpNamedTopology(queryId.toString());
         } catch (final TimeoutException | ExecutionException | InterruptedException e) {
           e.printStackTrace();
+          throw new IllegalStateException(
+              "Encountered an error when trying to remove query form runtime: ",
+              e);
         }
       } else {
         throw new IllegalStateException("Streams in not running but is in state"
@@ -141,6 +144,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
               .get(30, TimeUnit.SECONDS);
         } catch (final TimeoutException | ExecutionException | InterruptedException e) {
           e.printStackTrace();
+          throw new IllegalStateException(
+              "Encountered an error when trying to remove query form runtime: ",
+              e);
         }
       } else {
         throw new IllegalArgumentException("not done removing query: " + queryId);

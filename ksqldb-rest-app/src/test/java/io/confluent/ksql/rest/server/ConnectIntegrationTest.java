@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import io.confluent.common.utils.IntegrationTest;
@@ -282,7 +283,8 @@ public class ConnectIntegrationTest {
     assertThat("successfully queried TIME_STREAM", queryTime.isSuccessful());
     assertThat("successfully queried DATE_STREAM", queryDate.isSuccessful());
     assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
-    assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(1), is("[]"));
+    assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(1), is(
+        ImmutableList.of()));
     assertThat(queryTime.getResponse().get(1).getRow().get().getColumns().get(0), is("00:00"));
     assertThat(queryDate.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01"));
   }

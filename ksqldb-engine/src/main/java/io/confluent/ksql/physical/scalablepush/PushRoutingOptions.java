@@ -33,6 +33,8 @@ public interface PushRoutingOptions {
 
   boolean shouldOutputContinuationToken();
 
+  boolean alosEnabled();
+
   /**
    * @return a human readable representation of the routing options, used
    *         to debug requests

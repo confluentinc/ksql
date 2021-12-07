@@ -344,7 +344,6 @@ public class ScalablePushRegistry {
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final boolean isTable,
       final Map<String, Object> streamsProperties,
-      final boolean newNodeContinuityEnforced,
       final Map<String, Object> consumerProperties,
       final String sourceApplicationId,
       final KsqlTopic ksqlTopic,

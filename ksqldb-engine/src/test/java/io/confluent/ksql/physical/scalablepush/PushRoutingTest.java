@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -162,6 +163,7 @@ public class PushRoutingTest {
     when(ksqlNodeRemote2.location()).thenReturn(URI.create("http://remote2:8088"));
     when(ksqlNodeRemote2.isLocal()).thenReturn(false);
     when(pushRoutingOptions.getHasBeenForwarded()).thenReturn(false);
+    when(pushRoutingOptions.alosEnabled()).thenReturn(true);
     localPublisher = new TestLocalPublisher(context);
     remotePublisher = new TestRemotePublisher(context);
     when(pushPhysicalPlanManager.execute()).thenReturn(localPublisher);
@@ -556,6 +558,53 @@ public class PushRoutingTest {
   }
 
   @Test
+  public void shouldSucceed_gapDetectedRemote_disableAlos()
+      throws ExecutionException, InterruptedException {
+    // Given:
+    when(pushRoutingOptions.alosEnabled()).thenReturn(false);
+    final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
+        ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
+    AtomicReference<TestRemotePublisher> remotePublisher = new AtomicReference<>();
+    AtomicInteger remoteCount = new AtomicInteger(0);
+    when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
+        .thenAnswer(a -> {
+          remotePublisher.set(new TestRemotePublisher(context));
+          remoteCount.incrementAndGet();
+          final Map<String, ?> requestProperties = a.getArgument(3);
+          String continuationToken = (String) requestProperties.get(
+              KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN);
+          if (remoteCount.get() == 1) {
+            assertThat(continuationToken, nullValue());
+            context.runOnContext(v -> {
+              remotePublisher.get().accept(REMOTE_ROW2);
+            });
+          } else if (remoteCount.get()  == 2) {
+            fail();
+          }
+          return createFuture(RestResponse.successful(200, remotePublisher.get()));
+        });
+
+    // When:
+    final PushConnectionsHandle handle = handlePushRouting(routing);
+    final AtomicReference<Throwable> exception = new AtomicReference<>(null);
+    handle.onException(exception::set);
+    context.runOnContext(v -> {
+      remotePublisher.get().accept(REMOTE_CONTINUATION_TOKEN1);
+      remotePublisher.get().accept(REMOTE_ROW1);
+      remotePublisher.get().accept(REMOTE_CONTINUATION_TOKEN_GAP);
+    });
+
+    Set<List<?>> rows = waitOnRows(2);
+    handle.close();
+
+    // Then:
+    verify(simpleKsqlClient, times(1)).makeQueryRequestStreamed(any(), any(), any(), any());
+    assertThat(rows.contains(REMOTE_ROW1.getRow().get().getColumns()), is(true));
+    assertThat(rows.contains(REMOTE_ROW2.getRow().get().getColumns()), is(true));
+  }
+
+  @Test
   public void shouldSucceed_gapDetectedLocal_noRetry()
       throws ExecutionException, InterruptedException {
     // Given:
@@ -620,6 +669,48 @@ public class PushRoutingTest {
 
     // Then:
     verify(pushPhysicalPlanManager, times(2)).execute();
+    assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
+    assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
+  }
+
+  @Test
+  public void shouldSucceed_gapDetectedLocal_disableAlos()
+      throws ExecutionException, InterruptedException {
+    // Given:
+    when(pushRoutingOptions.alosEnabled()).thenReturn(false);
+    final AtomicReference<Set<KsqlNode>> nodes = new AtomicReference<>(
+        ImmutableSet.of(ksqlNodeLocal, ksqlNodeRemote));
+    final PushRouting routing = new PushRouting(sqr -> nodes.get(), 50, true);
+    AtomicReference<TestLocalPublisher> localPublisher = new AtomicReference<>();
+    AtomicInteger localCount = new AtomicInteger(0);
+    when(pushPhysicalPlanManager.execute()).thenAnswer(a -> {
+      localPublisher.set(new TestLocalPublisher(context));
+      localCount.incrementAndGet();
+      context.runOnContext(v -> {
+        localPublisher.get().accept(LOCAL_ROW2);
+      });
+      return localPublisher.get();
+    });
+    doAnswer(a -> {
+      final Optional<PushOffsetRange> newOffsetRange = a.getArgument(0);
+      assertThat(newOffsetRange.isPresent(), is(true));
+      assertThat(newOffsetRange.get().getEndOffsets(), is(ImmutableList.of(0L, 3L)));
+      return null;
+    }).when(pushPhysicalPlanManager).reset(any());
+
+    // When:
+    final PushConnectionsHandle handle = handlePushRouting(routing);
+    context.runOnContext(v -> {
+      localPublisher.get().accept(LOCAL_CONTINUATION_TOKEN1);
+      localPublisher.get().accept(LOCAL_ROW1);
+      localPublisher.get().accept(LOCAL_CONTINUATION_TOKEN_GAP);
+    });
+
+    Set<List<?>> rows = waitOnRows(2);
+    handle.close();
+
+    // Then:
+    verify(pushPhysicalPlanManager, times(1)).execute();
     assertThat(rows.contains(LOCAL_ROW1.value().values()), is(true));
     assertThat(rows.contains(LOCAL_ROW2.value().values()), is(true));
   }

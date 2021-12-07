@@ -615,13 +615,15 @@ public class PushRouting implements AutoCloseable {
      * @param offsetRangeOptional The offsets received.  If empty, this method is a noop.
      * @param isSourceNode If the node running this is the source node. If not, gaps are ignored,
      *     since the source is where they're dealt with.
+     * @param alosEnabled Whether we should enforce continuity.  If not, gaps are ignored.
      * @return The optional range response which represents an updated range, merged with the
      *     current tracked offset, which is appropriate to return to the user. If empty, while
      *     offsetRangeOptional is not, this signifies that a gap has been found.
      */
     protected Optional<PushOffsetRange> handleContinuationToken(
         final Optional<PushOffsetRange> offsetRangeOptional,
-        final boolean isSourceNode
+        final boolean isSourceNode,
+        final boolean alosEnabled
     ) {
       if (!offsetRangeOptional.isPresent()) {
         return offsetRangeOptional;
@@ -634,7 +636,8 @@ public class PushRouting implements AutoCloseable {
       final PushOffsetVector endOffsets = currentOffsets.mergeCopy(offsetRange.getEndOffsets());
       final PushOffsetRange updatedToken
           = new PushOffsetRange(Optional.of(startOffsets), endOffsets);
-      if (isSourceNode && !offsetRange.getStartOffsets().get().lessThanOrEqualTo(currentOffsets)) {
+      if (alosEnabled && isSourceNode
+          && !offsetRange.getStartOffsets().get().lessThanOrEqualTo(currentOffsets)) {
         LOG.warn("{}: Found a gap in offsets for {} node {} and id {}: start: {}, current: {}",
             thisHostName,  name(),
             node, queryId, offsetRange.getStartOffsets(), offsetsTracker.getOffsets());
@@ -702,7 +705,8 @@ public class PushRouting implements AutoCloseable {
       final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
       final Optional<PushOffsetRange> currentOffsetRange = handleContinuationToken(
           continuationToken
-              .map(t -> PushOffsetRange.deserialize(t.getContinuationToken())), isSourceNode);
+              .map(t -> PushOffsetRange.deserialize(t.getContinuationToken())), isSourceNode,
+          pushRoutingOptions.alosEnabled());
       if (continuationToken.isPresent() && !currentOffsetRange.isPresent()) {
         return false;
       }
@@ -767,7 +771,8 @@ public class PushRouting implements AutoCloseable {
 
       final boolean isSourceNode = !pushRoutingOptions.getHasBeenForwarded();
       final Optional<PushOffsetRange> currentOffsetRange
-          = handleContinuationToken(row.getOffsetRange(), isSourceNode);
+          = handleContinuationToken(row.getOffsetRange(), isSourceNode,
+          pushRoutingOptions.alosEnabled());
       if (!currentOffsetRange.isPresent() && row.getOffsetRange().isPresent()) {
         return;
       }

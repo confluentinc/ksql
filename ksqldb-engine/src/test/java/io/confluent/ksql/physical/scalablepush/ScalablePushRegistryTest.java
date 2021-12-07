@@ -342,7 +342,7 @@ public class ScalablePushRegistryTest {
     final Optional<ScalablePushRegistry> registry =
         ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:8088"),
-            false, ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig);
+            ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig);
 
     // Then:
     assertThat(registry.isPresent(), is(true));
@@ -354,7 +354,7 @@ public class ScalablePushRegistryTest {
     final Exception e = assertThrows(
         IllegalArgumentException.class,
         () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
-            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123), false,
+            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123),
             ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig)
     );
 
@@ -368,7 +368,7 @@ public class ScalablePushRegistryTest {
     final Exception e = assertThrows(
         IllegalArgumentException.class,
         () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
-            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"), false,
+            ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"),
             ImmutableMap.of(), SOURCE_APP_ID, ksqlTopic, serviceContext, ksqlConfig)
     );
 
@@ -381,7 +381,7 @@ public class ScalablePushRegistryTest {
     // When
     final Optional<ScalablePushRegistry> registry =
         ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
-            ImmutableMap.of(), false, ImmutableMap.of(), SOURCE_APP_ID,
+            ImmutableMap.of(), ImmutableMap.of(), SOURCE_APP_ID,
             ksqlTopic, serviceContext, ksqlConfig);
 
     // Then

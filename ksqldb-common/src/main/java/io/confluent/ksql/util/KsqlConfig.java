@@ -334,13 +334,13 @@ public class KsqlConfig extends AbstractConfig {
           + "enabling scalable push queries using ksql.query.push.v2.enabled.";
   public static final boolean KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY
-      = "ksql.query.push.v2.new.node.continuity";
-  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC =
-      "Whether new node continuity is enforced for the scalable form of push queries. "
-          + "This means that it's an error for an existing query to miss data processed on a newly "
-          + "added node";
-  public static final boolean KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT = false;
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED
+      = "ksql.query.push.v2.alos.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC =
+      "Whether at-least-once semantics are enabled for the scalable form of push queries. "
+          + "This means that a query will replay data if necessary if network or other "
+          + "disruptions cause it to miss any data";
+  public static final boolean KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED
       = "ksql.query.push.v2.interpreter.enabled";
@@ -1083,11 +1083,11 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED,

@@ -57,7 +57,7 @@ public class KsqlRequestConfig extends AbstractConfig {
       "Controls whether a ksql host forwards a push query request to another host";
 
   public static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN =
-      "request.ksql.query.push.start.offsets";
+      "request.ksql.query.push.continuation.token";
   public static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DEFAULT = "";
   private static final String KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN_DOC =
       "A continuation token that can be provided which will start a push query off right at the "

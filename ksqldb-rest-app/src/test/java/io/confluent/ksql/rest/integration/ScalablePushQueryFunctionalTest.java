@@ -146,7 +146,7 @@ public class ScalablePushQueryFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(2, TimeUnit.MINUTES)
+      .withTimeout(3, TimeUnit.SECONDS)
       .withLookingForStuckThread(true)
       .build();
 

@@ -23,13 +23,11 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_TIMESTAMP_THROW_ON_INVALID;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.CHECK_CRCS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.CLIENT_RACK_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.EXCLUDE_INTERNAL_TOPICS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_BYTES_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG;
@@ -45,7 +43,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.METADATA_MAX_AGE_
 import static org.apache.kafka.clients.consumer.ConsumerConfig.METRICS_NUM_SAMPLES_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.METRICS_RECORDING_LEVEL_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECEIVE_BUFFER_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG;
@@ -70,11 +67,9 @@ import static org.apache.kafka.clients.producer.ProducerConfig.MAX_REQUEST_SIZE_
 import static org.apache.kafka.clients.producer.ProducerConfig.METADATA_MAX_IDLE_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.PARTITIONER_CLASS_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.RETRIES_CONFIG;
-import static org.apache.kafka.clients.producer.ProducerConfig.TRANSACTIONAL_ID_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.TRANSACTION_TIMEOUT_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.ACCEPTABLE_RECOVERY_LAG_CONFIG;
-import static org.apache.kafka.streams.StreamsConfig.APPLICATION_ID_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.APPLICATION_SERVER_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.BUILT_IN_METRICS_VERSION_CONFIG;
 import static org.apache.kafka.streams.StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG;
@@ -127,9 +122,6 @@ public class PropertiesList extends KsqlEntity {
       MAX_POLL_INTERVAL_MS_CONFIG,
       SESSION_TIMEOUT_MS_CONFIG,
       HEARTBEAT_INTERVAL_MS_CONFIG,
-      ENABLE_AUTO_COMMIT_CONFIG,
-      AUTO_COMMIT_INTERVAL_MS_CONFIG,
-      PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
       AUTO_OFFSET_RESET_CONFIG,
       FETCH_MIN_BYTES_CONFIG,
       FETCH_MAX_BYTES_CONFIG,
@@ -173,9 +165,7 @@ public class PropertiesList extends KsqlEntity {
       PARTITIONER_CLASS_CONFIG,
       ENABLE_IDEMPOTENCE_CONFIG,
       TRANSACTION_TIMEOUT_CONFIG,
-      TRANSACTIONAL_ID_CONFIG,
       ACCEPTABLE_RECOVERY_LAG_CONFIG,
-      APPLICATION_ID_CONFIG,
       APPLICATION_SERVER_CONFIG,
       BUILT_IN_METRICS_VERSION_CONFIG,
       CACHE_MAX_BYTES_BUFFERING_CONFIG,

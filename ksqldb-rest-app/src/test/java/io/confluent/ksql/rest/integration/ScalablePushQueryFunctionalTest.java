@@ -146,7 +146,7 @@ public class ScalablePushQueryFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(3, TimeUnit.SECONDS)
+      .withTimeout(3, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 
@@ -582,26 +582,4 @@ public class ScalablePushQueryFunctionalTest {
           return numRowsUpdated > numRows;
         }, is (true));
   }
-
-//  class TestConsumerPartitionAssignor implements ConsumerPartitionAssignor {
-//
-//    @Override
-//    public GroupAssignment assign(Cluster cluster, GroupSubscription groupSubscription) {
-//      final Map<String, Subscription> subscriptions = groupSubscription.groupSubscription();
-//      Map<String, Assignment> assignmentMap = new HashMap<>();
-//      for (final Map.Entry<String, Subscription> entry : subscriptions.entrySet()) {
-//        final String consumerId = entry.getKey();
-//        final Subscription subscription = entry.getValue();
-//        subscription.userData()
-//        assignmentMap.put(consumerId, )
-//      }
-//      return new GroupAssignment(assignmentMap);
-//    }
-//
-//    @Override
-//    public String name() {
-//      return null;
-//    }
-//  }
-
 }

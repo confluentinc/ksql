@@ -252,7 +252,7 @@
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='DELIMITED');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Format 'DELIMITED' does not support 'WRAP_SINGLE_VALUE' set to 'true'."
       }
     },

@@ -51,7 +51,7 @@
         "CREATE STREAM INPUT (K STRING KEY, f0 STRING, f1 STRING) WITH (WRAP_SINGLE_VALUE=true, kafka_topic='input_topic', value_format='JSON');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"
       }
     },
@@ -61,7 +61,7 @@
         "CREATE TABLE INPUT (K STRING PRIMARY KEY, f0 STRING, f1 STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='JSON');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "'WRAP_SINGLE_VALUE' is only valid for single-field value schemas"
       }
     },

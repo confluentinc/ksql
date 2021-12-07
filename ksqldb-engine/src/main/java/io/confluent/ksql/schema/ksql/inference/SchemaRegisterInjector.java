@@ -42,6 +42,7 @@ import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
@@ -68,12 +69,20 @@ public class SchemaRegisterInjector implements Injector {
   public <T extends Statement> ConfiguredStatement<T> inject(
       final ConfiguredStatement<T> statement
   ) {
-    if (statement.getStatement() instanceof CreateAsSelect) {
-      registerForCreateAs((ConfiguredStatement<? extends CreateAsSelect>) statement);
-    } else if (statement.getStatement() instanceof CreateSource) {
-      registerForCreateSource((ConfiguredStatement<? extends CreateSource>) statement);
+    try {
+      if (statement.getStatement() instanceof CreateAsSelect) {
+        registerForCreateAs((ConfiguredStatement<? extends CreateAsSelect>) statement);
+      } else if (statement.getStatement() instanceof CreateSource) {
+        registerForCreateSource((ConfiguredStatement<? extends CreateSource>) statement);
+      }
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(
+          ErrorMessageUtil.buildErrorMessage(e),
+          statement.getStatementText(),
+          e.getCause());
     }
-
     return statement;
   }
 

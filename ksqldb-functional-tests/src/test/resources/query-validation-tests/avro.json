@@ -818,6 +818,7 @@
     },
     {
       "name": "DECIMAL - key - no inference",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (K DECIMAL(4,2) KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -829,14 +830,11 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ],
-      "expectedException": {
-        "type": "org.apache.kafka.connect.errors.DataException",
-        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
-      }
+      ]
     },
     {
       "name": "DECIMAL - key - inference",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -859,14 +857,11 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ],
-      "expectedException": {
-        "type": "org.apache.kafka.connect.errors.DataException",
-        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
-      }
+      ]
     },
     {
       "name": "DECIMAL - key - inference - default precision",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -913,10 +908,6 @@
             }
           ]
         }
-      },
-      "expectedException": {
-        "type": "org.apache.kafka.connect.errors.DataException",
-        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
       }
     },
     {

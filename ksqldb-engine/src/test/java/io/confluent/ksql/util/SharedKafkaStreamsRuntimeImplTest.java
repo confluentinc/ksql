@@ -74,6 +74,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             5,
+            300_000L,
             streamProps
         );
         when(queryId.toString()).thenReturn("query 1");

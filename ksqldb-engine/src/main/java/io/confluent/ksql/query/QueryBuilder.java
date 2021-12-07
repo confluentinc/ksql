@@ -496,6 +496,7 @@ final class QueryBuilder {
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          ksqlConfig.getLong(ksqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
           buildStreamsProperties(
               buildSharedRuntimeId(ksqlConfig, true, streams.size()),
               queryID

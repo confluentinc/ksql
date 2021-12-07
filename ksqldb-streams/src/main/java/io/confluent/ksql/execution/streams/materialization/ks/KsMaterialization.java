@@ -25,6 +25,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
+import org.apache.kafka.streams.KafkaStreams;
 
 /**
  * Kafka Streams impl of {@link Materialization}.
@@ -34,12 +35,15 @@ public final class KsMaterialization implements Materialization {
   private final Optional<WindowInfo> windowInfo;
   private final KsStateStore stateStore;
   private final Locator locator;
+  private final KafkaStreams kafkaStreams;
 
   KsMaterialization(
+      final KafkaStreams streams,
       final Optional<WindowInfo> windowInfo,
       final Locator locator,
       final KsStateStore stateStore
   ) {
+    this.kafkaStreams = requireNonNull(streams, "streams");
     this.windowInfo = requireNonNull(windowInfo, "windowInfo");
     this.stateStore = requireNonNull(stateStore, "stateStore");
     this.locator = requireNonNull(locator, "locator");
@@ -65,7 +69,7 @@ public final class KsMaterialization implements Materialization {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
-    return new KsMaterializedTable(stateStore);
+    return new KsMaterializedTable(kafkaStreams, stateStore);
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Enforced by type

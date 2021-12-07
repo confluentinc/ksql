@@ -97,7 +97,7 @@ public class KsMaterializationFactoryTest {
     when(locatorFactory.create(any(), any(), any(), any(), any(), any(),
         anyBoolean(), anyString())).thenReturn(locator);
     when(storeFactory.create(any(), any(), any(), any(), any())).thenReturn(stateStore);
-    when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
+    when(materializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
 
     streamsProperties.clear();
     streamsProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG, DEFAULT_APP_SERVER.toString());
@@ -173,6 +173,7 @@ public class KsMaterializationFactoryTest {
 
     // Then:
     verify(materializationFactory).create(
+        kafkaStreams,
         windowInfo,
         locator,
         stateStore

@@ -29,6 +29,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
+import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,6 +43,8 @@ public class KsMaterializationTest {
   private Locator locator;
   @Mock
   private KsStateStore stateStore;
+  @Mock
+  private KafkaStreams kafkaStreams;
   private KsMaterialization materialization;
 
   @Before
@@ -144,6 +147,6 @@ public class KsMaterializationTest {
             : Optional.empty())
         );
 
-    materialization = new KsMaterialization(windowInfo, locator, stateStore);
+    materialization = new KsMaterialization(kafkaStreams, windowInfo, locator, stateStore);
   }
 }

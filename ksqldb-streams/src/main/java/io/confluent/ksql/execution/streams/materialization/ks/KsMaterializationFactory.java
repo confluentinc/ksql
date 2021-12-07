@@ -109,6 +109,7 @@ public final class KsMaterializationFactory {
     );
 
     final KsMaterialization materialization = materializationFactory.create(
+        kafkaStreams,
         windowInfo,
         locator,
         stateStore
@@ -158,6 +159,7 @@ public final class KsMaterializationFactory {
   interface MaterializationFactory {
 
     KsMaterialization create(
+        KafkaStreams kafkaStreams,
         Optional<WindowInfo> windowInfo,
         Locator locator,
         KsStateStore stateStore

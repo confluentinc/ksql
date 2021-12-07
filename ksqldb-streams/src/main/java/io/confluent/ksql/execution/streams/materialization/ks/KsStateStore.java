@@ -59,6 +59,10 @@ class KsStateStore {
     return schema;
   }
 
+  String getStateStoreName() {
+    return stateStoreName;
+  }
+
   <T> T store(final QueryableStoreType<T> queryableStoreType, final int partition) {
     try {
       final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(

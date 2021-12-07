@@ -39,6 +39,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
@@ -78,6 +79,8 @@ public class KsMaterializedTableTest {
       = KeyValue.pair(A_KEY2, VALUE_AND_TIMESTAMP2);
 
   @Mock
+  private KafkaStreams kafkaStreams;
+  @Mock
   private KsStateStore stateStore;
   @Mock
   private ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> tableStore;
@@ -90,7 +93,7 @@ public class KsMaterializedTableTest {
 
   @Before
   public void setUp() {
-    table = new KsMaterializedTable(stateStore);
+    table = new KsMaterializedTable(kafkaStreams, stateStore);
 
     when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);

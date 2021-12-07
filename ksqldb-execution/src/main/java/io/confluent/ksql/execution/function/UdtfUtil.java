@@ -23,7 +23,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-
 import java.util.List;
 import java.util.stream.Collectors;
 

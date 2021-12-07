@@ -18,7 +18,6 @@ package io.confluent.ksql.test.util;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

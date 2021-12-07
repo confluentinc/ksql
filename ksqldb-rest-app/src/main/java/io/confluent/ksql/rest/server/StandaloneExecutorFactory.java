@@ -47,8 +47,7 @@ import java.util.function.Supplier;
 
 public final class StandaloneExecutorFactory {
 
-  private StandaloneExecutorFactory(){
-  }
+  private StandaloneExecutorFactory() {}
 
   public static StandaloneExecutor create(
       final Map<String, String> properties,

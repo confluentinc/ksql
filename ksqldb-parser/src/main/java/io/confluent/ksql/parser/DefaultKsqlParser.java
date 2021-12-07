@@ -23,7 +23,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;

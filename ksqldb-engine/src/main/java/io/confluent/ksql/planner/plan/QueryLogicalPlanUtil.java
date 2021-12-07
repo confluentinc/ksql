@@ -19,9 +19,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 final class QueryLogicalPlanUtil {
 
-  private QueryLogicalPlanUtil(){
-
-  }
+  private QueryLogicalPlanUtil() {}
 
   /**
    * Builds the schema used for codegen to compile expressions into bytecode. The input schema may

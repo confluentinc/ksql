@@ -16,9 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
-
 import io.confluent.ksql.parser.NodeLocation;
-
 import java.util.Optional;
 
 @Immutable

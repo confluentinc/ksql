@@ -22,7 +22,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.util.KsqlConfig;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;

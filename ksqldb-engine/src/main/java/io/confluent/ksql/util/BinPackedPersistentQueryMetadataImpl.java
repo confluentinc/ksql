@@ -64,7 +64,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final String statementString;
   private final String executionPlan;
   private final String applicationId;
-  private NamedTopology topology;
+  private final NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final ImmutableMap<String, Object> overriddenProperties;
@@ -295,8 +295,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return applicationId;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topology is for reference")
   @Override
   public NamedTopology getTopology() {
+    return topology;
+  }
+
+  public NamedTopology getTopologyCopy() {
     return namedTopologySupplier.get();
   }
 

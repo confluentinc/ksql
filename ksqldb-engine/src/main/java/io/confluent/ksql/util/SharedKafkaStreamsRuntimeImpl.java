@@ -177,11 +177,10 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     for (final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
         : collocatedQueries.values()) {
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(
-          binPackedPersistentQueryMetadata.getTopology()
+          binPackedPersistentQueryMetadata.getTopologyCopy()
       );
     }
     kafkaStreams.close();
-    kafkaStreams.cleanUp();
 
     kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreamsNamedTopologyWrapper.start();

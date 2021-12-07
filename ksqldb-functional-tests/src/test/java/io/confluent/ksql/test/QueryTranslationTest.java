@@ -83,11 +83,15 @@ public class QueryTranslationTest {
    */
   @SuppressWarnings("unused")
   public QueryTranslationTest(final String name, final TestCase testCase) {
+
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
   @Test
   public void shouldBuildAndExecuteQueries() {
+    if (!testCase.getName().contains("DECIMAL - key - inference - default precision")) {
+      return;
+    }
     EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 

@@ -32,7 +32,6 @@ import org.apache.kafka.connect.data.Schema;
 class AvroSchemaTranslator implements ConnectSchemaTranslator {
 
   private final AvroData avroData = new AvroData(new AvroDataConfig(ImmutableMap.of()));
-
   private final AvroProperties formatProps;
 
   AvroSchemaTranslator(final AvroProperties formatProps) {

@@ -347,14 +347,13 @@ public class SchemaRegisterInjector implements Injector {
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
     if (registerIfSchemaExists || !SchemaRegistryUtil.subjectExists(srClient, subject)) {
-      final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
-
-      final ParsedSchema parsedSchema = translator.toParsedSchema(
-          PersistenceSchema.from(schema, serdeFeatures)
-      );
-
       try {
-        SchemaRegistryUtil.registerSchema(srClient, parsedSchema, topic, subject, isKey);
+        final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
+        final ParsedSchema parsedSchema = translator.toParsedSchema(
+            PersistenceSchema.from(schema, serdeFeatures)
+        );
+        int id = SchemaRegistryUtil.registerSchema(srClient, parsedSchema, topic, subject, isKey);
+        System.out.print("h");
       } catch (KsqlException e) {
         throw new KsqlStatementException("Could not register schema for topic: " + e.getMessage(),
             statementText, e);

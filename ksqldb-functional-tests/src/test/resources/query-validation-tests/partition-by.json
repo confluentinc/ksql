@@ -601,7 +601,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Line: 5, Col: 14: PARTITION BY column 'ID_NEW' cannot be resolved."
+        "message": "Line: 2, Col: 90: PARTITION BY column 'ID_NEW' cannot be resolved."
       }
     },
     {

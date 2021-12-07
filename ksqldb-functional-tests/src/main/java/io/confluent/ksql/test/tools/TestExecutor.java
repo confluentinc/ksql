@@ -102,6 +102,7 @@ public class TestExecutor implements Closeable {
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .put(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .put(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "schema_registry.url:0")
       .build();
 
   private final ServiceContext serviceContext;

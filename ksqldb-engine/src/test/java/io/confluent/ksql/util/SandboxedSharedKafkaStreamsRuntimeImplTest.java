@@ -81,7 +81,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
         queryErrorClassifier,
         persistentQueriesInSharedRuntimes,
         queryId);
-    when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
   }
 
   @Test

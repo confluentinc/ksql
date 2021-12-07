@@ -20,6 +20,8 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -43,30 +45,26 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
     @Mock
     private KafkaStreamsBuilder kafkaStreamsBuilder;
-
     @Mock
     private Map<String, Object> streamProps;
-
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
-
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
-
     @Mock
     private BinPackedPersistentQueryMetadataImpl persistentQueriesInSharedRuntimes;
-
     @Mock
     private QueryErrorClassifier queryErrorClassifier;
-
     @Mock
     private QueryId queryId;
-
     @Mock
     private QueryId queryId2;
-
     @Mock
     private NamedTopology namedTopology;
+    @Mock
+    private AddNamedTopologyResult addNamedTopologyResult;
+    @Mock
+    private KafkaFuture<Void> future;
 
     private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
 
@@ -76,6 +74,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             5,
+            300_000L,
             streamProps
         );
         when(queryId.toString()).thenReturn("query 1");
@@ -87,6 +86,8 @@ public class SharedKafkaStreamsRuntimeImplTest {
             persistentQueriesInSharedRuntimes,
             queryId);
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
+        when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
+        when(addNamedTopologyResult.all()).thenReturn(future);
         when(persistentQueriesInSharedRuntimes.getTopology()).thenReturn(namedTopology);
     }
 

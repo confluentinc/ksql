@@ -117,18 +117,8 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   public void start(final QueryId queryId) {
   }
 
+  @Override
   public void restartStreamsRuntime() {
-    final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
-        .buildNamedTopologyWrapper(streamsProperties);
-    for (final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
-        : collocatedQueries.values()) {
-      kafkaStreamsNamedTopologyWrapper.addNamedTopology(
-          binPackedPersistentQueryMetadata.getTopology()
-      );
-    }
-    kafkaStreams.close();
-    kafkaStreams.cleanUp();
-    kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
-    kafkaStreams = kafkaStreamsNamedTopologyWrapper;
+
   }
 }

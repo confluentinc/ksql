@@ -410,7 +410,6 @@ public class ScalablePushQueryFunctionalTest {
         header, complete);
 
     header.get();
-    assertExpectedScalablePushQueries(1, true);
 
     assertThatEventually(() -> subscriber.getUniqueRows().size(),
         is(pageViewDataProvider.data().size() + 1));

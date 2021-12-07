@@ -23,6 +23,9 @@ import org.slf4j.LoggerFactory;
 
 public class CatchupCoordinatorImpl implements CatchupCoordinator {
   private static final Logger LOG = LoggerFactory.getLogger(CatchupCoordinatorImpl.class);
+  // The maximum amount of time waited.  This ensures that we don't freeze the latest indefinitely
+  // and the latest can still potentially be closed.
+  private static final long WAIT_TIME_MS = 10000;
 
   private int catchupJoiners = 0;
   private boolean latestWaiting = false;
@@ -31,10 +34,18 @@ public class CatchupCoordinatorImpl implements CatchupCoordinator {
   public synchronized void checkShouldWaitForCatchup() {
     // If any catchup joiners are trying to catch up with us, we set latestWaiting and then wait
     // on this object to be notified once the switchover is complete.
+    final long startTime = System.currentTimeMillis();
     while (catchupJoiners > 0) {
       try {
         latestWaiting = true;
-        this.wait();
+        LOG.info("Waiting for Catchups to join Latest consumer");
+        this.wait(WAIT_TIME_MS);
+        final long waitedMs = System.currentTimeMillis() - startTime;
+        LOG.info("Waited for Catchups to join Latest consumer for "
+            + waitedMs + "ms");
+        if (waitedMs >= WAIT_TIME_MS) {
+          break;
+        }
       } catch (InterruptedException e) {
         LOG.error("Caught InterruptedException during catchup waiting", e);
         Thread.currentThread().interrupt();

@@ -829,7 +829,11 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ]
+      ],
+      "expectedException": {
+        "type": "org.apache.kafka.connect.errors.DataException",
+        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
+      }
     },
     {
       "name": "DECIMAL - key - inference",
@@ -855,7 +859,11 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 65.21, "value": {"FOO": 10}},
         {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ]
+      ],
+      "expectedException": {
+        "type": "org.apache.kafka.connect.errors.DataException",
+        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
+      }
     },
     {
       "name": "DECIMAL - key - inference - default precision",
@@ -905,6 +913,10 @@
             }
           ]
         }
+      },
+      "expectedException": {
+        "type": "org.apache.kafka.connect.errors.DataException",
+        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
       }
     },
     {

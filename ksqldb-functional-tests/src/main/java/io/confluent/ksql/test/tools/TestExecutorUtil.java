@@ -286,16 +286,14 @@ public final class TestExecutorUtil {
 
       topic.getKeySchema().ifPresent(schema -> {
         try {
-          int id = srClient.register(KsqlConstants.getSRSubject(topic.getName(), true), schema);
-          System.out.print("h");
+          srClient.register(KsqlConstants.getSRSubject(topic.getName(), true), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }
       });
       topic.getValueSchema().ifPresent(schema -> {
         try {
-          int id = srClient.register(KsqlConstants.getSRSubject(topic.getName(), false), schema);
-          System.out.print("h");
+          srClient.register(KsqlConstants.getSRSubject(topic.getName(), false), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }

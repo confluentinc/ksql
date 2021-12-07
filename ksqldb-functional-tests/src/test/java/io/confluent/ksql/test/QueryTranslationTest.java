@@ -89,9 +89,6 @@ public class QueryTranslationTest {
 
   @Test
   public void shouldBuildAndExecuteQueries() {
-    if (!testCase.getName().contains("DECIMAL - key - inference - default precision")) {
-      return;
-    }
     EndToEndEngineTestUtil.shouldBuildAndExecuteQuery(testCase);
   }
 

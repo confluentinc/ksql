@@ -677,6 +677,10 @@
             "schema": "KEY DECIMAL(2, 1) KEY, TOTAL BIGINT"
           }
         ]
+      },
+      "expectedException": {
+        "type": "org.apache.kafka.connect.errors.DataException",
+        "message": "Mismatched versions: version already added to SchemaBuilder (1) differs from version in source schema (2)"
       }
     },
     {

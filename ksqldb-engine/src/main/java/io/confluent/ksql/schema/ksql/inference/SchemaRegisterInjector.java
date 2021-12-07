@@ -352,8 +352,7 @@ public class SchemaRegisterInjector implements Injector {
         final ParsedSchema parsedSchema = translator.toParsedSchema(
             PersistenceSchema.from(schema, serdeFeatures)
         );
-        int id = SchemaRegistryUtil.registerSchema(srClient, parsedSchema, topic, subject, isKey);
-        System.out.print("h");
+        SchemaRegistryUtil.registerSchema(srClient, parsedSchema, topic, subject, isKey);
       } catch (KsqlException e) {
         throw new KsqlStatementException("Could not register schema for topic: " + e.getMessage(),
             statementText, e);

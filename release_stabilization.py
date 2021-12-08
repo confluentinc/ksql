@@ -7,6 +7,7 @@ from collections import OrderedDict
 DOCKER_REGISTRY = "confluent-docker-internal-stabilization.jfrog.io/"
 DOCKER_INTERNAL_REGISTRY = "confluent-docker-internal.jfrog.io/"
 DOCKER_UPSTREAM_REGISTRY = "confluent-docker.jfrog.io/"
+DOCKER_AWS_REGISTRY = "368821881613.dkr.ecr.us-west-2.amazonaws.com/"
 DOCKER_UPSTREAM_TAG = "v6.5.0"
 PACKAGES_MAVEN_URL = r'${env.ORG_GRADLE_PROJECT_mavenUrl}'
 CC_SPEC_KSQL_BRANCH = "master"
@@ -70,8 +71,8 @@ class Callbacks:
             kafka_tutorials_cwd = os.path.join(self.working_dir, 'kafka-tutorials')
             print(f"{kafka_tutorials_cwd}")
 
-            print(f"{git_cmd_kafka_tutorial} clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}")
-            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}"))
+            print(f"git clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}")
+            subprocess.run(shlex.split(f"git clone {KAFKA_TUTORIALS_URL} {kafka_tutorials_cwd}"))
             # print(f"cd kafka-tutorials")
             # subprocess.run(shlex.split(f"cd kafka-tutorials"))
 
@@ -83,8 +84,8 @@ class Callbacks:
             print(f"{kafka_tutorials_cwd}")
             print(f"{self.working_dir}")
             update_ksqldb_version_path = os.path.join(self.working_dir, 'kafka-tutorials/tools/update-ksqldb-version.sh')
-            print(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}")
-            subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_INTERNAL_REGISTRY}"))
+            print(f"{update_ksqldb_version_path} {version} {DOCKER_UPSTREAM_REGISTRY}")
+            subprocess.run(shlex.split(f"{update_ksqldb_version_path} {version} {DOCKER_UPSTREAM_REGISTRY}"))
 
             print(f"{git_cmd_kafka_tutorial} diff")
             subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} diff"), cwd=kafka_tutorials_cwd)

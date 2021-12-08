@@ -160,10 +160,9 @@ public final class ValidatedCommandFactory {
       LOG.error("Failed to set {} to {} due to the {} persistent queries currently running: {}",
                 propertyName, propertyValue, runningQueries.size(), runningQueries);
       throw new ConfigException(
-          String.format("Unable to set %s to %s due to existing persistent queries. The %s may"
-                            + " not be changed for live queries which have already processed data"
-                            + " under a different %s. To modify the %s you must first terminate"
-                            + " all running queries.",
+          String.format("Unable to set %s to %s, as the %s may not be changed for running persistent"
+                            + " queries which have already processed data under a different %s.To"
+                            + " modify %s you must first terminate all running persistent queries.",
                         propertyName, propertyValue, propertyName, propertyName, propertyName));
     }
 

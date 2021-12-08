@@ -173,6 +173,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   public void restartStreamsRuntime() {
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
+    kafkaStreams.close();
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;
     for (final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
         : collocatedQueries.values()) {
@@ -180,8 +181,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           binPackedPersistentQueryMetadata.getTopologyCopy()
       );
     }
-    kafkaStreams.close();
-
     kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreamsNamedTopologyWrapper.start();
   }

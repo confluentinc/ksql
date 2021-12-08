@@ -47,11 +47,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +79,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final ExecutionStep<?> physicalPlan;
   private final PhysicalSchema resultSchema;
   private final Listener listener;
-  private final Supplier<NamedTopology> namedTopologySupplier;
+  private final Function<NamedTopologyBuilder, NamedTopology> namedTopologyBuilder;
 
   private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -116,7 +120,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final QueryErrorClassifier classifier,
       final Map<String, Object> streamsProperties,
       final Optional<ScalablePushRegistry> scalablePushRegistry,
-      final Supplier<NamedTopology> namedTopologySupplier) {
+      final Function<NamedTopologyBuilder, NamedTopology> namedTopologyBuilder) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -138,7 +142,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.listener = requireNonNull(listener, "listener");
-    this.namedTopologySupplier = requireNonNull(namedTopologySupplier, "namedTopologySupplier");
+    this.namedTopologyBuilder = requireNonNull(namedTopologyBuilder, "namedTopologyBuilder");
     this.materializationProvider = materializationProviderBuilder
             .flatMap(builder -> builder.apply(
                     this.sharedKafkaStreamsRuntime.getKafkaStreams(),
@@ -174,7 +178,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
-    this.namedTopologySupplier = original.namedTopologySupplier;
+    this.namedTopologyBuilder = original.namedTopologyBuilder;
   }
 
   @Override
@@ -301,8 +305,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return topology;
   }
 
-  public NamedTopology getTopologyCopy() {
-    return namedTopologySupplier.get();
+  public NamedTopology getTopologyCopy(final NamedTopologyBuilder builder) {
+    return namedTopologyBuilder.apply(builder);
   }
 
   @Override

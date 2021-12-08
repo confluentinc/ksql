@@ -477,28 +477,19 @@ final class QueryBuilder {
         classifier,
         queryOverrides,
         scalablePushRegistry,
-        () -> getNamedTopology(
-            sharedKafkaStreamsRuntime,
+        (builder) -> getNamedTopology(
+            builder,
             queryId,
             applicationId,
-            queryOverrides,
             physicalPlan
         )
     );
   }
 
-  public NamedTopology getNamedTopology(final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
+  public NamedTopology getNamedTopology(final NamedTopologyBuilder namedTopologyBuilder,
                                         final QueryId queryId,
                                         final String applicationId,
-                                        final Map<String, Object>  queryOverrides,
                                         final ExecutionStep<?> physicalPlan) {
-    final NamedTopologyBuilder namedTopologyBuilder =
-        ((KafkaStreamsNamedTopologyWrapper) sharedKafkaStreamsRuntime.getKafkaStreams())
-            .newNamedTopologyBuilder(
-                queryId.toString(),
-                PropertiesUtil.asProperties(queryOverrides)
-            );
-
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
         queryId,

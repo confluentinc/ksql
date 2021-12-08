@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.base.Throwables;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -28,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,11 +178,15 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         .buildNamedTopologyWrapper(streamsProperties);
     kafkaStreams.close();
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;
-    for (final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
+    for (final BinPackedPersistentQueryMetadataImpl query
         : collocatedQueries.values()) {
-      kafkaStreamsNamedTopologyWrapper.addNamedTopology(
-          binPackedPersistentQueryMetadata.getTopologyCopy()
+      final NamedTopology topologyCopy = query.getTopologyCopy(
+          kafkaStreams.newNamedTopologyBuilder(
+              query.getQueryId().toString(),
+              PropertiesUtil.asProperties(query.getOverriddenProperties())
+          )
       );
+      kafkaStreamsNamedTopologyWrapper.addNamedTopology(topologyCopy);
     }
     kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreamsNamedTopologyWrapper.start();

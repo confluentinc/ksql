@@ -74,7 +74,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeCompletionMessage(String completionMessage) {
+  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
     final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage);
     writeBuffer(ServerUtils.serializeObject(streamedRow));
     return this;

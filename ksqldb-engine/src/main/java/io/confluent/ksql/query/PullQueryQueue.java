@@ -161,7 +161,7 @@ public class PullQueryQueue implements BlockingRowQueue {
    * wants to end pull queries prematurely, such as when the client connection closes, this should
    * also be called then.
    */
-  private void closeInternal(boolean limitHit) {
+  private void closeInternal(final boolean limitHit) {
     if (!closed.getAndSet(true)) {
       // Unlike limits based on a number of rows which can be checked and possibly triggered after
       // every queuing of a row, pull queries just declare they've reached their limit when close is

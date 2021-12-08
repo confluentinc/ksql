@@ -183,7 +183,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           }
         }
       } else {
-        throw new IllegalStateException("Streams in not running but is in state"
+        throw new IllegalStateException("Streams in not running but is in state "
             + kafkaStreams.state());
       }
     }

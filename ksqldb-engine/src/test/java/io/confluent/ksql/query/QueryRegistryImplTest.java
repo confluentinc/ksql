@@ -493,8 +493,7 @@ public class QueryRegistryImplTest {
           any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any(), any());
     } else {
       verify(queryBuilder).buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(),
-          any());
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any());
     }
     return queryListenerCaptor.getValue();
   }

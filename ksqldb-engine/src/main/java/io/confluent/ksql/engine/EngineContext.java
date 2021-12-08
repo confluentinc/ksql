@@ -78,6 +78,7 @@ final class EngineContext {
   private final KsqlParser parser;
   private final QueryCleanupService cleanupService;
   private final QueryRegistry queryRegistry;
+  private final RuntimeAssignor runtimeAssignor;
   private KsqlConfig ksqlConfig;
 
   static EngineContext create(
@@ -98,7 +99,8 @@ final class EngineContext {
         new DefaultKsqlParser(),
         cleanupService,
         ksqlConfig,
-        new QueryRegistryImpl(registrationListeners, metricCollectors)
+        new QueryRegistryImpl(registrationListeners, metricCollectors),
+        new RuntimeAssignor(ksqlConfig)
     );
   }
 
@@ -110,7 +112,8 @@ final class EngineContext {
       final KsqlParser parser,
       final QueryCleanupService cleanupService,
       final KsqlConfig ksqlConfig,
-      final QueryRegistry queryRegistry
+      final QueryRegistry queryRegistry,
+      final RuntimeAssignor runtimeAssignor
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
@@ -122,6 +125,7 @@ final class EngineContext {
     this.cleanupService = requireNonNull(cleanupService, "cleanupService");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.queryRegistry = requireNonNull(queryRegistry, "queryRegistry");
+    this.runtimeAssignor = requireNonNull(runtimeAssignor, "runtimeAssignor");
   }
 
   synchronized EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -133,7 +137,8 @@ final class EngineContext {
         new DefaultKsqlParser(),
         cleanupService,
         ksqlConfig,
-        queryRegistry.createSandbox()
+        queryRegistry.createSandbox(),
+        runtimeAssignor.createSandbox()
     );
   }
 
@@ -159,6 +164,10 @@ final class EngineContext {
 
   QueryRegistry getQueryRegistry() {
     return queryRegistry;
+  }
+
+  RuntimeAssignor getRuntimeAssignor() {
+    return runtimeAssignor;
   }
 
   synchronized KsqlConfig getKsqlConfig() {

@@ -293,6 +293,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values()),
+          sharedRuntimeId.get(),
           metricCollectors
       );
     } else {

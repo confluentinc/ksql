@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -27,8 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

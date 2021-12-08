@@ -19,7 +19,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;

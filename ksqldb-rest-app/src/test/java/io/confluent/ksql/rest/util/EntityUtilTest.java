@@ -211,6 +211,43 @@ public class EntityUtilTest {
   }
 
   @Test
+  public void shouldSupportSchemasWithAllHeadersColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .headerColumn(ColumnName.of("field1"), Optional.empty())
+        .build();
+
+    // When:
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
+
+    // Then:
+    assertThat(fields, hasSize(1));
+    assertThat(fields.get(0).getName(), equalTo("field1"));
+    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
+    assertThat(fields.get(0).getType(), equalTo(Optional.of(FieldType.HEADER)));
+    assertThat(fields.get(0).getHeaderKey(), equalTo(Optional.empty()));
+  }
+
+  @Test
+  public void shouldSupportSchemasWithExtractedHeaderColumns() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .headerColumn(ColumnName.of("field1"), Optional.of("abc"))
+        .build();
+
+    // When:
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
+
+    // Then:
+    assertThat(fields, hasSize(1));
+    assertThat(fields.get(0).getName(), equalTo("field1"));
+    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BYTES"));
+    assertThat(fields.get(0).getType(), equalTo(Optional.of(FieldType.HEADER)));
+    assertThat(fields.get(0).getHeaderKey(), equalTo(Optional.of("abc")));
+  }
+
+
+  @Test
   public void shouldMaintainColumnOrder() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()

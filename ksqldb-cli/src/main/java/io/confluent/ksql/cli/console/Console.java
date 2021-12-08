@@ -503,6 +503,16 @@ public class Console implements Closeable {
   ) {
     final FieldType possibleFieldType = field.getType().orElse(null);
 
+    if (possibleFieldType == FieldType.HEADER) {
+      final String headerType;
+      if (field.getHeaderKey().isPresent()) {
+        headerType = "(header('" + field.getHeaderKey().get() + "'))";
+      } else {
+        headerType = "(headers)";
+      }
+      return String.format("%-16s %s", field.getSchema().toTypeString(), headerType);
+    }
+
     if (possibleFieldType == FieldType.KEY) {
       final String wt = windowType
           .map(v -> " (Window type: " + v + ")")

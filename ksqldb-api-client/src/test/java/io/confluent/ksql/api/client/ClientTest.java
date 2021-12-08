@@ -1393,8 +1393,8 @@ public class ClientTest extends BaseApiTest {
                 KsqlQueryType.PERSISTENT)),
             Collections.emptyList(),
             ImmutableList.of(
-                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
-                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty())),
+                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY), Optional.empty()),
+                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty(), Optional.empty())),
             "TABLE",
             "",
             "",
@@ -1458,8 +1458,8 @@ public class ClientTest extends BaseApiTest {
                 KsqlQueryType.PERSISTENT)),
             Collections.emptyList(),
             ImmutableList.of(
-                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
-                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty())),
+                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY), Optional.empty()),
+                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty(), Optional.empty())),
             "TABLE",
             "",
             false,

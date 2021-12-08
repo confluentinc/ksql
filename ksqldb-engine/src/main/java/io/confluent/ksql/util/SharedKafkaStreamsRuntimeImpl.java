@@ -20,13 +20,16 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,25 +38,27 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   private final Logger log = LoggerFactory.getLogger(SharedKafkaStreamsRuntimeImpl.class);
 
-  private QueryErrorClassifier errorClassifier;
   private final long shutdownTimeout;
+  private final QueryErrorClassifier errorClassifier;
+  private final int maxQueryErrorsQueueSize;
 
   public SharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
+                                       final QueryErrorClassifier errorClassifier,
                                        final int maxQueryErrorsQueueSize,
                                        final long shutdownTimeoutConfig,
                                        final Map<String, Object> streamsProperties) {
     super(
         kafkaStreamsBuilder,
-        streamsProperties,
-        new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize)
+        streamsProperties
     );
+    this.errorClassifier = errorClassifier;
+    this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
     kafkaStreams.start();
     shutdownTimeout = shutdownTimeoutConfig;
   }
 
   @Override
   public void register(
-      final QueryErrorClassifier errorClassifier,
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
@@ -69,12 +74,10 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         sources.put(queryId, binpackedPersistentQueryMetadata.getSourceNames());
       }
     }
-    this.errorClassifier = errorClassifier;
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("mapping {}", collocatedQueries);
   }
 
-  @Override
   public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       final Throwable e
   ) {
@@ -86,7 +89,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     } finally {
       // If error classification throws then we consider the error to be an UNKNOWN error.
       // We notify listeners and add the error to the errors queue in the finally block to ensure
-      // all listeners and consumers of the error queue (e.g. the API) can see it. Similarly,
+      // all listeners and consumers of the error queue (eg the API) can see the error. Similarly,
       // log in finally block to make sure that if there's ever an error in the classification
       // we still get this in our logs.
       final QueryError queryError =
@@ -95,18 +98,62 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
               Throwables.getStackTraceAsString(e),
               errorType
           );
-      for (BinPackedPersistentQueryMetadataImpl query: collocatedQueries.values()) {
-        query.getListener().onError(collocatedQueries.get(query.getQueryId()), queryError);
+
+      final BinPackedPersistentQueryMetadataImpl queryInError = parseException(e);
+
+      if (queryInError != null) {
+        queryInError.setQueryError(queryError);
+        log.error(String.format(
+            "Unhandled query exception caught in streams thread %s for query %s. (%s)",
+            Thread.currentThread().getName(),
+            queryInError.getQueryId(),
+            errorType),
+                  e
+        );
+      } else {
+        for (BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
+          query.setQueryError(queryError);
+        }
+        log.error(String.format(
+            "Unhandled runtime exception caught in streams thread %s. (%s)",
+            Thread.currentThread().getName(),
+            errorType),
+                  e
+        );
       }
-      runtimeErrors.add(queryError);
-      log.error(
-          "Unhandled exception caught in streams thread {}. ({})",
-          Thread.currentThread().getName(),
-          errorType,
-          e
-      );
     }
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
+  }
+
+  private BinPackedPersistentQueryMetadataImpl parseException(final Throwable e) {
+    final TaskId task =
+        e instanceof StreamsException && ((StreamsException) e).taskId().isPresent()
+            ? ((StreamsException) e).taskId().get()
+            : null;
+
+    final QueryId queryId
+        = task != null && task.topologyName() != null
+        ? new QueryId(task.topologyName())
+        : null;
+
+    if (task != null && task.topologyName() == null) {
+      log.error("Unhandled exception originated from a task {}"
+                    + " without an associated topology name (queryId).", task);
+    } else if (queryId != null && !collocatedQueries.containsKey(queryId)) {
+      log.error("Unhandled exception originated from a task {}"
+                    + " with an unrecognized topology name (queryId) {}.", task, queryId);
+    }
+
+    if (queryId != null && collocatedQueries.containsKey(queryId)) {
+      return collocatedQueries.get(queryId);
+    } else {
+      return null;
+    }
+  }
+
+  @Override
+  public TimeBoundedQueue getNewQueryErrorQueue() {
+    return new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
   }
 
   @Override

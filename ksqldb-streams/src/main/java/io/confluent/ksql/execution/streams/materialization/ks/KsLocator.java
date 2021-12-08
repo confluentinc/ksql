@@ -58,6 +58,7 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Processor;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,7 +99,9 @@ public final class KsLocator implements Locator {
       final List<KsqlKey> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory,
-      final boolean isRangeScan
+      final boolean isRangeScan,
+      final boolean sharedRuntimesEnabled,
+      final String queryId
   ) {
     if (isRangeScan && keys.isEmpty()) {
       throw new IllegalStateException("Query is range scan but found no range keys.");
@@ -113,7 +116,7 @@ public final class KsLocator implements Locator {
     // all partitions of the state store rather than a particular one.
     final List<PartitionMetadata> metadata = keys.isEmpty() || isRangeScan
         ? getMetadataForAllPartitions(filterPartitions, keySet)
-        : getMetadataForKeys(keys, filterPartitions);
+        : getMetadataForKeys(keys, filterPartitions, queryId, sharedRuntimesEnabled);
     // Go through the metadata and group them by partition.
     for (PartitionMetadata partitionMetadata : metadata) {
       LOG.debug("Handling pull query for partition {} of state store {}.",
@@ -142,15 +145,20 @@ public final class KsLocator implements Locator {
    */
   private List<PartitionMetadata> getMetadataForKeys(
       final List<KsqlKey> keys,
-      final Set<Integer> filterPartitions
+      final Set<Integer> filterPartitions,
+      final String queryId,
+      final boolean sharedRuntimesEnabled
   ) {
     // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
     // not a guarantee of the API.
     final Map<Integer, KeyQueryMetadata> metadataByPartition = new LinkedHashMap<>();
     final Map<Integer, Set<KsqlKey>> keysByPartition = new HashMap<>();
     for (KsqlKey key : keys) {
-      final KeyQueryMetadata metadata = kafkaStreams
-          .queryMetadataForKey(storeName, key.getKey(), keySerializer);
+      final KeyQueryMetadata metadata =
+          sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper ?
+              ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
+                  .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId) :
+              kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
 
       // Fail fast if Streams not ready. Let client handle it
       if (metadata.equals(KeyQueryMetadata.NOT_AVAILABLE)) {

@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -166,5 +167,21 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     } else {
       throw new IllegalArgumentException("query: " + queryId + " not added to runtime");
     }
+  }
+
+  @Override
+  public void restartStreamsRuntime() {
+    final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
+        .buildNamedTopologyWrapper(streamsProperties);
+    kafkaStreams.close();
+    kafkaStreams = kafkaStreamsNamedTopologyWrapper;
+    for (final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
+        : collocatedQueries.values()) {
+      kafkaStreamsNamedTopologyWrapper.addNamedTopology(
+          binPackedPersistentQueryMetadata.getTopologyCopy()
+      );
+    }
+    kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
+    kafkaStreamsNamedTopologyWrapper.start();
   }
 }

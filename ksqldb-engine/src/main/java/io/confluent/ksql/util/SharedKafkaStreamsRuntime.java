@@ -45,7 +45,7 @@ public abstract class SharedKafkaStreamsRuntime {
   private final Logger log = LoggerFactory.getLogger(SharedKafkaStreamsRuntime.class);
 
   protected final KafkaStreamsBuilder kafkaStreamsBuilder;
-  protected final KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  protected KafkaStreamsNamedTopologyWrapper kafkaStreams;
   protected final ImmutableMap<String, Object> streamsProperties;
   protected final QueryMetadataImpl.TimeBoundedQueue runtimeErrors;
   protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
@@ -89,6 +89,8 @@ public abstract class SharedKafkaStreamsRuntime {
   public abstract void close();
 
   public abstract void start(QueryId queryId);
+
+  public abstract void restartStreamsRuntime();
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streams must be exposed")
   public KafkaStreams getKafkaStreams() {

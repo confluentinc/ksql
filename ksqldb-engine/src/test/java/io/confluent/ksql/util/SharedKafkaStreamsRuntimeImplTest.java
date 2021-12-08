@@ -22,6 +22,7 @@ import io.confluent.ksql.query.QueryId;
 
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
@@ -88,7 +89,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
         when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
         when(addNamedTopologyResult.all()).thenReturn(future);
-        when(persistentQueriesInSharedRuntimes.getTopology()).thenReturn(namedTopology);
+        when(persistentQueriesInSharedRuntimes.getTopologyCopy()).thenReturn(namedTopology);
     }
 
     @Test
@@ -122,5 +123,17 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
         //Then:
         verify(kafkaStreamsNamedTopologyWrapper).close();
+    }
+
+    @Test
+    public void shouldRestart() {
+        //When:
+        sharedKafkaStreamsRuntimeImpl.restartStreamsRuntime();
+
+        //Then:
+        verify(kafkaStreamsNamedTopologyWrapper).close();
+        verify(kafkaStreamsNamedTopologyWrapper2).addNamedTopology(namedTopology);
+        verify(kafkaStreamsNamedTopologyWrapper2).start();
+        verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());
     }
 }

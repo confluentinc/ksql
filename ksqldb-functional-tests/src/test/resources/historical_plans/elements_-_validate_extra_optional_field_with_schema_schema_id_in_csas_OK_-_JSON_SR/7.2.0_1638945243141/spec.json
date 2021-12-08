@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638916064694,
+  "timestamp" : 1638945243141,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -83,7 +83,7 @@
       "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
       "numPartitions" : 1
     }, {
-      "name" : "schema_input",
+      "name" : "OUTPUT",
       "keySchema" : {
         "type" : "object",
         "properties" : {
@@ -106,13 +106,9 @@
       "keyFormat" : "JSON",
       "valueFormat" : "JSON",
       "replicas" : 1,
-      "numPartitions" : 1
-    }, {
-      "name" : "OUTPUT",
-      "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='json_sr', value_schema_id=4, key_format='json_sr', key_schema_id=3);", "CREATE STREAM INPUT (`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT) WITH (key_format='avro', kafka_topic='input', value_format='avro', partitions=1);", "CREATE STREAM OUTPUT WITH(key_schema_id=3, key_format='json_sr', value_format='json_sr', value_schema_id=4, PARTITIONS = 4) as SELECT * FROM input;" ],
+    "statements" : [ "CREATE STREAM INPUT (`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT) WITH (key_format='avro', kafka_topic='input', value_format='avro', partitions=1);", "CREATE STREAM OUTPUT WITH(key_schema_id=3, key_format='json_sr', value_format='json_sr', value_schema_id=4, PARTITIONS = 4) as SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -136,55 +132,9 @@
         "keyFeatures" : [ "UNWRAP_SINGLES" ],
         "valueFeatures" : [ ],
         "isSource" : false
-      }, {
-        "name" : "SCHEMA_INPUT",
-        "type" : "STREAM",
-        "schema" : "`ROWKEY` STRUCT<`id` BIGINT> KEY, `c1` BIGINT, `c2` STRING",
-        "keyFormat" : {
-          "format" : "JSON_SR"
-        },
-        "valueFormat" : "JSON_SR",
-        "keyFeatures" : [ "UNWRAP_SINGLES" ],
-        "valueFeatures" : [ ],
-        "isSource" : false
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "schema_input",
-          "keyFormat" : {
-            "format" : "JSON_SR",
-            "properties" : {
-              "schemaId" : "3"
-            },
-            "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "valueFormat" : {
-            "format" : "JSON_SR",
-            "properties" : {
-              "schemaId" : "4"
-            }
-          },
-          "partitions" : 1,
-          "keySchema" : {
-            "type" : "object",
-            "properties" : {
-              "id" : {
-                "type" : "integer"
-              }
-            }
-          },
-          "valueSchema" : {
-            "type" : "object",
-            "properties" : {
-              "c1" : {
-                "type" : "integer"
-              },
-              "c2" : {
-                "type" : "string"
-              }
-            }
-          }
-        }, {
           "name" : "input",
           "keyFormat" : {
             "format" : "AVRO",

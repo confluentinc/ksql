@@ -1,33 +1,6 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SCHEMA_INPUT (`id` INTEGER KEY, `c1` INTEGER, `c2` STRING) WITH (KAFKA_TOPIC='schema_input', KEY_FORMAT='PROTOBUF', KEY_SCHEMA_FULL_NAME='ConnectDefault1', KEY_SCHEMA_ID=2, VALUE_FORMAT='PROTOBUF', VALUE_SCHEMA_FULL_NAME='ConnectDefault1', VALUE_SCHEMA_ID=3);",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "SCHEMA_INPUT",
-      "schema" : "`id` INTEGER KEY, `c1` INTEGER, `c2` STRING",
-      "topicName" : "schema_input",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "PROTOBUF",
-          "properties" : {
-            "fullSchemaName" : "ConnectDefault1",
-            "schemaId" : "2"
-          }
-        },
-        "valueFormat" : {
-          "format" : "PROTOBUF",
-          "properties" : {
-            "fullSchemaName" : "ConnectDefault1",
-            "schemaId" : "3"
-          }
-        }
-      },
-      "orReplace" : false,
-      "isSource" : false
-    }
-  }, {
-    "@type" : "ksqlPlanV1",
     "statementText" : "CREATE STREAM INPUT (`id` INTEGER KEY, `c1` INTEGER) WITH (KAFKA_TOPIC='input', KEY_FORMAT='KAFKA', PARTITIONS=1, VALUE_FORMAT='AVRO');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
@@ -47,7 +20,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT WITH (KEY_FORMAT='protobuf', KEY_SCHEMA_FULL_NAME='ConnectDefault1', KEY_SCHEMA_ID=2, PARTITIONS=4, VALUE_FORMAT='protobuf', VALUE_SCHEMA_FULL_NAME='ConnectDefault1', VALUE_SCHEMA_ID=3) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT WITH (PARTITIONS=4, VALUE_SCHEMA_FULL_NAME='blah', VALUE_SCHEMA_ID=2) AS SELECT *\nFROM INPUT INPUT\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
@@ -55,17 +28,13 @@
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
-          "format" : "PROTOBUF",
-          "properties" : {
-            "fullSchemaName" : "ConnectDefault1",
-            "schemaId" : "2"
-          }
+          "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "PROTOBUF",
+          "format" : "AVRO",
           "properties" : {
-            "fullSchemaName" : "ConnectDefault1",
-            "schemaId" : "3"
+            "fullSchemaName" : "blah",
+            "schemaId" : "2"
           }
         }
       },
@@ -107,17 +76,13 @@
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "PROTOBUF",
-            "properties" : {
-              "fullSchemaName" : "ConnectDefault1",
-              "schemaId" : "2"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "PROTOBUF",
+            "format" : "AVRO",
             "properties" : {
-              "fullSchemaName" : "ConnectDefault1",
-              "schemaId" : "3"
+              "fullSchemaName" : "blah",
+              "schemaId" : "2"
             }
           }
         },

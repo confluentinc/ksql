@@ -1221,18 +1221,13 @@
     {
       "name": "validate same schema schema id in csas OK - AVRO",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "valueFormat": "AVRO"
-        },
-        {
           "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
           "valueFormat": "AVRO",
           "partitions": 4
         }
@@ -1248,18 +1243,13 @@
     {
       "name": "validate extra required field schema schema id in csas FAILS - AVRO",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  "double"}]},
-          "valueFormat": "AVRO"
-        },
-        {
           "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  "double"}]},
           "valueFormat": "AVRO",
           "partitions": 4
         }
@@ -1274,18 +1264,13 @@
     {
       "name": "validate incompatible type schema id in csas FAILS - AVRO",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "string"}, {"name":  "c2", "type":  "double"}]},
-          "valueFormat": "AVRO"
-        },
-        {
           "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "string"}, {"name":  "c2", "type":  "double"}]},
           "valueFormat": "AVRO",
           "partitions": 4
         }
@@ -1298,18 +1283,13 @@
     {
       "name": "validate reordered field schema id in csas FAILS - AVRO",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c2", "type": "double"}, {"name":  "c1", "type":  "int"}]},
-          "valueFormat": "AVRO"
-        },
-        {
           "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c2", "type": "double"}, {"name":  "c1", "type":  "int"}]},
           "valueFormat": "AVRO",
           "partitions": 4
         }
@@ -1322,18 +1302,13 @@
     {
       "name": "validate extra optional field schema schema id in csas OK - AVRO",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  ["null","int"], "default": null}]},
-          "valueFormat": "AVRO"
-        },
-        {
           "name": "OUTPUT",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type":  ["null","int"], "default": null}]},
           "valueFormat": "AVRO",
           "partitions": 4
         }
@@ -1349,19 +1324,14 @@
     {
       "name": "validate extra field with default value schema schema id in csas OK - AVRO",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type": "int", "default": 100}]},
-          "valueFormat": "AVRO"
-        },
-        {
           "name": "OUTPUT",
           "valueFormat": "AVRO",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}, {"name":  "c2", "type": "int", "default": 100}]},
           "partitions": 4
         }
       ],
@@ -1376,21 +1346,16 @@
     {
       "name": "validate extra optional field with schema schema id in csas OK - PROTOBUF",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='PROTOBUF', value_schema_id=3, key_format='PROTOBUF', key_schema_id=2);",
         "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(key_schema_id=2, key_format='protobuf', value_format='protobuf', value_schema_id=3, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
+          "name": "OUTPUT",
           "valueSchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 c1 = 1; string c2 = 2; }",
           "valueFormat": "PROTOBUF",
           "keySchema": "syntax = \"proto3\"; message ConnectDefault1 { int32 id = 1; }",
-          "keyFormat": "PROTOBUF"
-        },
-        {
-          "name": "OUTPUT",
-          "valueFormat": "AVRO",
+          "keyFormat": "PROTOBUF",
           "partitions": 4
         }
       ],
@@ -1405,21 +1370,16 @@
         {
       "name": "validate extra optional field with schema schema id in csas OK - JSON_SR",
       "statements": [
-        "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='json_sr', value_schema_id=4, key_format='json_sr', key_schema_id=3);",
         "CREATE STREAM INPUT (`ROWKEY` struct<`id` BIGINT> KEY, `c1` BIGINT) WITH (key_format='avro', kafka_topic='input', value_format='avro', partitions=1);",
         "CREATE STREAM OUTPUT WITH(key_schema_id=3, key_format='json_sr', value_format='json_sr', value_schema_id=4, PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
-          "name": "schema_input",
+          "name": "OUTPUT",
           "valueSchema": {"type": "object","properties": {"c1": {"type": "integer"}, "c2":  {"type": "string"}}},
           "valueFormat": "JSON",
           "keySchema": {"type": "object","properties": {"id": {"type": "integer"}}},
-          "keyFormat": "JSON"
-        },
-        {
-          "name": "OUTPUT",
-          "valueFormat": "AVRO",
+          "keyFormat": "JSON",
           "partitions": 4
         }
       ],

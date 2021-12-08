@@ -1,32 +1,6 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM SCHEMA_INPUT (ROWKEY STRUCT<`id` BIGINT> KEY, `c1` BIGINT, `c2` STRING) WITH (KAFKA_TOPIC='schema_input', KEY_FORMAT='json_sr', KEY_SCHEMA_ID=3, VALUE_FORMAT='json_sr', VALUE_SCHEMA_ID=4);",
-    "ddlCommand" : {
-      "@type" : "createStreamV1",
-      "sourceName" : "SCHEMA_INPUT",
-      "schema" : "`ROWKEY` STRUCT<`id` BIGINT> KEY, `c1` BIGINT, `c2` STRING",
-      "topicName" : "schema_input",
-      "formats" : {
-        "keyFormat" : {
-          "format" : "JSON_SR",
-          "properties" : {
-            "schemaId" : "3"
-          }
-        },
-        "valueFormat" : {
-          "format" : "JSON_SR",
-          "properties" : {
-            "schemaId" : "4"
-          }
-        },
-        "keyFeatures" : [ "UNWRAP_SINGLES" ]
-      },
-      "orReplace" : false,
-      "isSource" : false
-    }
-  }, {
-    "@type" : "ksqlPlanV1",
     "statementText" : "CREATE STREAM INPUT (ROWKEY STRUCT<`id` BIGINT> KEY, `c1` BIGINT) WITH (KAFKA_TOPIC='input', KEY_FORMAT='avro', PARTITIONS=1, VALUE_FORMAT='avro');",
     "ddlCommand" : {
       "@type" : "createStreamV1",

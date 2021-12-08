@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638916064553,
+  "timestamp" : 1638945243108,
   "path" : "query-validation-tests/elements.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -15,19 +15,23 @@
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`id` INTEGER KEY, `c1` INTEGER",
       "keyFormat" : {
-        "format" : "KAFKA"
+        "format" : "PROTOBUF",
+        "properties" : {
+          "fullSchemaName" : "ConnectDefault1",
+          "schemaId" : "2"
+        }
       },
       "valueFormat" : {
-        "format" : "AVRO",
+        "format" : "PROTOBUF",
         "properties" : {
-          "fullSchemaName" : "blah",
-          "schemaId" : "2"
+          "fullSchemaName" : "ConnectDefault1",
+          "schemaId" : "3"
         }
       }
     }
   },
   "testCase" : {
-    "name" : "validate same schema schema id in csas OK - AVRO",
+    "name" : "validate extra optional field with schema schema id in csas OK - PROTOBUF",
     "inputs" : [ {
       "topic" : "input",
       "key" : 42,
@@ -37,9 +41,12 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : 42,
+      "key" : {
+        "id" : 42
+      },
       "value" : {
-        "c1" : 4
+        "c1" : 4,
+        "c2" : ""
       }
     } ],
     "topics" : [ {
@@ -59,24 +66,15 @@
       "replicas" : 1,
       "numPartitions" : 1
     }, {
-      "name" : "schema_input",
-      "valueSchema" : {
-        "type" : "record",
-        "name" : "blah",
-        "fields" : [ {
-          "name" : "c1",
-          "type" : "int"
-        } ]
-      },
-      "valueFormat" : "AVRO",
-      "replicas" : 1,
-      "numPartitions" : 1
-    }, {
       "name" : "OUTPUT",
+      "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 id = 1;\n}\n",
+      "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  string c2 = 2;\n}\n",
+      "keyFormat" : "PROTOBUF",
+      "valueFormat" : "PROTOBUF",
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM SCHEMA_INPUT WITH (kafka_topic='schema_input', value_format='AvRo', value_schema_id=2);", "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);", "CREATE STREAM OUTPUT WITH(value_schema_id=2, PARTITIONS = 4) as SELECT * FROM input;" ],
+    "statements" : [ "CREATE STREAM INPUT (`id` INT KEY, `c1` INT) WITH (kafka_topic='input', value_format='avro', partitions=1);", "CREATE STREAM OUTPUT WITH(key_schema_id=2, key_format='protobuf', value_format='protobuf', value_schema_id=3, PARTITIONS = 4) as SELECT * FROM input;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -94,47 +92,15 @@
         "type" : "STREAM",
         "schema" : "`id` INTEGER KEY, `c1` INTEGER",
         "keyFormat" : {
-          "format" : "KAFKA"
+          "format" : "PROTOBUF"
         },
-        "valueFormat" : "AVRO",
-        "keyFeatures" : [ ],
-        "valueFeatures" : [ ],
-        "isSource" : false
-      }, {
-        "name" : "SCHEMA_INPUT",
-        "type" : "STREAM",
-        "schema" : "`c1` INTEGER",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "valueFormat" : "AVRO",
+        "valueFormat" : "PROTOBUF",
         "keyFeatures" : [ ],
         "valueFeatures" : [ ],
         "isSource" : false
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "schema_input",
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "AVRO",
-            "properties" : {
-              "fullSchemaName" : "blah",
-              "schemaId" : "2"
-            }
-          },
-          "partitions" : 1,
-          "valueSchema" : {
-            "type" : "record",
-            "name" : "blah",
-            "fields" : [ {
-              "name" : "c1",
-              "type" : "int"
-            } ]
-          }
-        }, {
           "name" : "input",
           "keyFormat" : {
             "format" : "KAFKA"
@@ -157,24 +123,22 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "AVRO",
+            "format" : "PROTOBUF",
             "properties" : {
-              "fullSchemaName" : "blah",
+              "fullSchemaName" : "ConnectDefault1",
               "schemaId" : "2"
             }
           },
+          "valueFormat" : {
+            "format" : "PROTOBUF",
+            "properties" : {
+              "fullSchemaName" : "ConnectDefault1",
+              "schemaId" : "3"
+            }
+          },
           "partitions" : 4,
-          "valueSchema" : {
-            "type" : "record",
-            "name" : "blah",
-            "fields" : [ {
-              "name" : "c1",
-              "type" : "int"
-            } ]
-          }
+          "keySchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 id = 1;\n}\n",
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int32 c1 = 1;\n  string c2 = 2;\n}\n"
         } ]
       }
     }

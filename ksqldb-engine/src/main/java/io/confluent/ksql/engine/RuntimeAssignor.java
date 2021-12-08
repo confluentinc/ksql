@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class RuntimeAssignor {
   private final Map<String, Collection<SourceName>> runtimesToSources;
 
-  RuntimeAssignor(final KsqlConfig config) {
+  public RuntimeAssignor(final KsqlConfig config) {
     runtimesToSources = new HashMap<>();
     for(int i=0; i < 8; i++) {
       runtimesToSources.put(buildSharedRuntimeId(config, true, i), new HashSet<>());

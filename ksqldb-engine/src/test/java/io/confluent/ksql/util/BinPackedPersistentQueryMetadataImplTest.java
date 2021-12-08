@@ -99,7 +99,7 @@ public class BinPackedPersistentQueryMetadataImplTest {
             classifier,
             streamsProperties,
             scalablePushRegistry,
-            (builder) -> topology);
+            (runtime) -> topology);
 
         query.initialize();
     }

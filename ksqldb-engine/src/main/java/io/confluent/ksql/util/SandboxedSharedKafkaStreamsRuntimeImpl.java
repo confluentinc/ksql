@@ -45,13 +45,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     );
 
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
-      final NamedTopology topologyCopy = query.getTopologyCopy(
-          kafkaStreams.newNamedTopologyBuilder(
-              query.getQueryId().toString(),
-              PropertiesUtil.asProperties(query.getOverriddenProperties())
-          )
-      );
-      kafkaStreams.addNamedTopology(topologyCopy);
+      kafkaStreams.addNamedTopology(query.getTopologyCopy(this));
     }
   }
 

@@ -93,7 +93,7 @@ public abstract class SharedKafkaStreamsRuntime {
   public abstract void restartStreamsRuntime();
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streams must be exposed")
-  public KafkaStreams getKafkaStreams() {
+  public KafkaStreamsNamedTopologyWrapper getKafkaStreams() {
     return kafkaStreams;
   }
 

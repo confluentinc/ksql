@@ -66,10 +66,6 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
         queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
             row.getRowMetadata().get().getPushOffsetsRange().get().serialize()));
       } else if (row.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
-        log.info("Response writer writing consistency vector "
-                     + row.getRowMetadata().get().getConsistencyOffsetVector().get());
-        log.info("Serialized consistency vector "
-                     + row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize());
         queryStreamResponseWriter.writeConsistencyToken(new ConsistencyToken(
             row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
       }

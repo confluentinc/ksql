@@ -75,12 +75,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConsistencyOffsetVectorFunctionalTest {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConsistencyOffsetVectorFunctionalTest.class);
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
@@ -179,7 +175,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
     // When
-    LOGGER.info("Run test http2 async");
     final StreamedQueryResult streamedQueryResult = client.streamQuery(
         PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)).get();
 
@@ -192,7 +187,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    LOGGER.info("Received consistency vector = " + ((ClientImpl)client).getSerializedConsistencyVector());
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
@@ -201,7 +195,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableSync() throws Exception {
     // When
-    LOGGER.info("Run test http2 sync");
     final StreamedQueryResult streamedQueryResult = client.streamQuery(
         PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)).get();
     streamedQueryResult.poll();
@@ -210,7 +203,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
     assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                          is(notNullValue()));
-    LOGGER.info("Received consistency vector = " + ((ClientImpl)client).getSerializedConsistencyVector());
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
@@ -218,7 +210,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenExecutePullQuery() throws Exception {
     // When
-    LOGGER.info("Run test http2 execute");
     final BatchedQueryResult batchedQueryResult = client.executeQuery(
         PULL_QUERY_ON_TABLE, ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true));
     final List<Row> rows = batchedQueryResult.get();
@@ -228,7 +219,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                           is(notNullValue()));
-    LOGGER.info("Received consistency vector = " + ((ClientImpl)client).getSerializedConsistencyVector());
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
@@ -236,7 +226,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test(timeout = 120000L)
   public void shouldRoundTripCVWhenPullQueryHttp1() throws Exception {
     // Given
-    LOGGER.info("Run test http1");
     final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
     ksqlRestClient.setProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 
@@ -248,7 +237,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
     // Then
     assertThat(rows, hasSize(3));
     assertThat(rows.get(2).getConsistencyToken().get(), not(Optional.empty()));
-    LOGGER.info("Received consistency vector = " + rows.get(2).getConsistencyToken().get());
     final String serialized = rows.get(2).getConsistencyToken().get().getConsistencyToken();
     verifyConsistencyVector(serialized);
   }

@@ -32,7 +32,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
-import org.apache.zookeeper.Op;
 
 public final class MetaStoreFixture {
 

@@ -62,6 +62,22 @@ public class AstSanitizerTest {
   private static final SourceName TEST1_NAME = SourceName.of("TEST1");
 
   @Test
+  public void shouldThrowIfInsertIntoSourceWithHeader() {
+    // Given:
+    final Statement stmt = givenQuery("INSERT INTO TEST1 SELECT * FROM TEST0;");
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE, true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot insert into TEST1 because it has header columns"));
+  }
+
+  @Test
   public void shouldThrowIfSourceDoesNotExist() {
     // Given:
     final Statement stmt = givenQuery("SELECT * FROM UNKNOWN;");

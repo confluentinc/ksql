@@ -102,11 +102,8 @@ import org.apache.avro.SchemaBuilder;
 
 import org.apache.kafka.streams.KafkaStreams;
 
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

@@ -32,6 +32,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
+import org.apache.zookeeper.Op;
 
 public final class MetaStoreFixture {
 
@@ -61,6 +62,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
         .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
+        .headerColumn(ColumnName.of("HEAD"), Optional.empty())
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(

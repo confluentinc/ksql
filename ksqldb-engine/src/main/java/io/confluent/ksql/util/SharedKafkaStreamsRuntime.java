@@ -115,7 +115,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
     try {
-      return kafkaStreams.allLocalStorePartitionLags();
+      return kafkaStreams.allLocalStorePartitionLagsForTopology(queryId.toString());
     } catch (IllegalStateException | StreamsException e) {
       log.error(e.getMessage());
       return ImmutableMap.of();

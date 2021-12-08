@@ -89,7 +89,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
         when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
         when(addNamedTopologyResult.all()).thenReturn(future);
-        when(persistentQueriesInSharedRuntimes.getTopologyCopy()).thenReturn(namedTopology);
+        when(persistentQueriesInSharedRuntimes.getTopologyCopy(any())).thenReturn(namedTopology);
     }
 
     @Test

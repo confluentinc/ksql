@@ -50,6 +50,7 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
+import io.confluent.ksql.schema.ksql.inference.SchemaRegisterInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
@@ -57,6 +58,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -152,6 +154,7 @@ public final class TestExecutorUtil {
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService
   ) {
@@ -172,7 +175,7 @@ public final class TestExecutorUtil {
           .map(PlannedStatement::new)
           .iterator();
     }
-    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, srClient);
+    return PlannedStatementIterator.of(engine, testCase, ksqlConfig, serviceContext, srClient);
   }
 
   private static Topic buildSinkTopic(
@@ -235,6 +238,7 @@ public final class TestExecutorUtil {
         ksqlEngine,
         testCase,
         ksqlConfig,
+        serviceContext,
         Optional.of(serviceContext.getSchemaRegistryClient()),
         stubKafkaService,
         listener
@@ -299,15 +303,15 @@ public final class TestExecutorUtil {
 
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
-   * @return a list of persistent queries that should be run by the test executor, if a
-   *         query was replaced via a CREATE OR REPLACE statement it will only appear once
-   *         in the output list
+   * @return a list of persistent queries that should be run by the test executor, if a query was
+   *         replaced via a CREATE OR REPLACE statement it will only appear once in the output list
    */
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   private static List<PersistentQueryAndSources> execute(
       final KsqlEngine engine,
       final TestCase testCase,
       final KsqlConfig ksqlConfig,
+      final ServiceContext serviceContext,
       final Optional<SchemaRegistryClient> srClient,
       final StubKafkaService stubKafkaService,
       final TestExecutionListener listener
@@ -316,7 +320,7 @@ public final class TestExecutorUtil {
 
     int idx = 0;
     final Iterator<PlannedStatement> plans =
-        planTestCase(engine, testCase, ksqlConfig, srClient, stubKafkaService);
+        planTestCase(engine, testCase, ksqlConfig, serviceContext, srClient, stubKafkaService);
 
     try {
       while (plans.hasNext()) {
@@ -418,14 +422,14 @@ public final class TestExecutorUtil {
     private final KsqlExecutionContext executionContext;
     private final Map<String, Object> overrides;
     private final KsqlConfig ksqlConfig;
-    private final Optional<DefaultSchemaInjector> schemaInjector;
+    private final Optional<InjectorChain> schemaInjector;
 
     private PlannedStatementIterator(
         final Iterator<ParsedStatement> statements,
         final KsqlExecutionContext executionContext,
         final Map<String, Object> overrides,
         final KsqlConfig ksqlConfig,
-        final Optional<DefaultSchemaInjector> schemaInjector
+        final Optional<InjectorChain> schemaInjector
     ) {
       this.statements = requireNonNull(statements, "statements");
       this.executionContext = requireNonNull(executionContext, "executionContext");
@@ -438,11 +442,14 @@ public final class TestExecutorUtil {
         final KsqlExecutionContext executionContext,
         final TestCase testCase,
         final KsqlConfig ksqlConfig,
+        final ServiceContext serviceContext,
         final Optional<SchemaRegistryClient> srClient
     ) {
-      final Optional<DefaultSchemaInjector> schemaInjector = srClient
+      final Optional<InjectorChain> schemaInjector = srClient
           .map(SchemaRegistryTopicSchemaSupplier::new)
-          .map(DefaultSchemaInjector::new);
+          .map(supplier -> InjectorChain.of(
+              new DefaultSchemaInjector(supplier, executionContext, serviceContext),
+              new SchemaRegisterInjector(executionContext, serviceContext)));
       final String sql = testCase.statements().stream()
           .collect(Collectors.joining(System.lineSeparator()));
       final Iterator<ParsedStatement> statements = executionContext.parse(sql).iterator();

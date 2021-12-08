@@ -30,36 +30,45 @@ import java.util.Optional;
 public interface TopicSchemaSupplier {
 
   /**
-   * Get the key schema for the supplied {@code topicName}.
+   * Get the key schema for the supplied {@code topicName} or {@code schemaId}.
+   *
+   * <p>
+   * At least one of topicName and schemaId should be provided. If only topicName is provided,
+   * latest schema will be fetched under the subject constructed by topicName.
+   * </p>
    *
    *
    * @param topicName the name of the topic.
-   * @param schemaId  optional schema id to retrieve.
+   * @param schemaId schema id to retrieve.
    * @param expectedFormat the expected format of the schema.
    * @param serdeFeatures serde features associated with the request.
    * @return the schema and id or an error message should the schema not be present or compatible.
    * @throws RuntimeException on communication issues with remote services.
    */
   SchemaResult getKeySchema(
-      String topicName,
+      Optional<String> topicName,
       Optional<Integer> schemaId,
       FormatInfo expectedFormat,
       SerdeFeatures serdeFeatures
   );
 
   /**
-   * Get the value schema for the supplied {@code topicName}.
+   * Get the value schema for the supplied {@code topicName} or {@code schemaId}.
    *
+   * <p>
+   * At least one of topicName and schemaId should be provided. If only topicName is provided,
+   * latest schema will be fetched under the subject constructed by topicName.
+   * </p>
    *
    * @param topicName the name of the topic.
-   * @param schemaId  optional schema id to retrieve.
+   * @param schemaId schema id to retrieve.  *
    * @param expectedFormat the expected format of the schema.
    * @param serdeFeatures serde features associated with the request.
    * @return the schema and id or an error message should the schema not be present or compatible.
    * @throws RuntimeException on communication issues with remote services.
    */
   SchemaResult getValueSchema(
-      String topicName,
+      Optional<String> topicName,
       Optional<Integer> schemaId,
       FormatInfo expectedFormat,
       SerdeFeatures serdeFeatures

@@ -126,6 +126,7 @@ public class NetworkDisruptorClient implements SimpleKsqlClient {
     }
 
     public void clear() {
+      isFaulty.set(false);
       publishers.clear();
     }
 

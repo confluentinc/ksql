@@ -73,7 +73,7 @@ public class KsStateStoreTest {
 
   @Before
   public void setUp() {
-    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig);
+    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig, "queryId");
     when(kafkaStreams.state()).thenReturn(State.RUNNING);
   }
 

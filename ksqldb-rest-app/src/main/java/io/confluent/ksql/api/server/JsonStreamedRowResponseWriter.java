@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.api.server;
 
 import io.confluent.ksql.GenericRow;
@@ -19,18 +34,18 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData) {
+  public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
     final StreamedRow streamedRow
         = StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
     buff.appendBuffer(ServerUtils.serializeObject(streamedRow));
-    buff.appendString("\n");
+    buff.appendString(",\n");
     response.write(buff);
     return this;
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(GenericRow row) {
+  public QueryStreamResponseWriter writeRow(final GenericRow row) {
     final StreamedRow streamedRow = StreamedRow.pushRow(row);
     writeBuffer(ServerUtils.serializeObject(streamedRow));
     return this;
@@ -45,14 +60,14 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeError(KsqlErrorMessage error) {
+  public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
     final StreamedRow streamedRow = StreamedRow.error(error);
     writeBuffer(ServerUtils.serializeObject(streamedRow));
     return this;
   }
 
   @Override
-  public QueryStreamResponseWriter writeConsistencyToken(ConsistencyToken consistencyToken) {
+  public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
     final StreamedRow streamedRow = StreamedRow.consistencyToken(consistencyToken);
     writeBuffer(ServerUtils.serializeObject(streamedRow));
     return this;
@@ -64,9 +79,9 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   private void writeBuffer(final Buffer buffer) {
-    final Buffer buff = Buffer.buffer().appendByte((byte) ',');
+    final Buffer buff = Buffer.buffer();
     buff.appendBuffer(buffer);
-    buff.appendString("\n");
+    buff.appendString(",\n");
     response.write(buff);
   }
 }

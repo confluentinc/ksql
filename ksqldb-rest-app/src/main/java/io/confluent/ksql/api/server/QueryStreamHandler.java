@@ -23,6 +23,7 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.vertx.core.Context;
@@ -106,69 +107,83 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder,
         internalRequest)
         .thenAccept(queryPublisher -> {
-
-          final QueryResponseMetadata metadata;
-
-          if (queryPublisher.isPullQuery()) {
-            metadata = new QueryResponseMetadata(
-                queryPublisher.queryId().toString(),
-                queryPublisher.getColumnNames(),
-                queryPublisher.getColumnTypes(),
-                queryPublisher.geLogicalSchema());
-
-            // When response is complete, publisher should be closed
-            routingContext.response().endHandler(v -> {
-              queryPublisher.close();
-              metricsCallbackHolder.reportMetrics(
-                  routingContext.response().getStatusCode(),
-                  routingContext.request().bytesRead(),
-                  routingContext.response().bytesWritten(),
-                  startTimeNanos);
-            });
-          }  else if (queryPublisher.isScalablePushQuery()) {
-            metadata = new QueryResponseMetadata(
-                queryPublisher.queryId().toString(),
-                queryPublisher.getColumnNames(),
-                queryPublisher.getColumnTypes(),
-                queryPublisher.geLogicalSchema());
-            routingContext.response().endHandler(v -> {
-              queryPublisher.close();
-              metricsCallbackHolder.reportMetrics(
-                  routingContext.response().getStatusCode(),
-                  routingContext.request().bytesRead(),
-                  routingContext.response().bytesWritten(),
-                  startTimeNanos);
-            });
-          } else {
-            final PushQueryHolder query = connectionQueryManager
-                .createApiQuery(queryPublisher, routingContext.request());
-
-            metadata = new QueryResponseMetadata(
-                query.getId().toString(),
-                queryPublisher.getColumnNames(),
-                queryPublisher.getColumnTypes(),
-                queryPublisher.geLogicalSchema());
-
-            // When response is complete, publisher should be closed and query unregistered
-            routingContext.response().endHandler(v -> {
-              query.close();
-              metricsCallbackHolder.reportMetrics(
-                  routingContext.response().getStatusCode(),
-                  routingContext.request().bytesRead(),
-                  routingContext.response().bytesWritten(),
-                  startTimeNanos);
-            });
-          }
-
-          queryStreamResponseWriter.writeMetadata(metadata);
-
-          final QuerySubscriber querySubscriber = new QuerySubscriber(context,
-              routingContext.response(), queryStreamResponseWriter);
-
-          queryPublisher.subscribe(querySubscriber);
-
+          handleQueryPublisher(
+              routingContext,
+              queryPublisher,
+              queryStreamResponseWriter,
+              metricsCallbackHolder,
+              startTimeNanos);
         })
         .exceptionally(t ->
             ServerUtils.handleEndpointException(t, routingContext, "Failed to execute query"));
+  }
+
+  private void handleQueryPublisher(
+      final RoutingContext routingContext,
+      final QueryPublisher queryPublisher,
+      final QueryStreamResponseWriter queryStreamResponseWriter,
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final long startTimeNanos
+  ) {
+
+    final QueryResponseMetadata metadata;
+
+    if (queryPublisher.isPullQuery()) {
+      metadata = new QueryResponseMetadata(
+          queryPublisher.queryId().toString(),
+          queryPublisher.getColumnNames(),
+          queryPublisher.getColumnTypes(),
+          queryPublisher.geLogicalSchema());
+
+      // When response is complete, publisher should be closed
+      routingContext.response().endHandler(v -> {
+        queryPublisher.close();
+        metricsCallbackHolder.reportMetrics(
+            routingContext.response().getStatusCode(),
+            routingContext.request().bytesRead(),
+            routingContext.response().bytesWritten(),
+            startTimeNanos);
+      });
+    }  else if (queryPublisher.isScalablePushQuery()) {
+      metadata = new QueryResponseMetadata(
+          queryPublisher.queryId().toString(),
+          queryPublisher.getColumnNames(),
+          queryPublisher.getColumnTypes(),
+          queryPublisher.geLogicalSchema());
+      routingContext.response().endHandler(v -> {
+        queryPublisher.close();
+        metricsCallbackHolder.reportMetrics(
+            routingContext.response().getStatusCode(),
+            routingContext.request().bytesRead(),
+            routingContext.response().bytesWritten(),
+            startTimeNanos);
+      });
+    } else {
+      final PushQueryHolder query = connectionQueryManager
+          .createApiQuery(queryPublisher, routingContext.request());
+
+      metadata = new QueryResponseMetadata(
+          query.getId().toString(),
+          queryPublisher.getColumnNames(),
+          queryPublisher.getColumnTypes(),
+          queryPublisher.geLogicalSchema());
+
+      // When response is complete, publisher should be closed and query unregistered
+      routingContext.response().endHandler(v -> {
+        query.close();
+        metricsCallbackHolder.reportMetrics(
+            routingContext.response().getStatusCode(),
+            routingContext.request().bytesRead(),
+            routingContext.response().bytesWritten(),
+            startTimeNanos);
+      });
+    }
+
+    queryStreamResponseWriter.writeMetadata(metadata);
+
+    final QuerySubscriber querySubscriber = new QuerySubscriber(context,
+        routingContext.response(), queryStreamResponseWriter);
+
+    queryPublisher.subscribe(querySubscriber);
   }
 }

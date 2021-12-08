@@ -29,7 +29,6 @@ import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

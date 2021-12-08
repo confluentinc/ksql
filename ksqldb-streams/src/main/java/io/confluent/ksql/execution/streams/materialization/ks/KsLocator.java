@@ -37,6 +37,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -115,7 +116,7 @@ public final class KsLocator implements Locator {
     // If we don't have keys, find the metadata for all partitions since we'll run the query for
     // all partitions of the state store rather than a particular one.
     final List<PartitionMetadata> metadata = keys.isEmpty() || isRangeScan
-        ? getMetadataForAllPartitions(filterPartitions, keySet)
+        ? getMetadataForAllPartitions(filterPartitions, keySet, queryId, sharedRuntimesEnabled)
         : getMetadataForKeys(keys, filterPartitions, queryId, sharedRuntimesEnabled);
     // Go through the metadata and group them by partition.
     for (PartitionMetadata partitionMetadata : metadata) {
@@ -200,7 +201,11 @@ public final class KsLocator implements Locator {
    * @return The metadata associated with all partitions
    */
   private List<PartitionMetadata>  getMetadataForAllPartitions(
-      final Set<Integer> filterPartitions, final Optional<Set<KsqlKey>> keys) {
+      final Set<Integer> filterPartitions,
+      final Optional<Set<KsqlKey>> keys,
+      final String queryId,
+      final boolean sharedRuntimesEnabled
+  ) {
     // It's important that we consider only the source topics for the subtopology that contains the
     // state store. Otherwise, we'll be given the wrong partition -> host mappings.
     // The underlying state store has a number of partitions that is the MAX of the number of
@@ -210,7 +215,13 @@ public final class KsLocator implements Locator {
     final Set<String> sourceTopicSuffixes = findSubtopologySourceTopicSuffixes();
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
-    for (final StreamsMetadata streamsMetadata : kafkaStreams.streamsMetadataForStore(storeName)) {
+    final Collection<StreamsMetadata> streamsMetadataCollection =
+        sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper ?
+            ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
+                .streamsMetadataForStore(storeName, queryId) :
+            kafkaStreams.streamsMetadataForStore(storeName);
+
+    for (final StreamsMetadata streamsMetadata : streamsMetadataCollection) {
       streamsMetadata.topicPartitions().forEach(
           tp -> {
             if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {

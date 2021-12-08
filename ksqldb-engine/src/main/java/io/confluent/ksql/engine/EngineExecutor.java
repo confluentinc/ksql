@@ -42,6 +42,7 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -107,6 +108,7 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -586,7 +588,8 @@ final class EngineExecutor {
         Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
         plans.physicalPlan.getQueryId(),
-        getApplicationId()
+        getApplicationId(plans.physicalPlan.getQueryId(),
+            getSourceNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -664,7 +667,8 @@ final class EngineExecutor {
           outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId(),
-          getApplicationId()
+          getApplicationId(plans.physicalPlan.getQueryId(),
+              getSourceNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -685,10 +689,12 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<String> getApplicationId() {
+  private Optional<String> getApplicationId(final QueryId queryId, final Collection<SourceName> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         ? Optional.of("appId")
-        : Optional.empty();
+        : Optional.of(
+            engineContext.getRuntimeAssignor()
+                .getRuntime(queryId, sources, config.getConfig(true)));
   }
 
   private ExecutorPlans planQuery(

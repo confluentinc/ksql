@@ -769,6 +769,7 @@ public class QueryBuilderTest {
           SUMMARY,
           queryListener,
           ArrayList::new,
+          "appId",
           new MetricCollectors()
       );
     } else {

@@ -37,8 +37,14 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.common.config.ConfigException;
 
 /**
@@ -47,6 +53,8 @@ import org.apache.kafka.common.config.ConfigException;
  * command queue.
  */
 public final class ValidatedCommandFactory {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ValidatedCommandFactory.class);
 
   /**
    * Create a validated command.
@@ -144,9 +152,19 @@ public final class ValidatedCommandFactory {
     if (resolvedItem.isPresent()
         && Objects.equals(resolvedItem.get().getPropertyName(), PROCESSING_GUARANTEE_CONFIG)
         && !context.getPersistentQueries().isEmpty()) {
+      final Collection<QueryId> runningQueries =
+          context.getPersistentQueries()
+              .stream()
+              .map(QueryMetadata::getQueryId)
+              .collect(Collectors.toList());
+      LOG.error("Failed to set {} to {} due to the {} persistent queries currently running: {}",
+                propertyName, propertyValue, runningQueries.size(), runningQueries);
       throw new ConfigException(
-          String.format("Failed to set %s to %s. Please terminate all running queries "
-              + "before attempting to set %s", propertyName, propertyValue, propertyName), null);
+          String.format("Unable to set %s to %s due to existing persistent queries. The %s may"
+                            + " not be changed for live queries which have already processed data"
+                            + " under a different %s. To modify the %s you must first terminate"
+                            + " all running queries.",
+                        propertyName, propertyValue, propertyName, propertyName, propertyName));
     }
 
     return Command.of(statement);

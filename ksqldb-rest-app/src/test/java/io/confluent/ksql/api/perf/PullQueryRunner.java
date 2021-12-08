@@ -276,5 +276,10 @@ public class PullQueryRunner extends BasePerfRunner {
     public QueryId queryId() {
       return new QueryId("queryId");
     }
+
+    @Override
+    public boolean hitLimit() {
+      return false;
+    }
   }
 }

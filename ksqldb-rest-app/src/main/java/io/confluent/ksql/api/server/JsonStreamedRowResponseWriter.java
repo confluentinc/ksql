@@ -74,6 +74,20 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
+  public QueryStreamResponseWriter writeCompletionMessage(String completionMessage) {
+    final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage);
+    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeLimitMessage() {
+    final StreamedRow streamedRow = StreamedRow.finalMessage("Limit Reached");
+    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    return this;
+  }
+
+  @Override
   public void end() {
     response.write("]").end();
   }

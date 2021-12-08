@@ -63,4 +63,9 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
    * The query id
    */
   QueryId queryId();
+
+  /**
+   * If the query was completed by hitting the limit.
+   */
+  boolean hitLimit();
 }

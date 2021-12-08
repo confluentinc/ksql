@@ -116,4 +116,9 @@ public class TestQueryPublisher
   public QueryId queryId() {
     return new QueryId("queryId");
   }
+
+  @Override
+  public boolean hitLimit() {
+    return false;
+  }
 }

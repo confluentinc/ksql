@@ -127,6 +127,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   ) {
 
     final QueryResponseMetadata metadata;
+    final Optional<String> completionMessage;
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -134,6 +135,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
+      completionMessage = Optional.of("Pull query complete");
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
@@ -150,6 +152,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
+      completionMessage = Optional.empty();
       routingContext.response().endHandler(v -> {
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
@@ -167,6 +170,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
+      completionMessage = Optional.empty();
 
       // When response is complete, publisher should be closed and query unregistered
       routingContext.response().endHandler(v -> {
@@ -182,7 +186,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     queryStreamResponseWriter.writeMetadata(metadata);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,
-        routingContext.response(), queryStreamResponseWriter);
+        routingContext.response(), queryStreamResponseWriter, completionMessage,
+        queryPublisher::hitLimit);
 
     queryPublisher.subscribe(querySubscriber);
   }

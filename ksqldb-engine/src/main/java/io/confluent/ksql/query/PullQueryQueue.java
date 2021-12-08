@@ -61,14 +61,19 @@ public class PullQueryQueue implements BlockingRowQueue {
   private final OptionalInt limit;
 
   /**
-   * The callback run when we've hit the end of the data. Specifically, this happens when
-   * {@link #close()} is called.
+   * The callback run when we've hit the limit. Specifically, this happens when
+   * {@link #closeInternal(boolean)}} is called with true.
    */
   private LimitHandler limitHandler;
   /**
    * Callback is checked before enqueueing new rows and called when new rows are actually added.
    */
   private Runnable queuedCallback;
+  /**
+   * The callback run when we've hit the end of the data. Specifically, this happens when
+   * {@link #close()} is called.
+   */
+  private CompletionHandler completionHandler;
 
   public PullQueryQueue(final OptionalInt limit) {
     this(BLOCKING_QUEUE_CAPACITY, DEFAULT_OFFER_TIMEOUT_MS, limit);
@@ -80,6 +85,7 @@ public class PullQueryQueue implements BlockingRowQueue {
       final OptionalInt limit) {
     this.queuedCallback = () -> { };
     this.limitHandler = () -> { };
+    this.completionHandler = () -> { };
     this.rowQueue = new ArrayBlockingQueue<>(queueSizeLimit);
     this.offerTimeoutMs = offerTimeoutMs;
     this.limit = limit;
@@ -92,8 +98,7 @@ public class PullQueryQueue implements BlockingRowQueue {
 
   @Override
   public void setCompletionHandler(final CompletionHandler completionHandler) {
-    // not currently used in pull queries, although future refactoring might be able to
-    // take advantage of this mechanism.
+    this.completionHandler = completionHandler;
   }
 
   @Override
@@ -156,14 +161,22 @@ public class PullQueryQueue implements BlockingRowQueue {
    * wants to end pull queries prematurely, such as when the client connection closes, this should
    * also be called then.
    */
-  @Override
-  public void close() {
+  private void closeInternal(boolean limitHit) {
     if (!closed.getAndSet(true)) {
       // Unlike limits based on a number of rows which can be checked and possibly triggered after
       // every queuing of a row, pull queries just declare they've reached their limit when close is
       // called.
-      limitHandler.limitReached();
+      if (limitHit) {
+        limitHandler.limitReached();
+      } else {
+        completionHandler.complete();
+      }
     }
+  }
+
+  @Override
+  public void close() {
+    closeInternal(false);
   }
 
   public boolean isClosed() {
@@ -210,7 +223,7 @@ public class PullQueryQueue implements BlockingRowQueue {
         return false;
       }
       if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
-        close();
+        closeInternal(true);
         return false;
       }
 
@@ -219,7 +232,7 @@ public class PullQueryQueue implements BlockingRowQueue {
           totalRowsQueued.incrementAndGet();
           queuedCallback.run();
           if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
-            close();
+            closeInternal(true);
           }
           return true;
         }

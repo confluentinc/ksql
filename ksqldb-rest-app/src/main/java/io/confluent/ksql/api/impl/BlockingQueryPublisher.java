@@ -59,6 +59,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private LogicalSchema logicalSchema;
   private QueryId queryId;
   private boolean complete;
+  private boolean hitLimit;
   private volatile boolean closed;
 
   public BlockingQueryPublisher(final Context ctx,
@@ -84,6 +85,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
         maybeSend();
       }
       complete = true;
+      hitLimit = true;
       // This allows us to hit the limit without having to queue one last row
       if (queue.isEmpty()) {
         ctx.runOnContext(v -> sendComplete());
@@ -150,6 +152,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @Override
   public QueryId queryId() {
     return queryId;
+  }
+
+  @Override
+  public boolean hitLimit() {
+    return hitLimit;
   }
 
   @Override

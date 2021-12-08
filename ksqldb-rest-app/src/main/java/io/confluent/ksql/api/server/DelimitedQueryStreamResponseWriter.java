@@ -81,6 +81,16 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
     return this;
   }
 
+  @Override
+  public QueryStreamResponseWriter writeCompletionMessage(String completionMessage) {
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeLimitMessage() {
+    return this;
+  }
+
 
   @Override
   public void end() {

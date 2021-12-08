@@ -85,6 +85,15 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
     return this;
   }
 
+  @Override
+  public QueryStreamResponseWriter writeCompletionMessage(String completionMessage) {
+    return this;
+  }
+
+  @Override
+  public QueryStreamResponseWriter writeLimitMessage() {
+    return this;
+  }
 
   private void writeBuffer(final Buffer buffer) {
     final Buffer buff = Buffer.buffer().appendByte((byte) ',');

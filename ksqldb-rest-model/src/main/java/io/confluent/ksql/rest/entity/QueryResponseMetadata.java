@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -31,6 +32,9 @@ public class QueryResponseMetadata {
   public final String queryId;
   public final List<String> columnNames;
   public final List<String> columnTypes;
+
+  // Just used to pass data around rather than directly serialized in a response
+  @JsonIgnore
   public final LogicalSchema schema;
 
   public QueryResponseMetadata(

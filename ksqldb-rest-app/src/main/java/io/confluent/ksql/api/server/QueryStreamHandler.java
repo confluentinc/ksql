@@ -24,12 +24,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
+import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.utils.Time;
@@ -44,26 +49,26 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);
 
   static final String DELIMITED_CONTENT_TYPE = "application/vnd.ksqlapi.delimited.v1";
-  static final String JSON_CONTENT_TYPE = "application/vnd.ksqlapi.json.v1";
+  static final String JSON_CONTENT_TYPE = "application/json";
 
   private final Endpoints endpoints;
   private final ConnectionQueryManager connectionQueryManager;
   private final Context context;
   private final Server server;
-  private final boolean jsonDefault;
+  private final boolean queryCompatibilityMode;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QueryStreamHandler(final Endpoints endpoints,
       final ConnectionQueryManager connectionQueryManager,
       final Context context,
       final Server server,
-      final boolean jsonDefault
+      final boolean queryCompatibilityMode
   ) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.connectionQueryManager = Objects.requireNonNull(connectionQueryManager);
     this.context = Objects.requireNonNull(context);
     this.server = Objects.requireNonNull(server);
-    this.jsonDefault = jsonDefault;
+    this.queryCompatibilityMode = queryCompatibilityMode;
   }
 
   @Override
@@ -79,30 +84,20 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
               ERROR_CODE_BAD_REQUEST));
     }
 
-    final String contentType = routingContext.getAcceptableContentType();
-    final QueryStreamResponseWriter queryStreamResponseWriter;
-    if (DELIMITED_CONTENT_TYPE.equals(contentType) || (contentType == null && !jsonDefault)) {
-      // Default
-      queryStreamResponseWriter =
-          new DelimitedQueryStreamResponseWriter(routingContext.response());
-    } else if (JSON_CONTENT_TYPE.equals(contentType) || (contentType == null && jsonDefault)) {
-      queryStreamResponseWriter =
-          new JsonStreamedRowResponseWriter(routingContext.response());
-    } else {
-      queryStreamResponseWriter = new JsonQueryStreamResponseWriter(routingContext.response());
-    }
+    final QueryStreamResponseWriter queryStreamResponseWriter
+        = getQueryStreamResponseWriter(routingContext);
 
-    final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
-        .deserialiseObject(routingContext.getBody(), routingContext, QueryStreamArgs.class);
-    if (!queryStreamArgs.isPresent()) {
+    final CommonRequest request = getRequest(routingContext);
+    if (request == null) {
       return;
     }
 
     final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
-    endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
-        queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
+    endpoints.createQueryPublisher(
+        request.sql, request.configOverrides, request.sessionProperties,
+        request.requestProperties,
         context, server.getWorkerExecutor(),
         DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder,
         internalRequest)
@@ -116,6 +111,52 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         })
         .exceptionally(t ->
             ServerUtils.handleEndpointException(t, routingContext, "Failed to execute query"));
+  }
+
+  private QueryStreamResponseWriter getQueryStreamResponseWriter(
+      final RoutingContext routingContext
+  ) {
+    final String contentType = routingContext.getAcceptableContentType();
+    if (DELIMITED_CONTENT_TYPE.equals(contentType)
+        || (contentType == null && !queryCompatibilityMode)) {
+      // Default
+      return new DelimitedQueryStreamResponseWriter(routingContext.response());
+    } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
+        || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
+        && queryCompatibilityMode))) {
+      return new JsonStreamedRowResponseWriter(routingContext.response());
+    } else {
+      return new JsonQueryStreamResponseWriter(routingContext.response());
+    }
+  }
+
+  private CommonRequest getRequest(final RoutingContext routingContext) {
+    final String sql;
+    final Map<String, Object> configOverrides;
+    final Map<String, Object> sessionProperties;
+    final Map<String, Object> requestProperties;
+    if (queryCompatibilityMode) {
+      final Optional<KsqlRequest> ksqlRequest = ServerUtils
+          .deserialiseObject(routingContext.getBody(), routingContext, KsqlRequest.class);
+      if (!ksqlRequest.isPresent()) {
+        return null;
+      }
+      sql = ksqlRequest.get().getKsql();
+      configOverrides = ksqlRequest.get().getConfigOverrides();
+      sessionProperties = ksqlRequest.get().getSessionVariables();
+      requestProperties = ksqlRequest.get().getRequestProperties();
+    } else {
+      final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
+          .deserialiseObject(routingContext.getBody(), routingContext, QueryStreamArgs.class);
+      if (!queryStreamArgs.isPresent()) {
+        return null;
+      }
+      sql = queryStreamArgs.get().sql;
+      configOverrides = queryStreamArgs.get().properties;
+      sessionProperties = queryStreamArgs.get().sessionVariables;
+      requestProperties = queryStreamArgs.get().requestProperties;
+    }
+    return new CommonRequest(sql, configOverrides, sessionProperties, requestProperties);
   }
 
   private void handleQueryPublisher(
@@ -151,7 +192,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.queryId().toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
-          queryPublisher.geLogicalSchema());
+          preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
       completionMessage = Optional.empty();
       routingContext.response().endHandler(v -> {
         queryPublisher.close();
@@ -169,7 +210,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           query.getId().toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
-          queryPublisher.geLogicalSchema());
+          preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
       completionMessage = Optional.empty();
 
       // When response is complete, publisher should be closed and query unregistered
@@ -190,5 +231,30 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         queryPublisher::hitLimit);
 
     queryPublisher.subscribe(querySubscriber);
+  }
+
+  private LogicalSchema preparePushProjectionSchema(final LogicalSchema schema) {
+    final Builder projectionSchema = LogicalSchema.builder();
+    schema.value().forEach(projectionSchema::valueColumn);
+    return projectionSchema.build();
+  }
+
+  private static class CommonRequest {
+    final String sql;
+    final Map<String, Object> configOverrides;
+    final Map<String, Object> sessionProperties;
+    final Map<String, Object> requestProperties;
+
+    CommonRequest(
+        final String sql,
+        final Map<String, Object> configOverrides,
+        final Map<String, Object> sessionProperties,
+        final Map<String, Object> requestProperties
+    ) {
+      this.sql = sql;
+      this.configOverrides = configOverrides;
+      this.sessionProperties = sessionProperties;
+      this.requestProperties = requestProperties;
+    }
   }
 }

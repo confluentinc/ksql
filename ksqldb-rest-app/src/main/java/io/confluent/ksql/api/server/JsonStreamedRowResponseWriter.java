@@ -15,8 +15,11 @@
 
 package io.confluent.ksql.api.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
@@ -26,6 +29,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 
 public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
+
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final HttpServerResponse response;
 
@@ -38,7 +43,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     final StreamedRow streamedRow
         = StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
-    buff.appendBuffer(ServerUtils.serializeObject(streamedRow));
+    buff.appendBuffer(serializeObject(streamedRow));
     buff.appendString(",\n");
     response.write(buff);
     return this;
@@ -47,7 +52,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   @Override
   public QueryStreamResponseWriter writeRow(final GenericRow row) {
     final StreamedRow streamedRow = StreamedRow.pushRow(row);
-    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
@@ -55,35 +60,35 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   public QueryStreamResponseWriter writeContinuationToken(
       final PushContinuationToken pushContinuationToken) {
     final StreamedRow streamedRow = StreamedRow.continuationToken(pushContinuationToken);
-    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
     final StreamedRow streamedRow = StreamedRow.error(error);
-    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
     final StreamedRow streamedRow = StreamedRow.consistencyToken(consistencyToken);
-    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
     final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage);
-    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    writeBuffer(serializeObject(streamedRow), true);
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeLimitMessage() {
     final StreamedRow streamedRow = StreamedRow.finalMessage("Limit Reached");
-    writeBuffer(ServerUtils.serializeObject(streamedRow));
+    writeBuffer(serializeObject(streamedRow), true);
     return this;
   }
 
@@ -93,9 +98,24 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   private void writeBuffer(final Buffer buffer) {
+    writeBuffer(buffer, false);
+  }
+
+  private void writeBuffer(final Buffer buffer, final boolean isLast) {
     final Buffer buff = Buffer.buffer();
     buff.appendBuffer(buffer);
-    buff.appendString(",\n");
+    if (!isLast) {
+      buff.appendString(",\n");
+    }
     response.write(buff);
+  }
+
+  public static <T> Buffer serializeObject(final T t) {
+    try {
+      final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(t);
+      return Buffer.buffer(bytes);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize buffer", e);
+    }
   }
 }

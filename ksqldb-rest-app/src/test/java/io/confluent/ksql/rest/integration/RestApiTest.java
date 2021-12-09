@@ -911,6 +911,55 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldExecutePullQueryOverHttp11QueryStream() {
+    QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+
+    QueryResponse[] queryResponse = new QueryResponse[1];
+    assertThatEventually(() -> {
+      try {
+        HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+            HTTP_1_1, POST,
+            "/query-stream", queryStreamArgs, "application/vnd.ksqlapi.delimited.v1",
+            Optional.empty());
+        queryResponse[0] = new QueryResponse(resp.body().toString());
+        return queryResponse[0].rows.size();
+      } catch (Throwable t) {
+        return Integer.MAX_VALUE;
+      }
+    }, is(1));
+    assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverRest_queryStreamWithStreamedRow() {
+    // Given:
+    final Supplier<List<String>> call = () -> {
+      QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+          "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+          Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+      HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+          HTTP_1_1, POST,
+          "/query-stream", queryStreamArgs, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+          Optional.empty());
+      final String response = resp.body().toString();
+      return Arrays.asList(response.split(System.lineSeparator()));
+    };
+
+    // When:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1 + FOOTER));
+
+    // Then:
+    assertThat(messages, hasSize(HEADER + 1 + FOOTER));
+    assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),
+        endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
+    assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
+  }
+
+  @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
     // Given:
     Map<String, Object> configOverrides =  ImmutableMap.of(

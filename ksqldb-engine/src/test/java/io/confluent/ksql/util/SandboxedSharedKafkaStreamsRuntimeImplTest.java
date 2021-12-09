@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
-import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
@@ -35,7 +34,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SandboxedSharedKafkaStreamsRuntimeImplTest {
@@ -50,10 +48,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
   private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
 
   @Mock
-  private BinPackedPersistentQueryMetadataImpl persistentQueriesInSharedRuntimes;
-
-  @Mock
-  private QueryErrorClassifier queryErrorClassifier;
+  private BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
 
   @Mock
   private QueryId queryId;
@@ -70,7 +65,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
     validationSharedKafkaStreamsRuntime = new SandboxedSharedKafkaStreamsRuntimeImpl(
         kafkaStreamsBuilder,
-        5,
         streamProps
     );
     when(queryId.toString()).thenReturn("query 1");
@@ -78,8 +72,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
 
     validationSharedKafkaStreamsRuntime.markSources(queryId, Collections.singleton(SourceName.of("foo")));
     validationSharedKafkaStreamsRuntime.register(
-        queryErrorClassifier,
-        persistentQueriesInSharedRuntimes,
+        binPackedPersistentQueryMetadata,
         queryId);
   }
 
@@ -95,13 +88,12 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
   @Test
   public void shouldNotAddQuery() {
     //Given:
-    when(persistentQueriesInSharedRuntimes.getSourceNames())
+    when(binPackedPersistentQueryMetadata.getSourceNames())
         .thenReturn(Collections.singleton(SourceName.of("foo")));
     //When:
     final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
         () -> validationSharedKafkaStreamsRuntime.register(
-            queryErrorClassifier,
-            persistentQueriesInSharedRuntimes,
+            binPackedPersistentQueryMetadata,
             queryId2));
     //Then
     assertThat(e.getMessage(), containsString(": was not reserved on this runtime"));

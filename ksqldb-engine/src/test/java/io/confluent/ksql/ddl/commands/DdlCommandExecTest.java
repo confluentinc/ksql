@@ -367,7 +367,7 @@ public class DdlCommandExecTest {
 
     // Then:
     assertThat(result.isSuccess(), is(true));
-    assertThat(metaStore.getSource(EXISTING_STREAM).getSchema().columns().size(), is(9));
+    assertThat(metaStore.getSource(EXISTING_STREAM).getSchema().columns().size(), is(10));
     assertThat(metaStore.getSource(EXISTING_STREAM).getSqlExpression(), is("sqlexpression\nsome ksql"));
   }
 

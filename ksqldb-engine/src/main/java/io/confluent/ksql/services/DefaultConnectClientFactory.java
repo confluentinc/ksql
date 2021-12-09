@@ -110,8 +110,10 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     }
 
     final Properties credentials = new Properties();
+    FileInputStream inputStream = null;
     try {
-      credentials.load(new FileInputStream(credentialsPath));
+      inputStream = new FileInputStream(credentialsPath);
+      credentials.load(inputStream);
 
       if (credentials.containsKey(KsqlConfig.BASIC_AUTH_CREDENTIALS_USERNAME)
           && credentials.containsKey(KsqlConfig.BASIC_AUTH_CREDENTIALS_PASSWORD)) {
@@ -134,6 +136,14 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
       } else {
         log.warn("Failed to load credentials file: " + e.getMessage());
         return Optional.empty();
+      }
+    } finally {
+      if (inputStream != null) {
+        try {
+          inputStream.close();
+        } catch (IOException e) {
+          log.error("Failed to close credentials input stream: " + e.getMessage());
+        }
       }
     }
   }

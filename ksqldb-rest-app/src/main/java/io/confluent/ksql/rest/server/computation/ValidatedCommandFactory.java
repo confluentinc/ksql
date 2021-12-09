@@ -38,14 +38,13 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.common.config.ConfigException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Creates commands that have been validated to successfully execute against
@@ -160,9 +159,10 @@ public final class ValidatedCommandFactory {
       LOG.error("Failed to set {} to {} due to the {} persistent queries currently running: {}",
                 propertyName, propertyValue, runningQueries.size(), runningQueries);
       throw new ConfigException(
-          String.format("Unable to set %s to %s, as the %s may not be changed for running persistent"
-                            + " queries which have already processed data under a different %s.To"
-                            + " modify %s you must first terminate all running persistent queries.",
+          String.format("Unable to set %s to %s, as the %s may not be changed for running"
+                            + " persistent queries which have already processed data under a"
+                            + " different %s. To modify %s you must first terminate all running"
+                            + " persistent queries.",
                         propertyName, propertyValue, propertyName, propertyName, propertyName));
     }
 

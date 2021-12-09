@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -29,8 +30,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.nio.file.attribute.FileTime;
 import java.util.Base64;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,6 +49,11 @@ public class DefaultConnectClientFactoryTest {
   private static final String USERNAME = "fred";
   private static final String PASSWORD = "pass";
   private static final String EXPECTED_HEADER = expectedBasicAuthHeader(USERNAME, PASSWORD);
+
+  private static final String OTHER_USERNAME = "joey";
+  private static final String OTHER_PASSWORD = "jpass";
+  private static final String OTHER_EXPECTED_HEADER =
+      expectedBasicAuthHeader(OTHER_USERNAME, OTHER_PASSWORD);
 
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
@@ -172,6 +180,54 @@ public class DefaultConnectClientFactoryTest {
     assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
   }
 
+  @Test
+  public void shouldReloadCredentialsOnFileCreation() throws Exception {
+    // Given:
+    when(config.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY)).thenReturn(true);
+    givenCustomBasicAuthHeader(false);
+    // no credentials file present
+
+    // verify that no auth header is present
+    assertThat(connectClientFactory.get(Optional.empty()).getAuthHeader(), is(Optional.empty()));
+
+    // When: credentials file is created
+    waitForLastModifiedTick();
+    givenValidCredentialsFile();
+
+    // Then: auth header is present
+    assertThatEventually(
+        "Should load newly created credentials",
+        () -> connectClientFactory.get(Optional.empty()).getAuthHeader(),
+        is(Optional.of(EXPECTED_HEADER)),
+        TimeUnit.SECONDS.toMillis(1),
+        TimeUnit.SECONDS.toMillis(1)
+    );
+  }
+
+  @Test
+  public void shouldReloadCredentialsOnFileChange() throws Exception {
+    // Given:
+    when(config.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY)).thenReturn(true);
+    givenCustomBasicAuthHeader();
+    givenValidCredentialsFile();
+
+    // verify auth header is present
+    assertThat(connectClientFactory.get(Optional.empty()).getAuthHeader(), is(Optional.of(EXPECTED_HEADER)));
+
+    // When: credentials file is modified
+    waitForLastModifiedTick();
+    writeNewCredentialsFile();
+
+    // Then: new auth header is present
+    assertThatEventually(
+        "Should load updated credentials",
+        () -> connectClientFactory.get(Optional.empty()).getAuthHeader(),
+        is(Optional.of(OTHER_EXPECTED_HEADER)),
+        TimeUnit.SECONDS.toMillis(1),
+        TimeUnit.SECONDS.toMillis(1)
+    );
+  }
+
   private void givenCustomBasicAuthHeader() {
     givenCustomBasicAuthHeader(true);
   }
@@ -184,15 +240,22 @@ public class DefaultConnectClientFactoryTest {
 
   private void givenValidCredentialsFile() throws Exception {
     final String content = String.format("username=%s\npassword=%s", USERNAME, PASSWORD);
-    createCredentialsFile(content);
+    createCredentialsFile(content, true);
   }
 
   private void givenInvalidCredentialsFiles() throws Exception {
-    createCredentialsFile("malformed credentials content");
+    createCredentialsFile("malformed credentials content", true);
   }
 
-  private void createCredentialsFile(final String content) throws IOException {
-    assertThat(new File(credentialsPath).createNewFile(), is(true));
+  private void writeNewCredentialsFile() throws Exception {
+    final String content = String.format("username=%s\npassword=%s", OTHER_USERNAME, OTHER_PASSWORD);
+    createCredentialsFile(content, false);
+  }
+
+  private void createCredentialsFile(final String content, final boolean newFile) throws IOException {
+    if (newFile) {
+      assertThat(new File(credentialsPath).createNewFile(), is(true));
+    }
     PrintWriter out = new PrintWriter(credentialsPath, Charset.defaultCharset().name());
     out.println(content);
     out.close();
@@ -202,5 +265,20 @@ public class DefaultConnectClientFactoryTest {
     final String userInfo = username + ":" + password;
     return "Basic " + Base64.getEncoder()
         .encodeToString(userInfo.getBytes(Charset.defaultCharset()));
+  }
+
+  /**
+   * Resolution of {@link FileTime} on some OS / JDKs can have only second resolution.
+   * This can mean the watcher 'misses' an update to a file that was <i>created</i> before
+   * the watcher was started and <i>updated</i> after, if the update results in the same
+   * last modified time.
+   *
+   * <p>To ensure we stable test we must therefore wait for a second to ensure a different last
+   * modified time.
+   *
+   * https://stackoverflow.com/questions/24804618/get-file-mtime-with-millisecond-resolution-from-java
+   */
+  private static void waitForLastModifiedTick() throws Exception {
+    Thread.sleep(TimeUnit.SECONDS.toMillis(1));
   }
 }

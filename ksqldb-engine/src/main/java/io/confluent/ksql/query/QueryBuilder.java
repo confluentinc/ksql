@@ -528,6 +528,7 @@ final class QueryBuilder {
           final MetricCollectors metricCollectors) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)) {
+        sharedKafkaStreamsRuntime.markSources(queryId, sources);
         return sharedKafkaStreamsRuntime;
       }
     }

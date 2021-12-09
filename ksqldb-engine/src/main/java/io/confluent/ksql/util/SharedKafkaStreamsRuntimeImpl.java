@@ -125,6 +125,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private BinPackedPersistentQueryMetadataImpl parseException(final Throwable e) {
     final TaskId task =
         e instanceof StreamsException && ((StreamsException) e).taskId().isPresent()
@@ -150,6 +151,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       return null;
     }
   }
+  // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
   @Override
   public TimeBoundedQueue getNewQueryErrorQueue() {

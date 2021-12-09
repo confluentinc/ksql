@@ -182,10 +182,10 @@ public class ConsistencyOffsetVectorFunctionalTest {
         true
     );
 
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
-    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -212,7 +212,8 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
+    assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
+                          is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }

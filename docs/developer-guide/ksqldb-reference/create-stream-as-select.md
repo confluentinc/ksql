@@ -90,6 +90,8 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB registers the key and/or value schema(s) of the new stream with {{ site.sr }} automatically. 
 Key and value schemas are registered under the subjects `<topic-name>-key` and `<topic-name>-value`, respectively.
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to enable 
+you using physical schema to for data serialization.
 
 ## Stream properties
 
@@ -99,7 +101,9 @@ The WITH clause for the SELECT result supports the following properties:
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC       | The name of the Kafka topic that backs this stream. If this property is not set, then the name of the stream in upper case will be used as default. |
 | KEY_FORMAT        | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
+| KEY_SCHEMA_ID     | Specifies the schema ID of key schema in {{ site.sr }}. The schema will be used for data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
+| VALUE_SCHEMA_ID   | Specifies the schema ID of value schema in {{ site.sr }}. The schema will be used for data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | FORMAT            | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
 | PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-most stream or table. You can't change the number of partitions on a stream. To change the partition count, you must drop the stream and create it again. |
@@ -139,5 +143,19 @@ CREATE STREAM enriched AS
    FROM clickstream cs
       JOIN users u ON u.id = cs.userId
    EMIT CHANGES;
+   
+-- Create a view that enriches a stream with a table lookup with value serialization schema 
+-- defined by VALUE_SCHEMA_ID:
+CREATE STREAM enriched WITH (
+    VALUE_SCHEMA_ID = 1
+  ) AS
+  SELECT
+     cs.*,
+     u.name,
+     u.classification,
+     u.level
+  FROM clickstream cs
+    JOIN users u ON u.id = cs.userId
+  EMIT CHANGES;
 ```
 

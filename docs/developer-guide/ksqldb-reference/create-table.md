@@ -89,6 +89,8 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration/#schema-inference) to
 spare you from defining columns manually in your `CREATE TABLE` statements.
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to spare you
+from defining columns manually as well as enable you using physical schema to for data serialization.
 
 !!! note
     - To use Avro, Protobuf, or JSON_SR you must have {{ site.sr }} enabled and
@@ -125,7 +127,9 @@ following properties:
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic exists with different partition/replica counts. |
 | KEY_FORMAT              | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.key](/reference/server-configuration#ksqlpersistencedefaultformatkey), is used. If the default is also not set the statement will be rejected as invalid. |
+| KEY_SCHEMA_ID           | Specifies the schema ID of key schema in {{ site.sr }}. The schema will be used for schema inference and data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.value](/reference/server-configuration#ksqlpersistencedefaultformatvalue), is used. If the default is also not set the statement will be rejected as invalid. |
+| VALUE_SCHEMA_ID         | Specifies the schema ID of value schema in {{ site.sr }}. The schema will be used for schema inference and data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | FORMAT                  | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a TABLE without an existing topic (the command will fail if the topic does not exist). You can't change the number of partitions on a table. To change the partition count, you must drop the table and create it again. |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
@@ -158,6 +162,31 @@ CREATE TABLE users (
      id BIGINT PRIMARY KEY
    ) WITH (
      KAFKA_TOPIC = 'my-users-topic', 
+     VALUE_FORMAT = 'JSON_SR'
+   );
+```
+
+```sql
+-- table with value columns loaded from Schema Registry with VALUE_SCHEMA_ID: 
+CREATE TABLE users (
+     id BIGINT PRIMARY KEY
+   ) WITH (
+     KAFKA_TOPIC = 'my-users-topic', 
+     VALUE_FORMAT = 'JSON_SR',
+     VALUE_SCHEMA_ID =2
+   );
+```
+
+```sql
+-- table with key columns loaded from Schema Registry with KEY_SCHEMA_ID: 
+CREATE TABLE users (
+     usertimestamp BIGINT,
+     gender VARCHAR,
+     region_id VARCHAR
+   ) WITH (
+     KAFKA_TOPIC = 'my-users-topic', 
+     KEY_FORMAT = 'AVRO',
+     KEY_SCHEMA_ID = 1,
      VALUE_FORMAT = 'JSON_SR'
    );
 ```

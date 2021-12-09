@@ -86,6 +86,8 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to enable 
+you using physical schema to for data serialization.
 
 ### Windowed aggregation
 
@@ -101,7 +103,9 @@ following properties:
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC       | The name of the Kafka topic that backs this table. If this property is not set, then the name of the table will be used as default. |
 | KEY_FORMAT        | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
+| KEY_SCHEMA_ID     | Specifies the schema ID of key schema in {{ site.sr }}. The schema will be used for data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
+| VALUE_SCHEMA_ID   | Specifies the schema ID of value schema in {{ site.sr }}. The schema will be used for data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | FORMAT            | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
 | PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-most stream or table. You can't change the number of partitions on a table. To change the partition count, you must drop the table and create it again. |
@@ -124,6 +128,21 @@ Examples
 ```sql
 -- Derive a new view from an existing table:
 CREATE TABLE derived AS
+  SELECT
+    a,
+    b,
+    d
+  FROM source
+  WHERE A is not null
+  EMIT CHANGES;
+```
+
+```sql
+-- Derive a new view from an existing table with value serialization 
+-- schema defined by VALUE_SCHEMA_ID:
+CREATE TABLE derived WITH (
+    VALUE_SCHEMA_ID=1
+  ) AS
   SELECT
     a,
     b,

@@ -91,8 +91,8 @@ class Callbacks:
             subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} diff"), cwd=kafka_tutorials_cwd)
             print(f"{git_cmd_kafka_tutorial} add _includes/*")
             subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} add _includes/*"), cwd=kafka_tutorials_cwd)
-            print(f"{git_cmd_kafka_tutorial} commit --allow-empty -m \"build: set ksql version to ${version}\"")
-            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} commit --allow-empty -m \"build: set ksql version to ${version}\""), cwd=kafka_tutorials_cwd)
+            print(f"{git_cmd_kafka_tutorial} commit --allow-empty -m \"build: set ksql version to {version}\"")
+            subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} commit --allow-empty -m \"build: set ksql version to {version}\""), cwd=kafka_tutorials_cwd)
             print(f"{git_cmd_kafka_tutorial} push origin HEAD:{KAFKA_TUTORIALS_BRANCH}")
             subprocess.run(shlex.split(f"{git_cmd_kafka_tutorial} push origin HEAD:{KAFKA_TUTORIALS_BRANCH}"), cwd=kafka_tutorials_cwd)
 

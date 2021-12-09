@@ -19,7 +19,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
-
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -89,7 +88,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
         when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
         when(addNamedTopologyResult.all()).thenReturn(future);
-        when(persistentQueriesInSharedRuntimes.getTopologyCopy()).thenReturn(namedTopology);
+        when(persistentQueriesInSharedRuntimes.getTopologyCopy(any())).thenReturn(namedTopology);
     }
 
     @Test

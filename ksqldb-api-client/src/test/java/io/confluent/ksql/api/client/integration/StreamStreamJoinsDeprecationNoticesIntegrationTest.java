@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -66,6 +67,7 @@ public class StreamStreamJoinsDeprecationNoticesIntegrationTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
+      .withProperty(KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -109,7 +111,7 @@ public class StreamStreamJoinsDeprecationNoticesIntegrationTest {
     assertThat(commandStatus.getMessage(), containsString("Created query with ID CSAS_DEPRECATED_QUERY_"));
     assertThat(commandStatusEntity.getWarnings(), contains(
         new KsqlWarning(
-            "DEPRECATION NOTICE: Left/Outer stream-stream joins statements without a GRACE PERIOD "
+            "DEPRECATION NOTICE: Stream-stream joins statements without a GRACE PERIOD "
                 + "will not be accepted in a future ksqlDB version.\n"
                 + "Please use the GRACE PERIOD clause as specified in "
                 + "https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/"

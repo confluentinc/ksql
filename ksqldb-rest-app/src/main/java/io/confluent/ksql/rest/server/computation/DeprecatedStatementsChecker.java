@@ -29,8 +29,13 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeprecatedStatementsChecker {
+  private static final Logger LOG = LoggerFactory.getLogger(DeprecatedStatementsChecker.class);
+
   public enum Deprecations {
     DEPRECATED_STREAM_STREAM_JOIN_WITH_NO_GRACE(
         "DEPRECATION NOTICE: Stream-stream joins statements without a GRACE PERIOD "
@@ -80,14 +85,14 @@ public class DeprecatedStatementsChecker {
       final Join join = (Join) query.getFrom();
 
       // check left joined source is a stream
-      if (!isJoinedSourceStream(join.getLeft())) {
+      if (!isStream(join.getLeft())) {
         return false;
       }
 
       for (final JoinedSource joinedSource : join.getRights()) {
         // check right joined source is a stream
-        if (!isJoinedSourceStream(joinedSource.getRelation())) {
-          break;
+        if (!isStream(joinedSource.getRelation())) {
+          continue;
         }
 
         if (!joinedSource.getWithinExpression().flatMap(WithinExpression::getGrace).isPresent()) {
@@ -99,7 +104,7 @@ public class DeprecatedStatementsChecker {
     return false;
   }
 
-  private boolean isJoinedSourceStream(final Relation relation) {
+  private boolean isStream(final Relation relation) {
     // DataSourceExtractor must be initialized everytime we need to extract data from a node
     // because it changes its internal state to keep all sources found
     final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore, false);
@@ -107,7 +112,15 @@ public class DeprecatedStatementsChecker {
     // The relation object should have only one joined source, but the extract sources method
     // returns a list. This loop checks all returned values are a Stream just to prevent throwing
     // an exception if more than one value is returned.
-    for (final AliasedDataSource source : dataSourceExtractor.extractDataSources(relation)) {
+    final Set<AliasedDataSource> sources = dataSourceExtractor.extractDataSources(relation);
+    if (sources.size() > 1) {
+      // Just log a warning in case the relation object has more han one source
+      LOG.warn("The deprecation statement checker has detected an internal join source with more "
+          + "than one relation. This might be a bug in the deprecation checker or other part of "
+          + " the code. Report this bug to the ksqlDB support team.");
+    }
+
+    for (final AliasedDataSource source : sources) {
       if (source.getDataSource().getDataSourceType() != DataSource.DataSourceType.KSTREAM) {
         return false;
       }

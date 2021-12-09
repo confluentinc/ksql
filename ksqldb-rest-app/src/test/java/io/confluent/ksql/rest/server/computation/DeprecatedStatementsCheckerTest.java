@@ -144,9 +144,9 @@ public class DeprecatedStatementsCheckerTest {
               + "%s JOIN %s AS m WITHIN 1 SECOND ON l.K = m.K;",
           STREAM_1.text(),
           (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
-          STREAM_2.text(),
+          TABLE_1.text(),
           (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
-          TABLE_1.text()
+          STREAM_2.text()
       ));
     }
   }
@@ -181,7 +181,7 @@ public class DeprecatedStatementsCheckerTest {
   }
 
   @Test
-  public void shouldNotDeprecateStreamStreamJoinsWithGraceOnMultiStreamStreamTableJoin() {
+  public void shouldNotDeprecateStreamStreamJoinsWithGraceOnMultiStreamStreamTableJoinOrder1() {
     for (final JoinType joinType : JoinType.values()) {
       checkNoDeprecatedStatement(String.format(
           "SELECT * FROM %s AS l "
@@ -192,6 +192,22 @@ public class DeprecatedStatementsCheckerTest {
           STREAM_2.text(),
           (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
           TABLE_1.text()
+      ));
+    }
+  }
+
+  @Test
+  public void shouldNotDeprecateStreamStreamJoinsWithGraceOnMultiStreamStreamTableJoinOrder2() {
+    for (final JoinType joinType : JoinType.values()) {
+      checkNoDeprecatedStatement(String.format(
+          "SELECT * FROM %s AS l "
+              + "%s JOIN %s AS r ON l.K = r.K "
+              + "%s JOIN %s AS m WITHIN 1 SECOND GRACE PERIOD 1 SECOND ON l.K = m.K;",
+          STREAM_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          TABLE_1.text(),
+          (joinType == JoinType.OUTER) ? "FULL OUTER" : joinType,
+          STREAM_2.text()
       ));
     }
   }

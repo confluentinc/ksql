@@ -40,11 +40,13 @@ import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 public final class ConnectExecutor {
+  private final ConnectServerErrors connectErrorHandler;
 
-  private ConnectExecutor() {
+  ConnectExecutor(final ConnectServerErrors connectErrorHandler) {
+    this.connectErrorHandler = connectErrorHandler;
   }
 
-  public static StatementExecutorResponse execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<CreateConnector> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -90,8 +92,7 @@ public final class ConnectExecutor {
       }
     }
 
-    return StatementExecutorResponse.handled(response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err)));
+    return StatementExecutorResponse.handled(connectErrorHandler.handle(statement, response));
   }
 
   private static List<String> validate(final CreateConnector createConnector,

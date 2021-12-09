@@ -23,7 +23,6 @@ import io.confluent.ksql.connect.supported.Connectors;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
-import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
@@ -43,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
+  private final ConnectServerErrors connectErrorHandler;
 
   private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
 
@@ -51,13 +51,16 @@ public final class DescribeConnectorExecutor {
 
   private final Function<ConnectorInfo, Optional<Connector>> connectorFactory;
 
-  public DescribeConnectorExecutor() {
-    this(Connectors::from);
+  public DescribeConnectorExecutor(final ConnectServerErrors connectErrorHandler) {
+    this(Connectors::from, connectErrorHandler);
   }
 
   @VisibleForTesting
-  DescribeConnectorExecutor(final Function<ConnectorInfo, Optional<Connector>> connectorFactory) {
+  DescribeConnectorExecutor(
+      final Function<ConnectorInfo, Optional<Connector>> connectorFactory,
+      final ConnectServerErrors connectErrorHandler) {
     this.connectorFactory = connectorFactory;
+    this.connectErrorHandler = connectErrorHandler;
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -75,22 +78,16 @@ public final class DescribeConnectorExecutor {
         .getConnectClient()
         .status(connectorName);
     if (statusResponse.error().isPresent()) {
-      return StatementExecutorResponse.handled(Optional.of(
-          new ErrorEntity(
-              configuredStatement.getStatementText(),
-              statusResponse.error().get())
-      ));
+      return StatementExecutorResponse.handled(connectErrorHandler.handle(
+          configuredStatement, statusResponse));
     }
 
     final ConnectResponse<ConnectorInfo> infoResponse = serviceContext
         .getConnectClient()
         .describe(connectorName);
     if (infoResponse.error().isPresent()) {
-      return StatementExecutorResponse.handled(Optional.of(
-          new ErrorEntity(
-              configuredStatement.getStatementText(),
-              infoResponse.error().get())
-      ));
+      return StatementExecutorResponse.handled(connectErrorHandler.handle(
+          configuredStatement, infoResponse));
     }
 
     final ConnectorStateInfo status = statusResponse.datum().get();

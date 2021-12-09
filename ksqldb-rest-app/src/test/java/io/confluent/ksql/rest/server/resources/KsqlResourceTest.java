@@ -142,6 +142,7 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -312,6 +313,8 @@ public class KsqlResourceTest {
   @Mock
   private Errors errorsHandler;
   @Mock
+  private ConnectServerErrors connectErrorHandler;
+  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private Supplier<String> commandRunnerWarning;
@@ -443,6 +446,7 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
+        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -475,6 +479,7 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
+        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2504,6 +2509,7 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
+        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );
@@ -2598,6 +2604,7 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         Optional.of(authorizationValidator),
         errorsHandler,
+        connectErrorHandler,
         denyListPropertyValidator,
         commandRunnerWarning
     );

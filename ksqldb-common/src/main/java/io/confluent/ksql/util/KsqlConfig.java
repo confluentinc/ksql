@@ -811,7 +811,8 @@ public class KsqlConfig extends AbstractConfig {
             false,
             ConfigDef.Importance.LOW,
             "If true, basic auth credentials for connector auth will automatically reload "
-                + "on file change."
+                + "on file change (creation or modification). File deletion is not monitored and "
+                + "old credentials will continue to be used in this case."
         ).define(
             CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS,
             ConfigDef.Type.BOOLEAN,

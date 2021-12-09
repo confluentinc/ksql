@@ -35,7 +35,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   private static final Logger log = LoggerFactory.getLogger(DefaultConnectClientFactory.class);
 
   private final KsqlConfig ksqlConfig;
-  private Optional<String> connectAuthHeader;
+  private volatile Optional<String> connectAuthHeader;
   private FileWatcher credentialsFileWatcher;
 
   public DefaultConnectClientFactory(
@@ -45,7 +45,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   }
 
   @Override
-  public DefaultConnectClient get(final Optional<String> ksqlAuthHeader) {
+  public synchronized DefaultConnectClient get(final Optional<String> ksqlAuthHeader) {
     if (connectAuthHeader == null) {
       connectAuthHeader = buildAuthHeader();
     }
@@ -58,7 +58,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   }
 
   @Override
-  public void close() {
+  public synchronized void close() {
     if (credentialsFileWatcher != null) {
       credentialsFileWatcher.shutdown();
     }

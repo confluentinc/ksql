@@ -77,7 +77,7 @@ public class DefaultKsqlSecurityContextProviderTest {
         userServiceContextFactory,
         ksqlConfig,
         () -> schemaRegistryClientFactory,
-        (authHeader) -> connectClient, // TODO: fix
+        (authHeader) -> connectClient,
         ksqlClient
     );
 

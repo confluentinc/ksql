@@ -71,7 +71,6 @@ public final class HARouting implements AutoCloseable {
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
-  private final boolean sharedRuntimesEnabled;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
@@ -100,7 +99,6 @@ public final class HARouting implements AutoCloseable {
         new ThreadFactoryBuilder().setNameFormat("pull-query-router-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.routeQuery = Objects.requireNonNull(routeQuery);
-    this.sharedRuntimesEnabled = ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED);
   }
 
   @Override
@@ -125,9 +123,7 @@ public final class HARouting implements AutoCloseable {
             pullPhysicalPlan.getKeys(),
             routingOptions,
             routingFilterFactory,
-            pullPhysicalPlan.getPlanType() == PullPhysicalPlanType.RANGE_SCAN,
-            this.sharedRuntimesEnabled,
-            pullPhysicalPlan.getQueryId().toString()
+            pullPhysicalPlan.getPlanType() == PullPhysicalPlanType.RANGE_SCAN
     );
 
     final Map<Integer, List<Host>> emptyPartitions = allLocations.stream()

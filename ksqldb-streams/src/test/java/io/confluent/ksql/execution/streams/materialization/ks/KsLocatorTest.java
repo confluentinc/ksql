@@ -160,7 +160,7 @@ public class KsLocatorTest {
   @Before
   public void setUp() {
     locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
-        APPLICATION_ID);
+        APPLICATION_ID, false, "queryId");
 
     activeNode = locator.asNode(Host.include(ACTIVE_HOST));
     standByNode1 = locator.asNode(Host.include(STANDBY_HOST1));
@@ -208,7 +208,7 @@ public class KsLocatorTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> locator.locate(ImmutableList.of(KEY), routingOptions, routingFilterFactoryActive, false, false, "queryId")
+        () -> locator.locate(ImmutableList.of(KEY), routingOptions, routingFilterFactoryActive, false)
     );
 
     // Then:
@@ -224,7 +224,7 @@ public class KsLocatorTest {
     // When:
     final Exception e = assertThrows(
       IllegalStateException.class,
-      () -> locator.locate(Collections.emptyList(), routingOptions, routingFilterFactoryActive, true, false, "queryId")
+      () -> locator.locate(Collections.emptyList(), routingOptions, routingFilterFactoryActive, true)
     );
 
     // Then:
@@ -239,7 +239,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive, false, false, "queryId");
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -263,7 +263,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY),
-        routingOptions, routingFilterFactoryActive, false, false, "queryId");
+        routingOptions, routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -283,7 +283,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive, false, false, "queryId");
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -303,7 +303,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive, false, false, "queryId");
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -323,7 +323,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive, false, false, "queryId");
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -344,7 +344,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive, false, false, "queryId");
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -359,7 +359,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryActive, false, false, "queryId");
+        routingFilterFactoryActive, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes().stream()
@@ -376,7 +376,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryStandby, false, false, "queryId");
+        routingFilterFactoryStandby, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes();
@@ -394,7 +394,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryStandby, false, false, "queryId");
+        routingFilterFactoryStandby, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes().stream()
@@ -415,7 +415,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
-        routingFilterFactoryStandby, false, false, "queryId");
+        routingFilterFactoryStandby, false);
 
     // Then:
     List<KsqlNode> nodeList = result.get(0).getNodes().stream()
@@ -436,7 +436,7 @@ public class KsLocatorTest {
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
         ImmutableList.of(KEY, KEY1, KEY2, KEY3), routingOptions,
-        routingFilterFactoryStandby, false, false, "queryId");
+        routingFilterFactoryStandby, false);
 
     // Then:
     assertThat(result.size(), is(3));
@@ -470,8 +470,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
-        ImmutableList.of(), routingOptions, routingFilterFactoryStandby, false,
-        false, "queryId");
+        ImmutableList.of(), routingOptions, routingFilterFactoryStandby, false);
 
     // Then:
     assertThat(result.size(), is(3));
@@ -511,8 +510,7 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
-      ImmutableList.of(KEY), routingOptions, routingFilterFactoryStandby, true,
-        false, "queryId");
+      ImmutableList.of(KEY), routingOptions, routingFilterFactoryStandby, true);
 
     // Then:
     assertThat(result.size(), is(3));

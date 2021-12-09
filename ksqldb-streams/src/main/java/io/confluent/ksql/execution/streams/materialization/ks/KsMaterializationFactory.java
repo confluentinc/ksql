@@ -95,7 +95,9 @@ public final class KsMaterializationFactory {
         topology,
         keySerializer,
         localHost,
-        applicationId
+        applicationId,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED),
+        queryId
     );
 
     final KsStateStore stateStore = storeFactory.create(
@@ -136,7 +138,9 @@ public final class KsMaterializationFactory {
         Topology topology,
         Serializer<GenericKey> keySerializer,
         URL localHost,
-        String applicationId
+        String applicationId,
+        boolean sharedRuntimesEnabled,
+        String queryId
     );
   }
 

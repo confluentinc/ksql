@@ -73,8 +73,7 @@ class KsStateStore {
             );
 
         if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-          namedTopologyParameters = (NamedTopologyStoreQueryParameters<T>)
-              namedTopologyParameters.enableStaleStores();
+          namedTopologyParameters = namedTopologyParameters.enableStaleStores();
         }
         return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams).store(namedTopologyParameters);
       } else if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {

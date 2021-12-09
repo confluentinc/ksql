@@ -92,7 +92,7 @@ public class KsMaterializationFactoryTest {
         materializationFactory
     );
 
-    when(locatorFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(locator);
+    when(locatorFactory.create(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(locator);
     when(storeFactory.create(any(), any(), any(), any(), any())).thenReturn(stateStore);
     when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
 
@@ -136,7 +136,9 @@ public class KsMaterializationFactoryTest {
         topology,
         keySerializer,
         DEFAULT_APP_SERVER,
-        APPLICATION_ID
+        APPLICATION_ID,
+        any(),
+        any()
     );
   }
 

@@ -752,9 +752,7 @@ public class HARoutingTest {
         pullPhysicalPlan.getKeys(),
         routingOptions,
         routingFilterFactory,
-        false,
-        any(),
-        any()
+        false
     )).thenReturn(locationsList);
   }
 

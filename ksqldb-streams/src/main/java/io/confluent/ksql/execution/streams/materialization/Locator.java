@@ -46,9 +46,7 @@ public interface Locator {
       List<KsqlKey> keys,
       RoutingOptions routingOptions,
       RoutingFilterFactory routingFilterFactory,
-      boolean isRangeScan,
-      boolean sharedRuntimesEnabled,
-      String queryId
+      boolean isRangeScan
   );
 
   interface KsqlNode {

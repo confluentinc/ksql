@@ -114,6 +114,9 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       pathName = topologyName
           .map(s -> stateDir + "/" + appId + "/__" + s + "__")
           .orElse(stateDir + "/" + appId);
+      if (isTransient && topologyName.isPresent()) {
+        throw new IllegalArgumentException("Transient Queries can not have named topologies");
+      }
     }
 
     public String getAppId() {
@@ -145,7 +148,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
 
       tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix),
           "internal topics");
-      if (!topologyName.isPresent()) {
+      if (!topologyName.isPresent() || isTransient) {
         tryRun(
             () -> serviceContext
                 .getConsumerGroupClient()

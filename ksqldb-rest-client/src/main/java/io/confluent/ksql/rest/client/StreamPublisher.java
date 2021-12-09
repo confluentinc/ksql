@@ -76,6 +76,6 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
   }
 
   public void close() {
-    response.request().connection().close();
+    response.request().reset();
   }
 }

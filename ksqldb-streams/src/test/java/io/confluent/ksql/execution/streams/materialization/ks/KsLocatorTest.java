@@ -64,6 +64,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -159,8 +160,16 @@ public class KsLocatorTest {
 
   @Before
   public void setUp() {
-    locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
-        APPLICATION_ID, false, "queryId");
+    locator = new KsLocator(
+        STORE_NAME,
+        kafkaStreams,
+        topology,
+        keySerializer,
+        LOCAL_HOST_URL,
+        APPLICATION_ID,
+        false,
+        "queryId"
+    );
 
     activeNode = locator.asNode(Host.include(ACTIVE_HOST));
     standByNode1 = locator.asNode(Host.include(STANDBY_HOST1));
@@ -248,6 +257,33 @@ public class KsLocatorTest {
     assertThat(url.map(URI::getHost), is(Optional.of(ACTIVE_HOST.host())));
     assertThat(url.map(URI::getPort), is(Optional.of(ACTIVE_HOST.port())));
     assertThat(url.map(URI::getPath), is(Optional.of("/")));
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForStreamsMetadataForStore() {
+    // Given:
+    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
+        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+
+    // When:
+    locator.getStreamsMetadata();
+
+    // Then:
+    Mockito.verify(kafkaStreamsNamedTopologyWrapper).streamsMetadataForStore(STORE_NAME, "queryId");
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForQueryMetadataForKey() {
+    // Given:
+    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
+        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+
+    // When:
+    locator.getKeyQueryMetadata(KEY);
+
+    // Then:
+    Mockito.verify(kafkaStreamsNamedTopologyWrapper)
+        .queryMetadataForKey(STORE_NAME, KEY.getKey(), keySerializer, "queryId");
   }
 
   @Test

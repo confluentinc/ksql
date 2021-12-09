@@ -42,6 +42,8 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlySessionStore;
@@ -65,6 +67,8 @@ public class KsStateStoreTest {
       .build();
 
   @Mock
+  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
+  @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private KsqlConfig ksqlConfig;
@@ -85,6 +89,22 @@ public class KsStateStoreTest {
         .setDefault(LogicalSchema.class, SCHEMA)
         .setDefault(KsqlConfig.class, ksqlConfig)
         .testConstructors(KsStateStore.class, Visibility.PACKAGE);
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabled() {
+    // Given:
+    final QueryableStoreType<ReadOnlySessionStore<String, Long>> storeType =
+        QueryableStoreTypes.sessionStore();
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+    final KsStateStore store =
+        new KsStateStore(STORE_NAME, kafkaStreamsNamedTopologyWrapper, SCHEMA, ksqlConfig, "queryId");
+
+    // When:
+    store.store(storeType, 0);
+
+    // Then:
+    verify(kafkaStreamsNamedTopologyWrapper).store(any(NamedTopologyStoreQueryParameters.class));
   }
 
   @Test

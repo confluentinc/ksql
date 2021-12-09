@@ -197,6 +197,13 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(binPackedPersistentQueryMetadata).setQueryError(any());
         verify(binPackedPersistentQueryMetadata2).setQueryError(any());
     }
+    
+    @Test
+    public void allLocalStorePartitionLagsCallsTopologyMethod() {
+        sharedKafkaStreamsRuntimeImpl.allLocalStorePartitionLags(queryId);
+        verify(kafkaStreamsNamedTopologyWrapper)
+            .allLocalStorePartitionLagsForTopology("query 1");
+    }
 
     @Test
     public void shouldNotAddQuery() {

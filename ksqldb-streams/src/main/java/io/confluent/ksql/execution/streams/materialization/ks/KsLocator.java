@@ -262,7 +262,8 @@ public final class KsLocator implements Locator {
    * @param key KsqlKey
    * @return KeyQueryMetadata
    */
-  private KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
+  @VisibleForTesting
+  protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
     if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
           .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
@@ -274,7 +275,8 @@ public final class KsLocator implements Locator {
    * Returns a collection of StreamsMetadata based on whether shared runtimes is enabled.
    * @return Collection of StreamsMetadata
    */
-  private Collection<StreamsMetadata> getStreamsMetadata() {
+  @VisibleForTesting
+  protected Collection<StreamsMetadata> getStreamsMetadata() {
     if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
           .streamsMetadataForStore(storeName, queryId);

@@ -1427,7 +1427,8 @@ public class KsqlEngineTest {
         serviceContext,
         ksqlEngine,
         "create stream persistent as select * from test1 EMIT CHANGES;",
-        ksqlConfig, Collections.emptyMap()
+        ksqlConfig,
+        Collections.emptyMap()
     );
     final String applicationId = query.get(0).getQueryApplicationId();
     final String internalTopic1Val = KsqlConstants.getSRSubject(

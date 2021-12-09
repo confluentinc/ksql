@@ -40,6 +40,14 @@ public class FieldInfo {
   private final Optional<FieldType> type;
   private final Optional<String> headerKey;
 
+  public FieldInfo(
+      final String name,
+      final SchemaInfo schema,
+      final Optional<FieldType> type
+  ) {
+    this(name, schema, type, Optional.empty());
+  }
+
   @JsonCreator
   public FieldInfo(
       @JsonProperty(value = "name", required = true) final String name,

@@ -89,7 +89,7 @@ public final class EntityUtil {
     }
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
-      return new FieldInfo(field.name(), type, Optional.empty(), Optional.empty());
+      return new FieldInfo(field.name(), type, Optional.empty());
     }
 
     public SchemaInfo visitDecimal(final SqlDecimal type) {

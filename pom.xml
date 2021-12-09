@@ -148,7 +148,7 @@
         <mockito.version>3.8.0</mockito.version>
         <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against 4.1.49.Final -->
-        <netty.version>4.1.69.Final</netty.version>
+        <netty.version>4.1.71.Final</netty.version>
         <!-- This matches the version in common -->
         <netty-codec-http2-version>4.1.69.Final</netty-codec-http2-version>
         <!-- Brought in by both schema registry and connect, we need to pick a version -->

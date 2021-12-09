@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -219,6 +220,13 @@ public class QueryRegistryImpl implements QueryRegistry {
     // nor will it count against the push query limit.
     notifyCreate(serviceContext, metaStore, query);
     return query;
+  }
+
+  @Override
+  public void restartStreamsRuntime() {
+    for (SharedKafkaStreamsRuntime stream : streams) {
+      stream.restartStreamsRuntime();
+    };
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck

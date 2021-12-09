@@ -64,6 +64,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
@@ -211,6 +212,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   public boolean hasActiveQueries() {
     return !primaryContext.getQueryRegistry().getPersistentQueries().isEmpty();
+  }
+
+  public void restartStreamsRuntime() {
+    primaryContext.getQueryRegistry().restartStreamsRuntime();
   }
 
   @Override

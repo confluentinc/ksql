@@ -28,6 +28,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Map;
@@ -164,6 +165,11 @@ public interface QueryRegistry {
    * @return the query started by the C(S|T)AS that created sourceName
    */
   Optional<QueryMetadata> getCreateAsQuery(SourceName sourceName);
+
+  /**
+   * Restarts the streams runtimes
+   */
+  void restartStreamsRuntime();
 
   /**
    * Get all insert queries that write into or read from a given source.

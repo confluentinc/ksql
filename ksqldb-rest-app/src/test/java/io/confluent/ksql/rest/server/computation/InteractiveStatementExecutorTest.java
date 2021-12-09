@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import org.apache.kafka.common.config.ConfigException;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
@@ -47,7 +48,6 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -323,6 +323,26 @@ public class InteractiveStatementExecutorTest {
     final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
     assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.SUCCESS, argFinalCommandStatus.getValue().getStatus());
+  }
+
+  @Test
+  public void restartsRuntimeWhenAlterSystemIsSuccessful() {
+    // Given:
+    final String alterSystemQuery = "ALTER SYSTEM 'TEST'='TEST';";
+    when(mockParser.parseSingleStatement(alterSystemQuery))
+        .thenReturn(statementParser.parseSingleStatement(alterSystemQuery));
+    final Command alterSystemCommand = new Command(
+        "ALTER SYSTEM 'TEST'='TEST';",
+        emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
+        Optional.empty()
+    );
+
+    // When:
+    handleStatement(statementExecutorWithMocks, alterSystemCommand, COMMAND_ID, Optional.empty(), 0L);
+
+    // Then:
+    verify(mockEngine).restartStreamsRuntime();
   }
 
   @Test

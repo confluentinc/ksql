@@ -54,6 +54,8 @@ public class PullQueryQueueTest {
   @Mock
   private LimitHandler limitHandler;
   @Mock
+  private CompletionHandler completionHandler;
+  @Mock
   private Runnable queuedCallback;
   private PullQueryQueue queue;
   private ScheduledExecutorService executorService;
@@ -116,13 +118,13 @@ public class PullQueryQueueTest {
   }
 
   @Test
-  public void shouldCallLimitHandlerOnClose() {
+  public void shouldCallCompleteOnClose() {
     // When:
     queue.close();
     queue.close();
 
     // Then:
-    verify(limitHandler, times(1)).limitReached();
+    verify(completionHandler, times(1)).complete();
   }
 
 
@@ -213,6 +215,7 @@ public class PullQueryQueueTest {
     queue = new PullQueryQueue(QUEUE_SIZE, 1, OptionalInt.empty());
 
     queue.setLimitHandler(limitHandler);
+    queue.setCompletionHandler(completionHandler);
     queue.setQueuedCallback(queuedCallback);
   }
 

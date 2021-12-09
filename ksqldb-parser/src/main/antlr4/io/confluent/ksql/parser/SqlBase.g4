@@ -127,11 +127,7 @@ tableElements
     ;
 
 tableElement
-    : identifier type (((PRIMARY)? KEY) | headerType)?
-    ;
-
-headerType
-    : HEADERS
+    : identifier type ((PRIMARY)? KEY)?
     ;
 
 tableProperties
@@ -542,7 +538,6 @@ ADD: 'ADD';
 ALTER: 'ALTER';
 VARIABLES: 'VARIABLES';
 PLUGINS: 'PLUGINS';
-HEADERS: 'HEADERS';
 
 IF: 'IF';
 

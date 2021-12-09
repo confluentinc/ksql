@@ -1243,7 +1243,9 @@ public class AstBuilder {
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
       return new TableElement(
           getLocation(context),
-          Namespace.of(context),
+          context.KEY() == null
+              ? Namespace.VALUE
+              : context.PRIMARY() == null ? Namespace.KEY : Namespace.PRIMARY_KEY,
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
           typeParser.getType(context.type())
       );

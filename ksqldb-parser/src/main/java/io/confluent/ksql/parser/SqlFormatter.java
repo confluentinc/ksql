@@ -705,9 +705,6 @@ public final class SqlFormatter {
         case KEY:
           postFix = " KEY";
           break;
-        case HEADERS:
-          postFix = " HEADERS";
-          break;
         default:
           postFix = "";
           break;

@@ -691,10 +691,10 @@ final class EngineExecutor {
 
   private Optional<String> getApplicationId(final QueryId queryId, final Collection<SourceName> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? Optional.of("appId")
-        : Optional.of(
-            engineContext.getRuntimeAssignor()
-                .getRuntime(queryId, sources, config.getConfig(true)));
+        ? Optional.of(
+        engineContext.getRuntimeAssignor()
+            .getRuntime(queryId, sources, config.getConfig(true))) :
+        Optional.empty();
   }
 
   private ExecutorPlans planQuery(

@@ -547,7 +547,7 @@ public class KsqlConfig extends AbstractConfig {
           + "CREATE SOURCE [TABLE|STREAM] statements will continue being read-only.";
 
   public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.runtime.feature.shared.enabled";
-  public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = true;
   public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
       "Feature flag for sharing streams runtimes. "
           + "Default is false. If false, persistent queries will use separate "

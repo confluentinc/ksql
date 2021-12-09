@@ -70,6 +70,23 @@ public final class KsqlEngineTestUtil {
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
       final MutableMetaStore metaStore,
+      final KsqlConfig ksqlConfig
+  ) {
+    return new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        "test_instance_",
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator(),
+        ksqlConfig,
+        Collections.emptyList()
+    );
+  }
+
+  public static KsqlEngine createKsqlEngine(
+      final ServiceContext serviceContext,
+      final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
       final QueryIdGenerator queryIdGenerator,
       final KsqlConfig ksqlConfig,

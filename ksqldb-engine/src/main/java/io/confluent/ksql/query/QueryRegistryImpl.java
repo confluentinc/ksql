@@ -379,6 +379,11 @@ public class QueryRegistryImpl implements QueryRegistry {
         unregisterQuery(queryMetadata);
       }
     }
+    closeRuntimes();
+  }
+
+  @Override
+  public void closeRuntimes() {
     for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       sharedKafkaStreamsRuntime.close();
     }

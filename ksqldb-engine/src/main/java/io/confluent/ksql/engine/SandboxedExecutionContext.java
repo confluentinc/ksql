@@ -173,7 +173,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     if (getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
     } else {
-      engineContext.getQueryRegistry().getPersistentQueries().values().stream().map(QueryMetadata::getKafkaStreams).forEach(KafkaStreams::close);
+      engineContext.getQueryRegistry().closeRuntimes();
     }
     return result;
   }

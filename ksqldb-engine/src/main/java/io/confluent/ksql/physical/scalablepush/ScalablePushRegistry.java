@@ -38,7 +38,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PushOffsetRange;
-import io.confluent.ksql.util.PushOffsetVector;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.Clock;

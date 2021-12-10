@@ -26,6 +26,7 @@ import java.util.function.Function;
 public class StreamPublisher<T> extends BufferedPublisher<T> {
 
   private final HttpClientResponse response;
+  private final boolean closeConnectionOnClose;
   private boolean drainHandlerSet;
 
   public static Buffer toJsonMsg(final Buffer responseLine, final boolean stripArray) {
@@ -49,9 +50,11 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
   StreamPublisher(final Context context, final HttpClientResponse response,
       final Function<Buffer, T> mapper,
       final CompletableFuture<ResponseWithBody> bodyFuture,
-      final boolean stripArray) {
+      final boolean stripArray,
+      final boolean closeConnectionOnClose) {
     super(context);
     this.response = response;
+    this.closeConnectionOnClose = closeConnectionOnClose;
     final RecordParser recordParser = RecordParser.newDelimited("\n", response);
     recordParser.exceptionHandler(bodyFuture::completeExceptionally)
         .handler(buff -> {
@@ -76,6 +79,13 @@ public class StreamPublisher<T> extends BufferedPublisher<T> {
   }
 
   public void close() {
-    response.request().reset();
+    if (closeConnectionOnClose) {
+      response.request().connection().close();
+    } else {
+      // This allows the connection to continue to be open and reused, even through the stream has
+      // completed. Especially useful for http2 uses where a connection is used for multiple
+      // requests
+      response.request().reset();
+    }
   }
 }

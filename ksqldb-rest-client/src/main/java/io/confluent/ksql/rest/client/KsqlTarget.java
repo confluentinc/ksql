@@ -371,7 +371,7 @@ public final class KsqlTarget {
         (resp, vcf) -> {
           if (resp.statusCode() == 200) {
             pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
-                resp, mapper, vcf, true));
+                resp, mapper, vcf, true, true));
             vcf.complete(new ResponseWithBody(resp));
           } else {
             resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));
@@ -395,7 +395,7 @@ public final class KsqlTarget {
         (resp, vcf) -> {
           if (resp.statusCode() == 200) {
             pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
-                resp, mapper, vcf, false));
+                resp, mapper, vcf, false, false));
             vcf.complete(new ResponseWithBody(resp));
           } else {
             resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));

@@ -7,7 +7,6 @@
 * [UIF-1010] Add swiftype metatag for site of ksqldb ([#8308](https://github.com/confluentinc/ksql/pull/8308)) ([916f38b](https://github.com/confluentinc/ksql/commit/916f38b1e34f8b1108923f1edb5cf59adf1c2d85))
 * Add consistency vector handling to CLI and Java client ([#8264](https://github.com/confluentinc/ksql/pull/8264)) ([a651677](https://github.com/confluentinc/ksql/commit/a651677e95f888f0436e9daa40e780ecc9f66884))
 * add detailed scalable push query metrics with type breakdown ([#8178](https://github.com/confluentinc/ksql/pull/8178)) ([561af53](https://github.com/confluentinc/ksql/commit/561af5335a6178fd12fdd78f5728b9dff0c7890f))
-* add HEADERS column type to syntax ([#8314](https://github.com/confluentinc/ksql/pull/8314)) ([d7ef855](https://github.com/confluentinc/ksql/commit/d7ef855ddaba626ba78077bf2a2d17d166f292f9))
 * Add metrics for stream pull queries to WS ([#8174](https://github.com/confluentinc/ksql/pull/8174)) ([d75f254](https://github.com/confluentinc/ksql/commit/d75f25466ded174f7ae894db919c445c6a51de3a))
 * Add support for TIMESTAMP type in the WITH/TIMESTAMP property ([#8271](https://github.com/confluentinc/ksql/pull/8271)) ([ecb43e2](https://github.com/confluentinc/ksql/commit/ecb43e2ffb8450b3902968a2709c86898291dbc7))
 * enable fetching of subsets of partitions in HARouting ([#8161](https://github.com/confluentinc/ksql/pull/8161)) ([cf3cc04](https://github.com/confluentinc/ksql/commit/cf3cc044fe4274cb5a29db49bcf131e2516bc58f))

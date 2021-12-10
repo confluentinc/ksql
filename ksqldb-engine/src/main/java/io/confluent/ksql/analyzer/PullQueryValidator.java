@@ -99,7 +99,7 @@ public class PullQueryValidator implements QueryValidator {
   }
 
   private static Optional<String> validateLimitClause(final Analysis analysis) {
-    if (analysis.getPullLimitClauseEnabled() || !analysis.getLimitClause().isPresent()) {
+    if (analysis.getPullLimitClauseEnabled() && analysis.getLimitClause().isPresent()) {
       if (analysis.getLimitClause().getAsInt() < 0) {
         return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE);
       } else {

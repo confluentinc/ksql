@@ -47,6 +47,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -322,7 +323,8 @@ public class KsqlEngineMetricsTest {
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < numMessages; i++) {
       recordList.add(new ConsumerRecord<>("foo", 1, 1, 1L, TimestampType
-          .CREATE_TIME, 1L, 10, 10, "key", "1234567890"));
+                .CREATE_TIME, 10, 10,
+          "key", "1234567890", new RecordHeaders(), Optional.empty()));
     }
     records.put(new TopicPartition("foo", 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);

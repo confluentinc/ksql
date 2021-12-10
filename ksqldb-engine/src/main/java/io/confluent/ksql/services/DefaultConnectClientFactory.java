@@ -30,6 +30,23 @@ import org.apache.kafka.common.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Factory for managing logic for creating Connect clients, including the auth header
+ * that should be sent with connector requests.
+ *
+ * <p>If a custom auth header is specified
+ * as part of the ksqlDB server config, then:
+ * <ul>
+ *  <li>the header is loaded into {@code connectAuthHeader} the first time {@code get()}
+ *      is called.</li>
+ *  <li>if configured, a file watcher thread will be started to monitor for changes
+ *      to the auth credentials. This file watcher will be started when the credentials
+ *      are first loaded.</li>
+ * </ul>
+ *
+ * <p>If no custom auth header is specified, then the auth header of the incoming ksql
+ * request, if present, will be sent with the connector request instead.
+ */
 public class DefaultConnectClientFactory implements ConnectClientFactory {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultConnectClientFactory.class);
@@ -94,7 +111,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
       credentialsFileWatcher.start();
       log.info("Enabled automatic connector credentials reload for location: " + filePath);
     } catch (java.io.IOException e) {
-      log.error("Failed to enable automatic connector credentials reload.");
+      log.error("Failed to enable automatic connector credentials reload: " + e.getMessage());
     }
   }
 
@@ -110,9 +127,7 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     }
 
     final Properties credentials = new Properties();
-    FileInputStream inputStream = null;
-    try {
-      inputStream = new FileInputStream(credentialsPath);
+    try (FileInputStream inputStream = new FileInputStream(credentialsPath)) {
       credentials.load(inputStream);
 
       if (credentials.containsKey(KsqlConfig.BASIC_AUTH_CREDENTIALS_USERNAME)
@@ -136,14 +151,6 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
       } else {
         log.warn("Failed to load credentials file: " + e.getMessage());
         return Optional.empty();
-      }
-    } finally {
-      if (inputStream != null) {
-        try {
-          inputStream.close();
-        } catch (IOException e) {
-          log.error("Failed to close credentials input stream: " + e.getMessage());
-        }
       }
     }
   }

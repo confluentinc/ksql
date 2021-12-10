@@ -87,7 +87,7 @@ ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
 ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to enable 
-you using physical schema to for data serialization.
+using physical schema for data serialization.
 
 ### Windowed aggregation
 

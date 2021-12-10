@@ -89,8 +89,8 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration/#schema-inference) to
 spare you from defining columns manually in your `CREATE TABLE` statements.
-ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to spare you
-from defining columns manually as well as enable you using physical schema to for data serialization.
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to define
+columns automatically and enable you using a physical schema for data serialization.
 
 !!! note
     - To use Avro, Protobuf, or JSON_SR you must have {{ site.sr }} enabled and

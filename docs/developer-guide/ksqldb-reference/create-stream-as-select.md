@@ -91,7 +91,7 @@ ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/
 ksqlDB registers the key and/or value schema(s) of the new stream with {{ site.sr }} automatically. 
 Key and value schemas are registered under the subjects `<topic-name>-key` and `<topic-name>-value`, respectively.
 ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to enable 
-you using physical schema to for data serialization.
+using physical schema for data serialization.
 
 ## Stream properties
 

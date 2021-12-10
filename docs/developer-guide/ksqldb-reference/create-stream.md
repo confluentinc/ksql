@@ -25,7 +25,6 @@ stream with the same name already exists.
 A stream can be created as read-only if the SOURCE clause is provided. INSERTS statements and the
 DELETE TOPIC on DROP STREAM statements aren't permitted. Source streams do not support pull
 queries. Only source tables support running pull queries on them.
-``
 To disable the SOURCE stream feature, set `ksql.source.table.materialization.enabled` to
 `false` in your ksqlDB server properties file.
 
@@ -68,8 +67,8 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration#schema-inference) to  
 spare you from defining columns manually in your `CREATE STREAM` statements.
-ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to spare you
-from defining columns manually as well as enable you using physical schema to for data serialization.
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to define 
+columns automatically and enable using a physical schema for data serialization.
 
 ### ROWTIME
 

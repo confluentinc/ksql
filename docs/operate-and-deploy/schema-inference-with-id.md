@@ -10,10 +10,10 @@ keywords: serialization, schema, schema registry, json, avro, delimited, KEY_SCH
 For supported [serialization formats](/reference/serialization), ksqlDB can use 
 [Schema Inference](/operate-and-deploy/schema-registry-integration#schema-inference) to retrieve 
 (read) and register (write) schemas as needed. If you specify a `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID`
-explicitly in the `CREATE` statements, ksqlDB will not only retrieve and register the schema 
-specified by the ID from {{ site.sr }} but also serialize data using exactly the same schema referred to
+explicitly in the `CREATE` statements, ksqlDB retrieves and registers the schema specified by the 
+ID from {{ site.sr }}, and it also serializes data using exactly the same schema referred to
 by the ID. This can spare you from defining columns and data types manually and also make sure the data 
-are serialized by specified physical schema which can be consumed in downstream systems. Before using 
+are serialized by the specified physical schema, which can be consumed in downstream systems. Before using 
 schema inference with explicit IDs in ksqlDB, make sure that the {{ site.sr }} is up and running and 
 ksqlDB is [configured to use it](../operate-and-deploy/installation/server-config/avro-schema.md).
 
@@ -25,7 +25,7 @@ Here's what you can do with schema inference with ID in ksqlDB:
 - Declare derived views with `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` statements with
   `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID` properties. The schema of the view is registered in {{ site.sr }} 
   automatically.
-- Serialize output data using schema referred to by `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID` instead
+- Serialize output data using the schema referred to by `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID`, instead
   of the logical data source schema stored in ksqlDB.
     
 If you're declaring a stream or table with a key format that's different from its
@@ -124,8 +124,8 @@ any subject but must match the format defined by `VALUE_FORMAT`.
 
 ### Declaring a derived view with schema ID.
 
-The following statement shows how to create a materialized view derived from an existing source with `VALUE_SCHEMA_ID`
-property. The schema referred to by `VALUE_SCHEMA_ID` will be used to check column compatibility with
+The following statement shows how to create a materialized view derived from an existing source with the 
+`VALUE_SCHEMA_ID` property. The schema referred to by `VALUE_SCHEMA_ID` is used to check column compatibility with
 output columns and serialize output data. See [Schema Inference and Data Serialization](#Schema-Inference-and-Data-Serialization) 
 for more information.
 
@@ -155,8 +155,8 @@ will be registered under the subject `<topic-name>-key` or `<topic-name>-value` 
 
 #### Schema Inference Schema Requirements
 
-If `WRAP_SINGLE_VALUE` is set to true in the statement, the physical schema is expected to be in `struct`
-type and the field names will be used as data source column names; field schemas will be inference as
+If `WRAP_SINGLE_VALUE` is set to `true` in the statement, the physical schema is expected to be in `struct`
+type and the field names are used as data source column names. Field schemas are inference as
 corresponding column data types.
 
 !!! note
@@ -211,7 +211,7 @@ Name                 : PAGEVIEWS
 ------------------------------------
 ```
 
-If `WRAP_SINGLE_VALUE` is false in the statement, if `KEY_SCHEMA_ID` is set, `ROWKEY` will be used
+If `WRAP_SINGLE_VALUE` is `false` in the statement, if `KEY_SCHEMA_ID` is set, `ROWKEY` will be used
 as key column name; if `VALUE_SCHEMA_ID` is set, `ROWVAL` will be used as value column name.
 Physical schema will be used as the column data type.
 

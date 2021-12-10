@@ -21,7 +21,7 @@ import java.util.Set;
  * Interface get a set of incompatible elements for an object
  * @see CompatibleSet
  */
-public interface CompatibleElement<T extends CompatibleElement> {
+public interface CompatibleElement<T extends CompatibleElement<T>> {
 
   Set<T> getIncompatibleWith();
 }

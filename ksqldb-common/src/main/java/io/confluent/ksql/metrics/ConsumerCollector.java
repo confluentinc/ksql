@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -46,18 +47,14 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
   public static final String CONSUMER_ALL_TOTAL_BYTES_SUM = "consumer-all-total-bytes-sum";
   public static final String CONSUMER_COLLECTOR_METRICS_GROUP_NAME = "consumer-metrics";
-  private static final Sensor totalBytesSum;
 
+  private Sensor totalBytesSum;
   private final Map<String, TopicSensors<ConsumerRecord<Object, Object>>> topicSensors =
       new HashMap<>();
   private Metrics metrics;
   private String id;
   private String groupId;
   private Time time;
-
-  static {
-    totalBytesSum = configureTotalBytesSum(MetricCollectors.getMetrics());
-  }
 
   public void configure(final Map<String, ?> map) {
     String id = (String) map.get(ConsumerConfig.GROUP_ID_CONFIG);
@@ -67,20 +64,19 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     if (id == null) {
       id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
     }
-    if (id.contains("")) {
-      configure(
-          MetricCollectors.getMetrics(),
-          MetricCollectors.addCollector(id, this),
-          MetricCollectors.getTime()
-      );
-    }
+    configure(
+        MetricCollectors.getMetrics(),
+        MetricCollectors.addCollector(id, this),
+        MetricCollectors.getTime()
+    );
   }
 
-  ConsumerCollector configure(final Metrics metrics, final String id, final Time time) {
+  void configure(final Metrics metrics, final String id, final Time time) {
+    totalBytesSum = idempotentlyConfigureTotalBytesSum(metrics);
+
     this.id = id;
     this.metrics = metrics;
     this.time = time;
-    return this;
   }
 
   @Override
@@ -206,7 +202,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
     return getClass().getSimpleName() + " id:" + this.id + " " + topicSensors.keySet();
   }
 
-  private static Sensor configureTotalBytesSum(final Metrics metrics) {
+  private static Sensor idempotentlyConfigureTotalBytesSum(final Metrics metrics) {
     final String description = "The total number of bytes consumed across all consumers";
     final Sensor sensor = metrics.sensor(CONSUMER_ALL_TOTAL_BYTES_SUM);
     sensor.add(

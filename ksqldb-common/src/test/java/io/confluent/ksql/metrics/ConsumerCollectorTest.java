@@ -27,14 +27,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 public class ConsumerCollectorTest {
 
@@ -42,16 +47,17 @@ public class ConsumerCollectorTest {
 
   @Test
   public void shouldDisplayRateThroughput() {
+    final Metrics metrics = new Metrics();
 
-    final ConsumerCollector collector = new ConsumerCollector();//
-    collector.configure(new Metrics(), "group", new SystemTime());
+    final ConsumerCollector collector = new ConsumerCollector();
+    collector.configure(metrics, "group", new SystemTime());
 
-    for (int i = 0; i < 100; i++){
+    for (int i = 0; i < 100; i++) {
 
       final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = ImmutableMap.of(
-              new TopicPartition(TEST_TOPIC, 1), Arrays.asList(
-                      new ConsumerRecord<>(TEST_TOPIC, 1, i, 1L, TimestampType.CREATE_TIME, 10, 10,
-                          "key", "1234567890", new RecordHeaders(), Optional.empty())) );
+          new TopicPartition(TEST_TOPIC, 1), Arrays.asList(
+              new ConsumerRecord<>(TEST_TOPIC, 1, i, 1L, TimestampType.CREATE_TIME, 10, 10,
+                  "key", "1234567890", new RecordHeaders(), Optional.empty())));
       final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
 
       collector.onConsume(consumerRecords);
@@ -60,17 +66,18 @@ public class ConsumerCollectorTest {
     final Collection<TopicSensors.Stat> stats = collector.stats(TEST_TOPIC, false);
     assertNotNull(stats);
 
-    assertThat( stats.toString(), containsString("name=consumer-messages-per-sec,"));
-    assertThat( stats.toString(), containsString("total-messages, value=100.0"));
+    assertThat(stats.toString(), containsString("name=consumer-messages-per-sec,"));
+    assertThat(stats.toString(), containsString("total-messages, value=100.0"));
   }
 
   @Test
   public void shouldDisplayByteThroughputAcrossAllTopics() {
+    final Metrics metrics = new Metrics();
 
     final ConsumerCollector collector = new ConsumerCollector();
-    collector.configure(new Metrics(), "group", new SystemTime());
+    collector.configure(metrics, "group", new SystemTime());
 
-    for (int i = 0; i < 100; i++){
+    for (int i = 0; i < 100; i++) {
 
       final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records1 = ImmutableMap.of(
           new TopicPartition(TEST_TOPIC, 1), Collections.singletonList(
@@ -89,7 +96,6 @@ public class ConsumerCollectorTest {
       collector.onConsume(consumerRecords2);
     }
 
-    final Metrics metrics = MetricCollectors.getMetrics();
     assertThat(Double.parseDouble(metrics.metric(metrics.metricName(
         ConsumerCollector.CONSUMER_ALL_TOTAL_BYTES_SUM,
         ConsumerCollector.CONSUMER_COLLECTOR_METRICS_GROUP_NAME)

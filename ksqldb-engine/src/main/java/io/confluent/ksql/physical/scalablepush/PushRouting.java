@@ -645,10 +645,10 @@ public class PushRouting implements AutoCloseable {
         close();
         return Optional.empty();
       } else {
-        LOG.info("{}: Before update with {} current offsets {} and {}", thisHostName, name(),
+        LOG.debug("{}: Before update with {} current offsets {} and {}", thisHostName, name(),
             offsetsTracker.getOffsetRange(), new PushOffsetVector());
         offsetsTracker.updateFromToken(offsetRange.getEndOffsets());
-        LOG.info("{}: Updated {} with {} to have current offsets {}", thisHostName, name(),
+        LOG.debug("{}: Updated {} with {} to have current offsets {}", thisHostName, name(),
             offsetRange, offsetsTracker.getOffsetRange());
       }
       return Optional.of(updatedToken);
@@ -723,7 +723,7 @@ public class PushRouting implements AutoCloseable {
           return false;
         }
       } else {
-        LOG.info("Not outputting continuation token " + currentOffsetRange.get());
+        LOG.debug("Not outputting continuation token " + currentOffsetRange.get());
       }
       return true;
     }
@@ -788,7 +788,7 @@ public class PushRouting implements AutoCloseable {
           return;
         }
       } else {
-        LOG.info("Not outputting continuation token " + currentOffsetRange.get());
+        LOG.debug("Not outputting continuation token " + currentOffsetRange.get());
       }
 
       makeRequest(1);

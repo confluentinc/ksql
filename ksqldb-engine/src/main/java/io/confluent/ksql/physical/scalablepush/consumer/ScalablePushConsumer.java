@@ -117,7 +117,7 @@ public abstract class ScalablePushConsumer implements AutoCloseable {
           .map(offsets -> offsets.get(tp.partition()))
           .orElse(consumer.position(tp)));
     }
-    LOG.info("Consumer has assignment {} and current position {}", topicPartitions,
+    LOG.debug("Consumer has assignment {} and current position {}", topicPartitions,
         updatedCurrentPositions);
     currentPositions.set(ImmutableMap.copyOf(updatedCurrentPositions));
   }

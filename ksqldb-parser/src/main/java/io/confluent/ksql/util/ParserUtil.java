@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Strings;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -45,7 +46,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.lang3.text.translate.LookupTranslator;
-import org.apache.logging.log4j.util.Strings;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ParserUtil {
@@ -256,7 +256,7 @@ public final class ParserUtil {
     } else if (context.HEADERS() != null) {
       builder = builder.headers();
     } else if (context.HEADER() != null) {
-      builder = builder.header(Strings.trimToNull(unquote(context.STRING().getText(), "'")));
+      builder = builder.header(Strings.emptyToNull(unquote(context.STRING().getText(), "'")));
     }
 
     return builder.build();

@@ -262,7 +262,7 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
-  public int latestNumRegistered() {
+  public synchronized int latestNumRegistered() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null && !latestConsumer.isClosed()) {
       return latestConsumer.numRegistered();
@@ -271,7 +271,7 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
-  public long latestNumRowsReceived() {
+  public synchronized long latestNumRowsReceived() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null && !latestConsumer.isClosed()) {
       return latestConsumer.getNumRowsReceived();
@@ -280,7 +280,7 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
-  public int catchupNumRegistered() {
+  public synchronized int catchupNumRegistered() {
     int total = 0;
     for (CatchupConsumer catchupConsumer : catchupConsumers.values()) {
       total += catchupConsumer.numRegistered();
@@ -289,21 +289,12 @@ public class ScalablePushRegistry {
   }
 
   @VisibleForTesting
-  public boolean latestHasAssignment() {
+  public synchronized boolean latestHasAssignment() {
     final LatestConsumer latestConsumer = this.latestConsumer.get();
     if (latestConsumer != null && !latestConsumer.isClosed()) {
       return latestConsumer.getAssignment() != null;
     }
     return false;
-  }
-
-  @VisibleForTesting
-  public PushOffsetVector latestOffsets() {
-    final LatestConsumer latestConsumer = this.latestConsumer.get();
-    if (latestConsumer != null) {
-      return latestConsumer.getCurrentToken();
-    }
-    return null;
   }
 
   @VisibleForTesting

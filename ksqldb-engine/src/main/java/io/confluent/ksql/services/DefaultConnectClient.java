@@ -45,6 +45,7 @@ import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -66,6 +67,7 @@ public class DefaultConnectClient implements ConnectClient {
   private static final String CONNECTORS = "/connectors";
   private static final String STATUS = "/status";
   private static final String TOPICS = "/topics";
+  private static final String VALIDATE_CONNECTOR = CONNECTOR_PLUGINS + "/%s/config/validate";
   private static final int DEFAULT_TIMEOUT_MS = 5_000;
   private static final int MAX_ATTEMPTS = 3;
 
@@ -119,6 +121,39 @@ public class DefaultConnectClient implements ConnectClient {
           .ifPresent(error -> LOG.warn("Did not CREATE connector {}: {}", connector, error));
 
       return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
+  @Override
+  public ConnectResponse<ConfigInfos> validate(
+      final String plugin,
+      final Map<String, String> config) {
+    try {
+      LOG.debug("Issuing validate request to Kafka Connect at URI {} for plugin {} and config {}",
+          connectUri,
+          plugin,
+          config);
+
+      final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
+          .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
+          .setHeaders(headers())
+          .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
+          .bodyString(MAPPER.writeValueAsString(config), ContentType.APPLICATION_JSON)
+          .execute()
+          .handleResponse(
+              createHandler(HttpStatus.SC_OK, new TypeReference<ConfigInfos>() {},
+                  Function.identity())));
+
+      connectResponse.error()
+          .ifPresent(error ->
+              LOG.warn("Did not VALIDATE connector configuration for plugin {} and config {}: {}",
+              plugin, config, error));
+
+      return connectResponse;
+
     } catch (final Exception e) {
       throw new KsqlServerException(e);
     }

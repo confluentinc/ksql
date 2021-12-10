@@ -75,12 +75,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.reactivestreams.Subscription;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConsistencyOffsetVectorFunctionalTest {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConsistencyOffsetVectorFunctionalTest.class);
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
@@ -191,7 +187,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    LOGGER.info("Received consistency vector = " + ((ClientImpl)client).getSerializedConsistencyVector());
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
@@ -224,7 +219,6 @@ public class ConsistencyOffsetVectorFunctionalTest {
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                           is(notNullValue()));
-    LOGGER.info("Received consistency vector = " + ((ClientImpl)client).getSerializedConsistencyVector());
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }

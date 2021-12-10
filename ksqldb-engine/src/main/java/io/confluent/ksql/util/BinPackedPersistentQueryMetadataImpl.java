@@ -18,8 +18,6 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Supplier;
-import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -35,18 +33,19 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryError;
-import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
@@ -75,21 +74,14 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final ExecutionStep<?> physicalPlan;
   private final PhysicalSchema resultSchema;
   private final Listener listener;
-  private final Supplier<NamedTopology> namedTopologySupplier;
+  private final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder;
+  private final TimeBoundedQueue queryErrors;
 
-  private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
-    @Override
-    public long read() {
-      return System.currentTimeMillis();
-    }
-  };
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
   private final Optional<MaterializationProvider> materializationProvider;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
   public boolean everStarted = false;
-  private QueryErrorClassifier classifier;
-  private Map<String, Object> streamsProperties;
   private boolean corruptionCommandTopic = false;
 
 
@@ -113,10 +105,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final ProcessingLogger processingLogger,
       final Optional<DataSource> sinkDataSource,
       final Listener listener,
-      final QueryErrorClassifier classifier,
       final Map<String, Object> streamsProperties,
       final Optional<ScalablePushRegistry> scalablePushRegistry,
-      final Supplier<NamedTopology> namedTopologySupplier) {
+      final Function<SharedKafkaStreamsRuntime, NamedTopology> namedTopologyBuilder) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -138,14 +129,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.listener = requireNonNull(listener, "listener");
-    this.namedTopologySupplier = requireNonNull(namedTopologySupplier, "namedTopologySupplier");
+    this.namedTopologyBuilder = requireNonNull(namedTopologyBuilder, "namedTopologyBuilder");
+    this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
     this.materializationProvider = materializationProviderBuilder
             .flatMap(builder -> builder.apply(
                     this.sharedKafkaStreamsRuntime.getKafkaStreams(),
                     topology
             ));
-    this.classifier = requireNonNull(classifier, "classifier");
-    this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
@@ -172,9 +162,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.resultSchema = original.resultSchema;
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.listener = requireNonNull(listener, "listen");
+    this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
     this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
-    this.namedTopologySupplier = original.namedTopologySupplier;
+    this.namedTopologyBuilder = original.namedTopologyBuilder;
   }
 
   @Override
@@ -238,7 +229,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       final Throwable error) {
-    return sharedKafkaStreamsRuntime.uncaughtHandler(error);
+    // handler is defined in the SharedKafkaStreamsRuntime
+    throw new UnsupportedOperationException("Should not get uncaught exception handler for"
+                                                + " individual queries in shared runtime");
   }
 
   @Override
@@ -274,7 +267,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
-    //Not done here but in bin packed queries
+    // handler has already been set on the shared runtime of bin-packed queries
+    throw new UnsupportedOperationException("Should not set uncaught exception handler for"
+                                                + " individual queries in shared runtime");
   }
 
   @Override
@@ -301,8 +296,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     return topology;
   }
 
-  public NamedTopology getTopologyCopy() {
-    return namedTopologySupplier.get();
+  public NamedTopology getTopologyCopy(final SharedKafkaStreamsRuntime builder) {
+    return namedTopologyBuilder.apply(builder);
   }
 
   @Override
@@ -357,7 +352,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public List<QueryError> getQueryErrors() {
-    return sharedKafkaStreamsRuntime.getRuntimeErrors();
+    return queryErrors.toImmutableList();
   }
 
   @Override
@@ -367,9 +362,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
         "Query not started due to corruption in the command topic.",
         QueryError.Type.USER
     );
-    listener.onError(this, corruptionQueryError);
-    sharedKafkaStreamsRuntime.addRuntimeError(corruptionQueryError);
+    setQueryError(corruptionQueryError);
     corruptionCommandTopic = true;
+  }
+
+  public void setQueryError(final QueryError error) {
+    listener.onError(this, error);
+    queryErrors.add(error);
   }
 
   @Override
@@ -388,7 +387,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public void start() {
     if (!everStarted) {
       sharedKafkaStreamsRuntime.register(
-          classifier,
           this,
           queryId
       );

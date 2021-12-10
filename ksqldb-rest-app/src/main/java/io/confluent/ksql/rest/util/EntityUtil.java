@@ -19,7 +19,6 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -55,13 +54,19 @@ public final class EntityUtil {
   }
 
   private static FieldInfo toFieldInfo(final Column column) {
-    return new FieldInfo(column.name().text(), schemaInfo(column.type()), fieldType(column));
+    return new FieldInfo(
+        column.name().text(), schemaInfo(column.type()), fieldType(column), column.headerKey());
   }
 
   private static Optional<FieldType> fieldType(final Column column) {
-    return column.namespace() == Namespace.KEY
-        ? Optional.of(FieldType.KEY)
-        : Optional.empty();
+    switch (column.namespace()) {
+      case KEY:
+        return Optional.of(FieldType.KEY);
+      case HEADERS:
+        return Optional.of(FieldType.HEADER);
+      default:
+        return Optional.empty();
+    }
   }
 
 

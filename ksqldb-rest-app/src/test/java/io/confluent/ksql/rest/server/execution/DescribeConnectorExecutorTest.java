@@ -249,6 +249,31 @@ public class DescribeConnectorExecutorTest {
   }
 
   @Test
+  public void shouldNotWarnClientOnMissingTopicsEndpoint() {
+    // Given:
+    when(connectClient.topics(any())).thenReturn(ConnectResponse.failure("not found",
+        HttpStatus.SC_NOT_FOUND));
+
+    // When:
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, mock(SessionProperties.class), engine, serviceContext)
+        .getEntity();
+
+    // Then:
+    verify(engine).getMetaStore();
+    verify(metaStore).getAllDataSources();
+    verify(connectClient).status("connector");
+    verify(connectClient).describe("connector");
+    verify(connectClient).topics("connector");
+    assertThat("Expected a response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
+
+    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    assertThat(description.getTopics(), empty());
+    assertThat(description.getWarnings(), empty());
+  }
+
+  @Test
   public void shouldWorkIfUnknownConnector() {
     // Given:
     connectorFactory = info -> Optional.empty();

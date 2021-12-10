@@ -31,11 +31,16 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -50,6 +55,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class DefaultConnectClientTest {
 
   private static final ObjectMapper MAPPER = ConnectJsonMapper.INSTANCE.get();
@@ -123,6 +129,79 @@ public class DefaultConnectClientTest {
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(SAMPLE_INFO)));
     assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testValidate() throws JsonProcessingException {
+    // Given:
+    final String plugin = SAMPLE_PLUGIN.className();
+    final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
+    final ConfigInfos body = new ConfigInfos(
+        plugin,
+        1,
+        ImmutableList.of("Common"),
+        ImmutableList.of(new ConfigInfo(new ConfigKeyInfo(
+            "file",
+            "STRING",
+            true,
+            "",
+            "HIGH",
+            "Destination filename.",
+            null,
+            -1,
+            "NONE",
+            "file",
+            Collections.emptyList()),
+            new ConfigValueInfo(
+                "file",
+                null,
+                Collections.emptyList(),
+                ImmutableList.of(
+                    "Missing required configuration \"file\" which has no default value."),
+                true)
+            )));
+
+    WireMock.stubFor(
+        WireMock.put(WireMock.urlEqualTo(url))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody(MAPPER.writeValueAsString(body)))
+    );
+
+    // When:
+    final Map<String, String> config = ImmutableMap.of(
+        "connector.class", plugin,
+        "tasks.max", "1",
+        "topics", "test-topic"
+    );
+    final ConnectResponse<ConfigInfos> response = client.validate(plugin, config);
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is(body)));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testValidateWithError() throws JsonProcessingException {
+    // Given:
+    final String plugin = SAMPLE_PLUGIN.className();
+    final String url = String.format(pathPrefix + "/connector-plugins/%s/config/validate", plugin);
+    WireMock.stubFor(
+        WireMock.put(WireMock.urlEqualTo(url))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
+                .withBody("Oh no!"))
+    );
+
+    // When:
+    final ConnectResponse<ConfigInfos> response =
+        client.validate(plugin, ImmutableMap.of());
+
+    // Then:
+    assertThat("Expected no datum!", !response.datum().isPresent());
+    assertThat(response.error(), OptionalMatchers.of(is("Oh no!")));
   }
 
   @Test

@@ -25,14 +25,12 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
-import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,8 +57,6 @@ public class BinPackedPersistentQueryMetadataImplTest {
     @Mock
     private Map<String, Object> overrides;
     @Mock
-    private QueryErrorClassifier queryErrorClassifier;
-    @Mock
     private ExecutionStep<?> physicalPlan;
     @Mock
     private ProcessingLogger processingLogger;
@@ -68,8 +64,6 @@ public class BinPackedPersistentQueryMetadataImplTest {
     private Listener listener;
     @Mock
     private SharedKafkaStreamsRuntimeImpl sharedKafkaStreamsRuntimeImpl;
-    @Mock
-    private QueryErrorClassifier classifier;
     @Mock
     private Map<String, Object> streamsProperties;
     @Mock
@@ -96,10 +90,9 @@ public class BinPackedPersistentQueryMetadataImplTest {
             processingLogger,
             Optional.of(sinkDataSource),
             listener,
-            classifier,
             streamsProperties,
             scalablePushRegistry,
-            () -> topology);
+            (runtime) -> topology);
 
         query.initialize();
     }

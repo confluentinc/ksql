@@ -463,7 +463,8 @@ final class QueryBuilder {
         serviceContext
     );
 
-    final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata = new BinPackedPersistentQueryMetadataImpl(
+    final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
+        = new BinPackedPersistentQueryMetadataImpl(
         persistentQueryType,
         statementText,
         querySchema,
@@ -493,7 +494,9 @@ final class QueryBuilder {
     if (real) {
       return binPackedPersistentQueryMetadata;
     } else {
-      return SandboxedBinPackedPersistentQueryMetadataImpl.of(binPackedPersistentQueryMetadata, listener);
+      return SandboxedBinPackedPersistentQueryMetadataImpl.of(
+          binPackedPersistentQueryMetadata,
+          listener);
     }
   }
 

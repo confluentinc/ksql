@@ -35,11 +35,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DescribeConnectorExecutor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DescribeConnectorExecutor.class);
 
   @VisibleForTesting
   static final String TOPICS_KEY = "topics";
@@ -99,7 +104,15 @@ public final class DescribeConnectorExecutor {
       final ConnectResponse<Map<String, Map<String, List<String>>>> topicsResponse = serviceContext
           .getConnectClient()
           .topics(connectorName);
-      if (topicsResponse.error().isPresent()) {
+      // topics endpoint is relatively new (KAFKA-9422), so 404 here is expected behavior for older
+      // Connect versions. Rather than showing a scary warning to the user, we just log it to the
+      // server logs.
+      if (topicsResponse.error().isPresent()
+          && topicsResponse.httpCode() == HttpStatus.SC_NOT_FOUND) {
+        topics = ImmutableList.of();
+        warnings = ImmutableList.of();
+        LOG.warn("Could not list related topics due to error: " + topicsResponse.error().get());
+      } else if (topicsResponse.error().isPresent()) {
         topics = ImmutableList.of();
         warnings = ImmutableList.of(
             new KsqlWarning("Could not list related topics due to error: "

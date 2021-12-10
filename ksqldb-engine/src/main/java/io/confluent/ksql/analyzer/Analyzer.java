@@ -69,6 +69,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
 import java.util.List;
@@ -305,10 +306,19 @@ class Analyzer {
           .orElseGet(ImmutableList::of)
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
-      analysis.getPartitionBy()
-          .map(PartitionBy::getExpressions)
-          .orElseGet(ImmutableList::of)
-          .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+      try {
+        analysis.getPartitionBy()
+            .map(PartitionBy::getExpressions)
+            .orElseGet(ImmutableList::of)
+            .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+      } catch (final UnknownColumnException e) {
+        throw new UnknownColumnException(
+            e.getPrefix(),
+            e.getColumnExp(),
+            "cannot be resolved. '"
+                + e.getColumnExp() + "' must be a column in the source schema since PARTITION BY"
+                + " is applied on the input.");
+      }
 
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));

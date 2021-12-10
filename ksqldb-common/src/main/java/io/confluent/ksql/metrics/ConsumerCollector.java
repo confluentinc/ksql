@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -42,6 +41,7 @@ import org.apache.kafka.common.metrics.stats.CumulativeSum;
 import org.apache.kafka.common.metrics.stats.Rate;
 
 public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<Object, Object> {
+
   public static final String CONSUMER_MESSAGES_PER_SEC = "consumer-messages-per-sec";
   public static final String CONSUMER_TOTAL_MESSAGES = "consumer-total-messages";
   public static final String CONSUMER_TOTAL_BYTES = "consumer-total-bytes";
@@ -121,20 +121,16 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
   ) {
     final List<SensorMetric<ConsumerRecord<Object, Object>>> sensors = new ArrayList<>();
 
-    // Note: synchronized due to metrics registry not handling concurrent add/check-exists
-    // activity in a reliable way
-    synchronized (this.metrics) {
-      addSensor(key, CONSUMER_MESSAGES_PER_SEC, new Rate(), sensors, false);
-      addSensor(key, CONSUMER_TOTAL_MESSAGES, new CumulativeSum(), sensors, false);
-      addSensor(key, CONSUMER_TOTAL_BYTES, new CumulativeSum(), sensors, false,
-          (r) -> {
-            if (r == null) {
-              return 0.0;
-            } else {
-              return ((double) r.serializedValueSize() + r.serializedKeySize());
-            }
-          });
-    }
+    addSensor(key, CONSUMER_MESSAGES_PER_SEC, new Rate(), sensors, false);
+    addSensor(key, CONSUMER_TOTAL_MESSAGES, new CumulativeSum(), sensors, false);
+    addSensor(key, CONSUMER_TOTAL_BYTES, new CumulativeSum(), sensors, false,
+        (r) -> {
+          if (r == null) {
+            return 0.0;
+          } else {
+            return ((double) r.serializedValueSize() + r.serializedKeySize());
+          }
+        });
     return sensors;
   }
 
@@ -145,7 +141,7 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
       final List<SensorMetric<ConsumerRecord<Object, Object>>> sensors,
       final boolean isError
   ) {
-    addSensor(key, metricNameString, stat, sensors, isError, (r) -> (double)1);
+    addSensor(key, metricNameString, stat, sensors, isError, (r) -> (double) 1);
   }
 
   private void addSensor(
@@ -164,13 +160,8 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
         "consumer-" + name,
         ImmutableMap.of("key", key, "id", id)
     );
-    final Sensor existingSensor = metrics.getSensor(name);
     final Sensor sensor = metrics.sensor(name);
-
-    // re-use the existing measurable stats to share between consumers
-    if (existingSensor == null || metrics.metrics().get(metricName) == null) {
-      sensor.add(metricName, stat);
-    }
+    sensor.add(metricName, stat);
 
     final KafkaMetric metric = metrics.metrics().get(metricName);
 

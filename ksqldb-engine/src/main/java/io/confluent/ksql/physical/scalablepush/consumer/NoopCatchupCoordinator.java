@@ -31,4 +31,8 @@ public class NoopCatchupCoordinator implements CatchupCoordinator {
       final Runnable switchOver) {
     return false;
   }
+
+  @Override
+  public void catchupIsClosing(final AtomicBoolean signalledLatest) {
+  }
 }

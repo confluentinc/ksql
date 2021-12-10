@@ -44,7 +44,6 @@ import io.confluent.ksql.physical.scalablepush.consumer.CatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.consumer.KafkaConsumerFactory.KafkaConsumerFactoryInterface;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer;
 import io.confluent.ksql.physical.scalablepush.consumer.LatestConsumer.LatestConsumerFactory;
-import io.confluent.ksql.physical.scalablepush.consumer.NoopCatchupCoordinator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -60,9 +59,11 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
@@ -123,6 +124,7 @@ public class ScalablePushRegistryTest {
   private TestLatestConsumer latestConsumer;
   private TestLatestConsumer latestConsumer2;
   private TestCatchupConsumer catchupConsumer;
+  private TestCatchupCoordinator catchupCoordinator;
   private ScalablePushRegistry registry;
 
   @Before
@@ -131,17 +133,19 @@ public class ScalablePushRegistryTest {
     when(kafkaConsumerFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(kafkaConsumer);
 
+    catchupCoordinator = new TestCatchupCoordinator();
     latestConsumer = new TestLatestConsumer(TOPIC, false, SCHEMA, kafkaConsumer,
-        new NoopCatchupCoordinator(), assignment -> { },  ksqlConfig, Clock.systemUTC());
+        catchupCoordinator, assignment -> { },  ksqlConfig, Clock.systemUTC());
     latestConsumer2 = new TestLatestConsumer(TOPIC, false, SCHEMA, kafkaConsumer,
-        new NoopCatchupCoordinator(), assignment -> { },  ksqlConfig, Clock.systemUTC());
+        catchupCoordinator, assignment -> { },  ksqlConfig, Clock.systemUTC());
     catchupConsumer = new TestCatchupConsumer(TOPIC, false, SCHEMA, kafkaConsumer,
         () -> latestConsumer,
-        new NoopCatchupCoordinator(), pushOffsetRange, Clock.systemUTC());
+        catchupCoordinator, pushOffsetRange, Clock.systemUTC(), pq -> { });
+
     when(latestConsumerFactory.create(any(), anyBoolean(), any(), any(), any(), any(),
         any(), any())).thenReturn(latestConsumer, latestConsumer2);
     when(catchupConsumerFactory.create(any(), anyBoolean(), any(), any(), any(), any(),
-        any(), any(), anyLong())).thenReturn(catchupConsumer);
+        any(), any(), anyLong(), any())).thenReturn(catchupConsumer);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
     when(keyFormat.isWindowed()).thenReturn(false);
     realExecutorService = Executors.newFixedThreadPool(2);
@@ -167,8 +171,11 @@ public class ScalablePushRegistryTest {
   }
 
   @After
-  public void tearDown() {
-    realExecutorService.shutdownNow();
+  public void tearDown() throws InterruptedException {
+    realExecutorService.shutdown();
+    if (!realExecutorService.awaitTermination(100, TimeUnit.MILLISECONDS)) {
+      realExecutorService.shutdownNow();
+    }
   }
 
   @Test
@@ -405,6 +412,34 @@ public class ScalablePushRegistryTest {
   }
 
   @Test
+  public void shouldRegisterAndStartCatchup_andSwitchOver() {
+    // Given:
+    when(catchupConsumerFactory.create(any(), anyBoolean(), any(), any(), any(), any(),
+        any(), any(), anyLong(), any())).thenAnswer(a -> {
+      Consumer<ProcessingQueue> caughtUpCallback = a.getArgument(9);
+      catchupConsumer = new TestCatchupConsumer(TOPIC, false, SCHEMA, kafkaConsumer,
+          () -> latestConsumer,
+          catchupCoordinator, pushOffsetRange, Clock.systemUTC(), caughtUpCallback);
+      return catchupConsumer;
+    });
+
+    // When:
+    registry.register(processingQueue,
+        Optional.of(new CatchupMetadata(pushOffsetRange, CATCHUP_CONSUMER_GROUP)));
+    assertThat(registry.isLatestRunning(), is(true));
+    assertThatEventually(registry::latestNumRegistered, is(0));
+    assertThatEventually(registry::catchupNumRegistered, is(1));
+
+    // Then:
+    catchupCoordinator.setCaughtUp();
+    assertThat(registry.isLatestRunning(), is(true));
+    assertThatEventually(registry::latestNumRegistered, is(1));
+    assertThatEventually(registry::catchupNumRegistered, is(0));
+    registry.unregister(processingQueue);
+    assertThatEventually(registry::isLatestRunning, is(false));
+  }
+
+  @Test
   public void shouldCatchExceptionCatchup_onRun() {
     // Given:
     catchupConsumer.setErrorOnRun(true);
@@ -457,7 +492,7 @@ public class ScalablePushRegistryTest {
     // Given:
     doThrow(new RuntimeException("Error!"))
         .when(catchupConsumerFactory).create(
-        any(), anyBoolean(), any(), any(), any(), any(), any(), any(), anyLong());
+        any(), anyBoolean(), any(), any(), any(), any(), any(), any(), anyLong(), any());
     AtomicBoolean isErrorQueue = new AtomicBoolean(false);
     doAnswer(a -> {
       isErrorQueue.set(true);
@@ -511,7 +546,7 @@ public class ScalablePushRegistryTest {
     registry.unregister(processingQueue);
 
     // Then:
-    assertThat(e.getMessage(), is("Too many catchups registered"));
+    assertThat(e.getMessage(), containsString("Too many catchups registered"));
     verify(processingQueue, never()).onError();
     verify(processingQueue2).onError();
     assertThat(registry.isLatestRunning(), is(false));
@@ -570,10 +605,11 @@ public class ScalablePushRegistryTest {
         KafkaConsumer<Object, GenericRow> consumer,
         Supplier<LatestConsumer> latestConsumerSupplier,
         CatchupCoordinator catchupCoordinator,
-        PushOffsetRange pushOffsetRange, Clock clock) {
+        PushOffsetRange pushOffsetRange, Clock clock,
+        Consumer<ProcessingQueue> caughtUpCallback) {
       super(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier,
           catchupCoordinator,
-          pushOffsetRange, clock, 0);
+          pushOffsetRange, clock, 0, caughtUpCallback);
     }
 
     public void setForceRun(boolean forceRun) {
@@ -591,6 +627,7 @@ public class ScalablePushRegistryTest {
       while (!isClosed() || forceRun.get()) {
         try {
           Thread.sleep(10);
+          checkCaughtUp();
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
@@ -599,6 +636,32 @@ public class ScalablePushRegistryTest {
 
     public long getNumRowsReceived() {
       return 1L;
+    }
+  }
+
+  public static class TestCatchupCoordinator implements CatchupCoordinator {
+    private final AtomicBoolean caughtUp = new AtomicBoolean(false);
+
+    @Override
+    public void checkShouldWaitForCatchup() {
+    }
+
+    @Override
+    public boolean checkShouldCatchUp(AtomicBoolean signalledLatest,
+        Function<Boolean, Boolean> isCaughtUp, Runnable switchOver) {
+      if (caughtUp.get()) {
+        switchOver.run();
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public void catchupIsClosing(AtomicBoolean signalledLatest) {
+    }
+
+    public void setCaughtUp() {
+      caughtUp.set(true);
     }
   }
 }

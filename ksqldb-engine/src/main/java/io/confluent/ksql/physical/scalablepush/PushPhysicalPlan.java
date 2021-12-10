@@ -151,6 +151,8 @@ public class PushPhysicalPlan {
   }
 
   public void close() {
+    LOGGER.info("CLOSING PHYSICAL PLAN ");
+    new RuntimeException().printStackTrace();
     context.runOnContext(v -> closeInternal());
   }
 

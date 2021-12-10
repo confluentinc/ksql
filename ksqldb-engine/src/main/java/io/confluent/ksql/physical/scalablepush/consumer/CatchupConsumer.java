@@ -47,13 +47,16 @@ public class CatchupConsumer extends ScalablePushConsumer {
   @VisibleForTesting
   static final long WAIT_FOR_ASSIGNMENT_MS = 15000;
 
-  private final Supplier<LatestConsumer> latestConsumerSupplier;
+  @VisibleForTesting
+  protected final Supplier<LatestConsumer> latestConsumerSupplier;
   private final CatchupCoordinator catchupCoordinator;
   private final PushOffsetRange offsetRange;
   private final Consumer<Long> sleepMs;
   private final BiConsumer<Object, Long> waitMs;
   private final long catchupWindow;
   private final AtomicBoolean signalledLatest = new AtomicBoolean(false);
+  @VisibleForTesting
+  protected final Consumer<ProcessingQueue> caughtUpCallback;
 
   @SuppressWarnings("ParameterNumber")
   public CatchupConsumer(
@@ -67,7 +70,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
       final Clock clock,
       final Consumer<Long> sleepMs,
       final BiConsumer<Object, Long> waitMs,
-      final long catchupWindow
+      final long catchupWindow,
+      final Consumer<ProcessingQueue> caughtUpCallback
   ) {
     super(topicName, windowed, logicalSchema, consumer, clock);
     this.latestConsumerSupplier = latestConsumerSupplier;
@@ -76,6 +80,7 @@ public class CatchupConsumer extends ScalablePushConsumer {
     this.sleepMs = sleepMs;
     this.waitMs = waitMs;
     this.catchupWindow = catchupWindow;
+    this.caughtUpCallback = caughtUpCallback;
   }
 
   public CatchupConsumer(
@@ -87,10 +92,12 @@ public class CatchupConsumer extends ScalablePushConsumer {
       final CatchupCoordinator catchupCoordinator,
       final PushOffsetRange offsetRange,
       final Clock clock,
-      final long catchupWindow
+      final long catchupWindow,
+      final Consumer<ProcessingQueue> caughtUpCallback
   ) {
     this(topicName, windowed, logicalSchema, consumer, latestConsumerSupplier, catchupCoordinator,
-        offsetRange, clock, CatchupConsumer::sleep, CatchupConsumer::wait, catchupWindow);
+        offsetRange, clock, CatchupConsumer::sleep, CatchupConsumer::wait, catchupWindow,
+        caughtUpCallback);
   }
 
   public interface CatchupConsumerFactory {
@@ -103,7 +110,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
         CatchupCoordinator catchupCoordinator,
         PushOffsetRange pushOffsetRange,
         Clock clock,
-        long catchupWindow
+        long catchupWindow,
+        Consumer<ProcessingQueue> caughtUpCallback
     );
   }
 
@@ -195,7 +203,8 @@ public class CatchupConsumer extends ScalablePushConsumer {
    * consumer if finished.
    * @return If the catchup consumer has switched over.
    */
-  private void checkCaughtUp() {
+  @VisibleForTesting
+  protected void checkCaughtUp() {
     LOG.info("Checking to see if we're caught up");
     final Function<Boolean, Boolean> isCaughtUp = softCaughtUp -> {
       final LatestConsumer lc = latestConsumerSupplier.get();
@@ -218,11 +227,18 @@ public class CatchupConsumer extends ScalablePushConsumer {
       for (final ProcessingQueue processingQueue : processingQueues.values()) {
         LOG.info("Switching over from catchup queryid {} to latest", processingQueue.getQueryId());
         lc.register(processingQueue);
+        caughtUpCallback.accept(processingQueue);
       }
       processingQueues.clear();
       close();
     };
     catchupCoordinator.checkShouldCatchUp(signalledLatest, isCaughtUp, switchOver);
+  }
+
+  @Override
+  public void close() {
+    super.close();
+    catchupCoordinator.catchupIsClosing(signalledLatest);
   }
 
   /**

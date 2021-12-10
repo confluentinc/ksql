@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.time.Clock;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -26,23 +27,32 @@ public class CatchupCoordinatorImpl implements CatchupCoordinator {
   // The maximum amount of time waited.  This ensures that we don't freeze the latest indefinitely
   // and the latest can still potentially be closed.
   private static final long WAIT_TIME_MS = 10000;
+  private final Clock clock;
 
   private int catchupJoiners = 0;
   private boolean latestWaiting = false;
+
+  public CatchupCoordinatorImpl() {
+    this(Clock.systemUTC());
+  }
+
+  public CatchupCoordinatorImpl(final Clock clock) {
+    this.clock = clock;
+  }
 
   @Override
   public synchronized void checkShouldWaitForCatchup() {
     // If any catchup joiners are trying to catch up with us, we set latestWaiting and then wait
     // on this object to be notified once the switchover is complete.
-    final long startTime = System.currentTimeMillis();
+    final long startTime = clock.millis();
     while (catchupJoiners > 0) {
       try {
         latestWaiting = true;
-        LOG.info("Waiting for Catchups to join Latest consumer");
+        LOG.info("Waiting for Catchups to join Latest consumer, current count {}", catchupJoiners);
         this.wait(WAIT_TIME_MS);
-        final long waitedMs = System.currentTimeMillis() - startTime;
-        LOG.info("Waited for Catchups to join Latest consumer for "
-            + waitedMs + "ms");
+        final long waitedMs = clock.millis() - startTime;
+        LOG.info("Waited for Catchups to join Latest consumer for {}ms and current count {}",
+            waitedMs, catchupJoiners);
         if (waitedMs >= WAIT_TIME_MS) {
           break;
         }
@@ -65,8 +75,9 @@ public class CatchupCoordinatorImpl implements CatchupCoordinator {
     // This means that latest has been waiting and we're actually fully, message for message caught
     // up (and may even be a few past).
     if (latestWaiting && isCaughtUp.apply(false)) {
-      LOG.info("Catchup is joining latest");
+      LOG.info("Catchup is joining latest, about to decrement {}", catchupJoiners);
       if (signalledLatest.get()) {
+        signalledLatest.set(false);
         catchupJoiners--;
         this.notify();
       }
@@ -76,10 +87,21 @@ public class CatchupCoordinatorImpl implements CatchupCoordinator {
       // If we haven't yet signalled that we're ready to switch over by incrementing catchupJoiners,
       // and we're soft caught up, then we tell latest to pause by incrementing catchupJoiners.
     } else if (!signalledLatest.get() && isCaughtUp.apply(true)) {
+      LOG.info("Signalling Latest, about to increment {}", catchupJoiners);
       signalledLatest.set(true);
       catchupJoiners++;
     }
     return false;
+  }
+
+  @Override
+  public synchronized void catchupIsClosing(
+      final AtomicBoolean signalledLatest
+  ) {
+    if (signalledLatest.get()) {
+      signalledLatest.set(false);
+      catchupJoiners--;
+    }
   }
 
   @VisibleForTesting

@@ -277,7 +277,6 @@ public class ScalablePushConsumerTest {
     ExecutorService executorService = Executors.newSingleThreadExecutor();
     AtomicReference<TestScalablePushConsumer> ref = new AtomicReference<>();
     try {
-      when(kafkaConsumer.poll(any())).thenAnswer(a -> EMPTY_RECORDS);
       executorService.submit(() -> {
         try (TestScalablePushConsumer consumer = new TestScalablePushConsumer(kafkaConsumer, false,
             null, clock)) {

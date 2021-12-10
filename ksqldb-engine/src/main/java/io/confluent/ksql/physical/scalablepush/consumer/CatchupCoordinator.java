@@ -51,4 +51,11 @@ public interface CatchupCoordinator {
       Function<Boolean, Boolean> isCaughtUp,
       Runnable switchOver
   );
+
+  /**
+   * When the catchup thread is closing, we want to ensure that if it signaled that it was waiting
+   * but never made the switch, that we un-signal it as waiting.
+   * @param signalledLatest The indicator if it signaled to latest that it was waiting.
+   */
+  void catchupIsClosing(AtomicBoolean signalledLatest);
 }

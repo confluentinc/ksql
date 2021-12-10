@@ -19,6 +19,7 @@ import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.of
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyQueryRows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -67,6 +68,7 @@ public class CatchupConsumerTest {
   @Mock
   private BiConsumer<Object, Long> waitFn;
 
+  private boolean caughtUp = false;
   private CatchupCoordinatorImpl catchupCoordinator = new CatchupCoordinatorImpl();
 
   @Before
@@ -85,7 +87,7 @@ public class CatchupConsumerTest {
         new PushOffsetVector(ImmutableList.of(1L, 2L)));
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, 0)) {
+        offsetRange, clock, 0, pq -> caughtUp = true)) {
 
       runSuccessfulTest(consumer);
     }
@@ -103,7 +105,7 @@ public class CatchupConsumerTest {
         cRef.get().newAssignment(ImmutableSet.of(TP0, TP1));
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn, waitFn, 0)) {
+        offsetRange, clock, sleepFn, waitFn, 0, pq -> caughtUp = true)) {
       cRef.set(consumer);
 
       runSuccessfulTest(consumer);
@@ -121,7 +123,7 @@ public class CatchupConsumerTest {
             1, CURRENT_TIME_MS + WAIT_FOR_ASSIGNMENT_MS + 1);
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn, waitFn, 0)) {
+        offsetRange, clock, sleepFn, waitFn, 0, pq -> caughtUp = true)) {
 
       // When:
       consumer.register(queue);
@@ -144,7 +146,7 @@ public class CatchupConsumerTest {
     when(queue.isAtLimit()).thenReturn(false, true, true, false);
     try (CatchupConsumer consumer = new CatchupConsumer(
         TOPIC, false, SCHEMA, kafkaConsumer, () -> latestConsumer, catchupCoordinator,
-        offsetRange, clock, sleepFn, waitFn, 0)) {
+        offsetRange, clock, sleepFn, waitFn, 0, pq -> caughtUp = true)) {
 
       // When:
       consumer.register(queue);
@@ -186,6 +188,7 @@ public class CatchupConsumerTest {
             offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 4L), ImmutableList.of(3L, 4L))));
 
     verify(latestConsumer).register(queue);
+    assertThat(caughtUp, is(true));
   }
 
 }

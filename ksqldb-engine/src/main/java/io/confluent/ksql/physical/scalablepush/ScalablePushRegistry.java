@@ -17,6 +17,7 @@ package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.MoreExecutors;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -51,7 +52,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javax.annotation.concurrent.GuardedBy;
@@ -86,7 +86,6 @@ public class ScalablePushRegistry {
   private final CatchupConsumerFactory catchupConsumerFactory;
   private final ExecutorService executorService;
   private final ScheduledExecutorService executorServiceCatchup;
-  private final AtomicInteger catchupCounter = new AtomicInteger(0);
 
   // If the registry is closed.  Should only happen on server shutdown.
   @GuardedBy("this")
@@ -151,24 +150,8 @@ public class ScalablePushRegistry {
     }
     catchupConsumers.clear();
 
-    executorService.shutdown();
-    try {
-      if (!executorService.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
-        executorService.shutdownNow();
-      }
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted during shutdown", e);
-      executorService.shutdownNow();
-    }
-    executorServiceCatchup.shutdown();
-    try {
-      if (!executorServiceCatchup.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
-        executorServiceCatchup.shutdownNow();
-      }
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted during shutdown", e);
-      executorServiceCatchup.shutdownNow();
-    }
+    MoreExecutors.shutdownAndAwaitTermination(executorService, 5000, TimeUnit.MILLISECONDS);
+    MoreExecutors.shutdownAndAwaitTermination(executorServiceCatchup, 5000, TimeUnit.MILLISECONDS);
 
     closed = true;
   }
@@ -201,12 +184,14 @@ public class ScalablePushRegistry {
     }
     try {
       if (catchupMetadata.isPresent()) {
-        if (catchupCounter.get()
+        if (catchupConsumers.size()
             >= ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS)) {
           processingQueue.onError();
-          throw new KsqlException("Too many catchups registered");
+          throw new KsqlException("Too many catchups registered, "
+              + KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS
+              + ":" + ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS));
         }
-        // Latest much be running for a catchup consumer to exist.
+        // Latest must be running for a catchup consumer to exist.
         startLatestIfNotRunning(Optional.empty());
         startCatchup(processingQueue, catchupMetadata.get());
       } else {
@@ -240,12 +225,7 @@ public class ScalablePushRegistry {
       if (latestConsumer != null && !latestConsumer.isClosed()) {
         latestConsumer.unregister(processingQueue);
       }
-      catchupConsumers
-          .computeIfPresent(processingQueue.getQueryId(), (queryId, catchupConsumer) -> {
-            catchupConsumer.unregister(processingQueue);
-            catchupConsumer.closeAsync();
-            return null;
-          });
+      unregisterCatchup(processingQueue);
     } finally {
       // Make sure we stop latest after any unregisters if necessary. We don't except the above to
       // throw any exceptions, but it's wrapped in a finally to be safe.
@@ -483,7 +463,8 @@ public class ScalablePushRegistry {
       catchupConsumer = catchupConsumerFactory.create(ksqlTopic.getKafkaTopicName(), isWindowed(),
           logicalSchema, consumer, latestConsumer::get, catchupCoordinator, offsetRange,
           Clock.systemUTC(),
-          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW));
+          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW),
+          this::unregisterCatchup);
       return catchupConsumer;
     } catch (Exception e) {
       LOG.error("Couldn't create catchup consumer", e);
@@ -494,6 +475,20 @@ public class ScalablePushRegistry {
       }
       throw e;
     }
+  }
+
+  /**
+   * Unregisters catchups either after they have run to completion and caught up, or even before
+   * they've completed.
+   * @param processingQueue The queue for the catchup query
+   */
+  private synchronized void unregisterCatchup(final ProcessingQueue processingQueue) {
+    catchupConsumers
+        .computeIfPresent(processingQueue.getQueryId(), (queryId, catchupConsumer) -> {
+          catchupConsumer.unregister(processingQueue);
+          catchupConsumer.closeAsync();
+          return null;
+        });
   }
 
   /**
@@ -510,7 +505,6 @@ public class ScalablePushRegistry {
         catchupMetadata.getCatchupConsumerGroup());
     catchupConsumer.register(processingQueue);
     catchupConsumers.put(processingQueue.getQueryId(), catchupConsumer);
-    catchupCounter.incrementAndGet();
     executorServiceCatchup.submit(() -> runCatchup(catchupConsumer, processingQueue));
   }
 
@@ -526,7 +520,6 @@ public class ScalablePushRegistry {
     } finally {
       catchupConsumerToRun.unregister(processingQueue);
       catchupConsumers.remove(processingQueue.getQueryId());
-      catchupCounter.decrementAndGet();
       // If things ended exceptionally, stop latest
       stopLatestConsumerOnLastRequest();
     }

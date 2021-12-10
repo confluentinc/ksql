@@ -42,7 +42,6 @@ import io.vertx.core.Context;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for scalable push queries.
@@ -186,8 +185,7 @@ public class PushPhysicalPlanBuilder {
         persistentQueryMetadata.getScalablePushRegistry()
             .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
     return catchupConsumerGroupFromSource.orElse(
-        scalablePushRegistry.getCatchupConsumerId(
-            "" + Math.abs(ThreadLocalRandom.current().nextLong())));
+        scalablePushRegistry.getCatchupConsumerId(UUID.randomUUID().toString()));
   }
 
   private QueryId uniqueQueryId() {

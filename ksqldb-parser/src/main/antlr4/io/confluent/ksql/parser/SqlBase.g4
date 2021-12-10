@@ -409,6 +409,7 @@ nonReserved
     | ASSERT
     | ALTER
     | ADD
+    | HEADER | HEADERS
     ;
 
 EMIT: 'EMIT';

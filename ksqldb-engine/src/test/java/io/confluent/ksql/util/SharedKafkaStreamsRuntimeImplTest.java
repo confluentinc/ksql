@@ -202,7 +202,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void allLocalStorePartitionLagsCallsTopologyMethod() {
         sharedKafkaStreamsRuntimeImpl.allLocalStorePartitionLags(queryId);
         verify(kafkaStreamsNamedTopologyWrapper)
-            .allLocalStorePartitionLagsForTopology("query 1");
+            .allLocalStorePartitionLagsForTopology("query-1");
     }
 
     @Test

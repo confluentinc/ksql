@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Strings;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;

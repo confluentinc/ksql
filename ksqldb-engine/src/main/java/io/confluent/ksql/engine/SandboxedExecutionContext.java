@@ -47,7 +47,6 @@ import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import org.apache.kafka.streams.KafkaStreams;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

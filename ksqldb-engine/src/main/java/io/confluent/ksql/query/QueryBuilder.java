@@ -67,6 +67,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
@@ -462,7 +463,7 @@ final class QueryBuilder {
         serviceContext
     );
 
-    return new BinPackedPersistentQueryMetadataImpl(
+    final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata = new BinPackedPersistentQueryMetadataImpl(
         persistentQueryType,
         statementText,
         querySchema,
@@ -489,6 +490,11 @@ final class QueryBuilder {
             physicalPlan
         )
     );
+    if (real) {
+      return binPackedPersistentQueryMetadata;
+    } else {
+      return SandboxedBinPackedPersistentQueryMetadataImpl.of(binPackedPersistentQueryMetadata, listener);
+    }
   }
 
   public NamedTopology getNamedTopology(final SharedKafkaStreamsRuntime sharedRuntime,

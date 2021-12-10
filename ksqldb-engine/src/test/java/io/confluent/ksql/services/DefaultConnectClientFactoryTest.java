@@ -239,7 +239,7 @@ public class DefaultConnectClientFactoryTest {
   }
 
   private void givenValidCredentialsFile() throws Exception {
-    final String content = String.format("username=%s\npassword=%s", USERNAME, PASSWORD);
+    final String content = String.format("username=%s%npassword=%s", USERNAME, PASSWORD);
     createCredentialsFile(content, true);
   }
 
@@ -248,7 +248,7 @@ public class DefaultConnectClientFactoryTest {
   }
 
   private void writeNewCredentialsFile() throws Exception {
-    final String content = String.format("username=%s\npassword=%s", OTHER_USERNAME, OTHER_PASSWORD);
+    final String content = String.format("username=%s%npassword=%s", OTHER_USERNAME, OTHER_PASSWORD);
     createCredentialsFile(content, false);
   }
 

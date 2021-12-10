@@ -46,7 +46,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 @Category({IntegrationTest.class})
-public class ReplaceIntTest {
+public class ReplaceWithSharedRuntimesIntTest {
 
   @ClassRule
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -54,7 +54,7 @@ public class ReplaceIntTest {
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
       .withAdditionalConfig(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED, true)
-      .withAdditionalConfig(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false)
+      .withAdditionalConfig(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
       .build();
 
   private String inputTopic;

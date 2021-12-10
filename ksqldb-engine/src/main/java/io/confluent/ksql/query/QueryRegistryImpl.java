@@ -421,7 +421,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
       // don't close the old query so that we don't delete the changelog
       // topics and the state store, instead use QueryMetadata#stop
-      oldQuery.stop();
+      oldQuery.stop(false);
       unregisterQuery(oldQuery);
     }
 

@@ -176,15 +176,17 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   }
 
   @Override
-  public void stop(final QueryId queryId) {
+  public void stop(final QueryId queryId, boolean resetOffsets) {
     log.info("Attempting to stop Query: " + queryId.toString());
     if (collocatedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         try {
-          kafkaStreams.removeNamedTopology(queryId.toString(), true)
+          kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
               .all()
               .get(shutdownTimeout, TimeUnit.SECONDS);
-          kafkaStreams.cleanUpNamedTopology(queryId.toString());
+          if (resetOffsets) {
+            kafkaStreams.cleanUpNamedTopology(queryId.toString());
+          }
         } catch (final TimeoutException | ExecutionException | InterruptedException e) {
           log.error("Failed to close query {} within the allotted timeout {} due to",
               queryId,

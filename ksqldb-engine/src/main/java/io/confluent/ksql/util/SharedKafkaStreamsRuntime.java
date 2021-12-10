@@ -78,7 +78,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public abstract TimeBoundedQueue getNewQueryErrorQueue();
 
-  public abstract void stop(QueryId queryId);
+  public abstract void stop(QueryId queryId, boolean resetOffsets);
 
   public abstract void close();
 

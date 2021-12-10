@@ -21,7 +21,6 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -63,7 +62,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     sandboxStreamsProperties.put(
         StreamsConfig.APPLICATION_ID_CONFIG,
         sharedKafkaStreamsRuntime.getStreamProperties().get(StreamsConfig.APPLICATION_ID_CONFIG)
-            + UUID.randomUUID().toString()
             + "-validation"
     );
     return sandboxStreamsProperties;
@@ -103,7 +101,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
-  public void stop(final QueryId queryId) {
+  public void stop(final QueryId queryId, boolean resetOffsets) {
   }
 
   @Override

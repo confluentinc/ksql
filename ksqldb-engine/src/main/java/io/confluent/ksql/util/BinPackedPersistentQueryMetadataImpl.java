@@ -222,7 +222,12 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void stop() {
-    sharedKafkaStreamsRuntime.stop(queryId);
+    sharedKafkaStreamsRuntime.stop(queryId, true);
+    scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
+  }
+
+  public void stop(final boolean resetOffsets) {
+    sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
@@ -378,7 +383,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void close() {
-    sharedKafkaStreamsRuntime.stop(queryId);
+    sharedKafkaStreamsRuntime.stop(queryId, true);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
   }

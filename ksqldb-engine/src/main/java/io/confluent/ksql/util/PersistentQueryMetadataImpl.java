@@ -229,6 +229,10 @@ public class PersistentQueryMetadataImpl
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
+  public void stop(final boolean resetOffsets) {
+    stop();
+  }
+
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
   }

@@ -41,6 +41,11 @@ public final class SandboxedBinPackedPersistentQueryMetadataImpl
   }
 
   @Override
+  public void stop(final boolean resetOffsets) {
+    //no-op
+  }
+
+  @Override
   public void close() {
     getListener().onClose(this);
   }

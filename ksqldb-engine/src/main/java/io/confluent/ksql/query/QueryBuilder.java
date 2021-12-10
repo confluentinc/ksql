@@ -604,19 +604,9 @@ final class QueryBuilder {
     );
   }
 
-  private Map<String, Object> buildStreamsProperties(
-      final String applicationId,
-      final QueryId queryId
+  public static Map<String, Object> updateListProperties(
+      final Map<String, Object> newStreamsProperties
   ) {
-    final Map<String, Object> newStreamsProperties
-        = new HashMap<>(config.getConfig(true).getKsqlStreamConfigProps(applicationId));
-    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    final ProcessingLogger logger
-        = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
-    newStreamsProperties.put(
-        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
-        logger);
-
     updateListProperty(
         newStreamsProperties,
         StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
@@ -638,6 +628,22 @@ final class QueryBuilder {
         StorageUtilizationMetricsReporter.class.getName()
     );
     return newStreamsProperties;
+  }
+
+  private Map<String, Object> buildStreamsProperties(
+      final String applicationId,
+      final QueryId queryId
+  ) {
+    final Map<String, Object> newStreamsProperties
+        = new HashMap<>(config.getConfig(true).getKsqlStreamConfigProps(applicationId));
+    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    final ProcessingLogger logger
+        = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
+    newStreamsProperties.put(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
+        logger);
+
+    return updateListProperties(newStreamsProperties);
   }
 
   private static Optional<QueryErrorClassifier> buildConfiguredClassifiers(

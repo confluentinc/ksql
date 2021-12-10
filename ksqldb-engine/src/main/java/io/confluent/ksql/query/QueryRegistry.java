@@ -25,10 +25,10 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
 import java.util.Map;
@@ -169,7 +169,7 @@ public interface QueryRegistry {
   /**
    * Restarts the streams runtimes
    */
-  void restartStreamsRuntime();
+  void restartStreamsRuntime(KsqlConfig config);
 
   /**
    * Get all insert queries that write into or read from a given source.

@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -46,6 +45,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 
 public class QueryRegistryImpl implements QueryRegistry {
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
@@ -223,10 +224,20 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public void restartStreamsRuntime() {
+  public void restartStreamsRuntime(final KsqlConfig config) {
     for (SharedKafkaStreamsRuntime stream : streams) {
+      // get kafka streams properties
+      final String applicationId = stream.getApplicationId();
+      final Map<String, Object> newStreamsProperties =
+          new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
+      newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+      final Map<String, Object> properties = QueryBuilder
+          .updateListProperties(newStreamsProperties);
+      stream.overrideStreamsProperties(properties);
+
+      // restart runtime
       stream.restartStreamsRuntime();
-    };
+    }
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck

@@ -118,6 +118,10 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
+  public void overrideStreamsProperties(final Map<String, Object> newStreamsProperties) {
+  }
+
+  @Override
   public void restartStreamsRuntime() {
   }
 }

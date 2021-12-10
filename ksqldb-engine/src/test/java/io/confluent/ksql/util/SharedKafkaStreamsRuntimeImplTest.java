@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
+import java.util.HashMap;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.TaskId;
@@ -37,6 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -102,6 +105,33 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
         when(addNamedTopologyResult.all()).thenReturn(future);
         when(binPackedPersistentQueryMetadata.getTopologyCopy(any())).thenReturn(namedTopology);
+    }
+
+    @Test
+    public void overrideStreamsPropertiesShouldReplaceStreamsPropertiesExceptLogger() {
+        // Given:
+        final Map<String, Object> oldProperties = new HashMap<>();
+        oldProperties.put(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER, "TestLogger");
+       final SharedKafkaStreamsRuntime streams = new SharedKafkaStreamsRuntimeImpl(
+           kafkaStreamsBuilder,
+           queryErrorClassifier,
+           5,
+           300_000L,
+           oldProperties
+        );
+
+        final Map<String, Object> newProperties = new HashMap<>();
+        newProperties.put("Test", "Test");
+
+        // When:
+        streams.overrideStreamsProperties(newProperties);
+
+        // Then:
+        final Map<String, Object> properties = streams.streamsProperties;
+        assertThat(properties.get("Test"), equalTo("Test"));
+        assertThat(properties.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER),
+            equalTo("TestLogger"));
+        assertThat(properties.size(), equalTo(2));
     }
 
     @Test

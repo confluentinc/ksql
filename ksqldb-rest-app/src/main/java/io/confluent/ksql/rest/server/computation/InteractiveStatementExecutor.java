@@ -40,7 +40,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;

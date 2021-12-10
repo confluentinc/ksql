@@ -16,6 +16,8 @@
 package io.confluent.ksql.util;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -216,6 +218,17 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     } else {
       throw new IllegalArgumentException("query: " + queryId + " not added to runtime");
     }
+  }
+
+  @Override
+  public void overrideStreamsProperties(final Map<String, Object> newProperties) {
+    // cannot override logger
+    newProperties.put(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
+        streamsProperties.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER)
+    );
+
+    streamsProperties = ImmutableMap.copyOf(newProperties);
   }
 
   @Override

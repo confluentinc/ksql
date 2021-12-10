@@ -99,14 +99,13 @@ public class PullQueryValidator implements QueryValidator {
   }
 
   private static Optional<String> validateLimitClause(final Analysis analysis) {
-    if (analysis.getPullLimitClauseEnabled() && analysis.getLimitClause().isPresent()) {
-      if (analysis.getLimitClause().getAsInt() < 0) {
-        return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE);
-      } else {
-        return Optional.empty();
-      }
-    } else {
+    if (!analysis.getPullLimitClauseEnabled() && analysis.getLimitClause().isPresent()) {
       return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED);
+    } else if (analysis.getLimitClause().isPresent()
+            && analysis.getLimitClause().getAsInt() < 0) {
+      return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE);
+    } else {
+      return Optional.empty();
     }
   }
 

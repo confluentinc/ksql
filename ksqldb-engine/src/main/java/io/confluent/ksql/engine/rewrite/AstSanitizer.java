@@ -138,6 +138,11 @@ public final class AstSanitizer {
                 + target.getName().toString(FormatOptions.noEscape()) + " is a table.");
       }
 
+      if (!target.getSchema().headers().isEmpty()) {
+        throw new KsqlException("Cannot insert into " + target.getName().text()
+            + " because it has header columns");
+      }
+
       return Optional.empty();
     }
 

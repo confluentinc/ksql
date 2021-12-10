@@ -186,7 +186,8 @@ public class LogicalPlannerTest {
         selectCol("ROWTIME", "T1_ROWTIME"),
         selectCol("ROWPARTITION", "T1_ROWPARTITION"),
         selectCol("ROWOFFSET", "T1_ROWOFFSET"),
-        selectCol("COL0", "T1_COL0")
+        selectCol("COL0", "T1_COL0"),
+        selectCol("HEAD", "T1_HEAD")
     ));
     final ProjectNode right = (ProjectNode) joinNode.getSources().get(1);
     assertThat(right.getSelectExpressions(), contains(

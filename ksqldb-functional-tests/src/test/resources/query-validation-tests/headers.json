@@ -144,6 +144,40 @@
           {"name": "OUTPUT", "type": "stream", "schema": "L_A INT KEY, L_B INT, L_C BYTES, R_A INT, R_B INT, R_C BYTES"}
         ]
       }
+    },
+    {
+      "name": "should reject INSERT VALUES statements if inserting into a HEADERS column (all columns)",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "INSERT INTO source1 VALUES ('abc', null, 44);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into HEADER columns: H1"
+      }
+    },
+    {
+      "name": "should reject INSERT VALUES statements if inserting into a HEADERS column (one column)",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "INSERT INTO source1 (H1) VALUES (null);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into HEADER columns: H1"
+      }
+    },
+    {
+      "name": "should reject INSERT INTO statements if the target has a HEADER column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM SOURCE2 (K STRING KEY, H1 BYTES, V BIGINT) WITH (kafka_topic='stream-source-2', value_format='json');",
+        "INSERT INTO SOURCE1 SELECT * FROM SOURCE2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Cannot insert into SOURCE1 because it has header columns"
+      }
     }
   ]
 }

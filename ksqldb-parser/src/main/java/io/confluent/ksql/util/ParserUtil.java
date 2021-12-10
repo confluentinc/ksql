@@ -256,7 +256,8 @@ public final class ParserUtil {
     } else if (context.HEADERS() != null) {
       builder = builder.headers();
     } else if (context.HEADER() != null) {
-      builder = builder.header(Strings.emptyToNull(unquote(context.STRING().getText(), "'")));
+      builder =
+          builder.header(Strings.emptyToNull(unquote(context.STRING().getText(), "'").trim()));
     }
 
     return builder.build();

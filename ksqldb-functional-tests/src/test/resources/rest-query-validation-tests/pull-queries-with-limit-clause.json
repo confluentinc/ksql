@@ -450,6 +450,39 @@
           {"row":{"columns":[15, 0, 15, "" , 0, "c", 20]}}
         ]}
       ]
+    },
+    {
+      "name": "error on negative limit",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "SELECT * FROM riderLocations LIMIT -1;"
+      ],
+      "expectedError": {
+        "message": "Pull queries don't support negative integers in the LIMIT clause. See https://cnfl.io/queries for more info."
+      }
+    },
+    {
+      "name": "error on non-integer limit",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "SELECT * FROM riderLocations LIMIT 2.5;"
+      ],
+      "expectedError": {
+        "message": "Failed to prepare statement: Value must be integer for command: LIMIT"
+      }
+    },
+    {
+      "name": "error on string limit",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "SELECT * FROM riderLocations LIMIT heh;"
+      ],
+      "expectedError": {
+        "message": "line 1:36: mismatched input 'heh' expecting {'-', INTEGER_VALUE, DECIMAL_VALUE, FLOATING_POINT_VALUE}"
+      }
     }
   ]
 }

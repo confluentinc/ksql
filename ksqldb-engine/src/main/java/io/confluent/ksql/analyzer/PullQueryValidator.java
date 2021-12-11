@@ -45,6 +45,9 @@ public class PullQueryValidator implements QueryValidator {
       = "LIMIT clause in pull queries is currently disabled. "
       + "You can enable them by setting ksql.query.pull.limit.clause.enabled=true.";
 
+  private static final String PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE
+      = "Pull queries don't support negative integers in the LIMIT clause.";
+
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
           analysis -> !analysis.getInto().isPresent(),
@@ -71,9 +74,7 @@ public class PullQueryValidator implements QueryValidator {
           "Pull queries don't support HAVING clauses."
       ),
       Rule.of(
-          analysis ->
-                  analysis.getPullLimitClauseEnabled() || !analysis.getLimitClause().isPresent(),
-          PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED
+          PullQueryValidator::validateLimitClause
       ),
       Rule.of(
           analysis -> !analysis.getRefinementInfo().isPresent(),
@@ -95,6 +96,17 @@ public class PullQueryValidator implements QueryValidator {
       throw new KsqlException(e.getMessage() + PULL_QUERY_SYNTAX_HELP, e);
     }
     QueryValidatorUtil.validateNoUserColumnsWithSameNameAsPseudoColumns(analysis);
+  }
+
+  private static Optional<String> validateLimitClause(final Analysis analysis) {
+    if (!analysis.getPullLimitClauseEnabled() && analysis.getLimitClause().isPresent()) {
+      return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_DISABLED);
+    } else if (analysis.getLimitClause().isPresent()
+            && analysis.getLimitClause().getAsInt() < 0) {
+      return Optional.of(PULL_QUERY_LIMIT_CLAUSE_ERROR_IF_NEGATIVE);
+    } else {
+      return Optional.empty();
+    }
   }
 
   private static Optional<String> disallowedColumnNameInSelectClause(final Analysis analysis) {

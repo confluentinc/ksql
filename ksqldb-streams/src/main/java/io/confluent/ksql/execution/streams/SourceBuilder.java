@@ -317,14 +317,6 @@ final class SourceBuilder extends SourceBuilderBase {
 
           row.appendAll(keyColumns);
 
-          for (final Column col : headerColumns) {
-            if (col.headerKey().isPresent()) {
-              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
-            } else {
-              row.append(createHeaderData(processorContext.headers()));
-            }
-          }
-
           return row;
         }
 

@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
@@ -259,7 +260,8 @@ public class RestTestExecutor implements Closeable {
                 null,
                 record.timestamp().orElse(0L),
                 record.key(),
-                record.value()
+                record.value(),
+                record.headersAsHeaders().orElse(ImmutableList.of())
             ))
             .map(producer::send)
             .collect(Collectors.toList());

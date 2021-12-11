@@ -23,7 +23,9 @@ import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -118,6 +120,17 @@ public class Record {
     return headers;
   }
 
+  /**
+   * @return expected headers, or {@link Optional#empty()} if headers can be anything.
+   */
+  public Optional<List<Header>> headersAsHeaders() {
+    return headers
+        .map(heads ->
+            heads.stream()
+                .map(testHeader -> (Header) testHeader)
+                .collect(Collectors.toList()));
+  }
+
   public Record withKeyValue(final Object key, final Object value) {
     return new Record(
         topicName,
@@ -131,7 +144,7 @@ public class Record {
     );
   }
 
-  public ProducerRecord<?, ?> asProducerRecord() {
+  public ProducerRecord asProducerRecord() {
     return new ProducerRecord(
         topicName,
         0,

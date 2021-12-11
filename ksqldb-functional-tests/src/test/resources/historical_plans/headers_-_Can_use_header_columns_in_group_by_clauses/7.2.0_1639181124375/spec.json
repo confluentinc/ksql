@@ -1,6 +1,6 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638494979263,
+  "timestamp" : 1639181124375,
   "path" : "query-validation-tests/headers.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.Project" : {
@@ -24,7 +24,7 @@
       }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source.Materialized" : {
-      "schema" : "`ID` INTEGER KEY, `DATA` STRING, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "schema" : "`ID` INTEGER KEY, `DATA` STRING, `HEAD` BYTES, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `HEAD` BYTES HEADER('abc')",
       "keyFormat" : {
         "format" : "JSON",
         "features" : [ "UNWRAP_SINGLES" ]

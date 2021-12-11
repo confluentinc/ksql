@@ -107,7 +107,10 @@ final class SourceBuilder extends SourceBuilderBase {
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
       maybeMaterialized = source.transformValues(
-          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
+          new AddPseudoColumnsToMaterialize<>(
+              streamSource.getPseudoColumnVersion(),
+              streamSource.getSourceSchema().headers()),
+          materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
       // we do not need to force a materialization at this source step since the
@@ -119,7 +122,9 @@ final class SourceBuilder extends SourceBuilderBase {
       // into a single transformValues() call,
       // it is included to keep KStreams topologies consistent and simplify code
       maybeMaterialized = source.transformValues(
-          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
+          new AddPseudoColumnsToMaterialize<>(
+              streamSource.getPseudoColumnVersion(),
+              streamSource.getSourceSchema().headers()));
     }
 
     return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
@@ -183,14 +188,19 @@ final class SourceBuilder extends SourceBuilderBase {
 
     private final int pseudoColumnVersion;
     private final int numPseudoColumnsToMaterialize;
+    private final List<Column> headerColumns;
 
-    AddPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
+    AddPseudoColumnsToMaterialize(
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.numPseudoColumnsToMaterialize =
           (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(SystemColumns::mustBeMaterializedForTableJoins)
-          .count();
+          .count() + headerColumns.size();
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -210,6 +220,14 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.ensureAdditionalCapacity(numPseudoColumnsToMaterialize);
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
+          }
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final int partition = processorContext.partition();

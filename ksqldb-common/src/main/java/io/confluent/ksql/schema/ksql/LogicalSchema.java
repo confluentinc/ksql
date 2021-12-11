@@ -408,6 +408,10 @@ public final class LogicalSchema {
 
     int valueIndex = nonPseudoAndKeyCols.size();
 
+    for (final Column c : headers) {
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
+
     final List<Pair<ColumnName, SqlType>> pseudoColumns = new ArrayList<>();
 
     if (pseudoColumnVersion >= ROWTIME_PSEUDOCOLUMN_VERSION) {
@@ -434,10 +438,6 @@ public final class LogicalSchema {
     }
 
     for (final Column c : key) {
-      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
-    }
-
-    for (final Column c : headers) {
       builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
     }
 
@@ -485,6 +485,7 @@ public final class LogicalSchema {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     final List<Column> keyColumns = keyColumns(byNamespace);
+    final List<Column> headerColumns = headers();
 
     final List<Column> nonPseudoAndKeyCols = nonPseudoHeaderAndKeyColsAsValueCols(
         byNamespace, pseudoColumnVersion);
@@ -493,6 +494,9 @@ public final class LogicalSchema {
 
     builder.addAll(keyColumns);
     builder.addAll(nonPseudoAndKeyCols);
+    for (final Column c : headerColumns) {
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
 
     // add pseudocolumns which are not guaranteed to be accessible from downstream
     // processor contexts to the schema for materialization in a state store
@@ -500,6 +504,8 @@ public final class LogicalSchema {
       builder.add(Column.of(ROWPARTITION_NAME, ROWPARTITION_TYPE, VALUE, valueIndex++));
       builder.add(Column.of(ROWOFFSET_NAME, ROWOFFSET_TYPE, VALUE, valueIndex++));
     }
+
+    builder.addAll(headerColumns);
 
     return new LogicalSchema(builder.build());
   }

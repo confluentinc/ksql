@@ -1,10 +1,10 @@
 {
   "version" : "7.2.0",
-  "timestamp" : 1638494979009,
+  "timestamp" : 1639181124157,
   "path" : "query-validation-tests/headers.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KsqlTopic.Source.Materialized" : {
-      "schema" : "`K` STRING KEY, `V` BIGINT, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT",
+      "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS",
       "keyFormat" : {
         "format" : "KAFKA"
       },

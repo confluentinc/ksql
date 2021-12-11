@@ -75,6 +75,12 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldBeAbleToGetSharedRuntimesEnabledValue() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true));
+    assertThat(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED), equalTo(true));
+  }
+
+  @Test
   public void shouldNotSetDeserializationExceptionHandlerWhenFailOnDeserializationErrorTrue() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG, true));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG);

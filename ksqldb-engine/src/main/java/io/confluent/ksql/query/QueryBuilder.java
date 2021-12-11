@@ -317,7 +317,8 @@ final class QueryBuilder {
                 querySchema,
                 keyFormat,
                 streamsProperties,
-                applicationId
+                applicationId,
+                queryId.toString()
             ));
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
@@ -430,7 +431,8 @@ final class QueryBuilder {
                     querySchema,
                     keyFormat,
                     queryOverrides,
-                    applicationId
+                    applicationId,
+                    queryId.toString()
             ));
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(

@@ -37,6 +37,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,6 +59,7 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Processor;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,6 +78,8 @@ public final class KsLocator implements Locator {
   private final Serializer<GenericKey> keySerializer;
   private final URL localHost;
   private final String applicationId;
+  private final boolean sharedRuntimesEnabled;
+  private final String queryId;
 
   KsLocator(
       final String stateStoreName,
@@ -83,7 +87,9 @@ public final class KsLocator implements Locator {
       final Topology topology,
       final Serializer<GenericKey> keySerializer,
       final URL localHost,
-      final String applicationId
+      final String applicationId,
+      final boolean sharedRuntimesEnabled,
+      final String queryId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.topology = requireNonNull(topology, "topology");
@@ -91,6 +97,8 @@ public final class KsLocator implements Locator {
     this.storeName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
     this.applicationId = requireNonNull(applicationId, "applicationId");
+    this.sharedRuntimesEnabled = sharedRuntimesEnabled;
+    this.queryId = requireNonNull(queryId, "queryId");
   }
 
   @Override
@@ -149,8 +157,7 @@ public final class KsLocator implements Locator {
     final Map<Integer, KeyQueryMetadata> metadataByPartition = new LinkedHashMap<>();
     final Map<Integer, Set<KsqlKey>> keysByPartition = new HashMap<>();
     for (KsqlKey key : keys) {
-      final KeyQueryMetadata metadata = kafkaStreams
-          .queryMetadataForKey(storeName, key.getKey(), keySerializer);
+      final KeyQueryMetadata metadata = getKeyQueryMetadata(key);
 
       // Fail fast if Streams not ready. Let client handle it
       if (metadata.equals(KeyQueryMetadata.NOT_AVAILABLE)) {
@@ -192,7 +199,9 @@ public final class KsLocator implements Locator {
    * @return The metadata associated with all partitions
    */
   private List<PartitionMetadata>  getMetadataForAllPartitions(
-      final Set<Integer> filterPartitions, final Optional<Set<KsqlKey>> keys) {
+      final Set<Integer> filterPartitions,
+      final Optional<Set<KsqlKey>> keys
+  ) {
     // It's important that we consider only the source topics for the subtopology that contains the
     // state store. Otherwise, we'll be given the wrong partition -> host mappings.
     // The underlying state store has a number of partitions that is the MAX of the number of
@@ -202,7 +211,9 @@ public final class KsLocator implements Locator {
     final Set<String> sourceTopicSuffixes = findSubtopologySourceTopicSuffixes();
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
-    for (final StreamsMetadata streamsMetadata : kafkaStreams.streamsMetadataForStore(storeName)) {
+    final Collection<StreamsMetadata> streamsMetadataCollection = getStreamsMetadata();
+
+    for (final StreamsMetadata streamsMetadata : streamsMetadataCollection) {
       streamsMetadata.topicPartitions().forEach(
           tp -> {
             if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
@@ -244,6 +255,34 @@ public final class KsLocator implements Locator {
           new PartitionMetadata(activeHost, standbyHosts, partition, keys));
     }
     return metadataList;
+  }
+
+  /**
+   * Returns KeyQueryMetadata based on whether shared runtimes is enabled
+   * @param key KsqlKey
+   * @return KeyQueryMetadata
+   */
+  @VisibleForTesting
+  protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
+    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
+          .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
+    }
+    return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
+  }
+
+  /**
+   * Returns a collection of StreamsMetadata based on whether shared runtimes is enabled.
+   * @return Collection of StreamsMetadata
+   */
+  @VisibleForTesting
+  protected Collection<StreamsMetadata> getStreamsMetadata() {
+    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
+          .streamsMetadataForStore(storeName, queryId);
+    }
+
+    return kafkaStreams.streamsMetadataForStore(storeName);
   }
 
   /**

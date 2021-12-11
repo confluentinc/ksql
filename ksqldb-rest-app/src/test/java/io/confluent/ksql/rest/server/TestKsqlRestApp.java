@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
@@ -343,7 +344,9 @@ public class TestKsqlRestApp extends ExternalResource {
               SocketAddress::inetSocketAddress,
               vertx),
           TestRestServiceContextFactory.createDefault(internalSimpleKsqlClientFactory),
-          TestRestServiceContextFactory.createUser(internalSimpleKsqlClientFactory));
+          TestRestServiceContextFactory.createUser(internalSimpleKsqlClientFactory),
+          new MetricCollectors()
+      );
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

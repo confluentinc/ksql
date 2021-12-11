@@ -97,6 +97,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Struct;
@@ -168,7 +169,12 @@ public class SchemaKTableTest {
 
   @Before
   public void init() {
-    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
+    UserFunctionLoader.newInstance(
+        ksqlConfig,
+        functionRegistry,
+        ".",
+        new Metrics()
+    ).load();
     schemaResolver = new StepSchemaResolver(ksqlConfig, functionRegistry);
     ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     final StreamsBuilder builder = new StreamsBuilder();

@@ -72,6 +72,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -128,7 +129,9 @@ public class RecoveryTest {
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ignored -> engineMetrics,
         queryIdGenerator,
-        ksqlConfig);
+        ksqlConfig,
+        new MetricCollectors()
+    );
   }
 
   private static class FakeCommandQueue implements CommandQueue {
@@ -228,7 +231,6 @@ public class RecoveryTest {
           queryIdGenerator
       );
 
-      MetricCollectors.initialize();
       this.commandRunner = new CommandRunner(
           statementExecutor,
           fakeCommandQueue,
@@ -241,7 +243,8 @@ public class RecoveryTest {
           InternalTopicSerdes.deserializer(Command.class),
           errorHandler,
           topicClient,
-          "command_topic"
+          "command_topic",
+          new Metrics()
       );
 
       this.ksqlResource = new KsqlResource(

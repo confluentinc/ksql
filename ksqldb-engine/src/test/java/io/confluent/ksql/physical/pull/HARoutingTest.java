@@ -176,8 +176,7 @@ public class HARoutingTest {
 
     when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
 
-    MetricCollectors.initialize();
-    pullMetrics = new PullQueryExecutorMetrics(KSQL_SERVICE_ID, Collections.emptyMap(), time);
+    pullMetrics = new PullQueryExecutorMetrics(KSQL_SERVICE_ID, Collections.emptyMap(), time, new Metrics());
 
     haRouting = new HARouting(
         routingFilterFactory, Optional.of(pullMetrics), ksqlConfig);

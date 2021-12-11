@@ -27,6 +27,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -74,13 +75,19 @@ public class KsqlContext implements AutoCloseable {
    */
   public static KsqlContext create(
       final KsqlConfig ksqlConfig,
-      final ProcessingLogContext processingLogContext
+      final ProcessingLogContext processingLogContext,
+      final MetricCollectors metricCollectors
   ) {
     Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     final ServiceContext serviceContext =
         ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
+    UserFunctionLoader.newInstance(
+        ksqlConfig,
+        functionRegistry,
+        ".",
+        metricCollectors.getMetrics()
+    ).load();
     final ServiceInfo serviceInfo = ServiceInfo.create(ksqlConfig);
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
@@ -89,7 +96,9 @@ public class KsqlContext implements AutoCloseable {
         serviceInfo,
         new SequentialQueryIdGenerator(),
         ksqlConfig,
-        Collections.emptyList());
+        Collections.emptyList(),
+        metricCollectors
+    );
 
     return new KsqlContext(
         serviceContext,

@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.internal;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.math.BigInteger;
@@ -26,10 +27,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,20 +48,11 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
 
-  private final Map<String, Map<String, TaskStorageMetric>> metricsSeen;
-  private final Metrics metricRegistry;
-  static AtomicBoolean registeredNodeMetrics = new AtomicBoolean(false);
+  private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
+  private Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
 
   public StorageUtilizationMetricsReporter() {
-    this(MetricCollectors.getMetrics());
-  }
-
-  @SuppressFBWarnings("EI_EXPOSE_REP2")
-  @VisibleForTesting
-  public StorageUtilizationMetricsReporter(final Metrics metricRegistry) {
-    this.metricsSeen = new HashMap<>();
-    this.metricRegistry = Objects.requireNonNull(metricRegistry);
   }
 
   @Override
@@ -70,7 +60,11 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   }
 
   @Override
-  public void configure(final Map<String, ?> map) {
+  public synchronized void configure(final Map<String, ?> map) {
+    this.metricRegistry = (Metrics) requireNonNull(
+        map.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
+    );
+    this.metricsSeen = new HashMap<>();
   }
 
   public static void configureShared(
@@ -78,9 +72,6 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       final Metrics metricRegistry, 
       final Map<String, String> configTags
   ) {
-    if (registeredNodeMetrics.getAndSet(true)) {
-      return;
-    }
     customTags = ImmutableMap.copyOf(configTags);
     LOGGER.info("Adding node level storage usage gauges");
     final MetricName nodeAvailable =
@@ -272,11 +263,6 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   @VisibleForTesting
   static void setTags(final Map<String, String> tags) {
     customTags = tags;
-  }
-
-  @VisibleForTesting
-  static void reset() {
-    registeredNodeMetrics.getAndSet(false);
   }
 
   private static class TaskStorageMetric {

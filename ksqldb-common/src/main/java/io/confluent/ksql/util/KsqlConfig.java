@@ -87,6 +87,15 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
+  public static final String KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG =
+      "ksql.internal.metric.collectors";
+
+  public static final String KSQL_INTERNAL_METRICS_CONFIG =
+      "ksql.internal.metrics";
+
+  public static final String KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG =
+      "ksql.internal.streams.error.collector";
+
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";

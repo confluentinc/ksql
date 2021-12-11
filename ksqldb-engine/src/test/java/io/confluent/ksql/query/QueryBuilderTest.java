@@ -37,6 +37,7 @@ import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -269,7 +270,8 @@ public class QueryBuilderTest {
         false,
         queryListener,
         streamsBuilder,
-        Optional.empty()
+        Optional.empty(),
+        new MetricCollectors()
     );
     queryMetadata.initialize();
 
@@ -766,7 +768,8 @@ public class QueryBuilderTest {
           physicalPlan,
           SUMMARY,
           queryListener,
-          ArrayList::new
+          ArrayList::new,
+          new MetricCollectors()
       );
     } else {
       return queryBuilder.buildPersistentQueryInDedicatedRuntime(
@@ -780,7 +783,9 @@ public class QueryBuilderTest {
           SUMMARY,
           queryListener,
           ArrayList::new,
-          streamsBuilder);
+          streamsBuilder,
+          new MetricCollectors()
+      );
     }
   }
 

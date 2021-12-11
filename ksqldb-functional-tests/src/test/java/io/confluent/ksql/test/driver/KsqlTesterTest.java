@@ -32,6 +32,7 @@ import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.AssertTable;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -163,6 +164,7 @@ public class KsqlTesterTest {
     this.formatInjector = new DefaultFormatInjector();
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
+    final MetricCollectors metricCollectors = new MetricCollectors();
     this.engine = new KsqlEngine(
         serviceContext,
         NoopProcessingLogContext.INSTANCE,
@@ -180,7 +182,8 @@ public class KsqlTesterTest {
                 closeDriver(driverAndProperties.driver, driverAndProperties.properties, false);
               }
             }
-        )
+        ),
+        metricCollectors
     );
 
     this.expectedException = null;

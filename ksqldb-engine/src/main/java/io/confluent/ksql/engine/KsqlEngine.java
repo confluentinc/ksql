@@ -38,6 +38,7 @@ import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -107,6 +108,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
+  private final MetricCollectors metricCollectors;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -115,7 +117,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceInfo serviceInfo,
       final QueryIdGenerator queryIdGenerator,
       final KsqlConfig ksqlConfig,
-      final List<QueryEventListener> queryEventListeners
+      final List<QueryEventListener> queryEventListeners,
+      final MetricCollectors metricCollectors
   ) {
     this(
         serviceContext,
@@ -126,11 +129,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.metricsPrefix(),
             engine,
             serviceInfo.customMetricsTags(),
-            serviceInfo.metricsExtension()
+            serviceInfo.metricsExtension(),
+            metricCollectors
         ),
         queryIdGenerator,
         ksqlConfig,
-        queryEventListeners
+        queryEventListeners,
+        metricCollectors
     );
   }
 
@@ -143,7 +148,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
       final QueryIdGenerator queryIdGenerator,
       final KsqlConfig ksqlConfig,
-      final List<QueryEventListener> queryEventListeners
+      final List<QueryEventListener> queryEventListeners,
+      final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
     this.orphanedTransientQueryCleaner =
@@ -161,7 +167,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             .addAll(queryEventListeners)
             .add(engineMetrics.getQueryEventListener())
             .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
-            .build()
+            .build(),
+        metricCollectors
     );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.aggregateMetricsCollector.scheduleAtFixedRate(
@@ -176,6 +183,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         1000,
         TimeUnit.MILLISECONDS
     );
+    this.metricCollectors = metricCollectors;
 
     cleanupService.startAsync();
   }
@@ -249,7 +257,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
-    return new SandboxedExecutionContext(primaryContext, serviceContext);
+    return new SandboxedExecutionContext(primaryContext, serviceContext, metricCollectors);
   }
 
   @Override
@@ -332,6 +340,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return this.primaryContext.getKsqlConfig();
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "metrics")
+  @Override
+  public MetricCollectors metricCollectors() {
+    return metricCollectors;
+  }
+
   @Override
   public void alterSystemProperty(final String propertyName, final String propertyValue) {
     final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
@@ -405,7 +419,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private TopicDescription getTopicDescription(final Admin admin, final String sourceTopicName) {
     final KafkaFuture<TopicDescription> topicDescriptionKafkaFuture = admin
         .describeTopics(Collections.singletonList(sourceTopicName))
-        .values()
+        .topicNameValues()
         .get(sourceTopicName);
 
     try {
@@ -633,7 +647,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             ));
       }
 
-      StreamsErrorCollector.notifyApplicationClose(applicationId);
+      final Object o =
+          query.getStreamsProperties()
+              .get(KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG);
+      if (o instanceof StreamsErrorCollector) {
+        ((StreamsErrorCollector) o).cleanup();
+      }
     }
   }
 

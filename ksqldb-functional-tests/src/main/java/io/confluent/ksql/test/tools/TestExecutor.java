@@ -44,6 +44,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
@@ -587,6 +588,7 @@ public class TestExecutor implements Closeable {
       functionRegistry = TestFunctionRegistry.INSTANCE.get();
     }
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
+    final MetricCollectors metricCollectors = new MetricCollectors();
     return new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
@@ -596,10 +598,12 @@ public class TestExecutor implements Closeable {
             "",
             engine,
             Collections.emptyMap(),
-            Optional.empty()),
+            Optional.empty(),
+            metricCollectors),
         new SequentialQueryIdGenerator(),
         KsqlConfig.empty(),
-        Collections.emptyList()
+        Collections.emptyList(),
+        metricCollectors
     );
   }
 

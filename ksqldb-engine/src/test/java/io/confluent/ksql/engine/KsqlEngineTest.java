@@ -59,6 +59,7 @@ import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -142,7 +143,8 @@ public class KsqlEngineTest {
 
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        metaStore
+        metaStore,
+        new MetricCollectors()
     );
 
     sandbox = ksqlEngine.createSandbox(serviceContext);
@@ -1234,12 +1236,20 @@ public class KsqlEngineTest {
   public void shouldCleanUpSharedRuntimesInternalTopicsOnCloseForPersistentQueries() {
     // Given:
 
+    final MetricCollectors metricCollectors = new MetricCollectors();
     final KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         metaStore,
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        (engine) -> new KsqlEngineMetrics(
+            "",
+            engine,
+            Collections.emptyMap(),
+            Optional.empty(),
+            metricCollectors
+        ),
         new SequentialQueryIdGenerator(),
-        new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true))
+        new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)),
+        metricCollectors
     );
 
     final List<QueryMetadata> query = KsqlEngineTestUtil.execute(

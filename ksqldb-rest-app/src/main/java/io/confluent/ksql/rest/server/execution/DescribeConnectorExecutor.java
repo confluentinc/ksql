@@ -138,13 +138,16 @@ public final class DescribeConnectorExecutor {
           .stream()
           .filter(source -> topics.contains(source.getKafkaTopicName()))
           .map(source -> SourceDescriptionFactory.create(
-              source,
-              false,
-              ImmutableList.of(),
-              ImmutableList.of(),
-              Optional.empty(),
-              ImmutableList.of(),
-              ImmutableList.of()))
+                  source,
+                  false,
+                  ImmutableList.of(),
+                  ImmutableList.of(),
+                  Optional.empty(),
+                  ImmutableList.of(),
+                  ImmutableList.of(),
+                  ksqlExecutionContext.metricCollectors()
+              )
+          )
           .collect(Collectors.toList());
     } else {
       sources = ImmutableList.of();

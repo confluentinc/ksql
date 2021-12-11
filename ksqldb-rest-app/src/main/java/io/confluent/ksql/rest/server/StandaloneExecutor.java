@@ -94,7 +94,8 @@ public class StandaloneExecutor implements Executable {
       final UserFunctionLoader udfLoader,
       final boolean failOnNoQueries,
       final VersionCheckerAgent versionChecker,
-      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
+      final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
+      final MetricCollectors metricCollectors
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.processingLogConfig = requireNonNull(processingLogConfig, "processingLogConfig");
@@ -105,7 +106,7 @@ public class StandaloneExecutor implements Executable {
     this.failOnNoQueries = failOnNoQueries;
     this.versionChecker = requireNonNull(versionChecker, "versionChecker");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
-    MetricCollectors.addConfigurableReporter(ksqlConfig);
+    metricCollectors.addConfigurableReporter(ksqlConfig);
   }
 
   public void startAsync() {

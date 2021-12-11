@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryBuilderFactory;
@@ -106,7 +107,7 @@ public class QueryRegistryImplTest {
     when(executorFactory.create(any(), any(), any(), any(), any(), anyBoolean())).thenReturn(queryBuilder);
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());
-    registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory);
+    registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory, new MetricCollectors());
   }
 
   @Test
@@ -489,10 +490,11 @@ public class QueryRegistryImplTest {
     givenCreate(registry, id, "source", Optional.of("sink1"), CREATE_AS);
     if (!sharedRuntimes) {
       verify(queryBuilder).buildPersistentQueryInDedicatedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any());
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any(), any());
     } else {
       verify(queryBuilder).buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(),
+          any());
     }
     return queryListenerCaptor.getValue();
   }
@@ -524,11 +526,11 @@ public class QueryRegistryImplTest {
     when(query.getPersistentQueryType()).thenReturn(persistentQueryType);
     if (sharedRuntimes) {
       when(queryBuilder.buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     } else {
       when(queryBuilder.buildPersistentQueryInDedicatedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     }
     when(config.getConfig(true)).thenReturn(ksqlConfig);
@@ -557,7 +559,7 @@ public class QueryRegistryImplTest {
     final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
     when(query.getQueryId()).thenReturn(queryId);
     when(queryBuilder.buildTransientQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any(), any())
     ).thenReturn(query);
     when(query.isInitialized()).thenReturn(true);
     registry.createTransientQuery(
@@ -586,7 +588,7 @@ public class QueryRegistryImplTest {
     final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
     when(query.getQueryId()).thenReturn(queryId);
     when(queryBuilder.buildTransientQuery(
-        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any(), any(), any())
     ).thenReturn(query);
     when(query.isInitialized()).thenReturn(true);
     registry.createStreamPullQuery(

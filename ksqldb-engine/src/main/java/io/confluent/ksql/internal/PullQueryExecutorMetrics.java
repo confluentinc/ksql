@@ -18,7 +18,6 @@ package io.confluent.ksql.internal;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
@@ -80,10 +79,12 @@ public class PullQueryExecutorMetrics implements Closeable {
   private final String ksqlServicePrefix;
   private final Time time;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "metrics")
   public PullQueryExecutorMetrics(
       final String ksqlServiceId,
       final Map<String, String> customMetricsTags,
-      final Time time
+      final Time time,
+      final Metrics metrics
   ) {
     this.ksqlServiceIdLegacyPrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + ksqlServiceId;
@@ -95,7 +96,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.customMetricsTags = ImmutableMap.copyOf(metricsTags);
 
     this.time = Objects.requireNonNull(time, "time");
-    this.metrics = MetricCollectors.getMetrics();
+    this.metrics = metrics;
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();

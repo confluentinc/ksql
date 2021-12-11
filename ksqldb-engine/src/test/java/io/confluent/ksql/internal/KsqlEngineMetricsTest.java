@@ -20,9 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.number.IsCloseTo.closeTo;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -31,6 +29,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -47,6 +46,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.MetricConfig;
 import org.apache.kafka.common.metrics.Metrics;
@@ -65,7 +65,6 @@ import org.mockito.stubbing.Answer;
 public class KsqlEngineMetricsTest {
 
   private static final String METRIC_GROUP = "testGroup";
-  private KsqlEngineMetrics engineMetrics;
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
   private static final String legacyMetricNamePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
       + KSQL_SERVICE_ID;
@@ -81,15 +80,18 @@ public class KsqlEngineMetricsTest {
   @Mock
   private QueryMetadata query1;
 
+  private KsqlEngineMetrics engineMetrics;
+  private MetricCollectors metricCollectors;
+
   @Before
   public void setUp() {
-    MetricCollectors.initialize();
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
 
+    metricCollectors = new MetricCollectors();
     engineMetrics = new KsqlEngineMetrics(
         METRIC_GROUP,
         ksqlEngine,
-        MetricCollectors.getMetrics(),
+        metricCollectors,
         CUSTOM_TAGS,
         Optional.of(new TestKsqlMetricsExtension()));
   }
@@ -97,7 +99,6 @@ public class KsqlEngineMetricsTest {
   @After
   public void tearDown() {
     engineMetrics.close();
-    MetricCollectors.cleanUp();
   }
 
   @Test
@@ -315,23 +316,34 @@ public class KsqlEngineMetricsTest {
     );
   }
 
-  private static void consumeMessages(final int numMessages, final String groupId) {
+  private void consumeMessages(final int numMessages, final String groupId) {
     final ConsumerCollector collector1 = new ConsumerCollector();
-    collector1.configure(ImmutableMap.of(ConsumerConfig.GROUP_ID_CONFIG, groupId));
+    collector1.configure(
+        ImmutableMap.of(
+            ConsumerConfig.GROUP_ID_CONFIG, groupId,
+            KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors
+        )
+    );
     final Map<TopicPartition, List<ConsumerRecord<Object, Object>>> records = new HashMap<>();
     final List<ConsumerRecord<Object, Object>> recordList = new ArrayList<>();
     for (int i = 0; i < numMessages; i++) {
       recordList.add(new ConsumerRecord<>("foo", 1, 1, 1L, TimestampType
-          .CREATE_TIME, 1L, 10, 10, "key", "1234567890"));
+                .CREATE_TIME, 10, 10,
+          "key", "1234567890", new RecordHeaders(), Optional.empty()));
     }
     records.put(new TopicPartition("foo", 1), recordList);
     final ConsumerRecords<Object, Object> consumerRecords = new ConsumerRecords<>(records);
     collector1.onConsume(consumerRecords);
   }
 
-  private static void produceMessages(final int numMessages) {
+  private void produceMessages(final int numMessages) {
     final ProducerCollector collector1 = new ProducerCollector();
-    collector1.configure(ImmutableMap.of(ProducerConfig.CLIENT_ID_CONFIG, "client1"));
+    collector1.configure(
+        ImmutableMap.of(
+            ProducerConfig.CLIENT_ID_CONFIG, "client1",
+            KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors
+        )
+    );
     for (int i = 0; i < numMessages; i++) {
       collector1.onSend(new ProducerRecord<>("foo", "key", Integer.toString(i)));
     }

@@ -1,26 +1,5 @@
 package io.confluent.ksql.internal;
 
-import com.google.common.collect.ImmutableMap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.kafka.common.MetricName;
-import org.apache.kafka.common.metrics.Gauge;
-import org.apache.kafka.common.metrics.KafkaMetric;
-import org.apache.kafka.common.metrics.MetricValueProvider;
-import org.apache.kafka.common.metrics.Metrics;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import java.io.File;
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Map;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -30,6 +9,26 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.util.KsqlConfig;
+import java.io.File;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Map;
+import org.apache.kafka.common.MetricName;
+import org.apache.kafka.common.metrics.Gauge;
+import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.metrics.MetricValueProvider;
+import org.apache.kafka.common.metrics.Metrics;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StorageUtilizationMetricsReporterTest {
@@ -54,15 +53,15 @@ public class StorageUtilizationMetricsReporterTest {
 
   @Before
   public void setUp() {
-    listener = new StorageUtilizationMetricsReporter(metrics);
+    listener = new StorageUtilizationMetricsReporter();
+    listener.configure(
+        ImmutableMap.of(
+            KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG, metrics
+        )
+    );
     when(metrics.metricName(any(), any(), (Map<String, String>) any())).thenAnswer(
       a -> new MetricName(a.getArgument(0), a.getArgument(1), "", a.getArgument(2)));
     StorageUtilizationMetricsReporter.setTags(BASE_TAGS);
-  }
-
-  @After
-  public void cleanup() {
-    StorageUtilizationMetricsReporter.reset();
   }
 
   @Test
@@ -92,17 +91,6 @@ public class StorageUtilizationMetricsReporterTest {
     assertThat((Long) storageTotalValue, greaterThan(0L));
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
-  }
-
-  @Test
-  public void shouldOnlyAddNodeMetricsOnce() {
-    // Given:
-
-    // When:
-    listener.configure(ImmutableMap.of("state.dir", "/tmp//"));
-
-    // Then:
-    // did not throw error for duplicate metrics
   }
 
   @Test

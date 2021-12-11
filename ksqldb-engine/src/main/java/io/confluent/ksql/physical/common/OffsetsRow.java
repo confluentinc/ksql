@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.common;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.Window;
@@ -24,41 +23,30 @@ import io.confluent.ksql.util.PushOffsetRange;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class QueryRowImpl implements QueryRow {
+public class OffsetsRow implements QueryRow {
 
-  private final LogicalSchema logicalSchema;
+  private static final LogicalSchema EMPTY_SCHEMA = LogicalSchema.builder().build();
   private final long rowTime;
-  private final GenericKey key;
-  private final Optional<Window> window;
-  private final GenericRow value;
+  private final PushOffsetRange pushOffsetRange;
 
-  public static QueryRowImpl of(
-      final LogicalSchema logicalSchema,
-      final GenericKey key,
-      final Optional<Window> window,
-      final GenericRow value,
-      final long rowTime
+  public static OffsetsRow of(
+      final long rowTime,
+      final PushOffsetRange pushOffsetRange
   ) {
-    return new QueryRowImpl(logicalSchema, key, window, value, rowTime);
+    return new OffsetsRow(rowTime, pushOffsetRange);
   }
 
-  private QueryRowImpl(
-      final LogicalSchema logicalSchema,
-      final GenericKey key,
-      final Optional<Window> window,
-      final GenericRow value,
-      final long rowTime
+  OffsetsRow(
+      final long rowTime,
+      final PushOffsetRange pushOffsetRange
   ) {
-    this.logicalSchema = logicalSchema;
     this.rowTime = rowTime;
-    this.key = key;
-    this.window = window;
-    this.value = value;
+    this.pushOffsetRange = pushOffsetRange;
   }
 
   @Override
   public LogicalSchema schema() {
-    return logicalSchema;
+    return EMPTY_SCHEMA;
   }
 
   @Override
@@ -68,25 +56,23 @@ public final class QueryRowImpl implements QueryRow {
 
   @Override
   public GenericKey key() {
-    return key;
+    return GenericKey.genericKey();
   }
 
   @Override
   public Optional<Window> window() {
-    return window;
+    return Optional.empty();
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   @Override
   public GenericRow value() {
-    return value;
+    return GenericRow.genericRow();
   }
 
   @Override
   public Optional<PushOffsetRange> getOffsetRange() {
-    return Optional.empty();
+    return Optional.of(pushOffsetRange);
   }
-
 
   @Override
   public boolean equals(final Object o) {
@@ -96,26 +82,20 @@ public final class QueryRowImpl implements QueryRow {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final QueryRowImpl that = (QueryRowImpl) o;
-    return Objects.equals(logicalSchema, that.logicalSchema)
-        && Objects.equals(key, that.key)
-        && Objects.equals(window, that.window)
-        && Objects.equals(value, that.value)
+    final OffsetsRow that = (OffsetsRow) o;
+    return Objects.equals(pushOffsetRange, that.pushOffsetRange)
         && Objects.equals(rowTime, that.rowTime);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, key, window, value, rowTime);
+    return Objects.hash(pushOffsetRange, rowTime);
   }
 
   @Override
   public String toString() {
-    return "QueryRowImpl{"
-        + "logicalSchema=" + logicalSchema
-        + ", key=" + key
-        + ", window=" + window
-        + ", value=" + value
+    return "OffsetsRow{"
+        + "pushOffsetRange=" + pushOffsetRange
         + ", rowTime=" + rowTime
         + '}';
   }

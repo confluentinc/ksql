@@ -356,13 +356,13 @@ public class KsqlConfig extends AbstractConfig {
           + "enabling scalable push queries using ksql.query.push.v2.enabled.";
   public static final boolean KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY
-      = "ksql.query.push.v2.new.node.continuity";
-  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC =
-      "Whether new node continuity is enforced for the scalable form of push queries. "
-          + "This means that it's an error for an existing query to miss data processed on a newly "
-          + "added node";
-  public static final boolean KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT = false;
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED
+      = "ksql.query.push.v2.alos.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC =
+      "Whether at-least-once semantics are enabled for the scalable form of push queries. "
+          + "This means that a query will replay data if necessary if network or other "
+          + "disruptions cause it to miss any data";
+  public static final boolean KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED
       = "ksql.query.push.v2.interpreter.enabled";
@@ -386,6 +386,25 @@ public class KsqlConfig extends AbstractConfig {
       "The maximum age in ms of existing committed offsets for latest consumer to"
           + " adopt those offsets rather than seek to the end.";
   public static final long KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT = 30000;
+
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED
+      = "ksql.query.push.v2.continuation.tokens.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC =
+      "Whether to output continuation tokens to the user.";
+  public static final boolean KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS
+      = "ksql.query.push.v2.max.catchup.consumers";
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC =
+      "The maximum number of concurrent catchup consumers.";
+  public static final int KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT = 5;
+
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW
+      = "ksql.query.push.v2.catchup.consumer.msg.window";
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC =
+      "How close the catchup consumer must be to the latest before it will stop the latest to join"
+          + " with it.";
+  public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -1120,11 +1139,11 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED,
@@ -1146,6 +1165,27 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS,
+            Type.INT,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

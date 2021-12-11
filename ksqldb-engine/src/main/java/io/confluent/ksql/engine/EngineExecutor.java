@@ -67,6 +67,8 @@ import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanCreator;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanManager;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
@@ -98,6 +100,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -346,13 +349,21 @@ final class EngineExecutor {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      plan = buildScalablePushPhysicalPlan(
-          logicalPlan,
-          analysis,
-          context,
-          pushRoutingOptions
-      );
-      final  PushPhysicalPlan physicalPlan = plan;
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator = (offsetRange, catchupConsumerGroup) ->
+          buildScalablePushPhysicalPlan(
+              logicalPlan,
+              analysis,
+              context,
+              offsetRange,
+              catchupConsumerGroup
+          );
+      final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
+          .map(PushOffsetRange::deserialize);
+      final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
+      final PushPhysicalPlanManager physicalPlanManager = new PushPhysicalPlanManager(
+          pushPhysicalPlanCreator, catchupConsumerGroup, offsetRange);
+      final PushPhysicalPlan physicalPlan = physicalPlanManager.getPhysicalPlan();
+      plan = physicalPlan;
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -363,10 +374,11 @@ final class EngineExecutor {
           : ResultType.STREAM;
 
       final PushQueryQueuePopulator populator = () ->
-          pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
-              physicalPlan.getOutputSchema(), transientQueryQueue, scalablePushQueryMetrics);
+          pushRouting.handlePushQuery(serviceContext, physicalPlanManager, statement,
+              pushRoutingOptions, physicalPlan.getOutputSchema(), transientQueryQueue,
+              scalablePushQueryMetrics, offsetRange);
       final PushQueryPreparer preparer = () ->
-          pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
+          pushRouting.preparePushQuery(physicalPlanManager, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
@@ -755,15 +767,15 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
       final Context context,
-      final PushRoutingOptions pushRoutingOptions
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroup
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
-        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis),
-        pushRoutingOptions.getExpectingStartOfRegistryData()
+        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
     );
-    return builder.buildPushPhysicalPlan(logicalPlan, context);
+    return builder.buildPushPhysicalPlan(logicalPlan, context, offsetRange, catchupConsumerGroup);
   }
 
   private PullPhysicalPlan buildPullPhysicalPlan(

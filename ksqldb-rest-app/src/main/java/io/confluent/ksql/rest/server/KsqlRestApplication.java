@@ -86,6 +86,8 @@ import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -656,11 +658,14 @@ public final class KsqlRestApplication implements Executable {
         schemaRegistryClientFactory,
         connectClientFactory,
         vertx,
-        sharedClient
+        sharedClient,
+        RestServiceContextFactory::create,
+        RestServiceContextFactory::create
     );
   }
 
-  @SuppressWarnings({"checkstyle:JavaNCSS", "checkstyle:MethodLength"})
+  @SuppressWarnings(
+      {"checkstyle:JavaNCSS", "checkstyle:MethodLength", "checkstyle:ParameterNumber"})
   static KsqlRestApplication buildApplication(
       final String metricsPrefix,
       final KsqlRestConfig restConfig,
@@ -670,7 +675,9 @@ public final class KsqlRestApplication implements Executable {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ConnectClientFactory connectClientFactory,
       final Vertx vertx,
-      final KsqlClient sharedClient) {
+      final KsqlClient sharedClient,
+      final DefaultServiceContextFactory defaultServiceContextFactory,
+      final UserServiceContextFactory userServiceContextFactory) {
     final String ksqlInstallDir = restConfig.getString(KsqlRestConfig.INSTALL_DIR_CONFIG);
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
@@ -696,7 +703,7 @@ public final class KsqlRestApplication implements Executable {
           .toString();
 
     StorageUtilizationMetricsReporter.configureShared(
-      new File(stateDir), 
+        new File(stateDir),
         MetricCollectors.getMetrics(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
@@ -760,8 +767,8 @@ public final class KsqlRestApplication implements Executable {
     final KsqlSecurityContextProvider ksqlSecurityContextProvider =
         new DefaultKsqlSecurityContextProvider(
             securityExtension,
-            RestServiceContextFactory::create,
-            RestServiceContextFactory::create,
+            defaultServiceContextFactory,
+            userServiceContextFactory,
             ksqlConfig,
             schemaRegistryClientFactory,
             connectClientFactory,

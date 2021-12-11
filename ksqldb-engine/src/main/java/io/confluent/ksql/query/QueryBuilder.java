@@ -248,7 +248,6 @@ final class QueryBuilder {
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
         allPersistentQueries, isTable, streamsProperties,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY),
         ksqlConfig.originals(), sourceApplicationId,
         ksqlTopic, serviceContext, ksqlConfig);
     return registry;

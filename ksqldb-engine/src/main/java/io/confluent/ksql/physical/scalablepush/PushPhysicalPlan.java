@@ -49,6 +49,7 @@ public class PushPhysicalPlan {
 
   private final LogicalSchema schema;
   private final QueryId queryId;
+  private final String catchupConsumerGroupId;
   private final ScalablePushRegistry scalablePushRegistry;
   private final PushDataSourceOperator dataSourceOperator;
   private final Context context;
@@ -61,6 +62,7 @@ public class PushPhysicalPlan {
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
       final QueryId queryId,
+      final String catchupConsumerGroupId,
       final ScalablePushRegistry scalablePushRegistry,
       final PushDataSourceOperator dataSourceOperator,
       final Context context,
@@ -69,10 +71,12 @@ public class PushPhysicalPlan {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
+    this.catchupConsumerGroupId =
+        Objects.requireNonNull(catchupConsumerGroupId, "catchupConsumerGroupId");
     this.scalablePushRegistry =
         Objects.requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.dataSourceOperator = dataSourceOperator;
-    this.context = context;
+    this.context = Objects.requireNonNull(context, "context");
     this.querySourceType = Objects.requireNonNull(querySourceType, "querySourceType");
   }
 
@@ -187,6 +191,10 @@ public class PushPhysicalPlan {
 
   public long getRowsReadFromDataSource() {
     return dataSourceOperator.getRowsReadCount();
+  }
+
+  public String getCatchupConsumerGroupId() {
+    return catchupConsumerGroupId;
   }
 
   public static class Publisher extends BufferedPublisher<QueryRow> {

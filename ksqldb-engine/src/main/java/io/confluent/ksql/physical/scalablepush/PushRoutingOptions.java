@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.physical.scalablepush;
 
+import java.util.Optional;
+
 /**
  * Routing options given to scalable push queries.
  */
@@ -23,11 +25,15 @@ public interface PushRoutingOptions {
   // If we should avoid skipping forwarding the request because it's already been forwarded.
   boolean getHasBeenForwarded();
 
-  // When a rebalance occurs and we connect to a new node, we don't want to miss anything, so we
-  // set this flag indicating we should error if this expectation isn't met.
-  boolean getExpectingStartOfRegistryData();
-
   boolean getIsDebugRequest();
+
+  Optional<String> getContinuationToken();
+
+  Optional<String> getCatchupConsumerGroup();
+
+  boolean shouldOutputContinuationToken();
+
+  boolean alosEnabled();
 
   /**
    * @return a human readable representation of the routing options, used

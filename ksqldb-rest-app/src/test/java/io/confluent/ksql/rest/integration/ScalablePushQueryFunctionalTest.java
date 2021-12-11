@@ -22,17 +22,21 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.rest.server.NetworkDisruptorClient.NetworkState;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -40,13 +44,18 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PushOffsetRange;
+import io.confluent.ksql.util.PushOffsetVector;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -89,11 +98,13 @@ public class ScalablePushQueryFunctionalTest {
     }
   }
 
+  private static final NetworkState NETWORK_STATE0 = new NetworkState();
+  private static final NetworkState NETWORK_STATE1 = new NetworkState();
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withEnabledKsqlClient()
+      .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE0)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
@@ -108,7 +119,7 @@ public class ScalablePushQueryFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withEnabledKsqlClient()
+      .withNetworkDisruptorInternalKsqlClient(NETWORK_STATE1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
@@ -135,7 +146,7 @@ public class ScalablePushQueryFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(2, TimeUnit.MINUTES)
+      .withTimeout(3, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 
@@ -153,6 +164,7 @@ public class ScalablePushQueryFunctionalTest {
   private String streamName;
   private PageViewDataProvider pageViewDataProvider;
   private PageViewDataProvider pageViewAdditionalDataProvider;
+  private PageViewDataProvider pageViewTwoRows;
   private KsqlRestClient restClient;
   private StreamPublisher<StreamedRow> publisher;
   private QueryStreamSubscriber subscriber;
@@ -167,6 +179,7 @@ public class ScalablePushQueryFunctionalTest {
     final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
     pageViewDataProvider = new PageViewDataProvider(prefix);
     pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
+    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
     TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
 
     RestIntegrationTestUtil.createStream(REST_APP_0, pageViewDataProvider);
@@ -192,6 +205,8 @@ public class ScalablePushQueryFunctionalTest {
     REST_APP_0.closePersistentQueries();
     REST_APP_0.dropSourcesExcept();
     REST_APP_1.stop();
+    NETWORK_STATE0.clear();
+    NETWORK_STATE1.clear();
   }
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {
@@ -206,6 +221,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -232,6 +248,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -269,6 +286,7 @@ public class ScalablePushQueryFunctionalTest {
     makeRequestAndSetupSubscriber(
         "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
         ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
         header, complete);
 
     header.get();
@@ -294,6 +312,112 @@ public class ScalablePushQueryFunctionalTest {
 
     assertFirstBatchOfRows(orderedRows);
     assertSecondBatchOfRows(orderedRows);
+  }
+
+  @Test
+  public void shouldRebalance_simulateFailedRemoteNetworkAndHost_localGap()
+      throws ExecutionException, InterruptedException {
+    assertAllPersistentQueriesRunning(true);
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    makeRequestAndSetupSubscriber(
+        "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
+        ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
+        header, complete);
+
+    header.get();
+    assertExpectedScalablePushQueries(1, true);
+
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
+        is(pageViewDataProvider.data().size() + 1));
+
+    failNetworkConnectionsToServer1ThenIntroduceGap();
+
+    // This simulates a failure of the server too
+    REST_APP_1.stop();
+
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
+        is(pageViewDataProvider.data().size() + pageViewTwoRows.data().size() + 1));
+
+    List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
+        .sorted(this::compareByTimestamp)
+        .collect(Collectors.toList());
+
+    assertFirstBatchOfRows(orderedRows);
+    assertThat(orderedRows.get(8),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_4", "PAGE_1", 10)))));
+    assertThat(orderedRows.get(9),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_0", "PAGE_5", 11)))));
+  }
+
+  @Test
+  public void shouldRebalance_simulateFailedRemoteNetwork_remoteGap()
+      throws ExecutionException, InterruptedException {
+    assertAllPersistentQueriesRunning(true);
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    makeRequestAndSetupSubscriber(
+        "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
+        ImmutableMap.of("auto.offset.reset", "latest"),
+        Collections.emptyMap(),
+        header, complete);
+
+    header.get();
+    assertExpectedScalablePushQueries(1, true);
+
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
+        is(pageViewDataProvider.data().size() + 1));
+
+    failNetworkConnectionsToServer1ThenIntroduceGap();
+    NETWORK_STATE0.setFaulty(false);
+
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
+        is(pageViewDataProvider.data().size() + pageViewTwoRows.data().size() + 1));
+
+    List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
+        .sorted(this::compareByTimestamp)
+        .collect(Collectors.toList());
+
+    assertFirstBatchOfRows(orderedRows);
+    assertThat(orderedRows.get(8),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_4", "PAGE_1", 10)))));
+    assertThat(orderedRows.get(9),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_0", "PAGE_5", 11)))));
+  }
+
+  @Test
+  public void shouldCatchupFromSomeToken() throws ExecutionException, InterruptedException {
+    assertAllPersistentQueriesRunning(true);
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    final PushOffsetRange range = new PushOffsetRange(
+        Optional.empty(), new PushOffsetVector(ImmutableList.of(0L, 0L)));
+    makeRequestAndSetupSubscriber(
+        "SELECT USERID, PAGEID, VIEWTIME from " + streamName + " EMIT CHANGES;",
+        ImmutableMap.of("auto.offset.reset", "latest"),
+        ImmutableMap.of(KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+            range.serialize()),
+        header, complete);
+
+    header.get();
+
+    assertThatEventually(() -> subscriber.getUniqueRows().size(),
+        is(pageViewDataProvider.data().size() + 1));
+    List<StreamedRow> orderedRows = subscriber.getUniqueRows().stream()
+        .sorted(this::compareByTimestamp)
+        .collect(Collectors.toList());
+
+    assertFirstBatchOfRows(orderedRows);
   }
 
   private void assertFirstBatchOfRows(final List<StreamedRow> orderedRows) {
@@ -389,20 +513,22 @@ public class ScalablePushQueryFunctionalTest {
   private void makeRequestAndSetupSubscriber(
       final String sql,
       final Map<String, ?> properties,
+      final Map<String, ?> requestProperties,
       final CompletableFuture<StreamedRow> header,
       final CompletableFuture<List<StreamedRow>> future
   ) {
-    publisher = makeQueryRequest(sql, properties);
+    publisher = makeQueryRequest(sql, properties, requestProperties);
     subscriber = new QueryStreamSubscriber(publisher.getContext(), future, header);
     publisher.subscribe(subscriber);
   }
 
   StreamPublisher<StreamedRow> makeQueryRequest(
       final String sql,
-      final Map<String, ?> properties
+      final Map<String, ?> properties,
+      final Map<String, ?> requestProperties
   ) {
     final RestResponse<StreamPublisher<StreamedRow>> res =
-        restClient.makeQueryRequestStreamed(sql, null, properties);
+        restClient.makeQueryRequestStreamed(sql, null, properties, requestProperties);
 
     if (res.isErroneous()) {
       throw new AssertionError("Failed to await result."
@@ -410,5 +536,49 @@ public class ScalablePushQueryFunctionalTest {
     }
 
     return res.getResponse();
+  }
+
+  private void closeNetworkConnections(final NetworkState networkState) {
+    final List<BufferedPublisher<StreamedRow>> publishers = networkState.getPublishers().stream()
+        .map(CompletableFuture::join)
+        .map(RestResponse::getResponse)
+        .collect(Collectors.toList());
+    publishers.forEach(BasePublisher::close);
+  }
+
+  private void failNetworkConnectionsToServer1ThenIntroduceGap() {
+    // First ensure that latest continues running even after we close connections.
+    for (final PersistentQueryMetadata metadata : REST_APP_1.getEngine()
+        .getPersistentQueries()) {
+      metadata.getScalablePushRegistry().get().setKeepLatestConsumerOnLastRequest();
+    }
+
+    // First get the number of rows currently processed
+    final PersistentQueryMetadata persistentQueryMetadata =
+        Iterables.getLast(REST_APP_1.getEngine().getPersistentQueries());
+    long numRows = persistentQueryMetadata.getScalablePushRegistry().get().latestNumRowsReceived();
+
+    // Fail new connections from server0 to server1
+    NETWORK_STATE0.setFaulty(true);
+    // Close existing connections
+    closeNetworkConnections(NETWORK_STATE0);
+
+    // Wait for the existing connection to be unregistered
+    assertThatEventually(
+        () -> persistentQueryMetadata.getScalablePushRegistry().get().latestNumRegistered(), is(0));
+
+    // One row for each partition to be sure that whatever assignment, REST_APP_1 misses a message
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewTwoRows,
+        FormatFactory.KAFKA, FormatFactory.JSON);
+
+    // Ensure that the server processes those rows and commits the offsets so that any subsequent
+    // connections will have a gap
+    assertThatEventually(
+        () -> {
+          final PersistentQueryMetadata pqm =
+              Iterables.getLast(REST_APP_1.getEngine().getPersistentQueries());
+          long numRowsUpdated = pqm.getScalablePushRegistry().get().latestNumRowsReceived();
+          return numRowsUpdated > numRows;
+        }, is (true));
   }
 }

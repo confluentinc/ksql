@@ -92,7 +92,7 @@ public final class PropertiesUtil {
   }
 
   /**
-   * Apply non-blacklisted entries in the suplied {@code overrides} to the supplied {@code props}.
+   * Apply non-blacklisted entries in the supplied {@code overrides} to the supplied {@code props}.
    *
    * @param props the props to overwrite with sys props.
    * @return an immutable map of merged props.

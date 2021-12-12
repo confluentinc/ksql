@@ -261,7 +261,7 @@ public class StandaloneExecutor implements Executable {
             .put(CreateStreamAsSelect.class, createHandler(
                 StatementExecutor::handlePersistentQuery,
                 CreateStreamAsSelect.class,
-                "CREAETE STREAM AS SELECT"))
+                "CREATE STREAM AS SELECT"))
             .put(CreateTableAsSelect.class, createHandler(
                 StatementExecutor::handlePersistentQuery,
                 CreateTableAsSelect.class,
@@ -304,7 +304,7 @@ public class StandaloneExecutor implements Executable {
       final Handler<Statement> handler = HANDLERS.get(configured.getStatement().getClass());
       if (handler == null) {
         throw new KsqlStatementException("Unsupported statement. "
-            + "Only the following statements are supporting in standalone mode:"
+            + "Only the following statements are supported in standalone mode:"
             + System.lineSeparator()
             + SUPPORTED_STATEMENTS,
             statement.getStatementText());

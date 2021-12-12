@@ -479,8 +479,8 @@ public class StandaloneExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Unsupported statement. "
-        + "Only the following statements are supporting in standalone mode:\n"
-        + "CREAETE STREAM AS SELECT\n"
+        + "Only the following statements are supported in standalone mode:\n"
+        + "CREATE STREAM AS SELECT\n"
         + "CREATE STREAM\n"
         + "CREATE TABLE\n"
         + "CREATE TABLE AS SELECT\n"

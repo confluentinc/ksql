@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
  * A wrapper for an {@link io.confluent.ksql.analyzer.ImmutableAnalysis} that rewrites all
  * expressions using a given rewriter plugin (as provided to
  * {@link io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter}). This is useful when
- * planning queries to allow the planner to transform expressions as needed it builds up the
+ * planning queries to allow the planner to transform expressions as needed when it builds up the
  * transformations needed to execute the query.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling

@@ -29,14 +29,14 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>[7.2.0-0, 7.2.1-0)</version>
+        <version>7.1.0-cc-docker-ksql.17-634-rc1</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksqldb-parent</artifactId>
     <packaging>pom</packaging>
     <name>ksqldb-parent</name>
-    <version>7.2.0-0</version>
+    <version>0.23.1-rc9</version>
 
     <licenses>
         <license>
@@ -143,8 +143,8 @@
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
-        <io.confluent.ksql.version>7.2.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.ksql.version>0.23.1-rc9</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>7.1.0-cc-docker-ksql.17-644-rc1</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
         <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against 4.1.49.Final -->
@@ -323,6 +323,12 @@
                 <version>${io.confluent.common.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>common-docker</artifactId>
+                <version>${io.confluent.common-docker.version}</version>
+            </dependency>
+            
             <dependency>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
@@ -621,18 +627,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-          </dependency>
-
-        <!-- Use a repackaged version of log4j with security patches. Default log4j v1.2 is a transitive dependency of slf4j-log4j12, but it is excluded in common/pom.xml -->
-        <dependency>
-            <groupId>io.confluent</groupId>
-            <artifactId>confluent-log4j</artifactId>
-            <version>1.2.17-cp5</version>
         </dependency>
     </dependencies>
 

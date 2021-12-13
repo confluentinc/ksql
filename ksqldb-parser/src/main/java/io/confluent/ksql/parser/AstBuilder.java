@@ -317,6 +317,8 @@ public class AstBuilder {
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
 
+      disallowLimitClause(query, "STREAM");
+
       return new CreateStreamAsSelect(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -332,6 +334,8 @@ public class AstBuilder {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
+      disallowLimitClause(query, "TABLE");
 
       return new CreateTableAsSelect(
           getLocation(context),
@@ -1549,6 +1553,16 @@ public class AstBuilder {
     } catch (final StackOverflowError e) {
       throw new KsqlException("Error processing statement: Statement is too large to parse. "
           + "This may be caused by having too many nested expressions in the statement.");
+    }
+  }
+
+  private static void disallowLimitClause(final Query query, final String streamOrTable)
+          throws KsqlException {
+    if (query.getLimit().isPresent()) {
+      final String errorMessage = String.format(
+              "CREATE %s AS SELECT statements don't support LIMIT clause.",
+              streamOrTable);
+      throw new KsqlException(errorMessage);
     }
   }
 

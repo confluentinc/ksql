@@ -54,7 +54,6 @@ public class RuntimeAssignor {
   }
 
   public RuntimeAssignor createSandbox() {
-
     return new RuntimeAssignor(this);
   }
 
@@ -111,5 +110,13 @@ public class RuntimeAssignor {
 
   public Map<QueryId, String> getIdToRuntime() {
     return ImmutableMap.copyOf(idToRuntime);
+  }
+
+  public Map<String, Collection<SourceName>> getRuntimesToSources() {
+    return runtimesToSources;
+  }
+
+  public Map<QueryId, String> getIdToRuntime() {
+    return idToRuntime;
   }
 }

@@ -42,18 +42,32 @@ public final class StreamsErrorCollector implements MetricCollector {
   private final MetricCollectors metricCollectors;
   private final Metrics metrics;
   private final Map<String, TopicSensors<Object>> topicSensors = Maps.newConcurrentMap();
-  private final String id;
   private final Time time;
+  private String id;
 
   @SuppressFBWarnings(
       value = "EI_EXPOSE_REP2",
       justification = "metrics"
   )
-  public StreamsErrorCollector(final String applicationId, final MetricCollectors collectors) {
+  public static StreamsErrorCollector create(
+      final String applicationId,
+      final MetricCollectors collectors) {
+
+    final StreamsErrorCollector collector = new StreamsErrorCollector(collectors);
+
+    collector.id = collectors.addCollector(applicationId, collector);
+
+    return collector;
+  }
+
+  @SuppressFBWarnings(
+      value = "EI_EXPOSE_REP2",
+      justification = "metrics"
+  )
+  private StreamsErrorCollector(final MetricCollectors collectors) {
     this.metricCollectors = collectors;
     this.metrics = collectors.getMetrics();
     this.time = collectors.getTime();
-    this.id = collectors.addCollector(applicationId, this);
   }
 
   private TopicSensors<Object> buildSensors(final String topic) {

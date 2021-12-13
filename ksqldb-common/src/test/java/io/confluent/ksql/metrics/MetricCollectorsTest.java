@@ -468,7 +468,7 @@ public class MetricCollectorsTest {
   @Test
   public void shouldAggregateDeserializationErrors() {
     final MetricCollectors metricCollectors = new MetricCollectors();
-    final StreamsErrorCollector streamsErrorCollector = new StreamsErrorCollector(
+    final StreamsErrorCollector streamsErrorCollector = StreamsErrorCollector.create(
         "test-application",
         metricCollectors
     );

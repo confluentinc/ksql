@@ -55,7 +55,7 @@ public class StreamsErrorCollectorTest {
   @Test
   public void shouldCountStreamsErrors() {
     final MetricCollectors metricCollectors = new MetricCollectors();
-    final StreamsErrorCollector collector = new StreamsErrorCollector(
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
         applicationId,
         metricCollectors
     );
@@ -73,7 +73,7 @@ public class StreamsErrorCollectorTest {
   @Test
   public void shouldComputeErrorRate() {
     final MetricCollectors metricCollectors = new MetricCollectors();
-    final StreamsErrorCollector collector = new StreamsErrorCollector(
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
         applicationId,
         metricCollectors
     );
@@ -91,7 +91,7 @@ public class StreamsErrorCollectorTest {
   @Test
   public void shouldComputeTopicLevelErrorStats() {
     final MetricCollectors metricCollectors = new MetricCollectors();
-    final StreamsErrorCollector collector = new StreamsErrorCollector(
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
         applicationId,
         metricCollectors
     );
@@ -116,13 +116,13 @@ public class StreamsErrorCollectorTest {
   @Test
   public void shouldComputeIndependentErrorStatsForQuery() {
     final MetricCollectors metricCollectors = new MetricCollectors();
-    final StreamsErrorCollector collector = new StreamsErrorCollector(
+    final StreamsErrorCollector collector = StreamsErrorCollector.create(
         applicationId,
         metricCollectors
     );
 
     final String otherAppId = buildApplicationId();
-    final StreamsErrorCollector otherCollector = new StreamsErrorCollector(
+    final StreamsErrorCollector otherCollector = StreamsErrorCollector.create(
         otherAppId,
         metricCollectors
     );

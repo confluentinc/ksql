@@ -673,7 +673,7 @@ final class QueryBuilder {
     );
     newStreamsProperties.put(
         KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG,
-        new StreamsErrorCollector(applicationId, metricCollectors)
+        StreamsErrorCollector.create(applicationId, metricCollectors)
     );
 
     return newStreamsProperties;

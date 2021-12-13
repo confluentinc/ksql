@@ -105,12 +105,16 @@ public final class InternalKsqlClientFactory {
     final String size = clientProps.get(
         KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG);
     int sizeInt;
-    try {
-      sizeInt = Integer.parseInt(size);
-    } catch (NumberFormatException e) {
-      LOG.error("Bad int passed in for " + KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
-              + ", using 1000", e);
-      sizeInt = 1000;
+    if (size != null) {
+      try {
+        sizeInt = Integer.parseInt(size);
+      } catch (NumberFormatException e) {
+        LOG.error("Bad int passed in for " + KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
+            + ", using " + KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT, e);
+        sizeInt = KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT;
+      }
+    } else {
+      sizeInt = KsqlRestConfig.KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT;
     }
     return new HttpClientOptions()
         // At the moment, we cannot asynchronously end long-running queries in http2, in a way that

@@ -68,8 +68,9 @@ In this example, you don't need to define any columns in the CREATE statement. k
 information automatically from {{ site.sr }} using the provided `VALUE_SCHEMA_ID`.
 
 !!! important
-The schema referred to by `VALUE_SCHEMA_ID` must be registered in {{ site.sr }}. It can be under
-any subject but must match the format defined by `VALUE_FORMAT`.
+    The schema referred to by `VALUE_SCHEMA_ID` must be registered in
+    {{ site.sr }}. It can be under any subject but must match the format
+    defined by `VALUE_FORMAT`.
 
 #### With a key column
 
@@ -90,12 +91,12 @@ In the previous example, ksqlDB infers the key and value columns automatically f
 the provided `KEY_SCHEMA_ID` and `VALUE_SCHEMA_ID`.
 
 !!! important
-The schema referred to by `KEY_SCHEMA_ID` and `VALUE_SCHEMA_ID` must be registered in {{ site.sr }}. 
-It can be under any subject but must match the format defined by `KEY_FORMAT` and `VALUE_FORMAT` respectively.
+    The schema referred to by `KEY_SCHEMA_ID` and `VALUE_SCHEMA_ID` must be registered in {{ site.sr }}. 
+    It can be under any subject but must match the format defined by `KEY_FORMAT` and `VALUE_FORMAT` respectively.
 
 !!! important
-Key or value columns must NOT be defined in statement if corresponding `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID`
-is supplied.
+    You can't define key or value columns in a statement if a corresponding
+    `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID` is supplied.
 
 #### With partial schema inference
 
@@ -119,15 +120,15 @@ statement. ksqlDB infers the value columns automatically from {{ site.sr }} usin
 `VALUE_SCHEMA_ID`.
 
 !!! important
-The schema referred to by `VALUE_SCHEMA_ID` must be registered in {{ site.sr }}. It can be under 
-any subject but must match the format defined by `VALUE_FORMAT`.
+    The schema referred to by `VALUE_SCHEMA_ID` must be registered in
+    { site.sr }}. It can be under any subject but must match the format
+    defined by `VALUE_FORMAT`.
 
 ### Declaring a derived view with schema ID.
 
 The following statement shows how to create a materialized view derived from an existing source with the 
 `VALUE_SCHEMA_ID` property. The schema referred to by `VALUE_SCHEMA_ID` is used to check column compatibility with
-output columns and serialize output data. See [Schema Inference and Data Serialization](#Schema-Inference-and-Data-Serialization) 
-for more information.
+output columns and serialize output data. For more information, see [Schema Inference and Data Serialization](#Schema-Inference-and-Data-Serialization).
 
 ```sql
 CREATE STREAM pageviews_new
@@ -142,10 +143,9 @@ CREATE STREAM pageviews_new
 ```
 
 !!! important
-The schema referred to by `VALUE_SCHEMA_ID` must be registered in {{ site.sr }}. It can be under 
-any subject but must match the format defined by `VALUE_FORMAT`. The schema referred to by `VALUE_SCHEMA_ID`
-must be compatible with the logical schema defined by the `SELECT` clause. See [Schema Inference and Data Serialization](#Schema-Inference-and-Data-Serialization)
-for more information.
+    The schema referred to by `VALUE_SCHEMA_ID` must be registered in {{ site.sr }}. It can be under 
+    any subject but must match the format defined by `VALUE_FORMAT`. The schema referred to by `VALUE_SCHEMA_ID`
+    must be compatible with the logical schema defined by the `SELECT` clause. For more information, see [Schema Inference and Data Serialization](#Schema-Inference-and-Data-Serialization).
 
 ### Schema Inference and Data Serialization
 
@@ -158,16 +158,19 @@ will be registered under the subject `<topic-name>-key` or `<topic-name>-value` 
 #### Schema Inference Schema Requirements
 
 If `WRAP_SINGLE_VALUE` is set to `true` in the statement, the physical schema is expected to be a `struct`
-type and the field names are used as data source column names. Field types are inference as
+type, and the field names are used as data source column names. Field types are inferred from
 corresponding column data types.
 
+
+
 !!! note
-`struct` type in `AVRO` should be `record` type; in `PROTOBUF` it should be `message` type and in `JSON_SR`
-it should be `object` type.
+    - In `AVRO`, the `struct` type corresponds with the `record` type.
+    - In `PROTOBUF` the `struct` type corresponds with the `message` type.
+    - In `JSON_SR`, the `struct` type corresponds with the `object` type.
 
 For example, a physical schema is an `AVRO` schema and defined as following in {{ site.sr }} with ID 1:
 
-```
+```json
 {
 "schema":"{
     \"type\":\"record\",
@@ -182,8 +185,8 @@ For example, a physical schema is an `AVRO` schema and defined as following in {
 ```
 
 !!! note
-`AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
-is for ease of read.
+    `AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
+    is for ease of read.
 
 `CREATE` statement is defined as following:
 
@@ -213,17 +216,19 @@ Name                 : PAGEVIEWS
 ------------------------------------
 ```
 
-If `WRAP_SINGLE_VALUE` is `false` in the statement, if `KEY_SCHEMA_ID` is set, `ROWKEY` will be used
-as key column name; if `VALUE_SCHEMA_ID` is set, `ROWVAL` will be used as value column name.
-Physical schema will be used as the column data type.
+If `WRAP_SINGLE_VALUE` is `false` in the statement, and if `KEY_SCHEMA_ID` is set, `ROWKEY` is used
+as key column name.
 
-For example, if physical schema is `AVRO` schema and defined as following in {{ site.sr }} with ID 2:
+If `VALUE_SCHEMA_ID` is set, `ROWVAL` is used as value column name. The physical
+schema is used as the column data type.
+
+For example, if the physical schema is `AVRO` and defined as following in {{ site.sr }} with ID 2:
 
 ```
 {"schema": "\"int\""}
 ```
 
-and `CREATE` statement is defined as following:
+and a `CREATE` statement is defined as following:
 
 ```sql
 CREATE TABLE pageview_count (
@@ -238,7 +243,7 @@ CREATE TABLE pageview_count (
   );
 ```
 
-then the schema for `pageview_count` will be inferred as:
+The inferred schema for `pageview_count` is:
 
 ```
 ksql> describe pageview_count;
@@ -251,29 +256,32 @@ Name                 : PAGEVIEW_COUNT
 -----------------------------------------
 ```
 
-For more information about `WRAP_SINGLE_VALUE`, see [Single Field (un)wrapping](/reference/serialization#single-field-unwrapping)
+For more information about `WRAP_SINGLE_VALUE`, see 
+[Single Field (un)wrapping](/reference/serialization#single-field-unwrapping).
 
 #### Schema Inference Type Handling
 
-ksqlDB supports `null` value to be used in `KEY` and `VALUE` columns. This means if a field in the physical
-schema is a required type, it will be translated to an optional type in the logical schema. This has subtle 
-implication for data serialization which is explained in the below section.
+ksqlDB supports the `null` value for `KEY` and `VALUE` columns. This means that
+if a field in the physical schema is a required type, it's translated to an
+optional type in the logical schema. This has subtle implications for data
+serialization, which are explained in the following section.
 
 !!! important
-For unsupported types in physical schema, ksqlDB will ignore them and continue translating supported 
-types to logical schema. For now, users are expected to verify if the logical schema is expected.
+    For unsupported types in physical schema, ksqlDB ignores them and continues
+    translating supported types to the logical schema. You should verify that
+    the logical schema is translated as expected.
 
 !!! important
-During schema translation from physical schema to logical schema, for `struct` type, field names will be
-used as column names in the logical schema. Note that field names WON'T be uppercased whereas in schema inference
-without schema id, the names will be uppercased.
+    During schema translation from a physical schema to a logical schema, `struct` type field names are
+    used as column names in the logical schema. Field names aren't uppercased, in contrast with schema inference
+    _without_ a schema id, which does translate field names to upper case.
 
 #### Schema Compatibility Check for Derived View
 
-When creating a materialized view, schema IDs can also be used. However, instead of inferring the logical 
-schema for the view, it will be used to check compatibility against the query's projection and serialize output
-data. For compatibility checks, inferred logical schema must be a superset of the query's projection
-schema which means corresponding column name, type and order should match but the inferred logical schema 
+You can use schema IDs when creating a materialized views, but instead of inferring the logical 
+schema for the view, the schema is used to check compatibility against the query's projection and serialized output
+data. For compatibility checks, the inferred logical schema must be a superset of the query's projection
+schema, which means corresponding column names, types, and order must match. The inferred logical schema 
 may have extra columns.
 
 Consider the following statement:
@@ -290,13 +298,13 @@ CREATE STREAM pageviews_new
   FROM pageviews
 ```
 
-Suppose `pageviews` value column is `ts INT`. `pageviews_new`'s logical schema is decided by the 
+If the `pageviews` value column has the type `ts INT`, the logical schema of `pageviews_new` is decided by the 
 projection in the query `SELECT pageId, ts FROM pageviews`. When `VALUE_SCHEMA_ID` is used, 
-inferred logical schema will be checked against `ts INT` for compatibility. 
+the inferred logical schema is checked against `ts INT` for compatibility. 
 
 A compatible example of physical schema would be as follows:
 
-```sql
+```json
 {
 "schema":"{
     \"type\":\"record\",
@@ -311,16 +319,17 @@ A compatible example of physical schema would be as follows:
 ```
 
 !!! note
-`AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
-is for ease of read.
+    `AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
+    is for ease of read.
 
 !!! note
-In the above `AVRO` schema, `title` is an extra field. Since the physical schema will be used for data serialization,
-the `title` field with default value will appear in serialized data even though inserted value can never 
-set the `title` field because it's not in logical schema (i.e., `SELECT` clause of the query).
+    In the above `AVRO` schema, `title` is an extra field. Because the physical schema is used for data serialization,
+    the `title` field with a default value will appear in serialized data, even though the inserted value can never 
+    set the `title` field, because it's not in logical schema (the `SELECT` clause of the query).
 
 An incompatible physical schema is show below. It's incompatible because of the type mismatch for `pageId`:
-```sql
+
+```json
 {
 "schema":"{
     \"type\":\"record\",
@@ -335,20 +344,20 @@ An incompatible physical schema is show below. It's incompatible because of the 
 ```
 
 !!! note
-`AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
-is for ease of read.
+    `AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
+    is for ease of read.
 
 #### Data Serialization
 
-When a schema ID is provided and schema inference is successful, data source can be successfully created.
-When writing to the data source, the physical schema inferred by the schema ID will be used to serialize
-data instead of the logical schema being used in other cases. Because ksqlDB's logical schema accepts
-`null` value but the physical schema may not, serialization can fail even the inserted value is valid 
+When a schema ID is provided, and schema inference is successful, the data source can be created.
+When writing to the data source, the physical schema inferred by the schema ID is used to serialize
+data, instead of the logical schema being used in other cases. Because ksqlDB's logical schema accepts
+`null` values but the physical schema may not, serialization can fail even if the inserted value is valid 
 for the logical schema.
 
 For example, a physical schema is `AVRO` schema and defined as following in {{ site.sr }} with ID 1:
 
-```
+```json
 {
 "schema":"{
     \"type\":\"record\",
@@ -361,10 +370,6 @@ For example, a physical schema is `AVRO` schema and defined as following in {{ s
 }"
 }
 ```
-
-!!! note
-`AVRO` schema raw string in {{ site.sr }} should be single line raw string without `\n`. Above format
-is for ease of read.
 
 and `CREATE` statement is defined as following:
 
@@ -380,7 +385,7 @@ CREATE STREAM pageviews (
   );
 ```
 
-then the schema for `pageviews` will be inferred as:
+then the schema for `pageviews` is inferred as:
 
 ```
 ksql> describe pageviews;
@@ -394,7 +399,7 @@ Name                 : PAGEVIEWS
 ------------------------------------
 ```
 
-When you insert values to `pageviews` with `null` value, it will return an error:
+When you insert values to `pageviews` with a `null` value, ksqlDB returns an error:
 
 ```
 ksql> insert into pageviews values (1, null, null);
@@ -404,7 +409,7 @@ Failed to insert values into 'PAGEVIEWS'. Could not serialize value: [ null | nu
 This is because `page_name` and `ts` are required fields without default values in the specified physical schema.
 
 !!! important
-ksqlDB doesn't check a physical schema referred to by a schema ID contains fields are required without 
-making sure `null` can be serialized. Users are supposed to make sure `null` can be handled properly 
-either by making physical schema fields optional or by make sure `null` is never inserted by applying 
-the `IFNULL` function (see [IFNULL](/developer-guide/ksqldb-reference/scalar-functions/#ifnull)).
+    ksqlDB doesn't check a physical schema referred to by a schema ID contains fields are required without 
+    making sure `null` can be serialized. Users are supposed to make sure `null` can be handled properly 
+    either by making physical schema fields optional or by make sure `null` is never inserted by applying 
+    the `IFNULL` function (see [IFNULL](/developer-guide/ksqldb-reference/scalar-functions/#ifnull)).

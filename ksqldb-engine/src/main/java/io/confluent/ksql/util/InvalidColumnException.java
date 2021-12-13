@@ -17,8 +17,12 @@ package io.confluent.ksql.util;
 
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.parser.NodeLocation;
+import java.util.Objects;
 
 public class InvalidColumnException extends KsqlException {
+
+  private final ColumnReferenceExp column;
+  private final String prefix;
 
   public InvalidColumnException(
       final ColumnReferenceExp column,
@@ -33,6 +37,16 @@ public class InvalidColumnException extends KsqlException {
       final String message
   ) {
     super(buildMessage(prefix, column, message));
+    this.column = Objects.requireNonNull(column, "column");
+    this.prefix = Objects.requireNonNull(prefix, "prefix");
+  }
+
+  public ColumnReferenceExp getColumnExp() {
+    return column;
+  }
+
+  public String getPrefix() {
+    return prefix;
   }
 
   private static String buildMessage(

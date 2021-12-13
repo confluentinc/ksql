@@ -8,7 +8,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 
 import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,9 +20,13 @@ public class RuntimeAssignor {
   private final Map<QueryId, String> idToRuntime;
 
   public RuntimeAssignor(final KsqlConfig config) {
+    this(config, 8);
+  }
+
+  public RuntimeAssignor(final KsqlConfig config, final int runtimes) {
     runtimesToSources = new HashMap<>();
     idToRuntime= new HashMap<>();
-    for(int i=0; i < 8; i++) {
+    for(int i=0; i < runtimes; i++) {
       String runtime = buildSharedRuntimeId(config, true, i);
       runtimesToSources.put(runtime, new HashSet<>());
     }
@@ -39,7 +42,6 @@ public class RuntimeAssignor {
   }
 
   public RuntimeAssignor createSandbox() {
-
     return new RuntimeAssignor(this);
   }
 
@@ -91,5 +93,13 @@ public class RuntimeAssignor {
   public void close() {
     runtimesToSources.clear();
     idToRuntime.clear();
+  }
+
+  public Map<String, Collection<SourceName>> getRuntimesToSources() {
+    return runtimesToSources;
+  }
+
+  public Map<QueryId, String> getIdToRuntime() {
+    return idToRuntime;
   }
 }

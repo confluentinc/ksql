@@ -44,7 +44,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   protected final KafkaStreamsBuilder kafkaStreamsBuilder;
   protected KafkaStreamsNamedTopologyWrapper kafkaStreams;
-  protected final ImmutableMap<String, Object> streamsProperties;
+  protected ImmutableMap<String, Object> streamsProperties;
   protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
   protected final Map<QueryId, Set<SourceName>> sources;
 
@@ -155,4 +155,6 @@ public abstract class SharedKafkaStreamsRuntime {
   public String getApplicationId() {
     return getStreamProperties().get(StreamsConfig.APPLICATION_ID_CONFIG).toString();
   }
+
+  public abstract void overrideStreamsProperties(Map<String, Object> newStreamsProperties);
 }

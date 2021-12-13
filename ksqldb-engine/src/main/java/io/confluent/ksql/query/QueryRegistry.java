@@ -25,6 +25,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -164,6 +165,11 @@ public interface QueryRegistry {
    * @return the query started by the C(S|T)AS that created sourceName
    */
   Optional<QueryMetadata> getCreateAsQuery(SourceName sourceName);
+
+  /**
+   * Restarts the streams runtimes
+   */
+  void restartStreamsRuntime(KsqlConfig config);
 
   /**
    * Get all insert queries that write into or read from a given source.

@@ -45,6 +45,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
 
 public class QueryRegistryImpl implements QueryRegistry {
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
@@ -219,6 +221,23 @@ public class QueryRegistryImpl implements QueryRegistry {
     // nor will it count against the push query limit.
     notifyCreate(serviceContext, metaStore, query);
     return query;
+  }
+
+  @Override
+  public void restartStreamsRuntime(final KsqlConfig config) {
+    for (SharedKafkaStreamsRuntime stream : streams) {
+      // get kafka streams properties
+      final String applicationId = stream.getApplicationId();
+      final Map<String, Object> newStreamsProperties =
+          new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
+      newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+      final Map<String, Object> properties = QueryBuilder
+          .updateListProperties(newStreamsProperties);
+      stream.overrideStreamsProperties(properties);
+
+      // restart runtime
+      stream.restartStreamsRuntime();
+    }
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck

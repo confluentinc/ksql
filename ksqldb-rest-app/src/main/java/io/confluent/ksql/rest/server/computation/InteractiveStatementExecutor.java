@@ -290,6 +290,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       final String propertyName = alterSystemQuery.getStatement().getPropertyName();
       final String propertyValue = alterSystemQuery.getStatement().getPropertyValue();
       ksqlEngine.alterSystemProperty(propertyName, propertyValue);
+      ksqlEngine.restartStreamsRuntime();
 
       final String successMessage = String.format("System property %s was set to %s.",
           propertyName, propertyValue);

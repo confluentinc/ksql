@@ -96,12 +96,11 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
+  public void stop(final QueryId queryId, boolean resetOffsets) {
+  }
+  
   public TimeBoundedQueue getNewQueryErrorQueue() {
     return new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 0);
-  }
-
-  @Override
-  public void stop(final QueryId queryId, boolean resetOffsets) {
   }
 
   @Override

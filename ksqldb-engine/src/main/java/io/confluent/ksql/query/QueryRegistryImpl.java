@@ -132,9 +132,9 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
-    sourceStreams.addAll(original.streams.stream()
-        .collect(Collectors.toList()));
     this.metricCollectors = original.metricCollectors;
+    sourceStreams.addAll(original.streams);
+
     sandbox = true;
   }
 

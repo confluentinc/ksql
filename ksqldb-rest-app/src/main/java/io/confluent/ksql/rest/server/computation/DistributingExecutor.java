@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -41,6 +42,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -214,7 +217,8 @@ public class DistributingExecutor {
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
           commandStatus,
-          queuedCommandStatus.getCommandSequenceNumber()
+          queuedCommandStatus.getCommandSequenceNumber(),
+          getDeprecatedWarnings(executionContext.getMetaStore(), injected)
       )));
     } catch (final ProducerFencedException
         | OutOfOrderSequenceException
@@ -239,6 +243,23 @@ public class DistributingExecutor {
     } finally {
       transactionalProducer.close();
     }
+  }
+
+  /**
+   * @return a list of warning messages for deprecated syntax statements
+   */
+  private List<KsqlWarning> getDeprecatedWarnings(
+      final MetaStore metaStore,
+      final ConfiguredStatement<?> statement
+  ) {
+    final List<KsqlWarning> deprecatedWarnings = new ArrayList<>();
+    final DeprecatedStatementsChecker checker = new DeprecatedStatementsChecker(metaStore);
+
+    checker.checkStatement(statement.getStatement())
+        .ifPresent(deprecations ->
+            deprecatedWarnings.add(new KsqlWarning(deprecations.getNoticeMessage())));
+
+    return deprecatedWarnings;
   }
 
   private void checkAuthorization(

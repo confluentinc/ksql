@@ -465,31 +465,31 @@ final class QueryBuilder {
 
     final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
         = new BinPackedPersistentQueryMetadataImpl(
-        persistentQueryType,
-        statementText,
-        querySchema,
-        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
-        planSummary,
-        applicationId,
-        topology,
-        sharedKafkaStreamsRuntime,
-        runtimeBuildContext.getSchemas(),
-        config.getOverrides(),
-        queryId,
-        materializationProviderBuilder,
-        physicalPlan,
-        getUncaughtExceptionProcessingLogger(queryId),
-        sinkDataSource,
-        listener,
-        queryOverrides,
-        scalablePushRegistry,
-        (streamsRuntime) -> getNamedTopology(
-            streamsRuntime,
-            queryId,
+            persistentQueryType,
+            statementText,
+            querySchema,
+            sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+            planSummary,
             applicationId,
+            topology,
+            sharedKafkaStreamsRuntime,
+            runtimeBuildContext.getSchemas(),
+            config.getOverrides(),
+            queryId,
+            materializationProviderBuilder,
+            physicalPlan,
+            getUncaughtExceptionProcessingLogger(queryId),
+            sinkDataSource,
+            listener,
             queryOverrides,
-            physicalPlan
-        )
+            scalablePushRegistry,
+            (streamsRuntime) -> getNamedTopology(
+                streamsRuntime,
+                queryId,
+                applicationId,
+                queryOverrides,
+                physicalPlan
+            )
     );
     if (real) {
       return binPackedPersistentQueryMetadata;

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -33,7 +33,8 @@ import org.slf4j.LoggerFactory;
 // https://gist.github.com/danielflower/f54c2fe42d32356301c68860a4ab21ed
 // https://github.com/confluentinc/rest-utils/blob/master/core/src/main/java/io/confluent/rest/FileWatcher.java
 /**
- * Watches a file and calls a callback when it is changed.
+ * Watches a file and calls a callback when it is changed. Only file creation and modification
+ * are watched for; deletion has no effect.
  */
 public class FileWatcher extends Thread {
 

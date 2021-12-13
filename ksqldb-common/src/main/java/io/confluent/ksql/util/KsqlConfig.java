@@ -91,9 +91,31 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
-  public static final String CONNECT_URL_PROPERTY = "ksql.connect.url";
+  public static final String KSQL_CONNECT_PREFIX = "ksql.connect.";
 
-  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY = "ksql.connect.worker.config";
+  public static final String CONNECT_URL_PROPERTY = KSQL_CONNECT_PREFIX + "url";
+
+  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "worker.config";
+
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.source";
+  public static final String BASIC_AUTH_CREDENTIALS_SOURCE_NONE = "NONE";
+  public static final String BASIC_AUTH_CREDENTIALS_SOURCE_FILE = "FILE";
+  private static final ConfigDef.ValidString BASIC_AUTH_CREDENTIALS_SOURCE_VALIDATOR =
+      ConfigDef.ValidString.in(
+          BASIC_AUTH_CREDENTIALS_SOURCE_NONE,
+          BASIC_AUTH_CREDENTIALS_SOURCE_FILE
+      );
+  public static final String BASIC_AUTH_CREDENTIALS_USERNAME = "username";
+  public static final String BASIC_AUTH_CREDENTIALS_PASSWORD = "password";
+
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.file";
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.reload";
+  public static final String CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.fail.on.unreadable";
 
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
@@ -783,6 +805,40 @@ public class KsqlConfig extends AbstractConfig {
                 + "will prevent connect from starting up embedded within KSQL. For more information"
                 + " on configuring connect, see "
                 + "https://docs.confluent.io/current/connect/userguide.html#configuring-workers."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY,
+            ConfigDef.Type.STRING,
+            BASIC_AUTH_CREDENTIALS_SOURCE_NONE,
+            BASIC_AUTH_CREDENTIALS_SOURCE_VALIDATOR,
+            Importance.LOW,
+            "If providing explicit basic auth credentials for ksqlDB to use when sending connector "
+                + "requests, this config specifies how credentials should be loaded. Valid "
+                + "options are 'FILE' in order to specify the username and password in a "
+                + "properties file, or 'NONE' to indicate that custom basic auth should "
+                + "not be used. If 'NONE', ksqlDB will forward the auth header, if present, "
+                + "on the incoming ksql request to Connect."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY,
+            ConfigDef.Type.STRING,
+            "",
+            Importance.LOW,
+            "If '" + CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY + "' is set to 'FILE', "
+                + "then this config specifies the path to the credentials file."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY,
+            ConfigDef.Type.BOOLEAN,
+            false,
+            ConfigDef.Importance.LOW,
+            "If true, basic auth credentials for connector auth will automatically reload "
+                + "on file change (creation or modification). File deletion is not monitored and "
+                + "old credentials will continue to be used in this case."
+        ).define(
+            CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            "If true, failure to load basic auth credentials for connector auth will result "
+                + "in an error. If false, failure will result in a warn log and empty credentials."
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,

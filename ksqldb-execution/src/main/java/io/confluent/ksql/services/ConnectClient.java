@@ -131,4 +131,10 @@ public interface ConnectClient {
     }
   }
 
+  interface ConnectClientFactory {
+    ConnectClient get(Optional<String> authHeader);
+
+    default void close() {}
+  }
+
 }

@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultS
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Optional;
@@ -35,6 +36,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   private final UserServiceContextFactory userServiceContextFactory;
   private final KsqlConfig ksqlConfig;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private final ConnectClientFactory connectClientFactory;
   private final KsqlClient sharedClient;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -44,12 +46,14 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
       final UserServiceContextFactory userServiceContextFactory,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient) {
     this.securityExtension = securityExtension;
     this.defaultServiceContextFactory = defaultServiceContextFactory;
     this.userServiceContextFactory = userServiceContextFactory;
     this.ksqlConfig = ksqlConfig;
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
+    this.connectClientFactory = connectClientFactory;
     this.sharedClient = sharedClient;
   }
 
@@ -74,7 +78,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
       return new KsqlSecurityContext(
           principal,
           defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory,
-              sharedClient)
+              connectClientFactory, sharedClient)
       );
     }
 
@@ -86,8 +90,13 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
                 authHeader,
                 provider.getKafkaClientSupplier(principal.get()),
                 provider.getSchemaRegistryClientFactory(principal.get()),
+                connectClientFactory,
                 sharedClient)))
         .get();
   }
 
+  @Override
+  public void close() {
+    connectClientFactory.close();
+  }
 }

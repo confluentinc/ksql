@@ -108,9 +108,7 @@ public final class TestServiceContext {
         adminClient,
         new KafkaTopicClientImpl(() -> adminClient),
         srClientFactory,
-        new DefaultConnectClient(
-            ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-            Optional.empty()),
+        new DefaultConnectClientFactory(ksqlConfig).get(Optional.empty()),
         new KafkaConsumerGroupClientImpl(() -> adminClient)
     );
   }

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.util;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
-import io.confluent.ksql.api.server.FileWatcher.Callback;
+import io.confluent.ksql.util.FileWatcher.Callback;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import java.nio.file.Files;
 import java.nio.file.Path;

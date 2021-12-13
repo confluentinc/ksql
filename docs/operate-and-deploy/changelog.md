@@ -9,7 +9,7 @@ keywords: ksqldb, changelog
 Version 0.22.0
 --------------
 
-- [Announcing ksqlDB 0.22.0](https://www.confluent.io/blog/announcing-ksqldb-0-22-new-features-major-upgrades/)
+- [Announcing ksqlDB 0.22.0](https://www.confluent.io/blog/ksqldb-0-22-new-features-major-upgrades/)
 - [ksqlDB v0.22.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0220-2021-11-03)
 
 Version 0.21.0

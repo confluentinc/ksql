@@ -1341,12 +1341,12 @@ public class KsqlConfig extends AbstractConfig {
   }
   // CHECKSTYLE_RULES.ON: MethodLength
 
-  public Map<String, Object> originalsWithPrefixOverride(String prefix) {
+  public Map<String, Object> originalsWithPrefixOverride(final String prefix) {
     final Map<String, Object> originals = originals();
-    Map<String, Object> result = new HashMap<>(originals);
+    final Map<String, Object> result = new HashMap<>(originals);
     for (Map.Entry<String, ?> entry : originals.entrySet()) {
       if (entry.getKey().startsWith(prefix) && entry.getKey().length() > prefix.length()) {
-        String keyWithNoPrefix = entry.getKey().substring(prefix.length());
+        final String keyWithNoPrefix = entry.getKey().substring(prefix.length());
         result.put(keyWithNoPrefix, entry.getValue());
       }
     }

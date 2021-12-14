@@ -64,8 +64,6 @@ public interface PersistentQueryMetadata extends QueryMetadata {
       Throwable error
   );
 
-  Optional<MaterializationProvider>  getMaterializationProvider();
-
   Optional<ScalablePushRegistry> getScalablePushRegistry();
 
   final class QueryListenerWrapper implements Listener {
@@ -85,9 +83,8 @@ public interface PersistentQueryMetadata extends QueryMetadata {
     }
 
     @Override
-    public void onStateChange(final QueryMetadata queryMetadata, final State before,
-                              final State after) {
-      this.listener.onStateChange(queryMetadata, before, after);
+    public void onStateChange(final QueryMetadata query, final State old, final State newState) {
+      this.listener.onStateChange(query, old, newState);
     }
 
     @Override

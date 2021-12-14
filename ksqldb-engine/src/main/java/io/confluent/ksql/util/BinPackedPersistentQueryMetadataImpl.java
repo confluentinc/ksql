@@ -236,11 +236,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   }
 
   @Override
-  public Optional<MaterializationProvider> getMaterializationProvider() {
-    return materializationProvider;
-  }
-
-  @Override
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
   }

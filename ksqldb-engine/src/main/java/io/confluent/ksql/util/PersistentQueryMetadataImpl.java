@@ -200,11 +200,6 @@ public class PersistentQueryMetadataImpl
   }
 
   @VisibleForTesting
-  public Optional<MaterializationProvider> getMaterializationProvider() {
-    return materializationProvider;
-  }
-
-  @VisibleForTesting
   public ProcessingLogger getProcessingLogger() {
     return processingLogger;
   }

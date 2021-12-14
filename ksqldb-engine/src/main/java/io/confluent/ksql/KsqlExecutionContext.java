@@ -23,6 +23,7 @@ import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -72,6 +73,8 @@ public interface KsqlExecutionContext {
    * @return read-only access to the context's {@link KsqlConfig}
    */
   KsqlConfig getKsqlConfig();
+
+  MetricCollectors metricCollectors();
 
   /**
    * Alters the system property to the specified value.

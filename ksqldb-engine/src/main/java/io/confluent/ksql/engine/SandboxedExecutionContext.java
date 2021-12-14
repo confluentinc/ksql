@@ -25,6 +25,7 @@ import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -59,17 +60,25 @@ import java.util.Set;
 final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   private final EngineContext engineContext;
+  private final MetricCollectors metricCollectors;
 
   SandboxedExecutionContext(
       final EngineContext sourceContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final MetricCollectors metricCollectors
   ) {
+    this.metricCollectors = metricCollectors;
     this.engineContext = sourceContext.createSandbox(serviceContext);
   }
 
   @Override
   public KsqlConfig getKsqlConfig() {
     return this.engineContext.getKsqlConfig();
+  }
+
+  @Override
+  public MetricCollectors metricCollectors() {
+    return metricCollectors;
   }
 
   @Override
@@ -95,7 +104,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
-    return new SandboxedExecutionContext(engineContext, serviceContext);
+    return new SandboxedExecutionContext(engineContext, serviceContext, metricCollectors);
   }
 
   @Override

@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -122,7 +123,9 @@ public class DescribeConnectorExecutorTest {
 
   @Before
   public void setUp() {
+    final MetricCollectors metricCollectors = new MetricCollectors();
     when(engine.getMetaStore()).thenReturn(metaStore);
+    when(engine.metricCollectors()).thenReturn(metricCollectors);
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
@@ -173,6 +176,7 @@ public class DescribeConnectorExecutorTest {
 
     // Then:
     verify(engine).getMetaStore();
+    verify(engine).metricCollectors();
     verify(metaStore).getAllDataSources();
     verify(connectClient).status("connector");
     verify(connectClient).describe("connector");

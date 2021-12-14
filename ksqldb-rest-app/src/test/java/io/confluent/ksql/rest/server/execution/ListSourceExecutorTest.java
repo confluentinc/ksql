@@ -36,6 +36,7 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -160,7 +161,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("stream2")),
+            ImmutableList.of("stream2"),
+            new MetricCollectors()
+        ),
         SourceDescriptionFactory.create(
             stream2,
             true,
@@ -168,7 +171,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of())
+            ImmutableList.of(),
+            new MetricCollectors()
+        )
     ));
   }
 
@@ -198,7 +203,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("stream2")),
+            ImmutableList.of("stream2"),
+            new MetricCollectors()
+        ),
         SourceDescriptionFactory.create(
             stream2,
             false,
@@ -206,7 +213,9 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of())
+            ImmutableList.of(),
+            new MetricCollectors()
+        )
     ));
   }
 
@@ -272,7 +281,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             ImmutableList.of(),
-            ImmutableList.of("table2")
+            ImmutableList.of("table2"),
+            new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -281,7 +291,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName())),
             ImmutableList.of(),
-            ImmutableList.of()
+            ImmutableList.of(),
+            new MetricCollectors()
         )
     ));
   }
@@ -312,7 +323,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of("table2")
+            ImmutableList.of("table2"),
+            new MetricCollectors()
         ),
         SourceDescriptionFactory.create(
             table2,
@@ -321,7 +333,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of()
+            ImmutableList.of(),
+            new MetricCollectors()
         )
     ));
   }
@@ -354,21 +367,28 @@ public class ListSourceExecutorTest {
     final QueryStatusCount queryStatusCount = QueryStatusCount.fromStreamsStateCounts(
         Collections.singletonMap(metadata.getState(), 1));
 
-    assertThat(sourceDescription.getSourceDescription(),
-        equalTo(SourceDescriptionFactory.create(
-            stream,
-            false,
-            ImmutableList.of(),
-            ImmutableList.of(new RunningQuery(
-                metadata.getStatementString(),
-                ImmutableSet.of(metadata.getSinkName().get().toString(FormatOptions.noEscape())),
-                ImmutableSet.of(metadata.getResultTopic().get().getKafkaTopicName()),
-                metadata.getQueryId(),
-                queryStatusCount,
-                KsqlConstants.KsqlQueryType.PERSISTENT)),
-            Optional.empty(),
-            ImmutableList.of(),
-            ImmutableList.of())));
+    assertThat(
+        sourceDescription.getSourceDescription(),
+        equalTo(
+            SourceDescriptionFactory.create(
+                stream,
+                false,
+                ImmutableList.of(),
+                ImmutableList.of(new RunningQuery(
+                    metadata.getStatementString(),
+                    ImmutableSet.of(
+                        metadata.getSinkName().get().toString(FormatOptions.noEscape())),
+                    ImmutableSet.of(metadata.getResultTopic().get().getKafkaTopicName()),
+                    metadata.getQueryId(),
+                    queryStatusCount,
+                    KsqlConstants.KsqlQueryType.PERSISTENT)),
+                Optional.empty(),
+                ImmutableList.of(),
+                ImmutableList.of(),
+                new MetricCollectors()
+            )
+        )
+    );
   }
 
   @Test
@@ -432,7 +452,8 @@ public class ListSourceExecutorTest {
                             ImmutableList.of(),
                             Optional.empty(),
                             ImmutableList.of(),
-                            ImmutableList.of()
+                            ImmutableList.of(),
+                            new MetricCollectors()
                         )
                     )
                 )
@@ -520,7 +541,8 @@ public class ListSourceExecutorTest {
                 ImmutableList.of(),
                 Optional.empty(),
                 ImmutableList.of(),
-                ImmutableList.of()
+                ImmutableList.of(),
+                new MetricCollectors()
             )
         )
     );

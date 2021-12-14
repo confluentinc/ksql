@@ -263,7 +263,7 @@ public final class ListSourceExecutor {
 
   private static SourceDescriptionWithWarnings describeSource(
       final KsqlConfig ksqlConfig,
-      final KsqlExecutionContext ksqlEngine,
+      final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext,
       final SourceName name,
       final boolean extended,
@@ -272,7 +272,7 @@ public final class ListSourceExecutor {
       final Collection<SourceDescription> remoteSourceDescriptions
 
   ) {
-    final DataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
+    final DataSource dataSource = ksqlExecutionContext.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
@@ -280,9 +280,9 @@ public final class ListSourceExecutor {
       ), statement.getStatementText());
     }
 
-    final List<RunningQuery> readQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> readQueries = getQueries(ksqlExecutionContext,
         q -> q.getSourceNames().contains(dataSource.getName()));
-    final List<RunningQuery> writeQueries = getQueries(ksqlEngine,
+    final List<RunningQuery> writeQueries = getQueries(ksqlExecutionContext,
         q -> q.getSinkName().equals(Optional.of(dataSource.getName())));
 
     Optional<TopicDescription> topicDescription =
@@ -295,7 +295,7 @@ public final class ListSourceExecutor {
       topicDescription = Optional.of(
           serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
       );
-      sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
+      sourceConstraints = getSourceConstraints(name, ksqlExecutionContext.getMetaStore());
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
@@ -316,8 +316,8 @@ public final class ListSourceExecutor {
               sourceConstraints,
               remoteSourceDescriptions.stream().flatMap(sd -> sd.getClusterStatistics().stream()),
               remoteSourceDescriptions.stream().flatMap(sd -> sd.getClusterErrorStats().stream()),
-              sessionProperties.getKsqlHostInfo()
-
+              sessionProperties.getKsqlHostInfo(),
+              ksqlExecutionContext.metricCollectors()
           )
       );
     }
@@ -334,7 +334,8 @@ public final class ListSourceExecutor {
             sourceConstraints,
             java.util.stream.Stream.empty(),
             java.util.stream.Stream.empty(),
-            sessionProperties.getKsqlHostInfo()
+            sessionProperties.getKsqlHostInfo(),
+            ksqlExecutionContext.metricCollectors()
         )
     );
   }

@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
@@ -86,7 +87,8 @@ final class EngineContext {
       final QueryIdGenerator queryIdGenerator,
       final QueryCleanupService cleanupService,
       final KsqlConfig ksqlConfig,
-      final Collection<QueryEventListener> registrationListeners
+      final Collection<QueryEventListener> registrationListeners,
+      final MetricCollectors metricCollectors
   ) {
     return new EngineContext(
         serviceContext,
@@ -96,7 +98,7 @@ final class EngineContext {
         new DefaultKsqlParser(),
         cleanupService,
         ksqlConfig,
-        new QueryRegistryImpl(registrationListeners)
+        new QueryRegistryImpl(registrationListeners, metricCollectors)
     );
   }
 

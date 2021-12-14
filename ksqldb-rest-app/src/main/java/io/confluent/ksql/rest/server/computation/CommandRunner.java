@@ -48,6 +48,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,7 +147,8 @@ public class CommandRunner implements Closeable {
       final Deserializer<Command> commandDeserializer,
       final Errors errorHandler,
       final KafkaTopicClient kafkaTopicClient,
-      final String commandTopicName
+      final String commandTopicName,
+      final Metrics metrics
   ) {
     this(
         statementExecutor,
@@ -166,7 +168,8 @@ public class CommandRunner implements Closeable {
         },
         commandDeserializer,
         errorHandler,
-        () -> kafkaTopicClient.isTopicExists(commandTopicName)
+        () -> kafkaTopicClient.isTopicExists(commandTopicName),
+        metrics
     );
   }
 
@@ -187,7 +190,8 @@ public class CommandRunner implements Closeable {
       final Consumer<QueuedCommand> incompatibleCommandChecker,
       final Deserializer<Command> commandDeserializer,
       final Errors errorHandler,
-      final Supplier<Boolean> commandTopicExists
+      final Supplier<Boolean> commandTopicExists,
+      final Metrics metrics
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -201,7 +205,7 @@ public class CommandRunner implements Closeable {
     this.currentCommandRef = new AtomicReference<>(null);
     this.lastPollTime = new AtomicReference<>(null);
     this.commandRunnerMetric =
-        new CommandRunnerMetrics(ksqlServiceId, this, metricsGroupPrefix);
+        new CommandRunnerMetrics(ksqlServiceId, this, metricsGroupPrefix, metrics);
     this.clock = Objects.requireNonNull(clock, "clock");
     this.compactor = Objects.requireNonNull(compactor, "compactor");
     this.incompatibleCommandChecker =

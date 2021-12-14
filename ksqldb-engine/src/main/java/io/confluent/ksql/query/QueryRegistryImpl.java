@@ -26,6 +26,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
@@ -71,19 +72,24 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Map<SourceName, Set<QueryId>> insertQueries = new ConcurrentHashMap<>();
   private final Collection<QueryEventListener> eventListeners;
   private final QueryBuilderFactory queryBuilderFactory;
+  private final MetricCollectors metricCollectors;
   private final List<SharedKafkaStreamsRuntime> streams = new ArrayList<>();
   private final boolean sandbox;
 
-  public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
-    this(eventListeners, QueryBuilder::new);
+  public QueryRegistryImpl(
+      final Collection<QueryEventListener> eventListeners,
+      final MetricCollectors metricCollectors) {
+    this(eventListeners, QueryBuilder::new, metricCollectors);
   }
 
   QueryRegistryImpl(
       final Collection<QueryEventListener> eventListeners,
-      final QueryBuilderFactory queryBuilderFactory
+      final QueryBuilderFactory queryBuilderFactory,
+      final MetricCollectors metricCollectors
   ) {
     this.eventListeners = Objects.requireNonNull(eventListeners);
     this.queryBuilderFactory = Objects.requireNonNull(queryBuilderFactory);
+    this.metricCollectors = metricCollectors;
     this.sandbox = false;
   }
 
@@ -128,7 +134,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     streams.addAll(original.streams.stream()
         .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
         .collect(Collectors.toList()));
-
+    this.metricCollectors = original.metricCollectors;
     sandbox = true;
   }
 
@@ -169,7 +175,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         excludeTombstones,
         new ListenerImpl(),
         new StreamsBuilder(),
-        Optional.empty()
+        Optional.empty(),
+        metricCollectors
     );
     query.initialize();
     registerTransientQuery(serviceContext, metaStore, query);
@@ -214,7 +221,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         excludeTombstones,
         new ListenerImpl(),
         new StreamsBuilder(),
-        Optional.of(endOffsets)
+        Optional.of(endOffsets),
+        metricCollectors
     );
     query.initialize();
     // We don't register it as a transient query, so it won't show up in `show queries;`,
@@ -231,9 +239,8 @@ public class QueryRegistryImpl implements QueryRegistry {
       final Map<String, Object> newStreamsProperties =
           new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
       newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-      final Map<String, Object> properties = QueryBuilder
-          .updateListProperties(newStreamsProperties);
-      stream.overrideStreamsProperties(properties);
+      QueryBuilder.updateListProperties(newStreamsProperties);
+      stream.overrideStreamsProperties(newStreamsProperties);
 
       // restart runtime
       stream.restartStreamsRuntime();
@@ -279,7 +286,8 @@ public class QueryRegistryImpl implements QueryRegistry {
           physicalPlan,
           planSummary,
           new ListenerImpl(),
-          () -> ImmutableList.copyOf(getPersistentQueries().values())
+          () -> ImmutableList.copyOf(getPersistentQueries().values()),
+          metricCollectors
       );
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
@@ -293,7 +301,8 @@ public class QueryRegistryImpl implements QueryRegistry {
           planSummary,
           new ListenerImpl(),
           () -> ImmutableList.copyOf(getPersistentQueries().values()),
-          new StreamsBuilder()
+          new StreamsBuilder(),
+          metricCollectors
       );
     }
     registerPersistentQuery(serviceContext, metaStore, query);

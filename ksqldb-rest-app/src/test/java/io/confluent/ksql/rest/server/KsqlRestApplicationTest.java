@@ -192,14 +192,8 @@ public class KsqlRestApplicationTest {
         processingLogConfig,
         ksqlConfig
     );
-    MetricCollectors.initialize();
 
-    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"));
-  }
-
-  @After
-  public void tearDown() {
-    MetricCollectors.cleanUp();
+    givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"), new MetricCollectors());
   }
 
   @Test
@@ -226,10 +220,11 @@ public class KsqlRestApplicationTest {
     final MetricsReporter mockReporter = mock(MetricsReporter.class);
     when(ksqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
-    givenAppWithRestConfig(Collections.emptyMap());
+    final MetricCollectors metricCollectors = new MetricCollectors();
+    givenAppWithRestConfig(Collections.emptyMap(), metricCollectors);
 
     // Then:
-    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    final List<MetricsReporter> reporters = metricCollectors.getMetrics().reporters();
     assertThat(reporters, hasItem(mockReporter));
   }
 
@@ -418,10 +413,13 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithInterNodeListenerIfSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
-        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
+            KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
+        ),
+        new MetricCollectors()
+    );
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -436,9 +434,12 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithFirstListenerIfInterNodeNotSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
+        ),
+        new MetricCollectors()
+    );
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -450,7 +451,9 @@ public class KsqlRestApplicationTest {
     );
   }
 
-  private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {
+  private void givenAppWithRestConfig(
+      final Map<String, Object> restConfigMap,
+      final MetricCollectors metricCollectors) {
 
     restConfig = new KsqlRestConfig(restConfigMap);
 
@@ -480,7 +483,8 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         Optional.empty(),
         Optional.empty(),
-        queryExecutor
+        queryExecutor,
+        metricCollectors
     );
   }
 

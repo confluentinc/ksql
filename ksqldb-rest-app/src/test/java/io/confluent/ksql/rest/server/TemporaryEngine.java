@@ -38,6 +38,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -88,7 +89,9 @@ public class TemporaryEngine extends ExternalResource {
     metaStore = new MetaStoreImpl(functionRegistry);
 
     serviceContext = TestServiceContext.create();
-    engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore));
+    engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore,
+        new MetricCollectors()
+    ));
 
     ksqlConfig = KsqlConfigTestUtil.create(
         "localhost:9092",

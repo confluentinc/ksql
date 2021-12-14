@@ -296,7 +296,6 @@ public class StandaloneExecutorTest {
     when(sandBoxTopicInjector.inject(any()))
         .thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    MetricCollectors.initialize();
 
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
@@ -307,13 +306,9 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        injectorFactory
+        injectorFactory,
+        new MetricCollectors()
     );
-  }
-
-  @After
-  public void tearDown() {
-    MetricCollectors.cleanUp();
   }
 
   @Test
@@ -332,6 +327,7 @@ public class StandaloneExecutorTest {
     when(mockKsqlConfig.getConfiguredInstances(anyString(), any(), any()))
         .thenReturn(Collections.singletonList(mockReporter));
     when(mockKsqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
+    final MetricCollectors metricCollectors = new MetricCollectors();
     standaloneExecutor = new StandaloneExecutor(
         serviceContext,
         processingLogConfig,
@@ -341,11 +337,12 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        injectorFactory
+        injectorFactory,
+        metricCollectors
     );
 
     // Then:
-    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    final List<MetricsReporter> reporters = metricCollectors.getMetrics().reporters();
     assertThat(reporters, hasItem(mockReporter));
   }
 
@@ -362,7 +359,9 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        injectorFactory);
+        injectorFactory,
+        new MetricCollectors()
+    );
 
     // When:
     standaloneExecutor.startAsync();
@@ -397,7 +396,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        injectorFactory
+        injectorFactory,
+        new MetricCollectors()
     );
 
     // When:
@@ -452,7 +452,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         false,
         versionChecker,
-        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector)
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+        new MetricCollectors()
     );
 
     // When:
@@ -846,7 +847,8 @@ public class StandaloneExecutorTest {
         udfLoader,
         true,
         versionChecker,
-        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector)
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+        new MetricCollectors()
     );
   }
 

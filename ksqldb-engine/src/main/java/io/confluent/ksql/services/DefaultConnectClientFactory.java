@@ -81,8 +81,8 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
 
     return new DefaultConnectClient(
         ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-        // if no explicit header specified, then forward incoming request header
-        connectAuthHeader.isPresent() ? connectAuthHeader : ksqlAuthHeader,
+        // if no custom auth is configured, then forward incoming request header
+        isCustomBasicAuthConfigured() ? connectAuthHeader : ksqlAuthHeader,
         requestHeadersExtension
             .map(extension -> extension.getHeaders(userPrincipal))
             .orElse(Collections.emptyMap())
@@ -97,43 +97,38 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   }
 
   private Optional<String> buildAuthHeader() {
-    // custom basic auth credentials
-    if (ksqlConfig.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)
-        .equalsIgnoreCase(KsqlConfig.BASIC_AUTH_CREDENTIALS_SOURCE_FILE)) {
+    if (isCustomBasicAuthConfigured()) {
       final String credentialsFile =
           ksqlConfig.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY);
-      final boolean failOnUnreadableCreds =
-          ksqlConfig.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS);
 
       if (ksqlConfig.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY)) {
-        startBasicAuthFileWatcher(credentialsFile, failOnUnreadableCreds);
+        startBasicAuthFileWatcher(credentialsFile);
       }
 
-      return buildBasicAuthHeader(credentialsFile, failOnUnreadableCreds);
+      return buildBasicAuthHeader(credentialsFile);
     } else {
       return Optional.empty();
     }
   }
 
-  private void startBasicAuthFileWatcher(
-      final String filePath,
-      final boolean failOnUnreadableCreds
-  ) {
+  private void startBasicAuthFileWatcher(final String filePath) {
     try {
       credentialsFileWatcher = new FileWatcher(Paths.get(filePath), () -> {
-        connectAuthHeader = buildBasicAuthHeader(filePath, failOnUnreadableCreds);
+        connectAuthHeader = buildBasicAuthHeader(filePath);
       });
       credentialsFileWatcher.start();
       log.info("Enabled automatic connector credentials reload for location: " + filePath);
     } catch (java.io.IOException e) {
-      log.error("Failed to enable automatic connector credentials reload: " + e.getMessage());
+      log.error("Failed to enable automatic connector credentials reload", e);
     }
   }
 
-  private static Optional<String> buildBasicAuthHeader(
-      final String credentialsPath,
-      final boolean failOnUnreadableCredentials
-  ) {
+  private boolean isCustomBasicAuthConfigured() {
+    return ksqlConfig.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)
+        .equalsIgnoreCase(KsqlConfig.BASIC_AUTH_CREDENTIALS_SOURCE_FILE);
+  }
+
+  private static Optional<String> buildBasicAuthHeader(final String credentialsPath) {
     if (credentialsPath == null || credentialsPath.isEmpty()) {
       throw new ConfigException(String.format("'%s' cannot be empty if '%s' is set to '%s'",
           KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY,
@@ -152,21 +147,12 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
         return Optional.of("Basic " + Base64.getEncoder()
             .encodeToString(userInfo.getBytes(Charset.defaultCharset())));
       } else {
-        if (failOnUnreadableCredentials) {
-          throw new ConfigException(
-              "Provided credentials file doesn't provide username and password");
-        } else {
-          log.warn("Provided credentials file doesn't provide username and password");
-          return Optional.empty();
-        }
-      }
-    } catch (IOException e) {
-      if (failOnUnreadableCredentials) {
-        throw new ConfigException(e.getMessage());
-      } else {
-        log.warn("Failed to load credentials file: " + e.getMessage());
+        log.error("Provided credentials file doesn't provide username and password");
         return Optional.empty();
       }
+    } catch (IOException e) {
+      log.error("Failed to load credentials file: " + e.getMessage());
+      return Optional.empty();
     }
   }
 }

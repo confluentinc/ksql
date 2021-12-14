@@ -130,25 +130,9 @@ public class DefaultConnectClientFactoryTest {
   }
 
   @Test
-  public void shouldFailOnUnreadableCredentials() throws Exception {
+  public void shouldNotFailOnUnreadableCredentials() throws Exception {
     // Given:
-    givenCustomBasicAuthHeader(true);
-    givenInvalidCredentialsFiles();
-
-    // When:
-    final Exception e = assertThrows(
-        ConfigException.class,
-        () -> connectClientFactory.get(Optional.empty(), Optional.empty()));
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString("Provided credentials file doesn't provide username and password"));
-  }
-
-  @Test
-  public void shouldNotFailOnUnreadableCredentialsIfConfigured() throws Exception {
-    // Given:
-    givenCustomBasicAuthHeader(false);
+    givenCustomBasicAuthHeader();
     givenInvalidCredentialsFiles();
 
     // When:
@@ -159,25 +143,9 @@ public class DefaultConnectClientFactoryTest {
   }
 
   @Test
-  public void shouldFailOnMissingCredentials() {
+  public void shouldNotFailOnMissingCredentials() {
     // Given:
-    givenCustomBasicAuthHeader(true);
-    // no credentials file present
-
-    // When:
-    final Exception e = assertThrows(
-        ConfigException.class,
-        () -> connectClientFactory.get(Optional.empty(), Optional.empty()));
-
-    // Then:
-    assertThat(e.getMessage(),
-        containsString("No such file or directory"));
-  }
-
-  @Test
-  public void shouldNotFailOnMissingCredentialsIfConfigured() {
-    // Given:
-    givenCustomBasicAuthHeader(false);
+    givenCustomBasicAuthHeader();
     // no credentials file present
 
     // When:
@@ -191,7 +159,7 @@ public class DefaultConnectClientFactoryTest {
   public void shouldReloadCredentialsOnFileCreation() throws Exception {
     // Given:
     when(config.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY)).thenReturn(true);
-    givenCustomBasicAuthHeader(false);
+    givenCustomBasicAuthHeader();
     // no credentials file present
 
     // verify that no auth header is present
@@ -258,13 +226,8 @@ public class DefaultConnectClientFactoryTest {
   }
 
   private void givenCustomBasicAuthHeader() {
-    givenCustomBasicAuthHeader(true);
-  }
-
-  private void givenCustomBasicAuthHeader(final boolean failOnUnreadableCreds) {
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)).thenReturn("FILE");
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY)).thenReturn(credentialsPath);
-    when(config.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS)).thenReturn(failOnUnreadableCreds);
   }
 
   private void givenValidCredentialsFile() throws Exception {

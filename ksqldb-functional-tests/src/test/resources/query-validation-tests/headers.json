@@ -53,8 +53,8 @@
     {
       "name": "Can use header columns in functions",
       "statements": [
-        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
-        "CREATE STREAM OUTPUT AS SELECT K, LEN(H1) AS LENGTH FROM SOURCE1;"
+        "CREATE STREAM SOURCE1 (K STRING KEY, HEADER BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT K, LEN(HEADER) AS LENGTH FROM SOURCE1;"
       ],
       "inputs": [
         {"topic": "stream-source", "key": "k2", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
@@ -66,8 +66,8 @@
     {
       "name": "Can use header columns in filters",
       "statements": [
-        "CREATE STREAM SOURCE1 (K STRING KEY, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
-        "CREATE STREAM OUTPUT AS SELECT K, V FROM SOURCE1 WHERE H[1]->KEY='abc';"
+        "CREATE STREAM SOURCE1 (K STRING KEY, HEADERS ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT K, V FROM SOURCE1 WHERE HEADERS[1]->KEY='abc';"
       ],
       "inputs": [
         {"topic": "stream-source", "key": "k1", "value": {"v": 40000}, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},

@@ -1498,47 +1498,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldNotHardDeleteSubjectForPersistentQuerySharedRuntimes() throws IOException, RestClientException {
-    // Given:
-    ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngine,
-        "create stream persistent as select * from test1 EMIT CHANGES;",
-        ksqlConfig,
-        Collections.emptyMap()
-    );
-    final String applicationId = query.get(0).getQueryApplicationId();
-    final String internalTopic1Val = KsqlConstants.getSRSubject(
-        applicationId + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
-    final String internalTopic2Val = KsqlConstants.getSRSubject(
-        applicationId + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
-    final String internalTopic1Key = KsqlConstants.getSRSubject(
-        applicationId + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
-    final String internalTopic2Key = KsqlConstants.getSRSubject(
-        applicationId + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(
-        Arrays.asList(
-            internalTopic1Val,
-            internalTopic1Key,
-            "subject2",
-            internalTopic2Val,
-            internalTopic2Key));
-    query.get(0).start();
-
-    // When:
-    query.get(0).close();
-
-    // Then:
-    awaitCleanupComplete();
-    verify(schemaRegistryClient, times(4)).deleteSubject(any());
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Val, true);
-    verify(schemaRegistryClient, never()).deleteSubject(internalTopic2Key, true);
-  }
-
-  @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfQueryNeverStarted() {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(

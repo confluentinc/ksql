@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -128,7 +129,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
-    this.listener = requireNonNull(listener, "listener");
+    this.listener = new QueryListenerWrapper(listener, scalablePushRegistry);
     this.namedTopologyBuilder = requireNonNull(namedTopologyBuilder, "namedTopologyBuilder");
     this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
     this.materializationProvider = materializationProviderBuilder
@@ -161,7 +162,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.physicalPlan = original.physicalPlan;
     this.resultSchema = original.resultSchema;
     this.materializationProviderBuilder = original.materializationProviderBuilder;
-    this.listener = requireNonNull(listener, "listen");
+    this.listener = requireNonNull(listener, "listener");
     this.queryErrors = sharedKafkaStreamsRuntime.getNewQueryErrorQueue();
     this.materializationProvider = original.materializationProvider;
     this.scalablePushRegistry = original.scalablePushRegistry;
@@ -374,6 +375,10 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public KafkaStreams getKafkaStreams() {
     return sharedKafkaStreamsRuntime.getKafkaStreams();
+  }
+
+  public void onStateChange(final State newState, final State oldState) {
+    listener.onStateChange(this, newState, oldState);
   }
 
   @Override

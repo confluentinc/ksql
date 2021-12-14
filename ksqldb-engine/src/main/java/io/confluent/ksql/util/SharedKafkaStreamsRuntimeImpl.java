@@ -29,6 +29,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
@@ -55,6 +58,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     );
     this.errorClassifier = errorClassifier;
     this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
+    kafkaStreams.setStateListener(stateListener());
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreams.start();
     shutdownTimeout = shutdownTimeoutConfig;
   }
@@ -78,6 +83,14 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("mapping {}", collocatedQueries);
+  }
+
+  public StateListener stateListener() {
+    return (newState, oldState) -> {
+      for (final BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
+        query.onStateChange(newState, oldState);
+      }
+    };
   }
 
   public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(

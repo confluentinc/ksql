@@ -24,10 +24,13 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Optional;
+
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public interface PersistentQueryMetadata extends QueryMetadata {
@@ -64,4 +67,33 @@ public interface PersistentQueryMetadata extends QueryMetadata {
   Optional<MaterializationProvider>  getMaterializationProvider();
 
   Optional<ScalablePushRegistry> getScalablePushRegistry();
+
+  final class QueryListenerWrapper implements Listener {
+    private final Listener listener;
+    private final Optional<ScalablePushRegistry> scalablePushRegistry;
+
+    protected QueryListenerWrapper(final Listener listener,
+                                   final Optional<ScalablePushRegistry> scalablePushRegistry) {
+      this.listener = listener;
+      this.scalablePushRegistry = scalablePushRegistry;
+    }
+
+    @Override
+    public void onError(final QueryMetadata queryMetadata, final QueryError error) {
+      this.listener.onError(queryMetadata, error);
+      scalablePushRegistry.ifPresent(ScalablePushRegistry::onError);
+    }
+
+    @Override
+    public void onStateChange(final QueryMetadata queryMetadata, final State before,
+                              final State after) {
+      this.listener.onStateChange(queryMetadata, before, after);
+    }
+
+    @Override
+    public void onClose(final QueryMetadata queryMetadata) {
+      this.listener.onClose(queryMetadata);
+      scalablePushRegistry.ifPresent(ScalablePushRegistry::cleanup);
+    }
+  }
 }

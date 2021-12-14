@@ -46,7 +46,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 
 public class QueryRegistryImpl implements QueryRegistry {
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
@@ -232,9 +230,12 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public void updateStreamsPropertiesAndRestartRuntime(final KsqlConfig config) {
+  public void updateStreamsPropertiesAndRestartRuntime(
+      final KsqlConfig config,
+      final ProcessingLogContext logContext
+  ) {
     for (SharedKafkaStreamsRuntime stream : streams) {
-      updateStreamsProperties(stream, config);
+      updateStreamsProperties(stream, config, logContext);
       stream.restartStreamsRuntime();
     }
   }
@@ -378,14 +379,16 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   private void updateStreamsProperties(
       final SharedKafkaStreamsRuntime stream,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final ProcessingLogContext logContext
   ) {
-    final String applicationId = stream.getApplicationId();
-    final Map<String, Object> newStreamsProperties =
-        new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
-    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    QueryBuilder
-        .updateListProperties(newStreamsProperties, metricCollectors, stream.getApplicationId());
+    final Map<String, Object> newStreamsProperties = QueryBuilder.buildStreamsProperties(
+        stream.getApplicationId(),
+        Optional.empty(),
+        metricCollectors,
+        config,
+        logContext
+    );
     stream.overrideStreamsProperties(newStreamsProperties);
   }
 

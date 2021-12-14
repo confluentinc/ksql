@@ -385,7 +385,7 @@ final class QueryBuilder {
       final String planSummary,
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final String applicationId
+      final String applicationId,
       final MetricCollectors metricCollectors
   ) {
     final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
@@ -524,7 +524,7 @@ final class QueryBuilder {
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
           final String applicationId,
           final Set<SourceName> sources,
-          final QueryId queryId
+          final QueryId queryId,
           final MetricCollectors metricCollectors) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)

@@ -178,6 +178,26 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Cannot insert into SOURCE1 because it has header columns"
       }
+    },
+    {
+      "name": "should reject HEADERS column with incorrect type",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 BYTES HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid type for HEADERS column: expected ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, got BYTES"
+      }
+    },
+    {
+      "name": "should reject HEADER('key') column with incorrect type",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, H1 INT HEADER('key'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid type for HEADER('key') column: expected BYTES, got INTEGER"
+      }
     }
   ]
 }

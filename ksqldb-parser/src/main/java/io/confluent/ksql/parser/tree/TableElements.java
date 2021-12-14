@@ -15,17 +15,21 @@
 
 package io.confluent.ksql.parser.tree;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
+
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -91,6 +95,9 @@ public final class TableElements implements Iterable<TableElement> {
       if (tableElement.getConstraints().isKey() || tableElement.getConstraints().isPrimaryKey()) {
         builder.keyColumn(fieldName, fieldType);
       } else if (tableElement.getConstraints().isHeaders()) {
+        throwOnIncorrectHeaderColumnType(
+            tableElement.getType().getSqlType(),
+            tableElement.getConstraints().getHeaderKey());
         builder.headerColumn(fieldName, tableElement.getConstraints().getHeaderKey());
       } else {
         builder.valueColumn(fieldName, fieldType);
@@ -118,6 +125,24 @@ public final class TableElements implements Iterable<TableElement> {
 
     if (!duplicates.isEmpty()) {
       throw new KsqlException("Duplicate column names: " + duplicates);
+    }
+  }
+
+  private void throwOnIncorrectHeaderColumnType(
+      final SqlType type, final Optional<String> headerKey) {
+    if (headerKey.isPresent()) {
+      if (type != SqlTypes.BYTES) {
+        throw new KsqlException(String.format(
+            "Invalid type for HEADER('%s') column: expected BYTES, got %s",
+            headerKey.get(),
+            type)
+        );
+      }
+    } else {
+      if (!type.toString().equals(HEADERS_TYPE.toString())) {
+        throw new KsqlException(
+            "Invalid type for HEADERS column: expected " + HEADERS_TYPE + ", got " + type);
+      }
     }
   }
 }

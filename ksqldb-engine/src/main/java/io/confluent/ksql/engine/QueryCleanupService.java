@@ -148,12 +148,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           },
           "internal topic schemas"
       );
-
-<<<<<<< Updated upstream
-      tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix),
-          "internal topics");
-      if (!topologyName.isPresent() || isTransient) {
-=======
       tryRun(
           () -> {
             LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
@@ -161,8 +155,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
           },
           "internal topics"
       );
-      if (!topologyName.isPresent()) {
->>>>>>> Stashed changes
+      if (!topologyName.isPresent() || isTransient) {
         tryRun(
             () -> serviceContext
                 .getConsumerGroupClient()

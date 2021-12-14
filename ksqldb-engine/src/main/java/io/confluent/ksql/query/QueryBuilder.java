@@ -625,7 +625,9 @@ final class QueryBuilder {
   }
 
   public static void updateListProperties(
-      final Map<String, Object> newStreamsProperties
+      final Map<String, Object> newStreamsProperties,
+      final MetricCollectors metricCollectors,
+      final String applicationId
   ) {
     updateListProperty(
         newStreamsProperties,
@@ -647,6 +649,17 @@ final class QueryBuilder {
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         StorageUtilizationMetricsReporter.class.getName()
     );
+
+    // Passing shared state into managed components
+    newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
+        metricCollectors.getMetrics()
+    );
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG,
+        StreamsErrorCollector.create(applicationId, metricCollectors)
+    );
   }
 
   private Map<String, Object> buildStreamsProperties(
@@ -663,18 +676,7 @@ final class QueryBuilder {
         ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
         logger);
 
-    updateListProperties(newStreamsProperties);
-
-    // Passing shared state into managed components
-    newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
-    newStreamsProperties.put(
-        KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
-        metricCollectors.getMetrics()
-    );
-    newStreamsProperties.put(
-        KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG,
-        StreamsErrorCollector.create(applicationId, metricCollectors)
-    );
+    updateListProperties(newStreamsProperties, metricCollectors, applicationId);
 
     return newStreamsProperties;
   }

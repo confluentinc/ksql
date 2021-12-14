@@ -232,17 +232,9 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public void restartStreamsRuntime(final KsqlConfig config) {
+  public void updateStreamsPropertiesAndRestartRuntime(final KsqlConfig config) {
     for (SharedKafkaStreamsRuntime stream : streams) {
-      // get kafka streams properties
-      final String applicationId = stream.getApplicationId();
-      final Map<String, Object> newStreamsProperties =
-          new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
-      newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-      QueryBuilder.updateListProperties(newStreamsProperties);
-      stream.overrideStreamsProperties(newStreamsProperties);
-
-      // restart runtime
+      updateStreamsProperties(stream, config);
       stream.restartStreamsRuntime();
     }
   }
@@ -382,6 +374,19 @@ public class QueryRegistryImpl implements QueryRegistry {
     for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       sharedKafkaStreamsRuntime.close();
     }
+  }
+
+  private void updateStreamsProperties(
+      final SharedKafkaStreamsRuntime stream,
+      final KsqlConfig config
+  ) {
+    final String applicationId = stream.getApplicationId();
+    final Map<String, Object> newStreamsProperties =
+        new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
+    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+    QueryBuilder
+        .updateListProperties(newStreamsProperties, metricCollectors, stream.getApplicationId());
+    stream.overrideStreamsProperties(newStreamsProperties);
   }
 
   private void registerPersistentQuery(

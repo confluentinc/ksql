@@ -108,29 +108,31 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
-    public void overrideStreamsPropertiesShouldReplaceStreamsPropertiesExceptLogger() {
+    public void overrideStreamsPropertiesShouldReplacePropertiesExceptLoggerAndSharedStates() {
         // Given:
-        final Map<String, Object> oldProperties = new HashMap<>();
-        oldProperties.put(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER, "TestLogger");
-       final SharedKafkaStreamsRuntime streams = new SharedKafkaStreamsRuntimeImpl(
+        final Map<String, Object> oldProps = new HashMap<>();
+        oldProps.put(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER, "TestLogger");
+
+        final SharedKafkaStreamsRuntime streams = new SharedKafkaStreamsRuntimeImpl(
            kafkaStreamsBuilder,
            queryErrorClassifier,
            5,
            300_000L,
-           oldProperties
+           oldProps
         );
 
-        final Map<String, Object> newProperties = new HashMap<>();
-        newProperties.put("Test", "Test");
+        final Map<String, Object> newProps = new HashMap<>();
+        newProps.put("Test", "Test");
 
         // When:
-        streams.overrideStreamsProperties(newProperties);
+        streams.overrideStreamsProperties(newProps);
 
         // Then:
         final Map<String, Object> properties = streams.streamsProperties;
         assertThat(properties.get("Test"), equalTo("Test"));
         assertThat(properties.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER),
             equalTo("TestLogger"));
+
         assertThat(properties.size(), equalTo(2));
     }
 

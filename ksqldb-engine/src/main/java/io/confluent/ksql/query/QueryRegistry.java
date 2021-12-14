@@ -167,9 +167,9 @@ public interface QueryRegistry {
   Optional<QueryMetadata> getCreateAsQuery(SourceName sourceName);
 
   /**
-   * Restarts the streams runtimes
+   * Updates streams properties and restarts the streams runtimes
    */
-  void restartStreamsRuntime(KsqlConfig config);
+  void updateStreamsPropertiesAndRestartRuntime(KsqlConfig config);
 
   /**
    * Get all insert queries that write into or read from a given source.

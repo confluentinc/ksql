@@ -345,7 +345,7 @@ public class InteractiveStatementExecutorTest {
     handleStatement(statementExecutorWithMocks, alterSystemCommand, COMMAND_ID, Optional.empty(), 0L);
 
     // Then:
-    verify(mockEngine).restartStreamsRuntime();
+    verify(mockEngine).updateStreamsPropertiesAndRestartRuntime();
   }
 
   @Test

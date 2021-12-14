@@ -221,9 +221,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return !primaryContext.getQueryRegistry().getPersistentQueries().isEmpty();
   }
 
-  public void restartStreamsRuntime() {
+  public void updateStreamsPropertiesAndRestartRuntime() {
     final KsqlConfig config = primaryContext.getKsqlConfig();
-    primaryContext.getQueryRegistry().restartStreamsRuntime(config);
+    primaryContext.getQueryRegistry().updateStreamsPropertiesAndRestartRuntime(config);
   }
 
   @Override

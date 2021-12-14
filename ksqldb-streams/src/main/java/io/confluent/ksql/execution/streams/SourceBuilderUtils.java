@@ -371,7 +371,15 @@ final class SourceBuilderUtils {
           final int numPseudoColumns = SystemColumns
               .pseudoColumnNames(pseudoColumnVersion).size();
 
-          row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size());
+          row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
+          }
 
           if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
             final long timestamp = processorContext.timestamp();
@@ -386,13 +394,6 @@ final class SourceBuilderUtils {
           }
 
           row.appendAll(keyColumns);
-          for (final Column col : headerColumns) {
-            if (col.headerKey().isPresent()) {
-              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
-            } else {
-              row.append(createHeaderData(processorContext.headers()));
-            }
-          }
           return row;
         }
 

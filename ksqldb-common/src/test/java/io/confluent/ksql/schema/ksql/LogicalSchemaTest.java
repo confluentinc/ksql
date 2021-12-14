@@ -512,12 +512,12 @@ public class LogicalSchemaTest {
         .valueColumn(F0, STRING)
         .valueColumn(F1, BIGINT)
         .headerColumn(H0, Optional.empty())
+        .valueColumn(H0, HEADERS_TYPE)
         .valueColumn(ROWTIME_NAME, BIGINT)
         .valueColumn(ROWPARTITION_NAME, INTEGER)
         .valueColumn(ROWOFFSET_NAME, BIGINT)
         .valueColumn(K0, INTEGER)
         .valueColumn(K1, STRING)
-        .valueColumn(H0, HEADERS_TYPE)
         .build()
     ));
   }

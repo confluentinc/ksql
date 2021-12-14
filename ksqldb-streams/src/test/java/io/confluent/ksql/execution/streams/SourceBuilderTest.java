@@ -382,7 +382,7 @@ public class SourceBuilderTest {
     final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
-    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d, HEADER_A, HEADER_B, null)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
   }
 
   @Test
@@ -398,7 +398,7 @@ public class SourceBuilderTest {
     final GenericRow withKeyAndPseudoCols = applyAllTransformers(key, transformers, row);
 
     // Then:
-    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d, HEADER_A, HEADER_B, null)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
   }
 
   @Test
@@ -415,7 +415,7 @@ public class SourceBuilderTest {
 
     // Then:
     assertThat(withKeyAndPseudoCols, equalTo(
-        genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null, HEADER_A, HEADER_B, null)));
+        genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
   }
 
   @Test
@@ -429,7 +429,7 @@ public class SourceBuilderTest {
     final GenericRow withKeyAndPseudoCols = applyAllTransformers(KEY, transformers, row);
 
     // Then:
-    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, HEADER_DATA)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
   }
 
   @Test
@@ -445,7 +445,7 @@ public class SourceBuilderTest {
     final GenericRow withKeyAndPseudoCols = applyAllTransformers(nullKey, transformers, row);
 
     // Then:
-    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, HEADER_DATA)));
+    assertThat(withKeyAndPseudoCols, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
   }
 
   @Test

@@ -628,7 +628,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, HEADER_DATA)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -642,7 +642,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, HEADER_DATA)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY)));
   }
 
   @Test
@@ -656,7 +656,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(KEY, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, HEADER_DATA)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY)));
   }
 
   @Test
@@ -672,7 +672,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, HEADER_DATA)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)));
   }
 
   @Test
@@ -689,7 +689,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, HEADER_DATA)));
+        "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
   }
 
   @Test
@@ -705,7 +705,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(nullKey, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, HEADER_DATA)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, null)));
   }
 
   @Test
@@ -722,7 +722,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, HEADER_DATA)));
+        "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null)));
   }
 
   @Test
@@ -738,7 +738,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, 1d, 2d, HEADER_A, HEADER_B, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, 1d, 2d)));
   }
 
   @Test
@@ -755,7 +755,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d, HEADER_A, HEADER_B, null)));
+        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, 1d, 2d)));
   }
 
   @Test
@@ -771,7 +771,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, 2d, HEADER_A, HEADER_B, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, 2d)));
   }
 
   @Test
@@ -788,7 +788,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d, HEADER_A, HEADER_B, null)));
+        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, 2d)));
   }
 
   @Test
@@ -804,7 +804,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null, HEADER_A, HEADER_B, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)));
   }
 
   @Test
@@ -821,7 +821,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null, HEADER_A, HEADER_B, null)));
+        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
   }
 
   @Test
@@ -837,7 +837,7 @@ public class SourceBuilderV1Test {
     final GenericRow withTimestamp = transformer.transform(key, row);
 
     // Then:
-    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, null, null, HEADER_A, HEADER_B, null)));
+    assertThat(withTimestamp, equalTo(GenericRow.genericRow("baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, null, null)));
   }
 
   @Test
@@ -854,7 +854,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null, HEADER_A, HEADER_B, null)));
+        "baz", 123, HEADER_A, HEADER_B, null, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, null, null)));
   }
 
   @Test
@@ -874,7 +874,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
+        "baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -894,7 +894,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp, equalTo(GenericRow.genericRow(
-        "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
+        "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -914,7 +914,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        is(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
+        is(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -934,7 +934,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
+        equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -955,7 +955,7 @@ public class SourceBuilderV1Test {
     // Then:
     assertThat(withTimestamp,
         equalTo(GenericRow.genericRow(
-            "baz", 123, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
+            "baz", 123, HEADER_DATA, A_ROWTIME, A_ROWPARTITION, A_ROWOFFSET, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test
@@ -975,7 +975,7 @@ public class SourceBuilderV1Test {
 
     // Then:
     assertThat(withTimestamp,
-        equalTo(GenericRow.genericRow("baz", 123, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END, HEADER_DATA)));
+        equalTo(GenericRow.genericRow("baz", 123, HEADER_DATA, A_ROWTIME, A_KEY, A_WINDOW_START, A_WINDOW_END)));
   }
 
   @Test

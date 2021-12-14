@@ -277,7 +277,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     if (sharedRuntimeId.isPresent()) {
 
-      if(sandbox) {
+      if (sandbox) {
         streams.addAll(sourceStreams.stream()
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
             .collect(Collectors.toList()));

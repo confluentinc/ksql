@@ -694,7 +694,7 @@ final class EngineExecutor {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         ? Optional.of(
         engineContext.getRuntimeAssignor()
-            .getRuntime(queryId, sources, config.getConfig(true))) :
+            .getRuntimeAndMaybeAddRuntime(queryId, sources, config.getConfig(true))) :
         Optional.empty();
   }
 

@@ -4,7 +4,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,8 +35,8 @@ public class RuntimeAssignorTest {
 
   @Before
   public void setUp() {
-    runtimeAssignor = new RuntimeAssignor(KSQL_CONFIG, 2);
-    firstRuntime = runtimeAssignor.getRuntime(
+    runtimeAssignor = new RuntimeAssignor(KSQL_CONFIG, 1);
+    firstRuntime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
         sources1,
         KSQL_CONFIG
@@ -56,8 +55,56 @@ public class RuntimeAssignorTest {
   }
 
   @Test
+  public void shouldCreateSandboxAndAddingAQueryWillNotChangeReal() {
+    final RuntimeAssignor sandbox = runtimeAssignor.createSandbox();
+    sandbox.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources2,
+        KSQL_CONFIG
+    );
+    assertThat("Was changed by sandbox.", !runtimeAssignor.getIdToRuntime().containsKey(query2));
+    assertThat("The query was not added.", sandbox.getIdToRuntime().containsKey(query2));
+    assertThat("Added a new Runtime.", sandbox.getRuntimesToSources().size() == 1);
+  }
+
+  @Test
+  public void shouldCreateSandboxAndAddingAQueryAndRuntimeWillNotChangeReal() {
+    final RuntimeAssignor sandbox = runtimeAssignor.createSandbox();
+    sandbox.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources2,
+        KSQL_CONFIG
+    );
+    assertThat("Was changed by sandbox.", !runtimeAssignor.getIdToRuntime().containsKey(query2));
+    assertThat("The query was not added.", sandbox.getIdToRuntime().containsKey(query2));
+    assertThat("Was changed by sandbox.", runtimeAssignor.getRuntimesToSources().size() == 1);
+  }
+
+  @Test
+  public void shouldAddingAQueryWithDifferentSourcesWillNotAddARuntime() {
+    runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources2,
+        KSQL_CONFIG
+    );
+    assertThat("Query not added.", runtimeAssignor.getIdToRuntime().containsKey(query2));
+    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSources().size() == 1);
+  }
+
+  @Test
+  public void shouldAddingAQueryWithSameSourcesWillAddARuntime() {
+    runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources1,
+        KSQL_CONFIG
+    );
+    assertThat("Query not added.", runtimeAssignor.getIdToRuntime().containsKey(query2));
+    assertThat("Added a new Runtime.", runtimeAssignor.getRuntimesToSources().size() == 2);
+  }
+
+  @Test
   public void shouldGetSameRuntimeForSameQueryId() {
-    final String runtime = runtimeAssignor.getRuntime(
+    final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
         sources1,
         KSQL_CONFIG
@@ -66,10 +113,10 @@ public class RuntimeAssignorTest {
   }
 
   @Test
-  public void shouldNotGetSameRuntimeForDifferentQueryId() {
-    final String runtime = runtimeAssignor.getRuntime(
+  public void shouldNotGetSameRuntimeForDifferentQueryIdAndSameSources() {
+    final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources2,
+        sources1,
         KSQL_CONFIG
     );
     assertThat(runtime, not(equalTo(firstRuntime)));
@@ -78,7 +125,7 @@ public class RuntimeAssignorTest {
   @Test
   public void shouldDropQueryThenUseSameRuntimeForTheSameSources() {
     runtimeAssignor.dropQuery(queryMetadata);
-    final String runtime = runtimeAssignor.getRuntime(
+    final String runtime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
         sources1,
         KSQL_CONFIG
@@ -90,7 +137,7 @@ public class RuntimeAssignorTest {
   public void shouldRebuildAssignmentFromListOfQueries() {
     final RuntimeAssignor rebuilt = new RuntimeAssignor(KSQL_CONFIG);
     rebuilt.rebuildAssignment(Collections.singleton(queryMetadata));
-    final String runtime = rebuilt.getRuntime(
+    final String runtime = rebuilt.getRuntimeAndMaybeAddRuntime(
         query2,
         sources2,
         KSQL_CONFIG

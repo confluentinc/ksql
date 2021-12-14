@@ -773,7 +773,7 @@ public class QueryBuilderTest {
           SUMMARY,
           queryListener,
           ArrayList::new,
-          runtimeAssignor.getRuntime(queryId,
+          runtimeAssignor.getRuntimeAndMaybeAddRuntime(queryId,
               sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
               config.getConfig(true)),
           new MetricCollectors()

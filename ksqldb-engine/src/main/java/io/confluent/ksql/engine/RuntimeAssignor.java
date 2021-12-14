@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
@@ -48,37 +49,34 @@ public class RuntimeAssignor {
 
   private RuntimeAssignor(final RuntimeAssignor other) {
     this.runtimesToSources = new HashMap<>();
-    this.idToRuntime = new HashMap<>();
+    this.idToRuntime = new HashMap<>(other.idToRuntime);
     for (Map.Entry<String, Collection<SourceName>> runtime
         : other.runtimesToSources.entrySet()) {
       this.runtimesToSources.put(runtime.getKey(), new HashSet<>(runtime.getValue()));
     }
-    this.idToRuntime.putAll(other.idToRuntime);
   }
 
   public RuntimeAssignor createSandbox() {
     return new RuntimeAssignor(this);
   }
 
-  public String getRuntime(final QueryId queryId,
-                           final Collection<SourceName> sources,
-                           final KsqlConfig config) {
+  public String getRuntimeAndMaybeAddRuntime(final QueryId queryId,
+                                             final Collection<SourceName> sources,
+                                             final KsqlConfig config) {
     if (idToRuntime.containsKey(queryId)) {
       return idToRuntime.get(queryId);
     }
-    String runtime;
     final List<String> possibleRuntimes = runtimesToSources.entrySet()
         .stream()
         .filter(t -> t.getValue().stream().noneMatch(sources::contains))
         .map(Map.Entry::getKey)
         .collect(Collectors.toList());
+    final String runtime;
     if (possibleRuntimes.isEmpty()) {
       runtime = makeNewRuntime(config);
-      runtimesToSources.put(runtime, sources);
-      idToRuntime.put(queryId, runtime);
-      return runtime;
+    } else {
+      runtime = possibleRuntimes.get(Math.abs(queryId.hashCode() % possibleRuntimes.size()));
     }
-    runtime = possibleRuntimes.get(Math.abs(queryId.hashCode()) % possibleRuntimes.size());
     runtimesToSources.get(runtime).addAll(sources);
     idToRuntime.put(queryId, runtime);
     return runtime;
@@ -109,16 +107,11 @@ public class RuntimeAssignor {
     }
   }
 
-  public void close() {
-    runtimesToSources.clear();
-    idToRuntime.clear();
-  }
-
   public Map<String, Collection<SourceName>> getRuntimesToSources() {
-    return runtimesToSources;
+    return ImmutableMap.copyOf(runtimesToSources);
   }
 
   public Map<QueryId, String> getIdToRuntime() {
-    return idToRuntime;
+    return ImmutableMap.copyOf(idToRuntime);
   }
 }

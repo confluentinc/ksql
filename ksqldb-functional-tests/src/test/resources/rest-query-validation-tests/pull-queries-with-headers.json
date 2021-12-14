@@ -80,20 +80,20 @@
       "name": "table table inner join with headers",
       "format": ["AVRO"],
       "statements": [
-        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, H BYTES HEADER('abc')) WITH (kafka_topic='left_topic', value_format='{FORMAT}');",
-        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, H BYTES HEADER('abc')) WITH (kafka_topic='l_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='r_topic', value_format='{FORMAT}');",
         "CREATE TABLE INNER_JOIN as SELECT t.id, name, h, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
         "SELECT * FROM INNER_JOIN;"
       ],
       "inputs": [
-        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero"}, "timestamp": 0, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
-        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"NAME": "100"}, "timestamp": 11000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
-        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo"}, "timestamp": 13000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
-        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "left_topic", "key": 0, "value": {"NAME": "bar"}, "timestamp": 16000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
-        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety"}, "timestamp": 17000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
+        {"topic": "l_topic", "key": 0, "value": {"NAME": "zero"}, "timestamp": 0, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "r_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "l_topic", "key": 10, "value": {"NAME": "100"}, "timestamp": 11000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "l_topic", "key": 0, "value": {"NAME": "foo"}, "timestamp": 13000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "r_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "r_topic", "key": 15, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "l_topic", "key": 0, "value": {"NAME": "bar"}, "timestamp": 16000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]},
+        {"topic": "l_topic", "key": 90, "value": {"NAME": "ninety"}, "timestamp": 17000, "headers": [{"KEY": "abc", "VALUE": "IQ=="}]}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},

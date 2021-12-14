@@ -139,16 +139,30 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         LOG.error("Error cleaning up state directory {}\n. {}", pathName, e);
       }
       tryRun(
-          () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-            queryTopicPrefix,
-            serviceContext.getSchemaRegistryClient(),
-            isTransient),
+          () -> {
+            LOG.info("Deleting schemas for prefix {}", queryTopicPrefix);
+            SchemaRegistryUtil.cleanupInternalTopicSchemas(
+                queryTopicPrefix,
+                serviceContext.getSchemaRegistryClient(),
+                isTransient);
+          },
           "internal topic schemas"
       );
 
+<<<<<<< Updated upstream
       tryRun(() -> serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix),
           "internal topics");
       if (!topologyName.isPresent() || isTransient) {
+=======
+      tryRun(
+          () -> {
+            LOG.info("Deleting topics for prefix {}", queryTopicPrefix);
+            serviceContext.getTopicClient().deleteInternalTopics(queryTopicPrefix);
+          },
+          "internal topics"
+      );
+      if (!topologyName.isPresent()) {
+>>>>>>> Stashed changes
         tryRun(
             () -> serviceContext
                 .getConsumerGroupClient()

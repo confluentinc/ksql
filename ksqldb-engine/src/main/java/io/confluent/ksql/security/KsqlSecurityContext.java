@@ -34,11 +34,11 @@ public class KsqlSecurityContext {
   }
 
   /**
-   * Returns a {@code KsqlPrincipal} object containing the name and properties of the current
+   * Returns a {@link KsqlPrincipal} object containing the name and properties of the current
    * authenticated user. If the user has not been authenticated, the method returns
    * {@code Optional.empty}.
    *
-   * @return a {@code KsqlPrincipal} containing the name and properties of the user making
+   * @return a {@link KsqlPrincipal} containing the name and properties of the user making
    *         this request; {@code Optional.empty} if the user has not been authenticated
    */
   public Optional<KsqlPrincipal> getUserPrincipal() {

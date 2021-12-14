@@ -16,11 +16,20 @@
 package io.confluent.ksql.security;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Map;
 
+/**
+ * {@code java.security.Principal} with additional user property information.
+ * This interface is passed around within the ksqlDB engine to capture information
+ * about the principal associated with incoming ksql requests, and should be used
+ * in place of a raw {@code java.security.Principal} for this purpose.
+ */
 public interface KsqlPrincipal extends Principal {
 
-  Map<String, Object> getUserProperties();
+  default Map<String, Object> getUserProperties() {
+    return Collections.emptyMap();
+  }
 
   static KsqlPrincipal from(final Principal principal) {
     return principal instanceof KsqlPrincipal

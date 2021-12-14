@@ -1415,44 +1415,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldCleanUpSharedRuntimesInternalTopicsOnCloseForPersistentQueries() {
-    // Given:
-
-    final MetricCollectors metricCollectors = new MetricCollectors();
-    final KsqlEngine ksqlEngineWithSharedRuntimes = KsqlEngineTestUtil.createKsqlEngine(
-        serviceContext,
-        metaStore,
-        (engine) -> new KsqlEngineMetrics(
-            "",
-            engine,
-            Collections.emptyMap(),
-            Optional.empty(),
-            metricCollectors
-        ),
-        new SequentialQueryIdGenerator(),
-        new KsqlConfig(Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)),
-        metricCollectors
-    );
-
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
-        serviceContext,
-        ksqlEngineWithSharedRuntimes,
-        "create stream persistent with (KAFKA_TOPIC='rekey') as select * from orders partition by orderid EMIT CHANGES;",
-        ksqlConfig,
-        Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true)
-    );
-
-    query.get(0).start();
-
-    // When:
-    query.get(0).close();
-
-    awaitCleanupComplete(ksqlEngineWithSharedRuntimes);
-    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId() + "-" + query.get(0).getQueryId().toString());
-  }
-
-
-  @Test
   public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeDisabled);

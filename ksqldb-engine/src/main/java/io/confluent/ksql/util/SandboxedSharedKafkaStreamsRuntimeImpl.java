@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,13 +86,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.debug("mapping {}", collocatedQueries);
-  }
-
-  @Override
-  public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      final Throwable e
-  ) {
-    return StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
   @Override

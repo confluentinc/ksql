@@ -483,6 +483,28 @@
       "expectedError": {
         "message": "line 1:36: mismatched input 'heh' expecting {'-', INTEGER_VALUE, DECIMAL_VALUE, FLOATING_POINT_VALUE}"
       }
+    },
+    {
+      "name": "error on limit clause in persistent queries - CTAS",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE currentLocation AS SELECT profileId, LATEST_BY_OFFSET(latitude) AS la, LATEST_BY_OFFSET(longitude) AS lo FROM riderlocations GROUP BY profileId LIMIT 5;"
+      ],
+      "expectedError": {
+        "message": "CREATE TABLE AS SELECT statements don't support LIMIT clause."
+      }
+    },
+    {
+      "name": "error on limit clause in persistent queries - CSAS",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM currentLocation AS SELECT * FROM riderlocations LIMIT 5;"
+      ],
+      "expectedError": {
+        "message": "CREATE STREAM AS SELECT statements don't support LIMIT clause."
+      }
     }
   ]
 }

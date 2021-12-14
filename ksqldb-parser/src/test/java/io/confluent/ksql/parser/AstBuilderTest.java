@@ -899,4 +899,38 @@ public class AstBuilderTest {
     assertThat(column.getConstraints(),
         is((new ColumnConstraints.Builder()).header("h1").build()));
   }
+
+  @Test
+  public void shouldFailOnPersistentQueryLimitClauseStream() {
+    // Given:
+    final SingleStatementContext stmt
+            = givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 LIMIT 5;");
+
+    // Then:
+    Exception exception = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    String expectedMessage = "CREATE STREAM AS SELECT statements don't support LIMIT clause.";
+    String actualMessage = exception.getMessage();
+
+    assertEquals(expectedMessage, actualMessage);
+  }
+
+  @Test
+  public void shouldFailOnPersistentQueryLimitClauseTable() {
+    // Given:
+    final SingleStatementContext stmt
+            = givenQuery("CREATE TABLE X AS SELECT * FROM TEST1 LIMIT 5;");
+
+    // Then:
+    Exception exception = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    String expectedMessage = "CREATE TABLE AS SELECT statements don't support LIMIT clause.";
+    String actualMessage = exception.getMessage();
+
+    assertEquals(expectedMessage, actualMessage);
+  }
 }

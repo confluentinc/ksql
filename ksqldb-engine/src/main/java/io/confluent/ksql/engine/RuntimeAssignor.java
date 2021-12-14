@@ -1,13 +1,27 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.engine;
+
+import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-
-import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,9 +39,9 @@ public class RuntimeAssignor {
 
   public RuntimeAssignor(final KsqlConfig config, final int runtimes) {
     runtimesToSources = new HashMap<>();
-    idToRuntime= new HashMap<>();
-    for(int i=0; i < runtimes; i++) {
-      String runtime = buildSharedRuntimeId(config, true, i);
+    idToRuntime = new HashMap<>();
+    for (int i = 0; i < runtimes; i++) {
+      final String runtime = buildSharedRuntimeId(config, true, i);
       runtimesToSources.put(runtime, new HashSet<>());
     }
   }
@@ -35,7 +49,8 @@ public class RuntimeAssignor {
   private RuntimeAssignor(final RuntimeAssignor other) {
     this.runtimesToSources = new HashMap<>();
     this.idToRuntime = new HashMap<>();
-    for (Map.Entry<String, Collection<SourceName>> runtime : other.runtimesToSources.entrySet()) {
+    for (Map.Entry<String, Collection<SourceName>> runtime
+        : other.runtimesToSources.entrySet()) {
       this.runtimesToSources.put(runtime.getKey(), new HashSet<>(runtime.getValue()));
     }
     this.idToRuntime.putAll(other.idToRuntime);
@@ -45,7 +60,9 @@ public class RuntimeAssignor {
     return new RuntimeAssignor(this);
   }
 
-  public String getRuntime(final QueryId queryId, final Collection<SourceName> sources, final KsqlConfig config) {
+  public String getRuntime(final QueryId queryId,
+                           final Collection<SourceName> sources,
+                           final KsqlConfig config) {
     if (idToRuntime.containsKey(queryId)) {
       return idToRuntime.get(queryId);
     }
@@ -69,7 +86,8 @@ public class RuntimeAssignor {
 
   public void dropQuery(final PersistentQueryMetadata queryMetadata) {
     if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-      runtimesToSources.get(queryMetadata.getQueryApplicationId()).removeAll(queryMetadata.getSourceNames());
+      runtimesToSources.get(queryMetadata.getQueryApplicationId())
+          .removeAll(queryMetadata.getSourceNames());
       idToRuntime.remove(queryMetadata.getQueryId());
     }
   }
@@ -84,7 +102,8 @@ public class RuntimeAssignor {
   public void rebuildAssignment(final Collection<PersistentQueryMetadata> queries) {
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-        runtimesToSources.put(queryMetadata.getQueryApplicationId(), queryMetadata.getSourceNames());
+        runtimesToSources.put(queryMetadata.getQueryApplicationId(),
+            queryMetadata.getSourceNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       }
     }

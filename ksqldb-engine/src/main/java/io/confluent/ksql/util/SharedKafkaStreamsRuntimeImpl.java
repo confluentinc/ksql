@@ -161,7 +161,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   }
 
   @Override
-  public void stop(final QueryId queryId, boolean resetOffsets) {
+  public void stop(final QueryId queryId, final boolean resetOffsets) {
     log.info("Attempting to stop Query: " + queryId.toString());
     if (collocatedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {

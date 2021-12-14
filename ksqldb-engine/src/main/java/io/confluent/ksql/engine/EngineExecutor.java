@@ -42,7 +42,6 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -690,7 +689,8 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<String> getApplicationId(final QueryId queryId, final Collection<SourceName> sources) {
+  private Optional<String> getApplicationId(final QueryId queryId,
+                                            final Collection<SourceName> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         ? Optional.of(
         engineContext.getRuntimeAssignor()

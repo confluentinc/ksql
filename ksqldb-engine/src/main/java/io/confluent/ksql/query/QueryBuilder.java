@@ -16,7 +16,6 @@
 package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
-import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -528,7 +527,8 @@ final class QueryBuilder {
           final MetricCollectors metricCollectors) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)
-          || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation") && !real)) {
+          || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation")
+          && !real)) {
         sharedKafkaStreamsRuntime.markSources(queryId, sources);
         return sharedKafkaStreamsRuntime;
       }

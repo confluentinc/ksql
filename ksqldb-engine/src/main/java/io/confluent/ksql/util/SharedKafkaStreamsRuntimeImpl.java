@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -58,10 +59,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     );
     this.errorClassifier = errorClassifier;
     this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
-    kafkaStreams.setStateListener(stateListener());
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
-    kafkaStreams.start();
     shutdownTimeout = shutdownTimeoutConfig;
+    setupAndStartKafkaStreams(kafkaStreams);
   }
 
   @Override
@@ -83,6 +82,12 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("mapping {}", collocatedQueries);
+  }
+
+  private void setupAndStartKafkaStreams(final KafkaStreams kafkaStreams) {
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    kafkaStreams.setStateListener(stateListener());
+    kafkaStreams.start();
   }
 
   public StateListener stateListener() {
@@ -253,7 +258,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     for (final BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
     }
-    kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
-    kafkaStreamsNamedTopologyWrapper.start();
+    setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
   }
 }

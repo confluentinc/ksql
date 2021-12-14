@@ -383,7 +383,7 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
       = "ksql.internal.http2.max.pool.size";
-  public static final int KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT = 1000;
+  public static final int KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT = 3000;
   public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
       "The maximum connection pool size used by Vertx for http2 internal connections";
 

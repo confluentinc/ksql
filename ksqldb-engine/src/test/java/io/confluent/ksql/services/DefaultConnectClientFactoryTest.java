@@ -17,9 +17,8 @@ package io.confluent.ksql.services;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +28,7 @@ import io.confluent.ksql.connect.ConnectRequestHeadersExtension;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.http.HttpHeaders;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -37,7 +37,10 @@ import java.nio.file.attribute.FileTime;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.config.ConfigException;
+import org.apache.hc.core5.http.Header;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,6 +60,9 @@ public class DefaultConnectClientFactoryTest {
   private static final String OTHER_PASSWORD = "jpass";
   private static final String OTHER_EXPECTED_HEADER =
       expectedBasicAuthHeader(OTHER_USERNAME, OTHER_PASSWORD);
+  
+  private static final String AUTH_HEADER_NAME = HttpHeaders.AUTHORIZATION.toString();
+  private static final Header[] EMPTY_HEADERS = new Header[]{};
 
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
@@ -88,7 +94,7 @@ public class DefaultConnectClientFactoryTest {
     final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
+    assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
   }
 
   @Test
@@ -101,7 +107,8 @@ public class DefaultConnectClientFactoryTest {
     final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.of(EXPECTED_HEADER)));
+    assertThat(connectClient.getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)));
   }
 
   @Test
@@ -126,7 +133,8 @@ public class DefaultConnectClientFactoryTest {
         connectClientFactory.get(Optional.of("some ksql request header"), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.of("some ksql request header")));
+    assertThat(connectClient.getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, "some ksql request header")));
   }
 
   @Test
@@ -139,7 +147,7 @@ public class DefaultConnectClientFactoryTest {
     final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
+    assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
   }
 
   @Test
@@ -152,7 +160,7 @@ public class DefaultConnectClientFactoryTest {
     final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
+    assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
   }
 
   @Test
@@ -163,8 +171,8 @@ public class DefaultConnectClientFactoryTest {
     // no credentials file present
 
     // verify that no auth header is present
-    assertThat(connectClientFactory.get(Optional.empty(), Optional.empty()).getAuthHeader(),
-        is(Optional.empty()));
+    assertThat(connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        is(EMPTY_HEADERS));
 
     // When: credentials file is created
     waitForLastModifiedTick();
@@ -173,8 +181,8 @@ public class DefaultConnectClientFactoryTest {
     // Then: auth header is present
     assertThatEventually(
         "Should load newly created credentials",
-        () -> connectClientFactory.get(Optional.empty(), Optional.empty()).getAuthHeader(),
-        is(Optional.of(EXPECTED_HEADER)),
+        () -> connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)),
         TimeUnit.SECONDS.toMillis(1),
         TimeUnit.SECONDS.toMillis(1)
     );
@@ -188,8 +196,8 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // verify auth header is present
-    assertThat(connectClientFactory.get(Optional.empty(), Optional.empty()).getAuthHeader(),
-        is(Optional.of(EXPECTED_HEADER)));
+    assertThat(connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)));
 
     // When: credentials file is modified
     waitForLastModifiedTick();
@@ -198,8 +206,8 @@ public class DefaultConnectClientFactoryTest {
     // Then: new auth header is present
     assertThatEventually(
         "Should load updated credentials",
-        () -> connectClientFactory.get(Optional.empty(), Optional.empty()).getAuthHeader(),
-        is(Optional.of(OTHER_EXPECTED_HEADER)),
+        () -> connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, OTHER_EXPECTED_HEADER)),
         TimeUnit.SECONDS.toMillis(1),
         TimeUnit.SECONDS.toMillis(1)
     );
@@ -219,10 +227,36 @@ public class DefaultConnectClientFactoryTest {
         .thenReturn(ImmutableMap.of("header", "value"));
 
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.of(userPrincipal));
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Optional.of(userPrincipal));
 
     // Then:
-    assertThat(connectClient.getAdditionalRequestHeaders(), is(ImmutableMap.of("header", "value")));
+    assertThat(connectClient.getRequestHeaders(), arrayContaining(header("header", "value")));
+  }
+
+  @Test
+  public void shouldPassCustomRequestHeadersInAdditionToAuthHeader() throws Exception {
+    // Given:
+    givenCustomBasicAuthHeader();
+    givenValidCredentialsFile();
+
+    when(config.getConfiguredInstance(
+        KsqlConfig.CONNECT_REQUEST_HEADERS_PLUGIN,
+        ConnectRequestHeadersExtension.class))
+        .thenReturn(requestHeadersExtension);
+    // re-initialize client factory since request headers extension is configured in constructor
+    connectClientFactory = new DefaultConnectClientFactory(config);
+
+    when(requestHeadersExtension.getHeaders(Optional.of(userPrincipal)))
+        .thenReturn(ImmutableMap.of("header", "value"));
+
+    // When:
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Optional.of(userPrincipal));
+
+    // Then:
+    assertThat(connectClient.getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER), header("header", "value")));
   }
 
   private void givenCustomBasicAuthHeader() {
@@ -257,6 +291,31 @@ public class DefaultConnectClientFactoryTest {
     final String userInfo = username + ":" + password;
     return "Basic " + Base64.getEncoder()
         .encodeToString(userInfo.getBytes(Charset.defaultCharset()));
+  }
+
+  private static Matcher<? super Header> header(
+      final String name,
+      final String value
+  ) {
+    return new TypeSafeDiagnosingMatcher<Header>() {
+      @Override
+      protected boolean matchesSafely(
+          final Header actual,
+          final Description mismatchDescription) {
+        if (!name.equals(actual.getName())) {
+          return false;
+        }
+        if (!value.equals(actual.getValue())) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format("name: %s. value: %s.", name, value));
+      }
+    };
   }
 
   /**

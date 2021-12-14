@@ -74,8 +74,7 @@ public class DefaultConnectClient implements ConnectClient {
   private static final int MAX_ATTEMPTS = 3;
 
   private final URI connectUri;
-  private final Optional<String> authHeader;
-  private final Map<String, String> additionalRequestHeaders;
+  private final Header[] requestHeaders;
 
   public DefaultConnectClient(
       final String connectUri,
@@ -83,9 +82,9 @@ public class DefaultConnectClient implements ConnectClient {
       final Map<String, String> additionalRequestHeaders
   ) {
     Objects.requireNonNull(connectUri, "connectUri");
-    this.authHeader = Objects.requireNonNull(authHeader, "authHeader");
-    this.additionalRequestHeaders =
-        Objects.requireNonNull(additionalRequestHeaders, "additionalRequestHeaders");
+    Objects.requireNonNull(authHeader, "authHeader");
+    Objects.requireNonNull(additionalRequestHeaders, "additionalRequestHeaders");
+    this.requestHeaders = buildHeaders(authHeader, additionalRequestHeaders);
 
     try {
       this.connectUri = new URI(connectUri);
@@ -108,7 +107,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .post(resolveUri(CONNECTORS))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .bodyString(
@@ -144,7 +143,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConfigInfos> connectResponse = withRetries(() -> Request
           .put(resolveUri(String.format(VALIDATE_CONNECTOR, plugin)))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .bodyString(MAPPER.writeValueAsString(config), ContentType.APPLICATION_JSON)
@@ -173,7 +172,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTORS))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
@@ -198,7 +197,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTOR_PLUGINS))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
@@ -224,7 +223,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTORS + "/" + connector + STATUS))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
@@ -250,7 +249,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .get(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
@@ -276,7 +275,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<String> connectResponse = withRetries(() -> Request
           .delete(resolveUri(String.format("%s/%s", CONNECTORS, connector)))
-          .setHeaders(headers())
+          .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute()
@@ -302,7 +301,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<Map<String, Map<String, List<String>>>> connectResponse = withRetries(
           () -> Request.get(resolveUri(CONNECTORS + "/" + connector + TOPICS))
-              .setHeaders(headers())
+              .setHeaders(requestHeaders)
               .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
               .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
               .execute()
@@ -322,29 +321,8 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @VisibleForTesting
-  Optional<String> getAuthHeader() {
-    return authHeader;
-  }
-
-  @VisibleForTesting
-  Map<String, String> getAdditionalRequestHeaders() {
-    return additionalRequestHeaders;
-  }
-
-  private Header[] headers() {
-    final List<Header> headers = new ArrayList<>();
-
-    authHeader.ifPresent(header -> headers.add(
-        new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())));
-
-    if (!additionalRequestHeaders.isEmpty()) {
-      final List<Header> additionalHeaders = additionalRequestHeaders.entrySet().stream()
-          .map(e -> new BasicHeader(e.getKey(), e.getValue()))
-          .collect(Collectors.toList());
-      headers.addAll(additionalHeaders);
-    }
-
-    return headers.toArray(new Header[0]);
+  public Header[] getRequestHeaders() {
+    return requestHeaders;
   }
 
   private String resolveUri(final String relativePath) {
@@ -363,6 +341,25 @@ public class DefaultConnectClient implements ConnectClient {
     } catch (URISyntaxException e) {
       throw new KsqlServerException("Failed to resolve URI", e);
     }
+  }
+
+  private static Header[] buildHeaders(
+      final Optional<String> authHeader,
+      final Map<String, String> additionalRequestHeaders
+  ) {
+    final List<Header> headers = new ArrayList<>();
+
+    authHeader.ifPresent(header -> headers.add(
+        new BasicHeader(HttpHeaders.AUTHORIZATION.toString(), authHeader.get())));
+
+    if (!additionalRequestHeaders.isEmpty()) {
+      final List<Header> additionalHeaders = additionalRequestHeaders.entrySet().stream()
+          .map(e -> new BasicHeader(e.getKey(), e.getValue()))
+          .collect(Collectors.toList());
+      headers.addAll(additionalHeaders);
+    }
+
+    return headers.toArray(new Header[0]);
   }
 
   @SuppressWarnings("unchecked")

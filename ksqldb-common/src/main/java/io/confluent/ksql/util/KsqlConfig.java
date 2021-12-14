@@ -1149,6 +1149,18 @@ public class KsqlConfig extends AbstractConfig {
   }
   // CHECKSTYLE_RULES.ON: MethodLength
 
+  public Map<String, Object> originalsWithPrefixOverride(String prefix) {
+    final Map<String, Object> originals = originals();
+    Map<String, Object> result = new HashMap<>(originals);
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (entry.getKey().startsWith(prefix) && entry.getKey().length() > prefix.length()) {
+        String keyWithNoPrefix = entry.getKey().substring(prefix.length());
+        result.put(keyWithNoPrefix, entry.getValue());
+      }
+    }
+    return result;
+  }
+
   private static final class ConfigValue {
     final ConfigItem configItem;
     final String key;
@@ -1237,7 +1249,8 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
+            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
   }
 
   private static Set<String> streamTopicConfigNames() {

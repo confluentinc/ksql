@@ -196,4 +196,9 @@ public interface QueryRegistry {
    *                        will be stopped by calling stop(). Transient queries are always closed.
    */
   void close(boolean closePersistent);
+
+  /**
+   * Close all shared runtimes in this registry
+   */
+  void closeRuntimes();
 }

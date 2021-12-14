@@ -74,6 +74,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final QueryBuilderFactory queryBuilderFactory;
   private final MetricCollectors metricCollectors;
   private final List<SharedKafkaStreamsRuntime> streams = new ArrayList<>();
+  private final List<SharedKafkaStreamsRuntime> sourceStreams = new ArrayList<>();
   private final boolean sandbox;
 
   public QueryRegistryImpl(
@@ -131,10 +132,9 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
-    streams.addAll(original.streams.stream()
-        .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
-        .collect(Collectors.toList()));
+    sourceStreams.addAll(original.streams);
     this.metricCollectors = original.metricCollectors;
+
     sandbox = true;
   }
 
@@ -276,6 +276,12 @@ public class QueryRegistryImpl implements QueryRegistry {
     final PersistentQueryMetadata query;
 
     if (sharedRuntimeId.isPresent()) {
+
+      if (sandbox) {
+        streams.addAll(sourceStreams.stream()
+            .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
+            .collect(Collectors.toList()));
+      }
       query = queryBuilder.buildPersistentQueryInSharedRuntime(
           ksqlConfig,
           persistentQueryType,
@@ -379,9 +385,15 @@ public class QueryRegistryImpl implements QueryRegistry {
         unregisterQuery(queryMetadata);
       }
     }
+    closeRuntimes();
+  }
+
+  @Override
+  public void closeRuntimes() {
     for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       sharedKafkaStreamsRuntime.close();
     }
+    streams.clear();
   }
 
   private void registerPersistentQuery(

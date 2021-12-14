@@ -67,6 +67,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
@@ -462,33 +463,41 @@ final class QueryBuilder {
         serviceContext
     );
 
-    return new BinPackedPersistentQueryMetadataImpl(
-        persistentQueryType,
-        statementText,
-        querySchema,
-        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
-        planSummary,
-        applicationId,
-        topology,
-        sharedKafkaStreamsRuntime,
-        runtimeBuildContext.getSchemas(),
-        config.getOverrides(),
-        queryId,
-        materializationProviderBuilder,
-        physicalPlan,
-        getUncaughtExceptionProcessingLogger(queryId),
-        sinkDataSource,
-        listener,
-        queryOverrides,
-        scalablePushRegistry,
-        (streamsRuntime) -> getNamedTopology(
-            streamsRuntime,
-            queryId,
+    final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
+        = new BinPackedPersistentQueryMetadataImpl(
+            persistentQueryType,
+            statementText,
+            querySchema,
+            sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+            planSummary,
             applicationId,
+            topology,
+            sharedKafkaStreamsRuntime,
+            runtimeBuildContext.getSchemas(),
+            config.getOverrides(),
+            queryId,
+            materializationProviderBuilder,
+            physicalPlan,
+            getUncaughtExceptionProcessingLogger(queryId),
+            sinkDataSource,
+            listener,
             queryOverrides,
-            physicalPlan
-        )
+            scalablePushRegistry,
+            (streamsRuntime) -> getNamedTopology(
+                streamsRuntime,
+                queryId,
+                applicationId,
+                queryOverrides,
+                physicalPlan
+            )
     );
+    if (real) {
+      return binPackedPersistentQueryMetadata;
+    } else {
+      return SandboxedBinPackedPersistentQueryMetadataImpl.of(
+          binPackedPersistentQueryMetadata,
+          listener);
+    }
   }
 
   public NamedTopology getNamedTopology(final SharedKafkaStreamsRuntime sharedRuntime,

@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
@@ -55,8 +57,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     );
     this.errorClassifier = errorClassifier;
     this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
-    kafkaStreams.start();
     shutdownTimeout = shutdownTimeoutConfig;
+    setupAndStartKafkaStreams(kafkaStreams);
   }
 
   @Override
@@ -78,6 +80,20 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("mapping {}", collocatedQueries);
+  }
+
+  private void setupAndStartKafkaStreams(final KafkaStreams kafkaStreams) {
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    kafkaStreams.setStateListener(stateListener());
+    kafkaStreams.start();
+  }
+
+  public StateListener stateListener() {
+    return (newState, oldState) -> {
+      for (final BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
+        query.onStateChange(newState, oldState);
+      }
+    };
   }
 
   public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -242,7 +258,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     for (final BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
     }
-    kafkaStreamsNamedTopologyWrapper.setUncaughtExceptionHandler(this::uncaughtHandler);
-    kafkaStreamsNamedTopologyWrapper.start();
+    setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);
   }
 }

@@ -33,7 +33,6 @@ import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +55,6 @@ public abstract class SharedKafkaStreamsRuntime {
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     this.collocatedQueries = new ConcurrentHashMap<>();
     this.sources = new ConcurrentHashMap<>();
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   public void markSources(final QueryId queryId, final Set<SourceName> sourceNames) {
@@ -72,10 +70,6 @@ public abstract class SharedKafkaStreamsRuntime {
   public abstract void register(
       BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       QueryId queryId
-  );
-
-  public abstract StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      Throwable e
   );
 
   public boolean isError(final QueryId queryId) {

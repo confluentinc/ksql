@@ -23,8 +23,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,16 +87,9 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
   }
 
   @Override
-  public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      final Throwable e
-  ) {
-    return StreamThreadExceptionResponse.REPLACE_THREAD;
-  }
-
-  @Override
   public void stop(final QueryId queryId, final boolean resetOffsets) {
   }
-  
+
   public TimeBoundedQueue getNewQueryErrorQueue() {
     return new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), 0);
   }

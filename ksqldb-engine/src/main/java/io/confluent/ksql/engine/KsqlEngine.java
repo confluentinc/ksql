@@ -537,7 +537,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    */
   public void close(final boolean closeQueries) {
     primaryContext.getQueryRegistry().close(closeQueries);
-    primaryContext.getRuntimeAssignor().close();
 
     try {
       cleanupService.stopAsync().awaitTerminated(

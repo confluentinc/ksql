@@ -113,10 +113,10 @@ public class RuntimeAssignor {
   }
 
   public Map<String, Collection<SourceName>> getRuntimesToSources() {
-    return runtimesToSources;
+    return ImmutableMap.copyOf(runtimesToSources);
   }
 
   public Map<QueryId, String> getIdToRuntime() {
-    return idToRuntime;
+    return ImmutableMap.copyOf(idToRuntime);
   }
 }

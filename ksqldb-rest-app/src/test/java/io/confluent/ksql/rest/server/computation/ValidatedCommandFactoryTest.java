@@ -119,8 +119,20 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
     when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
     commandFactory.create(configuredStatement, executionContext);
+  }
+
+  @Test
+  public void shouldRaiseExceptionWhenFeatureFlagIsTurnedOff() {
+    configuredStatement = configuredStatement("ALTER SYSTEM 'ksql.streams.upgrade.from'='TEST';" , alterSystemProperty);
+    when(alterSystemProperty.getPropertyName()).thenReturn("ksql.streams.upgrade.from");
+    when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
+
+    assertThrows(KsqlServerException.class,
+        () -> commandFactory.create(configuredStatement, executionContext));
   }
 
   @Test
@@ -128,6 +140,7 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("ALTER SYSTEM 'TEST'='TEST';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("TEST");
     when(alterSystemProperty.getPropertyValue()).thenReturn("TEST");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
     assertThrows(ConfigException.class,
         () -> commandFactory.create(configuredStatement, executionContext));
@@ -138,6 +151,7 @@ public class ValidatedCommandFactoryTest {
     configuredStatement = configuredStatement("ALTER SYSTEM 'processing.guarantee'='exactly_once';" , alterSystemProperty);
     when(alterSystemProperty.getPropertyName()).thenReturn("processing.guarantee");
     when(alterSystemProperty.getPropertyValue()).thenReturn("exactly_once");
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
     final List<PersistentQueryMetadata> persistentList = new ArrayList<>();
     persistentList.add(query1);

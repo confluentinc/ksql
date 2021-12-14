@@ -136,6 +136,12 @@ public final class ValidatedCommandFactory {
     final String propertyName = alterSystemProperty.getPropertyName();
     final String propertyValue = alterSystemProperty.getPropertyValue();
 
+    // raise exception if feature flag is set
+    if (!context.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      throw new KsqlServerException("Cannot alter system configs "
+          + "when KSQL_SHARED_RUNTIME_ENABLED is turned off.");
+    }
+
     // validate
     context.alterSystemProperty(propertyName, propertyValue);
     if (!Property.isEditable(propertyName)) {

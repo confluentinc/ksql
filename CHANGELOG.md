@@ -29,7 +29,6 @@
 * get rows returned metric working ([#8230](https://github.com/confluentinc/ksql/pull/8230)) ([da4f71e](https://github.com/confluentinc/ksql/commit/da4f71e91089b5055b8bb514c4c1f910610fb722))
 * if not exists return type ([#8322](https://github.com/confluentinc/ksql/pull/8322)) ([9da204c](https://github.com/confluentinc/ksql/commit/9da204c4aa0d1b71c454a296e8a2172f3c66f2e2))
 * make parse_date able to parse partial dates ([#8330](https://github.com/confluentinc/ksql/pull/8330)) ([6a82026](https://github.com/confluentinc/ksql/commit/6a820269407152f3f07296eff2baeaa037453156))
-* make RQTT test insensitive to row ordering ([#8202](https://github.com/confluentinc/ksql/pull/8202)) ([68f05a0](https://github.com/confluentinc/ksql/commit/68f05a0e6b54d2990709a335981750cb1ba0bb0e))
 * Print only failed line on parsing exception ([#8282](https://github.com/confluentinc/ksql/pull/8282)) ([701db5f](https://github.com/confluentinc/ksql/commit/701db5f0c5ce0ce7218448286710527a3789f37d))
 * Pull query table scans support LIKE and BETWEEN operators ([#8299](https://github.com/confluentinc/ksql/pull/8299)) ([bc3ea64](https://github.com/confluentinc/ksql/commit/bc3ea64d355097cf16a8874b9b2b4d96d4c4cbbe))
 * Refactor ConnectFormatSchemaTranslator to take translator object instead of lamda function ([#8177](https://github.com/confluentinc/ksql/pull/8177)) ([6d3b351](https://github.com/confluentinc/ksql/commit/6d3b3510502e24b370b2178095bb003f98f8107a))

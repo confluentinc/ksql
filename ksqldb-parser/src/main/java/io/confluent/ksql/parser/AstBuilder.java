@@ -298,6 +298,8 @@ public class AstBuilder {
           ? ImmutableList.of()
           : visit(context.tableElements().tableElement(), TableElement.class);
 
+      throwOnRepeatedHeaderColumns(elements);
+
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
       return new CreateStream(
@@ -309,6 +311,22 @@ public class AstBuilder {
           CreateSourceProperties.from(properties),
           context.SOURCE() != null
       );
+    }
+
+    private void throwOnRepeatedHeaderColumns(final List<TableElement> elements) {
+      final List<ColumnName> nonHeaders = elements.stream()
+          .filter(tableElement -> !tableElement.getConstraints().isHeaders())
+          .map(TableElement::getName)
+          .collect(Collectors.toList());
+      elements.stream()
+          .filter(tableElement -> tableElement.getConstraints().isHeaders())
+          .forEach(tableElement -> {
+            if (nonHeaders.contains(tableElement.getName())) {
+              throw new KsqlException("Header columns must have unique names. "
+                  + "Found header column with non-unique name: "
+                  + tableElement.getName().text());
+            }
+          });
     }
 
     @Override

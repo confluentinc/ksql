@@ -1,7 +1,5 @@
 # Change Log
 
-<<<<<<< HEAD
-=======
 ## [0.23.1](https://github.com/confluentinc/ksql/releases/tag/v0.23.1-rc9) (2021-12-14)
 
 ### Features
@@ -90,7 +88,6 @@
 * Fixes pull query latency distribution metrics ([#7992](https://github.com/confluentinc/ksql/pull/7992)) ([c798cd7](https://github.com/confluentinc/ksql/commit/c798cd76f4d4888c959bdec0a0b3c8c11fdc5dd9))
 * make KsqlAvroSerializerTest work with Java 16 ([#7873](https://github.com/confluentinc/ksql/pull/7873)) ([bab8874](https://github.com/confluentinc/ksql/commit/bab887417fab1b4b609c28db3462fd9781479373))
 
->>>>>>> 9c8e8a559d (docs: update changelog 0.23.1 (#8395))
 ## [0.21.0](https://github.com/confluentinc/ksql/releases/tag/v0.21.0-ksqldb) (2021-09-15)
 
 ### Features

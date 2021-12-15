@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.23.1](https://github.com/confluentinc/ksql/releases/tag/v0.23.1-rc2) (2021-11-19)
+## [0.23.1](https://github.com/confluentinc/ksql/releases/tag/v0.23.1-rc9) (2021-11-19)
 
 ### Features
 

@@ -58,6 +58,25 @@ class Callbacks:
         v_version = "v" + version
         try:
 
+            # # build debians, rpms, and tarballs
+            # print(f"sudo apt update")
+            # subprocess.run(shlex.split(f"sudo apt update"))
+            # print(f"sudo apt install -y devscripts git-buildpackage dh-systemd javahelper xmlstarlet")
+            # subprocess.run(shlex.split(f"sudo apt install -y devscripts git-buildpackage dh-systemd javahelper xmlstarlet"))
+            #
+            # print('export MAVEN_OPTS="-XX:MaxPermSize=1024m"')
+            # subprocess.run(shlex.split('export MAVEN_OPTS="-XX:MaxPermSize=1024m"'))
+            #
+            # print(f"cp {self.settings_path} ~/.m2/settings.xml")
+            # subprocess.run(shlex.split(f"sudo apt update"))
+            #
+            # build_packages_path = os.path.join(self.working_dir, "release/build-packages.sh")
+            # print(f"{build_packages_path} --workspace {self.working_dir} --project-version {version} --upstream-version {CP_VERSION}")
+            # subprocess.run(shlex.split(f"{build_packages_path} --workspace {self.working_dir} --project-version {version} --upstream-version {CP_VERSION}"))
+            #
+            # # publish on prem artifacts
+            # gpg_packaging_key = setupSSHKey("gpg/confluent-packaging-private-8B1DA6120C2BF624", "private_key", "${env.WORKSPACE}/confluent-packaging-private.key")
+
             # pull, tag, and push latest docker on prem images
             for docker_repo in DOCKER_REPOS:
                 print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{version}")

@@ -322,7 +322,7 @@ public class DefaultConnectClient implements ConnectClient {
 
   @VisibleForTesting
   public Header[] getRequestHeaders() {
-    return requestHeaders;
+    return requestHeaders.clone();
   }
 
   private String resolveUri(final String relativePath) {

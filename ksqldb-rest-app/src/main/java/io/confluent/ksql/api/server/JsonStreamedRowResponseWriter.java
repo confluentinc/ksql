@@ -17,6 +17,7 @@ package io.confluent.ksql.api.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -34,6 +35,7 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
 
   private final HttpServerResponse response;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public JsonStreamedRowResponseWriter(final HttpServerResponse response) {
     this.response = response;
   }

@@ -10,7 +10,6 @@
 * Add metrics for stream pull queries to WS ([#8174](https://github.com/confluentinc/ksql/pull/8174)) ([d75f254](https://github.com/confluentinc/ksql/commit/d75f25466ded174f7ae894db919c445c6a51de3a))
 * Add support for TIMESTAMP type in the WITH/TIMESTAMP property ([#8271](https://github.com/confluentinc/ksql/pull/8271)) ([ecb43e2](https://github.com/confluentinc/ksql/commit/ecb43e2ffb8450b3902968a2709c86898291dbc7))
 * enable ROWPARTITION and ROWOFFSET pseudo columns (KLIP-50) ([#8245](https://github.com/confluentinc/ksql/pull/8245)) ([7bdc41d](https://github.com/confluentinc/ksql/commit/7bdc41d5e05910ce9778abc25246c5021dc290f8))
-* Moves Scalable Push Queries to use a KafkaConsumer ([#8238](https://github.com/confluentinc/ksql/pull/8238)) ([2bab232](https://github.com/confluentinc/ksql/commit/2bab2324702f0b53abf53ba1ff682cf414c088e1))
 * Re-enable GRACE period with new stream-stream joins semantics ([#8236](https://github.com/confluentinc/ksql/pull/8236)) ([f640f5e](https://github.com/confluentinc/ksql/commit/f640f5e40db333f3559cd540e4afe327aa84fc5d)), closes [#8020](https://github.com/confluentinc/ksql/issues/8020) [#8027](https://github.com/confluentinc/ksql/issues/8027) [#8028](https://github.com/confluentinc/ksql/issues/8028) [#8047](https://github.com/confluentinc/ksql/issues/8047)
 * Refactors to use KeyValueMetadata which includes RowMetadata ([#8261](https://github.com/confluentinc/ksql/pull/8261)) ([4275a42](https://github.com/confluentinc/ksql/commit/4275a42a6e59c76a7a2fb98044b5b19a34ca57b4))
 

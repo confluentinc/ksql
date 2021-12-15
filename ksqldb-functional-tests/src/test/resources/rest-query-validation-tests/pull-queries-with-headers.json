@@ -119,7 +119,7 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER KEY, `TEXT` STRING"}},
+          {"header":{"schema":"`K` INTEGER KEY, `HEADER` BYTES HEADER('abc'), `TEXT` STRING"}},
           {"row":{"columns":[1,"a1","IQ=="]}},
           {"row":{"columns":[2,"a2","Iw=="]}},
           {"row":{"columns":[3,"a3",null]}}

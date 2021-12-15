@@ -39,9 +39,6 @@
 
 ### Reverts
 
-* Revert "feat: Moves Scalable Push Queries to use a KafkaConsumer (#8238)" ([a813c38](https://github.com/confluentinc/ksql/commit/a813c38daefef0b2f5c6803fd0b1172e43a2348d)), closes [#8238](https://github.com/confluentinc/ksql/issues/8238)
-* Revert "docs: revert left/outer stream-stream join doc updates (#8030)" ([d5c0199](https://github.com/confluentinc/ksql/commit/d5c019947726ae44ea21d7c4dffaf8520899cf88)), closes [#8030](https://github.com/confluentinc/ksql/issues/8030)
-* Revert "docs: intent for klip-57: kafka headers" ([88d0d67](https://github.com/confluentinc/ksql/commit/88d0d67e2c9956fcb760b94d3e04764d7e68b02b))
 
 ## [0.22.0](https://github.com/confluentinc/ksql/releases/tag/v0.22.0-ksqldb) (2021-11-03)
 

@@ -520,13 +520,12 @@ final class EngineExecutor {
     final Relation from = new AliasedRelation(
         new Table(createTable.getName()), createTable.getName());
 
-    // Only VALUE columns must be selected from the source table. When running a pull query, the
-    // keys are added if selecting all columns.
+    // Only VALUE or HEADER columns must be selected from the source table. When running a
+    // pull query, the keys are added if selecting all columns.
     final Select select = new Select(
         createTable.getElements().stream()
             .filter(column -> !column.getConstraints().isKey()
-                && !column.getConstraints().isPrimaryKey()
-                && !column.getConstraints().isHeaders())
+                && !column.getConstraints().isPrimaryKey())
             .map(column -> new SingleColumn(
                 new UnqualifiedColumnReferenceExp(column.getName()),
                 Optional.of(column.getName())))

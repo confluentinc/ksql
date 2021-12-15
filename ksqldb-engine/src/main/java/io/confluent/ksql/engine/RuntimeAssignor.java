@@ -35,12 +35,9 @@ public class RuntimeAssignor {
   private final Map<QueryId, String> idToRuntime;
 
   public RuntimeAssignor(final KsqlConfig config) {
-    this(config, 8);
-  }
-
-  public RuntimeAssignor(final KsqlConfig config, final int runtimes) {
     runtimesToSources = new HashMap<>();
     idToRuntime = new HashMap<>();
+    final int runtimes = config.getInt(KsqlConfig.KSQL_NUMBER_OF_SHARED_RUNTIMES);
     for (int i = 0; i < runtimes; i++) {
       final String runtime = buildSharedRuntimeId(config, true, i);
       runtimesToSources.put(runtime, new HashSet<>());

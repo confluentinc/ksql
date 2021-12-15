@@ -31,11 +31,12 @@ public class RuntimeAssignorTest {
 
   private String firstRuntime;
   private RuntimeAssignor runtimeAssignor;
-  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
+      Collections.singletonMap(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT, 1));
 
   @Before
   public void setUp() {
-    runtimeAssignor = new RuntimeAssignor(KSQL_CONFIG, 1);
+    runtimeAssignor = new RuntimeAssignor(KSQL_CONFIG);
     firstRuntime = runtimeAssignor.getRuntimeAndMaybeAddRuntime(
         query1,
         sources1,

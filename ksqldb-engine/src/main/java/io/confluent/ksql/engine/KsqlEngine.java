@@ -631,6 +631,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         topologyName = Optional.of(query.getQueryId().toString());
       }
       if (query.hasEverBeenStarted()) {
+        log.info("Cleaning up after query {}", applicationId);
         cleanupService.addCleanupTask(
             new QueryCleanupService.QueryCleanupTask(
                 serviceContext,
@@ -645,6 +646,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
                           .get(StreamsConfig.STATE_DIR_CONFIG))
                     .toString()
             ));
+      } else {
+        log.info("Skipping cleanup for query {} since it was never started", applicationId);
       }
 
       final Object o =

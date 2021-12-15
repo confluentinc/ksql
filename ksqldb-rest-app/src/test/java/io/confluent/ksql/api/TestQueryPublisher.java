@@ -99,7 +99,7 @@ public class TestQueryPublisher
 
   @Override
   public LogicalSchema geLogicalSchema() {
-    return null;
+    return rowGenerator.getLogicalSchema();
   }
 
   @Override

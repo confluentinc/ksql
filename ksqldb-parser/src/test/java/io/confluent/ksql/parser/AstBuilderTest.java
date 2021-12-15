@@ -875,7 +875,7 @@ public class AstBuilderTest {
   public void shouldSupportHeadersColumns() {
     // Given:
     final SingleStatementContext stmt
-        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADERS) WITH (kafka_topic='input',value_format='JSON');");
+        = givenQuery("CREATE STREAM INPUT (K ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (kafka_topic='input',value_format='JSON');");
 
     // When:
     final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
@@ -889,7 +889,7 @@ public class AstBuilderTest {
   public void shouldSupportSingleHeaderColumn() {
     // Given:
     final SingleStatementContext stmt
-        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADER('h1')) WITH (kafka_topic='input',value_format='JSON');");
+        = givenQuery("CREATE STREAM INPUT (K BYTES HEADER('h1')) WITH (kafka_topic='input',value_format='JSON');");
 
     // When:
     final CreateStream createStream = (CreateStream) builder.buildStatement(stmt);
@@ -898,6 +898,36 @@ public class AstBuilderTest {
     final TableElement column = Iterators.getOnlyElement(createStream.getElements().iterator());
     assertThat(column.getConstraints(),
         is((new ColumnConstraints.Builder()).header("h1").build()));
+  }
+
+  @Test
+  public void shouldRejectIncorrectlyTypedHeadersColumns() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADERS) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    // Then:
+    assertThat(e.getMessage(), is("Invalid type for HEADERS column: expected ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, got BIGINT"));
+  }
+
+  @Test
+  public void shouldRejectIncorrectlyTypedSingleHeaderColumns() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT HEADER('abc')) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    // Then:
+    assertThat(e.getMessage(), is("Invalid type for HEADER('abc') column: expected BYTES, got BIGINT"));
   }
 
   @Test

@@ -376,21 +376,6 @@ public class TableElementsTest {
     ));
   }
 
-  @Test
-  public void shouldRejectHeadersWithIncorrectTypes() {
-    // Given:
-    final TableElements tableElements1 = TableElements.of(tableElement("h1", INT_TYPE, new Builder().header("key").build()));
-    final TableElements tableElements2 = TableElements.of(tableElement("h1", INT_TYPE, new Builder().headers().build()));
-
-    // When:
-    final KsqlException exception1 = assertThrows(KsqlException.class, () -> tableElements1.toLogicalSchema());
-    final KsqlException exception2 = assertThrows(KsqlException.class, () -> tableElements2.toLogicalSchema());
-
-    // Then:
-    assertThat(exception1.getMessage(), is("Invalid type for HEADER('key') column: expected BYTES, got INTEGER"));
-    assertThat(exception2.getMessage(), is("Invalid type for HEADERS column: expected ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, got INTEGER"));
-  }
-
   private static TableElement tableElement(
       final String name,
       final Type type

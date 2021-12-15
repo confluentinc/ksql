@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser;
 
+import static io.confluent.ksql.schema.ksql.SystemColumns.HEADERS_TYPE;
 import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
@@ -106,6 +107,7 @@ import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
+import io.confluent.ksql.parser.tree.ColumnConstraints;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -162,6 +164,8 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -1252,11 +1256,36 @@ public class AstBuilder {
 
     @Override
     public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
+      final io.confluent.ksql.execution.expression.tree.Type type =
+          typeParser.getType(context.type());
+      final ColumnConstraints constraints =
+          ParserUtil.getColumnConstraints(context.columnConstraints());
+      if (constraints.isHeaders()) {
+        throwOnIncorrectHeaderColumnType(type.getSqlType(), constraints.getHeaderKey());
+      }
       return new TableElement(
           getLocation(context),
           ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
-          typeParser.getType(context.type()),
-          ParserUtil.getColumnConstraints(context.columnConstraints()));
+          type,
+          constraints);
+    }
+
+    private void throwOnIncorrectHeaderColumnType(
+        final SqlType type, final Optional<String> headerKey) {
+      if (headerKey.isPresent()) {
+        if (type != SqlTypes.BYTES) {
+          throw new KsqlException(String.format(
+              "Invalid type for HEADER('%s') column: expected BYTES, got %s",
+              headerKey.get(),
+              type)
+          );
+        }
+      } else {
+        if (!type.toString().equals(HEADERS_TYPE.toString())) {
+          throw new KsqlException(
+              "Invalid type for HEADERS column: expected " + HEADERS_TYPE + ", got " + type);
+        }
+      }
     }
 
     @Override

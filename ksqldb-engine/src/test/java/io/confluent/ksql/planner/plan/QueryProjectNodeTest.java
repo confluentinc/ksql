@@ -55,6 +55,7 @@ public class QueryProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final ColumnName K = ColumnName.of("K");
+  private static final ColumnName H = ColumnName.of("H");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
   private static final SourceName SOURCE_NAME = SourceName.of("SOURCE");
@@ -70,6 +71,7 @@ public class QueryProjectNodeTest {
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
       .valueColumn(K, SqlTypes.STRING)
+      .headerColumn(H, Optional.empty())
       .build();
 
   @Mock

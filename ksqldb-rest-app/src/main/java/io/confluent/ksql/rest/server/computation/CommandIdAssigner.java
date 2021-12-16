@@ -149,7 +149,7 @@ public class CommandIdAssigner {
   private static CommandId getAlterSystemCommandId(final AlterSystemProperty alterSystemProperty) {
     return new CommandId(
         Type.CLUSTER,
-        String.format("%s: %s", UUID.randomUUID(), alterSystemProperty.toString()),
+        UUID.randomUUID().toString(),
         Action.ALTER
     );
   }

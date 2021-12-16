@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpConnection;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Objects;
 import java.util.Optional;
@@ -82,6 +83,14 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final Optional<Boolean> internalRequest = ServerVerticle.isInternalRequest(routingContext);
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
+
+    // For http2, if we get a goAway, meaning that the connection is going to be shutdown, just end
+    // it immediately, otherwise there will be a delay of 30s until we get a call on the endhandler.
+    // Consider merging this logic into ConnectionQueryManager used by push queries.
+    final HttpConnection httpConnection = routingContext.request().connection();
+    httpConnection.goAwayHandler(goAway -> {
+      httpConnection.close();
+    });
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
         queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
         context, server.getWorkerExecutor(),

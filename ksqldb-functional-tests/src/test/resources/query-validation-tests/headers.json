@@ -178,6 +178,16 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Cannot insert into SOURCE1 because it has header columns"
       }
+    },
+    {
+      "name": "should reject sources with value and header columns sharing name",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, K BYTES HEADER('abc'), V BIGINT) WITH (kafka_topic='stream-source', value_format='json');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Header columns cannot share names with key or value columns. Found header column with non-unique name: K"
+      }
     }
   ]
 }

@@ -322,8 +322,8 @@ public class AstBuilder {
           .filter(tableElement -> tableElement.getConstraints().isHeaders())
           .forEach(tableElement -> {
             if (nonHeaders.contains(tableElement.getName())) {
-              throw new KsqlException("Header columns must have unique names. "
-                  + "Found header column with non-unique name: "
+              throw new KsqlException("Header columns cannot share names with key or value "
+                  + "columns. Found header column with non-unique name: "
                   + tableElement.getName().text());
             }
           });

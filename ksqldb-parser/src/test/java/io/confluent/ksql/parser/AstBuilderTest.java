@@ -872,6 +872,21 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void shouldThrowOnSharedKeyHeaderColumnName() {
+    // Given:
+    final SingleStatementContext stmt
+        = givenQuery("CREATE STREAM INPUT (K BIGINT KEY, K BYTES HEADER('abc')) WITH (kafka_topic='input',value_format='JSON');");
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> {
+      builder.buildStatement(stmt);
+    });
+
+    // Then:
+    assertThat(e.getMessage(), is("Header columns cannot share names with key or value columns. Found header column with non-unique name: K"));
+  }
+
+  @Test
   public void shouldSupportHeadersColumns() {
     // Given:
     final SingleStatementContext stmt

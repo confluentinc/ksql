@@ -129,6 +129,7 @@ final class EngineContext {
   }
 
   synchronized EngineContext createSandbox(final ServiceContext serviceContext) {
+    this.runtimeAssignor.rebuildAssignment(queryRegistry.getPersistentQueries().values());
     return new EngineContext(
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,

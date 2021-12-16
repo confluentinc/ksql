@@ -53,3 +53,10 @@ pseudo columns, available on every row: `ROWTIME`, which represents the
 time of the event, as well as `ROWPARTITION` and `ROWOFFSET`, which represent
 the partition and offset of the source record, respectively.
 In addition, windowed sources have `WINDOWSTART` and `WINDOWEND` system columns.
+
+Starting in ksqlDB 0.24, users can create columns that are populated by a
+record's header field. Kafka headers are a list of zero or more key-value pairs,
+where the keys are (not necessarily unique) strings and the values are byte arrays.
+Headers typically contain metadata about records, which can then be used for routing
+or processing (e.g. the header could store information about how to deserialize
+strings in the value).

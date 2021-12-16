@@ -498,6 +498,14 @@ clause when you create a table, you can execute pull queries against the table.
 For more information, see
 [SOURCE Tables](/developer-guide/ksqldb-reference/create-table/#source-tables).
 
+## `ksql.headers.columns.enabled`
+
+Controls whether creating new streams/tables with `HEADERS` or `HEADER('<key>')`
+columns is allowed. If you specify a `HEADERS` or `HEADER('<key>')` column when
+you create a stream or table and `ksql.headers.columns.enabled` is set to false,
+then the statement is rejected. Existing sources with `HEADER`columns can be
+queried though.
+
 ## `ksql.streams.auto.offset.reset`
 
 Determines what to do when there is no initial offset in {{ site.aktm }}

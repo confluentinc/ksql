@@ -70,7 +70,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     when(queryId.toString()).thenReturn("query 1");
     when(queryId2.toString()).thenReturn("query 2");
 
-    validationSharedKafkaStreamsRuntime.markSources(queryId, Collections.singleton(SourceName.of("foo")));
     validationSharedKafkaStreamsRuntime.register(
         binPackedPersistentQueryMetadata,
         queryId);

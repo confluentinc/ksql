@@ -39,6 +39,10 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -79,6 +83,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ListSourceExecutorTest {
 
+  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
+      new DefaultConnectServerErrors());
+
   EasyRandom objectMother = new EasyRandom();
 
   @Rule
@@ -109,8 +116,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final StreamsList descriptionList = (StreamsList)
-        CustomExecutors.LIST_STREAMS.execute(
-            engine.configure("SHOW STREAMS;"),
+        CUSTOM_EXECUTORS.listStreams().execute(
+            (ConfiguredStatement<ListStreams>) engine.configure("SHOW STREAMS;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -145,8 +152,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.LIST_STREAMS.execute(
-            engine.configure("SHOW STREAMS EXTENDED;"),
+        CUSTOM_EXECUTORS.listStreams().execute(
+            (ConfiguredStatement<ListStreams>) engine.configure("SHOW STREAMS EXTENDED;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -187,8 +194,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.DESCRIBE_STREAMS.execute(
-            engine.configure("DESCRIBE STREAMS;"),
+        CUSTOM_EXECUTORS.describeStreams().execute(
+            (ConfiguredStatement<DescribeStreams>) engine.configure("DESCRIBE STREAMS;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -228,8 +235,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final TablesList descriptionList = (TablesList)
-        CustomExecutors.LIST_TABLES.execute(
-            engine.configure("LIST TABLES;"),
+        CUSTOM_EXECUTORS.listTables().execute(
+            (ConfiguredStatement<ListTables>) engine.configure("LIST TABLES;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -264,8 +271,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.LIST_TABLES.execute(
-            engine.configure("LIST TABLES EXTENDED;"),
+        CUSTOM_EXECUTORS.listTables().execute(
+            (ConfiguredStatement<ListTables>) engine.configure("LIST TABLES EXTENDED;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -307,8 +314,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.DESCRIBE_TABLES.execute(
-            engine.configure("DESCRIBE TABLES;"),
+        CUSTOM_EXECUTORS.describeTables().execute(
+            (ConfiguredStatement<DescribeTables>) engine.configure("DESCRIBE TABLES;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -353,7 +360,7 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
-        CustomExecutors.SHOW_COLUMNS.execute(
+        CUSTOM_EXECUTORS.showColumns().execute(
             ConfiguredStatement.of(PreparedStatement.of(
                 "DESCRIBE SINK;",
                 new ShowColumns(SourceName.of("SINK"), false)),
@@ -396,8 +403,8 @@ public class ListSourceExecutorTest {
     // When:
     final Exception e = assertThrows(
         KsqlStatementException.class,
-        () -> CustomExecutors.SHOW_COLUMNS.execute(
-            engine.configure("DESCRIBE S;"),
+        () -> CUSTOM_EXECUTORS.showColumns().execute(
+            (ConfiguredStatement<ShowColumns>) engine.configure("DESCRIBE S;"),
             SESSION_PROPERTIES,
             engine.getEngine(),
             engine.getServiceContext()
@@ -423,8 +430,8 @@ public class ListSourceExecutorTest {
     );
 
     // When:
-    CustomExecutors.LIST_STREAMS.execute(
-        engine.configure("SHOW STREAMS;"),
+    CUSTOM_EXECUTORS.listStreams().execute(
+        (ConfiguredStatement<ListStreams>) engine.configure("SHOW STREAMS;"),
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
@@ -482,8 +489,8 @@ public class ListSourceExecutorTest {
     serviceContext.getTopicClient().deleteTopics(ImmutableList.of("stream1", "stream2"));
 
     // When:
-    final KsqlEntity entity = CustomExecutors.LIST_STREAMS.execute(
-        engine.configure("SHOW STREAMS EXTENDED;"),
+    final KsqlEntity entity = CUSTOM_EXECUTORS.listStreams().execute(
+        (ConfiguredStatement<ListStreams>) engine.configure("SHOW STREAMS EXTENDED;"),
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
@@ -502,8 +509,8 @@ public class ListSourceExecutorTest {
     serviceContext.getTopicClient().deleteTopics(ImmutableList.of("table1", "table2"));
 
     // When:
-    final KsqlEntity entity = CustomExecutors.LIST_TABLES.execute(
-        engine.configure("SHOW TABLES EXTENDED;"),
+    final KsqlEntity entity = CUSTOM_EXECUTORS.listTables().execute(
+        (ConfiguredStatement<ListTables>) engine.configure("SHOW TABLES EXTENDED;"),
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext
@@ -521,8 +528,8 @@ public class ListSourceExecutorTest {
     serviceContext.getTopicClient().deleteTopics(ImmutableList.of("STREAM1"));
 
     // When:
-    final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE STREAM1 EXTENDED;"),
+    final KsqlEntity entity = CUSTOM_EXECUTORS.showColumns().execute(
+        (ConfiguredStatement<ShowColumns>) engine.configure("DESCRIBE STREAM1 EXTENDED;"),
         SESSION_PROPERTIES,
         engine.getEngine(),
         serviceContext

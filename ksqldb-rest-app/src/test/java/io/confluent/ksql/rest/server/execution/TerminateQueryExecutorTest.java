@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -50,21 +51,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TerminateQueryExecutorTest {
 
   private static final KafkaStreams.State RUNNING_QUERY_STATE = KafkaStreams.State.RUNNING;
+  private static final CustomExecutors CUSTOM_EXECUTORS = new CustomExecutors(
+      new DefaultConnectServerErrors());
 
   @Rule public final TemporaryEngine engine = new TemporaryEngine();
 
   @Test
   public void shouldDefaultToDistributorForPersistentQuery() {
     // Given:
-    final ConfiguredStatement<?> terminatePersistent = engine.configure("TERMINATE PERSISTENT_QUERY;");
+    final ConfiguredStatement<TerminateQuery> terminatePersistent =
+        (ConfiguredStatement<TerminateQuery>) engine.configure("TERMINATE PERSISTENT_QUERY;");
     final PersistentQueryMetadata persistentQueryMetadata = givenPersistentQuery("PERSISTENT_QUERY", RUNNING_QUERY_STATE);
-    final QueryId persistentQueryId= persistentQueryMetadata.getQueryId();
+    final QueryId persistentQueryId = persistentQueryMetadata.getQueryId();
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(persistentQueryId)).thenReturn(Optional.of(persistentQueryMetadata));
 
     // When:
-    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
+    final Optional<KsqlEntity> ksqlEntity = CUSTOM_EXECUTORS.terminateQuery().execute(
         terminatePersistent,
         mock(SessionProperties.class),
         engine,
@@ -78,11 +82,12 @@ public class TerminateQueryExecutorTest {
   @Test
   public void shouldDefaultToDistributorForTerminateCluster() {
     // Given:
-    final ConfiguredStatement<?> terminatePersistent = engine.configure("TERMINATE CLUSTER;");
+    final ConfiguredStatement<TerminateQuery> terminatePersistent =
+        (ConfiguredStatement<TerminateQuery>) engine.configure("TERMINATE CLUSTER;");
     final KsqlEngine engine = mock(KsqlEngine.class);
 
     // When:
-    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
+    final Optional<KsqlEntity> ksqlEntity = CUSTOM_EXECUTORS.terminateQuery().execute(
         terminatePersistent,
         mock(SessionProperties.class),
         engine,
@@ -96,11 +101,12 @@ public class TerminateQueryExecutorTest {
   @Test
   public void shouldDefaultToDistributorForTerminateAll() {
     // Given:
-    final ConfiguredStatement<?> terminatePersistent = engine.configure("TERMINATE ALL;");
+    final ConfiguredStatement<TerminateQuery> terminatePersistent =
+        (ConfiguredStatement<TerminateQuery>) engine.configure("TERMINATE ALL;");
     final KsqlEngine engine = mock(KsqlEngine.class);
 
     // When:
-    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
+    final Optional<KsqlEntity> ksqlEntity = CUSTOM_EXECUTORS.terminateQuery().execute(
         terminatePersistent,
         mock(SessionProperties.class),
         engine,
@@ -114,16 +120,17 @@ public class TerminateQueryExecutorTest {
   @Test
   public void shouldTerminateTransientQuery() {
     // Given:
-    final ConfiguredStatement<?> terminateTransient= engine.configure("TERMINATE TRANSIENT_QUERY;");
+    final ConfiguredStatement<TerminateQuery> terminateTransient =
+        (ConfiguredStatement<TerminateQuery>) engine.configure("TERMINATE TRANSIENT_QUERY;");
     final TransientQueryMetadata transientQueryMetadata = givenTransientQuery("TRANSIENT_QUERY", RUNNING_QUERY_STATE);
-    final QueryId transientQueryId= transientQueryMetadata.getQueryId();
+    final QueryId transientQueryId = transientQueryMetadata.getQueryId();
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getQuery(transientQueryId)).thenReturn(
         Optional.of(transientQueryMetadata));
 
     // When:
-    final Optional<KsqlEntity> ksqlEntity = CustomExecutors.TERMINATE_QUERY.execute(
+    final Optional<KsqlEntity> ksqlEntity = CUSTOM_EXECUTORS.terminateQuery().execute(
         terminateTransient,
         mock(SessionProperties.class),
         engine,
@@ -139,8 +146,8 @@ public class TerminateQueryExecutorTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> CustomExecutors.TERMINATE_QUERY.execute(
-            engine.configure("TERMINATE TRANSIENT_QUERY;"),
+        () -> CUSTOM_EXECUTORS.terminateQuery().execute(
+            (ConfiguredStatement<TerminateQuery>) engine.configure("TERMINATE TRANSIENT_QUERY;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             this.engine.getServiceContext()

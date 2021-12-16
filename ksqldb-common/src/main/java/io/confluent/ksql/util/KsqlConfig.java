@@ -130,6 +130,12 @@ public class KsqlConfig extends AbstractConfig {
       "Custom extension to allow for more fine-grained control of connector requests made by "
           + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
 
+  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER =
+      KSQL_CONNECT_PREFIX + "error.handler";
+  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT = null;
+  private static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC =
+      "A class that allows the ksqlDB server to customize error handling from connector requests.";
+
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -1329,6 +1335,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_HEADERS_COLUMNS_ENABLED_DOC
+        )
+        .define(
+            KSQL_CONNECT_SERVER_ERROR_HANDLER,
+            Type.CLASS,
+            KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
+            Importance.LOW,
+            KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
         )
         .withClientSslSupport();
 

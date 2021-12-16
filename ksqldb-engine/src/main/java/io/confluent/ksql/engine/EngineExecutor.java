@@ -107,6 +107,7 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -586,7 +587,8 @@ final class EngineExecutor {
         Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
         plans.physicalPlan.getQueryId(),
-        getApplicationId()
+        getApplicationId(plans.physicalPlan.getQueryId(),
+            getSourceNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -664,7 +666,8 @@ final class EngineExecutor {
           outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId(),
-          getApplicationId()
+          getApplicationId(plans.physicalPlan.getQueryId(),
+              getSourceNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -685,10 +688,13 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<String> getApplicationId() {
+  private Optional<String> getApplicationId(final QueryId queryId,
+                                            final Collection<SourceName> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? Optional.of("appId")
-        : Optional.empty();
+        ? Optional.of(
+        engineContext.getRuntimeAssignor()
+            .getRuntimeAndMaybeAddRuntime(queryId, sources, config.getConfig(true))) :
+        Optional.empty();
   }
 
   private ExecutorPlans planQuery(

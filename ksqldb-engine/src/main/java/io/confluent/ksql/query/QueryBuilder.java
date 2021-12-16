@@ -16,7 +16,6 @@
 package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
-import static io.confluent.ksql.util.QueryApplicationId.buildSharedRuntimeId;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -389,14 +388,15 @@ final class QueryBuilder {
       final String planSummary,
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final String applicationId,
       final MetricCollectors metricCollectors
   ) {
     final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
+        applicationId,
         sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
         queryId,
         metricCollectors
     );
-    final String applicationId = sharedKafkaStreamsRuntime.getApplicationId();
     final Map<String, Object> queryOverrides = sharedKafkaStreamsRuntime.getStreamProperties();
 
     final LogicalSchema logicalSchema;
@@ -582,20 +582,21 @@ final class QueryBuilder {
   }
 
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
+          final String applicationId,
           final Set<SourceName> sources,
-          final QueryId queryID,
+          final QueryId queryId,
           final MetricCollectors metricCollectors) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)
-          || sharedKafkaStreamsRuntime.getQueries().contains(queryID)) {
-        sharedKafkaStreamsRuntime.markSources(queryID, sources);
+      if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)
+          || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation")
+          && !real)) {
+        sharedKafkaStreamsRuntime.markSources(queryId, sources);
         return sharedKafkaStreamsRuntime;
       }
     }
     final SharedKafkaStreamsRuntime stream;
     final KsqlConfig ksqlConfig = config.getConfig(true);
     if (real) {
-      final String applicationId = buildSharedRuntimeId(ksqlConfig, true, streams.size());
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           getConfiguredQueryErrorClassifier(ksqlConfig, applicationId),
@@ -613,7 +614,7 @@ final class QueryBuilder {
       stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           buildStreamsProperties(
-              buildSharedRuntimeId(ksqlConfig, true, streams.size()) + "-validation",
+              applicationId + "-validation",
               Optional.empty(),
               metricCollectors,
               config.getConfig(true),
@@ -622,7 +623,7 @@ final class QueryBuilder {
       );
     }
     streams.add(stream);
-    stream.markSources(queryID, sources);
+    stream.markSources(queryId, sources);
     return stream;
   }
 

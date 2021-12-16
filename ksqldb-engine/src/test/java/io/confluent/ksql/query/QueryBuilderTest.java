@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.RuntimeAssignor;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -196,6 +197,7 @@ public class QueryBuilderTest {
   private AddNamedTopologyResult addNamedTopologyResult;
   @Mock
   private KafkaFuture<Void> future;
+  private RuntimeAssignor runtimeAssignor;
 
   private QueryBuilder queryBuilder;
   private final Stacker stacker = new Stacker();
@@ -250,6 +252,8 @@ public class QueryBuilderTest {
         ),
         sharedKafkaStreamsRuntimes,
         true);
+
+    runtimeAssignor = new RuntimeAssignor(ksqlConfig);
   }
 
   @Test
@@ -769,6 +773,9 @@ public class QueryBuilderTest {
           SUMMARY,
           queryListener,
           ArrayList::new,
+          runtimeAssignor.getRuntimeAndMaybeAddRuntime(queryId,
+              sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+              config.getConfig(true)),
           new MetricCollectors()
       );
     } else {

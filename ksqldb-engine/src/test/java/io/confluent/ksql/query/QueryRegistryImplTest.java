@@ -493,8 +493,7 @@ public class QueryRegistryImplTest {
           any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any(), any());
     } else {
       verify(queryBuilder).buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(),
-          any());
+          any(), any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any(), any(), any());
     }
     return queryListenerCaptor.getValue();
   }
@@ -526,7 +525,7 @@ public class QueryRegistryImplTest {
     when(query.getPersistentQueryType()).thenReturn(persistentQueryType);
     if (sharedRuntimes) {
       when(queryBuilder.buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
       ).thenReturn(query);
     } else {
       when(queryBuilder.buildPersistentQueryInDedicatedRuntime(

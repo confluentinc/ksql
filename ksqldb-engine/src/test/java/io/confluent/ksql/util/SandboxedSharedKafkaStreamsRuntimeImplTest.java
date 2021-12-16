@@ -105,7 +105,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     validationSharedKafkaStreamsRuntime.start(queryId);
 
     //When:
-    validationSharedKafkaStreamsRuntime.stop(queryId);
+    validationSharedKafkaStreamsRuntime.stop(queryId, true);
 
     //Then:
     assertThat("Query was stopped", validationSharedKafkaStreamsRuntime.getQueries().contains(queryId));

@@ -31,6 +31,45 @@
 
     <profiles>
         <profile>
+            <id>release</id>
+
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <repositories>
+                <repository>
+                    <id>confluent-other</id>
+                    <name>Confluent</name>
+                    <url>https://confluent.jfrog.io/confluent/maven-releases-stabilization</url>
+                </repository>
+
+                <!-- needed for HTML API doc generation post-release only -->
+                <repository>
+                    <id>ksqldb-staging</id>
+                    <name>ksqlDB staging</name>
+                    <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+                </repository>
+            </repositories>
+
+            <pluginRepositories>
+
+                <pluginRepository>
+                    <id>confluent-other</id>
+                    <name>Confluent Plugin Repository</name>
+                    <url>https://confluent.jfrog.io/confluent/maven-releases-stabilization</url>
+                    <layout>default</layout>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                </pluginRepository>
+
+            </pluginRepositories>
+        </profile>
+        <profile>
             <id>stabilization</id>
             <repositories>
                 <repository>

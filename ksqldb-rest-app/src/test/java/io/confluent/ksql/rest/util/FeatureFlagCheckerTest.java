@@ -34,6 +34,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -55,7 +57,10 @@ public class FeatureFlagCheckerTest {
         SourceName.of("stream1"),
         TableElements.of(new TableElement(
             ColumnName.of("col1"),
-            new Type(SqlTypes.INTEGER),
+            new Type(SqlArray.of(
+                SqlStruct.builder()
+                    .field("KEY", SqlTypes.STRING)
+                    .field("VALUE", SqlTypes.BYTES).build())),
             new ColumnConstraints.Builder().headers().build()
         )),
         false,

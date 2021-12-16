@@ -137,7 +137,7 @@ public class RequestHandlerTest {
 
     // When
     final List<ParsedStatement> statements =
-        KSQL_PARSER.parse("CREATE STREAM x (c1 STRUCT<KEY STRING, VALUE BYTES> HEADERS) "
+        KSQL_PARSER.parse("CREATE STREAM x (c1 ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS) "
             + "WITH (value_format='json', kafka_topic='x');");
     final Exception e = assertThrows(
         KsqlException.class,

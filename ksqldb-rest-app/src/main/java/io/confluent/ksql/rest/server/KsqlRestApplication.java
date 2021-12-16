@@ -71,6 +71,8 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
+import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
+import io.confluent.ksql.rest.server.execution.DefaultConnectServerErrors;
 import io.confluent.ksql.rest.server.query.QueryExecutor;
 import io.confluent.ksql.rest.server.resources.ClusterStatusResource;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -103,7 +105,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.ConnectClient.ConnectClientFactory;
+import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.LazyServiceContext;
@@ -639,7 +641,7 @@ public final class KsqlRestApplication implements Executable {
 
     final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
-            schemaRegistryClientFactory, connectClientFactory, sharedClient));
+            schemaRegistryClientFactory, connectClientFactory, sharedClient, Optional.empty()));
     final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
     final String ksqlServerId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     updatedRestProps.putAll(
@@ -652,7 +654,8 @@ public final class KsqlRestApplication implements Executable {
             Optional.empty(),
             schemaRegistryClientFactory,
             connectClientFactory,
-            sharedClient));
+            sharedClient,
+            Optional.empty()));
 
     return buildApplication(
         "",
@@ -806,6 +809,8 @@ public final class KsqlRestApplication implements Executable {
         ErrorMessages.class
     ));
 
+    final ConnectServerErrors connectErrorHandler = loadConnectErrorHandler(ksqlConfig);
+
     final Optional<LagReportingAgent> lagReportingAgent =
         initializeLagReportingAgent(restConfig, ksqlEngine, serviceContext);
     final Optional<HeartbeatAgent> heartbeatAgent =
@@ -924,6 +929,7 @@ public final class KsqlRestApplication implements Executable {
         versionChecker::updateLastRequestTime,
         authorizationValidator,
         errorHandler,
+        connectErrorHandler,
         denyListPropertyValidator
     );
 
@@ -1100,6 +1106,15 @@ public final class KsqlRestApplication implements Executable {
         securityHandlerPlugin.configure(ksqlRestConfig.originals())
     );
     return authenticationPlugin;
+  }
+
+  private static ConnectServerErrors loadConnectErrorHandler(
+      final KsqlConfig ksqlConfig) {
+    return Optional.ofNullable(
+        ksqlConfig.getConfiguredInstance(
+            KsqlConfig.KSQL_CONNECT_SERVER_ERROR_HANDLER,
+            ConnectServerErrors.class
+        )).orElse(new DefaultConnectServerErrors());
   }
 
   private void displayWelcomeMessage() {

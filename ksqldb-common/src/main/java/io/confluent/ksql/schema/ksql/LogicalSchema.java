@@ -601,6 +601,16 @@ public final class LogicalSchema {
       return this;
     }
 
+    private Builder headerColumn(final Column column) {
+      headerColumn(column.name(), column.headerKey());
+      return this;
+    }
+
+    public Builder headerColumns(final Iterable<? extends Column> column) {
+      column.forEach(this::headerColumn);
+      return this;
+    }
+
     public Builder keyColumns(final Iterable<? extends SimpleColumn> columns) {
       columns.forEach(this::keyColumn);
       return this;

@@ -33,6 +33,11 @@ public interface AuthenticationPlugin {
    * Handle authentication for the request. The plugin implementation should not end the response in
    * case of failure. ksqlDB will end the response appropriately in case of failure.
    *
+   * <p>If the returned Principal is an instance of
+   * {@link io.confluent.ksql.security.KsqlPrincipal}, then the principal will be passed
+   * through directly to the ksqlDB engine, rather than being wrapped within another
+   * {@code KsqlPrincipal}.
+   *
    * @param routingContext The routing context
    * @param workerExecutor The worker executor
    * @return A CompletableFuture representing the result of the authentication containing either

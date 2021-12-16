@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,14 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.auth;
+package io.confluent.ksql.services;
 
 import io.confluent.ksql.security.KsqlPrincipal;
 import java.util.Optional;
 
-public interface ApiSecurityContext {
+public interface ConnectClientFactory {
 
-  Optional<KsqlPrincipal> getPrincipal();
+  ConnectClient get(Optional<String> authHeader, Optional<KsqlPrincipal> userPrincipal);
 
-  Optional<String> getAuthToken();
+  default void close() {}
 }

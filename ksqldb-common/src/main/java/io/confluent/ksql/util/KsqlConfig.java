@@ -123,8 +123,18 @@ public class KsqlConfig extends AbstractConfig {
       KSQL_CONNECT_PREFIX + "basic.auth.credentials.file";
   public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =
       KSQL_CONNECT_PREFIX + "basic.auth.credentials.reload";
-  public static final String CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS =
-      KSQL_CONNECT_PREFIX + "basic.auth.credentials.fail.on.unreadable";
+
+  public static final String CONNECT_REQUEST_HEADERS_PLUGIN =
+      KSQL_CONNECT_PREFIX + "request.headers.plugin";
+  private static final String CONNECT_REQUEST_HEADERS_PLUGIN_DOC =
+      "Custom extension to allow for more fine-grained control of connector requests made by "
+          + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
+
+  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER =
+      KSQL_CONNECT_PREFIX + "error.handler";
+  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT = null;
+  private static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC =
+      "A class that allows the ksqlDB server to customize error handling from connector requests.";
 
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
@@ -849,12 +859,11 @@ public class KsqlConfig extends AbstractConfig {
                 + "on file change (creation or modification). File deletion is not monitored and "
                 + "old credentials will continue to be used in this case."
         ).define(
-            CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS,
-            ConfigDef.Type.BOOLEAN,
-            true,
+            CONNECT_REQUEST_HEADERS_PLUGIN,
+            Type.CLASS,
+            null,
             ConfigDef.Importance.LOW,
-            "If true, failure to load basic auth credentials for connector auth will result "
-                + "in an error. If false, failure will result in a warn log and empty credentials."
+            CONNECT_REQUEST_HEADERS_PLUGIN_DOC
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,
@@ -1333,6 +1342,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_HEADERS_COLUMNS_ENABLED_DOC
+        )
+        .define(
+            KSQL_CONNECT_SERVER_ERROR_HANDLER,
+            Type.CLASS,
+            KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
+            Importance.LOW,
+            KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
         )
         .withClientSslSupport();
 

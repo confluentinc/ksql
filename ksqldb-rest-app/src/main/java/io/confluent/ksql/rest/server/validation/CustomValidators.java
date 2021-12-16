@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.execution.DefaultConnectServerErrors;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
@@ -99,7 +100,8 @@ public enum CustomValidators {
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
-  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute),
+  DESCRIBE_CONNECTOR(DescribeConnector.class,
+      new DescribeConnectorExecutor(new DefaultConnectServerErrors())::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
   DEFINE_VARIABLE(DefineVariable.class, VariableExecutor::set),

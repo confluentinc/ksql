@@ -193,8 +193,10 @@ final class QueryBuilder {
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
-        queryId,
-        metricCollectors
+        Optional.of(queryId),
+        metricCollectors,
+        config.getConfig(true),
+        processingLogContext
     );
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final TransientQueryQueue queue =
@@ -278,8 +280,10 @@ final class QueryBuilder {
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(
         applicationId,
-        queryId,
-        metricCollectors
+        Optional.of(queryId),
+        metricCollectors,
+        config.getConfig(true),
+        processingLogContext
     );
 
     final LogicalSchema logicalSchema;
@@ -520,6 +524,63 @@ final class QueryBuilder {
     return namedTopologyBuilder.build();
   }
 
+  public static Map<String, Object> buildStreamsProperties(
+      final String applicationId,
+      final Optional<QueryId> queryId,
+      final MetricCollectors metricCollectors,
+      final KsqlConfig config,
+      final ProcessingLogContext processingLogContext
+  ) {
+    final Map<String, Object> newStreamsProperties
+        = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
+    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+
+    // get logger
+    final ProcessingLogger logger;
+    if (queryId.isPresent()) {
+      logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+    } else {
+      logger = processingLogContext.getLoggerFactory().getLogger(applicationId);
+    }
+    newStreamsProperties.put(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
+        logger);
+
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+        ConsumerCollector.class.getCanonicalName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+        ProducerCollector.class.getCanonicalName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        RocksDBMetricsCollector.class.getName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        StorageUtilizationMetricsReporter.class.getName()
+    );
+
+    // Passing shared state into managed components
+    newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
+        metricCollectors.getMetrics()
+    );
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG,
+        StreamsErrorCollector.create(applicationId, metricCollectors)
+    );
+
+    return newStreamsProperties;
+  }
+
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
           final String applicationId,
           final Set<SourceName> sources,
@@ -543,8 +604,10 @@ final class QueryBuilder {
           ksqlConfig.getLong(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
           buildStreamsProperties(
               applicationId,
-              queryId,
-              metricCollectors
+              Optional.empty(),
+              metricCollectors,
+              config.getConfig(true),
+              processingLogContext
           )
       );
     } else {
@@ -552,8 +615,10 @@ final class QueryBuilder {
           kafkaStreamsBuilder,
           buildStreamsProperties(
               applicationId + "-validation",
-              queryId,
-              metricCollectors
+              Optional.empty(),
+              metricCollectors,
+              config.getConfig(true),
+              processingLogContext
           )
       );
     }
@@ -632,61 +697,6 @@ final class QueryBuilder {
         applicationId,
         queryId
     );
-  }
-
-  public static void updateListProperties(
-      final Map<String, Object> newStreamsProperties
-  ) {
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        ConsumerCollector.class.getCanonicalName()
-    );
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        ProducerCollector.class.getCanonicalName()
-    );
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
-        RocksDBMetricsCollector.class.getName()
-    );
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
-        StorageUtilizationMetricsReporter.class.getName()
-    );
-  }
-
-  private Map<String, Object> buildStreamsProperties(
-      final String applicationId,
-      final QueryId queryId,
-      final MetricCollectors metricCollectors
-  ) {
-    final Map<String, Object> newStreamsProperties
-        = new HashMap<>(config.getConfig(true).getKsqlStreamConfigProps(applicationId));
-    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    final ProcessingLogger logger
-        = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
-    newStreamsProperties.put(
-        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
-        logger);
-
-    updateListProperties(newStreamsProperties);
-
-    // Passing shared state into managed components
-    newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
-    newStreamsProperties.put(
-        KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
-        metricCollectors.getMetrics()
-    );
-    newStreamsProperties.put(
-        KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG,
-        StreamsErrorCollector.create(applicationId, metricCollectors)
-    );
-
-    return newStreamsProperties;
   }
 
   private static Optional<QueryErrorClassifier> buildConfiguredClassifiers(

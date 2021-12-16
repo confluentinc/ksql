@@ -48,6 +48,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.execution.DefaultConnectServerErrors;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -254,6 +255,7 @@ public class RecoveryTest {
           ()->{},
           Optional.of((sc, metastore, statement) -> { }),
           errorHandler,
+          new DefaultConnectServerErrors(),
           denyListPropertyValidator
       );
 

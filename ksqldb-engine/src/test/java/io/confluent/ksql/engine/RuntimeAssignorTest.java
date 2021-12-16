@@ -140,7 +140,7 @@ public class RuntimeAssignorTest {
     rebuilt.rebuildAssignment(Collections.singleton(queryMetadata));
     final String runtime = rebuilt.getRuntimeAndMaybeAddRuntime(
         query2,
-        sources2,
+        sources1,
         KSQL_CONFIG
     );
     assertThat(runtime, not(equalTo(firstRuntime)));

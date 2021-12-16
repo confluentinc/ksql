@@ -614,7 +614,7 @@ final class QueryBuilder {
       stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
           buildStreamsProperties(
-              buildSharedRuntimeId(ksqlConfig, true, streams.size()) + "-validation",
+              applicationId + "-validation",
               Optional.empty(),
               metricCollectors,
               config.getConfig(true),

@@ -100,12 +100,12 @@ export DEBEMAIL="Confluent Packaging <packages@confluent.io>"
 # --update = Update this XPATH Node
 # --value  = The value in which to place things.
 # The XPATH requires the lambda (_) namespace specified to get to /project/parent/version
-xmlstarlet ed --inplace -P --update "/_:project/_:parent/_:version" --value "${UPSTREAM_VERSION}" pom.xml
-
-# Maven provides some helpfull commands for setting versions/properties
-mvn --batch-mode versions:set          -DgenerateBackupPoms=false "-DnewVersion=${MAVEN_ARTIFACT_VERSION}"
-mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${MAVEN_ARTIFACT_VERSION}" -Dproperty=io.confluent.ksql.version
-mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${UPSTREAM_VERSION}" -Dproperty=io.confluent.schema-registry.version
+#xmlstarlet ed --inplace -P --update "/_:project/_:parent/_:version" --value "${UPSTREAM_VERSION}" pom.xml
+#
+## Maven provides some helpfull commands for setting versions/properties
+#mvn --batch-mode versions:set          -DgenerateBackupPoms=false "-DnewVersion=${MAVEN_ARTIFACT_VERSION}"
+#mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${MAVEN_ARTIFACT_VERSION}" -Dproperty=io.confluent.ksql.version
+#mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${UPSTREAM_VERSION}" -Dproperty=io.confluent.schema-registry.version
 
 # Set version for Debian Package
 dch --newversion "${FULL_VERSION}" "Release version ${FULL_VERSION}"

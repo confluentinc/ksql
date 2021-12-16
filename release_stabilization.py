@@ -14,7 +14,7 @@ CC_SPEC_KSQL_BRANCH = "master"
 CCLOUD_DOCKER_REPO = 'confluentinc/cc-ksql'
 CCLOUD_DOCKER_HOTFIX_REPO = 'confluentinc/cc-ksql-hotfix'
 # need to update below automatically?
-CP_VERSION = "7.1.0-cc-docker-ksql.17-99-ccs-rc1"
+CP_VERSION = "7.1.0-cc-docker-ksql.17-634-rc1"
 MAVEN_SKIP_TESTS = False
 DOCKER_REPOS = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
 DOCKER_ARTIFACT = 'confluentinc/ksqldb-docker'

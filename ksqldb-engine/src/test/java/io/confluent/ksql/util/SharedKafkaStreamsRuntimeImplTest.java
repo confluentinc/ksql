@@ -219,20 +219,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
-    public void shouldNotAddQuery() {
-        //Given:
-        when(binPackedPersistentQueryMetadata.getSourceNames())
-            .thenReturn(Collections.singleton(SourceName.of("foo")));
-        //When:
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-            () -> sharedKafkaStreamsRuntimeImpl.register(
-                binPackedPersistentQueryMetadata,
-                queryId2));
-        //Then
-        assertThat(e.getMessage(), containsString(": was not reserved on this runtime"));
-    }
-
-    @Test
     public void shouldCloseRuntime() {
         //When:
         sharedKafkaStreamsRuntimeImpl.close();

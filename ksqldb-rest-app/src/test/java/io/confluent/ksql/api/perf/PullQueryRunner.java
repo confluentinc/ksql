@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_KEY;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
+import static io.confluent.ksql.api.perf.RunnerUtils.SCHEMA;
 import static io.confluent.ksql.util.KeyValue.keyValue;
 
 import io.confluent.ksql.GenericRow;
@@ -36,6 +37,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -256,6 +258,11 @@ public class PullQueryRunner extends BasePerfRunner {
     }
 
     @Override
+    public LogicalSchema geLogicalSchema() {
+      return SCHEMA;
+    }
+
+    @Override
     public boolean isPullQuery() {
       return true;
     }
@@ -268,6 +275,11 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public QueryId queryId() {
       return new QueryId("queryId");
+    }
+
+    @Override
+    public boolean hitLimit() {
+      return false;
     }
   }
 }

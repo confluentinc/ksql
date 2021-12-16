@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_KEY;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
+import static io.confluent.ksql.api.perf.RunnerUtils.SCHEMA;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.BlockingQueryPublisher;
@@ -37,6 +38,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
@@ -236,6 +238,11 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public List<String> getColumnTypes() {
       return DEFAULT_COLUMN_TYPES;
+    }
+
+    @Override
+    public LogicalSchema getLogicalSchema() {
+      return SCHEMA;
     }
 
     @Override

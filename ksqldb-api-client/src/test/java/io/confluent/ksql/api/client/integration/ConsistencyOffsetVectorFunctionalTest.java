@@ -216,7 +216,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
     // Then
     assertThat(rows, hasSize(1));
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                           is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
@@ -280,7 +280,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     batchedQueryResult.get();
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 

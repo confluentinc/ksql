@@ -307,7 +307,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
-    assertThat(response.responseObject.getString("queryId"), is(nullValue()));
+    assertThat(response.responseObject.getString("queryId"), startsWith("query_"));
     assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }
@@ -336,7 +336,7 @@ public class ApiIntegrationTest {
     assertThat(response.rows, hasSize(1));
     assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
     assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
-    assertThat(response.responseObject.getString("queryId"), is(nullValue()));
+    assertThat(response.responseObject.getString("queryId"), startsWith("query_"));
     assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
     assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
   }

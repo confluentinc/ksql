@@ -24,6 +24,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -55,8 +56,10 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private QueryHandle queryHandle;
   private ImmutableList<String> columnNames;
   private ImmutableList<String> columnTypes;
+  private LogicalSchema logicalSchema;
   private QueryId queryId;
   private boolean complete;
+  private boolean hitLimit;
   private volatile boolean closed;
 
   public BlockingQueryPublisher(final Context ctx,
@@ -69,6 +72,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
       final boolean isScalablePushQuery) {
     this.columnNames = ImmutableList.copyOf(queryHandle.getColumnNames());
     this.columnTypes = ImmutableList.copyOf(queryHandle.getColumnTypes());
+    this.logicalSchema = queryHandle.getLogicalSchema();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
     this.isScalablePushQuery = isScalablePushQuery;
@@ -81,6 +85,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
         maybeSend();
       }
       complete = true;
+      hitLimit = true;
       // This allows us to hit the limit without having to queue one last row
       if (queue.isEmpty()) {
         ctx.runOnContext(v -> sendComplete());
@@ -119,6 +124,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     return columnTypes;
   }
 
+  @Override
+  public LogicalSchema geLogicalSchema() {
+    return logicalSchema;
+  }
+
   public void close() {
     if (closed) {
       return;
@@ -142,6 +152,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @Override
   public QueryId queryId() {
     return queryId;
+  }
+
+  @Override
+  public boolean hitLimit() {
+    return hitLimit;
   }
 
   @Override

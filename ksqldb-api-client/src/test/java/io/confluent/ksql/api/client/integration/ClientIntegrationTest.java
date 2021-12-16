@@ -450,7 +450,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(PULL_QUERY_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     shouldReceiveRows(
         streamedQueryResult,
@@ -470,7 +470,7 @@ public class ClientIntegrationTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(PULL_QUERY_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     final Row row = streamedQueryResult.poll();
     verifyPullQueryRow(row);
@@ -564,7 +564,7 @@ public class ClientIntegrationTest {
     final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
     verifyPullQueryRows(batchedQueryResult.get()); 
   }
@@ -577,7 +577,7 @@ public class ClientIntegrationTest {
     final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT ${value} from ${AGG_TABLE} WHERE K=STRUCT(F1 := ARRAY['a']);");
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
     assertThat(batchedQueryResult.get().get(0).getBoolean(1), is(false));
   }
 

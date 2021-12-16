@@ -154,6 +154,18 @@ public final class StreamedRow {
     );
   }
 
+  public static StreamedRow error(final KsqlErrorMessage errorMessage) {
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(errorMessage),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
+    );
+  }
+
   public static StreamedRow finalMessage(final String finalMessage) {
     return new StreamedRow(
         Optional.empty(),

@@ -28,8 +28,11 @@ import io.confluent.ksql.api.server.ServerUtils;
 import io.confluent.ksql.api.utils.ListRowGenerator;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.api.utils.ReceiveStream;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
@@ -72,6 +75,26 @@ public class BaseApiTest {
       .add("BOOLEAN").add("BIGINT").add("DOUBLE").add("DECIMAL(4, 2)").add("BYTES")
       .add("ARRAY<STRING>").add("MAP<STRING, STRING>").add("STRUCT<`F1` STRING, `F2` INTEGER>").add("INTEGER")
       .add("TIMESTAMP").add("DATE").add("TIME");
+  protected static final LogicalSchema DEFAULT_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("f_str"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("f_int"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("f_bool"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("f_long"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("f_double"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("f_decimal"), SqlTypes.decimal(4, 2))
+      .valueColumn(ColumnName.of("f_bytes"), SqlTypes.BYTES)
+      .valueColumn(ColumnName.of("f_array"), SqlTypes.array(SqlTypes.STRING))
+      .valueColumn(ColumnName.of("f_map"), SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
+      .valueColumn(ColumnName.of("f_struct"),
+          SqlTypes.struct()
+              .field("F1", SqlTypes.STRING)
+              .field("F2", SqlTypes.INTEGER)
+              .build())
+      .valueColumn(ColumnName.of("f_null"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("f_timestamp"), SqlTypes.TIMESTAMP)
+      .valueColumn(ColumnName.of("f_date"), SqlTypes.DATE)
+      .valueColumn(ColumnName.of("f_time"), SqlTypes.TIME)
+      .build();
   protected static final Schema F_STRUCT_SCHEMA = SchemaBuilder.struct()
         .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
         .field("F2", Schema.OPTIONAL_INT32_SCHEMA)
@@ -296,6 +319,7 @@ public class BaseApiTest {
         () -> new ListRowGenerator(
             DEFAULT_COLUMN_NAMES.getList(),
             DEFAULT_COLUMN_TYPES.getList(),
+            DEFAULT_SCHEMA,
             DEFAULT_GENERIC_ROWS));
   }
 }

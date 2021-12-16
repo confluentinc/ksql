@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,94 +15,109 @@
 
 package io.confluent.ksql.api.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
-import java.util.Objects;
 
-/**
- * Writes the query response stream in JSON format.
- *
- * <p>The completed response will form a single JSON array.
- *
- * <p>Providing the response as a single valid JSON array can make it easier to parse with some
- * clients. However this should be used with caution with very large responses when not using a
- * streaming JSON parser as the entire response will have to be stored in memory.
- *
- * <p>The first entry in the array is a JSON object representing the metadata of the query.
- * It contains the column names, column types, query ID, and number of rows (in the case of a pull
- * query).
- *
- * <p>Each subsequent entry in the array is a JSON array representing the values of the columns
- * returned by the query.
- *
- * <p>Please consult the API documentation for a full description of the format.
- */
-public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter {
+public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
+
+  private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final HttpServerResponse response;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public JsonQueryStreamResponseWriter(final HttpServerResponse response) {
-    this.response = Objects.requireNonNull(response);
+  public JsonStreamedRowResponseWriter(final HttpServerResponse response) {
+    this.response = response;
   }
 
   @Override
   public QueryStreamResponseWriter writeMetadata(final QueryResponseMetadata metaData) {
+    final StreamedRow streamedRow
+        = StreamedRow.header(new QueryId(metaData.queryId), metaData.schema);
     final Buffer buff = Buffer.buffer().appendByte((byte) '[');
-    buff.appendBuffer(ServerUtils.serializeObject(metaData));
+    buff.appendBuffer(serializeObject(streamedRow));
+    buff.appendString(",\n");
     response.write(buff);
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    writeBuffer(ServerUtils.serializeObject(row.values()));
+    final StreamedRow streamedRow = StreamedRow.pushRow(row);
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeContinuationToken(
       final PushContinuationToken pushContinuationToken) {
-    writeBuffer(ServerUtils.serializeObject(pushContinuationToken));
+    final StreamedRow streamedRow = StreamedRow.continuationToken(pushContinuationToken);
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeError(final KsqlErrorMessage error) {
-    writeBuffer(ServerUtils.serializeObject(error));
+    final StreamedRow streamedRow = StreamedRow.error(error);
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeConsistencyToken(final ConsistencyToken consistencyToken) {
-    writeBuffer(ServerUtils.serializeObject(consistencyToken));
+    final StreamedRow streamedRow = StreamedRow.consistencyToken(consistencyToken);
+    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
+    final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage);
+    writeBuffer(serializeObject(streamedRow), true);
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeLimitMessage() {
+    final StreamedRow streamedRow = StreamedRow.finalMessage("Limit Reached");
+    writeBuffer(serializeObject(streamedRow), true);
     return this;
-  }
-
-  private void writeBuffer(final Buffer buffer) {
-    final Buffer buff = Buffer.buffer().appendByte((byte) ',');
-    buff.appendBuffer(buffer);
-    response.write(buff);
   }
 
   @Override
   public void end() {
     response.write("]").end();
+  }
+
+  private void writeBuffer(final Buffer buffer) {
+    writeBuffer(buffer, false);
+  }
+
+  private void writeBuffer(final Buffer buffer, final boolean isLast) {
+    final Buffer buff = Buffer.buffer();
+    buff.appendBuffer(buffer);
+    if (!isLast) {
+      buff.appendString(",\n");
+    }
+    response.write(buff);
+  }
+
+  public static <T> Buffer serializeObject(final T t) {
+    try {
+      final byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(t);
+      return Buffer.buffer(bytes);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Failed to serialize buffer", e);
+    }
   }
 }

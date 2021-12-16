@@ -115,7 +115,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
-    assertThat(queryId, is(nullValue()));
+    assertThat(queryId, is("queryId"));
   }
 
   @Test
@@ -142,7 +142,7 @@ public class ApiTest extends BaseApiTest {
     assertThat(queryResponse.rows, is(DEFAULT_JSON_ROWS));
     assertThat(server.getQueryIDs(), hasSize(0));
     String queryId = queryResponse.responseObject.getString("queryId");
-    assertThat(queryId, is(nullValue()));
+    assertThat(queryId, is("queryId"));
   }
 
   @Test

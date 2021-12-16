@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.utils;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 
 public interface RowGenerator {
@@ -23,6 +24,8 @@ public interface RowGenerator {
   List<String> getColumnNames();
 
   List<String> getColumnTypes();
+
+  LogicalSchema getLogicalSchema();
 
   GenericRow getNext();
 }

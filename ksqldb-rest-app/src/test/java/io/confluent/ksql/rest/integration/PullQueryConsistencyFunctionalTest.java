@@ -78,7 +78,6 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.checkerframework.checker.units.qual.C;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -167,6 +166,8 @@ public class PullQueryConsistencyFunctionalTest {
     .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, NoAuthPlugin.class)
     .put(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
     .put(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
+    .put(StreamsConfig.InternalConfig.INTERNAL_TASK_ASSIGNOR_CLASS,
+      PullQueryRoutingFunctionalTest.StaticStreamsTaskAssignor.class.getName())
     .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();

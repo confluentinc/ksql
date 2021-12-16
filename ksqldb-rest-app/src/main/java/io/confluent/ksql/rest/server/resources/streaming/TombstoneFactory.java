@@ -46,8 +46,8 @@ public final class TombstoneFactory {
   private final ImmutableMap<Integer, Integer> keyIndexes;
   private final int numColumns;
 
-  public static TombstoneFactory create(final PushQueryMetadata query) {
-    return new TombstoneFactory(buildKeyIdx(query), query.getLogicalSchema().value().size());
+  public static TombstoneFactory create(final LogicalSchema schema, final ResultType resultType) {
+    return new TombstoneFactory(buildKeyIdx(schema, resultType), schema.value().size());
   }
 
   private TombstoneFactory(final ImmutableMap<Integer, Integer> keyIndexes, final int numColumns) {
@@ -85,11 +85,11 @@ public final class TombstoneFactory {
   }
 
   private static ImmutableMap<Integer, Integer> buildKeyIdx(
-      final PushQueryMetadata query
+      final LogicalSchema schema, final ResultType resultType
   ) {
-    final List<ColumnName> keyColumns = keyColumnNames(query);
+    final List<ColumnName> keyColumns = keyColumnNames(schema, resultType);
 
-    final List<Column> projection = query.getLogicalSchema().value();
+    final List<Column> projection = schema.value();
 
     final Map<ColumnName, Integer> columnIndexes = new HashMap<>(projection.size());
     for (int columnIndex = 0; columnIndex < projection.size(); columnIndex++) {
@@ -110,14 +110,15 @@ public final class TombstoneFactory {
     return builder.build();
   }
 
-  private static List<ColumnName> keyColumnNames(final PushQueryMetadata query) {
-    final LogicalSchema schema = query.getLogicalSchema();
-
+  private static List<ColumnName> keyColumnNames(
+      final LogicalSchema schema,
+      final ResultType resultType
+  ) {
     final List<ColumnName> keyNames = schema.key().stream()
         .map(SimpleColumn::name)
         .collect(Collectors.toList());
 
-    if (query.getResultType() == ResultType.WINDOWED_TABLE) {
+    if (resultType == ResultType.WINDOWED_TABLE) {
       keyNames.addAll(SystemColumns.windowBoundsColumnNames());
     }
 

@@ -26,10 +26,12 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,6 +159,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @Override
   public boolean hitLimit() {
     return hitLimit;
+  }
+
+  @Override
+  public Optional<ResultType> getResultType() {
+    return queryHandle.getResultType();
   }
 
   @Override

@@ -20,6 +20,8 @@ import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.util.KeyValue;
+import java.util.List;
 
 /**
  * Represents something that knows how to write out a query response
@@ -28,7 +30,7 @@ public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
-  QueryStreamResponseWriter writeRow(GenericRow row);
+  QueryStreamResponseWriter writeRow(KeyValue<List<?>, GenericRow> row);
 
   QueryStreamResponseWriter writeContinuationToken(PushContinuationToken pushContinuationToken);
 

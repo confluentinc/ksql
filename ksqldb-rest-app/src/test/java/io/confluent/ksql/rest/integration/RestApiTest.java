@@ -22,7 +22,6 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 import static io.vertx.core.http.HttpVersion.HTTP_2;
@@ -545,8 +544,7 @@ public class RestApiTest {
                 + "{\"row\":{\"columns\":[\"USER_0\",\"PAGE_5\",5]}},\n"
                 + "{\"row\":{\"columns\":[\"USER_2\",\"PAGE_5\",6]}},\n"
                 + "{\"row\":{\"columns\":[\"USER_3\",\"PAGE_5\",7]}},\n"
-                + "\n"
-                + "]\n"
+                + "]"
     )
     );
   }
@@ -680,6 +678,11 @@ public class RestApiTest {
         "/query", ksqlRequest, KsqlMediaType.KSQL_V1_JSON.mediaType(),
         buffer -> {
           if (buffer == null || buffer.length() == 0) {
+            if (sb.length() > 0) {
+              String remainder = sb.toString();
+              sb.setLength(0);
+              messages.add(remainder);
+            }
             return;
           }
 
@@ -866,31 +869,15 @@ public class RestApiTest {
     };
 
     // When:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1 + FOOTER));
 
     // Then:
-    assertThat(messages, hasSize(HEADER + 1));
+    assertThat(messages, hasSize(HEADER + 1 + FOOTER));
     assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
     assertThat(messages.get(0),
         endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
-  }
-
-  @Test
-  public void shouldFailToExecutePullQueryOverRestHttp2() {
-    // Given
-    final KsqlRequest request = new KsqlRequest(
-        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        ImmutableMap.of(),
-        Collections.emptyMap(),
-        null
-    );
-    final Supplier<Integer> call = () -> rawRestRequest(
-        HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
-    ).statusCode();
-
-    // When:
-    assertThatEventually(call, is(METHOD_NOT_ALLOWED.code()));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
+    assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
   }
 
   @Test
@@ -1080,20 +1067,6 @@ public class RestApiTest {
         .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
         .collect(Collectors.toList());
     assertThat(query.size(), is(1));
-  }
-
-  @Test
-  public void shouldFailToExecuteQueryUsingRestWithHttp2() {
-    // Given:
-    KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
-        Collections.emptyMap(), Collections.emptyMap(), null);
-
-    // When:
-    HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
-        HttpVersion.HTTP_2, HttpMethod.POST, "/query", ksqlRequest);
-
-    // Then:
-    assertThat(resp.statusCode(), is(405));
   }
 
   private boolean topicExists(final String topicName) {

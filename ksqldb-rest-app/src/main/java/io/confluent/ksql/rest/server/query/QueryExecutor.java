@@ -28,6 +28,7 @@ import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -51,6 +52,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.PrintTopicMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -137,6 +139,8 @@ public class QueryExecutor {
           context,
           excludeTombstones
       );
+    } else if (statement.getStatement() instanceof PrintTopic) {
+      return handlePrintTopic();
     } else {
       return QueryMetadataHolder.unhandled();
     }
@@ -414,5 +418,9 @@ public class QueryExecutor {
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return QueryMetadataHolder.of(query);
+  }
+
+  private QueryMetadataHolder handlePrintTopic() {
+    return QueryMetadataHolder.of(new PrintTopicMetadata());
   }
 }

@@ -17,8 +17,10 @@ package io.confluent.ksql.api.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
@@ -26,18 +28,27 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.resources.streaming.TombstoneFactory;
+import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import java.util.List;
+import java.util.Optional;
 
 public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter {
 
   private static final ObjectMapper OBJECT_MAPPER = ApiJsonMapper.INSTANCE.get();
 
   private final HttpServerResponse response;
+  private final Optional<TombstoneFactory> tombstoneFactory;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
-  public JsonStreamedRowResponseWriter(final HttpServerResponse response) {
+  public JsonStreamedRowResponseWriter(
+      final HttpServerResponse response,
+      final QueryPublisher queryPublisher) {
     this.response = response;
+    this.tombstoneFactory = queryPublisher.getResultType().map(
+        resultType -> TombstoneFactory.create(queryPublisher.geLogicalSchema(), resultType));
   }
 
   @Override
@@ -52,8 +63,15 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    final StreamedRow streamedRow = StreamedRow.pushRow(row);
+  public QueryStreamResponseWriter writeRow(final KeyValue<List<?>, GenericRow> keyValue) {
+    final StreamedRow streamedRow;
+    if (keyValue.value() == null) {
+      Preconditions.checkState(tombstoneFactory.isPresent(),
+          "Should only have null values for query types that support them");
+      streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
+    } else {
+      streamedRow = StreamedRow.pushRow(keyValue.value());
+    }
     writeBuffer(serializeObject(streamedRow));
     return this;
   }

@@ -387,6 +387,12 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
       "The maximum connection pool size used by Vertx for http2 internal connections";
 
+  public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
+      = "ksql.endpoint.migrate.query";
+  private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
+  private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+      = "Migrates the /query endpoint to use the same handler as /query-stream.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -734,6 +740,12 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC
+        ).define(
+            KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
+            Type.BOOLEAN,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DOC
         );
   }
 

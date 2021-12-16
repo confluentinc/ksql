@@ -24,6 +24,7 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
@@ -70,6 +71,7 @@ public class ServerVerticle extends AbstractVerticle {
   private final Optional<Boolean> isInternalListener;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final LoggingRateLimiter loggingRateLimiter;
+  private final boolean migrateQueryEndpoint;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ServerVerticle(
@@ -78,13 +80,15 @@ public class ServerVerticle extends AbstractVerticle {
       final Server server,
       final Optional<Boolean> isInternalListener,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final LoggingRateLimiter loggingRateLimiter) {
+      final LoggingRateLimiter loggingRateLimiter,
+      final boolean migrateQueryEndpoint) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
     this.isInternalListener = Objects.requireNonNull(isInternalListener);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.loggingRateLimiter = Objects.requireNonNull(loggingRateLimiter);
+    this.migrateQueryEndpoint = migrateQueryEndpoint;
   }
 
   @Override
@@ -172,6 +176,11 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleQueryRequest);
+    router.route(HttpMethod.POST, "/query")
+        .handler(BodyHandler.create(false))
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(JSON_CONTENT_TYPE)
+        .handler(new QueryStreamHandler(endpoints, connectionQueryManager, context, server, true));
     router.route(HttpMethod.GET, "/info")
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)

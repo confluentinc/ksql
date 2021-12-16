@@ -84,9 +84,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
               ERROR_CODE_BAD_REQUEST));
     }
 
-    final QueryStreamResponseWriter queryStreamResponseWriter
-        = getQueryStreamResponseWriter(routingContext);
-
     final CommonRequest request = getRequest(routingContext);
     if (request == null) {
       return;
@@ -105,7 +102,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           handleQueryPublisher(
               routingContext,
               queryPublisher,
-              queryStreamResponseWriter,
               metricsCallbackHolder,
               startTimeNanos);
         })
@@ -114,7 +110,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   }
 
   private QueryStreamResponseWriter getQueryStreamResponseWriter(
-      final RoutingContext routingContext
+      final RoutingContext routingContext,
+      final QueryPublisher queryPublisher
   ) {
     final String contentType = routingContext.getAcceptableContentType();
     if (DELIMITED_CONTENT_TYPE.equals(contentType)
@@ -124,7 +121,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
-      return new JsonStreamedRowResponseWriter(routingContext.response());
+      return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -162,7 +159,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   private void handleQueryPublisher(
       final RoutingContext routingContext,
       final QueryPublisher queryPublisher,
-      final QueryStreamResponseWriter queryStreamResponseWriter,
       final MetricsCallbackHolder metricsCallbackHolder,
       final long startTimeNanos
   ) {
@@ -207,7 +203,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           .createApiQuery(queryPublisher, routingContext.request());
 
       metadata = new QueryResponseMetadata(
-          query.getId().toString(),
+          queryPublisher.queryId().toString(),
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
@@ -224,6 +220,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       });
     }
 
+    final QueryStreamResponseWriter queryStreamResponseWriter
+        = getQueryStreamResponseWriter(routingContext, queryPublisher);
     queryStreamResponseWriter.writeMetadata(metadata);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,

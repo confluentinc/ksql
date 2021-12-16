@@ -78,7 +78,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
             row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
       }
     } else {
-      queryStreamResponseWriter.writeRow(row.getKeyValue().value());
+      queryStreamResponseWriter.writeRow(row.getKeyValue());
     }
     tokens--;
     if (response.writeQueueFull()) {

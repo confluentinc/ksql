@@ -41,6 +41,7 @@ import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -221,6 +222,11 @@ public class QueryEndpoint {
     public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
       return Optional.empty();
     }
+
+    @Override
+    public Optional<ResultType> getResultType() {
+      return Optional.of(queryMetadata.getResultType());
+    }
   }
 
   private static class KsqlPullQueryHandle implements QueryHandle {
@@ -288,6 +294,11 @@ public class QueryEndpoint {
     @Override
     public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
       return result.getConsistencyOffsetVector();
+    }
+
+    @Override
+    public Optional<ResultType> getResultType() {
+      return Optional.empty();
     }
   }
 }

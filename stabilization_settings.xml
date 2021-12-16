@@ -13,6 +13,11 @@
 
     <servers>
         <server>
+            <id>confluent-other</id>
+            <username>${env.ORG_GRADLE_PROJECT_mavenUsername}</username>
+            <password>${env.ORG_GRADLE_PROJECT_mavenPassword}</password>
+        </server>
+        <server>
             <id>confluent-artifactory-jenkins</id>
             <username>${env.ORG_GRADLE_PROJECT_mavenUsername}</username>
             <password>${env.ORG_GRADLE_PROJECT_mavenPassword}</password>

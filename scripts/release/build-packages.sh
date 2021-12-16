@@ -125,7 +125,7 @@ export MAVEN_OPTS="${MAVEN_OPTS-} -Duser.home=/home/jenkins"
 # Build Debian Package
 git clean -fd
 echo "Building Debian Packages"
-git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --preserve-envvar=MAVEN_OPTS -d -i -I"
+git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --preserve-env-d -i -I"
 
 # Build RPM
 echo "Building RPM packages"

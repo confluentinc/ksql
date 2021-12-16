@@ -17,15 +17,18 @@ package io.confluent.ksql.services;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.connect.ConnectRequestHeadersExtension;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.vertx.core.http.HttpHeaders;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -34,7 +37,10 @@ import java.nio.file.attribute.FileTime;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.config.ConfigException;
+import org.apache.hc.core5.http.Header;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,12 +60,19 @@ public class DefaultConnectClientFactoryTest {
   private static final String OTHER_PASSWORD = "jpass";
   private static final String OTHER_EXPECTED_HEADER =
       expectedBasicAuthHeader(OTHER_USERNAME, OTHER_PASSWORD);
+  
+  private static final String AUTH_HEADER_NAME = HttpHeaders.AUTHORIZATION.toString();
+  private static final Header[] EMPTY_HEADERS = new Header[]{};
 
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
   @Mock
   private KsqlConfig config;
+  @Mock
+  private ConnectRequestHeadersExtension requestHeadersExtension;
+  @Mock
+  private KsqlPrincipal userPrincipal;
 
   private String credentialsPath;
 
@@ -78,10 +91,10 @@ public class DefaultConnectClientFactoryTest {
   @Test
   public void shouldBuildWithoutAuthHeader() {
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty());
+    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
+    assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
   }
 
   @Test
@@ -91,10 +104,11 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty());
+    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.of(EXPECTED_HEADER)));
+    assertThat(connectClient.getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)));
   }
 
   @Test
@@ -104,8 +118,8 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // When: get() is called twice
-    connectClientFactory.get(Optional.empty());
-    connectClientFactory.get(Optional.empty());
+    connectClientFactory.get(Optional.empty(), Optional.empty());
+    connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then: only loaded the credentials once -- ideally we'd check the number of times the file
     //       was read but this is an acceptable proxy for this unit test
@@ -116,79 +130,49 @@ public class DefaultConnectClientFactoryTest {
   public void shouldUseKsqlAuthHeaderIfNoAuthHeaderPresent() {
     // When:
     final DefaultConnectClient connectClient =
-        connectClientFactory.get(Optional.of("some ksql request header"));
+        connectClientFactory.get(Optional.of("some ksql request header"), Optional.empty());
 
     // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.of("some ksql request header")));
+    assertThat(connectClient.getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, "some ksql request header")));
   }
 
   @Test
-  public void shouldFailOnUnreadableCredentials() throws Exception {
+  public void shouldNotFailOnUnreadableCredentials() throws Exception {
     // Given:
-    givenCustomBasicAuthHeader(true);
+    givenCustomBasicAuthHeader();
     givenInvalidCredentialsFiles();
 
     // When:
-    final Exception e = assertThrows(
-        ConfigException.class,
-        () -> connectClientFactory.get(Optional.empty()));
+    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(e.getMessage(),
-        containsString("Provided credentials file doesn't provide username and password"));
+    assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
   }
 
   @Test
-  public void shouldNotFailOnUnreadableCredentialsIfConfigured() throws Exception {
+  public void shouldNotFailOnMissingCredentials() {
     // Given:
-    givenCustomBasicAuthHeader(false);
-    givenInvalidCredentialsFiles();
-
-    // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty());
-
-    // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldFailOnMissingCredentials() {
-    // Given:
-    givenCustomBasicAuthHeader(true);
+    givenCustomBasicAuthHeader();
     // no credentials file present
 
     // When:
-    final Exception e = assertThrows(
-        ConfigException.class,
-        () -> connectClientFactory.get(Optional.empty()));
+    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Optional.empty());
 
     // Then:
-    assertThat(e.getMessage(),
-        containsString("No such file or directory"));
-  }
-
-  @Test
-  public void shouldNotFailOnMissingCredentialsIfConfigured() {
-    // Given:
-    givenCustomBasicAuthHeader(false);
-    // no credentials file present
-
-    // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty());
-
-    // Then:
-    assertThat(connectClient.getAuthHeader(), is(Optional.empty()));
+    assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
   }
 
   @Test
   public void shouldReloadCredentialsOnFileCreation() throws Exception {
     // Given:
     when(config.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY)).thenReturn(true);
-    givenCustomBasicAuthHeader(false);
+    givenCustomBasicAuthHeader();
     // no credentials file present
 
     // verify that no auth header is present
-    assertThat(connectClientFactory.get(Optional.empty()).getAuthHeader(), is(Optional.empty()));
+    assertThat(connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        is(EMPTY_HEADERS));
 
     // When: credentials file is created
     waitForLastModifiedTick();
@@ -197,8 +181,8 @@ public class DefaultConnectClientFactoryTest {
     // Then: auth header is present
     assertThatEventually(
         "Should load newly created credentials",
-        () -> connectClientFactory.get(Optional.empty()).getAuthHeader(),
-        is(Optional.of(EXPECTED_HEADER)),
+        () -> connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)),
         TimeUnit.SECONDS.toMillis(1),
         TimeUnit.SECONDS.toMillis(1)
     );
@@ -212,7 +196,8 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // verify auth header is present
-    assertThat(connectClientFactory.get(Optional.empty()).getAuthHeader(), is(Optional.of(EXPECTED_HEADER)));
+    assertThat(connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)));
 
     // When: credentials file is modified
     waitForLastModifiedTick();
@@ -221,21 +206,62 @@ public class DefaultConnectClientFactoryTest {
     // Then: new auth header is present
     assertThatEventually(
         "Should load updated credentials",
-        () -> connectClientFactory.get(Optional.empty()).getAuthHeader(),
-        is(Optional.of(OTHER_EXPECTED_HEADER)),
+        () -> connectClientFactory.get(Optional.empty(), Optional.empty()).getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, OTHER_EXPECTED_HEADER)),
         TimeUnit.SECONDS.toMillis(1),
         TimeUnit.SECONDS.toMillis(1)
     );
   }
 
-  private void givenCustomBasicAuthHeader() {
-    givenCustomBasicAuthHeader(true);
+  @Test
+  public void shouldPassCustomRequestHeaders() {
+    // Given:
+    when(config.getConfiguredInstance(
+            KsqlConfig.CONNECT_REQUEST_HEADERS_PLUGIN,
+            ConnectRequestHeadersExtension.class))
+        .thenReturn(requestHeadersExtension);
+    // re-initialize client factory since request headers extension is configured in constructor
+    connectClientFactory = new DefaultConnectClientFactory(config);
+
+    when(requestHeadersExtension.getHeaders(Optional.of(userPrincipal)))
+        .thenReturn(ImmutableMap.of("header", "value"));
+
+    // When:
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Optional.of(userPrincipal));
+
+    // Then:
+    assertThat(connectClient.getRequestHeaders(), arrayContaining(header("header", "value")));
   }
 
-  private void givenCustomBasicAuthHeader(final boolean failOnUnreadableCreds) {
+  @Test
+  public void shouldPassCustomRequestHeadersInAdditionToAuthHeader() throws Exception {
+    // Given:
+    givenCustomBasicAuthHeader();
+    givenValidCredentialsFile();
+
+    when(config.getConfiguredInstance(
+        KsqlConfig.CONNECT_REQUEST_HEADERS_PLUGIN,
+        ConnectRequestHeadersExtension.class))
+        .thenReturn(requestHeadersExtension);
+    // re-initialize client factory since request headers extension is configured in constructor
+    connectClientFactory = new DefaultConnectClientFactory(config);
+
+    when(requestHeadersExtension.getHeaders(Optional.of(userPrincipal)))
+        .thenReturn(ImmutableMap.of("header", "value"));
+
+    // When:
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Optional.of(userPrincipal));
+
+    // Then:
+    assertThat(connectClient.getRequestHeaders(),
+        arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER), header("header", "value")));
+  }
+
+  private void givenCustomBasicAuthHeader() {
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)).thenReturn("FILE");
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY)).thenReturn(credentialsPath);
-    when(config.getBoolean(KsqlConfig.CONNECT_BASIC_AUTH_FAIL_ON_UNREADABLE_CREDENTIALS)).thenReturn(failOnUnreadableCreds);
   }
 
   private void givenValidCredentialsFile() throws Exception {
@@ -265,6 +291,31 @@ public class DefaultConnectClientFactoryTest {
     final String userInfo = username + ":" + password;
     return "Basic " + Base64.getEncoder()
         .encodeToString(userInfo.getBytes(Charset.defaultCharset()));
+  }
+
+  private static Matcher<? super Header> header(
+      final String name,
+      final String value
+  ) {
+    return new TypeSafeDiagnosingMatcher<Header>() {
+      @Override
+      protected boolean matchesSafely(
+          final Header actual,
+          final Description mismatchDescription) {
+        if (!name.equals(actual.getName())) {
+          return false;
+        }
+        if (!value.equals(actual.getValue())) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format("name: %s. value: %s.", name, value));
+      }
+    };
   }
 
   /**

@@ -16,18 +16,17 @@
 package io.confluent.ksql.security;
 
 import io.confluent.ksql.services.ServiceContext;
-import java.security.Principal;
 import java.util.Optional;
 
 /**
  * A class that provides KSQL security related information for KSQL user requests.
  */
 public class KsqlSecurityContext {
-  private final Optional<Principal> userPrincipal;
+  private final Optional<KsqlPrincipal> userPrincipal;
   private final ServiceContext serviceContext;
 
   public KsqlSecurityContext(
-      final Optional<Principal> userPrincipal,
+      final Optional<KsqlPrincipal> userPrincipal,
       final ServiceContext serviceContext
   ) {
     this.userPrincipal = userPrincipal;
@@ -35,14 +34,14 @@ public class KsqlSecurityContext {
   }
 
   /**
-   * Returns a {@code java.security.Principal} object containing the name of the current
+   * Returns a {@link KsqlPrincipal} object containing the name and properties of the current
    * authenticated user. If the user has not been authenticated, the method returns
    * {@code Optional.empty}.
    *
-   * @return a {@code java.security.Principal} containing the name of the user making this request;
-   *         {@code Optional.empty} if the user has not been authenticated
+   * @return a {@link KsqlPrincipal} containing the name and properties of the user making
+   *         this request; {@code Optional.empty} if the user has not been authenticated
    */
-  public Optional<Principal> getUserPrincipal() {
+  public Optional<KsqlPrincipal> getUserPrincipal() {
     return userPrincipal;
   }
 

@@ -70,18 +70,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
-    if (!sources.containsKey(queryId)) {
-      if (sources
-          .values()
-          .stream()
-          .flatMap(Collection::stream)
-          .anyMatch(t -> binpackedPersistentQueryMetadata.getSourceNames().contains(t))) {
-        throw new IllegalArgumentException(
-            queryId.toString() + ": was not reserved on this runtime");
-      } else {
-        sources.put(queryId, binpackedPersistentQueryMetadata.getSourceNames());
-      }
-    }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.debug("mapping {}", collocatedQueries);
   }

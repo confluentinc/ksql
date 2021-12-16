@@ -430,8 +430,7 @@ final class QueryBuilder {
         valueFormat.getFeatures()
     );
 
-    final NamedTopologyBuilder namedTopologyBuilder =
-        ((KafkaStreamsNamedTopologyWrapper) sharedKafkaStreamsRuntime.getKafkaStreams())
+    final NamedTopologyBuilder namedTopologyBuilder = sharedKafkaStreamsRuntime.getKafkaStreams()
             .newNamedTopologyBuilder(
                 queryId.toString(),
                 PropertiesUtil.asProperties(queryOverrides)
@@ -590,7 +589,6 @@ final class QueryBuilder {
       if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)
           || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation")
           && !real)) {
-        sharedKafkaStreamsRuntime.markSources(queryId, sources);
         return sharedKafkaStreamsRuntime;
       }
     }
@@ -623,7 +621,6 @@ final class QueryBuilder {
       );
     }
     streams.add(stream);
-    stream.markSources(queryId, sources);
     return stream;
   }
 

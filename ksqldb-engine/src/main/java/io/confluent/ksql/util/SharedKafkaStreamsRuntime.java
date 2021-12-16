@@ -45,7 +45,6 @@ public abstract class SharedKafkaStreamsRuntime {
   protected KafkaStreamsNamedTopologyWrapper kafkaStreams;
   protected ImmutableMap<String, Object> streamsProperties;
   protected final Map<QueryId, BinPackedPersistentQueryMetadataImpl> collocatedQueries;
-  protected final Map<QueryId, Set<SourceName>> sources;
 
   protected SharedKafkaStreamsRuntime(
       final KafkaStreamsBuilder kafkaStreamsBuilder,
@@ -54,17 +53,6 @@ public abstract class SharedKafkaStreamsRuntime {
     this.kafkaStreams = kafkaStreamsBuilder.buildNamedTopologyWrapper(streamsProperties);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     this.collocatedQueries = new ConcurrentHashMap<>();
-    this.sources = new ConcurrentHashMap<>();
-  }
-
-  public void markSources(final QueryId queryId, final Set<SourceName> sourceNames) {
-    sources.put(queryId, sourceNames);
-    log.info(
-        "Marking source {} for query {} the mapping for this runtime is {}",
-        sourceNames,
-        queryId.toString(),
-        sourceNames
-    );
   }
 
   public abstract void register(
@@ -122,16 +110,14 @@ public abstract class SharedKafkaStreamsRuntime {
   }
 
   public Set<SourceName> getSources() {
-    return ImmutableSet.copyOf(
-        sources
-            .values()
-            .stream()
-            .flatMap(Collection::stream)
-            .collect(Collectors.toSet()));
+    return collocatedQueries.values()
+        .stream()
+        .flatMap(t -> t.getSourceNames().stream())
+        .collect(Collectors.toSet());
   }
 
   public Set<QueryId> getQueries() {
-    return ImmutableSet.copyOf(sources.keySet());
+    return ImmutableSet.copyOf(collocatedQueries.keySet());
   }
 
   public KafkaStreamsBuilder getKafkaStreamsBuilder() {
@@ -140,10 +126,6 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public Map<QueryId, BinPackedPersistentQueryMetadataImpl> getCollocatedQueries() {
     return ImmutableMap.copyOf(collocatedQueries);
-  }
-
-  public Map<QueryId, Set<SourceName>> getSourcesMap() {
-    return ImmutableMap.copyOf(sources);
   }
 
   public String getApplicationId() {

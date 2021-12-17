@@ -92,6 +92,6 @@ public class PushQueryConfigRoutingOptions implements PushRoutingOptions {
     if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED)) {
       return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
     }
-    return KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT;
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
   }
 }

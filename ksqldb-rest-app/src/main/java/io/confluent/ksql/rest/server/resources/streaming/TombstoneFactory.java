@@ -27,7 +27,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import java.util.HashMap;
 import java.util.List;

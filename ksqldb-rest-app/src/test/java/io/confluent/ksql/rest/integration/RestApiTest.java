@@ -46,6 +46,7 @@ import static org.junit.Assert.fail;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -66,6 +67,7 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.ServiceContext;
@@ -908,61 +910,90 @@ public class RestApiTest {
         "application/vnd.ksqlapi.delimited.v1",
         KsqlMediaType.KSQL_V1_JSON.mediaType());
     ImmutableList<HttpVersion> httpVersions = ImmutableList.of(HTTP_1_1, HTTP_2);
-    ImmutableList<String> endpoints = ImmutableList.of("/query-stream");
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream", "/query");
+    ImmutableList<Boolean> migrationFlags = ImmutableList.of(true, false);
+
+    final String query
+        = "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';";
 
     for (String format : formats) {
       for (HttpVersion version : httpVersions) {
         for (String endpoint : endpoints) {
-          LOG.info("Trying pull query combination {} {} {}", format, version, endpoint);
-          Object requestBody;
-          if (endpoint.equals("/query-stream")) {
-            requestBody = new QueryStreamArgs(
-                "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
-          } else {
-            fail("Unknown endpoint " + endpoint);
-            return;
-          }
+          for (Boolean migrationEnabled : migrationFlags) {
+            boolean routedToQueryStream = endpoint.equals("/query")
+                && format.equals("application/vnd.ksqlapi.delimited.v1");
+            boolean migrated = routedToQueryStream || migrationEnabled;
+            if (!migrated && endpoint.equals("/query") && version == HTTP_2) {
+              LOG.info("Skipping pull query combination {} {} {} {}", format, version, endpoint,
+                  migrationEnabled);
+              continue;
+            }
 
-          // It would be nice to check the output the same way between all of the formats, but this
-          // is somewhat hard since they have different data, so we don't try.
-          if (format.equals("application/vnd.ksqlapi.delimited.v1")) {
-            QueryResponse[] queryResponse = new QueryResponse[1];
-            assertThatEventually(() -> {
-              try {
+            LOG.info("Trying pull query combination {} {} {} {}", format, version, endpoint,
+                migrationEnabled);
+            Object requestBody;
+            ImmutableMap<String, Object> overrides = ImmutableMap.of(
+                KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG, migrationEnabled
+            );
+            if (endpoint.equals("/query-stream")) {
+              requestBody = new QueryStreamArgs(query, overrides,
+                  Collections.emptyMap(), Collections.emptyMap());
+            } else if (endpoint.equals("/query")) {
+              requestBody = new KsqlRequest(
+                  query, overrides, Collections.emptyMap(), Collections.emptyMap(),
+                  null);
+            } else {
+              fail("Unknown endpoint " + endpoint);
+              return;
+            }
+
+            // It would be nice to check the output the same way between all of the formats, but
+            // this is somewhat hard since they have different data, so we don't try.
+            if (format.equals("application/vnd.ksqlapi.delimited.v1")) {
+              QueryResponse[] queryResponse = new QueryResponse[1];
+              assertThatEventually(() -> {
+                try {
+                  HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                      version, POST,
+                      endpoint, requestBody, "application/vnd.ksqlapi.delimited.v1",
+                      Optional.empty());
+                  queryResponse[0] = new QueryResponse(resp.body().toString());
+                  return queryResponse[0].rows.size();
+                } catch (Throwable t) {
+                  return Integer.MAX_VALUE;
+                }
+              }, is(1));
+              assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+            } else if (format.equals(KsqlMediaType.KSQL_V1_JSON.mediaType())) {
+              final Supplier<List<String>> call = () -> {
                 HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                     version, POST,
-                    endpoint, requestBody, "application/vnd.ksqlapi.delimited.v1",
+                    endpoint, requestBody, KsqlMediaType.KSQL_V1_JSON.mediaType(),
                     Optional.empty());
-                queryResponse[0] = new QueryResponse(resp.body().toString());
-                return queryResponse[0].rows.size();
-              } catch (Throwable t) {
-                return Integer.MAX_VALUE;
-              }
-            }, is(1));
-            assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
-          } else if (format.equals(KsqlMediaType.KSQL_V1_JSON.mediaType())) {
-            final Supplier<List<String>> call = () -> {
-              HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
-                  version, POST,
-                  endpoint, requestBody, KsqlMediaType.KSQL_V1_JSON.mediaType(),
-                  Optional.empty());
-              final String response = resp.body().toString();
-              return Arrays.asList(response.split(System.lineSeparator()));
-            };
+                final String response = resp.body().toString();
+                return Arrays.asList(response.split(System.lineSeparator()));
+              };
 
-            // When:
-            final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1 + FOOTER));
-            // Then:
-            assertThat(messages, hasSize(HEADER + 1 + FOOTER));
-            assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
-            assertThat(messages.get(0),
-                endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-            assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
-            assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
-          } else {
-            fail("Unknown format " + format);
-            return;
+              boolean hasFooter = endpoint.equals("/query-stream") || migrated;
+              int footerCount = hasFooter ? 1 : 0;
+
+              // When:
+              final List<String> messages = assertThatEventually(call,
+                  hasSize(HEADER + 1 + footerCount));
+              // Then:
+              assertThat(messages, hasSize(HEADER + 1 + footerCount));
+              assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+              assertThat(messages.get(0),
+                  endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+              assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"
+                  + (hasFooter ? "," : "]")));
+              if (hasFooter) {
+                assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
+              }
+            } else {
+              fail("Unknown format " + format);
+              return;
+            }
           }
         }
       }

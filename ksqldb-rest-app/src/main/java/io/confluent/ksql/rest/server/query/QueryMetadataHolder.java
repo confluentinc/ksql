@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.query;
 
 import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.util.PrintTopicMetadata;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.StreamPullQueryMetadata;
@@ -33,14 +32,12 @@ public final class QueryMetadataHolder {
   private final Optional<StreamPullQueryMetadata> streamPullQueryMetadata;
   private final Optional<ScalablePushQueryMetadata> scalablePushQueryMetadata;
   private final Optional<PullQueryResult> pullQueryResult;
-  private final Optional<PrintTopicMetadata> printTopicMetadata;
 
   public static QueryMetadataHolder of(
       final TransientQueryMetadata pushQueryMetadata
   ) {
     return new QueryMetadataHolder(
-        Optional.of(pushQueryMetadata), Optional.empty(), Optional.empty(), Optional.empty(),
-        Optional.empty()
+        Optional.of(pushQueryMetadata), Optional.empty(), Optional.empty(), Optional.empty()
     );
   }
 
@@ -48,8 +45,7 @@ public final class QueryMetadataHolder {
       final StreamPullQueryMetadata streamPullQueryMetadata
   ) {
     return new QueryMetadataHolder(
-        Optional.empty(), Optional.of(streamPullQueryMetadata), Optional.empty(), Optional.empty(),
-        Optional.empty()
+        Optional.empty(), Optional.of(streamPullQueryMetadata), Optional.empty(), Optional.empty()
     );
   }
 
@@ -57,17 +53,7 @@ public final class QueryMetadataHolder {
       final ScalablePushQueryMetadata scalablePushQueryMetadata
   ) {
     return new QueryMetadataHolder(
-        Optional.empty(), Optional.empty(), Optional.of(scalablePushQueryMetadata),
-        Optional.empty(), Optional.empty()
-    );
-  }
-
-  public static QueryMetadataHolder of(
-      final PrintTopicMetadata printTopicMetadata
-  ) {
-    return new QueryMetadataHolder(
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(),
-        Optional.of(printTopicMetadata)
+        Optional.empty(), Optional.empty(), Optional.of(scalablePushQueryMetadata), Optional.empty()
     );
   }
 
@@ -75,14 +61,13 @@ public final class QueryMetadataHolder {
       final PullQueryResult pullQueryResult
   ) {
     return new QueryMetadataHolder(
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(pullQueryResult),
-        Optional.empty()
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(pullQueryResult)
     );
   }
 
   public static QueryMetadataHolder unhandled() {
     return new QueryMetadataHolder(
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
+        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()
     );
   }
 
@@ -90,14 +75,12 @@ public final class QueryMetadataHolder {
       final Optional<TransientQueryMetadata> pushQueryMetadata,
       final Optional<StreamPullQueryMetadata> streamPullQueryMetadata,
       final Optional<ScalablePushQueryMetadata> scalablePushQueryMetadata,
-      final Optional<PullQueryResult> pullQueryResult,
-      final Optional<PrintTopicMetadata> printTopicMetadata
+      final Optional<PullQueryResult> pullQueryResult
   ) {
     this.pushQueryMetadata = pushQueryMetadata;
     this.streamPullQueryMetadata = streamPullQueryMetadata;
     this.scalablePushQueryMetadata = scalablePushQueryMetadata;
     this.pullQueryResult = pullQueryResult;
-    this.printTopicMetadata = printTopicMetadata;
   }
 
   public Optional<TransientQueryMetadata> getTransientQueryMetadata() {
@@ -129,9 +112,5 @@ public final class QueryMetadataHolder {
 
   public Optional<PullQueryResult> getPullQueryResult() {
     return pullQueryResult;
-  }
-
-  public Optional<PrintTopicMetadata> getPrintTopicMetadata() {
-    return printTopicMetadata;
   }
 }

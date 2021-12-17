@@ -138,8 +138,7 @@ public class Server {
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false),
                 idleConnectionTimeoutSeconds),
-            this, isInternalListener, pullQueryMetrics, loggingRateLimiter,
-            config.getBoolean(KsqlRestConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG));
+            this, isInternalListener, loggingRateLimiter);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {

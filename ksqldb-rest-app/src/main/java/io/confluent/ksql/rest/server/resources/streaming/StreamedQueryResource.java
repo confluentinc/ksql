@@ -214,7 +214,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       denyListPropertyValidator.validateAll(configProperties);
 
       if (statement.getStatement() instanceof Query) {
-        if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
+        if (shouldMigrateToQueryStream(request.getConfigOverrides())) {
           return EndpointResponse.ok(new NextHandlerOutput());
         }
         final QueryMetadataHolder queryMetadataHolder = queryExecutor.handleStatement(
@@ -342,5 +342,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return serviceContext.getTopicClient().listTopicNames().stream()
         .filter(name -> name.equalsIgnoreCase(topicName))
         .collect(Collectors.toSet());
+  }
+
+  private boolean shouldMigrateToQueryStream(final Map<String, Object> overrides) {
+    if (overrides.containsKey(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
+      return (Boolean) overrides.get(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
+    }
+    return ksqlRestConfig.getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
   }
 }

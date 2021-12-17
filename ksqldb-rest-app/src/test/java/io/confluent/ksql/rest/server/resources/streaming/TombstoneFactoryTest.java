@@ -56,8 +56,6 @@ public class TombstoneFactoryTest {
 
   @Before
   public void setUp() {
-    when(query.getResultType()).thenReturn(ResultType.TABLE);
-
     givenSchema(SCHEMA);
   }
 

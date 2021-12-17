@@ -625,6 +625,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
       = "The total time that the query cleanup spends trying to clean things up on shutdown.";
 
+  public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
+      = "ksql.endpoint.migrate.query";
+  private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
+  private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+      = "Migrates the /query endpoint to use the same handler as /query-stream.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1356,6 +1362,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
             Importance.LOW,
             KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
+        )
+        .define(
+            KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
+            Type.BOOLEAN,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
+            Importance.LOW,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DOC
         )
         .withClientSslSupport();
 

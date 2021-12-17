@@ -217,7 +217,7 @@ public class PullQueryQueue implements BlockingRowQueue {
    * Enqueues a row on the queue.  Blocks until the row can be accepted.
    * @param row The row to enqueue.
    */
-  public boolean acceptRow(final PullQueryRow row) {
+  public synchronized boolean acceptRow(final PullQueryRow row) {
     try {
       if (row == null) {
         return false;

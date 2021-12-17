@@ -23,20 +23,26 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class RuntimeAssignor {
-  private final Map<String, Collection<SourceName>> runtimesToSources;
+  private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
+
+  private final Map<String, Set<SourceName>> runtimesToSources;
   private final Map<QueryId, String> idToRuntime;
 
   public RuntimeAssignor(final KsqlConfig config) {
-    runtimesToSources = new HashMap<>();
-    idToRuntime = new HashMap<>();
+    runtimesToSources = new ConcurrentHashMap<>();
+    idToRuntime = new ConcurrentHashMap<>();
     final int runtimes = config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT);
     for (int i = 0; i < runtimes; i++) {
       final String runtime = buildSharedRuntimeId(config, true, i);
@@ -47,7 +53,7 @@ public class RuntimeAssignor {
   private RuntimeAssignor(final RuntimeAssignor other) {
     this.runtimesToSources = new HashMap<>();
     this.idToRuntime = new HashMap<>(other.idToRuntime);
-    for (Map.Entry<String, Collection<SourceName>> runtime
+    for (Map.Entry<String, Set<SourceName>> runtime
         : other.runtimesToSources.entrySet()) {
       this.runtimesToSources.put(runtime.getKey(), new HashSet<>(runtime.getValue()));
     }
@@ -57,11 +63,28 @@ public class RuntimeAssignor {
     return new RuntimeAssignor(this);
   }
 
-  public String getRuntimeAndMaybeAddRuntime(final QueryId queryId,
-                                             final Collection<SourceName> sources,
-                                             final KsqlConfig config) {
-    if (idToRuntime.containsKey(queryId)) {
-      return idToRuntime.get(queryId);
+  synchronized public String getRuntimeAndMaybeAddRuntime(final QueryId queryId,
+                                                          final Collection<SourceName> sources,
+                                                          final KsqlConfig config) {
+    final String runtimeIdForExistingQuery = idToRuntime.get(queryId);
+    if (runtimeIdForExistingQuery != null) {
+      final Set<SourceName> existingSources = runtimesToSources.get(runtimeIdForExistingQuery);
+      final Set<SourceName> overlappingSources =
+          new HashSet<>(existingSources);
+      overlappingSources.retainAll(sources);
+      if (!overlappingSources.isEmpty()) {
+        log.error("Attempt to replace query {} in runtime {} with new input topics {} failed since"
+                      + " the runtime is already consuming from the following input topics: {}\n"
+                      + "Overlapping sources: {}",
+                  queryId, runtimeIdForExistingQuery, sources, existingSources, overlappingSources);
+        throw new IllegalStateException(String.format(
+            "Unable to update query %s to read from stream(s) %s as there is another query in this"
+                + " runtime already consuming from these topic(s). This restriction will be lifted"
+                + " in the near future, but you can work around it for now by dropping the query"
+                + "  and restarting it instead of using CREATE OR REPLACE",
+            queryId, overlappingSources));
+      }
+      return runtimeIdForExistingQuery;
     }
     final List<String> possibleRuntimes = runtimesToSources.entrySet()
         .stream()

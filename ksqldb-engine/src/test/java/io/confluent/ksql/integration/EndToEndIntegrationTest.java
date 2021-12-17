@@ -110,7 +110,7 @@ public class EndToEndIntegrationTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(
-        false
+        false, true
     );
   }
 
@@ -248,7 +248,35 @@ public class EndToEndIntegrationTest {
   }
 
   @Test
-  public void shouldCleanUpAvroSchemaOnDropSource() throws Exception {
+  public void shouldSupportReplacingQuery() {
+    final String topicName = "avro_stream_topic";
+
+    executeStatement(format(
+        "create stream avro_stream with (kafka_topic='%s',format='avro') as select * from %s;",
+        topicName,
+        PAGE_VIEW_STREAM));
+
+    executeStatement(format(
+        "create or replace stream avro_stream with (kafka_topic='%s',format='avro') as select * from %s;",
+        topicName,
+        PAGE_VIEW_STREAM));
+
+    TEST_HARNESS.produceRows(
+        PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, System::currentTimeMillis);
+
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, true));
+    TEST_HARNESS.waitForSubjectToBePresent(KsqlConstants.getSRSubject(topicName, false));
+
+    ksqlContext.terminateQuery(new QueryId("CSAS_AVRO_STREAM_0"));
+
+    executeStatement("DROP STREAM avro_stream DELETE TOPIC;");
+
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(topicName, true));
+    TEST_HARNESS.waitForSubjectToBeAbsent(KsqlConstants.getSRSubject(topicName, false));
+  }
+
+  @Test
+  public void shouldCleanUpAvroSchemaOnDropSource() {
     final String topicName = "avro_stream_topic";
 
     executeStatement(format(

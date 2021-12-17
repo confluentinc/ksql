@@ -447,12 +447,27 @@ public class KafkaTopicClientImplTest {
   public void shouldDeleteInternalTopics() {
     // Given:
     final String applicationId = "whatEva";
-    final String internalTopic1 = applicationId + "-something-repartition";
-    final String internalTopic2 = applicationId + "-someting-changelog";
+    final String internalTopic1 = applicationId
+        + "-KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000012-topic";
+    final String internalTopic2 = applicationId
+        + "-KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-0000000012-topic";
+    final String internalTopic3 = applicationId + "-something-changelog";
+    final String internalTopic4 = applicationId + "-something-repartition";
+    // the next four topics are not prefixed with the application id, so they are not internal
+    final String customTopic1 = "what-KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-0000000012-topic";
+    final String customTopic2 = "eva-KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-0000000012-topic";
+    final String customTopic3 = "-something-changelog";
+    final String customTopic4 = "-something-repartition";
 
     givenTopicExists("topic1", 1, 1);
     givenTopicExists(internalTopic1, 1, 1);
     givenTopicExists(internalTopic2, 1, 1);
+    givenTopicExists(internalTopic3, 1, 1);
+    givenTopicExists(internalTopic4, 1, 1);
+    givenTopicExists(customTopic1, 1, 1);
+    givenTopicExists(customTopic2, 1, 1);
+    givenTopicExists(customTopic3, 1, 1);
+    givenTopicExists(customTopic4, 1, 1);
     givenTopicExists("topic2", 1, 1);
 
     // When:
@@ -460,7 +475,7 @@ public class KafkaTopicClientImplTest {
 
     // Then:
     verify(adminClient).deleteTopics(ImmutableList.of(
-        internalTopic1, internalTopic2
+        internalTopic1, internalTopic2, internalTopic3, internalTopic4
     ));
   }
 

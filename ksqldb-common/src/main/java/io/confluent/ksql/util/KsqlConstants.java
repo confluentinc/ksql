@@ -27,6 +27,11 @@ public final class KsqlConstants {
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
 
+  public static final String STREAMS_JOIN_REGISTRATION_TOPIC_PATTERN =
+      ".+-KTABLE-FK-JOIN-SUBSCRIPTION-REGISTRATION-\\d+-topic";
+  public static final String STREAMS_JOIN_RESPONSE_TOPIC_PATTERN =
+      ".+-KTABLE-FK-JOIN-SUBSCRIPTION-RESPONSE-\\d+-topic";
+
   private static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
   private static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 

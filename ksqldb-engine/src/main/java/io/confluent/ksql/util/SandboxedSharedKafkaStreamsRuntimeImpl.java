@@ -19,7 +19,6 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.streams.StreamsConfig;
@@ -70,18 +69,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
-    if (!sources.containsKey(queryId)) {
-      if (sources
-          .values()
-          .stream()
-          .flatMap(Collection::stream)
-          .anyMatch(t -> binpackedPersistentQueryMetadata.getSourceNames().contains(t))) {
-        throw new IllegalArgumentException(
-            queryId.toString() + ": was not reserved on this runtime");
-      } else {
-        sources.put(queryId, binpackedPersistentQueryMetadata.getSourceNames());
-      }
-    }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.debug("mapping {}", collocatedQueries);
   }

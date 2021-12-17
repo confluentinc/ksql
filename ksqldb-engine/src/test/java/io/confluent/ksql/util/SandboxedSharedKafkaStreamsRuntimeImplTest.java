@@ -70,7 +70,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     when(queryId.toString()).thenReturn("query 1");
     when(queryId2.toString()).thenReturn("query 2");
 
-    validationSharedKafkaStreamsRuntime.markSources(queryId, Collections.singleton(SourceName.of("foo")));
     validationSharedKafkaStreamsRuntime.register(
         binPackedPersistentQueryMetadata,
         queryId);
@@ -83,20 +82,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
 
     //Then:
     assertThat("Query was not added", validationSharedKafkaStreamsRuntime.getQueries().contains(queryId));
-  }
-
-  @Test
-  public void shouldNotAddQuery() {
-    //Given:
-    when(binPackedPersistentQueryMetadata.getSourceNames())
-        .thenReturn(Collections.singleton(SourceName.of("foo")));
-    //When:
-    final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-        () -> validationSharedKafkaStreamsRuntime.register(
-            binPackedPersistentQueryMetadata,
-            queryId2));
-    //Then
-    assertThat(e.getMessage(), containsString(": was not reserved on this runtime"));
   }
 
   @Test

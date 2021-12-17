@@ -91,7 +91,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
@@ -430,8 +429,7 @@ final class QueryBuilder {
         valueFormat.getFeatures()
     );
 
-    final NamedTopologyBuilder namedTopologyBuilder =
-        ((KafkaStreamsNamedTopologyWrapper) sharedKafkaStreamsRuntime.getKafkaStreams())
+    final NamedTopologyBuilder namedTopologyBuilder = sharedKafkaStreamsRuntime.getKafkaStreams()
             .newNamedTopologyBuilder(
                 queryId.toString(),
                 PropertiesUtil.asProperties(queryOverrides)
@@ -590,7 +588,6 @@ final class QueryBuilder {
       if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)
           || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation")
           && !real)) {
-        sharedKafkaStreamsRuntime.markSources(queryId, sources);
         return sharedKafkaStreamsRuntime;
       }
     }
@@ -623,7 +620,6 @@ final class QueryBuilder {
       );
     }
     streams.add(stream);
-    stream.markSources(queryId, sources);
     return stream;
   }
 

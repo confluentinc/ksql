@@ -23,7 +23,6 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -65,18 +64,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
-    if (!sources.containsKey(queryId)) {
-      if (sources
-          .values()
-          .stream()
-          .flatMap(Collection::stream)
-          .anyMatch(t -> binpackedPersistentQueryMetadata.getSourceNames().contains(t))) {
-        throw new IllegalArgumentException(
-            queryId.toString() + ": was not reserved on this runtime");
-      } else {
-        sources.put(queryId, binpackedPersistentQueryMetadata.getSourceNames());
-      }
-    }
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("mapping {}", collocatedQueries);
   }
@@ -178,7 +165,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void stop(final QueryId queryId, final boolean resetOffsets) {
     log.info("Attempting to stop Query: " + queryId.toString());
-    if (collocatedQueries.containsKey(queryId) && sources.containsKey(queryId)) {
+    if (collocatedQueries.containsKey(queryId)) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         try {
           kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)

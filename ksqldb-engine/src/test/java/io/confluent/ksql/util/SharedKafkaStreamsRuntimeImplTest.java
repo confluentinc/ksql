@@ -96,7 +96,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
             streamProps
         );
 
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId, Collections.singleton(SourceName.of("foo")));
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata,
             queryId);
@@ -136,7 +135,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
          when(queryErrorClassifier.classify(query1Exception)).thenReturn(Type.USER);
 
         //Should not try to add error to query2's queue
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId2, Collections.singleton(SourceName.of("foo2")));
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata2,
             queryId2
@@ -157,7 +155,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void shouldAddErrorWithNoTaskToAllQueries() {
         when(queryErrorClassifier.classify(runtimeExceptionWithNoTask)).thenReturn(Type.USER);
 
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId2, Collections.singleton(SourceName.of("foo2")));
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata2,
             queryId2
@@ -178,7 +175,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void shouldAddErrorWithTaskAndNoTopologyToAllQueries() {
         when(queryErrorClassifier.classify(runtimeExceptionWithTaskAndNoTopology)).thenReturn(Type.USER);
 
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId2, Collections.singleton(SourceName.of("foo2")));
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata2,
             queryId2
@@ -199,7 +195,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     public void shouldAddErrorWithTaskAndUnknownTopologyToAllQueries() {
         when(queryErrorClassifier.classify(runtimeExceptionWithTaskAndUnknownTopology)).thenReturn(Type.USER);
 
-        sharedKafkaStreamsRuntimeImpl.markSources(queryId2, Collections.singleton(SourceName.of("foo2")));
         sharedKafkaStreamsRuntimeImpl.register(
             binPackedPersistentQueryMetadata2,
             queryId2
@@ -221,20 +216,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
         sharedKafkaStreamsRuntimeImpl.allLocalStorePartitionLags(queryId);
         verify(kafkaStreamsNamedTopologyWrapper)
             .allLocalStorePartitionLagsForTopology("query-1");
-    }
-
-    @Test
-    public void shouldNotAddQuery() {
-        //Given:
-        when(binPackedPersistentQueryMetadata.getSourceNames())
-            .thenReturn(Collections.singleton(SourceName.of("foo")));
-        //When:
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-            () -> sharedKafkaStreamsRuntimeImpl.register(
-                binPackedPersistentQueryMetadata,
-                queryId2));
-        //Then
-        assertThat(e.getMessage(), containsString(": was not reserved on this runtime"));
     }
 
     @Test

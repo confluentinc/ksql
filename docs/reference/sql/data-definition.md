@@ -179,7 +179,7 @@ the row, `v1`'s data is stored in the value and `h1`'s data is stored in the hea
 CREATE STREAM s4 (
     k1 VARCHAR KEY,
     v1 VARCHAR,
-    h1 BYTES HEADER('abc')
+    h1 ARRAY<STRUCT<key STRING, value BYTES>> HEADERS
 ) WITH (
     kafka_topic = 's3',
     value_format = 'json'
@@ -195,14 +195,14 @@ column representing the sink topic's headers.
 CREATE STREAM s4 (
     k1 VARCHAR KEY,
     v1 VARCHAR,
-    h1 ARRAY<STRUCT<key STRING, value BYTES>> HEADERS
+    h1 BYTES HEADER('abc')
 ) WITH (
     kafka_topic = 's4',
     value_format = 'json'
 );
 
--- This will create a stream, s5 that contains one value field, h1, which does not represent the headers in the sink topic.
-CREATE STREAM s5 AS SELECT h1 FROM s4;
+-- This will create a stream, s5 that contains one value field, decoded, which does not represent the headers in the sink topic.
+CREATE STREAM s5 AS SELECT FROM_BYTES(h1, 'ascii') AS decoded FROM s4;
 
 -- This will throw an error
 INSERT INTO s4 VALUES ('abc', 'def', ARRAY[]);

@@ -329,6 +329,22 @@ SELECT column_name, aggregate_function(column_name)
   GROUP BY column_name
   HAVING aggregate_function(column_name) operator value
 ```
+## HEADER
+
+Populate a column with the {{ site.ak }} record's last header that matches the key.
+
+```sql
+CREATE STREAM S (column_name BYTES HEADER('key'))
+WITH (kafka_topic='s', format='json');
+```
+
+## HEADERS
+Populate a column with the full list of the {{ site.ak }} record's headers.
+
+```sql
+CREATE STREAM S (column_name ARRAY<STRUCT<key STRING, value BYTES>> HEADERS)
+WITH (kafka_topic='s', format='json');
+```
 
 ## HOPPING
 Group input records into fixed-sized, possibly overlapping windows,

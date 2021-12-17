@@ -72,7 +72,7 @@ public final class TimestampExtractionPolicyFactory {
     if (timestampFormat.isPresent()) {
       throw new KsqlException("'" + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY
           + "' set in the WITH clause can only be used "
-          + "when the timestamp column in of type STRING.");
+          + "when the timestamp column is of type STRING.");
     }
 
     if (tsColumnType == SqlBaseType.BIGINT) {

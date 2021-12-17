@@ -41,7 +41,7 @@ public class PushQueryHolder {
     this.server = Objects.requireNonNull(server);
     this.queryPublisher = Objects.requireNonNull(queryPublisher);
     this.closeHandler = Objects.requireNonNull(closeHandler);
-    this.id = new PushQueryId(UUID.randomUUID().toString());
+    this.id = new PushQueryId(queryPublisher.queryId().toString());
   }
 
   public void close() {

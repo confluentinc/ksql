@@ -220,8 +220,7 @@ public class Server {
           ERROR_CODE_MAX_PUSH_QUERIES_EXCEEDED);
     }
     if (queries.putIfAbsent(query.getId(), query) != null) {
-      // It should never happen
-      // https://stackoverflow.com/questions/2513573/how-good-is-javas-uuid-randomuuid
+      // It should never happen.  QueryIds are designed to not collide.
       throw new IllegalStateException("Glitch in the matrix");
     }
   }

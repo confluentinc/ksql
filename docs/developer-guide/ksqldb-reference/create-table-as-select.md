@@ -30,8 +30,8 @@ The WINDOW clause can only be used if the `from_item` is a stream and the query 
 a `GROUP BY` clause.
 
 !!! Tip "See CREATE TABLE AS SELECT in action"
-    - [ksqlDB CP quickstart](https://ksqldb.io/quickstart-platform.html#quickstart-content)
-    - [ksqlDB Cloud quickstart](https://ksqldb.io/quickstart-cloud.html#quickstart-content)
+    - [Confluent Platform quickstart](https://ksqldb.io/quickstart-platform.html#quickstart-content)
+    - [Confluent Cloud quickstart](https://ksqldb.io/quickstart-cloud.html#quickstart-content)
     - Recipe: [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/)
 
 ### Joins

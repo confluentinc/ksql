@@ -36,11 +36,14 @@ Push queries enable you to subscribe to changes, which enable
 reacting to new information in real-time. They’re a good fit for asynchronous
 application flows. For request/response flows, see [Pull Queries](select-pull-query.md).
 
+!!! Tip "See push queries in action"
+    - [Confluent Platform quickstart](https://ksqldb.io/quickstart-platform.html#quickstart-content)
+    - [Confluent Cloud quickstart](https://ksqldb.io/quickstart-cloud.html#quickstart-content)
+    - Recipe: [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/)
+
 Push queries can use all available SQL features, which can be useful when prototyping a
 persistent query or when running ad-hoc queries from the CLI. But unlike persistent queries,
-
 push queries are not shared. If multiple clients submit the same push query, ksqlDB computes
-
 independent results for each client.
 
 !!! tip

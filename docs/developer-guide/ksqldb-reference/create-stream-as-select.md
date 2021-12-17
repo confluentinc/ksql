@@ -30,6 +30,10 @@ stream the result of the query into the topic.
 The PARTITION BY clause, if supplied, is applied to the source _after_ any JOIN
 or WHERE clauses, and _before_ the SELECT clause, in much the same way as GROUP BY.
 
+!!! Tip "See CREATE STREAM AS SELECT in action"
+    - [Confluent Platform quickstart](https://ksqldb.io/quickstart-platform.html#quickstart-content)
+    - [Confluent Cloud quickstart](https://ksqldb.io/quickstart-cloud.html#quickstart-content)
+    - Recipe: [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/)
 ### Joins
 
 Joins to streams can use any stream column. If the join criteria is not the key

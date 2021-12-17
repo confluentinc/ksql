@@ -43,11 +43,11 @@ import io.confluent.ksql.query.QueryValidator;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -262,7 +262,12 @@ final class EngineContext {
   }
 
   private void maybeTerminateCreateAsQuery(final SourceName sourceName) {
-    queryRegistry.getCreateAsQuery(sourceName).ifPresent(QueryMetadata::close);
+    queryRegistry.getCreateAsQuery(sourceName).ifPresent(t -> {
+      t.close();
+      if (t instanceof BinPackedPersistentQueryMetadataImpl) {
+        runtimeAssignor.dropQuery((BinPackedPersistentQueryMetadataImpl) t);
+      }
+    });
   }
 
   private void throwIfInsertQueriesExist(final SourceName sourceName) {

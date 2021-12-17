@@ -188,6 +188,7 @@ public class KsqlContext implements AutoCloseable {
     serviceContext.close();
   }
 
+  @VisibleForTesting
   public void terminateQuery(final QueryId queryId) {
     ksqlEngine.getPersistentQuery(queryId).ifPresent(t -> {
       t.close();

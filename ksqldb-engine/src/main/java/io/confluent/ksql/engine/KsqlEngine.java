@@ -559,6 +559,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     close(false);
   }
 
+  public void removeQueryFromAssignor(final PersistentQueryMetadata query) {
+    primaryContext.getRuntimeAssignor().dropQuery(query);
+  }
+
   public void cleanupOrphanedInternalTopics(
       final ServiceContext serviceContext,
       final Set<String> queryApplicationIds

@@ -40,7 +40,8 @@ information, see [Parallelization](/operate-and-deploy/performance-guidelines/#p
 A ksqlDB STREAM is a stream of _facts_. Each fact is immutable and unique.
 A stream can store its data in `KEY`, `VALUE` or `HEADERS`/`HEADER('<key>')` columns.
 `KEY`, `VALUE` and `HEADER('<key>')` columns can be NULL. `HEADERS` columns cannot be NULL. If the
-Kafka message doesn't have headers, then the column is populated by an empty array.
+{{ site.ak }} message doesn't have headers, then the column is populated by an empty array.
+
 No special processing is done if two rows have the same key. This
 situation is handled differently by [ksqlDB TABLEs](../create-table), as shown in the following table.
 
@@ -61,13 +62,18 @@ Each column is defined by:
 * `data_type`: the SQL type of the column. Columns can be any of the
    [data types](/reference/sql/data-types) supported by ksqlDB.
    
-* `HEADERS` or `HEADER('<key>')`: columns that are populated by the Kafka message's header should be
-   marked as `HEADERS` or `HEADER('<key>')` columns. If a column is marked by `HEADERS`, then it will contain
-   the full list of header keys and values. If a column is marked by `HEADER('<key>')`, then it will contain
-   the last header that matches the key (or `NULL` if that key is not in the list of headers).
+* `HEADERS` or `HEADER('<key>')`: columns that are populated by the {{ site.ak }} message's header should be
+
+   marked as `HEADERS` or `HEADER('<key>')` columns. If a column is marked by `HEADERS`, it contains
+
+   the full list of header keys and values. If a column is marked by `HEADER('<key>')`, it contains
+
+   the last header that matches the key, or `NULL` if that key is not in the list of headers.
+
 
 * `KEY`: columns that are stored in the Kafka message's key should be marked as `KEY` columns.
-   If a column is unmarked, ksqlDB loads it from the Kafka message's value.
+   If a column is unmarked, ksqlDB loads it from the {{ site.ak }} message's value.
+
    Unlike a table's `PRIMARY KEY`, a stream's keys can be NULL.
    
 For supported [serialization formats](/reference/serialization),

@@ -79,7 +79,8 @@ Each column is defined by:
    [data types](/reference/sql/data-types) supported by ksqlDB.
 
 * `HEADERS` or `HEADER('<key>')`: columns that are populated by the Kafka message's header should be
-   marked as `HEADERS` or `HEADER('<key>')` columns. If a column is marked by `HEADERS`, then it will contain
+   marked as `HEADERS` or `HEADER('<key>')` columns. If a column is marked by `HEADERS`, it contains
+
    the full list of header keys and values. If a column is marked by `HEADER('<key>')`, then it will contain
    the last header that matches the key (or `NULL` if that key is not in the list of headers).
 

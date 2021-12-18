@@ -24,12 +24,12 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,29 +56,36 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   private QueryHandle queryHandle;
   private ImmutableList<String> columnNames;
   private ImmutableList<String> columnTypes;
+  private LogicalSchema logicalSchema;
   private QueryId queryId;
   private boolean complete;
+  private boolean hitLimit;
   private volatile boolean closed;
-  private AtomicBoolean addedCT;
 
   public BlockingQueryPublisher(final Context ctx,
       final WorkerExecutor workerExecutor) {
     super(ctx);
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
-    this.addedCT = new AtomicBoolean(false);
   }
 
   public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
       final boolean isScalablePushQuery) {
     this.columnNames = ImmutableList.copyOf(queryHandle.getColumnNames());
     this.columnTypes = ImmutableList.copyOf(queryHandle.getColumnTypes());
+    this.logicalSchema = queryHandle.getLogicalSchema();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
     this.isScalablePushQuery = isScalablePushQuery;
     this.queryId = queryHandle.getQueryId();
     this.queue.setQueuedCallback(this::maybeSend);
     this.queue.setLimitHandler(() -> {
+      if (isPullQuery) {
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+        maybeSend();
+      }
       complete = true;
+      hitLimit = true;
       // This allows us to hit the limit without having to queue one last row
       if (queue.isEmpty()) {
         ctx.runOnContext(v -> sendComplete());
@@ -90,6 +97,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     // we should be returning a "Limit Reached" message as we do in the HTTP/1 endpoint when
     // we hit the limit, but for query completion, we should just end the response stream.
     this.queue.setCompletionHandler(() -> {
+      if (isPullQuery) {
+        queryHandle.getConsistencyOffsetVector().ifPresent(
+            ((PullQueryQueue) queue)::putConsistencyVector);
+        maybeSend();
+      }
       complete = true;
       // This allows us to finish the query immediately if the query is already fully streamed.
       if (queue.isEmpty()) {
@@ -110,6 +122,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columnTypes is ImmutableList")
   public List<String> getColumnTypes() {
     return columnTypes;
+  }
+
+  @Override
+  public LogicalSchema geLogicalSchema() {
+    return logicalSchema;
   }
 
   public void close() {
@@ -138,6 +155,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
   }
 
   @Override
+  public boolean hitLimit() {
+    return hitLimit;
+  }
+
+  @Override
   protected void maybeSend() {
     ctx.runOnContext(v -> doSend());
   }
@@ -147,7 +169,6 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     // Run async as it can block
     executeOnWorker(queryHandle::start);
   }
-
 
   private void executeOnWorker(final Runnable runnable) {
     workerExecutor.executeBlocking(p -> runnable.run(), false, ar -> {
@@ -166,11 +187,6 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValueMetadata<List<
     while (getDemand() > 0 && !queue.isEmpty()) {
       if (num < SEND_MAX_BATCH_SIZE) {
         doOnNext(queue.poll());
-        if (complete && isPullQuery && !addedCT.get()) {
-          queryHandle.getConsistencyOffsetVector().ifPresent(
-              ((PullQueryQueue)queue)::putConsistencyVector);
-          addedCT.set(true);
-        }
         if (complete && queue.isEmpty()) {
           ctx.runOnContext(v -> sendComplete());
         }

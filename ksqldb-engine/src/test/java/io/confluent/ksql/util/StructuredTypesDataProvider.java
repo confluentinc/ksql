@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -79,6 +80,7 @@ public class StructuredTypesDataProvider extends TestDataProvider {
       .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.TIMESTAMP)
       .valueColumn(ColumnName.of("DATE"), SqlTypes.DATE)
       .valueColumn(ColumnName.of("TIME"), SqlTypes.TIME)
+      .headerColumn(ColumnName.of("HEAD"), Optional.of("h0"))
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema

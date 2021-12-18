@@ -31,7 +31,7 @@ public enum Injectors implements BiFunction<KsqlExecutionContext, ServiceContext
   NO_TOPIC_DELETE((ec, sc) -> InjectorChain.of(
       new DefaultFormatInjector(),
       new DefaultSchemaInjector(
-          new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient())),
+          new SchemaRegistryTopicSchemaSupplier(sc.getSchemaRegistryClient()), ec, sc),
       new TopicCreateInjector(ec, sc),
       new SchemaRegisterInjector(ec, sc)
   )),

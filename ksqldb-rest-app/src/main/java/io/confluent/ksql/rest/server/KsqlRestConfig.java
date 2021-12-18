@@ -381,6 +381,12 @@ public class KsqlRestConfig extends AbstractConfig {
           + " otherwise be verbose. Note that this works on the entire URI, respecting the "
           + KSQL_ENDPOINT_LOGGING_LOG_QUERIES_CONFIG + " configuration";
 
+  public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG
+      = "ksql.internal.http2.max.pool.size";
+  public static final int KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT = 3000;
+  public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
+      "The maximum connection pool size used by Vertx for http2 internal connections";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -722,6 +728,12 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DEFAULT,
             Importance.LOW,
             KSQL_ENDPOINT_LOGGING_LOG_QUERIES_DOC
+        ).define(
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC
         );
   }
 

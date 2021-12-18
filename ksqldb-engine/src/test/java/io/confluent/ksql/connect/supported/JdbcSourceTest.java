@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.test.util.OptionalMatchers;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;

@@ -48,6 +48,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
@@ -422,7 +423,8 @@ public class SecureIntegrationTest {
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
         ksqlConfig,
-        Collections.emptyList()
+        Collections.emptyList(),
+        new MetricCollectors()
     );
 
     execInitCreateStreamQueries();

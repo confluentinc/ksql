@@ -15,6 +15,8 @@
 package io.confluent.ksql.execution.streams;
 
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.addMaterializedContext;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.createHeaderData;
+import static io.confluent.ksql.execution.streams.SourceBuilderUtils.extractHeader;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getKeySerde;
 import static io.confluent.ksql.execution.streams.SourceBuilderUtils.getValueSerde;
 import static java.util.Objects.requireNonNull;
@@ -29,6 +31,7 @@ import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -104,7 +107,10 @@ final class SourceBuilder extends SourceBuilderBase {
       // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
       // and https://github.com/confluentinc/ksql/issues/5673 for more details)
       maybeMaterialized = source.transformValues(
-          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()), materialized);
+          new AddPseudoColumnsToMaterialize<>(
+              streamSource.getPseudoColumnVersion(),
+              streamSource.getSourceSchema().headers()),
+          materialized);
     } else {
       // if we know this table source is repartitioned later in the topology,
       // we do not need to force a materialization at this source step since the
@@ -116,12 +122,15 @@ final class SourceBuilder extends SourceBuilderBase {
       // into a single transformValues() call,
       // it is included to keep KStreams topologies consistent and simplify code
       maybeMaterialized = source.transformValues(
-          new AddPseudoColumnsToMaterialize<>(streamSource.getPseudoColumnVersion()));
+          new AddPseudoColumnsToMaterialize<>(
+              streamSource.getPseudoColumnVersion(),
+              streamSource.getSourceSchema().headers()));
     }
 
     return maybeMaterialized.transformValues(new AddRemainingPseudoAndKeyCols<>(
         keyGenerator,
-        streamSource.getPseudoColumnVersion()));
+        streamSource.getPseudoColumnVersion(),
+        streamSource.getSourceSchema().headers()));
   }
 
   @Override
@@ -179,14 +188,19 @@ final class SourceBuilder extends SourceBuilderBase {
 
     private final int pseudoColumnVersion;
     private final int numPseudoColumnsToMaterialize;
+    private final List<Column> headerColumns;
 
-    AddPseudoColumnsToMaterialize(final int pseudoColumnVersion) {
+    AddPseudoColumnsToMaterialize(
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.numPseudoColumnsToMaterialize =
           (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(SystemColumns::mustBeMaterializedForTableJoins)
-          .count();
+          .count() + headerColumns.size();
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -206,6 +220,14 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.ensureAdditionalCapacity(numPseudoColumnsToMaterialize);
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
+          }
 
           if (pseudoColumnVersion >= SystemColumns.ROWPARTITION_ROWOFFSET_PSEUDOCOLUMN_VERSION) {
             final int partition = processorContext.partition();
@@ -230,15 +252,20 @@ final class SourceBuilder extends SourceBuilderBase {
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
     private final int pseudoColumnsToAdd;
+    private final List<Column> headerColumns;
 
     AddRemainingPseudoAndKeyCols(
-        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
+        final Function<K, Collection<?>> keyGenerator,
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
       this.pseudoColumnsToAdd = (int) SystemColumns.pseudoColumnNames(pseudoColumnVersion)
           .stream()
           .filter(col -> !SystemColumns.mustBeMaterializedForTableJoins(col))
           .count();
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -289,6 +316,7 @@ final class SourceBuilder extends SourceBuilderBase {
           }
 
           row.appendAll(keyColumns);
+
           return row;
         }
 

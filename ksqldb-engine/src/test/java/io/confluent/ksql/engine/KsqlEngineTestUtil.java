@@ -23,6 +23,7 @@ import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -50,17 +51,37 @@ public final class KsqlEngineTestUtil {
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
-      final MutableMetaStore metaStore
+      final MutableMetaStore metaStore,
+      final MetricCollectors metricCollectors
   ) {
     return new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(), metricCollectors),
         new SequentialQueryIdGenerator(),
         new KsqlConfig(Collections.emptyMap()),
-        Collections.emptyList()
+        Collections.emptyList(),
+        metricCollectors
+    );
+  }
+
+  public static KsqlEngine createKsqlEngine(
+      final ServiceContext serviceContext,
+      final MutableMetaStore metaStore,
+      final KsqlConfig ksqlConfig
+  ) {
+    return new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        "test_instance_",
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(), new MetricCollectors()),
+        new SequentialQueryIdGenerator(),
+        ksqlConfig,
+        Collections.emptyList(),
+        new MetricCollectors()
     );
   }
 
@@ -69,7 +90,8 @@ public final class KsqlEngineTestUtil {
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
       final QueryIdGenerator queryIdGenerator,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final MetricCollectors metricCollectors
   ) {
     return new KsqlEngine(
         serviceContext,
@@ -79,7 +101,8 @@ public final class KsqlEngineTestUtil {
         engineMetricsFactory,
         queryIdGenerator,
         ksqlConfig,
-        Collections.emptyList()
+        Collections.emptyList(),
+        metricCollectors
     );
   }
 
@@ -127,7 +150,7 @@ public final class KsqlEngineTestUtil {
 
     final Optional<DefaultSchemaInjector> schemaInjector = srClient
         .map(SchemaRegistryTopicSchemaSupplier::new)
-        .map(DefaultSchemaInjector::new);
+        .map(supplier -> new DefaultSchemaInjector(supplier, engine, serviceContext));
 
     return statements.stream()
         .map(stmt ->

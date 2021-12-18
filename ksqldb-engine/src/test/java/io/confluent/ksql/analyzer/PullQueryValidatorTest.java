@@ -199,22 +199,6 @@ public class PullQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnLimitClause() {
-    // Given:
-    when(analysis.getLimitClause()).thenReturn(OptionalInt.of(1));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> validator.validate(analysis)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Pull queries don't support LIMIT clauses."));
-  }
-
-
-  @Test
   public void shouldThrowWhenSelectClauseContainsDisallowedColumns() {
     try(MockedStatic<ColumnExtractor> columnExtractor = mockStatic(ColumnExtractor.class)) {
       //Given:
@@ -264,6 +248,46 @@ public class PullQueryValidatorTest {
     assertThat(e.getMessage(), containsString("Your stream/table has columns with the "
         + "same name as newly introduced pseudocolumns in "
         + "ksqlDB, and cannot be queried as a result. The conflicting names are: `ROWPARTITION`."));
+
+  }
+
+  @Test
+  public void shouldThrowIfLimitDisabled() {
+    // Given:
+    when(analysis.getPullLimitClauseEnabled()).thenReturn(false);
+    when(analysis.getLimitClause()).thenReturn(OptionalInt.of(5));
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+            "LIMIT clause in pull queries is currently disabled. " +
+                    "You can enable them by setting ksql.query.pull.limit.clause.enabled=true. " +
+                    "See https://cnfl.io/queries for more info.\n" +
+                    "Add EMIT CHANGES if you intended to issue a push query."));
+
+  }
+
+  @Test
+  public void shouldThrowOnNegativeLimit() {
+    // Given:
+    when(analysis.getPullLimitClauseEnabled()).thenReturn(true);
+    when(analysis.getLimitClause()).thenReturn(OptionalInt.of(-1));
+
+    // When:
+    final Exception e = assertThrows(
+            KsqlException.class,
+            () -> validator.validate(analysis)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+            "Pull queries don't support negative integers in the LIMIT clause. " +
+                    "See https://cnfl.io/queries for more info."));
 
   }
 

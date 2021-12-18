@@ -226,7 +226,7 @@ public final class HARouting implements AutoCloseable {
 
     }
 
-    pullQueryQueue.close();;
+    pullQueryQueue.close();
   }
 
   private KsqlPartitionLocation nextNode(final KsqlPartitionLocation partition) {

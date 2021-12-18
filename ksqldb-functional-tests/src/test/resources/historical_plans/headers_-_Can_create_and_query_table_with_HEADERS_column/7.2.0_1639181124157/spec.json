@@ -1,0 +1,151 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1639181124157,
+  "path" : "query-validation-tests/headers.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Can create and query table with HEADERS column",
+    "inputs" : [ {
+      "topic" : "stream-source",
+      "key" : "k1",
+      "value" : {
+        "v" : 40000
+      },
+      "headers" : [ ]
+    }, {
+      "topic" : "stream-source",
+      "key" : "k2",
+      "value" : {
+        "v" : 40000
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "k1",
+      "value" : {
+        "V" : 40000,
+        "H" : [ ]
+      },
+      "headers" : [ ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "k2",
+      "value" : {
+        "V" : 40000,
+        "H" : [ {
+          "KEY" : "abc",
+          "VALUE" : "IQ=="
+        } ]
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "stream-source",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE SOURCE1 (K STRING PRIMARY KEY, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS, V BIGINT) WITH (kafka_topic='stream-source', value_format='json');", "CREATE TABLE OUTPUT AS SELECT * FROM SOURCE1;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `V` BIGINT, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>>",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "SOURCE1",
+        "type" : "TABLE",
+        "schema" : "`K` STRING KEY, `H` ARRAY<STRUCT<`KEY` STRING, `VALUE` BYTES>> HEADERS, `V` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "stream-source",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "KAFKA"
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

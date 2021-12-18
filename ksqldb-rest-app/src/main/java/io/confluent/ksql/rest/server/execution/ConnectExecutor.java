@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.supported.Connectors;
@@ -28,17 +29,24 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.ParserUtil;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 public final class ConnectExecutor {
+  private final ConnectServerErrors connectErrorHandler;
 
-  private ConnectExecutor() {
+  ConnectExecutor(final ConnectServerErrors connectErrorHandler) {
+    this.connectErrorHandler = connectErrorHandler;
   }
 
-  public static StatementExecutorResponse execute(
+  public StatementExecutorResponse execute(
       final ConfiguredStatement<CreateConnector> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
@@ -46,6 +54,13 @@ public final class ConnectExecutor {
   ) {
     final CreateConnector createConnector = statement.getStatement();
     final ConnectClient client = serviceContext.getConnectClient();
+
+    final List<String> errors = validate(createConnector, client);
+    if (!errors.isEmpty()) {
+      final String errorMessage = "Validation error: " + String.join("\n", errors);
+      return StatementExecutorResponse.handled(Optional.of(new ErrorEntity(
+          statement.getStatementText(), errorMessage)));
+    }
 
     final Optional<KsqlEntity> connectorsResponse = handleIfNotExists(
         statement, createConnector, client);
@@ -77,8 +92,46 @@ public final class ConnectExecutor {
       }
     }
 
-    return StatementExecutorResponse.handled(response.error()
-        .map(err -> new ErrorEntity(statement.getStatementText(), err)));
+    return StatementExecutorResponse.handled(connectErrorHandler.handle(statement, response));
+  }
+
+  private static List<String> validate(final CreateConnector createConnector,
+      final ConnectClient client) {
+    final Map<String, String> config = new HashMap<>(createConnector.getConfig().size());
+    createConnector.getConfig().forEach((k, v) ->
+        // Parsing the statement wraps string fields with single quotes which breaks the
+        // validation.
+        config.put(k, ParserUtil.unquote(v.toString(),"'")));
+    config.put("name", createConnector.getName());
+
+    final String connectorType = config.get("connector.class");
+    // Request with an empty connector type in the url results in 404.
+    // Request with a connector type that contains only spaces results in 405.
+    // In both cases it is user-friendlier to return the actual error.
+    if (connectorType == null) {
+      // Return error message identical to the one produced by the connector
+      return ImmutableList.of(String.format(
+          "Connector config %s contains no connector type", config));
+    } else if (connectorType.trim().isEmpty()) {
+      return ImmutableList.of("Connector type cannot be empty");
+    }
+
+    final ConnectResponse<ConfigInfos> response = client.validate(connectorType, config);
+    if (response.error().isPresent()) {
+      return ImmutableList.of(response.error().get());
+    } else if (response.datum().isPresent()) {
+      return response
+          .datum()
+          .get()
+          .values()
+          .stream()
+          .filter(configInfo -> !configInfo.configValue().errors().isEmpty())
+          .map(configInfo -> configInfo.configValue().name()
+              + " - "
+              + String.join(". ", configInfo.configValue().errors()))
+          .collect(Collectors.toList());
+    }
+    return ImmutableList.of();
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(

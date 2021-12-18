@@ -215,7 +215,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     shouldReceiveRows(streamedQueryResult, true);
 
@@ -233,7 +233,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThat(streamedQueryResult.columnNames(), is(DEFAULT_COLUMN_NAMES));
     assertThat(streamedQueryResult.columnTypes(), is(DEFAULT_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
 
     for (int i = 0; i < DEFAULT_JSON_ROWS.size(); i++) {
       final Row row = streamedQueryResult.poll();
@@ -475,7 +475,7 @@ public class ClientTest extends BaseApiTest {
     final BatchedQueryResult batchedQueryResult = javaClient.executeQuery(DEFAULT_PULL_QUERY);
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
     verifyRows(batchedQueryResult.get());
 

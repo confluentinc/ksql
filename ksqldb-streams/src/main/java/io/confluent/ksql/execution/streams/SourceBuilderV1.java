@@ -284,7 +284,9 @@ final class SourceBuilderV1 extends SourceBuilderBase {
 
     return table
         .transformValues(new AddKeyAndPseudoColumns<>(
-            keyGenerator, streamSource.getPseudoColumnVersion()));
+            keyGenerator,
+            streamSource.getPseudoColumnVersion(),
+            streamSource.getSourceSchema().headers()));
   }
 
   private <K> KStream<K, GenericRow> buildKStream(
@@ -298,7 +300,8 @@ final class SourceBuilderV1 extends SourceBuilderBase {
 
     final int pseudoColumnVersion = streamSource.getPseudoColumnVersion();
     return stream
-        .transformValues(new AddKeyAndPseudoColumns<>(keyGenerator, pseudoColumnVersion));
+        .transformValues(new AddKeyAndPseudoColumns<>(
+            keyGenerator, pseudoColumnVersion, streamSource.getSourceSchema().headers()));
   }
 
   private static Function<GenericKey, Collection<?>> nonWindowedKeyGenerator(

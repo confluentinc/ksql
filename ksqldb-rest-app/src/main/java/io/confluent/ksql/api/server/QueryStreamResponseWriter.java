@@ -36,6 +36,10 @@ public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeConsistencyToken(ConsistencyToken consistencyToken);
 
+  QueryStreamResponseWriter writeCompletionMessage(String completionMessage);
+
+  QueryStreamResponseWriter writeLimitMessage();
+
   void end();
 
 }

@@ -63,6 +63,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,7 +129,6 @@ public class CommandRunnerTest {
 
   @Before
   public void setup() {
-    MetricCollectors.initialize();
     when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
 
     when(command.getStatement()).thenReturn("something that is not terminate");
@@ -165,7 +165,8 @@ public class CommandRunnerTest {
         incompatibleCommandChecker,
         commandDeserializer,
         errorHandler,
-        commandTopicExists
+        commandTopicExists,
+        new Metrics()
     );
   }
 

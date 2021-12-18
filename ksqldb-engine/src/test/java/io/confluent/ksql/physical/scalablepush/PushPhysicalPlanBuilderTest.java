@@ -39,6 +39,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PushPhysicalPlanBuilderTest {
+  private static final String CONSUMER_GROUP = "cg";
 
   @Mock
   private ProcessingLogContext logContext;
@@ -84,6 +85,7 @@ public class PushPhysicalPlanBuilderTest {
     when(filterNode.getCompiledWhereClause()).thenReturn(expressionEvaluator);
     when(expressionEvaluator.getExpressionType()).thenReturn(SqlTypes.BOOLEAN);
     when(projectNode.getSchema()).thenReturn(logicalSchema);
+    when(scalablePushRegistry.getCatchupConsumerId(any())).thenReturn(CONSUMER_GROUP);
   }
 
   @Test
@@ -91,11 +93,11 @@ public class PushPhysicalPlanBuilderTest {
   public void shouldBuildPhysicalPlan() {
     // Given:
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, false);
+        persistentQueryMetadata);
 
     // When:
     final PushPhysicalPlan pushPhysicalPlan =
-        builder.buildPushPhysicalPlan(logicalPlanNode, context);
+        builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(), Optional.empty());
 
     // Then:
     assertThat(pushPhysicalPlan.getRoot(), isA((Class) ProjectOperator.class));
@@ -111,12 +113,13 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(logicalPlanNode.getNode()).thenReturn(Optional.empty());
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, false);
+        persistentQueryMetadata);
 
     // When:
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
     );
 
     // Then:
@@ -128,12 +131,13 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(logicalPlanNode.getNode()).thenReturn(Optional.of(mock(OutputNode.class)));
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, false);
+        persistentQueryMetadata);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
     );
 
     // Then:
@@ -147,12 +151,13 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(ksqlBareOutputNode.getSource()).thenReturn(mock(PlanNode.class));
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, false);
+        persistentQueryMetadata);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
     );
 
     // Then:
@@ -164,12 +169,13 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(projectNode.getSources()).thenReturn(ImmutableList.of(filterNode, dataSourceNode));
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, false);
+        persistentQueryMetadata);
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
     );
 
     // Then:
@@ -182,12 +188,13 @@ public class PushPhysicalPlanBuilderTest {
     // Given:
     when(filterNode.getSources()).thenReturn(ImmutableList.of());
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(logContext,
-        persistentQueryMetadata, false);
+        persistentQueryMetadata);
 
     // When:
     final Exception e = assertThrows(
         IllegalStateException.class,
-        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context)
+        () -> builder.buildPushPhysicalPlan(logicalPlanNode, context, Optional.empty(),
+            Optional.empty())
     );
 
     // Then:

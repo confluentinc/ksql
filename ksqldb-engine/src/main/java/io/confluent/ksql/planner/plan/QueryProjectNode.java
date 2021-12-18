@@ -207,8 +207,12 @@ public class QueryProjectNode extends ProjectNode {
         getSource().getSchema().isKeyColumn(cn)
     );
 
+    final boolean hasHeaderColumns = analysis.getSelectColumnNames().stream().anyMatch(cn ->
+        getSource().getSchema().isHeaderColumn(cn)
+    );
+
     // Select * also requires keys, in case it's not explicitly mentioned
-    return hasSystemColumns || hasKeyColumns || isSelectStar;
+    return hasSystemColumns || hasKeyColumns || hasHeaderColumns || isSelectStar;
   }
 
   private boolean isSelectStar() {
@@ -237,6 +241,7 @@ public class QueryProjectNode extends ProjectNode {
     }
 
     return builder
+        .headerColumns(schema.headers())
         .valueColumns(schema.value())
         .build();
   }

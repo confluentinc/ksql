@@ -34,6 +34,22 @@ public abstract class CreateSource extends Statement {
   private final boolean orReplace;
   private final boolean isSource;
 
+  public enum SourceType {
+    STREAM("Stream"),
+    TABLE("Table");
+
+    private final String typeName;
+
+    SourceType(final String typeName) {
+      this.typeName = typeName;
+    }
+
+    @Override
+    public String toString() {
+      return typeName;
+    }
+  }
+
   CreateSource(
       final Optional<NodeLocation> location,
       final SourceName name,
@@ -51,6 +67,7 @@ public abstract class CreateSource extends Statement {
     this.properties = requireNonNull(properties, "properties");
     this.isSource = isSource;
   }
+
 
   public CreateSourceProperties getProperties() {
     return properties;
@@ -75,6 +92,8 @@ public abstract class CreateSource extends Statement {
   public boolean isSource() {
     return isSource;
   }
+
+  public abstract SourceType getSourceType();
 
   public abstract CreateSource copyWith(TableElements elements, CreateSourceProperties properties);
 

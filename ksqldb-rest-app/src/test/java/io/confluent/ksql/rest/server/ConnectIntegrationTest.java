@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import io.confluent.common.utils.IntegrationTest;
@@ -39,6 +40,7 @@ import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -81,6 +83,7 @@ public class ConnectIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -255,7 +258,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldReadTimeTypesFromConnect() {
+  public void shouldReadTimeTypesAndHeadersFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
@@ -266,7 +269,7 @@ public class ConnectIntegrationTest {
         .put("topic.creation.default.partitions", "1")
         .build());
 
-    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
+    makeKsqlRequest("CREATE STREAM TIMESTAMP_STREAM (PAYLOAD TIMESTAMP, H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
     makeKsqlRequest("CREATE STREAM TIME_STREAM (PAYLOAD TIME) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
     makeKsqlRequest("CREATE STREAM DATE_STREAM (PAYLOAD DATE) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
 
@@ -280,6 +283,8 @@ public class ConnectIntegrationTest {
     assertThat("successfully queried TIME_STREAM", queryTime.isSuccessful());
     assertThat("successfully queried DATE_STREAM", queryDate.isSuccessful());
     assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+    assertThat(queryTimestamp.getResponse().get(1).getRow().get().getColumns().get(1), is(
+        ImmutableList.of()));
     assertThat(queryTime.getResponse().get(1).getRow().get().getColumns().get(0), is("00:00"));
     assertThat(queryDate.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01"));
   }

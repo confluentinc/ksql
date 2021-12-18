@@ -20,6 +20,7 @@ public class RecordNodeTest {
         NullNode.getInstance(),
         new DecimalNode(new BigDecimal("10.000")),
         Optional.empty(),
+        Optional.empty(),
         Optional.empty()
     );
 

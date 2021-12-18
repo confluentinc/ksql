@@ -23,6 +23,7 @@ import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -37,6 +38,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -66,6 +68,21 @@ public interface KsqlExecutionContext {
    * @return read-only access to the context's {@link MetaStore}.
    */
   MetaStore getMetaStore();
+
+  /**
+   * @return read-only access to the context's {@link KsqlConfig}
+   */
+  KsqlConfig getKsqlConfig();
+
+  MetricCollectors metricCollectors();
+
+  /**
+   * Alters the system property to the specified value.
+   *
+   * @param propertyName the system property that we want to change.
+   * @param propertyValue the value we want to change the property to.
+   */
+  void alterSystemProperty(String propertyName, String propertyValue);
 
   /**
    * @return the service context used for this execution context

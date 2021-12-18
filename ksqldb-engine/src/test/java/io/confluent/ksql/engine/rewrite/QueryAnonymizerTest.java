@@ -105,6 +105,12 @@ public class QueryAnonymizerTest {
   }
 
   @Test
+  public void shouldAnonymizeAlterSystemProperty() {
+    Assert.assertEquals("ALTER SYSTEM 'ksql.persistent.prefix'='[string]';",
+        anon.anonymize("ALTER SYSTEM 'ksql.persistent.prefix'='test';"));
+  }
+
+  @Test
   public void shouldAnonymizeDefineUndefineProperty() {
     Assert.assertEquals("DEFINE variable='[string]';",
         anon.anonymize("DEFINE format = 'JSON';"));

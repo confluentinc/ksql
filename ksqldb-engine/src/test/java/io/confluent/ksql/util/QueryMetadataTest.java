@@ -61,8 +61,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryMetadataTest {
 
-  private static long RETRY_BACKOFF_INITIAL_MS = 1;
-  private static long RETRY_BACKOFF_MAX_MS = 10;
+  private static final long RETRY_BACKOFF_INITIAL_MS = 1;
+  private static final long RETRY_BACKOFF_MAX_MS = 10;
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()

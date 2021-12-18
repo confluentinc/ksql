@@ -87,13 +87,54 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY =
       "ksql.internal.topic.min.insync.replicas";
 
+  public static final String KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG =
+      "ksql.internal.metric.collectors";
+
+  public static final String KSQL_INTERNAL_METRICS_CONFIG =
+      "ksql.internal.metrics";
+
+  public static final String KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG =
+      "ksql.internal.streams.error.collector";
+
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
-  public static final String CONNECT_URL_PROPERTY = "ksql.connect.url";
+  public static final String KSQL_CONNECT_PREFIX = "ksql.connect.";
 
-  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY = "ksql.connect.worker.config";
+  public static final String CONNECT_URL_PROPERTY = KSQL_CONNECT_PREFIX + "url";
+
+  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "worker.config";
+
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.source";
+  public static final String BASIC_AUTH_CREDENTIALS_SOURCE_NONE = "NONE";
+  public static final String BASIC_AUTH_CREDENTIALS_SOURCE_FILE = "FILE";
+  private static final ConfigDef.ValidString BASIC_AUTH_CREDENTIALS_SOURCE_VALIDATOR =
+      ConfigDef.ValidString.in(
+          BASIC_AUTH_CREDENTIALS_SOURCE_NONE,
+          BASIC_AUTH_CREDENTIALS_SOURCE_FILE
+      );
+  public static final String BASIC_AUTH_CREDENTIALS_USERNAME = "username";
+  public static final String BASIC_AUTH_CREDENTIALS_PASSWORD = "password";
+
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.file";
+  public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =
+      KSQL_CONNECT_PREFIX + "basic.auth.credentials.reload";
+
+  public static final String CONNECT_REQUEST_HEADERS_PLUGIN =
+      KSQL_CONNECT_PREFIX + "request.headers.plugin";
+  private static final String CONNECT_REQUEST_HEADERS_PLUGIN_DOC =
+      "Custom extension to allow for more fine-grained control of connector requests made by "
+          + "ksqlDB. Extensions should implement the ConnectRequestHeadersExtension interface.";
+
+  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER =
+      KSQL_CONNECT_PREFIX + "error.handler";
+  public static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT = null;
+  private static final String KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC =
+      "A class that allows the ksqlDB server to customize error handling from connector requests.";
 
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
@@ -312,6 +353,12 @@ public class KsqlConfig extends AbstractConfig {
           + "queries.";
   public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
+          = "ksql.query.pull.limit.clause.enabled";
+  public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+          = "Enables the use of LIMIT clause in pull queries";
+  public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -328,13 +375,13 @@ public class KsqlConfig extends AbstractConfig {
           + "enabling scalable push queries using ksql.query.push.v2.enabled.";
   public static final boolean KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY
-      = "ksql.query.push.v2.new.node.continuity";
-  public static final String KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC =
-      "Whether new node continuity is enforced for the scalable form of push queries. "
-          + "This means that it's an error for an existing query to miss data processed on a newly "
-          + "added node";
-  public static final boolean KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT = false;
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED
+      = "ksql.query.push.v2.alos.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC =
+      "Whether at-least-once semantics are enabled for the scalable form of push queries. "
+          + "This means that a query will replay data if necessary if network or other "
+          + "disruptions cause it to miss any data";
+  public static final boolean KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED
       = "ksql.query.push.v2.interpreter.enabled";
@@ -358,6 +405,25 @@ public class KsqlConfig extends AbstractConfig {
       "The maximum age in ms of existing committed offsets for latest consumer to"
           + " adopt those offsets rather than seek to the end.";
   public static final long KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT = 30000;
+
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED
+      = "ksql.query.push.v2.continuation.tokens.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC =
+      "Whether to output continuation tokens to the user.";
+  public static final boolean KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS
+      = "ksql.query.push.v2.max.catchup.consumers";
+  public static final String KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC =
+      "The maximum number of concurrent catchup consumers.";
+  public static final int KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT = 5;
+
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW
+      = "ksql.query.push.v2.catchup.consumer.msg.window";
+  public static final String KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC =
+      "How close the catchup consumer must be to the latest before it will stop the latest to join"
+          + " with it.";
+  public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -466,6 +532,16 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for ROWPARTITION and ROWOFFSET pseudocolumns. If enabled, new queries will be"
           + "built with ROWPARTITION and ROWOFFSET pseudocolumns. If off, they will not be.";
 
+  public static final String KSQL_HEADERS_COLUMNS_ENABLED =
+      "ksql.headers.columns.enabled";
+  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = false;
+  public static final String KSQL_HEADERS_COLUMNS_ENABLED_DOC =
+      "Feature flag that allows the use of kafka headers columns on streams and tables. "
+          + "If false, the HEADERS and HEADER(<key>) columns constraints won't be allowed "
+          + "in CREATE statements. Current CREATE statements found in the KSQL command topic "
+          + "that contains headers columns will work with the headers functionality to prevent "
+          + "a degraded command topic situation when restarting ksqlDB.";
+
   public static final String KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED =
       "ksql.source.table.materialization.enabled";
   private static final Boolean KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT = true;
@@ -482,6 +558,13 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for sharing streams runtimes. "
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
+
+
+  public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
+  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 8;
+  public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
+      "Controls how many runtimes queries are allocated over initially."
+          + "this is only used when ksql.runtime.feature.shared.enabled is true.";
 
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
@@ -748,6 +831,39 @@ public class KsqlConfig extends AbstractConfig {
                 + "will prevent connect from starting up embedded within KSQL. For more information"
                 + " on configuring connect, see "
                 + "https://docs.confluent.io/current/connect/userguide.html#configuring-workers."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY,
+            ConfigDef.Type.STRING,
+            BASIC_AUTH_CREDENTIALS_SOURCE_NONE,
+            BASIC_AUTH_CREDENTIALS_SOURCE_VALIDATOR,
+            Importance.LOW,
+            "If providing explicit basic auth credentials for ksqlDB to use when sending connector "
+                + "requests, this config specifies how credentials should be loaded. Valid "
+                + "options are 'FILE' in order to specify the username and password in a "
+                + "properties file, or 'NONE' to indicate that custom basic auth should "
+                + "not be used. If 'NONE', ksqlDB will forward the auth header, if present, "
+                + "on the incoming ksql request to Connect."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY,
+            ConfigDef.Type.STRING,
+            "",
+            Importance.LOW,
+            "If '" + CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY + "' is set to 'FILE', "
+                + "then this config specifies the path to the credentials file."
+        ).define(
+            CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY,
+            ConfigDef.Type.BOOLEAN,
+            false,
+            ConfigDef.Importance.LOW,
+            "If true, basic auth credentials for connector auth will automatically reload "
+                + "on file change (creation or modification). File deletion is not monitored and "
+                + "old credentials will continue to be used in this case."
+        ).define(
+            CONNECT_REQUEST_HEADERS_PLUGIN,
+            Type.CLASS,
+            null,
+            ConfigDef.Importance.LOW,
+            CONNECT_REQUEST_HEADERS_PLUGIN_DOC
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,
@@ -1027,6 +1143,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC
         )
         .define(
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+        )
+        .define(
             KSQL_QUERY_PUSH_V2_ENABLED,
             Type.BOOLEAN,
             KSQL_QUERY_PUSH_V2_ENABLED_DEFAULT,
@@ -1041,11 +1164,11 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED_DOC
         )
         .define(
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED,
             Type.BOOLEAN,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DEFAULT,
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY_DOC
+            KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_INTERPRETER_ENABLED,
@@ -1067,6 +1190,27 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS,
+            Type.INT,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_MAX_CATCHUP_CONSUMERS_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW,
+            Type.LONG,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -1179,6 +1323,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHARED_RUNTIME_ENABLED_DOC
         )
         .define(
+            KSQL_SHARED_RUNTIMES_COUNT,
+            Type.INT,
+            KSQL_SHARED_RUNTIMES_COUNT_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHARED_RUNTIMES_COUNT_DOC
+        )
+        .define(
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,
             Type.BOOLEAN,
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
@@ -1191,6 +1342,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
+        )
+        .define(
+            KSQL_HEADERS_COLUMNS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_HEADERS_COLUMNS_ENABLED_DOC
+        )
+        .define(
+            KSQL_CONNECT_SERVER_ERROR_HANDLER,
+            Type.CLASS,
+            KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
+            Importance.LOW,
+            KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
         )
         .withClientSslSupport();
 

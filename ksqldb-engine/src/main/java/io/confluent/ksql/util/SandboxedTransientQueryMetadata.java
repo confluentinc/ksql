@@ -54,7 +54,6 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
 
   @Override
   public void close() {
-    closed = true;
     isRunning.set(false);
     getListener().onClose(this);
   }

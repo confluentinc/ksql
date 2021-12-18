@@ -21,6 +21,7 @@ import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.Context;
@@ -95,6 +96,11 @@ public class BlockingQueryPublisherVerificationTest extends PublisherVerificatio
     @Override
     public List<String> getColumnTypes() {
       return new ArrayList<>();
+    }
+
+    @Override
+    public LogicalSchema getLogicalSchema() {
+      return LogicalSchema.builder().build();
     }
 
     @Override

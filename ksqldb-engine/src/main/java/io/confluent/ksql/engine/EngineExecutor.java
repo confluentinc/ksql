@@ -67,6 +67,8 @@ import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanCreator;
+import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanManager;
 import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
@@ -98,12 +100,14 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.PushOffsetRange;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -263,7 +267,7 @@ final class EngineExecutor {
       );
       final PullPhysicalPlan physicalPlan = plan;
 
-      final PullQueryQueue pullQueryQueue = new PullQueryQueue();
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue(analysis.getLimitClause());
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
@@ -346,13 +350,21 @@ final class EngineExecutor {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
-      plan = buildScalablePushPhysicalPlan(
-          logicalPlan,
-          analysis,
-          context,
-          pushRoutingOptions
-      );
-      final  PushPhysicalPlan physicalPlan = plan;
+      final PushPhysicalPlanCreator pushPhysicalPlanCreator = (offsetRange, catchupConsumerGroup) ->
+          buildScalablePushPhysicalPlan(
+              logicalPlan,
+              analysis,
+              context,
+              offsetRange,
+              catchupConsumerGroup
+          );
+      final Optional<PushOffsetRange> offsetRange = pushRoutingOptions.getContinuationToken()
+          .map(PushOffsetRange::deserialize);
+      final Optional<String> catchupConsumerGroup = pushRoutingOptions.getCatchupConsumerGroup();
+      final PushPhysicalPlanManager physicalPlanManager = new PushPhysicalPlanManager(
+          pushPhysicalPlanCreator, catchupConsumerGroup, offsetRange);
+      final PushPhysicalPlan physicalPlan = physicalPlanManager.getPhysicalPlan();
+      plan = physicalPlan;
 
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
@@ -363,10 +375,11 @@ final class EngineExecutor {
           : ResultType.STREAM;
 
       final PushQueryQueuePopulator populator = () ->
-          pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
-              physicalPlan.getOutputSchema(), transientQueryQueue, scalablePushQueryMetrics);
+          pushRouting.handlePushQuery(serviceContext, physicalPlanManager, statement,
+              pushRoutingOptions, physicalPlan.getOutputSchema(), transientQueryQueue,
+              scalablePushQueryMetrics, offsetRange);
       final PushQueryPreparer preparer = () ->
-          pushRouting.preparePushQuery(physicalPlan, statement, pushRoutingOptions);
+          pushRouting.preparePushQuery(physicalPlanManager, statement, pushRoutingOptions);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
@@ -508,13 +521,12 @@ final class EngineExecutor {
     final Relation from = new AliasedRelation(
         new Table(createTable.getName()), createTable.getName());
 
-    // Only VALUE columns must be selected from the source table. When running a pull query, the
-    // keys are added if selecting all columns.
+    // Only VALUE or HEADER columns must be selected from the source table. When running a
+    // pull query, the keys are added if selecting all columns.
     final Select select = new Select(
         createTable.getElements().stream()
             .filter(column -> !column.getConstraints().isKey()
-                && !column.getConstraints().isPrimaryKey()
-                && !column.getConstraints().isHeaders())
+                && !column.getConstraints().isPrimaryKey())
             .map(column -> new SingleColumn(
                 new UnqualifiedColumnReferenceExp(column.getName()),
                 Optional.of(column.getName())))
@@ -575,7 +587,8 @@ final class EngineExecutor {
         Optional.empty(),
         plans.physicalPlan.getPhysicalPlan(),
         plans.physicalPlan.getQueryId(),
-        getApplicationId()
+        getApplicationId(plans.physicalPlan.getQueryId(),
+            getSourceNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
@@ -588,13 +601,6 @@ final class EngineExecutor {
         statement.getStatementText(),
         Optional.of(ddlCommand),
         queryPlan);
-  }
-
-  private boolean isSourceStreamOrTable(final ConfiguredStatement<?> statement) {
-    return (statement.getStatement() instanceof CreateStream
-        && ((CreateStream) statement.getStatement()).isSource())
-        || (statement.getStatement() instanceof CreateTable
-        && ((CreateTable) statement.getStatement()).isSource());
   }
 
   private boolean isSourceTableMaterializationEnabled() {
@@ -660,7 +666,8 @@ final class EngineExecutor {
           outputNode.getSinkName(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId(),
-          getApplicationId()
+          getApplicationId(plans.physicalPlan.getQueryId(),
+              getSourceNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
@@ -681,10 +688,13 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<String> getApplicationId() {
+  private Optional<String> getApplicationId(final QueryId queryId,
+                                            final Collection<SourceName> sources) {
     return config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        ? Optional.of("appId")
-        : Optional.empty();
+        ? Optional.of(
+        engineContext.getRuntimeAssignor()
+            .getRuntimeAndMaybeAddRuntime(queryId, sources, config.getConfig(true))) :
+        Optional.empty();
   }
 
   private ExecutorPlans planQuery(
@@ -762,15 +772,15 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
       final Context context,
-      final PushRoutingOptions pushRoutingOptions
+      final Optional<PushOffsetRange> offsetRange,
+      final Optional<String> catchupConsumerGroup
   ) {
 
     final PushPhysicalPlanBuilder builder = new PushPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
-        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis),
-        pushRoutingOptions.getExpectingStartOfRegistryData()
+        ScalablePushQueryExecutionUtil.findQuery(engineContext, analysis)
     );
-    return builder.buildPushPhysicalPlan(logicalPlan, context);
+    return builder.buildPushPhysicalPlan(logicalPlan, context, offsetRange, catchupConsumerGroup);
   }
 
   private PullPhysicalPlan buildPullPhysicalPlan(

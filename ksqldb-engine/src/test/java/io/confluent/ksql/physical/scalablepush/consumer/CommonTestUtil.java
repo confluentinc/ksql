@@ -14,11 +14,16 @@ import io.confluent.ksql.Window;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.physical.common.OffsetsRow;
+import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.PushOffsetRange;
+import io.confluent.ksql.util.PushOffsetVector;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -64,7 +69,7 @@ public class CommonTestUtil {
       = createRecord(1, 2, 6L,
       GenericKey.fromList(ImmutableList.of("k12")), GenericRow.fromList(ImmutableList.of(12)));
   static final ConsumerRecord<GenericKey, GenericRow> RECORD1_3
-      = createRecord(1, 4, 7L,
+      = createRecord(1, 3, 7L,
       GenericKey.fromList(ImmutableList.of("k13")), GenericRow.fromList(ImmutableList.of(13)));
 
   static final ConsumerRecord<Windowed<GenericKey>, GenericRow> WRECORD0_0
@@ -91,6 +96,22 @@ public class CommonTestUtil {
       = createRecord(1, 2, 5L,
       new Windowed<>(GenericKey.fromList(ImmutableList.of("k12")), new TimeWindow(200, 300)),
       GenericRow.fromList(ImmutableList.of(12)));
+
+  static final QueryRow QR0_0 = toQueryRow(RECORD0_0);
+  static final QueryRow QR0_1 = toQueryRow(RECORD0_1);
+  static final QueryRow QR0_2 = toQueryRow(RECORD0_2);
+  static final QueryRow QR0_3 = toQueryRow(RECORD0_3);
+  static final QueryRow QR1_0 = toQueryRow(RECORD1_0);
+  static final QueryRow QR1_1 = toQueryRow(RECORD1_1);
+  static final QueryRow QR1_2 = toQueryRow(RECORD1_2);
+  static final QueryRow QR1_3 = toQueryRow(RECORD1_3);
+  static final QueryRow WQR0_0 = toQueryRowW(WRECORD0_0);
+  static final QueryRow WQR0_1 = toQueryRowW(WRECORD0_1);
+  static final QueryRow WQR0_2 = toQueryRowW(WRECORD0_2);
+  static final QueryRow WQR1_0 = toQueryRowW(WRECORD1_0);
+  static final QueryRow WQR1_1 = toQueryRowW(WRECORD1_1);
+  static final QueryRow WQR1_2 = toQueryRowW(WRECORD1_2);
+
 
   static final ConsumerRecords<Windowed<GenericKey>, GenericRow> WRECORDS1 = new ConsumerRecords<>(
       ImmutableMap.of(
@@ -124,17 +145,25 @@ public class CommonTestUtil {
   static final ConsumerRecords<Windowed<GenericKey>, GenericRow> WEMPTY_RECORDS
       = new ConsumerRecords<>(ImmutableMap.of());
 
+  static void verifyQueryRows(
+      final ProcessingQueue queue, final Collection<QueryRow> rows) {
+    InOrder inOrder = inOrder(queue);
+    for (QueryRow row : rows) {
+      inOrder.verify(queue).offer(eq(row));
+    }
+//    inOrder.verify(queue).close();
+//    inOrder.verifyNoMoreInteractions();
+  }
+
   static void verifyRows(
       final ProcessingQueue queue,
       final Collection<ConsumerRecord<GenericKey, GenericRow>> records) {
     InOrder inOrder = inOrder(queue);
     for (ConsumerRecord<GenericKey, GenericRow> record : records) {
-      inOrder.verify(queue).offer(
-          eq(QueryRowImpl.of(SCHEMA, record.key(), Optional.empty(), record.value(),
-              record.timestamp())));
+      inOrder.verify(queue).offer(eq(toQueryRow(record)));
     }
-    inOrder.verify(queue).close();
-    inOrder.verifyNoMoreInteractions();
+    //inOrder.verify(queue).close();
+//    inOrder.verifyNoMoreInteractions();
   }
 
   static void verifyRowsW(
@@ -142,16 +171,31 @@ public class CommonTestUtil {
       final Collection<ConsumerRecord<Windowed<GenericKey>, GenericRow>> records) {
     InOrder inOrder = inOrder(queue);
     for (ConsumerRecord<Windowed<GenericKey>, GenericRow> record : records) {
-      inOrder.verify(queue).offer(
-          eq(QueryRowImpl.of(SCHEMA, record.key().key(),
-              Optional.of(Window.of(
-                  record.key().window().startTime(),
-                  record.key().window().endTime()
-              )),
-              record.value(), record.timestamp())));
+      inOrder.verify(queue).offer(eq(toQueryRowW(record)));
     }
-    inOrder.verify(queue).close();
-    inOrder.verifyNoMoreInteractions();
+    //inOrder.verify(queue).close();
+//    inOrder.verifyNoMoreInteractions();
+  }
+
+  static QueryRow toQueryRow(ConsumerRecord<GenericKey, GenericRow> record) {
+    return QueryRowImpl.of(SCHEMA, record.key(), Optional.empty(), record.value(),
+        record.timestamp());
+  }
+
+  static QueryRow toQueryRowW(ConsumerRecord<Windowed<GenericKey>, GenericRow> record) {
+    return QueryRowImpl.of(SCHEMA, record.key().key(),
+        Optional.of(Window.of(
+            record.key().window().startTime(),
+            record.key().window().endTime()
+        )),
+        record.value(), record.timestamp());
+  }
+
+  static OffsetsRow offsetsRow(long timeMs, List<Long> start, List<Long> end) {
+    return OffsetsRow.of(timeMs,
+        new PushOffsetRange(
+            Optional.of(new PushOffsetVector(start)),
+            new PushOffsetVector(end)));
   }
 
   @SuppressWarnings("unchecked")
@@ -159,11 +203,19 @@ public class CommonTestUtil {
       final KafkaConsumer<Object, GenericRow> kafkaConsumer,
       final ScalablePushConsumer consumer,
       final ConsumerRecords<GenericKey, GenericRow>...records) {
+    expectPoll(kafkaConsumer, consumer::close, records);
+  }
+
+  @SuppressWarnings("unchecked")
+  static void expectPoll(
+      final KafkaConsumer<Object, GenericRow> kafkaConsumer,
+      final Runnable onEnd,
+      final ConsumerRecords<GenericKey, GenericRow>...records) {
     AtomicInteger count = new AtomicInteger(0);
     when(kafkaConsumer.poll(any())).thenAnswer(
         a -> {
           if (count.get() == records.length - 1) {
-            consumer.close();
+            onEnd.run();
           }
           return records[count.getAndIncrement()];
         });

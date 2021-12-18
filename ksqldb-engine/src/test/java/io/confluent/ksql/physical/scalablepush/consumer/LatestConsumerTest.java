@@ -16,6 +16,14 @@
 package io.confluent.ksql.physical.scalablepush.consumer;
 
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.EMPTY_RECORDS;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_0;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_2;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR0_3;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_0;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_2;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.QR1_3;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.RECORD0_0;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.RECORD0_1;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.RECORD0_2;
@@ -31,6 +39,8 @@ import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.SC
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.TOPIC;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.TP0;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.TP1;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.offsetsRow;
+import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyQueryRows;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.verifyRows;
 import static io.confluent.ksql.physical.scalablepush.consumer.CommonTestUtil.expectPoll;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -52,6 +62,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Clock;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -104,15 +116,28 @@ public class LatestConsumerTest {
         TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
         catchupAssignmentUpdater, ksqlConfig, clock)) {
       expectPoll(kafkaConsumer, consumer, RECORDS1, RECORDS2, EMPTY_RECORDS);
-      when(kafkaConsumer.position(TP0)).thenReturn(0L, 1L, 2L);
-      when(kafkaConsumer.position(TP1)).thenReturn(0L, 1L, 2L);
+      when(kafkaConsumer.position(TP0)).thenReturn(0L, 2L, 3L);
+      when(kafkaConsumer.position(TP1)).thenReturn(0L, 1L, 3L);
+      when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
+          ImmutableMap.of(TP0, new OffsetAndTimestamp(0L, 30000L),
+              TP1, new OffsetAndTimestamp(0L, 30000L))
+      );
+      when(kafkaConsumer.committed(ImmutableSet.of(TP0, TP1))).thenReturn(
+          ImmutableMap.of(TP0, new OffsetAndMetadata(0L),
+              TP1, new OffsetAndMetadata(0L))
+      );
 
       consumer.register(queue);
       consumer.run();
 
-      verifyRows(
+      verifyQueryRows(
           queue,
-          ImmutableList.of(RECORD0_0, RECORD0_1, RECORD1_0, RECORD0_2, RECORD1_1, RECORD1_2));
+          ImmutableList.of(
+              QR0_0, QR0_1, QR1_0,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(0L, 0L), ImmutableList.of(2L, 1L)),
+              QR0_2, QR1_1, QR1_2,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(2L, 1L), ImmutableList.of(3L, 3L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 3L), ImmutableList.of(3L, 3L))));
     }
   }
 
@@ -123,11 +148,45 @@ public class LatestConsumerTest {
         TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
         catchupAssignmentUpdater, ksqlConfig, clock)) {
       expectPoll(kafkaConsumer, consumer, RECORDS_FROM_OFFSET2, EMPTY_RECORDS);
-      when(kafkaConsumer.position(TP0)).thenReturn(1L, 4L);
-      when(kafkaConsumer.position(TP1)).thenReturn(1L, 4L);
+      when(kafkaConsumer.position(TP0)).thenReturn(1L, 3L, 5L);
+      when(kafkaConsumer.position(TP1)).thenReturn(1L, 3L, 5L);
       when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
           ImmutableMap.of(TP0, new OffsetAndTimestamp(2L, 30000L),
               TP1, new OffsetAndTimestamp(2L, 30000L))
+      );
+      when(kafkaConsumer.committed(ImmutableSet.of(TP0, TP1))).thenReturn(
+          ImmutableMap.of(TP0, new OffsetAndMetadata(1L),
+              TP1, new OffsetAndMetadata(1L))
+      );
+
+      consumer.register(queue);
+      consumer.run();
+
+      verify(kafkaConsumer).seekToEnd(ImmutableSet.of(TP0, TP1));
+      verifyQueryRows(
+          queue,
+          ImmutableList.of(
+              QR0_2, QR0_3, QR1_2, QR1_3,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(3L, 3L), ImmutableList.of(5L, 5L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(5L, 5L), ImmutableList.of(5L, 5L))));
+      assertThat(consumer.getCurrentOffsets(), is(ImmutableMap.of(TP0, 5L, TP1, 5L)));
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldRunConsumer_seekToEnd_noTimestamps() {
+    try (LatestConsumer consumer = new LatestConsumer(
+        TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
+        catchupAssignmentUpdater, ksqlConfig, clock)) {
+      expectPoll(kafkaConsumer, consumer, RECORDS_FROM_OFFSET2, EMPTY_RECORDS);
+      when(kafkaConsumer.position(TP0)).thenReturn(1L, 4L);
+      when(kafkaConsumer.position(TP1)).thenReturn(1L, 4L);
+      Map<TopicPartition, OffsetAndTimestamp> timestamps = new HashMap<>();
+      timestamps.put(TP0, null);
+      timestamps.put(TP1, null);
+      when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
+          timestamps
       );
       when(kafkaConsumer.committed(ImmutableSet.of(TP0, TP1))).thenReturn(
           ImmutableMap.of(TP0, new OffsetAndMetadata(1L),
@@ -152,8 +211,8 @@ public class LatestConsumerTest {
         TOPIC, false, SCHEMA, kafkaConsumer, new NoopCatchupCoordinator(),
         catchupAssignmentUpdater, ksqlConfig, clock)) {
       expectPoll(kafkaConsumer, consumer, RECORDS_FROM_OFFSET2, EMPTY_RECORDS);
-      when(kafkaConsumer.position(TP0)).thenReturn(1L, 4L);
-      when(kafkaConsumer.position(TP1)).thenReturn(1L, 4L);
+      when(kafkaConsumer.position(TP0)).thenReturn(2L, 4L);
+      when(kafkaConsumer.position(TP1)).thenReturn(2L, 4L);
       when(kafkaConsumer.offsetsForTimes(ImmutableMap.of(TP0, 30000L, TP1, 30000L))).thenReturn(
           ImmutableMap.of(TP0, new OffsetAndTimestamp(2L, 30000L),
               TP1, new OffsetAndTimestamp(2L, 30000L))
@@ -170,6 +229,12 @@ public class LatestConsumerTest {
       verifyRows(
           queue,
           ImmutableList.of(RECORD0_2, RECORD0_3, RECORD1_2, RECORD1_3));
+      verifyQueryRows(
+          queue,
+          ImmutableList.of(
+              QR0_2, QR0_3, QR1_2, QR1_3,
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(2L, 2L), ImmutableList.of(4L, 4L)),
+              offsetsRow(CURRENT_TIME_MS, ImmutableList.of(4L, 4L), ImmutableList.of(4L, 4L))));
       assertThat(consumer.getCurrentOffsets(), is(ImmutableMap.of(TP0, 4L, TP1, 4L)));
     }
   }

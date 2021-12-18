@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
@@ -187,7 +188,7 @@ public class KsqlProtobufDeserializerTest {
       final ConnectSchema schema,
       final Class<T> targetType
   ) {
-    final Deserializer<T> deserializer = ProtobufSerdeFactory.createSerde(
+    final Deserializer<T> deserializer = new ProtobufSerdeFactory(ImmutableMap.of()).createSerde(
         schema,
         KSQL_CONFIG,
         () -> schemaRegistryClient,

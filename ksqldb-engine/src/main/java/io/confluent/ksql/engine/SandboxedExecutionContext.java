@@ -16,6 +16,7 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -24,6 +25,7 @@ import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -38,6 +40,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
@@ -57,12 +60,31 @@ import java.util.Set;
 final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   private final EngineContext engineContext;
+  private final MetricCollectors metricCollectors;
 
   SandboxedExecutionContext(
       final EngineContext sourceContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final MetricCollectors metricCollectors
   ) {
+    this.metricCollectors = metricCollectors;
     this.engineContext = sourceContext.createSandbox(serviceContext);
+  }
+
+  @Override
+  public KsqlConfig getKsqlConfig() {
+    return this.engineContext.getKsqlConfig();
+  }
+
+  @Override
+  public MetricCollectors metricCollectors() {
+    return metricCollectors;
+  }
+
+  @Override
+  public void alterSystemProperty(final String propertyName, final String propertyValue) {
+    final Map<String, String> overrides = ImmutableMap.of(propertyName, propertyValue);
+    this.engineContext.alterSystemProperty(overrides);
   }
 
   @Override
@@ -82,7 +104,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public KsqlExecutionContext createSandbox(final ServiceContext serviceContext) {
-    return new SandboxedExecutionContext(engineContext, serviceContext);
+    return new SandboxedExecutionContext(engineContext, serviceContext, metricCollectors);
   }
 
   @Override
@@ -147,7 +169,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     ).execute(ksqlPlan.getPlan());
 
     // Having a streams running in a sandboxed environment is not necessary
-    result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
+    if (!getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      result.getQuery().map(QueryMetadata::getKafkaStreams).ifPresent(streams -> streams.close());
+    } else {
+      engineContext.getQueryRegistry().closeRuntimes();
+    }
     return result;
   }
 

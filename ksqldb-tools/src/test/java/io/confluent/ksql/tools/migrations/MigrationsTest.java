@@ -52,6 +52,7 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -116,6 +117,7 @@ public class MigrationsTest {
           SERVER_KEY_STORE.getKeyAlias())
       .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
           KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -227,7 +229,7 @@ public class MigrationsTest {
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
-            "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
+            "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING, H BYTES HEADER('a')) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
             "DROP TABLE blue;" +
             "DEFINE onlyDefinedInFile1 = 'nope';"
     );

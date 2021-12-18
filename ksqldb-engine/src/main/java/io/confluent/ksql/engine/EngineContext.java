@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
@@ -42,11 +43,11 @@ import io.confluent.ksql.query.QueryValidator;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -76,8 +77,9 @@ final class EngineContext {
   private final ProcessingLogContext processingLogContext;
   private final KsqlParser parser;
   private final QueryCleanupService cleanupService;
-  private final KsqlConfig ksqlConfig;
   private final QueryRegistry queryRegistry;
+  private final RuntimeAssignor runtimeAssignor;
+  private KsqlConfig ksqlConfig;
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -86,7 +88,8 @@ final class EngineContext {
       final QueryIdGenerator queryIdGenerator,
       final QueryCleanupService cleanupService,
       final KsqlConfig ksqlConfig,
-      final Collection<QueryEventListener> registrationListeners
+      final Collection<QueryEventListener> registrationListeners,
+      final MetricCollectors metricCollectors
   ) {
     return new EngineContext(
         serviceContext,
@@ -96,7 +99,8 @@ final class EngineContext {
         new DefaultKsqlParser(),
         cleanupService,
         ksqlConfig,
-        new QueryRegistryImpl(registrationListeners)
+        new QueryRegistryImpl(registrationListeners, metricCollectors),
+        new RuntimeAssignor(ksqlConfig)
     );
   }
 
@@ -108,7 +112,8 @@ final class EngineContext {
       final KsqlParser parser,
       final QueryCleanupService cleanupService,
       final KsqlConfig ksqlConfig,
-      final QueryRegistry queryRegistry
+      final QueryRegistry queryRegistry,
+      final RuntimeAssignor runtimeAssignor
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
@@ -120,9 +125,11 @@ final class EngineContext {
     this.cleanupService = requireNonNull(cleanupService, "cleanupService");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.queryRegistry = requireNonNull(queryRegistry, "queryRegistry");
+    this.runtimeAssignor = requireNonNull(runtimeAssignor, "runtimeAssignor");
   }
 
-  EngineContext createSandbox(final ServiceContext serviceContext) {
+  synchronized EngineContext createSandbox(final ServiceContext serviceContext) {
+    this.runtimeAssignor.rebuildAssignment(queryRegistry.getPersistentQueries().values());
     return new EngineContext(
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
@@ -131,7 +138,8 @@ final class EngineContext {
         new DefaultKsqlParser(),
         cleanupService,
         ksqlConfig,
-        queryRegistry.createSandbox()
+        queryRegistry.createSandbox(),
+        runtimeAssignor.createSandbox()
     );
   }
 
@@ -159,6 +167,18 @@ final class EngineContext {
     return queryRegistry;
   }
 
+  RuntimeAssignor getRuntimeAssignor() {
+    return runtimeAssignor;
+  }
+
+  synchronized KsqlConfig getKsqlConfig() {
+    return ksqlConfig;
+  }
+
+  synchronized void alterSystemProperty(final Map<String, String> overrides) {
+    this.ksqlConfig = this.ksqlConfig.cloneWithPropertyOverwrite(overrides);
+  }
+
   private ParsedStatement substituteVariables(
       final ParsedStatement stmt,
       final Map<String, String> variablesMap
@@ -168,7 +188,8 @@ final class EngineContext {
         : stmt ;
   }
 
-  PreparedStatement<?> prepare(final ParsedStatement stmt, final Map<String, String> variablesMap) {
+  synchronized PreparedStatement<?> prepare(final ParsedStatement stmt,
+      final Map<String, String> variablesMap) {
     try {
       final PreparedStatement<?> preparedStatement =
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
@@ -241,7 +262,12 @@ final class EngineContext {
   }
 
   private void maybeTerminateCreateAsQuery(final SourceName sourceName) {
-    queryRegistry.getCreateAsQuery(sourceName).ifPresent(QueryMetadata::close);
+    queryRegistry.getCreateAsQuery(sourceName).ifPresent(t -> {
+      t.close();
+      if (t instanceof BinPackedPersistentQueryMetadataImpl) {
+        runtimeAssignor.dropQuery((BinPackedPersistentQueryMetadataImpl) t);
+      }
+    });
   }
 
   private void throwIfInsertQueriesExist(final SourceName sourceName) {

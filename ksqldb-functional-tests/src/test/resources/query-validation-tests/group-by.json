@@ -646,6 +646,7 @@
     },
     {
       "name": "multiple expressions - KAFKA to non-supported decimal key format with favored explicit AVRO format conversion",
+      "enabled": false,
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 DECIMAL(2, 1)) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
         "CREATE TABLE OUTPUT WITH (KEY_FORMAT='AVRO') AS SELECT f2 AS key, COUNT(*) AS total FROM TEST GROUP BY f2;"

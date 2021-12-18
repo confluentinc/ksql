@@ -1060,6 +1060,87 @@ A call to UUID() returns a value conforming to UUID version 4, sometimes called
 "random UUID", as described in RFC 4122. The value is a 128-bit number represented 
 as a string of five hexadecimal numbers _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_.
 
+## Bytes
+
+### `BIGINT_FROM_BYTES`
+
+Since: 0.23.1
+
+```sql
+BIGINT_FROM_BYTES(col1, [byteOrder])
+```
+
+Converts a BYTES value to an BIGINT value according to the specified byte order.
+BYTES must be 8 bytes long or a NULL value will be returned.
+
+Byte order values must be 'BIG_ENDIAN' or 'LITTLE_ENDIAN'. If omitted, 'BIG_ENDIAN' is used.
+A NULL value is returned if an invalid byte order value is used.
+
+Example, where `b` is a bytes value represented as a base64 string `AAAAASoF8gA=`:
+```sql
+BIGINT_FROM_BYTES(b, 'BIG_ENDIAN') -> 5000000000
+```
+
+### `DOUBLE_FROM_BYTES`
+
+Since: 0.23.1
+
+```sql
+DOUBLE_FROM_BYTES(col1, [byteOrder])
+```
+
+Converts a BYTES value to an DOUBLE value according to the specified byte order.
+BYTES must be 8 bytes long or a NULL value will be returned.
+
+Byte order values must be 'BIG_ENDIAN' or 'LITTLE_ENDIAN'. If omitted, 'BIG_ENDIAN' is used.
+A NULL value is returned if an invalid byte order value is used.
+
+Example, where `b` is a bytes value represented as a base64 string `QICm/ZvJ9YI=`:
+```sql
+DOUBLE_FROM_BYTES(b, 'BIG_ENDIAN') -> 532.8738323
+```
+
+### `FROM_BYTES`
+
+Since: 0.21.0
+
+```sql
+FROM_BYTES(col1, encoding)
+```
+
+Converts a BYTES value to STRING in the specified encoding.
+The accepted encoders are 'hex', 'utf8', 'ascii', and 'base64'.
+
+### `INT_FROM_BYTES`
+
+Since: 0.23.1
+
+```sql
+INT_FROM_BYTES(col1, [byteOrder])
+```
+
+Converts a BYTES value to an INT value according to the specified byte order.
+BYTES must be 4 bytes long or a NULL value will be returned.
+
+Byte order values must be 'BIG_ENDIAN' or 'LITTLE_ENDIAN'. If omitted, 'BIG_ENDIAN' is used.
+A NULL value is returned if an invalid byte order value is used.
+
+Examples, where `b_big` is a bytes value represented as a base64 string `AAAH5Q==`:
+```sql
+INT_FROM_BYTES(b, 'BIG_ENDIAN') -> 2021
+```
+
+### `TO_BYTES`
+
+Since: 0.21.0
+
+```sql
+TO_BYTES(col1, encoding)
+```
+
+Converts a STRING value in the specified encoding to BYTES.
+The accepted encoders are 'hex', 'utf8', 'ascii', and 'base64'.
+
 ## Nulls
 
 ### `COALESCE`

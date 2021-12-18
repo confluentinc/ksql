@@ -39,6 +39,16 @@ For more information on setting properties, see
     `ksql.streams.consumer.xxx` to pass the property through. For example,
     `ksql.streams.producer.compression.type` sets the compression type on the producer.
 
+## `compression.type`
+
+Sets the compression type used by {{ site.ak }} producers, like the
+INSERT VALUES statement. The default is `snappy`.
+
+This setting is distinct from the
+`ksql.streams.producer.compression.type` config, which sets the type of 
+compression used by streams producers for topics created by CREATE TABLE AS
+SELECT, CREATE STREAM AS SELECT, and INSERT INTO statements.
+
 ## `ksql.advertised.listener`
 
 This is the URL used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,
@@ -53,16 +63,6 @@ like `0.0.0.0`, or a hostname that other ksqlDB nodes either can't resolve or ca
 to, set `ksql.advertised.listener` to a URL that ksqlDB nodes can resolve.
 
 For more information, see [Configuring Listeners of a ksqlDB Cluster](./index.md#configuring-listeners-of-a-ksqldb-cluster)
-
-## `ksql.compression.type`
-
-Sets the compression type used by {{ site.ak }} producers, like the
-INSERT VALUES statement. The default is `snappy`.
-
-This setting is distinct from the
-`ksql.streams.producer.compression.type` config, which sets the type of 
-compression used by streams producers for topics created by CREATE TABLE AS
-SELECT, CREATE STREAM AS SELECT, and INSERT INTO statements.
 
 ## `ksql.connect.url`
 

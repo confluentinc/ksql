@@ -53,6 +53,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -682,6 +683,17 @@ public class KsqlParserTest {
     assertThat(setProperty.toString(), is("SetProperty{propertyName='auto.offset.reset', propertyValue='earliest'}"));
     assertThat(setProperty.getPropertyName(), is("auto.offset.reset"));
     assertThat(setProperty.getPropertyValue(), is("earliest"));
+  }
+
+  @Test
+  public void testAlterSystemProperties() {
+    final String simpleQuery = "ALTER SYSTEM 'ksql.persistent.prefix'='test';";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
+    Assert.assertTrue(statement instanceof AlterSystemProperty);
+    final AlterSystemProperty alterSystemProperty = (AlterSystemProperty) statement;
+    assertThat(alterSystemProperty.toString(), is("AlterSystemProperty{propertyName='ksql.persistent.prefix', propertyValue='test'}"));
+    assertThat(alterSystemProperty.getPropertyName(), is("ksql.persistent.prefix"));
+    assertThat(alterSystemProperty.getPropertyValue(), is("test"));
   }
 
   @Test

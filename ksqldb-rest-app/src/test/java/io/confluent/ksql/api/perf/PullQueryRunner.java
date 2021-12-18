@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_KEY;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
+import static io.confluent.ksql.api.perf.RunnerUtils.SCHEMA;
 import static io.confluent.ksql.util.KeyValue.keyValue;
 
 import io.confluent.ksql.GenericRow;
@@ -36,6 +37,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.VertxCompletableFuture;
@@ -66,7 +68,7 @@ public class PullQueryRunner extends BasePerfRunner {
   private static final JsonObject DEFAULT_PULL_QUERY_REQUEST_BODY = new JsonObject()
       .put("sql", DEFAULT_PULL_QUERY)
       .put("properties", new JsonObject().put("auto.offset.reset", "earliest"));
-  private static final List<KeyValue<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
+  private static final List<KeyValueMetadata<List<?>, GenericRow>> DEFAULT_ROWS = generateResults();
   private static final int MAX_CONCURRENT_REQUESTS = 100;
 
   private PullQueryEndpoints pullQueryEndpoints;
@@ -107,10 +109,10 @@ public class PullQueryRunner extends BasePerfRunner {
     Thread.sleep(500);
   }
 
-  private static List<KeyValue<List<?>, GenericRow>> generateResults() {
-    final List<KeyValue<List<?>, GenericRow>> results = new ArrayList<>();
+  private static List<KeyValueMetadata<List<?>, GenericRow>> generateResults() {
+    final List<KeyValueMetadata<List<?>, GenericRow>> results = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      results.add(keyValue(DEFAULT_KEY, DEFAULT_ROW));
+      results.add(new KeyValueMetadata<>(keyValue(DEFAULT_KEY, DEFAULT_ROW)));
     }
     return results;
   }
@@ -127,11 +129,11 @@ public class PullQueryRunner extends BasePerfRunner {
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
-        final MetricsCallbackHolder metricsCallbackHolder) {
-//      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
-//      publishers.add(publisher);
-//      return CompletableFuture.completedFuture(publisher);
-      return null;
+        final MetricsCallbackHolder metricsCallbackHolder,
+        final Optional<Boolean> isInternalRequest) {
+      PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
+      publishers.add(publisher);
+      return CompletableFuture.completedFuture(publisher);
     }
 
     @Override
@@ -256,6 +258,11 @@ public class PullQueryRunner extends BasePerfRunner {
     }
 
     @Override
+    public LogicalSchema geLogicalSchema() {
+      return SCHEMA;
+    }
+
+    @Override
     public boolean isPullQuery() {
       return true;
     }
@@ -268,6 +275,11 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public QueryId queryId() {
       return new QueryId("queryId");
+    }
+
+    @Override
+    public boolean hitLimit() {
+      return false;
     }
   }
 }

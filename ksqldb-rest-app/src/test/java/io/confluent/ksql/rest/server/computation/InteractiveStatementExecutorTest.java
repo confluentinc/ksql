@@ -45,6 +45,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -144,12 +145,16 @@ public class InteractiveStatementExecutorTest {
     fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, emptyMap());
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
     final SpecificQueryIdGenerator hybridQueryIdGenerator = new SpecificQueryIdGenerator();
+    final MetricCollectors metricCollectors = new MetricCollectors();
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty(),
+            metricCollectors
+        ),
         hybridQueryIdGenerator,
-        ksqlConfig
+        ksqlConfig,
+        metricCollectors
     );
 
     statementParser = new StatementParser(ksqlEngine);
@@ -321,6 +326,26 @@ public class InteractiveStatementExecutorTest {
     final List<CommandStatus> commandStatusList = argCommandStatus.getAllValues();
     assertEquals(CommandStatus.Status.EXECUTING, commandStatusList.get(0).getStatus());
     assertEquals(CommandStatus.Status.SUCCESS, argFinalCommandStatus.getValue().getStatus());
+  }
+
+  @Test
+  public void restartsRuntimeWhenAlterSystemIsSuccessful() {
+    // Given:
+    final String alterSystemQuery = "ALTER SYSTEM 'TEST'='TEST';";
+    when(mockParser.parseSingleStatement(alterSystemQuery))
+        .thenReturn(statementParser.parseSingleStatement(alterSystemQuery));
+    final Command alterSystemCommand = new Command(
+        "ALTER SYSTEM 'TEST'='TEST';",
+        emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated(),
+        Optional.empty()
+    );
+
+    // When:
+    handleStatement(statementExecutorWithMocks, alterSystemCommand, COMMAND_ID, Optional.empty(), 0L);
+
+    // Then:
+    verify(mockEngine).updateStreamsPropertiesAndRestartRuntime();
   }
 
   @Test

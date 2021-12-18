@@ -54,6 +54,7 @@ public class ReplaceIntTest {
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
       .withAdditionalConfig(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED, true)
+      .withAdditionalConfig(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false)
       .build();
 
   private String inputTopic;

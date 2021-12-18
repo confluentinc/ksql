@@ -23,6 +23,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -53,6 +55,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Context;
@@ -112,6 +115,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .withProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -182,10 +186,10 @@ public class ConsistencyOffsetVectorFunctionalTest {
         true
     );
 
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
-    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -196,11 +200,11 @@ public class ConsistencyOffsetVectorFunctionalTest {
     streamedQueryResult.poll();
 
     // Then
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
                          is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
-    assertThatEventually(streamedQueryResult::isComplete, is(true));
   }
 
   @Test
@@ -208,11 +212,13 @@ public class ConsistencyOffsetVectorFunctionalTest {
     // When
     final BatchedQueryResult batchedQueryResult = client.executeQuery(
         PULL_QUERY_ON_TABLE, ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true));
-    batchedQueryResult.get();
+    final List<Row> rows = batchedQueryResult.get();
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
+    assertThat(rows, hasSize(1));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
+    assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
+                          is(notNullValue()));
     final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
@@ -250,7 +256,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(nullValue()));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
   @Test
@@ -263,7 +269,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
     // Then
     assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
-                         is(nullValue()));
+                         is(isEmptyString()));
   }
 
   @Test
@@ -274,8 +280,8 @@ public class ConsistencyOffsetVectorFunctionalTest {
     batchedQueryResult.get();
 
     // Then
-    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(nullValue()));
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
+    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
   @Test(timeout = 120000L)

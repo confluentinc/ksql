@@ -36,6 +36,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -43,9 +44,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -307,16 +314,40 @@ final class SourceBuilderUtils {
         .push(MATERIALIZE_OP_NAME).getQueryContext();
   }
 
+  static List<Struct> createHeaderData(final Headers headers) {
+    return Arrays.stream(headers.toArray())
+        .map(header -> new Struct(SchemaBuilder.struct()
+            .field("KEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("VALUE", Schema.OPTIONAL_BYTES_SCHEMA)
+            .optional()
+            .build())
+            .put("KEY", header.key())
+            .put("VALUE", ByteBuffer.wrap(header.value())))
+        .collect(Collectors.toList());
+  }
+
+  static ByteBuffer extractHeader(final Headers headers, final String key) {
+    final Header header = headers.lastHeader(key);
+    return header == null
+        ? null
+        : ByteBuffer.wrap(header.value());
+  }
+
   static class AddKeyAndPseudoColumns<K>
       implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
 
     private final Function<K, Collection<?>> keyGenerator;
     private final int pseudoColumnVersion;
+    private final List<Column> headerColumns;
 
     AddKeyAndPseudoColumns(
-        final Function<K, Collection<?>> keyGenerator, final int pseudoColumnVersion) {
+        final Function<K, Collection<?>> keyGenerator,
+        final int pseudoColumnVersion,
+        final List<Column> headerColumns
+    ) {
       this.keyGenerator = requireNonNull(keyGenerator, "keyGenerator");
       this.pseudoColumnVersion = pseudoColumnVersion;
+      this.headerColumns = headerColumns;
     }
 
     @Override
@@ -340,7 +371,15 @@ final class SourceBuilderUtils {
           final int numPseudoColumns = SystemColumns
               .pseudoColumnNames(pseudoColumnVersion).size();
 
-          row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size());
+          row.ensureAdditionalCapacity(numPseudoColumns + keyColumns.size() + headerColumns.size());
+
+          for (final Column col : headerColumns) {
+            if (col.headerKey().isPresent()) {
+              row.append(extractHeader(processorContext.headers(), col.headerKey().get()));
+            } else {
+              row.append(createHeaderData(processorContext.headers()));
+            }
+          }
 
           if (pseudoColumnVersion >= SystemColumns.ROWTIME_PSEUDOCOLUMN_VERSION) {
             final long timestamp = processorContext.timestamp();

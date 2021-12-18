@@ -40,8 +40,7 @@ public final class ServiceContextFactory {
         new KsqlSchemaRegistryClientFactory(
             ksqlConfig,
             Collections.emptyMap())::get,
-        () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-            Optional.empty()),
+        () -> new DefaultConnectClientFactory(ksqlConfig).get(Optional.empty(), Optional.empty()),
         ksqlClientSupplier
     );
   }

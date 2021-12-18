@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.server.ServerUtil;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
+import io.confluent.ksql.rest.server.execution.ConnectServerErrors;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
 import io.confluent.ksql.rest.server.execution.DefaultCommandQueueSync;
 import io.confluent.ksql.rest.server.execution.RequestHandler;
@@ -111,6 +112,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final Errors errorHandler;
   private KsqlHostInfo localHost;
   private URL localUrl;
+  private final CustomExecutors customExecutors;
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
@@ -119,6 +121,7 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
+      final ConnectServerErrors connectErrorHandler,
       final DenyListPropertyValidator denyListPropertyValidator
   ) {
     this(
@@ -129,6 +132,7 @@ public class KsqlResource implements KsqlConfigurable {
         Injectors.DEFAULT,
         authorizationValidator,
         errorHandler,
+        connectErrorHandler,
         denyListPropertyValidator,
         commandRunner::getCommandRunnerDegradedWarning
     );
@@ -142,6 +146,7 @@ public class KsqlResource implements KsqlConfigurable {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
+      final ConnectServerErrors connectErrorHandler,
       final DenyListPropertyValidator denyListPropertyValidator,
       final Supplier<String> commandRunnerWarning
   ) {
@@ -159,6 +164,8 @@ public class KsqlResource implements KsqlConfigurable {
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
+    this.customExecutors = new CustomExecutors(Objects.requireNonNull(connectErrorHandler,
+        "connectErrorHandler"));
   }
 
   @Override
@@ -183,12 +190,11 @@ public class KsqlResource implements KsqlConfigurable {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        config,
         new ValidatedCommandFactory()
     );
 
     this.handler = new RequestHandler(
-        CustomExecutors.EXECUTOR_MAP,
+        customExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
             config,
             commandRunner.getCommandQueue(),
@@ -200,10 +206,9 @@ public class KsqlResource implements KsqlConfigurable {
             commandRunnerWarning
         ),
         ksqlEngine,
-        config,
         new DefaultCommandQueueSync(
             commandRunner.getCommandQueue(),
-            KsqlResource::shouldSynchronize,
+            this::shouldSynchronize,
             distributedCmdResponseTimeout
         )
     );
@@ -340,10 +345,10 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
-  private static boolean shouldSynchronize(final Class<? extends Statement> statementClass) {
+  private boolean shouldSynchronize(final Class<? extends Statement> statementClass) {
     return !SYNC_BLACKLIST.contains(statementClass)
         // we never need to synchronize distributed statements
-        && CustomExecutors.EXECUTOR_MAP.containsKey(statementClass);
+        && customExecutors.EXECUTOR_MAP.containsKey(statementClass);
   }
 
   private static void ensureValidPatterns(final List<String> deleteTopicList) {

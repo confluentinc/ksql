@@ -110,7 +110,7 @@ public class EndToEndIntegrationTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Boolean> data() {
     return Arrays.asList(
-        true, false
+        false, true
     );
   }
 
@@ -308,14 +308,14 @@ public class EndToEndIntegrationTest {
     );
 
     // Then:
-    final String valSbuejct = KsqlConstants.getSRSubject(topicName, false);
+    final String valSubject = KsqlConstants.getSRSubject(topicName, false);
     final String keySubject = KsqlConstants.getSRSubject(topicName, true);
 
     TEST_HARNESS.waitForSubjectToBePresent(keySubject);
-    TEST_HARNESS.waitForSubjectToBePresent(valSbuejct);
+    TEST_HARNESS.waitForSubjectToBePresent(valSubject);
 
     assertThat(TEST_HARNESS.getSchema(keySubject), is(new AvroSchema("{\"type\":\"string\"}")));
-    assertThat(TEST_HARNESS.getSchema(valSbuejct), is(new AvroSchema("{\"type\":\"long\"}")));
+    assertThat(TEST_HARNESS.getSchema(valSubject), is(new AvroSchema("{\"type\":\"long\"}")));
   }
 
   @Test

@@ -50,11 +50,12 @@ import org.junit.Test;
 public class QueryAnalyzerFunctionalTest {
 
   private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
+  private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED);
+      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
 
   @Test
   public void shouldAnalyseTableFunctions() {

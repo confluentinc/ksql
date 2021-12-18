@@ -40,7 +40,6 @@ public class LatestConsumer extends ScalablePushConsumer {
   private final CatchupCoordinator catchupCoordinator;
   private final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater;
   private final KsqlConfig ksqlConfig;
-  private final Clock clock;
   private boolean gotFirstAssignment = false;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -53,25 +52,10 @@ public class LatestConsumer extends ScalablePushConsumer {
       final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
       final KsqlConfig ksqlConfig,
       final Clock clock) {
-    super(topicName, windowed, logicalSchema, consumer);
+    super(topicName, windowed, logicalSchema, consumer, clock);
     this.catchupCoordinator = catchupCoordinator;
     this.catchupAssignmentUpdater = catchupAssignmentUpdater;
     this.ksqlConfig = ksqlConfig;
-    this.clock = clock;
-  }
-
-  public static LatestConsumer create(
-      final String topicName,
-      final boolean windowed,
-      final LogicalSchema logicalSchema,
-      final KafkaConsumer<Object, GenericRow> consumer,
-      final CatchupCoordinator catchupCoordinator,
-      final java.util.function.Consumer<Collection<TopicPartition>> catchupAssignmentUpdater,
-      final KsqlConfig ksqlConfig,
-      final Clock clock
-  ) {
-    return new LatestConsumer(topicName, windowed, logicalSchema, consumer,
-        catchupCoordinator, catchupAssignmentUpdater, ksqlConfig, clock);
   }
 
   public interface LatestConsumerFactory {
@@ -103,6 +87,7 @@ public class LatestConsumer extends ScalablePushConsumer {
           @Override
           public void onPartitionsRevoked(final Collection<TopicPartition> collection) {
             LOG.info("Latest consumer had partitions revoked {}", collection);
+            newAssignment(null);
           }
 
           @Override
@@ -112,6 +97,7 @@ public class LatestConsumer extends ScalablePushConsumer {
               return;
             }
             newAssignment(collection);
+            updateCurrentPositions();
             catchupAssignmentUpdater.accept(collection);
             if (!gotFirstAssignment) {
               maybeSeekToEnd();
@@ -127,7 +113,7 @@ public class LatestConsumer extends ScalablePushConsumer {
   }
 
   @Override
-  protected void afterCommit() {
+  protected void afterBatchProcessed() {
     catchupCoordinator.checkShouldWaitForCatchup();
   }
 
@@ -154,15 +140,21 @@ public class LatestConsumer extends ScalablePushConsumer {
         consumer.offsetsForTimes(timestamps);
     final Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap =
         consumer.committed(topicPartitions);
+    LOG.info("Latest maybe seeking to end offsetAndTimestampMap {}, offsetAndMetadataMap {}",
+        offsetAndTimestampMap, offsetAndMetadataMap);
+    // If even one partition has recent commits, then we don't seek to end.
+    boolean foundAtLeastOneRecent = false;
     for (Map.Entry<TopicPartition, OffsetAndTimestamp> entry : offsetAndTimestampMap.entrySet()) {
       final OffsetAndMetadata metadata = offsetAndMetadataMap.get(entry.getKey());
       if (metadata != null && entry.getValue() != null
-          && entry.getValue().offset() > metadata.offset()) {
-        consumer.seekToEnd(topicPartitions);
-        resetCurrentPosition();
-        LOG.info("LatestConsumer seeking to end {}", currentPositions);
-        return;
+          && entry.getValue().offset() <= metadata.offset()) {
+        foundAtLeastOneRecent = true;
       }
+    }
+    if (!foundAtLeastOneRecent) {
+      consumer.seekToEnd(topicPartitions);
+      updateCurrentPositions();
+      LOG.info("LatestConsumer seeking to end {}", currentPositions);
     }
   }
 }

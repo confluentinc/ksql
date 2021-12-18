@@ -21,10 +21,11 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import java.security.Principal;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -35,6 +36,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
   private final UserServiceContextFactory userServiceContextFactory;
   private final KsqlConfig ksqlConfig;
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
+  private final ConnectClientFactory connectClientFactory;
   private final KsqlClient sharedClient;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
@@ -44,19 +46,21 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
       final UserServiceContextFactory userServiceContextFactory,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient) {
     this.securityExtension = securityExtension;
     this.defaultServiceContextFactory = defaultServiceContextFactory;
     this.userServiceContextFactory = userServiceContextFactory;
     this.ksqlConfig = ksqlConfig;
     this.schemaRegistryClientFactory = schemaRegistryClientFactory;
+    this.connectClientFactory = connectClientFactory;
     this.sharedClient = sharedClient;
   }
 
   @Override
   public KsqlSecurityContext provide(final ApiSecurityContext apiSecurityContext) {
 
-    final Optional<Principal> principal = apiSecurityContext.getPrincipal();
+    final Optional<KsqlPrincipal> principal = apiSecurityContext.getPrincipal();
     final Optional<String> authHeader = apiSecurityContext.getAuthToken();
 
     // A user context is not necessary if a user context provider is not present or the user
@@ -74,7 +78,7 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
       return new KsqlSecurityContext(
           principal,
           defaultServiceContextFactory.create(ksqlConfig, authHeader, schemaRegistryClientFactory,
-              sharedClient)
+              connectClientFactory, sharedClient, principal)
       );
     }
 
@@ -86,8 +90,14 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
                 authHeader,
                 provider.getKafkaClientSupplier(principal.get()),
                 provider.getSchemaRegistryClientFactory(principal.get()),
-                sharedClient)))
+                connectClientFactory,
+                sharedClient,
+                principal)))
         .get();
   }
 
+  @Override
+  public void close() {
+    connectClientFactory.close();
+  }
 }

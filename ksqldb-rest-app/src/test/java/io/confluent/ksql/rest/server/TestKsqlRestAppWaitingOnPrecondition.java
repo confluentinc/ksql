@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.server.services.TestRestServiceContextFactory.InternalSimpleKsqlClientFactory;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.Map;
 import java.util.Optional;
@@ -39,9 +40,11 @@ public class TestKsqlRestAppWaitingOnPrecondition extends TestKsqlRestApp {
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
       final Optional<BasicCredentials> credentials,
-      final CountDownLatch latch
+      final CountDownLatch latch,
+      final InternalSimpleKsqlClientFactory internalSimpleKsqlClientFactory
   ) {
-    super(bootstrapServers, additionalProps, serviceContext, credentials);
+    super(bootstrapServers, additionalProps, serviceContext, credentials,
+        internalSimpleKsqlClientFactory);
     this.latch = latch;
   }
 

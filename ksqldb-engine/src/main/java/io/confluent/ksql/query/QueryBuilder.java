@@ -45,7 +45,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
@@ -55,20 +57,20 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.ReservedInternalTopics;
+import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
+import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.ValidationSharedKafkaStreamsRuntimeImpl;
 import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -79,7 +81,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -91,7 +92,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
 
 /**
  * A builder for creating queries metadata.
@@ -178,7 +179,8 @@ final class QueryBuilder {
       final boolean excludeTombstones,
       final QueryMetadata.Listener listener,
       final StreamsBuilder streamsBuilder,
-      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets
+      final Optional<ImmutableMap<TopicPartition, Long>> endOffsets,
+      final MetricCollectors metricCollectors
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -188,7 +190,13 @@ final class QueryBuilder {
         streamsBuilder
     );
 
-    final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+    final Map<String, Object> streamsProperties = buildStreamsProperties(
+        applicationId,
+        Optional.of(queryId),
+        metricCollectors,
+        config.getConfig(true),
+        processingLogContext
+    );
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final TransientQueryQueue queue =
         buildTransientQueryQueue(buildResult, limit, excludeTombstones, endOffsets);
@@ -248,7 +256,6 @@ final class QueryBuilder {
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
         allPersistentQueries, isTable, streamsProperties,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_NODE_CONTINUITY),
         ksqlConfig.originals(), sourceApplicationId,
         ksqlTopic, serviceContext, ksqlConfig);
     return registry;
@@ -266,10 +273,17 @@ final class QueryBuilder {
       final String planSummary,
       final QueryMetadata.Listener listener,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
-      final StreamsBuilder streamsBuilder) {
+      final StreamsBuilder streamsBuilder,
+      final MetricCollectors metricCollectors) {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
-    final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+    final Map<String, Object> streamsProperties = buildStreamsProperties(
+        applicationId,
+        Optional.of(queryId),
+        metricCollectors,
+        config.getConfig(true),
+        processingLogContext
+    );
 
     final LogicalSchema logicalSchema;
     final KeyFormat keyFormat;
@@ -318,14 +332,9 @@ final class QueryBuilder {
                 querySchema,
                 keyFormat,
                 streamsProperties,
-                applicationId
+                applicationId,
+                queryId.toString()
             ));
-
-    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-        .and(new AuthorizationClassifier(applicationId));
-    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
-        .map(userErrorClassifiers::and)
-        .orElse(userErrorClassifiers);
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
@@ -354,7 +363,7 @@ final class QueryBuilder {
         streamsProperties,
         config.getOverrides(),
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        classifier,
+        getConfiguredQueryErrorClassifier(ksqlConfig, applicationId),
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         getUncaughtExceptionProcessingLogger(queryId),
@@ -366,6 +375,7 @@ final class QueryBuilder {
 
   }
 
+  @SuppressWarnings("ParameterNumber")
   PersistentQueryMetadata buildPersistentQueryInSharedRuntime(
       final KsqlConfig ksqlConfig,
       final KsqlConstants.PersistentQueryType persistentQueryType,
@@ -376,17 +386,17 @@ final class QueryBuilder {
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final QueryMetadata.Listener listener,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final String applicationId,
+      final MetricCollectors metricCollectors
   ) {
     final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getKafkaStreamsInstance(
+        applicationId,
         sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
-        queryId);
-
-    final String applicationId = sharedKafkaStreamsRuntime
-            .getStreamProperties()
-            .get(StreamsConfig.APPLICATION_ID_CONFIG)
-            .toString();
-    final Map<String, Object> streamsProperties = sharedKafkaStreamsRuntime.getStreamProperties();
+        queryId,
+        metricCollectors
+    );
+    final Map<String, Object> queryOverrides = sharedKafkaStreamsRuntime.getStreamProperties();
 
     final LogicalSchema logicalSchema;
     final KeyFormat keyFormat;
@@ -418,18 +428,20 @@ final class QueryBuilder {
         keyFormat.getFeatures(),
         valueFormat.getFeatures()
     );
-    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
-            queryId.toString()
-    );
+
+    final NamedTopologyBuilder namedTopologyBuilder = sharedKafkaStreamsRuntime.getKafkaStreams()
+            .newNamedTopologyBuilder(
+                queryId.toString(),
+                PropertiesUtil.asProperties(queryOverrides)
+            );
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
             queryId,
-            namedTopologyStreamsBuilder
+            namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology = namedTopologyStreamsBuilder
-            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
+    final NamedTopology topology = namedTopologyBuilder.build();
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -437,97 +449,189 @@ final class QueryBuilder {
                     info,
                     querySchema,
                     keyFormat,
-                    streamsProperties,
-                    applicationId
+                    queryOverrides,
+                    applicationId,
+                    queryId.toString()
             ));
-
-    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
-            .and(new AuthorizationClassifier(applicationId));
-    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
-            .map(userErrorClassifiers::and)
-            .orElse(userErrorClassifiers);
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),
         result,
         allPersistentQueries,
-        streamsProperties,
+        queryOverrides,
         applicationId,
         ksqlConfig,
         ksqlTopic,
         serviceContext
     );
 
-    return new PersistentQueriesInSharedRuntimesImpl(
-        persistentQueryType,
-        statementText,
-        querySchema,
-        sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
-        planSummary,
-        applicationId,
-        topology,
-        sharedKafkaStreamsRuntime,
-        runtimeBuildContext.getSchemas(),
-        config.getOverrides(),
-        queryId,
-        materializationProviderBuilder,
-        physicalPlan,
-        getUncaughtExceptionProcessingLogger(queryId),
-        sinkDataSource,
-        listener,
-        classifier,
-        streamsProperties,
-        scalablePushRegistry
+    final BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata
+        = new BinPackedPersistentQueryMetadataImpl(
+            persistentQueryType,
+            statementText,
+            querySchema,
+            sources.stream().map(DataSource::getName).collect(Collectors.toSet()),
+            planSummary,
+            applicationId,
+            topology,
+            sharedKafkaStreamsRuntime,
+            runtimeBuildContext.getSchemas(),
+            config.getOverrides(),
+            queryId,
+            materializationProviderBuilder,
+            physicalPlan,
+            getUncaughtExceptionProcessingLogger(queryId),
+            sinkDataSource,
+            listener,
+            queryOverrides,
+            scalablePushRegistry,
+            (streamsRuntime) -> getNamedTopology(
+                streamsRuntime,
+                queryId,
+                applicationId,
+                queryOverrides,
+                physicalPlan
+            )
     );
+    if (real) {
+      return binPackedPersistentQueryMetadata;
+    } else {
+      return SandboxedBinPackedPersistentQueryMetadataImpl.of(
+          binPackedPersistentQueryMetadata,
+          listener);
+    }
+  }
+
+  public NamedTopology getNamedTopology(final SharedKafkaStreamsRuntime sharedRuntime,
+                                        final QueryId queryId,
+                                        final String applicationId,
+                                        final Map<String, Object>  queryOverrides,
+                                        final ExecutionStep<?> physicalPlan) {
+    final NamedTopologyBuilder namedTopologyBuilder =
+        sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
+            queryId.toString(),
+            PropertiesUtil.asProperties(queryOverrides)
+        );
+
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+        applicationId,
+        queryId,
+        namedTopologyBuilder
+    );
+    buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    return namedTopologyBuilder.build();
+  }
+
+  public static Map<String, Object> buildStreamsProperties(
+      final String applicationId,
+      final Optional<QueryId> queryId,
+      final MetricCollectors metricCollectors,
+      final KsqlConfig config,
+      final ProcessingLogContext processingLogContext
+  ) {
+    final Map<String, Object> newStreamsProperties
+        = new HashMap<>(config.getKsqlStreamConfigProps(applicationId));
+    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+
+    // get logger
+    final ProcessingLogger logger;
+    if (queryId.isPresent()) {
+      logger = processingLogContext.getLoggerFactory().getLogger(queryId.get().toString());
+    } else {
+      logger = processingLogContext.getLoggerFactory().getLogger(applicationId);
+    }
+    newStreamsProperties.put(
+        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
+        logger);
+
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
+        ConsumerCollector.class.getCanonicalName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
+        ProducerCollector.class.getCanonicalName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        RocksDBMetricsCollector.class.getName()
+    );
+    updateListProperty(
+        newStreamsProperties,
+        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        StorageUtilizationMetricsReporter.class.getName()
+    );
+
+    // Passing shared state into managed components
+    newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
+        metricCollectors.getMetrics()
+    );
+    newStreamsProperties.put(
+        KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG,
+        StreamsErrorCollector.create(applicationId, metricCollectors)
+    );
+
+    return newStreamsProperties;
   }
 
   private SharedKafkaStreamsRuntime getKafkaStreamsInstance(
+          final String applicationId,
           final Set<SourceName> sources,
-          final QueryId queryID) {
+          final QueryId queryId,
+          final MetricCollectors metricCollectors) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)
-          || sharedKafkaStreamsRuntime.getQueries().contains(queryID)) {
-        sharedKafkaStreamsRuntime.markSources(queryID, sources);
+      if (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId)
+          || (sharedKafkaStreamsRuntime.getApplicationId().equals(applicationId + "-validation")
+          && !real)) {
         return sharedKafkaStreamsRuntime;
       }
     }
     final SharedKafkaStreamsRuntime stream;
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final String queryPrefix = ksqlConfig
-        .getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
-    final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     if (real) {
       stream = new SharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          getConfiguredQueryErrorClassifier(ksqlConfig, applicationId),
+          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          ksqlConfig.getLong(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
           buildStreamsProperties(
-              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-                  + serviceId
-                  + queryPrefix
-                  + streams.size()
-                  + "-"
-                  + UUID.randomUUID(),
-              queryID)
+              applicationId,
+              Optional.empty(),
+              metricCollectors,
+              config.getConfig(true),
+              processingLogContext
+          )
       );
     } else {
-      stream = new ValidationSharedKafkaStreamsRuntimeImpl(
+      stream = new SandboxedSharedKafkaStreamsRuntimeImpl(
           kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
           buildStreamsProperties(
-              ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-                  + serviceId
-                  + queryPrefix
-                  + streams.size()
-                  + "-"
-                  + UUID.randomUUID()
-                  + "-validation",
-              queryID)
+              applicationId + "-validation",
+              Optional.empty(),
+              metricCollectors,
+              config.getConfig(true),
+              processingLogContext
+          )
       );
     }
     streams.add(stream);
-    stream.markSources(queryID, sources);
     return stream;
+  }
 
+  private QueryErrorClassifier getConfiguredQueryErrorClassifier(
+      final KsqlConfig ksqlConfig,
+      final String applicationId
+  ) {
+    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
+        .and(new AuthorizationClassifier(applicationId));
+    return buildConfiguredClassifiers(ksqlConfig, applicationId)
+        .map(userErrorClassifiers::and)
+        .orElse(userErrorClassifiers);
   }
 
   private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {
@@ -589,42 +693,6 @@ final class QueryBuilder {
         applicationId,
         queryId
     );
-  }
-
-  private Map<String, Object> buildStreamsProperties(
-      final String applicationId,
-      final QueryId queryId
-  ) {
-    final Map<String, Object> newStreamsProperties
-        = new HashMap<>(config.getConfig(true).getKsqlStreamConfigProps(applicationId));
-    newStreamsProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
-    final ProcessingLogger logger
-        = processingLogContext.getLoggerFactory().getLogger(queryId.toString());
-    newStreamsProperties.put(
-        ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER,
-        logger);
-
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.consumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        ConsumerCollector.class.getCanonicalName()
-    );
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG),
-        ProducerCollector.class.getCanonicalName()
-    );
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
-        RocksDBMetricsCollector.class.getName()
-    );
-    updateListProperty(
-        newStreamsProperties,
-        StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
-        StorageUtilizationMetricsReporter.class.getName()
-    );
-    return newStreamsProperties;
   }
 
   private static Optional<QueryErrorClassifier> buildConfiguredClassifiers(

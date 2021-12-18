@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.fail;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableList;
@@ -110,9 +111,13 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Category({IntegrationTest.class})
+  @Category({IntegrationTest.class})
 public class RestApiTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
 
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
   private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.
@@ -911,10 +916,78 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldExecutePullQuery_allTypes() {
+    ImmutableList<String> formats = ImmutableList.of(
+        "application/vnd.ksqlapi.delimited.v1",
+        KsqlMediaType.KSQL_V1_JSON.mediaType());
+    ImmutableList<HttpVersion> httpVersions = ImmutableList.of(HTTP_1_1, HTTP_2);
+    ImmutableList<String> endpoints = ImmutableList.of("/query-stream");
+
+    for (String format : formats) {
+      for (HttpVersion version : httpVersions) {
+        for (String endpoint : endpoints) {
+          LOG.info("Trying pull query combination {} {} {}", format, version, endpoint);
+          Object requestBody;
+          if (endpoint.equals("/query-stream")) {
+            requestBody = new QueryStreamArgs(
+                "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+          } else {
+            fail("Unknown endpoint " + endpoint);
+            return;
+          }
+
+          // It would be nice to check the output the same way between all of the formats, but this
+          // is somewhat hard since they have different data, so we don't try.
+          if (format.equals("application/vnd.ksqlapi.delimited.v1")) {
+            QueryResponse[] queryResponse = new QueryResponse[1];
+            assertThatEventually(() -> {
+              try {
+                HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                    version, POST,
+                    endpoint, requestBody, "application/vnd.ksqlapi.delimited.v1",
+                    Optional.empty());
+                queryResponse[0] = new QueryResponse(resp.body().toString());
+                return queryResponse[0].rows.size();
+              } catch (Throwable t) {
+                return Integer.MAX_VALUE;
+              }
+            }, is(1));
+            assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
+          } else if (format.equals(KsqlMediaType.KSQL_V1_JSON.mediaType())) {
+            final Supplier<List<String>> call = () -> {
+              HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+                  version, POST,
+                  endpoint, requestBody, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+                  Optional.empty());
+              final String response = resp.body().toString();
+              return Arrays.asList(response.split(System.lineSeparator()));
+            };
+
+            // When:
+            final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1 + FOOTER));
+            // Then:
+            assertThat(messages, hasSize(HEADER + 1 + FOOTER));
+            assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+            assertThat(messages.get(0),
+                endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+            assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
+            assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
+          } else {
+            fail("Unknown format " + format);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
     // Given:
+    Map<String, Object> configOverrides =  ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
     Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
 
     // When:
@@ -922,7 +995,7 @@ public class RestApiTest {
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON,
         MediaType.APPLICATION_JSON,
-        Optional.empty(),
+        Optional.of(configOverrides),
         Optional.of(requestProperties)
     );
 
@@ -937,8 +1010,9 @@ public class RestApiTest {
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
     // Given:
+    Map<String, Object> configOverrides =  ImmutableMap.of(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
     Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true,
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
 
     // When:
@@ -946,7 +1020,7 @@ public class RestApiTest {
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
         KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        Optional.empty(),
+        Optional.of(configOverrides),
         Optional.of(requestProperties)
     );
 

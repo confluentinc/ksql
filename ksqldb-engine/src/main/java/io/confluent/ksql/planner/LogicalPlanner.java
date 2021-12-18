@@ -73,6 +73,7 @@ import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SingleSourcePlanNode;
@@ -127,9 +128,8 @@ public class LogicalPlanner {
     this.aggregateAnalyzer = new AggregateAnalyzer(metaStore);
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
   public OutputNode buildPersistentLogicalPlan() {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final boolean isWindowed = analysis
         .getFrom()
         .getDataSource()
@@ -163,6 +163,11 @@ public class LogicalPlanner {
             .orElse("");
         throw new KsqlException(loc + "WINDOW clause requires a GROUP BY clause.");
       }
+
+      if (analysis.getLimitClause().isPresent()) {
+        currentNode = buildLimitNode(currentNode, analysis.getLimitClause().getAsInt());
+      }
+
       currentNode = buildUserProjectNode(currentNode);
     }
 
@@ -217,6 +222,10 @@ public class LogicalPlanner {
       if (!queryPlannerOptions.getTableScansEnabled()) {
         throw QueryFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
       }
+    }
+
+    if (!isScalablePush && analysis.getLimitClause().isPresent()) {
+      currentNode = buildLimitNode(currentNode, analysis.getLimitClause().getAsInt());
     }
 
     currentNode = new QueryProjectNode(
@@ -421,6 +430,14 @@ public class LogicalPlanner {
     validator.validateFilterExpression(filterExpression);
 
     return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
+  }
+
+  private QueryLimitNode buildLimitNode(
+          final PlanNode sourcePlanNode,
+          final int limit
+  ) {
+    return new QueryLimitNode(new PlanNodeId("LimitClause"),
+            sourcePlanNode, limit);
   }
 
   private UserRepartitionNode buildUserRepartitionNode(

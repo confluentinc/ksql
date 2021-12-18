@@ -16,14 +16,18 @@
 package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.DecimalNode;
 import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.LongNode;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.test.model.TestHeader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.apache.kafka.common.header.Header;
 import org.junit.Test;
 
 public class ExpectedRecordComparatorTest {
@@ -76,6 +80,19 @@ public class ExpectedRecordComparatorTest {
   @Test
   public void shouldNotMatchActualBigDecimalWithDecimalNodeWithLowerScale() {
     assertNoMatch(new BigDecimal("10.010"), new DecimalNode(new BigDecimal("10.01")));
+  }
+
+  @Test
+  public void shouldMatchHeaders() {
+    final TestHeader h0 = new TestHeader("a", new byte[] {123});
+    final TestHeader h1 = new TestHeader("a", new byte[] {12, 23});
+    final TestHeader h2 = new TestHeader("b", new byte[] {123});
+    final TestHeader h0_copy = new TestHeader("a", new byte[] {123});
+    assertThat(ExpectedRecordComparator.matches(new Header[] {}, ImmutableList.of()), equalTo(true));
+    assertThat(ExpectedRecordComparator.matches(new Header[] { h0 }, ImmutableList.of(h0_copy)), equalTo(true));
+    assertThat(ExpectedRecordComparator.matches(new Header[] { h0 }, ImmutableList.of(h1)), equalTo(false));
+    assertThat(ExpectedRecordComparator.matches(new Header[] { h0 }, ImmutableList.of(h2)), equalTo(false));
+    assertThat(ExpectedRecordComparator.matches(new Header[] { h0 }, ImmutableList.of(h0_copy, h1)), equalTo(false));
   }
 
   private static void assertMatch(final Object actual, final JsonNode expected) {

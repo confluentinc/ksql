@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +36,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
@@ -179,6 +181,7 @@ public class ConnectFormatSchemaTranslatorTest {
   public void shouldSupportBuildingPrimitiveSchemas() {
     // Given:
     when(format.supportedFeatures()).thenReturn(ImmutableSet.of(SerdeFeature.UNWRAP_SINGLES));
+
 
     // When:
     translator.toParsedSchema(

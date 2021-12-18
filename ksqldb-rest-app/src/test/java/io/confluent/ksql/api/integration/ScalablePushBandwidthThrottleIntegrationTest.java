@@ -97,7 +97,7 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(2, TimeUnit.MINUTES)
+      .withTimeout(4, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 
@@ -134,34 +134,32 @@ public class ScalablePushBandwidthThrottleIntegrationTest {
   @Test
   public void scalablePushBandwidthThrottleTestHTTP1() {
     assertAllPersistentQueriesRunning();
-    String veryLong = createDataSize(100000);
+    String veryLong = createDataSize(1200000);
     String sql = "SELECT CONCAT(\'"+ veryLong + "\') as placeholder from " + AGG_TABLE + " EMIT CHANGES LIMIT 1;";
 
-    // scalable push query should succeed 10 times
-    for (int i = 0; i < 11; i += 1) {
-      final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
-      final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
-      makeRequestAndSetupSubscriber(sql,
-          ImmutableMap.of("auto.offset.reset", "latest"),
-          header, complete );
-      assertExpectedScalablePushQueries(1);
-      // Produce exactly one row, or else other rows produced can complete other requests and it
-      // confuses the test.
-      TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
-      // header, row, limit reached message
-      assertThatEventually(() ->  subscriber.getRows().size(), is (3));
-      subscriber.close();
-      publisher.close();
-    }
+    // scalable push query should succeed 1 time
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final CompletableFuture<List<StreamedRow>> complete = new CompletableFuture<>();
+    makeRequestAndSetupSubscriber(sql,
+        ImmutableMap.of("auto.offset.reset", "latest"),
+        header, complete );
+    assertExpectedScalablePushQueries(1);
+    // Produce exactly one row, or else other rows produced can complete other requests and it
+    // confuses the test.
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON, FormatFactory.JSON);
+    // header, row, limit reached message
+    assertThatEventually(() ->  subscriber.getRows().size(), is (3));
+    subscriber.close();
+    publisher.close();
 
-    // scalable push query should fail on 11th try since it exceeds 1MB bandwidth limit
-      try {
-        makeQueryRequest(sql,
-            ImmutableMap.of("auto.offset.reset", "latest"));
-        throw new AssertionError("New scalable push query should have exceeded bandwidth limit ");
-      } catch (KsqlException e) {
-        assertThat(e.getMessage(), is(RATE_LIMIT_MESSAGE));
-      }
+    // scalable push query should fail on 2nd try since it exceeds 1MB bandwidth limit
+    try {
+      makeQueryRequest(sql,
+          ImmutableMap.of("auto.offset.reset", "latest"));
+      throw new AssertionError("New scalable push query should have exceeded bandwidth limit ");
+    } catch (KsqlException e) {
+      assertThat(e.getMessage(), is(RATE_LIMIT_MESSAGE));
+    }
   }
 
   @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})

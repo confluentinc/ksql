@@ -1,0 +1,268 @@
+{
+  "version" : "7.2.0",
+  "timestamp" : 1639181124375,
+  "path" : "query-validation-tests/headers.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`NEW_KEY` BYTES KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`HEAD` BYTES KEY, `HEAD` BYTES, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source.Materialized" : {
+      "schema" : "`ID` INTEGER KEY, `DATA` STRING, `HEAD` BYTES, `ROWPARTITION` INTEGER, `ROWOFFSET` BIGINT, `HEAD` BYTES HEADER('abc')",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `DATA` STRING, `HEAD` BYTES HEADER('abc')",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`HEAD` BYTES KEY, `HEAD` BYTES, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`NEW_KEY` BYTES KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Prepare" : {
+      "schema" : "`ID` INTEGER KEY, `HEAD` BYTES, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    }
+  },
+  "testCase" : {
+    "name" : "Can use header columns in group by clauses",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "data" : "d1"
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "data" : "d2"
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "data" : "d1"
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "data" : "d2"
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    }, {
+      "topic" : "test_topic",
+      "key" : 4,
+      "value" : {
+        "data" : "d1"
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "IQ==",
+      "value" : {
+        "COUNT" : 1
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "Iw==",
+      "value" : {
+        "COUNT" : 1
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "IQ==",
+      "value" : {
+        "COUNT" : 2
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "IQ=="
+      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "Iw==",
+      "value" : {
+        "COUNT" : 2
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "Iw==",
+      "value" : {
+        "COUNT" : 3
+      },
+      "headers" : [ {
+        "KEY" : "abc",
+        "VALUE" : "Iw=="
+      } ]
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "keySerdeFeatures" : [ "UNWRAP_SINGLES" ],
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING, head BYTES HEADER('abc')) WITH (kafka_topic='test_topic', format='JSON');", "CREATE TABLE OUTPUT AS SELECT head AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY head;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`NEW_KEY` BYTES KEY, `COUNT` BIGINT",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      }, {
+        "name" : "TEST",
+        "type" : "TABLE",
+        "schema" : "`ID` INTEGER KEY, `DATA` STRING, `HEAD` BYTES HEADER('abc')",
+        "keyFormat" : {
+          "format" : "JSON"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
+        "valueFeatures" : [ ],
+        "isSource" : false
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KsqlTopic-Reduce-changelog",
+          "keyFormat" : {
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        } ]
+      }
+    }
+  }
+}

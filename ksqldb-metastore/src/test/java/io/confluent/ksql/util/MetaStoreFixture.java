@@ -61,6 +61,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
         .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
+        .headerColumn(ColumnName.of("HEAD"), Optional.empty())
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(

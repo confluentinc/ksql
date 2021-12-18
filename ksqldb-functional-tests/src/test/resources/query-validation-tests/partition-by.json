@@ -601,7 +601,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Line: 5, Col: 14: PARTITION BY column 'ID_NEW' cannot be resolved."
+        "message": "Line: 2, Col: 90: PARTITION BY column 'ID_NEW' cannot be resolved."
       }
     },
     {
@@ -1443,6 +1443,17 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "PARTITION BY requires at least one expression"
+      }
+    },
+    {
+      "name": "partition by output col should give good error message",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING, ID INT, AGE INT) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME AS something from INPUT partition by something;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "PARTITION BY column 'SOMETHING' cannot be resolved. 'SOMETHING' must be a column in the source schema since PARTITION BY is applied on the input."
       }
     }
   ]

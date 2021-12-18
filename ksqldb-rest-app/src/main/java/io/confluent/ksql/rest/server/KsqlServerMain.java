@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
@@ -58,8 +59,9 @@ public class KsqlServerMain {
       QueryLogger.configure(ksqlConfig);
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
+      final MetricCollectors metricCollectors = new MetricCollectors();
       final Executable executable = createExecutable(
-          properties, queriesFile, installDir, ksqlConfig);
+          properties, queriesFile, installDir, ksqlConfig, metricCollectors);
       new KsqlServerMain(
           executable,
           r -> Runtime.getRuntime().addShutdownHook(new Thread(r))
@@ -143,15 +145,21 @@ public class KsqlServerMain {
       final Map<String, String> properties,
       final Optional<String> queriesFile,
       final String installDir,
-      final KsqlConfig ksqlConfig
+      final KsqlConfig ksqlConfig,
+      final MetricCollectors metricCollectors
   ) throws IOException {
     if (queriesFile.isPresent()) {
-      return StandaloneExecutorFactory.create(properties, queriesFile.get(), installDir);
+      return StandaloneExecutorFactory.create(
+          properties,
+          queriesFile.get(),
+          installDir,
+          metricCollectors
+      );
     }
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     final Executable restApp = KsqlRestApplication
-        .buildApplication(restConfig);
+        .buildApplication(restConfig, metricCollectors);
 
     final String connectConfigFile =
         ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);

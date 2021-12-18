@@ -17,6 +17,7 @@ package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.List;
 import org.reactivestreams.Publisher;
@@ -39,6 +40,11 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
   List<String> getColumnTypes();
 
   /**
+   * @return The logical schema associated with the query results
+   */
+  LogicalSchema geLogicalSchema();
+
+  /**
    * Close the publisher
    */
   void close();
@@ -57,4 +63,9 @@ public interface QueryPublisher extends Publisher<KeyValueMetadata<List<?>, Gene
    * The query id
    */
   QueryId queryId();
+
+  /**
+   * If the query was completed by hitting the limit.
+   */
+  boolean hitLimit();
 }

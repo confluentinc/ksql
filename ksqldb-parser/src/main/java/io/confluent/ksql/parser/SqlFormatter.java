@@ -27,6 +27,7 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AlterOption;
 import io.confluent.ksql.parser.tree.AlterSource;
+import io.confluent.ksql.parser.tree.AlterSystemProperty;
 import io.confluent.ksql.parser.tree.AssertStream;
 import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
@@ -477,6 +478,17 @@ public final class SqlFormatter {
     @Override
     protected Void visitSetProperty(final SetProperty node, final Integer context) {
       builder.append("SET '");
+      builder.append(node.getPropertyName());
+      builder.append("'='");
+      builder.append(node.getPropertyValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitAlterSystemProperty(final AlterSystemProperty node, final Integer context) {
+      builder.append("ALTER SYSTEM '");
       builder.append(node.getPropertyName());
       builder.append("'='");
       builder.append(node.getPropertyValue());

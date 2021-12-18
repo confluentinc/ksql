@@ -25,7 +25,6 @@ stream with the same name already exists.
 A stream can be created as read-only if the SOURCE clause is provided. INSERTS statements and the
 DELETE TOPIC on DROP STREAM statements aren't permitted. Source streams do not support pull
 queries. Only source tables support running pull queries on them.
-
 To disable the SOURCE stream feature, set `ksql.source.table.materialization.enabled` to
 `false` in your ksqlDB server properties file.
 
@@ -68,6 +67,9 @@ For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration#schema-inference) to
 spare you from defining columns manually in your `CREATE STREAM` statements.
+ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id) to define 
+columns automatically and enable using a physical schema for data serialization.
+
 ### ROWTIME
 
 Each row within the stream has a `ROWTIME` pseudo column, which represents the _event time_ 
@@ -95,7 +97,9 @@ following properties:
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic exists with different partition/replica counts. |
 | KEY_FORMAT              | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.key](/reference/server-configuration#ksqlpersistencedefaulformatkey), is used. If the default is also not set the statement will be rejected as invalid. |
+| KEY_SCHEMA_ID           | Specifies the schema ID of key schema in {{ site.sr }}. The schema will be used for schema inference and data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.value](/reference/server-configuration#ksqlpersistencedefaultformatvalue), is used. If the default is also not set the statement will be rejected as invalid. |
+| VALUE_SCHEMA_ID         | Specifies the schema ID of value schema in {{ site.sr }}. The schema will be used for schema inference and data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | FORMAT                  | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a STREAM without an existing topic (the command will fail if the topic does not exist). You can't change the number of partitions on a stream. To change the partition count, you must drop the stream and create it again. |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
@@ -151,5 +155,25 @@ CREATE STREAM pageviews (
   ) WITH (
     KAFKA_TOPIC = 'keyed-pageviews-topic',
     VALUE_FORMAT = 'JSON_SR'
+  );
+  
+-- Stream with key column loaded from Schema Registry by specifying KEY_SCHEMA_ID:
+CREATE STREAM pageviews (
+    viewtime BIGINT,
+    user_id VARCHAR
+  ) WITH (
+    KAFKA_TOPIC = 'keyless-pageviews-topic',
+    KEY_FORMAT = 'AVRO',
+    KEY_SCHEMA_ID = 1,
+    VALUE_FORMAT = 'JSON_SR'
+  );
+
+-- Stream with value column loaded from Schema Registry by specifying VALUE_SCHEMA_ID:
+CREATE STREAM pageviews (
+    page_id BIGINT KEY
+  ) WITH (
+    KAFKA_TOPIC = 'keyed-pageviews-topic',
+    VALUE_FORMAT = 'JSON_SR',
+    VALUE_SCHEMA_ID = 2
   );
 ```

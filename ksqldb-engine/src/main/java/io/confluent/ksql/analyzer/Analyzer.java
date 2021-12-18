@@ -24,12 +24,14 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.util.ColumnExtractor;
@@ -67,6 +69,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownColumnException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
 import java.util.List;
@@ -98,6 +101,7 @@ class Analyzer {
   private final MetaStore metaStore;
   private final String topicPrefix;
   private final boolean rowpartitionRowoffsetEnabled;
+  private final boolean pullLimitClauseEnabled;
 
   /**
    * @param metaStore the metastore to use.
@@ -108,11 +112,14 @@ class Analyzer {
   Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final boolean pullLimitClauseEnabled
+
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
+    this.pullLimitClauseEnabled = pullLimitClauseEnabled;
   }
 
   /**
@@ -147,7 +154,11 @@ class Analyzer {
     private boolean isGroupBy = false;
 
     Visitor(final Query query, final boolean persistent) {
-      this.analysis = new Analysis(query.getRefinement(), rowpartitionRowoffsetEnabled);
+      this.analysis = new Analysis(
+              query.getRefinement(),
+              rowpartitionRowoffsetEnabled,
+              pullLimitClauseEnabled);
+
       this.persistent = persistent;
     }
 
@@ -295,10 +306,19 @@ class Analyzer {
           .orElseGet(ImmutableList::of)
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
-      analysis.getPartitionBy()
-          .map(PartitionBy::getExpressions)
-          .orElseGet(ImmutableList::of)
-          .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+      try {
+        analysis.getPartitionBy()
+            .map(PartitionBy::getExpressions)
+            .orElseGet(ImmutableList::of)
+            .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+      } catch (final UnknownColumnException e) {
+        throw new UnknownColumnException(
+            e.getPrefix(),
+            e.getColumnExp(),
+            "cannot be resolved. '"
+                + e.getColumnExp() + "' must be a column in the source schema since PARTITION BY"
+                + " is applied on the input.");
+      }
 
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));
@@ -696,6 +716,17 @@ class Analyzer {
     private final class TableFunctionVisitor extends TraversalExpressionVisitor<Void> {
 
       private Optional<FunctionName> tableFunctionName = Optional.empty();
+      private Optional<SearchedCaseExpression> searchedCaseExpression = Optional.empty();
+
+      @Override
+      public Void visitSearchedCaseExpression(
+          final SearchedCaseExpression node,
+          final Void context
+      ) {
+        searchedCaseExpression = Optional.of(node);
+        super.visitSearchedCaseExpression(node, context);
+        return null;
+      }
 
       @Override
       public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
@@ -712,6 +743,11 @@ class Analyzer {
 
           if (analysis.getGroupBy().isPresent()) {
             throw new KsqlException("Table functions cannot be used with aggregations.");
+          }
+
+          if (searchedCaseExpression.isPresent()) {
+            throw new KsqlException("Table functions cannot be used in CASE: "
+                + ExpressionFormatter.formatExpression(searchedCaseExpression.get()));
           }
 
           analysis.addTableFunction(functionCall);

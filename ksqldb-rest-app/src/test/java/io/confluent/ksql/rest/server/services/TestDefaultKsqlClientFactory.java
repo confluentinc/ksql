@@ -1,5 +1,6 @@
 package io.confluent.ksql.rest.server.services;
 
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.vertx.core.net.SocketAddress;
 import java.util.Map;
@@ -21,6 +22,14 @@ public class TestDefaultKsqlClientFactory {
   public static SimpleKsqlClient instance(Map<String, Object> clientProps,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory) {
     return new DefaultKsqlClient(Optional.empty(), clientProps, socketAddressFactory);
+  }
+
+  // With auth and a shared client
+  public static SimpleKsqlClient instance(
+      final Optional<String> authHeader,
+      final KsqlClient sharedClient
+  ) {
+    return new DefaultKsqlClient(authHeader, sharedClient);
   }
 
 }

@@ -48,6 +48,8 @@ The following table shows all keywords in the language.
 | `GRACE`        | grace period for a tumbling window    | `WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS)`                |
 | `GROUP`        | group rows with the same values       | `SELECT regionid, COUNT(*) FROM pageviews GROUP BY regionid`         |
 | `HAVING`       | condition expression                  | `GROUP BY card_number HAVING COUNT(*) > 3`                           |
+| `HEADER`       | Specify a header column               | `CREATE STREAM S (H BYTES HEADER('abc')…)`                           |
+| `HEADERS`      | Specify a headers column              | `CREATE STREAM S (H ARRAY<STRUCT<key STRING, value BYTES>> HEADERS…)`|
 | `HOPPING`      | specify a hopping window              | `WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)`            |
 | `HOUR`         | time unit of one hour for a window    | `WINDOW TUMBLING (SIZE 1 HOUR, RETENTION 1 DAY)`                     |
 | `HOURS`        | time unit of hours for a window       | `WINDOW TUMBLING (SIZE 2 HOURS, RETENTION 1 DAY)`                    |

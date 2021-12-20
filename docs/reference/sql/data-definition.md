@@ -161,6 +161,53 @@ the key of the underlying {{ site.ak }} record, it must perform a repartition
 of the rows internally. If you're not sure what data is in the key or you simply
 don't need it, you can omit the `KEY` keyword.
 
+## Headers
+
+Starting in ksqlDB 0.24, you can mark a column with `HEADERS` or `HEADER('<key>')` to
+indicate that it is populated by the header field of the underlying {{ site.ak }} record.
+A column marked with `HEADERS` must have the type `ARRAY<STRUCT<key STRING, value BYTES>>`
+and contains the full list of the {{ site.ak }} record's header keys and values.
+
+A column marked with `HEADER('<key>')` must have the type `BYTES` and contains the last
+header that matches the key. If the {{ site.ak }} record does not contain a header with the
+specified key, then that column will be populated by `NULL`.
+
+In the following example statement, `k1`'s data is stored in the key portion of
+the row, `v1`'s data is stored in the value and `h1`'s data is stored in the header.
+
+```sql
+CREATE STREAM s4 (
+    k1 VARCHAR KEY,
+    v1 VARCHAR,
+    h1 ARRAY<STRUCT<key STRING, value BYTES>> HEADERS
+) WITH (
+    kafka_topic = 's3',
+    value_format = 'json'
+);
+```
+
+Header columns can be used in queries just like any other column, but they are read-only.
+Furthermore, it is not possible to write into any sink topic headers. Any sink topic columns created
+from querying a `HEADERS` column in the source topic will be a value column rather than a `HEADERS`
+column representing the sink topic's headers.
+
+```sql
+CREATE STREAM s4 (
+    k1 VARCHAR KEY,
+    v1 VARCHAR,
+    h1 BYTES HEADER('abc')
+) WITH (
+    kafka_topic = 's4',
+    value_format = 'json'
+);
+
+-- This will create a stream, s5 that contains one value field, decoded, which does not represent the headers in the sink topic.
+CREATE STREAM s5 AS SELECT FROM_BYTES(h1, 'ascii') AS decoded FROM s4;
+
+-- This will throw an error
+INSERT INTO s4 VALUES ('abc', 'def', ARRAY[]);
+```
+
 ## Default values
 
 If a column is declared in a schema, but no attribute is present in the

@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -20,11 +21,14 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.MetricValueProvider;
 import org.apache.kafka.common.metrics.Metrics;
+import org.codehaus.janino.Java;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -91,6 +95,8 @@ public class StorageUtilizationMetricsReporterTest {
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
     final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_task_storage_used_bytes", BASE_TAGS);
     final Object maxTaskUsageValue = maxTaskUsageGauge.value(null, 0);
+    final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
+    final AtomicInteger numStatefulTasksValue = (AtomicInteger) numStatefulTasksGauge.value(null, 0);
     
     // Then:
     assertThat((Long) storageFreeValue, greaterThan(0L));
@@ -98,6 +104,7 @@ public class StorageUtilizationMetricsReporterTest {
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
     assertThat((BigInteger) maxTaskUsageValue, greaterThanOrEqualTo(BigInteger.ZERO));
+    assertEquals(numStatefulTasksValue.intValue(), 0);
   }
 
   @Test
@@ -285,6 +292,32 @@ public class StorageUtilizationMetricsReporterTest {
     // Then:
     BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage();
     assertTrue(maxVal.equals(BigInteger.valueOf(5)));
+  }
+  
+  @Test
+  public void shouldRecordNumStatefulTasks() {
+    // Given:
+    final File f = new File("/tmp/storage-test/");
+    listener.configureShared(f, metrics, BASE_TAGS);
+    final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
+
+    // When:
+    listener.metricChange(mockMetric(
+      KAFKA_METRIC_GROUP,
+      KAFKA_METRIC_NAME,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("store-id", "s1", "task-id", "t2", "thread-id", TRANSIENT_THREAD_ID))
+    );
+    listener.metricChange(mockMetric(
+      KAFKA_METRIC_GROUP,
+      KAFKA_METRIC_NAME,
+      BigInteger.valueOf(5),
+      ImmutableMap.of("store-id", "s2", "task-id", "t1", "thread-id", TRANSIENT_THREAD_ID))
+    );
+    
+    // Then:
+    final AtomicInteger numStatefulTasksValue = (AtomicInteger) numStatefulTasksGauge.value(null, 0);
+    assertEquals(numStatefulTasksValue.intValue(), 2);
   }
 
   private KafkaMetric mockMetric(

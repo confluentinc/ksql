@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,6 +53,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private static Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
+  private static AtomicInteger numberStatefulTasks;
 
   public StorageUtilizationMetricsReporter() {
   }
@@ -66,6 +68,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         map.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
     );
     this.metricsSeen = new HashMap<>();
+    this.numberStatefulTasks = new AtomicInteger(0);
   }
 
   public static void configureShared(
@@ -85,7 +88,8 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         metricRegistry.metricName("storage_utilization", METRIC_GROUP, customTags);
     final MetricName maxTaskPerNode = 
         metricRegistry.metricName("max_task_storage_used_bytes", METRIC_GROUP, customTags);
-
+    final MetricName numStatefulTasks =
+        metricRegistry.metricName("num_stateful_tasks", METRIC_GROUP, customTags);
     metricRegistry.addMetric(
         nodeAvailable,
         (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
@@ -107,6 +111,10 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     metricRegistry.addMetric(
         maxTaskPerNode,
         (Gauge<BigInteger>) (config, now) -> (getMaxTaskUsage())
+    );
+    metricRegistry.addMetric(
+        numStatefulTasks,
+        (Gauge<AtomicInteger>) (config, now) -> (numberStatefulTasks)
     );
   }
 
@@ -183,6 +191,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     final TaskStorageMetric newMetric;
     // We haven't seen a metric for this query's task before
     if (!metricsSeen.get(queryId).containsKey(taskId)) {
+      numberStatefulTasks.getAndIncrement();
       // create a new task level metric to track state store storage usage
       newMetric = new TaskStorageMetric(
         metricRegistry.metricName(
@@ -212,6 +221,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   ) {
     // remove storage metric for this task
     taskMetric.remove(metric);
+    numberStatefulTasks.getAndDecrement();
     if (taskMetric.metrics.size() == 0) {
       // no more storage metrics for this task, can remove task gauge
       metricRegistry.removeMetric(taskMetric.metricName);

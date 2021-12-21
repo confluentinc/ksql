@@ -84,7 +84,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     final MetricName nodePct =
         metricRegistry.metricName("storage_utilization", METRIC_GROUP, customTags);
     final MetricName maxTaskPerNode = 
-      metricRegistry.metricName("max_task_storage_used_bytes", METRIC_GROUP, customTags);
+        metricRegistry.metricName("max_task_storage_used_bytes", METRIC_GROUP, customTags);
 
     metricRegistry.addMetric(
         nodeAvailable,
@@ -105,8 +105,8 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
             / (double) baseDir.getTotalSpace())
     );
     metricRegistry.addMetric(
-      maxTaskPerNode,
-      (Gauge<BigInteger>) (config, now) -> (getMaxTaskUsage())
+        maxTaskPerNode,
+        (Gauge<BigInteger>) (config, now) -> (getMaxTaskUsage())
     );
   }
 
@@ -236,14 +236,17 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   }
   
   public static synchronized BigInteger getMaxTaskUsage() {
-    Collection<KafkaMetric> taskMetrics = metricRegistry
-      .metrics()
-      .entrySet()
-      .stream()
-      .filter(e -> e.getKey().name().contains("task_storage_used_bytes"))
-      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
-      .values();
-    Optional<BigInteger> maxOfTaskMetrics = taskMetrics.stream().map(e -> (BigInteger) e.metricValue()).reduce(BigInteger::max);
+    final Collection<KafkaMetric> taskMetrics = metricRegistry
+        .metrics()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getKey().name().contains("task_storage_used_bytes"))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+        .values();
+    final Optional<BigInteger> maxOfTaskMetrics = taskMetrics
+        .stream()
+        .map(e -> (BigInteger) e.metricValue())
+        .reduce(BigInteger::max);
     return maxOfTaskMetrics.orElse(BigInteger.ZERO);
   }
 

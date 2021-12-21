@@ -3,7 +3,9 @@ package io.confluent.ksql.internal;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
@@ -16,6 +18,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
@@ -35,6 +38,7 @@ public class StorageUtilizationMetricsReporterTest {
 
   private static final String KAFKA_METRIC_NAME = "total-sst-files-size";
   private static final String KAFKA_METRIC_GROUP = "streams-metric";
+  private static final String KSQL_METRIC_GROUP = "ksqldb_utilization";
   private static final String THREAD_ID = "_confluent_blahblah_query_CTAS_TEST_1-blahblah";
   private static final String TRANSIENT_THREAD_ID = "_confluent_blahblah_transient_blahblah_4-blahblah";
   private static final String TASK_STORAGE_METRIC = "task_storage_used_bytes";
@@ -85,12 +89,15 @@ public class StorageUtilizationMetricsReporterTest {
     final Object storageUsedValue = storageUsedGauge.value(null, 0);
     final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", BASE_TAGS);
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
-
+    final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_task_storage_used_bytes", BASE_TAGS);
+    final Object maxTaskUsageValue = maxTaskUsageGauge.value(null, 0);
+    
     // Then:
     assertThat((Long) storageFreeValue, greaterThan(0L));
     assertThat((Long) storageTotalValue, greaterThan(0L));
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
+    assertThat((BigInteger) maxTaskUsageValue, greaterThanOrEqualTo(BigInteger.ZERO));
   }
 
   @Test
@@ -252,6 +259,32 @@ public class StorageUtilizationMetricsReporterTest {
 
     // Then:
     assertThrows(AssertionError.class, () -> verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS));
+  }
+  
+  @Test
+  public void shouldRecordMaxTaskUsage() {
+    // Given:
+    KafkaMetric m1 = mockMetric(
+      KSQL_METRIC_GROUP,
+      TASK_STORAGE_METRIC,
+      BigInteger.valueOf(2),
+      ImmutableMap.of("task-id", "t1"));
+    KafkaMetric m2 = mockMetric(
+      KSQL_METRIC_GROUP,
+      TASK_STORAGE_METRIC,
+      BigInteger.valueOf(5),
+      ImmutableMap.of("task-id", "t2"));
+    MetricName n1 = m1.metricName();
+    MetricName n2 = m2.metricName();
+    when(metrics.metrics()).thenReturn(ImmutableMap.of(n1, m1, n2, m2));
+    
+    // When:
+    listener.metricChange(m1);
+    listener.metricChange(m2);
+    
+    // Then:
+    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage();
+    assertTrue(maxVal.equals(BigInteger.valueOf(5)));
   }
 
   private KafkaMetric mockMetric(

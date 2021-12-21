@@ -114,7 +114,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     );
     metricRegistry.addMetric(
         numStatefulTasks,
-        (Gauge<AtomicInteger>) (config, now) -> (numberStatefulTasks)
+        (Gauge<Integer>) (config, now) -> (numberStatefulTasks.get())
     );
   }
 

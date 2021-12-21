@@ -96,7 +96,7 @@ public class StorageUtilizationMetricsReporterTest {
     final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_task_storage_used_bytes", BASE_TAGS);
     final Object maxTaskUsageValue = maxTaskUsageGauge.value(null, 0);
     final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
-    final AtomicInteger numStatefulTasksValue = (AtomicInteger) numStatefulTasksGauge.value(null, 0);
+    final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);
     
     // Then:
     assertThat((Long) storageFreeValue, greaterThan(0L));
@@ -104,7 +104,7 @@ public class StorageUtilizationMetricsReporterTest {
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
     assertThat((BigInteger) maxTaskUsageValue, greaterThanOrEqualTo(BigInteger.ZERO));
-    assertEquals(numStatefulTasksValue.intValue(), 0);
+    assertEquals((int) numStatefulTasksValue, 0);
   }
 
   @Test
@@ -316,8 +316,8 @@ public class StorageUtilizationMetricsReporterTest {
     );
     
     // Then:
-    final AtomicInteger numStatefulTasksValue = (AtomicInteger) numStatefulTasksGauge.value(null, 0);
-    assertEquals(numStatefulTasksValue.intValue(), 2);
+    final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);
+    assertEquals((int) numStatefulTasksValue, 2);
   }
 
   private KafkaMetric mockMetric(

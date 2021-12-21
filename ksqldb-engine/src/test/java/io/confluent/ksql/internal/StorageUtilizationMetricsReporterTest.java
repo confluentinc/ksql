@@ -293,6 +293,18 @@ public class StorageUtilizationMetricsReporterTest {
     BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage();
     assertTrue(maxVal.equals(BigInteger.valueOf(5)));
   }
+
+  @Test
+  public void shouldRecordMaxTaskUsageWithNoTasks() {
+    // Given:
+    when(metrics.metrics()).thenReturn(Collections.EMPTY_MAP);
+
+    // When:
+
+    // Then:
+    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage();
+    assertTrue(maxVal.equals(BigInteger.valueOf(0)));
+  }
   
   @Test
   public void shouldRecordNumStatefulTasks() {

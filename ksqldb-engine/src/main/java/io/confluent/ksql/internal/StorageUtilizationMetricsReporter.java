@@ -53,7 +53,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private static Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
-  private static AtomicInteger numberStatefulTasks;
+  private static AtomicInteger numberStatefulTasks = new AtomicInteger(0);
 
   public StorageUtilizationMetricsReporter() {
   }
@@ -68,7 +68,6 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         map.get(KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG)
     );
     this.metricsSeen = new HashMap<>();
-    this.numberStatefulTasks = new AtomicInteger(0);
   }
 
   public static void configureShared(
@@ -114,7 +113,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     );
     metricRegistry.addMetric(
         numStatefulTasks,
-        (Gauge<Integer>) (config, now) -> (numberStatefulTasks!= null ? numberStatefulTasks.get() : 0)
+        (Gauge<Integer>) (config, now) -> (numberStatefulTasks.get())
     );
   }
 

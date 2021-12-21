@@ -114,7 +114,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     );
     metricRegistry.addMetric(
         numStatefulTasks,
-        (Gauge<Integer>) (config, now) -> (numberStatefulTasks.get())
+        (Gauge<Integer>) (config, now) -> (numberStatefulTasks!= null ? numberStatefulTasks.get() : 0)
     );
   }
 
@@ -246,6 +246,9 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   }
   
   public static synchronized BigInteger getMaxTaskUsage() {
+    if (metricRegistry == null) {
+      return BigInteger.ZERO;
+    }
     final Collection<KafkaMetric> taskMetrics = metricRegistry
         .metrics()
         .entrySet()

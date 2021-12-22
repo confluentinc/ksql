@@ -534,7 +534,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_HEADERS_COLUMNS_ENABLED =
       "ksql.headers.columns.enabled";
-  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = true;
   public static final String KSQL_HEADERS_COLUMNS_ENABLED_DOC =
       "Feature flag that allows the use of kafka headers columns on streams and tables. "
           + "If false, the HEADERS and HEADER(<key>) columns constraints won't be allowed "

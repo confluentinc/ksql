@@ -78,6 +78,7 @@ public class PullQueryLimitHARoutingTest {
     private static final UserDataProviderBig USER_PROVIDER = new UserDataProviderBig();
     private static final int TOTAL_RECORDS = USER_PROVIDER.getNumRecords();
     private static final int HEADER = 1;
+    private static final int FOOTER = 1;
     private static final int LIMIT_REACHED_MESSAGE = 1;
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
@@ -233,7 +234,7 @@ public class PullQueryLimitHARoutingTest {
     public void shouldReturnLimitRowsMultiHostSetupTable() {
         // Given:
         final int numLimitRows = 300;
-        final int limitSubsetSize = HEADER + numLimitRows;
+        final int limitSubsetSize = HEADER + numLimitRows + LIMIT_REACHED_MESSAGE;
 
         // check for lags reported for every app
         for (TestApp testApp : ALL_TEST_APPS) {
@@ -252,7 +253,7 @@ public class PullQueryLimitHARoutingTest {
                 sqlTableScan, null, USER_CREDS);
 
         //check that we got back all the rows
-        assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS));
+        assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS + FOOTER));
 
         // issue pull query with limit
         final List<StreamedRow> rows_1 = makePullQueryRequest(TEST_APP_0.getApp(),
@@ -280,7 +281,7 @@ public class PullQueryLimitHARoutingTest {
                 sqlTableScan, null, USER_CREDS);
 
         // check that we get all rows back
-        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS));
+        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS + FOOTER));
         assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
         // issue pull query with limit after partitioning an app

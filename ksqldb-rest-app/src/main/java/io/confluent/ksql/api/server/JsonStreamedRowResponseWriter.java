@@ -15,23 +15,31 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.TombstoneFactory;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,10 +50,12 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   private final HttpServerResponse response;
   private final Optional<TombstoneFactory> tombstoneFactory;
 
+
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public JsonStreamedRowResponseWriter(
       final HttpServerResponse response,
-      final QueryPublisher queryPublisher) {
+      final QueryPublisher queryPublisher
+  ) {
     this.response = response;
     this.tombstoneFactory = queryPublisher.getResultType().map(
         resultType -> TombstoneFactory.create(queryPublisher.geLogicalSchema(), resultType));
@@ -63,13 +73,22 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final KeyValue<List<?>, GenericRow> keyValue) {
+  public QueryStreamResponseWriter writeRow(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
+  ) {
+    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
     final StreamedRow streamedRow;
     if (keyValue.value() == null) {
       Preconditions.checkState(tombstoneFactory.isPresent(),
           "Should only have null values for query types that support them");
       streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
+    } else if (keyValueMetadata.getRowMetadata().isPresent()
+        && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
+      streamedRow = StreamedRow.pullRow(keyValue.value(),
+          toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
     } else {
+      // Technically, this codepath is for both push and pull, but where there's no additional
+      // metadata, as there sometimes is with a pull query.
       streamedRow = StreamedRow.pushRow(keyValue.value());
     }
     writeBuffer(serializeObject(streamedRow));
@@ -137,5 +156,15 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Failed to serialize buffer", e);
     }
+  }
+
+  /**
+   * Converts the KsqlHostInfo to KsqlHostInfoEntity
+   */
+  private static Optional<KsqlHostInfoEntity> toKsqlHostInfoEntity(
+      final Optional<KsqlHostInfo> ksqlNode
+  ) {
+    return ksqlNode.map(
+        node -> new KsqlHostInfoEntity(node.host(), node.port()));
   }
 }

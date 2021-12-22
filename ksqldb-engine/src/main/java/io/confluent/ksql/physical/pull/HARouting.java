@@ -443,7 +443,7 @@ public final class HARouting implements AutoCloseable {
           }
 
           if (!row.getRow().isPresent()) {
-            if (row.getConsistencyToken().isPresent()) {
+            if (row.getFinalMessage().isPresent() || row.getConsistencyToken().isPresent()) {
               continue;
             } else {
               throw new KsqlException("Missing row data on row " + i + " of chunk");

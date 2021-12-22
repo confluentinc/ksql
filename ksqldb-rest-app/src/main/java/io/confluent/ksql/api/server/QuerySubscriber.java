@@ -68,7 +68,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleValue(final KeyValueMetadata<List<?>, GenericRow> row) {
-    if (row.getRowMetadata().isPresent()) {
+    if (row.getRowMetadata().isPresent() && row.getRowMetadata().get().isStandaloneRow()) {
       // Only one of the metadata are present at a time
       if (row.getRowMetadata().get().getPushOffsetsRange().isPresent()) {
         queryStreamResponseWriter.writeContinuationToken(new PushContinuationToken(
@@ -78,7 +78,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
             row.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
       }
     } else {
-      queryStreamResponseWriter.writeRow(row.getKeyValue());
+      queryStreamResponseWriter.writeRow(row);
     }
     tokens--;
     if (response.writeQueueFull()) {

@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import java.util.List;
 
 /**
@@ -30,7 +31,7 @@ public interface QueryStreamResponseWriter {
 
   QueryStreamResponseWriter writeMetadata(QueryResponseMetadata metaData);
 
-  QueryStreamResponseWriter writeRow(KeyValue<List<?>, GenericRow> row);
+  QueryStreamResponseWriter writeRow(KeyValueMetadata<List<?>, GenericRow> row);
 
   QueryStreamResponseWriter writeContinuationToken(PushContinuationToken pushContinuationToken);
 

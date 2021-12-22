@@ -712,7 +712,7 @@ public class PushRouting implements AutoCloseable {
       }
       if (!currentOffsetRange.isPresent() || pushRoutingOptions.shouldOutputContinuationToken()) {
         final Optional<RowMetadata> rowMetadata = currentOffsetRange.map(
-            or -> new RowMetadata(Optional.of(or), Optional.empty()));
+            RowMetadata::of);
         final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
             ? new KeyValueMetadata<>(rowMetadata.get())
             : new KeyValueMetadata<>(
@@ -778,7 +778,7 @@ public class PushRouting implements AutoCloseable {
       }
       if (!currentOffsetRange.isPresent() || pushRoutingOptions.shouldOutputContinuationToken()) {
         final Optional<RowMetadata> rowMetadata = currentOffsetRange.map(
-            t -> new RowMetadata(Optional.of(t), Optional.empty()));
+            RowMetadata::of);
         final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata = rowMetadata.isPresent()
             ? new KeyValueMetadata<>(rowMetadata.get())
             : new KeyValueMetadata<>(new KeyValue<>(null, row.value()));

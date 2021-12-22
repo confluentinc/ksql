@@ -109,7 +109,13 @@ public class QueryEndpoint {
       final PullQueryResult result = queryMetadataHolder.getPullQueryResult().get();
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true, false);
+      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics,
+          statement.getPreparedStatement().getStatementText()), true, false);
+
+      // Start from the worker thread so that errors can bubble up, and we can get a proper response
+      // code rather than waiting until later after the header has been written and all we can do
+      // is write an error message.
+      publisher.startFromWorkerThread();
       return publisher;
     } else if (queryMetadataHolder.getPushQueryMetadata().isPresent()) {
       final PushQueryMetadata metadata = queryMetadataHolder.getPushQueryMetadata().get();
@@ -233,12 +239,16 @@ public class QueryEndpoint {
 
     private final PullQueryResult result;
     private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
+    private final String statementText;
     private final CompletableFuture<Void> future = new CompletableFuture<>();
 
     KsqlPullQueryHandle(final PullQueryResult result,
-        final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
+        final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+        final String statementText
+    ) {
       this.result = Objects.requireNonNull(result);
       this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+      this.statementText = statementText;
     }
 
     @Override
@@ -259,12 +269,16 @@ public class QueryEndpoint {
     @Override
     public void start() {
       try {
-        result.start();
         result.onException(future::completeExceptionally);
         result.onCompletion(future::complete);
+        result.start();
       } catch (Exception e) {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
             result.getPlanType(), result.getRoutingNodeType()));
+        // Let this error bubble up since start is called from the worker thread and will fail the
+        // query.
+        throw new KsqlStatementException("Error starting pull query: " + e.getMessage(),
+            statementText, e);
       }
     }
 

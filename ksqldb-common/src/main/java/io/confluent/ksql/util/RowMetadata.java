@@ -21,17 +21,39 @@ import java.util.Optional;
 /**
  * Any metadata sent alongside or independent of a row.
  */
-public class RowMetadata {
+public final class RowMetadata {
 
   private final Optional<PushOffsetRange> pushOffsetsRange;
   private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
+  private final Optional<KsqlHostInfo> sourceNode;
 
-  public RowMetadata(
+  public static RowMetadata of(
+      final PushOffsetRange pushOffsetsRange
+  ) {
+    return new RowMetadata(Optional.of(pushOffsetsRange), Optional.empty(), Optional.empty());
+  }
+
+  public static RowMetadata of(
+      final ConsistencyOffsetVector consistencyOffsetVector
+  ) {
+    return new RowMetadata(Optional.empty(), Optional.of(consistencyOffsetVector),
+        Optional.empty());
+  }
+
+  public static RowMetadata of(
+      final KsqlHostInfo sourceNode
+  ) {
+    return new RowMetadata(Optional.empty(), Optional.empty(), Optional.of(sourceNode));
+  }
+
+  private RowMetadata(
       final Optional<PushOffsetRange> pushOffsetsRange,
-      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector,
+      final Optional<KsqlHostInfo> sourceNode
   ) {
     this.pushOffsetsRange = pushOffsetsRange;
     this.consistencyOffsetVector = consistencyOffsetVector;
+    this.sourceNode = sourceNode;
   }
 
   public Optional<PushOffsetRange> getPushOffsetsRange() {
@@ -40,6 +62,14 @@ public class RowMetadata {
 
   public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
     return consistencyOffsetVector;
+  }
+
+  public Optional<KsqlHostInfo> getSourceNode() {
+    return sourceNode;
+  }
+
+  public boolean isStandaloneRow() {
+    return pushOffsetsRange.isPresent() || consistencyOffsetVector.isPresent();
   }
 
   @Override

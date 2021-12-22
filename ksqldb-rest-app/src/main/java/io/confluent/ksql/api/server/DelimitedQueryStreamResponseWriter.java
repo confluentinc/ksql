@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
@@ -63,7 +64,10 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeRow(final KeyValue<List<?>, GenericRow> keyValue) {
+  public QueryStreamResponseWriter writeRow(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
+  ) {
+    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
     if (keyValue.value() == null) {
       LOG.warn("Dropped tombstone. Not currently supported");
     } else {

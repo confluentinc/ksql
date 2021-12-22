@@ -348,6 +348,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
     if (overrides.containsKey(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
       return (Boolean) overrides.get(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
     }
-    return ksqlRestConfig.getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
   }
 }

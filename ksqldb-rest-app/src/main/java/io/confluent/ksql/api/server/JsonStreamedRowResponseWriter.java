@@ -15,16 +15,12 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.spi.QueryPublisher;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
@@ -39,7 +35,6 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Optional;
 

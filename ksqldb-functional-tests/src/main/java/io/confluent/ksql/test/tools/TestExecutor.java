@@ -84,6 +84,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -574,7 +575,9 @@ public class TestExecutor implements Closeable {
         () -> new DefaultConnectClient(
             "http://localhost:8083",
             Optional.empty(),
-            Collections.emptyMap()),
+            Collections.emptyMap(),
+            Optional.empty(),
+            false),
         DisabledKsqlClient::instance,
         new StubKafkaConsumerGroupClient()
     );

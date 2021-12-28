@@ -119,6 +119,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String BASIC_AUTH_CREDENTIALS_USERNAME = "username";
   public static final String BASIC_AUTH_CREDENTIALS_PASSWORD = "password";
 
+  public static final String SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG =
+      SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG;
+  public static final String SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_HTTPS = "https";
+  public static final String SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_NONE = "none";
+
   public static final String CONNECT_BASIC_AUTH_CREDENTIALS_FILE_PROPERTY =
       KSQL_CONNECT_PREFIX + "basic.auth.credentials.file";
   public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =

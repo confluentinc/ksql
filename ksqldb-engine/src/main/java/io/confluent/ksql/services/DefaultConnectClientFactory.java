@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.connect.ConnectRequestHeadersExtension;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.FileWatcher;
@@ -25,10 +26,13 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import javax.net.ssl.SSLContext;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,13 +83,18 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
       connectAuthHeader = buildAuthHeader();
     }
 
+    final Map<String, Object> configWithPrefixOverrides =
+        ksqlConfig.valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX);
+
     return new DefaultConnectClient(
         ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
         // if no custom auth is configured, then forward incoming request header
         isCustomBasicAuthConfigured() ? connectAuthHeader : ksqlAuthHeader,
         requestHeadersExtension
             .map(extension -> extension.getHeaders(userPrincipal))
-            .orElse(Collections.emptyMap())
+            .orElse(Collections.emptyMap()),
+        Optional.ofNullable(newSslContext(configWithPrefixOverrides)),
+        shouldVerifySslHostname(configWithPrefixOverrides)
     );
   }
 
@@ -153,6 +162,32 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
     } catch (IOException e) {
       log.error("Failed to load credentials file: " + e.getMessage());
       return Optional.empty();
+    }
+  }
+
+  private static SSLContext newSslContext(final Map<String, Object> config) {
+    final DefaultSslEngineFactory sslFactory = new DefaultSslEngineFactory();
+    sslFactory.configure(config);
+    return sslFactory.sslContext();
+  }
+
+  @VisibleForTesting
+  static boolean shouldVerifySslHostname(final Map<String, Object> config) {
+    final Object endpointIdentificationAlgoConfig =
+        config.get(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG);
+    if (endpointIdentificationAlgoConfig == null) {
+      return false;
+    }
+    final String endpointIdentificationAlgo = endpointIdentificationAlgoConfig.toString();
+    if (endpointIdentificationAlgo.isEmpty() || endpointIdentificationAlgo
+        .equalsIgnoreCase(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_NONE)) {
+      return false;
+    } else if (endpointIdentificationAlgo
+        .equalsIgnoreCase(KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_HTTPS)) {
+      return true;
+    } else {
+      throw new ConfigException("Endpoint identification algorithm not supported: "
+          + endpointIdentificationAlgo);
     }
   }
 }

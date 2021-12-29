@@ -228,7 +228,8 @@ public class MigrationsTest {
         "CREATE STREAM ${streamName} (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
-            "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
+            "DEFINE connectorName = 'D';" +
+            "CREATE SINK CONNECTOR ${connectorName} WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
             "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING, H BYTES HEADER('a')) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
             "DROP TABLE blue;" +
             "DEFINE onlyDefinedInFile1 = 'nope';"
@@ -251,7 +252,8 @@ public class MigrationsTest {
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
             "UnSET 'ksql.output.topic.name.prefix';" +
             "CREATE STREAM CAR AS SELECT * FROM FOO;" +
-            "DROP CONNECTOR D;" +
+            "DEFINE connectorName = 'D';" +
+            "DROP CONNECTOR ${connectorName};" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +
             "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;" +
             "DEFINE suffix = 'OMES';" +

@@ -221,7 +221,7 @@ public final class CommandParser {
       case INSERT_VALUES:
         return getInsertValuesStatement(sql, variables);
       case CREATE_CONNECTOR:
-        return getCreateConnectorStatement(sql);
+        return getCreateConnectorStatement(sql, variables);
       case DROP_CONNECTOR:
         return getDropConnectorStatement(sql);
       case STATEMENT:
@@ -262,11 +262,18 @@ public final class CommandParser {
             .map(ColumnName::text).collect(Collectors.toList()));
   }
 
-  private static SqlCreateConnectorStatement getCreateConnectorStatement(final String sql) {
+  private static SqlCreateConnectorStatement getCreateConnectorStatement(
+      final String sql,
+      final Map<String, String> variables
+  ) {
     final CreateConnector createConnector;
     try {
+      final String substituted = VariableSubstitutor.substitute(
+          KSQL_PARSER.parse(sql).get(0),
+          variables
+      );
       createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     } catch (ParseFailedException e) {
       throw new MigrationException(String.format(
           "Failed to parse CREATE CONNECTOR statement. Statement: %s. Reason: %s",

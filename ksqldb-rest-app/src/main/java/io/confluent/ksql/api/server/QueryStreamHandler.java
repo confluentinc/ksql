@@ -111,7 +111,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private QueryStreamResponseWriter getQueryStreamResponseWriter(
       final RoutingContext routingContext,
-      final QueryPublisher queryPublisher
+      final QueryPublisher queryPublisher,
+      final Optional<String> completionMessage,
+      final Optional<String> limitMessage
   ) {
     final String contentType = routingContext.getAcceptableContentType();
     if (DELIMITED_CONTENT_TYPE.equals(contentType)
@@ -121,7 +123,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     } else if (KsqlMediaType.KSQL_V1_JSON.mediaType().equals(contentType)
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
-      return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher);
+      return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher,
+          completionMessage, limitMessage);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -164,7 +167,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   ) {
 
     final QueryResponseMetadata metadata;
-    final Optional<String> completionMessage;
+    final Optional<String> completionMessage = Optional.empty();
+    Optional<String> limitMessage = Optional.of("Limit Reached");
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -172,7 +176,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
-      completionMessage = Optional.of("Pull query complete");
+      limitMessage = Optional.empty();
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
@@ -189,7 +193,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
-      completionMessage = Optional.empty();
+
       routingContext.response().endHandler(v -> {
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
@@ -207,7 +211,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
-      completionMessage = Optional.empty();
 
       // When response is complete, publisher should be closed and query unregistered
       routingContext.response().endHandler(v -> {
@@ -221,11 +224,12 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     }
 
     final QueryStreamResponseWriter queryStreamResponseWriter
-        = getQueryStreamResponseWriter(routingContext, queryPublisher);
+        = getQueryStreamResponseWriter(routingContext, queryPublisher, completionMessage,
+        limitMessage);
     queryStreamResponseWriter.writeMetadata(metadata);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,
-        routingContext.response(), queryStreamResponseWriter, completionMessage,
+        routingContext.response(), queryStreamResponseWriter,
         queryPublisher::hitLimit);
 
     queryPublisher.subscribe(querySubscriber);

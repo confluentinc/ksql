@@ -44,16 +44,23 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
 
   private final HttpServerResponse response;
   private final Optional<TombstoneFactory> tombstoneFactory;
+  private final Optional<String> completionMessage;
+  private final Optional<String> limitMessage;
+  private KeyValueMetadata<List<?>, GenericRow> lastRow;
 
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public JsonStreamedRowResponseWriter(
       final HttpServerResponse response,
-      final QueryPublisher queryPublisher
+      final QueryPublisher queryPublisher,
+      final Optional<String> completionMessage,
+      final Optional<String> limitMessage
   ) {
     this.response = response;
     this.tombstoneFactory = queryPublisher.getResultType().map(
         resultType -> TombstoneFactory.create(queryPublisher.geLogicalSchema(), resultType));
+    this.completionMessage = completionMessage;
+    this.limitMessage = limitMessage;
   }
 
   @Override
@@ -71,22 +78,17 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   public QueryStreamResponseWriter writeRow(
       final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata
   ) {
-    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
-    final StreamedRow streamedRow;
-    if (keyValue.value() == null) {
-      Preconditions.checkState(tombstoneFactory.isPresent(),
-          "Should only have null values for query types that support them");
-      streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
-    } else if (keyValueMetadata.getRowMetadata().isPresent()
-        && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
-      streamedRow = StreamedRow.pullRow(keyValue.value(),
-          toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
+    // If there's no completion or limit message, we buffer a row to make sure we write proper json
+    // and don't leave a trailing comma before the end.
+    if (!(completionMessage.isPresent() || limitMessage.isPresent())) {
+      final KeyValueMetadata<List<?>, GenericRow> lastRow = this.lastRow;
+      this.lastRow = keyValueMetadata;
+      if (lastRow != null) {
+        doWriteRow(lastRow, false);
+      }
     } else {
-      // Technically, this codepath is for both push and pull, but where there's no additional
-      // metadata, as there sometimes is with a pull query.
-      streamedRow = StreamedRow.pushRow(keyValue.value());
+      doWriteRow(keyValueMetadata, false);
     }
-    writeBuffer(serializeObject(streamedRow));
     return this;
   }
 
@@ -113,22 +115,59 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
-    final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage);
-    writeBuffer(serializeObject(streamedRow), true);
+  public QueryStreamResponseWriter writeCompletionMessage() {
+    if (completionMessage.isPresent()) {
+      writeLastRow(false);
+      final StreamedRow streamedRow = StreamedRow.finalMessage(completionMessage.get());
+      writeBuffer(serializeObject(streamedRow), true);
+    }
     return this;
   }
 
   @Override
   public QueryStreamResponseWriter writeLimitMessage() {
-    final StreamedRow streamedRow = StreamedRow.finalMessage("Limit Reached");
-    writeBuffer(serializeObject(streamedRow), true);
+    if (limitMessage.isPresent()) {
+      writeLastRow(false);
+      final StreamedRow streamedRow = StreamedRow.finalMessage(limitMessage.get());
+      writeBuffer(serializeObject(streamedRow), true);
+    }
     return this;
   }
 
   @Override
   public void end() {
+    writeLastRow(true);
     response.write("]").end();
+  }
+
+  private void writeLastRow(final boolean isLast) {
+    final KeyValueMetadata<List<?>, GenericRow> lastRow = this.lastRow;
+    this.lastRow = null;
+    if (lastRow != null) {
+      doWriteRow(lastRow, isLast);
+    }
+  }
+
+  private void doWriteRow(
+      final KeyValueMetadata<List<?>, GenericRow> keyValueMetadata,
+      final boolean isLast
+  ) {
+    final KeyValue<List<?>, GenericRow> keyValue = keyValueMetadata.getKeyValue();
+    final StreamedRow streamedRow;
+    if (keyValue.value() == null) {
+      Preconditions.checkState(tombstoneFactory.isPresent(),
+          "Should only have null values for query types that support them");
+      streamedRow = StreamedRow.tombstone(tombstoneFactory.get().createRow(keyValue));
+    } else if (keyValueMetadata.getRowMetadata().isPresent()
+        && keyValueMetadata.getRowMetadata().get().getSourceNode().isPresent()) {
+      streamedRow = StreamedRow.pullRow(keyValue.value(),
+          toKsqlHostInfoEntity(keyValueMetadata.getRowMetadata().get().getSourceNode()));
+    } else {
+      // Technically, this codepath is for both push and pull, but where there's no additional
+      // metadata, as there sometimes is with a pull query.
+      streamedRow = StreamedRow.pushRow(keyValue.value());
+    }
+    writeBuffer(serializeObject(streamedRow), isLast);
   }
 
   private void writeBuffer(final Buffer buffer) {

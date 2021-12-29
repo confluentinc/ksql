@@ -28,7 +28,6 @@ import io.vertx.core.Context;
 import io.vertx.core.http.HttpServerResponse;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -45,19 +44,16 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   private final HttpServerResponse response;
   private final QueryStreamResponseWriter queryStreamResponseWriter;
-  private final Optional<String> completionMessage;
   private final Supplier<Boolean> hitLimit;
   private int tokens;
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public QuerySubscriber(final Context context, final HttpServerResponse response,
       final QueryStreamResponseWriter queryStreamResponseWriter,
-      final Optional<String> completionMessage,
       final Supplier<Boolean> hitLimit) {
     super(context);
     this.response = Objects.requireNonNull(response);
     this.queryStreamResponseWriter = Objects.requireNonNull(queryStreamResponseWriter);
-    this.completionMessage = completionMessage;
     this.hitLimit = hitLimit;
   }
 
@@ -108,7 +104,7 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
     if (hitLimit.get()) {
       queryStreamResponseWriter.writeLimitMessage();
     } else {
-      completionMessage.ifPresent(queryStreamResponseWriter::writeCompletionMessage);
+      queryStreamResponseWriter.writeCompletionMessage();
     }
     queryStreamResponseWriter.end();
   }

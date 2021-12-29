@@ -710,7 +710,8 @@ final class EngineExecutor {
         sink,
         metaStore,
         ksqlConfig,
-        getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides())
+        getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
+        statement.getStatementText()
     );
 
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(

@@ -46,7 +46,6 @@ import static org.junit.Assert.fail;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -67,7 +66,6 @@ import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.ServiceContext;
@@ -871,15 +869,14 @@ public class RestApiTest {
     };
 
     // When:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1 + FOOTER));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
 
     // Then:
-    assertThat(messages, hasSize(HEADER + 1 + FOOTER));
+    assertThat(messages, hasSize(HEADER + 1));
     assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
     assertThat(messages.get(0),
         endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
-    assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
   @Test
@@ -974,22 +971,15 @@ public class RestApiTest {
                 return Arrays.asList(response.split(System.lineSeparator()));
               };
 
-              boolean hasFooter = endpoint.equals("/query-stream") || migrated;
-              int footerCount = hasFooter ? 1 : 0;
-
               // When:
               final List<String> messages = assertThatEventually(call,
-                  hasSize(HEADER + 1 + footerCount));
+                  hasSize(HEADER + 1));
               // Then:
-              assertThat(messages, hasSize(HEADER + 1 + footerCount));
+              assertThat(messages, hasSize(HEADER + 1));
               assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
               assertThat(messages.get(0),
                   endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-              assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"
-                  + (hasFooter ? "," : "]")));
-              if (hasFooter) {
-                assertThat(messages.get(2), is("{\"finalMessage\":\"Pull query complete\"}]"));
-              }
+              assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
             } else {
               fail("Unknown format " + format);
               return;

@@ -101,7 +101,7 @@ public class JsonQueryStreamResponseWriter implements QueryStreamResponseWriter 
   }
 
   @Override
-  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
+  public QueryStreamResponseWriter writeCompletionMessage() {
     return this;
   }
 

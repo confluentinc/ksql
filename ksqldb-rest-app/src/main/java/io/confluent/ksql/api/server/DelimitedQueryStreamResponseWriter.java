@@ -96,7 +96,7 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
   }
 
   @Override
-  public QueryStreamResponseWriter writeCompletionMessage(final String completionMessage) {
+  public QueryStreamResponseWriter writeCompletionMessage() {
     return this;
   }
 

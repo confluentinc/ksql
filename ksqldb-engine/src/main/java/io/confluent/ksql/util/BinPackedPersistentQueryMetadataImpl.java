@@ -140,7 +140,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
-
   // for creating sandbox instances
   protected BinPackedPersistentQueryMetadataImpl(
           final BinPackedPersistentQueryMetadataImpl original,
@@ -309,7 +308,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public Collection<StreamsMetadata> getAllMetadata() {
     try {
-      return ImmutableList.copyOf(sharedKafkaStreamsRuntime.allMetadata());
+      return ImmutableList.copyOf(sharedKafkaStreamsRuntime.streamsMetadataForQuery(queryId));
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }

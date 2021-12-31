@@ -83,8 +83,8 @@ public abstract class SharedKafkaStreamsRuntime {
     return kafkaStreams.state();
   }
 
-  public Collection<StreamsMetadata> allMetadata() {
-    return kafkaStreams.metadataForAllStreamsClients();
+  public Collection<StreamsMetadata> streamsMetadataForQuery(final QueryId queryId) {
+    return kafkaStreams.streamsMetadataForTopology(queryId.toString());
   }
 
   public Set<StreamsTaskMetadata> getTaskMetadata() {

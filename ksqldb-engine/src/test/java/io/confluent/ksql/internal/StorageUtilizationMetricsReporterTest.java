@@ -104,7 +104,7 @@ public class StorageUtilizationMetricsReporterTest {
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
     assertThat((BigInteger) maxTaskUsageValue, greaterThanOrEqualTo(BigInteger.ZERO));
-    assertEquals((int) numStatefulTasksValue, 0);
+    assertEquals(numStatefulTasksValue, 7);
   }
 
   @Test
@@ -290,7 +290,7 @@ public class StorageUtilizationMetricsReporterTest {
     listener.metricChange(m2);
     
     // Then:
-    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage();
+    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
     assertTrue(maxVal.equals(BigInteger.valueOf(5)));
   }
 
@@ -302,7 +302,7 @@ public class StorageUtilizationMetricsReporterTest {
     // When:
 
     // Then:
-    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage();
+    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
     assertTrue(maxVal.equals(BigInteger.valueOf(0)));
   }
   

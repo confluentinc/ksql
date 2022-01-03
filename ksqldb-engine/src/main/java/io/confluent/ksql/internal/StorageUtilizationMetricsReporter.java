@@ -51,7 +51,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final String METRIC_GROUP = "ksqldb_utilization";
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
-  private static Metrics metricRegistry;
+  private Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
   private static AtomicInteger numberStatefulTasks = new AtomicInteger(0);
 
@@ -109,7 +109,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     );
     metricRegistry.addMetric(
         maxTaskPerNode,
-        (Gauge<BigInteger>) (config, now) -> (getMaxTaskUsage())
+        (Gauge<BigInteger>) (config, now) -> (getMaxTaskUsage(metricRegistry))
     );
     metricRegistry.addMetric(
         numStatefulTasks,
@@ -244,10 +244,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     return queryMetricSum;
   }
   
-  public static synchronized BigInteger getMaxTaskUsage() {
-    if (metricRegistry == null) {
-      return BigInteger.ZERO;
-    }
+  public static synchronized BigInteger getMaxTaskUsage(final Metrics metricRegistry) {
     final Collection<KafkaMetric> taskMetrics = metricRegistry
         .metrics()
         .entrySet()

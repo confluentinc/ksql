@@ -49,6 +49,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER
       = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
+  private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
@@ -194,7 +195,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       // create a new task level metric to track state store storage usage
       newMetric = new TaskStorageMetric(
         metricRegistry.metricName(
-          "task_storage_used_bytes",
+          TASK_STORAGE_USED_BYTES,
           METRIC_GROUP,
           taskMetricTags
         ));
@@ -249,7 +250,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         .metrics()
         .entrySet()
         .stream()
-        .filter(e -> e.getKey().name().contains("task_storage_used_bytes"))
+        .filter(e -> e.getKey().name().contains(TASK_STORAGE_USED_BYTES))
         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
         .values();
     final Optional<BigInteger> maxOfTaskMetrics = taskMetrics

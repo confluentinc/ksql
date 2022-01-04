@@ -57,6 +57,7 @@ public class KsMaterializationTest {
   public void shouldThrowNPEs() {
     new NullPointerTester()
         .setDefault(KsStateStore.class, stateStore)
+        .setDefault(KafkaStreams.class, kafkaStreams)
         .testConstructors(KsMaterialization.class, Visibility.PACKAGE);
   }
 

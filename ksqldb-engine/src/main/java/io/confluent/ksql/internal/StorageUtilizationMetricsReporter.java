@@ -27,8 +27,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,10 +49,12 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   private static final Logger LOGGER
       = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
+  private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
   private static Map<String, String> customTags = new HashMap<>();
+  private static AtomicInteger numberStatefulTasks = new AtomicInteger(0);
 
   public StorageUtilizationMetricsReporter() {
   }
@@ -82,7 +86,10 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         metricRegistry.metricName("node_storage_used_bytes", METRIC_GROUP, customTags);
     final MetricName nodePct =
         metricRegistry.metricName("storage_utilization", METRIC_GROUP, customTags);
-
+    final MetricName maxTaskPerNode = 
+        metricRegistry.metricName("max_task_storage_used_bytes", METRIC_GROUP, customTags);
+    final MetricName numStatefulTasks =
+        metricRegistry.metricName("num_stateful_tasks", METRIC_GROUP, customTags);
     metricRegistry.addMetric(
         nodeAvailable,
         (Gauge<Long>) (config, now) -> baseDir.getFreeSpace()
@@ -100,6 +107,14 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
         (Gauge<Double>) (config, now) -> 
         (((double) baseDir.getTotalSpace() - (double) baseDir.getFreeSpace()) 
             / (double) baseDir.getTotalSpace())
+    );
+    metricRegistry.addMetric(
+        maxTaskPerNode,
+        (Gauge<BigInteger>) (config, now) -> (getMaxTaskUsage(metricRegistry))
+    );
+    metricRegistry.addMetric(
+        numStatefulTasks,
+        (Gauge<Integer>) (config, now) -> (numberStatefulTasks.get())
     );
   }
 
@@ -176,10 +191,11 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     final TaskStorageMetric newMetric;
     // We haven't seen a metric for this query's task before
     if (!metricsSeen.get(queryId).containsKey(taskId)) {
+      numberStatefulTasks.getAndIncrement();
       // create a new task level metric to track state store storage usage
       newMetric = new TaskStorageMetric(
         metricRegistry.metricName(
-          "task_storage_used_bytes",
+          TASK_STORAGE_USED_BYTES,
           METRIC_GROUP,
           taskMetricTags
         ));
@@ -205,6 +221,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
   ) {
     // remove storage metric for this task
     taskMetric.remove(metric);
+    numberStatefulTasks.getAndDecrement();
     if (taskMetric.metrics.size() == 0) {
       // no more storage metrics for this task, can remove task gauge
       metricRegistry.removeMetric(taskMetric.metricName);
@@ -226,6 +243,21 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       queryMetricSum = queryMetricSum.add(gauge.get());
     }
     return queryMetricSum;
+  }
+  
+  public static synchronized BigInteger getMaxTaskUsage(final Metrics metricRegistry) {
+    final Collection<KafkaMetric> taskMetrics = metricRegistry
+        .metrics()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getKey().name().contains(TASK_STORAGE_USED_BYTES))
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+        .values();
+    final Optional<BigInteger> maxOfTaskMetrics = taskMetrics
+        .stream()
+        .map(e -> (BigInteger) e.metricValue())
+        .reduce(BigInteger::max);
+    return maxOfTaskMetrics.orElse(BigInteger.ZERO);
   }
 
   private synchronized Collection<Supplier<BigInteger>> getGaugesForQuery(final String queryId) {

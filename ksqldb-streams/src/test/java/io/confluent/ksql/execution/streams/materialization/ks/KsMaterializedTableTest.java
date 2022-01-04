@@ -41,6 +41,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.query.QueryResult;
+import org.apache.kafka.streams.query.StateQueryRequest;
+import org.apache.kafka.streams.query.StateQueryRequest.InStore;
+import org.apache.kafka.streams.query.StateQueryResult;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
@@ -77,6 +81,7 @@ public class KsMaterializedTableTest {
       = KeyValue.pair(A_KEY, VALUE_AND_TIMESTAMP1);
   private static final KeyValue<GenericKey, ValueAndTimestamp<GenericRow>> KEY_VALUE2
       = KeyValue.pair(A_KEY2, VALUE_AND_TIMESTAMP2);
+  private static final String STATE_STORE_NAME = "store";
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -86,6 +91,10 @@ public class KsMaterializedTableTest {
   private ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> tableStore;
   @Mock
   private KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> keyValueIterator;
+  @Mock
+  private StateQueryResult queryResult;
+  @Mock
+  private QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> result;
   @Captor
   private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
 
@@ -97,6 +106,7 @@ public class KsMaterializedTableTest {
 
     when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
+    when(stateStore.getStateStoreName()).thenReturn(STATE_STORE_NAME);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -104,6 +114,7 @@ public class KsMaterializedTableTest {
   public void shouldThrowNPEs() {
     new NullPointerTester()
         .setDefault(KsStateStore.class, stateStore)
+        .setDefault(KafkaStreams.class, kafkaStreams)
         .testConstructors(KsMaterializedTable.class, Visibility.PACKAGE);
   }
 
@@ -152,19 +163,6 @@ public class KsMaterializedTableTest {
   }
 
   @Test
-  public void shouldGetStoreWithCorrectParams_fullTableScan() {
-    // Given:
-    when(tableStore.all()).thenReturn(keyValueIterator);
-
-    // When:
-    table.get(PARTITION);
-
-    // Then:
-    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
-    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedKeyValueStoreType"));
-  }
-
-  @Test
   public void shouldGetWithCorrectParams() {
     // When:
     table.get(A_KEY, PARTITION);
@@ -199,7 +197,9 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldReturnValuesFullTableScan() {
     // Given:
-    when(tableStore.all()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(queryResult);
+    when(queryResult.getOnlyPartitionResult()).thenReturn(result);
+    when(result.getResult()).thenReturn(keyValueIterator);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
     when(keyValueIterator.next())
         .thenReturn(KEY_VALUE1)
@@ -217,7 +217,9 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldCloseIterator_fullTableScan() {
     // Given:
-    when(tableStore.all()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(queryResult);
+    when(queryResult.getOnlyPartitionResult()).thenReturn(result);
+    when(result.getResult()).thenReturn(keyValueIterator);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
     when(keyValueIterator.next())
         .thenReturn(KEY_VALUE1)

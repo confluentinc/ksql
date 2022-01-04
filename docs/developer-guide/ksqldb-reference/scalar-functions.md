@@ -890,7 +890,7 @@ REGEXP_EXTRACT('.*', col1)
 REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)
 ```
 
-Extract the first subtring matched by the regex pattern from the input.
+Extract the first substring matched by the regex pattern from the input.
 
 A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
 the entire substring is returned by default.

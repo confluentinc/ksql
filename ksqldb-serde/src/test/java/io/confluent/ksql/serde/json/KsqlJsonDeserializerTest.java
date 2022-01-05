@@ -40,8 +40,11 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.json.JsonSchemaConverter;
 import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator;
+import io.confluent.ksql.serde.connect.ConnectSRSchemaDataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
@@ -64,6 +67,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
+import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.storage.Converter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -144,9 +149,19 @@ public class KsqlJsonDeserializerTest {
 
   private Struct expectedOrder;
   private KsqlJsonDeserializer<Struct> deserializer;
+  private Converter converter;
+  private ConnectDataTranslator dataTranslator;
 
   @Before
   public void before() {
+    if (useSchemas) {
+      converter = new JsonSchemaConverter();
+      dataTranslator = new ConnectSRSchemaDataTranslator(ORDER_SCHEMA);
+    } else {
+      converter = new JsonConverter();
+      dataTranslator = new ConnectDataTranslator(ORDER_SCHEMA);
+    }
+
     expectedOrder = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)
         .put(ORDERID, 1L)
@@ -925,7 +940,13 @@ public class KsqlJsonDeserializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
+        () -> new KsqlJsonDeserializer<>(
+            schema,
+            false,
+            Struct.class,
+            converter,
+            dataTranslator
+        )
     );
 
     // Then:
@@ -950,7 +971,13 @@ public class KsqlJsonDeserializerTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> new KsqlJsonDeserializer<>(schema, false, Struct.class)
+        () -> new KsqlJsonDeserializer<>(
+            schema,
+            false,
+            Struct.class,
+            converter,
+            dataTranslator
+        )
     );
 
     // Then:
@@ -1103,7 +1130,13 @@ public class KsqlJsonDeserializerTest {
       final Schema schema, 
       final Class<T> type
   ) {
-    return new KsqlJsonDeserializer<>((ConnectSchema) schema, useSchemas, type);
+    return new KsqlJsonDeserializer<>(
+        (ConnectSchema) schema,
+        useSchemas,
+        type,
+        converter,
+        dataTranslator
+    );
   }
 
   private byte[] serializeJson(final Object expected) {

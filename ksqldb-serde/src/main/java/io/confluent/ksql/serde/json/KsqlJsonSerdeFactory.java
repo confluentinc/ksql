@@ -78,16 +78,26 @@ class KsqlJsonSerdeFactory {
       physicalSchema = Optional.empty();
     }
 
+    final Converter converter = useSchemaRegistryFormat
+        ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
+        : getConverter();
+
+    final ConnectDataTranslator dataTranslator =
+        physicalSchema.isPresent() ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
+            : new ConnectDataTranslator(schema);
+
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
-        schema,
-        ksqlConfig,
-        srFactory,
         targetType,
-        physicalSchema,
-        isKey
+        dataTranslator,
+        converter
     );
 
-    final Deserializer<T> deserializer = createDeserializer(schema, targetType);
+    final Deserializer<T> deserializer = createDeserializer(
+        schema,
+        targetType,
+        dataTranslator,
+        converter
+    );
 
     // Sanity check:
     serializer.get();
@@ -99,21 +109,10 @@ class KsqlJsonSerdeFactory {
   }
 
   private <T> Serializer<T> createSerializer(
-      final ConnectSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> srFactory,
       final Class<T> targetType,
-      final Optional<Schema> physicalSchema,
-      final boolean isKey
+      final ConnectDataTranslator dataTranslator,
+      final Converter converter
   ) {
-    final Converter converter = useSchemaRegistryFormat
-        ? getSchemaConverter(srFactory.get(), ksqlConfig, properties.getSchemaId(), isKey)
-        : getConverter();
-
-    final ConnectDataTranslator dataTranslator =
-        physicalSchema.isPresent() ? new ConnectSRSchemaDataTranslator(physicalSchema.get())
-            : new ConnectDataTranslator(schema);
-
     return new KsqlConnectSerializer<>(
         dataTranslator.getSchema(),
         dataTranslator,
@@ -124,12 +123,16 @@ class KsqlJsonSerdeFactory {
 
   private <T> Deserializer<T> createDeserializer(
       final ConnectSchema schema,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final ConnectDataTranslator dataTranslator,
+      final Converter converter
   ) {
     return new KsqlJsonDeserializer<>(
         schema,
         useSchemaRegistryFormat,
-        targetType
+        targetType,
+        converter,
+        dataTranslator
     );
   }
 

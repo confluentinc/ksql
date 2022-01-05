@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
@@ -55,10 +56,12 @@ import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
+import org.apache.kafka.connect.storage.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,16 +95,22 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   private final ConnectSchema schema;
   private final boolean isJsonSchema;
   private final Class<T> targetType;
+  private final Converter converter;
+  private final DataTranslator translator;
   private String target = "?";
 
   KsqlJsonDeserializer(
       final ConnectSchema schema,
       final boolean isJsonSchema,
-      final Class<T> targetType
+      final Class<T> targetType,
+      final Converter converter,
+      final DataTranslator translator
   ) {
     this.schema = validateSchema(Objects.requireNonNull(schema, "schema"));
     this.isJsonSchema = isJsonSchema;
     this.targetType = Objects.requireNonNull(targetType, "targetType");
+    this.converter = Objects.requireNonNull(converter, "converter");
+    this.translator = Objects.requireNonNull(translator, "translator");
 
     SerdeUtils.throwOnSchemaJavaTypeMismatch(schema, targetType);
   }
@@ -118,10 +127,22 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
         return null;
       }
 
+      final Object deserializedObject;
+      if (isJsonSchema) {
+        final SchemaAndValue schemaAndValue = converter.toConnectData(topic, bytes);
+        deserializedObject = translator.toKsqlRow(schemaAndValue.schema(), schemaAndValue.value());
+      } else {
+        final JsonNode jsonNode = MAPPER.readTree(bytes);
+        deserializedObject = enforceFieldType(
+            "$",
+            new JsonValueContext(jsonNode, schema)
+        );
+      }
+
       // don't use the JsonSchemaConverter to read this data because
       // we require that the MAPPER enables USE_BIG_DECIMAL_FOR_FLOATS,
       // which is not currently available in the standard converters
-      final JsonNode value = isJsonSchema
+      /*final JsonNode value = isJsonSchema
           ? JsonSerdeUtils.readJsonSR(bytes, MAPPER, JsonNode.class)
           : MAPPER.readTree(bytes);
 
@@ -129,12 +150,13 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
           "$",
           new JsonValueContext(value, schema)
       );
+       */
 
       if (LOG.isTraceEnabled()) {
-        LOG.trace("Deserialized {}. topic:{}, row:{}", target, topic, coerced);
+        LOG.trace("Deserialized {}. topic:{}, row:{}", target, topic, deserializedObject);
       }
 
-      return SerdeUtils.castToTargetType(coerced, targetType);
+      return SerdeUtils.castToTargetType(deserializedObject, targetType);
     } catch (final Exception e) {
       // Clear location in order to avoid logging data, for security reasons
       if (e instanceof JsonParseException) {

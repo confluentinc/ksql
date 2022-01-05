@@ -802,7 +802,7 @@ public class ApiTest extends BaseApiTest {
     // Then
     HttpResponse<Buffer> response = requestFuture.get();
     JsonArray jsonArray = new JsonArray(response.body());
-    assertThat(jsonArray.size(), is(DEFAULT_JSON_ROWS.size()));
+    assertThat(jsonArray.size(), is(DEFAULT_INSERT_ROWS.size()));
     for (int i = 0; i < jsonArray.size(); i++) {
       final JsonObject ackLine = new JsonObject().put("status", "ok").put("seq", i);
       assertThat(jsonArray.getJsonObject(i), is(ackLine));
@@ -895,7 +895,7 @@ public class ApiTest extends BaseApiTest {
 
   private static List<JsonObject> generateInsertRows() {
     List<JsonObject> rows = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 3; i++) {
       JsonObject row = new JsonObject()
           .put("f_str", "foo" + i)
           .put("f_int", i)

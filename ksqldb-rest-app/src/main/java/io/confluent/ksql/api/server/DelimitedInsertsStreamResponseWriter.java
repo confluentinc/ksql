@@ -40,7 +40,8 @@ import org.slf4j.LoggerFactory;
  */
 public class DelimitedInsertsStreamResponseWriter implements InsertsStreamResponseWriter {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DelimitedInsertsStreamResponseWriter.class);
+  private static final Logger LOG = LoggerFactory.getLogger(
+      DelimitedInsertsStreamResponseWriter.class);
   private static final Buffer ACK_RESPONSE_LINE = new JsonObject().put("status", "ok").toBuffer()
       .appendString("\n");
 

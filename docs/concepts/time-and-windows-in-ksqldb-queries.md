@@ -395,8 +395,8 @@ Frequently, events that belong to a window can arrive out-of-order, for
 example, over slow networks, and a grace period may be required to ensure the
 events are accepted into the window. ksqlDB enables configuring this behavior
 for each of the window types and uses a default of 24 hours when no grace
-period is specified. We recommend setting this value explicitly to fit your
-scenario. 
+period is specified. Confluent recommends setting this value explicitly to fit
+your scenario. 
 
 For example, to allow events to be accepted for up to two hours after the window ends, 
 you might run a query like:

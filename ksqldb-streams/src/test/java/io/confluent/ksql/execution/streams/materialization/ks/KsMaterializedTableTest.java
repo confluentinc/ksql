@@ -102,11 +102,12 @@ public class KsMaterializedTableTest {
 
   @Before
   public void setUp() {
-    table = new KsMaterializedTable(kafkaStreams, stateStore);
+    table = new KsMaterializedTable(stateStore);
 
     when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
     when(stateStore.getStateStoreName()).thenReturn(STATE_STORE_NAME);
+    when(stateStore.getKafkaStreams()).thenReturn(kafkaStreams);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -114,7 +115,6 @@ public class KsMaterializedTableTest {
   public void shouldThrowNPEs() {
     new NullPointerTester()
         .setDefault(KsStateStore.class, stateStore)
-        .setDefault(KafkaStreams.class, kafkaStreams)
         .testConstructors(KsMaterializedTable.class, Visibility.PACKAGE);
   }
 

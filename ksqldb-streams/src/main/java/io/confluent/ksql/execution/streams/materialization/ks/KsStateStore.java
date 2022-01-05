@@ -63,6 +63,10 @@ class KsStateStore {
     return stateStoreName;
   }
 
+  KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
+
   <T> T store(final QueryableStoreType<T> queryableStoreType, final int partition) {
     try {
       final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(

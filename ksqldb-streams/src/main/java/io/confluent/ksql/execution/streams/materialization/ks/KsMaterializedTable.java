@@ -43,10 +43,8 @@ import org.apache.kafka.streams.state.ValueAndTimestamp;
 class KsMaterializedTable implements MaterializedTable {
 
   private final KsStateStore stateStore;
-  private final KafkaStreams kafkaStreams;
 
-  KsMaterializedTable(final KafkaStreams streams, final KsStateStore store) {
-    this.kafkaStreams = Objects.requireNonNull(streams, "streams");
+  KsMaterializedTable(final KsStateStore store) {
     this.stateStore = Objects.requireNonNull(store, "store");
   }
 
@@ -75,7 +73,7 @@ class KsMaterializedTable implements MaterializedTable {
           .withQuery(query)
           .withPartitions(ImmutableSet.of(partition));
       final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
-          result = kafkaStreams.query(request);
+          result = stateStore.getKafkaStreams().query(request);
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
           result.getOnlyPartitionResult().getResult();
       
@@ -107,7 +105,7 @@ class KsMaterializedTable implements MaterializedTable {
           .withQuery(query)
           .withPartitions(ImmutableSet.of(partition));
       final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
-          result = kafkaStreams.query(request);
+          result = stateStore.getKafkaStreams().query(request);
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
           result.getOnlyPartitionResult().getResult();
 

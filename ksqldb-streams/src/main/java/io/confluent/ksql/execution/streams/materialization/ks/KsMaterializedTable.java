@@ -91,8 +91,17 @@ class KsMaterializedTable implements MaterializedTable {
   @Override
   public Iterator<Row> get(final int partition, final GenericKey from, final GenericKey to) {
     try {
-      final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query =
-          RangeQuery.withRange(from, to);
+      final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query;
+      if (from != null && to != null) {
+        query = RangeQuery.withRange(from, to);
+      } else if (from == null && to != null) {
+        query = RangeQuery.withUpperBound(to);
+      } else if (from != null && to == null) {
+        query = RangeQuery.withLowerBound(from);
+      } else {
+        query = RangeQuery.withNoBounds();
+      }
+
       final StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           request = inStore(stateStore.getStateStoreName())
           .withQuery(query)

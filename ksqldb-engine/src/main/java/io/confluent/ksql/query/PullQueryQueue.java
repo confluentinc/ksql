@@ -217,30 +217,54 @@ public class PullQueryQueue implements BlockingRowQueue {
    * Enqueues a row on the queue.  Blocks until the row can be accepted.
    * @param row The row to enqueue.
    */
-  public synchronized boolean acceptRow(final PullQueryRow row) {
+  @SuppressWarnings({"checkstyle:CyclomaticComplexity"})
+  public boolean acceptRow(final PullQueryRow row) {
     try {
       if (row == null) {
         return false;
       }
-      if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
-        closeInternal(true);
+
+      // fast-path for pull queries without limit
+      if (!this.limit.isPresent()) {
+        if (doAcceptRow(row)) {
+          totalRowsQueued.incrementAndGet();
+          return true;
+        }
         return false;
       }
 
-      while (!closed.get()) {
-        if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-          totalRowsQueued.incrementAndGet();
-          queuedCallback.run();
-          if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
+      final int limit = this.limit.getAsInt();
+      while (true) {
+        final long rowsQueued = totalRowsQueued.get();
+        if (rowsQueued >= limit) {
+          closeInternal(true);
+          return false;
+        } else if (totalRowsQueued.compareAndSet(rowsQueued, rowsQueued + 1)) {
+          final boolean accepted = doAcceptRow(row);
+          if (accepted && rowsQueued + 1 >= limit) {
             closeInternal(true);
+          } else if (!accepted) {
+            // we updated the counter speculatively, but failed to add the row, therefore have
+            // to decrement the counter
+            totalRowsQueued.decrementAndGet();
           }
-          return true;
+          return accepted;
         }
       }
     } catch (final InterruptedException e) {
       // Forced shutdown?
       LOG.error("Interrupted while trying to offer row to queue", e);
       Thread.currentThread().interrupt();
+    }
+    return false;
+  }
+
+  private boolean doAcceptRow(final PullQueryRow row) throws InterruptedException {
+    while (!closed.get()) {
+      if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+        queuedCallback.run();
+        return true;
+      }
     }
     return false;
   }

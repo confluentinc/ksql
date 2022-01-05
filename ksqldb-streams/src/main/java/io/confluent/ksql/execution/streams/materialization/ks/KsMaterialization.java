@@ -25,7 +25,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Optional;
-import org.apache.kafka.streams.KafkaStreams;
 
 /**
  * Kafka Streams impl of {@link Materialization}.

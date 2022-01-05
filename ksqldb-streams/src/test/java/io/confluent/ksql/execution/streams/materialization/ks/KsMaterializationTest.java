@@ -29,7 +29,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.Optional;
-import org.apache.kafka.streams.KafkaStreams;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

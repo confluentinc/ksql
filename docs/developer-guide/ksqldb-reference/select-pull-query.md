@@ -29,13 +29,13 @@ They are a great match for request/response flows. For asynchronous application 
 You can execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
-- Pull queries are expressed using a strict subset of ANSI SQL.
-- You can issue a pull query against any table that was created by a 
+-   Pull queries are expressed using a strict subset of ANSI SQL.
+-   You can issue a pull query against any table that was created by a 
     [CREATE TABLE AS SELECT](create-table-as-select.md) statement.
-- You can issue a pull query against any stream.    
-- Currently, we do not support pull queries against tables created by using a [CREATE TABLE](create-table.md) statement.
-- Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
-- `LIMIT` clause supports non-negative integers.
+-   You can issue a pull query against any stream.    
+-   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](create-table.md) statement.
+-   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
+-   `LIMIT` clause supports non-negative integers.
 
 ## `WHERE` Clause Guidelines
 

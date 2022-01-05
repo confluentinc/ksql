@@ -21,10 +21,10 @@ import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonEvent;
+import io.vertx.core.parsetools.JsonParser;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -41,7 +41,7 @@ public class StreamQueryResponseHandler
   private boolean paused;
   private AtomicReference<String> serializedConsistencyVector;
 
-  StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
+  StreamQueryResponseHandler(final Context context, final JsonParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
       final AtomicReference<String> serializedCV) {
     super(context, recordParser, cf);
@@ -61,11 +61,11 @@ public class StreamQueryResponseHandler
   }
 
   @Override
-  protected void handleRow(final Buffer buff) {
+  protected void handleRow(final JsonEvent buff) {
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }
-    final Object json = buff.toJson();
+    final Object json = buff;
     final Row row;
     if (json instanceof JsonArray) {
       row = new RowImpl(

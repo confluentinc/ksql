@@ -53,7 +53,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
@@ -453,7 +453,7 @@ public class ClientImpl implements Client {
 
   @FunctionalInterface
   private interface StreamedResponseHandlerSupplier<T extends CompletableFuture<?>> {
-    ResponseHandler<T> get(Context ctx, RecordParser recordParser, T cf, HttpClientRequest request);
+    ResponseHandler<T> get(Context ctx, JsonParser recordParser, T cf, HttpClientRequest request);
   }
 
   @FunctionalInterface
@@ -573,7 +573,7 @@ public class ClientImpl implements Client {
       final T cf,
       final StreamedResponseHandlerSupplier<T> responseHandlerSupplier) {
     if (response.statusCode() == OK.code()) {
-      final RecordParser recordParser = RecordParser.newDelimited("\n", response);
+      final JsonParser recordParser = JsonParser.newParser();
       final ResponseHandler<T> responseHandler =
           responseHandlerSupplier.get(Vertx.currentContext(), recordParser, cf, response.request());
       recordParser.handler(responseHandler::handleBodyBuffer);

@@ -22,10 +22,10 @@ import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonEvent;
+import io.vertx.core.parsetools.JsonParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
 
   ExecuteQueryResponseHandler(
       final Context context,
-      final RecordParser recordParser,
+      final JsonParser recordParser,
       final BatchedQueryResult cf,
       final int maxRows,
       final AtomicReference<String> serializedCV) {
@@ -66,9 +66,9 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   }
 
   @Override
-  protected void handleRow(final Buffer buff) {
+  protected void handleRow(final JsonEvent buff) {
     final Row row;
-    final Object json = buff.toJson();
+    final Object json = buff;
 
     if (json instanceof JsonObject) {
       final JsonObject jsonObject = (JsonObject) json;
@@ -82,7 +82,7 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
         throw new RuntimeException("Could not decode JSON, expected consistency toke: " + json);
       }
     } else  if (json instanceof JsonArray) {
-      final JsonArray values = new JsonArray(buff);
+      final JsonArray values = buff.arrayValue();
       if (rows.size() < maxRows) {
         rows.add(new RowImpl(columnNames, columnTypes, values, columnNameToIndex));
       } else {

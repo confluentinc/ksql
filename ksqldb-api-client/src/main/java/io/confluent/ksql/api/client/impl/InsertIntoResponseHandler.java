@@ -17,9 +17,9 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonEvent;
+import io.vertx.core.parsetools.JsonParser;
 import java.util.concurrent.CompletableFuture;
 
 public class InsertIntoResponseHandler extends ResponseHandler<CompletableFuture<Void>> {
@@ -27,13 +27,13 @@ public class InsertIntoResponseHandler extends ResponseHandler<CompletableFuture
   private int numAcks;
 
   InsertIntoResponseHandler(
-      final Context context, final RecordParser recordParser, final CompletableFuture<Void> cf) {
+          final Context context, final JsonParser recordParser, final CompletableFuture<Void> cf) {
     super(context, recordParser, cf);
   }
 
   @Override
-  protected void doHandleBodyBuffer(final Buffer buff) {
-    final JsonObject jsonObject = new JsonObject(buff);
+  protected void doHandleBodyBuffer(final JsonEvent buff) {
+    final JsonObject jsonObject = buff.objectValue();
     final String status = jsonObject.getString("status");
     if ("ok".equals(status)) {
       numAcks++;

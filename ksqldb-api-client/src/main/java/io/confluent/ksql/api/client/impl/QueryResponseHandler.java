@@ -19,8 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.api.client.util.JsonMapper;
 import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonEvent;
+import io.vertx.core.parsetools.JsonParser;
 import java.util.concurrent.CompletableFuture;
 
 abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends ResponseHandler<T> {
@@ -29,12 +29,12 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends Resp
 
   protected boolean hasReadArguments;
 
-  QueryResponseHandler(final Context context, final RecordParser recordParser, final T cf) {
+  QueryResponseHandler(final Context context, final JsonParser recordParser, final T cf) {
     super(context, recordParser, cf);
   }
 
   @Override
-  protected void doHandleBodyBuffer(final Buffer buff) {
+  protected void doHandleBodyBuffer(final JsonEvent buff) {
     if (!hasReadArguments) {
       handleArgs(buff);
     } else {
@@ -53,16 +53,17 @@ abstract class QueryResponseHandler<T extends CompletableFuture<?>> extends Resp
 
   protected abstract void handleMetadata(QueryResponseMetadata queryResponseMetadata);
 
-  protected abstract void handleRow(Buffer buff);
+  protected abstract void handleRow(JsonEvent buff);
 
   protected abstract void handleExceptionAfterFutureCompleted(Throwable t);
 
-  private void handleArgs(final Buffer buff) {
+  private void handleArgs(final JsonEvent buff) {
     hasReadArguments = true;
 
     final QueryResponseMetadata queryResponseMetadata;
     try {
-      queryResponseMetadata = JSON_MAPPER.readValue(buff.getBytes(), QueryResponseMetadata.class);
+      queryResponseMetadata = JSON_MAPPER.readValue(
+              buff.stringValue(), QueryResponseMetadata.class);
     } catch (Exception e) {
       cf.completeExceptionally(e);
       return;

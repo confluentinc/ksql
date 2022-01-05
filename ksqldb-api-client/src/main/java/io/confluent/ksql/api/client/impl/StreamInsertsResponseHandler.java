@@ -20,12 +20,12 @@ import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonEvent;
+import io.vertx.core.parsetools.JsonParser;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Publisher;
@@ -40,7 +40,7 @@ public class StreamInsertsResponseHandler
 
   StreamInsertsResponseHandler(
       final Context context,
-      final RecordParser recordParser,
+      final JsonParser recordParser,
       final CompletableFuture<AcksPublisher> cf,
       final HttpClientRequest request,
       final Publisher<KsqlObject> insertsPublisher
@@ -55,8 +55,8 @@ public class StreamInsertsResponseHandler
   }
 
   @Override
-  protected void doHandleBodyBuffer(final Buffer buff) {
-    final JsonObject jsonObject = new JsonObject(buff);
+  protected void doHandleBodyBuffer(final JsonEvent buff) {
+    final JsonObject jsonObject = buff.objectValue();
     final long seqNum = jsonObject.getLong("seq");
     final String status = jsonObject.getString("status");
     if ("ok".equals(status)) {

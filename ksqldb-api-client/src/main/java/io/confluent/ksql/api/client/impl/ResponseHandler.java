@@ -17,24 +17,24 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.parsetools.RecordParser;
+import io.vertx.core.parsetools.JsonEvent;
+import io.vertx.core.parsetools.JsonParser;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 abstract class ResponseHandler<T extends CompletableFuture<?>> {
 
   protected final Context context;
-  protected final RecordParser recordParser;
+  protected final JsonParser recordParser;
   protected final T cf;
 
-  ResponseHandler(final Context context, final RecordParser recordParser, final T cf) {
+  ResponseHandler(final Context context, final JsonParser recordParser, final T cf) {
     this.context = Objects.requireNonNull(context);
     this.recordParser = Objects.requireNonNull(recordParser);
     this.cf = Objects.requireNonNull(cf);
   }
 
-  public void handleBodyBuffer(final Buffer buff) {
+  public void handleBodyBuffer(final JsonEvent buff) {
     checkContext();
     doHandleBodyBuffer(buff);
   }
@@ -49,7 +49,7 @@ abstract class ResponseHandler<T extends CompletableFuture<?>> {
     doHandleBodyEnd();
   }
 
-  protected abstract void doHandleBodyBuffer(Buffer buff);
+  protected abstract void doHandleBodyBuffer(JsonEvent buff);
 
   protected abstract void doHandleException(Throwable t);
 

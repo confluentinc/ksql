@@ -37,6 +37,7 @@ import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
@@ -405,6 +406,48 @@ public class ApiIntegrationTest {
     for (long l = 0; l < numRows; l++) {
       assertThat(sequences.contains(l), is(true));
     }
+  }
+
+  @Test
+  public void shouldExecuteInsertsWithVariableSubstitution() {
+
+    // Given:
+    JsonObject properties = new JsonObject();
+    JsonObject sessionVariables = new JsonObject()
+        .put("stream", TEST_STREAM)
+        .put("v", "Value")
+        .put("a", "apple");
+    JsonObject requestBody = new JsonObject()
+        .put("target", "${stream}")
+        .put("properties", properties)
+        .put("sessionVariables", sessionVariables);
+    Buffer bodyBuffer = requestBody.toBuffer();
+    bodyBuffer.appendString("\n");
+
+    int numRows = 10;
+
+    for (int i = 0; i < numRows; i++) {
+      JsonObject row = new JsonObject()
+          .put("K", new JsonObject().put("F1", new JsonArray().add("my_key_" + i)))
+          .put("STR", "${v}_" + i)
+          .put("LONG", 1000 + i)
+          .put("DEC", i + 0.11) // JsonObject does not accept BigDecimal
+          .put("ARRAY", new JsonArray().add("${a}_" + i).add("b_" + i))
+          .put("MAP", new JsonObject().put("k1", "v1_" + i).put("k2", "v2_" + i))
+          .put("STRUCT", new JsonObject().put("F1", i))
+          .put("COMPLEX", COMPLEX_FIELD_VALUE);
+      bodyBuffer.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+
+    // When:
+    HttpResponse<Buffer> response = sendRequest("/inserts-stream", bodyBuffer);
+
+    // Then:
+    assertThat(response.statusCode(), is(200));
+    QueryResponse queryResponse = executeQuery("SELECT STR, ARRAY FROM " + TEST_STREAM + " WHERE K=STRUCT(F1 := ARRAY['my_key_0']) EMIT CHANGES LIMIT 1;");
+    assertThat(queryResponse.rows.get(0).getString(0), is("Value_0"));
+    assertThat(queryResponse.rows.get(0).getJsonArray(1).getString(0), is("apple_0"));
+    assertThat(queryResponse.rows.get(0).getJsonArray(1).getString(1), is("b_0"));
   }
 
   @Test

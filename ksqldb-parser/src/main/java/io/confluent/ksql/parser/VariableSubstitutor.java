@@ -77,6 +77,16 @@ public final class VariableSubstitutor {
     return visitor.replace(parsedStatement.getStatement());
   }
 
+  public static String substitute(
+      final String string,
+      final Map<String, String> valueMap
+  ) {
+    return StringSubstitutor.replace(
+        string, valueMap.entrySet().stream()
+            .collect(Collectors.toMap(e -> e.getKey(), e -> sanitize(e.getValue())))
+    );
+  }
+
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
   private static final class SqlSubstitutorVisitor extends SqlBaseBaseVisitor<Void> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling

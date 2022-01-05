@@ -22,6 +22,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.entity.InsertError;
 import io.confluent.ksql.rest.entity.InsertsStreamArgs;
@@ -30,11 +31,14 @@ import io.vertx.core.Handler;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +95,7 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
     private boolean responseEnded;
     private long sendSequence;
     private InsertsStreamSubscriber insertsSubscriber;
+    private Map<String, String> variables;
 
     RequestHandler(final RoutingContext routingContext,
         final RecordParser recordParser) {
@@ -137,8 +142,17 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
 
       recordParser.pause();
 
-      endpoints.createInsertsSubscriber(insertsStreamArgs.get().target,
-          insertsStreamArgs.get().properties, acksSubscriber, ctx, workerExecutor,
+      variables = insertsStreamArgs.get().sessionVariables.stream()
+          .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+      final String target =
+          VariableSubstitutor.substitute(insertsStreamArgs.get().target, variables);
+      final JsonObject properties = new JsonObject();
+      insertsStreamArgs.get().properties.stream().forEach(e -> {
+        properties.put(VariableSubstitutor.substitute(e.getKey(), variables),
+            VariableSubstitutor.substitute(e.getValue().toString(), variables));
+      });
+      endpoints.createInsertsSubscriber(target,
+          properties, acksSubscriber, ctx, workerExecutor,
           DefaultApiSecurityContext.create(routingContext))
           .thenAccept(insertsSubscriber -> {
             publisher = new BufferedPublisher<>(ctx);
@@ -157,11 +171,37 @@ public class InsertsStreamHandler implements Handler<RoutingContext> {
               ServerUtils.handleEndpointException(t, routingContext, "Failed to execute inserts"));
     }
 
+    private Object substituteVariables(final Object object) {
+      if (object instanceof String) {
+        return VariableSubstitutor.substitute((String) object, variables);
+      } else if (object instanceof JsonObject) {
+        return substituteVariables((JsonObject) object);
+      } else if (object instanceof JsonArray) {
+        return substituteVariables((JsonArray) object);
+      } else {
+        return object;
+      }
+    }
+
+    private JsonArray substituteVariables(final JsonArray array) {
+      final JsonArray substituted = new JsonArray();
+      array.forEach(o -> substituted.add(substituteVariables(o)));
+      return substituted;
+    }
+
+    private JsonObject substituteVariables(final JsonObject object) {
+      final JsonObject substituted = new JsonObject();
+      object.stream().forEach(e -> substituted.put(
+          VariableSubstitutor.substitute(e.getKey(), variables),
+          substituteVariables(e.getValue())));
+      return substituted;
+    }
+
     private void handleRow(final Buffer buff) {
       final long seq = sendSequence++;
       final JsonObject row;
       try {
-        row = new JsonObject(buff);
+        row = substituteVariables(new JsonObject(buff));
       } catch (DecodeException e) {
         final InsertError errorResponse = new InsertError(
             seq,

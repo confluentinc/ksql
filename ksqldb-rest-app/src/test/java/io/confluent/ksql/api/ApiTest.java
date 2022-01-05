@@ -46,6 +46,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -480,6 +481,63 @@ public class ApiTest extends BaseApiTest {
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(rows));
     assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
     assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+    assertThat(testEndpoints.getInsertsSubscriber().isClosed(), is(true));
+  }
+
+  @Test
+  public void shouldInsertWithVariableSubstitution() throws Exception {
+
+    // Given
+    JsonObject variables = new JsonObject().put("a", "aaa").put("b", "bbb");
+    JsonObject properties = new JsonObject().put("${a}", "${b}");
+    JsonObject expectedProperties = new JsonObject().put("aaa", "bbb");
+    JsonObject params = new JsonObject()
+        .put("target", "test-stream")
+        .put("sessionVariables", variables)
+        .put("properties", properties);
+    Buffer requestBody = Buffer.buffer();
+    final List<JsonObject> rows = Collections.singletonList(new JsonObject()
+        .put("f_str", "${a}")
+        .put("f_int", 3)
+        .put("f_bool", false)
+        .put("f_long", 9L)
+        .put("f_double", 5.5555)
+        .put("f_decimal", 5.1)
+        .put("f_array", new JsonArray().add("${b}"))
+        .put("f_map", new JsonObject().put("${a}", "${b}"))
+        .put("f_struct", new JsonObject().put("${a}", "${b}"))
+        .putNull("f_null")
+    );
+    final List<JsonObject> expectedRows = Collections.singletonList(new JsonObject()
+        .put("f_str", "aaa")
+        .put("f_int", 3)
+        .put("f_bool", false)
+        .put("f_long", 9L)
+        .put("f_double", 5.5555)
+        .put("f_decimal", 5.1)
+        .put("f_array", new JsonArray().add("bbb"))
+        .put("f_map", new JsonObject().put("aaa", "bbb"))
+        .put("f_struct", new JsonObject().put("aaa", "bbb"))
+        .putNull("f_null")
+    );
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    for (JsonObject row : rows) {
+      requestBody.appendBuffer(row.toBuffer()).appendString("\n");
+    }
+
+    // When
+    HttpResponse<Buffer> response = sendPostRequest("/inserts-stream", requestBody);
+
+    // Then
+    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusMessage(), is("OK"));
+    String responseBody = response.bodyAsString();
+    InsertsResponse insertsResponse = new InsertsResponse(responseBody);
+    assertThat(insertsResponse.acks, hasSize(expectedRows.size()));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().getRowsInserted(), is(expectedRows));
+    assertThatEventually(() -> testEndpoints.getInsertsSubscriber().isCompleted(), is(true));
+    assertThat(testEndpoints.getLastTarget(), is("test-stream"));
+    assertThat(testEndpoints.getLastProperties(), is(expectedProperties));
     assertThat(testEndpoints.getInsertsSubscriber().isClosed(), is(true));
   }
 

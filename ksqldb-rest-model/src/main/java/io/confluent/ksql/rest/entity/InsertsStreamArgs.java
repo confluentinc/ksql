@@ -29,12 +29,18 @@ public class InsertsStreamArgs {
 
   public final String target;
   public final JsonObject properties;
+  public final JsonObject sessionVariables;
 
   public InsertsStreamArgs(final @JsonProperty(value = "target", required = true) String target,
       final @JsonProperty(value = "properties")
-          Map<String, Object> properties) {
+          Map<String, Object> properties,
+      final @JsonProperty(value = "sessionVariables")
+          Map<String, Object> sessionVariables) {
     this.target = Objects.requireNonNull(target);
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
+    this.sessionVariables = sessionVariables == null
+        ? new JsonObject()
+        : new JsonObject(sessionVariables);
   }
 
   @Override
@@ -42,6 +48,7 @@ public class InsertsStreamArgs {
     return "InsertsStreamArgs{"
         + "target='" + target + '\''
         + ", properties=" + properties
+        + ", sessionVariables=" + sessionVariables
         + '}';
   }
 }

@@ -476,9 +476,10 @@ information, see [SELECT (Pull Query)](../../ksqldb-reference/select-pull-query)
 
 ```sql
 SELECT select_expr [, ...]
-  FROM aggregate_table
-  WHERE key_column=key
-  [AND window_bounds];
+  FROM from_item
+  [ WHERE where_condition ]
+  [ AND window_bounds ]
+  [ LIMIT count ];
 ```
 
 ## SELECT (Push Query)

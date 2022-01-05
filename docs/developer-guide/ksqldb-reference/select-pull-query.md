@@ -12,7 +12,8 @@ keywords: ksqlDB, select, pull query
 SELECT select_expr [, ...]
   FROM from_item
   [ WHERE where_condition ]
-  [ AND window_bounds ];
+  [ AND window_bounds ]
+  [ LIMIT count ];
 ```
 
 ## Description
@@ -34,6 +35,7 @@ the API responds with a single response.
 -   You can issue a pull query against any stream.    
 -   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](create-table.md) statement.
 -   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
+-   `LIMIT` clause supports non-negative integers.
 
 ## `WHERE` Clause Guidelines
 

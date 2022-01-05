@@ -1,7 +1,7 @@
 # KLIP 58 - LIMIT clause for Pull Queries
 
 **Author**: Chittaranjan Prasad (@cprasad1) | 
-**Release Target**: 0.25.0 | 
+**Release Target**: 0.24.0 | 
 **Status**: _In Discussion_ | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/8298
 

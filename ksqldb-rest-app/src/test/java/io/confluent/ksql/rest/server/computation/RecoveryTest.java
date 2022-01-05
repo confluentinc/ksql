@@ -591,6 +591,7 @@ public class RecoveryTest {
   @Before
   public void setUp() {
     topicClient.preconditionTopicExists("A");
+    topicClient.preconditionTopicExists("B");
     topicClient.preconditionTopicExists("command_topic");
   }
 
@@ -638,8 +639,6 @@ public class RecoveryTest {
     shouldRecover(commands);
   }
 
-
-  @Ignore // this test fails until https://github.com/apache/kafka/pull/11648 in available
   @Test
   public void shouldRecoverInsertIntos() {
     server1.submitCommands(
@@ -650,7 +649,6 @@ public class RecoveryTest {
     shouldRecover(commands);
   }
 
-  @Ignore // this test fails until https://github.com/apache/kafka/pull/11648 in available
   @Test
   public void shouldRecoverInsertIntosWithCustomQueryId() {
     server1.submitCommands(
@@ -661,7 +659,6 @@ public class RecoveryTest {
     shouldRecover(commands);
   }
 
-  @Ignore // this test fails until https://github.com/apache/kafka/pull/11648 in available
   @Test
   public void shouldRecoverInsertIntosRecreates() {
     server1.submitCommands(

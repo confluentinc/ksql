@@ -169,10 +169,6 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     }
   }
 
-  private void writeBuffer(final Buffer buffer) {
-    writeBuffer(buffer, false);
-  }
-
   private void writeBuffer(final Buffer buffer, final boolean isLast) {
     final Buffer buff = Buffer.buffer();
     buff.appendBuffer(buffer);

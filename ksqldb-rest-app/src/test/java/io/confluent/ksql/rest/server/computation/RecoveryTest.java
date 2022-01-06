@@ -80,6 +80,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 
@@ -590,6 +591,7 @@ public class RecoveryTest {
   @Before
   public void setUp() {
     topicClient.preconditionTopicExists("A");
+    topicClient.preconditionTopicExists("B");
     topicClient.preconditionTopicExists("command_topic");
   }
 
@@ -636,7 +638,6 @@ public class RecoveryTest {
     );
     shouldRecover(commands);
   }
-
 
   @Test
   public void shouldRecoverInsertIntos() {

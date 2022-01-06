@@ -44,7 +44,7 @@ public final class SandboxedServiceContext implements ServiceContext {
 
     final KafkaClientSupplier kafkaClientSupplier = new SandboxedKafkaClientSupplier();
     final KafkaTopicClient kafkaTopicClient = SandboxedKafkaTopicClient
-        .createProxy(serviceContext.getTopicClient());
+        .createProxy(serviceContext.getTopicClient(), serviceContext::getAdminClient);
     final SchemaRegistryClient schemaRegistryClient =
         SandboxedSchemaRegistryClient.createProxy(serviceContext.getSchemaRegistryClient());
     final ConnectClient connectClient = SandboxConnectClient.createProxy();

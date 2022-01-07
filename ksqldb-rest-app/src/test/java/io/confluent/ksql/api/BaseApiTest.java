@@ -267,7 +267,6 @@ public class BaseApiTest {
 
   protected static void validateError(final int errorCode, final String message,
       final JsonObject error) {
-    assertThat(error.size(), is(3));
     validateErrorCommon(errorCode, message, error);
   }
 

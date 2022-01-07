@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
@@ -261,6 +262,11 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     @Override
     public Optional<ConsistencyOffsetVector> getConsistencyOffsetVector() {
+      return Optional.empty();
+    }
+
+    @Override
+    public Optional<ResultType> getResultType() {
       return Optional.empty();
     }
 

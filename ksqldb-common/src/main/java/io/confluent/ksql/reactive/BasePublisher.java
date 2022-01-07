@@ -95,7 +95,11 @@ public abstract class BasePublisher<T> implements Publisher<T> {
   protected void sendComplete() {
     try {
       sentComplete = true;
-      subscriber.onComplete();
+      // If a publisher immediately completes, we allow it not to yet have a subscriber, which will
+      // get a complete message upon subscription.
+      if (subscriber != null) {
+        subscriber.onComplete();
+      }
     } catch (Exception ex) {
       logError("Exception encountered in onComplete", ex);
     }
@@ -167,6 +171,8 @@ public abstract class BasePublisher<T> implements Publisher<T> {
     if (isFailed()) {
       sendError(new IllegalStateException(
           "Cannot subscribe to failed publisher. Failure cause: " + failure));
+    } else if (hasSentComplete()) {
+      sendComplete();
     }
     afterSubscribe();
   }

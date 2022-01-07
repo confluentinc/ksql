@@ -56,8 +56,6 @@ public class TombstoneFactoryTest {
 
   @Before
   public void setUp() {
-    when(query.getResultType()).thenReturn(ResultType.TABLE);
-
     givenSchema(SCHEMA);
   }
 
@@ -154,7 +152,6 @@ public class TombstoneFactoryTest {
   }
 
   private void givenSchema(final LogicalSchema schema) {
-    when(query.getLogicalSchema()).thenReturn(schema);
-    factory = TombstoneFactory.create(query);
+    factory = TombstoneFactory.create(schema, ResultType.TABLE);
   }
 }

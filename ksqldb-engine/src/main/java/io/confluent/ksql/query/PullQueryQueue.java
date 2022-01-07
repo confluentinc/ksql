@@ -217,8 +217,6 @@ public class PullQueryQueue implements BlockingRowQueue {
    * Enqueues a row on the queue.  Blocks until the row can be accepted.
    * @param row The row to enqueue.
    */
-  @SuppressWarnings({"checkstyle:CyclomaticComplexity"})
-
   public boolean acceptRow(final PullQueryRow row) {
     try {
       if (row == null) {

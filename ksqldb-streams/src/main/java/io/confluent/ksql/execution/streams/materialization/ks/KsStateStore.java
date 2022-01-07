@@ -59,6 +59,18 @@ class KsStateStore {
     return schema;
   }
 
+  String getStateStoreName() {
+    return stateStoreName;
+  }
+
+  KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
+
+  KsqlConfig getKsqlConfig() {
+    return ksqlConfig;
+  }
+
   <T> T store(final QueryableStoreType<T> queryableStoreType, final int partition) {
     try {
       final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(

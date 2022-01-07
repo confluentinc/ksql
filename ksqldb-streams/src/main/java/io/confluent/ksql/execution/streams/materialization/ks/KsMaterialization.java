@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 
 /**
@@ -65,7 +66,11 @@ public final class KsMaterialization implements Materialization {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
-    return new KsMaterializedTable(stateStore);
+    if (stateStore.getKsqlConfig().getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+      return new KsMaterializedTableIQv2(stateStore);
+    }
+    return new  KsMaterializedTable(stateStore);
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Enforced by type

@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
@@ -27,6 +28,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.Before;
@@ -42,11 +44,14 @@ public class KsMaterializationTest {
   private Locator locator;
   @Mock
   private KsStateStore stateStore;
+  @Mock
+  private KsqlConfig ksqlConfig;
   private KsMaterialization materialization;
 
   @Before
   public void setUp() {
     givenWindowType(Optional.empty());
+    when(stateStore.getKsqlConfig()).thenReturn(ksqlConfig);
   }
 
   @SuppressWarnings("UnstableApiUsage")

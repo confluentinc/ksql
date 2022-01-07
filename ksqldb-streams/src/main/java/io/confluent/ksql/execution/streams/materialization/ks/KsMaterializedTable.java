@@ -66,7 +66,7 @@ class KsMaterializedTable implements MaterializedTable {
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator = store.all();
       return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
           .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
-              keyValue.value.timestamp()))
+                                  keyValue.value.timestamp()))
           .iterator();
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
@@ -82,9 +82,9 @@ class KsMaterializedTable implements MaterializedTable {
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
           store.range(from, to);
       return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
-        .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
-          keyValue.value.timestamp()))
-        .iterator();
+          .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
+                                  keyValue.value.timestamp()))
+          .iterator();
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);
     }

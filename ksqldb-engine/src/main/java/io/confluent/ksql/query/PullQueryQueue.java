@@ -218,39 +218,30 @@ public class PullQueryQueue implements BlockingRowQueue {
    * @param row The row to enqueue.
    */
   @SuppressWarnings({"checkstyle:CyclomaticComplexity"})
+
   public boolean acceptRow(final PullQueryRow row) {
     try {
       if (row == null) {
         return false;
       }
 
-      // fast-path for pull queries without limit
-      if (!this.limit.isPresent()) {
-        if (doAcceptRow(row)) {
-          totalRowsQueued.incrementAndGet();
-          return true;
+      final boolean accepted;
+      if (limit.isPresent()) {
+        synchronized (this) {
+          if (totalRowsQueued.get() >= limit.getAsInt()) {
+            closeInternal(true);
+            return false;
+          }
+          accepted = doAcceptRow(row);
         }
-        return false;
+      } else {
+        accepted = doAcceptRow(row);
       }
 
-      final int limit = this.limit.getAsInt();
-      while (true) {
-        final long rowsQueued = totalRowsQueued.get();
-        if (rowsQueued >= limit) {
-          closeInternal(true);
-          return false;
-        } else if (totalRowsQueued.compareAndSet(rowsQueued, rowsQueued + 1)) {
-          final boolean accepted = doAcceptRow(row);
-          if (accepted && rowsQueued + 1 >= limit) {
-            closeInternal(true);
-          } else if (!accepted) {
-            // we updated the counter speculatively, but failed to add the row, therefore have
-            // to decrement the counter
-            totalRowsQueued.decrementAndGet();
-          }
-          return accepted;
-        }
+      if (accepted) {
+        queuedCallback.run();
       }
+      return accepted;
     } catch (final InterruptedException e) {
       // Forced shutdown?
       LOG.error("Interrupted while trying to offer row to queue", e);
@@ -262,7 +253,7 @@ public class PullQueryQueue implements BlockingRowQueue {
   private boolean doAcceptRow(final PullQueryRow row) throws InterruptedException {
     while (!closed.get()) {
       if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-        queuedCallback.run();
+        totalRowsQueued.incrementAndGet();
         return true;
       }
     }

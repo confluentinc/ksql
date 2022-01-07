@@ -85,6 +85,8 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         final ValueAndTimestamp<GenericRow> row = queryResult.getResult();
         return Optional.of(Row.of(stateStore.schema(), key, row.value(), row.timestamp()));
       }
+    } catch (MaterializationException e) {
+      throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
@@ -126,6 +128,8 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
                                     keyValue.value.timestamp()))
             .iterator();
       }
+    } catch (MaterializationException e) {
+      throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
     }
@@ -179,6 +183,8 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
                 keyValue.value.timestamp()))
             .iterator();
       }
+    } catch (MaterializationException e) {
+      throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);
     }

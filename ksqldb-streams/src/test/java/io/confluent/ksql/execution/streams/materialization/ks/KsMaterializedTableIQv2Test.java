@@ -127,9 +127,9 @@ public class KsMaterializedTableIQv2Test {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Failed to get value from materialized table"));
-    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
+    System.out.println(e.getMessage());
+    assertThat(e.getMessage(), containsString("Boom"));
+    assertThat(e, (instanceOf(MaterializationTimeOutException.class)));
   }
 
   @Test
@@ -143,11 +143,9 @@ public class KsMaterializedTableIQv2Test {
         () -> table.get(A_KEY, PARTITION)
     );
 
-    System.out.println(e.getMessage());
     // Then:
-    assertThat(e.getCause().getMessage(), containsString(
-        "Error!"));
-    assertThat(e.getCause(), (instanceOf(MaterializationException.class)));
+    assertThat(e.getMessage(), containsString("Error!"));
+    assertThat(e, (instanceOf(MaterializationException.class)));
   }
 
   @Test
@@ -162,9 +160,8 @@ public class KsMaterializedTableIQv2Test {
     );
 
     // Then:
-    assertThat(e.getCause().getMessage(), containsString(
-        "Error!"));
-    assertThat(e.getCause(), (instanceOf(MaterializationException.class)));
+    assertThat(e.getMessage(), containsString("Error!"));
+    assertThat(e, (instanceOf(MaterializationException.class)));
   }
 
   @Test
@@ -179,9 +176,8 @@ public class KsMaterializedTableIQv2Test {
     );
 
     // Then:
-    assertThat(e.getCause().getMessage(), containsString(
-        "Error!"));
-    assertThat(e.getCause(), (instanceOf(MaterializationException.class)));
+    assertThat(e.getMessage(), containsString("Error!"));
+    assertThat(e, (instanceOf(MaterializationException.class)));
   }
 
 

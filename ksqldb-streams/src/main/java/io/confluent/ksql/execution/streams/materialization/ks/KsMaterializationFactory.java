@@ -111,8 +111,7 @@ public final class KsMaterializationFactory {
     final KsMaterialization materialization = materializationFactory.create(
         windowInfo,
         locator,
-        stateStore,
-        ksqlConfig
+        stateStore
     );
 
     return Optional.of(materialization);
@@ -161,8 +160,7 @@ public final class KsMaterializationFactory {
     KsMaterialization create(
         Optional<WindowInfo> windowInfo,
         Locator locator,
-        KsStateStore stateStore,
-        KsqlConfig ksqlConfig
+        KsStateStore stateStore
     );
   }
 }

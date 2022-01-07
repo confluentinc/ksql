@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
@@ -50,6 +51,7 @@ public class KsMaterializationTest {
   @Before
   public void setUp() {
     givenWindowType(Optional.empty());
+    when(stateStore.getKsqlConfig()).thenReturn(ksqlConfig);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -147,6 +149,6 @@ public class KsMaterializationTest {
             : Optional.empty())
         );
 
-    materialization = new KsMaterialization(windowInfo, locator, stateStore, ksqlConfig);
+    materialization = new KsMaterialization(windowInfo, locator, stateStore);
   }
 }

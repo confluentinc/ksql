@@ -35,11 +35,16 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.query.FailureReason;
 import org.apache.kafka.streams.query.KeyQuery;
 import org.apache.kafka.streams.query.QueryResult;
 import org.apache.kafka.streams.query.RangeQuery;
@@ -55,8 +60,9 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
-public class KsMaterializedTableTestIQv2 {
+public class KsMaterializedTableIQv2Test {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.STRING)
@@ -87,22 +93,14 @@ public class KsMaterializedTableTestIQv2 {
   private KsStateStore stateStore;
   @Mock
   private KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> keyValueIterator;
-  @Mock
-  private StateQueryResult queryResult;
-  @Mock
-  private QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> rangeResult;
-  @Mock
-  private QueryResult<ValueAndTimestamp<GenericRow>> keyResult;
-  @Mock
-  private ValueAndTimestamp<GenericRow> row;
   @Captor
   private ArgumentCaptor<StateQueryRequest<?>> queryTypeCaptor;
 
-  private KsMaterializedTable table;
+  private KsMaterializedTableIQv2 table;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedTable(stateStore);
+    table = new KsMaterializedTableIQv2(stateStore);
 
     when(stateStore.schema()).thenReturn(SCHEMA);
     when(stateStore.getStateStoreName()).thenReturn(STATE_STORE_NAME);
@@ -135,12 +133,62 @@ public class KsMaterializedTableTestIQv2 {
   }
 
   @Test
+  public void shouldThrowIfKeyQueryResultIsError() {
+    // Given:
+    when(kafkaStreams.query(any())).thenReturn(getErrorResult());
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY, PARTITION)
+    );
+
+    System.out.println(e.getMessage());
+    // Then:
+    assertThat(e.getCause().getMessage(), containsString(
+        "Error!"));
+    assertThat(e.getCause(), (instanceOf(MaterializationException.class)));
+  }
+
+  @Test
+  public void shouldThrowIfRangeQueryResultIsError() {
+    // Given:
+    when(kafkaStreams.query(any())).thenReturn(getErrorResult());
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(PARTITION, A_KEY, A_KEY2)
+    );
+
+    // Then:
+    assertThat(e.getCause().getMessage(), containsString(
+        "Error!"));
+    assertThat(e.getCause(), (instanceOf(MaterializationException.class)));
+  }
+
+  @Test
+  public void shouldThrowIfTableScanQueryResultIsError() {
+    // Given:
+    when(kafkaStreams.query(any())).thenReturn(getErrorResult());
+
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(PARTITION)
+    );
+
+    // Then:
+    assertThat(e.getCause().getMessage(), containsString(
+        "Error!"));
+    assertThat(e.getCause(), (instanceOf(MaterializationException.class)));
+  }
+
+
+  @Test
   public void shouldKeyQueryWithCorrectParams() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(keyResult);
-    when(keyResult.getResult()).thenReturn(row);
-    when(row.value()).thenReturn(ROW1);
+    when(kafkaStreams.query(any())).thenReturn(getRowResult(ROW1));
 
     // When:
     table.get(A_KEY, PARTITION);
@@ -156,9 +204,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldRangeQueryWithCorrectParams_fullTableScan() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     table.get(PARTITION);
@@ -175,9 +221,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldRangeQueryWithCorrectParams_lowerBound() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     table.get(PARTITION, A_KEY, null);
@@ -194,9 +238,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldRangeQueryWithCorrectParams_upperBound() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     table.get(PARTITION, null, A_KEY2);
@@ -213,9 +255,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldRangeQueryWithCorrectParams_bothBounds() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     table.get(PARTITION, A_KEY, A_KEY2);
@@ -232,9 +272,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldRangeQueryWithCorrectParams_noBounds() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     table.get(PARTITION, null, null);
@@ -251,8 +289,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(keyResult);
+    when(kafkaStreams.query(any())).thenReturn(getRowResult(null));
 
     // When:
     final Optional<?> result = table.get(A_KEY, PARTITION);
@@ -262,13 +299,24 @@ public class KsMaterializedTableTestIQv2 {
   }
 
   @Test
+  public void shouldReturnEmptyIfRangeNotPresent() {
+    // Given:
+    when(kafkaStreams.query(any())).thenReturn(getEmptyIteratorResult());
+
+    // When:
+    final Iterator<Row> rows = table.get(PARTITION, A_KEY, null);
+
+    // Then:
+    assertThat(rows.hasNext(), is(false));
+  }
+
+
+  @Test
   public void shouldReturnValueIfKeyPresent() {
     // Given:
     final GenericRow value = GenericRow.genericRow("col0");
-    final long rowTime = 2343553L;
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(keyResult);
-    when(keyResult.getResult()).thenReturn(ValueAndTimestamp.make(value, rowTime));
+    final long rowTime = -1L;
+    when(kafkaStreams.query(any())).thenReturn(getRowResult(ROW1));
 
     // When:
     final Optional<Row> result = table.get(A_KEY, PARTITION);
@@ -280,13 +328,7 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldReturnValuesFullTableScan() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1)
-        .thenReturn(KEY_VALUE2);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     Iterator<Row> rows = table.get(PARTITION);
@@ -300,17 +342,13 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldReturnValuesLowerBound() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE2);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    Iterator<Row> rows = table.get(PARTITION, A_KEY2, null);
+    Iterator<Row> rows = table.get(PARTITION, A_KEY, null);
 
     // Then:
+    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
     assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
     assertThat(rows.hasNext(), is(false));
   }
@@ -318,31 +356,21 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldReturnValuesUpperBound() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    Iterator<Row> rows = table.get(PARTITION, null, A_KEY);
+    Iterator<Row> rows = table.get(PARTITION, null, A_KEY2);
 
     // Then:
     assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
+    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
     assertThat(rows.hasNext(), is(false));
   }
 
   @Test
   public void shouldReturnValuesBothBound() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1)
-        .thenReturn(KEY_VALUE2);
+    when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
     Iterator<Row> rows = table.get(PARTITION, A_KEY, A_KEY2);
@@ -357,13 +385,9 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldCloseIterator_fullTableScan() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1)
-        .thenReturn(KEY_VALUE2);
+    final StateQueryResult result = new StateQueryResult();
+    result.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    when(kafkaStreams.query(any())).thenReturn(result);
 
     // When:
     Streams.stream(table.get(PARTITION))
@@ -376,9 +400,9 @@ public class KsMaterializedTableTestIQv2 {
   @Test
   public void shouldCloseIterator_rangeBothBounds() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    final StateQueryResult result = new StateQueryResult();
+    result.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    when(kafkaStreams.query(any())).thenReturn(result);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
     when(keyValueIterator.next())
         .thenReturn(KEY_VALUE1)
@@ -390,5 +414,73 @@ public class KsMaterializedTableTestIQv2 {
 
     // Then:
     verify(keyValueIterator).close();
+  }
+
+  private static StateQueryResult getRowResult(final GenericRow row) {
+    final StateQueryResult result = new StateQueryResult<>();
+    result.addResult(PARTITION, QueryResult.forResult(ValueAndTimestamp.make(row, -1)));
+    return result;
+  }
+
+  private static StateQueryResult getErrorResult() {
+    final StateQueryResult result = new StateQueryResult<>();
+    result.addResult(PARTITION, QueryResult.forFailure(FailureReason.NOT_ACTIVE, "Error!"));
+    return result;
+  }
+
+  private static StateQueryResult getIteratorResult() {
+    final StateQueryResult result = new StateQueryResult<>();
+    Set<GenericKey> keySet = new HashSet<>();
+    keySet.add(A_KEY);
+    keySet.add(A_KEY2);
+    Map<GenericKey, ValueAndTimestamp<GenericRow>> map = new HashMap<>();
+    map.put(A_KEY, VALUE_AND_TIMESTAMP1);
+    map.put(A_KEY2, VALUE_AND_TIMESTAMP2);
+    final KeyValueIterator iterator = new TestKeyValueIterator(keySet, map);
+    result.addResult(PARTITION, QueryResult.forResult(iterator));
+    return result;
+  }
+
+  private static StateQueryResult getEmptyIteratorResult() {
+    final StateQueryResult result = new StateQueryResult<>();
+    Set<GenericKey> keySet = new HashSet<>();
+    Map<GenericKey, ValueAndTimestamp<GenericRow>> map = new HashMap<>();
+    final KeyValueIterator iterator = new TestKeyValueIterator(keySet, map);
+    result.addResult(PARTITION, QueryResult.forResult(iterator));
+    return result;
+  }
+
+  private static class TestKeyValueIterator implements
+      KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>
+  {
+    private final Iterator<GenericKey> iter;
+    private final Map<GenericKey, ValueAndTimestamp<GenericRow>> map;
+
+    private TestKeyValueIterator(final Set<GenericKey> keySet, final Map<GenericKey,
+        ValueAndTimestamp<GenericRow>> map) {
+        this.iter = keySet.iterator();
+        this.map = map;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return iter.hasNext();
+    }
+
+    @Override
+    public KeyValue<GenericKey, ValueAndTimestamp<GenericRow>> next() {
+      final GenericKey key = iter.next();
+      return new KeyValue<>(key, map.get(key));
+    }
+
+    @Override
+    public void close() {
+      // do nothing
+    }
+
+    @Override
+    public GenericKey peekNextKey() {
+      throw new UnsupportedOperationException("peekNextKey() not supported in " + getClass().getName());
+    }
   }
 }

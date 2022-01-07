@@ -35,18 +35,15 @@ public final class KsMaterialization implements Materialization {
   private final Optional<WindowInfo> windowInfo;
   private final KsStateStore stateStore;
   private final Locator locator;
-  private final KsqlConfig ksqlConfig;
 
   KsMaterialization(
       final Optional<WindowInfo> windowInfo,
       final Locator locator,
-      final KsStateStore stateStore,
-      final KsqlConfig ksqlConfig
+      final KsStateStore stateStore
   ) {
     this.windowInfo = requireNonNull(windowInfo, "windowInfo");
     this.stateStore = requireNonNull(stateStore, "stateStore");
     this.locator = requireNonNull(locator, "locator");
-    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   @Override
@@ -69,7 +66,8 @@ public final class KsMaterialization implements Materialization {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+    if (stateStore.getKsqlConfig().getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
       return new KsMaterializedTableIQv2(stateStore);
     }
     return new  KsMaterializedTable(stateStore);

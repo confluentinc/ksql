@@ -127,7 +127,6 @@ public class KsMaterializedTableIQv2Test {
     );
 
     // Then:
-    System.out.println(e.getMessage());
     assertThat(e.getMessage(), containsString("Boom"));
     assertThat(e, (instanceOf(MaterializationTimeOutException.class)));
   }

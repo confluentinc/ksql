@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.io.Closeable;
@@ -23,7 +24,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -35,6 +39,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 public final class BackupReplayFile implements Closeable {
   private static final String KEY_VALUE_SEPARATOR_STR = ":";
   private static final String NEW_LINE_SEPARATOR_STR = "\n";
+  private static final String TMP_SUFFIX = ".tmp";
+  private static final String DIRTY_SUFFIX = ".dirty";
 
   private static final byte[] KEY_VALUE_SEPARATOR_BYTES =
       KEY_VALUE_SEPARATOR_STR.getBytes(StandardCharsets.UTF_8);
@@ -42,29 +48,34 @@ public final class BackupReplayFile implements Closeable {
       NEW_LINE_SEPARATOR_STR.getBytes(StandardCharsets.UTF_8);
 
   private final File file;
-  private final FileOutputStream writer;
+  private final boolean writable;
+  private final Filesystem filesystem;
 
-  public static BackupReplayFile readOnly(final File file) {
-    return new BackupReplayFile(file, false);
+  public static BackupReplayFile readOnly(final File file) throws IOException {
+    return new BackupReplayFile(file, false, filesystemImpl());
   }
 
-  public static BackupReplayFile writable(final File file) {
-    return new BackupReplayFile(file, true);
+  public static BackupReplayFile writable(final File file) throws IOException {
+    return new BackupReplayFile(file, true, filesystemImpl());
   }
 
-  private BackupReplayFile(final File file, final boolean write) {
+  @VisibleForTesting
+  BackupReplayFile(
+      final File file,
+      final boolean write,
+      final Filesystem filesystem
+  ) throws IOException {
     this.file = Objects.requireNonNull(file, "file");
-
+    this.filesystem = Objects.requireNonNull(filesystem, "filesystem");
+    this.writable = write;
     if (write) {
-      this.writer = createWriter(file);
-    } else {
-      this.writer = null;
+      initDirtyCopy();
     }
   }
 
-  private static FileOutputStream createWriter(final File file) {
+  private static FileOutputStream createWriter(final File file, final Filesystem filesystem) {
     try {
-      return new FileOutputStream(file, true);
+      return filesystem.outputStream(file, true);
     } catch (final FileNotFoundException e) {
       throw new KsqlException(
           String.format("Failed to create/open replay file: %s", file.getAbsolutePath()), e);
@@ -79,16 +90,39 @@ public final class BackupReplayFile implements Closeable {
     return file.getAbsolutePath();
   }
 
-  public void write(final ConsumerRecord<byte[], byte[]> record) throws IOException {
-    if (writer == null) {
-      throw new IOException("Write permission denied.");
-    }
-
+  private static void appendRecordToFile(
+      final ConsumerRecord<byte[], byte[]> record,
+      final File file,
+      final Filesystem filesystem
+  ) throws IOException {
+    final FileOutputStream writer = createWriter(file, filesystem);
     writer.write(record.key());
     writer.write(KEY_VALUE_SEPARATOR_BYTES);
     writer.write(record.value());
     writer.write(NEW_LINE_SEPARATOR_BYTES);
-    writer.flush();
+    writer.close();
+  }
+
+  public void write(final ConsumerRecord<byte[], byte[]> record) throws IOException {
+    if (!writable) {
+      throw new IOException("Write permission denied.");
+    }
+    final File dirty = dirty(file);
+    final File tmp = tmp(file);
+    // first write to the dirty copy
+    appendRecordToFile(record, dirty, filesystem);
+    // atomically rename the dirty copy to the "live" copy while copying the live copy to
+    // the "dirty" copy via a temporary hard link
+    Files.createLink(tmp.toPath(), file.toPath());
+    Files.move(
+        dirty.toPath(),
+        file.toPath(),
+        StandardCopyOption.REPLACE_EXISTING,
+        StandardCopyOption.ATOMIC_MOVE
+    );
+    Files.move(tmp.toPath(), dirty.toPath());
+    // keep the dirty copy in sync with the live copy, which now has the write
+    appendRecordToFile(record, dirty, filesystem);
   }
 
   public List<Pair<byte[], byte[]>> readRecords() throws IOException {
@@ -107,9 +141,33 @@ public final class BackupReplayFile implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
-    if (writer != null) {
-      writer.close();
+  public void close() {
+  }
+
+  private void initDirtyCopy() throws IOException {
+    final Path dirtyFile = dirty(file).toPath();
+    Files.deleteIfExists(dirtyFile);
+    Files.deleteIfExists(tmp(file).toPath());
+    if (file.exists()) {
+      Files.copy(file.toPath(), dirty(file).toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
+  }
+
+  private File dirty(final File file) {
+    return new File(file.getPath() + DIRTY_SUFFIX);
+  }
+
+  private File tmp(final File file) {
+    return new File(file.getPath() + TMP_SUFFIX);
+  }
+
+  private static Filesystem filesystemImpl() {
+    return FileOutputStream::new;
+  }
+
+  @VisibleForTesting
+  interface Filesystem {
+    FileOutputStream outputStream(final File file, final boolean append)
+        throws FileNotFoundException;
   }
 }

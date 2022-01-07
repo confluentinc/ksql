@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -93,7 +94,9 @@ public final class TestServiceContext {
         new DefaultConnectClient(
             "http://localhost:8083",
             Optional.empty(),
-            Collections.emptyMap()),
+            Collections.emptyMap(),
+            Optional.empty(),
+            false),
         consumerGroupClient
     );
   }

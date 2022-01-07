@@ -35,6 +35,8 @@ import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.attribute.FileTime;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.hc.core5.http.Header;
@@ -64,6 +66,24 @@ public class DefaultConnectClientFactoryTest {
   private static final String AUTH_HEADER_NAME = HttpHeaders.AUTHORIZATION.toString();
   private static final Header[] EMPTY_HEADERS = new Header[]{};
 
+  private static final Map<String, Object> DEFAULT_CONFIGS_WITH_PREFIX_OVERRIDE =
+      new KsqlConfig(ImmutableMap.of()).valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX);
+  private static final Map<String, Object> CONFIGS_WITH_HOSTNAME_VERIFICATION_ENABLED =
+      new KsqlConfig(ImmutableMap.of(
+          KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+          KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_HTTPS))
+          .valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX);
+  private static final Map<String, Object> CONFIGS_WITH_HOSTNAME_VERIFICATION_DISABLED =
+      new KsqlConfig(ImmutableMap.of(
+          KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+          KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_NONE))
+          .valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX);
+  private static final Map<String, Object> CONFIGS_WITH_HOSTNAME_VERIFICATION_EMPTY =
+      new KsqlConfig(ImmutableMap.of(
+          KsqlConfig.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG,
+          ""))
+          .valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX);
+
   @Rule
   public TemporaryFolder folder = KsqlTestFolder.temporaryFolder();
 
@@ -84,6 +104,7 @@ public class DefaultConnectClientFactoryTest {
 
     when(config.getString(KsqlConfig.CONNECT_URL_PROPERTY)).thenReturn("http://localhost:8034");
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)).thenReturn("NONE");
+    when(config.valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX)).thenReturn(DEFAULT_CONFIGS_WITH_PREFIX_OVERRIDE);
 
     connectClientFactory = new DefaultConnectClientFactory(config);
   }
@@ -257,6 +278,27 @@ public class DefaultConnectClientFactoryTest {
     // Then:
     assertThat(connectClient.getRequestHeaders(),
         arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER), header("header", "value")));
+  }
+
+  @Test
+  public void shouldEnableHostnameVerification() {
+    // When / Then:
+    assertThat(DefaultConnectClientFactory.shouldVerifySslHostname(CONFIGS_WITH_HOSTNAME_VERIFICATION_ENABLED),
+        is(true));
+  }
+
+  @Test
+  public void shouldDisableHostnameVerification() {
+    // When / Then:
+    assertThat(DefaultConnectClientFactory.shouldVerifySslHostname(CONFIGS_WITH_HOSTNAME_VERIFICATION_DISABLED),
+        is(false));
+  }
+
+  @Test
+  public void shouldDisableHostnameVerificationOnEmptyConfig() {
+    // When / Then:
+    assertThat(DefaultConnectClientFactory.shouldVerifySslHostname(CONFIGS_WITH_HOSTNAME_VERIFICATION_EMPTY),
+        is(false));
   }
 
   private void givenCustomBasicAuthHeader() {

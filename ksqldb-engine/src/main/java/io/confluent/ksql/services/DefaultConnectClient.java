@@ -38,7 +38,12 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
@@ -46,6 +51,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
@@ -75,23 +81,27 @@ public class DefaultConnectClient implements ConnectClient {
 
   private final URI connectUri;
   private final Header[] requestHeaders;
+  private final CloseableHttpClient httpClient;
 
   public DefaultConnectClient(
       final String connectUri,
       final Optional<String> authHeader,
-      final Map<String, String> additionalRequestHeaders
+      final Map<String, String> additionalRequestHeaders,
+      final Optional<SSLContext> sslContext,
+      final boolean verifySslHostname
   ) {
     Objects.requireNonNull(connectUri, "connectUri");
     Objects.requireNonNull(authHeader, "authHeader");
     Objects.requireNonNull(additionalRequestHeaders, "additionalRequestHeaders");
-    this.requestHeaders = buildHeaders(authHeader, additionalRequestHeaders);
-
+    Objects.requireNonNull(sslContext, "sslContext");
     try {
       this.connectUri = new URI(connectUri);
     } catch (final URISyntaxException e) {
       throw new KsqlException(
           "Could not initialize connect client due to invalid URI: " + connectUri, e);
     }
+    this.requestHeaders = buildHeaders(authHeader, additionalRequestHeaders);
+    this.httpClient = buildHttpClient(sslContext, verifySslHostname);
   }
 
   @Override
@@ -117,7 +127,7 @@ public class DefaultConnectClient implements ConnectClient {
                       "config", config)),
               ContentType.APPLICATION_JSON
           )
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_CREATED, new TypeReference<ConnectorInfo>() {},
                   Function.identity())));
@@ -147,7 +157,7 @@ public class DefaultConnectClient implements ConnectClient {
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .bodyString(MAPPER.writeValueAsString(config), ContentType.APPLICATION_JSON)
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConfigInfos>() {},
                   Function.identity())));
@@ -175,7 +185,7 @@ public class DefaultConnectClient implements ConnectClient {
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<List<String>>() {},
                   Function.identity())));
@@ -200,7 +210,7 @@ public class DefaultConnectClient implements ConnectClient {
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<List<ConnectorPluginInfo>>() {},
                   Function.identity())));
@@ -226,7 +236,7 @@ public class DefaultConnectClient implements ConnectClient {
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorStateInfo>() {},
                   Function.identity())));
@@ -252,7 +262,7 @@ public class DefaultConnectClient implements ConnectClient {
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_OK, new TypeReference<ConnectorInfo>() {},
                   Function.identity())));
@@ -278,7 +288,7 @@ public class DefaultConnectClient implements ConnectClient {
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-          .execute()
+          .execute(httpClient)
           .handleResponse(
               createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
                   foo -> connector)));
@@ -304,7 +314,7 @@ public class DefaultConnectClient implements ConnectClient {
               .setHeaders(requestHeaders)
               .responseTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
               .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
-              .execute()
+              .execute(httpClient)
               .handleResponse(
                   createHandler(HttpStatus.SC_OK,
                       new TypeReference<Map<String, Map<String, List<String>>>>() {},
@@ -360,6 +370,36 @@ public class DefaultConnectClient implements ConnectClient {
     }
 
     return headers.toArray(new Header[0]);
+  }
+
+  /**
+   * Uses defaults from Request.execute(), except with an explicit SSLSocketFactory to pass
+   * custom SSL configs. Link to default below:
+   * https://github.com/apache/httpcomponents-client/blob/3734aaa038a58c17af638e9fa29019cacb22e82c/httpclient5-fluent/src/main/java/org/apache/hc/client5/http/fluent/Executor.java#L62-L72
+   */
+  private static CloseableHttpClient buildHttpClient(
+      final Optional<SSLContext> sslContext,
+      final boolean verifySslHostname
+  ) {
+    final PoolingHttpClientConnectionManagerBuilder connectionManagerBuilder =
+        PoolingHttpClientConnectionManagerBuilder.create();
+    sslContext.ifPresent(ctx -> {
+      final SSLConnectionSocketFactory socketFactory = verifySslHostname
+          ? new SSLConnectionSocketFactory(ctx)
+          : new SSLConnectionSocketFactory(ctx, (hostname, session) -> true);
+      connectionManagerBuilder.setSSLSocketFactory(socketFactory);
+    });
+
+    return HttpClientBuilder.create()
+        .setConnectionManager(connectionManagerBuilder
+            .setMaxConnPerRoute(100)
+            .setMaxConnTotal(200)
+            .setValidateAfterInactivity(TimeValue.ofSeconds(10L))
+            .build())
+        .useSystemProperties()
+        .evictExpiredConnections()
+        .evictIdleConnections(TimeValue.ofMinutes(1L))
+        .build();
   }
 
   @SuppressWarnings("unchecked")

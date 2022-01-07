@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import static io.vertx.core.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,6 +36,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfo;
@@ -53,6 +56,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
 @RunWith(Parameterized.class)
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
@@ -96,10 +102,18 @@ public class DefaultConnectClientTest {
           .dynamicPort()
   );
 
+  @Rule
+  public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
   @Parameterized.Parameters(name = "{1}")
   public static Collection<String[]> pathPrefixes() {
     return ImmutableList.of(new String[]{"", "no path prefix"}, new String[]{"/some/path/prefix", "with path prefix"});
   }
+
+  @Mock
+  private SSLContext sslContext;
+  @Mock
+  private SSLSocketFactory sslSocketFactory;
 
   private final String pathPrefix;
 
@@ -111,10 +125,14 @@ public class DefaultConnectClientTest {
 
   @Before
   public void setup() {
+    when(sslContext.getSocketFactory()).thenReturn(sslSocketFactory);
+
     client = new DefaultConnectClient(
         "http://localhost:" + wireMockRule.port() + pathPrefix,
         Optional.of(AUTH_HEADER),
-        ImmutableMap.of(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE));
+        ImmutableMap.of(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE),
+        Optional.of(sslContext),
+        false);
   }
 
   @Test

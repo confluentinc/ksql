@@ -221,30 +221,43 @@ public class PullQueryQueue implements BlockingRowQueue {
    * Enqueues a row on the queue.  Blocks until the row can be accepted.
    * @param row The row to enqueue.
    */
-  public synchronized boolean acceptRow(final PullQueryRow row) {
+  public boolean acceptRow(final PullQueryRow row) {
     try {
       if (row == null) {
         return false;
       }
-      if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
-        closeInternal(true);
-        return false;
+
+      final boolean accepted;
+      if (limit.isPresent()) {
+        synchronized (this) {
+          if (totalRowsQueued.get() >= limit.getAsInt()) {
+            closeInternal(true);
+            return false;
+          }
+          accepted = doAcceptRow(row);
+        }
+      } else {
+        accepted = doAcceptRow(row);
       }
 
-      while (!closed.get()) {
-        if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-          totalRowsQueued.incrementAndGet();
-          queuedCallback.run();
-          if (limit.isPresent() && totalRowsQueued.get() >= limit.getAsInt()) {
-            closeInternal(true);
-          }
-          return true;
-        }
+      if (accepted) {
+        queuedCallback.run();
       }
+      return accepted;
     } catch (final InterruptedException e) {
       // Forced shutdown?
       LOG.error("Interrupted while trying to offer row to queue", e);
       Thread.currentThread().interrupt();
+    }
+    return false;
+  }
+
+  private boolean doAcceptRow(final PullQueryRow row) throws InterruptedException {
+    while (!closed.get()) {
+      if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+        totalRowsQueued.incrementAndGet();
+        return true;
+      }
     }
     return false;
   }

@@ -31,9 +31,4 @@ public interface KsqlPrincipal extends Principal {
     return Collections.emptyMap();
   }
 
-  static KsqlPrincipal from(final Principal principal) {
-    return principal instanceof KsqlPrincipal
-        ? (KsqlPrincipal) principal
-        : new DefaultKsqlPrincipal(principal);
-  }
 }

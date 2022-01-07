@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
-import static org.apache.kafka.streams.query.StateQueryRequest.inStore;
-
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -28,11 +25,9 @@ import io.confluent.ksql.util.IteratorUtil;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.query.KeyQuery;
-import org.apache.kafka.streams.query.RangeQuery;
-import org.apache.kafka.streams.query.StateQueryRequest;
-import org.apache.kafka.streams.query.StateQueryResult;
 import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
 
 /**
@@ -52,15 +47,10 @@ class KsMaterializedTable implements MaterializedTable {
       final int partition
   ) {
     try {
-      final KeyQuery<GenericKey, ValueAndTimestamp<GenericRow>> query = KeyQuery.withKey(key);
-      final StateQueryRequest<ValueAndTimestamp<GenericRow>>
-          request = inStore(stateStore.getStateStoreName())
-          .withQuery(query)
-          .withPartitions(ImmutableSet.of(partition));
-      final StateQueryResult<ValueAndTimestamp<GenericRow>>
-          result = stateStore.getKafkaStreams().query(request);
+      final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
-      return Optional.ofNullable(result.getOnlyPartitionResult().getResult())
+      return Optional.ofNullable(store.get(key))
           .map(v -> Row.of(stateStore.schema(), key, v.value(), v.timestamp()));
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -70,16 +60,10 @@ class KsMaterializedTable implements MaterializedTable {
   @Override
   public Iterator<Row> get(final int partition) {
     try {
-      final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query = RangeQuery.withNoBounds();
-      final StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
-          request = inStore(stateStore.getStateStoreName())
-          .withQuery(query)
-          .withPartitions(ImmutableSet.of(partition));
-      final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
-          result = stateStore.getKafkaStreams().query(request);
-      final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
-          result.getOnlyPartitionResult().getResult();
-      
+      final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
+
+      final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator = store.all();
       return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
           .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
                                   keyValue.value.timestamp()))
@@ -92,26 +76,11 @@ class KsMaterializedTable implements MaterializedTable {
   @Override
   public Iterator<Row> get(final int partition, final GenericKey from, final GenericKey to) {
     try {
-      final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query;
-      if (from != null && to != null) {
-        query = RangeQuery.withRange(from, to);
-      } else if (from == null && to != null) {
-        query = RangeQuery.withUpperBound(to);
-      } else if (from != null && to == null) {
-        query = RangeQuery.withLowerBound(from);
-      } else {
-        query = RangeQuery.withNoBounds();
-      }
+      final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
-      final StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
-          request = inStore(stateStore.getStateStoreName())
-          .withQuery(query)
-          .withPartitions(ImmutableSet.of(partition));
-      final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
-          result = stateStore.getKafkaStreams().query(request);
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
-          result.getOnlyPartitionResult().getResult();
-
+          store.range(from, to);
       return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
           .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
                                   keyValue.value.timestamp()))

@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.Optional;
 import org.junit.Before;
@@ -42,6 +43,8 @@ public class KsMaterializationTest {
   private Locator locator;
   @Mock
   private KsStateStore stateStore;
+  @Mock
+  private KsqlConfig ksqlConfig;
   private KsMaterialization materialization;
 
   @Before
@@ -144,6 +147,6 @@ public class KsMaterializationTest {
             : Optional.empty())
         );
 
-    materialization = new KsMaterialization(windowInfo, locator, stateStore);
+    materialization = new KsMaterialization(windowInfo, locator, stateStore, ksqlConfig);
   }
 }

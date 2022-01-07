@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,14 +39,10 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.query.KeyQuery;
-import org.apache.kafka.streams.query.QueryResult;
-import org.apache.kafka.streams.query.RangeQuery;
-import org.apache.kafka.streams.query.StateQueryRequest;
-import org.apache.kafka.streams.query.StateQueryResult;
 import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.QueryableStoreType;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,24 +76,15 @@ public class KsMaterializedTableTest {
       = KeyValue.pair(A_KEY, VALUE_AND_TIMESTAMP1);
   private static final KeyValue<GenericKey, ValueAndTimestamp<GenericRow>> KEY_VALUE2
       = KeyValue.pair(A_KEY2, VALUE_AND_TIMESTAMP2);
-  private static final String STATE_STORE_NAME = "store";
 
-  @Mock
-  private KafkaStreams kafkaStreams;
   @Mock
   private KsStateStore stateStore;
   @Mock
+  private ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> tableStore;
+  @Mock
   private KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> keyValueIterator;
-  @Mock
-  private StateQueryResult queryResult;
-  @Mock
-  private QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> rangeResult;
-  @Mock
-  private QueryResult<ValueAndTimestamp<GenericRow>> keyResult;
-  @Mock
-  private ValueAndTimestamp<GenericRow> row;
   @Captor
-  private ArgumentCaptor<StateQueryRequest<?>> queryTypeCaptor;
+  private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
 
   private KsMaterializedTable table;
 
@@ -104,9 +92,8 @@ public class KsMaterializedTableTest {
   public void setUp() {
     table = new KsMaterializedTable(stateStore);
 
+    when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
-    when(stateStore.getStateStoreName()).thenReturn(STATE_STORE_NAME);
-    when(stateStore.getKafkaStreams()).thenReturn(kafkaStreams);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -118,9 +105,9 @@ public class KsMaterializedTableTest {
   }
 
   @Test
-  public void shouldThrowIfQueryFails() {
+  public void shouldThrowIfGettingStateStoreFails() {
     // Given:
-    when(stateStore.getKafkaStreams().query(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(stateStore.store(any(), anyInt())).thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
@@ -135,125 +122,56 @@ public class KsMaterializedTableTest {
   }
 
   @Test
-  public void shouldKeyQueryWithCorrectParams() {
+  public void shouldThrowIfStoreGetFails() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(keyResult);
-    when(keyResult.getResult()).thenReturn(row);
-    when(row.value()).thenReturn(ROW1);
+    when(tableStore.get(any())).thenThrow(new MaterializationTimeOutException("Boom"));
 
+    // When:
+    final Exception e = assertThrows(
+        MaterializationException.class,
+        () -> table.get(A_KEY, PARTITION)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Failed to get value from materialized table"));
+    assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
+  }
+
+  @Test
+  public void shouldGetStoreWithCorrectParams() {
     // When:
     table.get(A_KEY, PARTITION);
 
     // Then:
-    verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
-    assertThat(request.getQuery(), instanceOf(KeyQuery.class));
-    KeyQuery keyQuery = (KeyQuery)request.getQuery();
-    assertThat(keyQuery.getKey(), is(A_KEY));
+    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
+    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedKeyValueStoreType"));
   }
 
   @Test
-  public void shouldRangeQueryWithCorrectParams_fullTableScan() {
+  public void shouldGetStoreWithCorrectParams_fullTableScan() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(tableStore.all()).thenReturn(keyValueIterator);
 
     // When:
     table.get(PARTITION);
 
     // Then:
-    verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
-    assertThat(request.getQuery(), instanceOf(RangeQuery.class));
-    RangeQuery rangeQuery = (RangeQuery)request.getQuery();
-    assertThat(rangeQuery.getLowerBound(), is(Optional.empty()));
-    assertThat(rangeQuery.getUpperBound(), is(Optional.empty()));
+    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
+    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedKeyValueStoreType"));
   }
 
   @Test
-  public void shouldRangeQueryWithCorrectParams_lowerBound() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-
+  public void shouldGetWithCorrectParams() {
     // When:
-    table.get(PARTITION, A_KEY, null);
+    table.get(A_KEY, PARTITION);
 
     // Then:
-    verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
-    assertThat(request.getQuery(), instanceOf(RangeQuery.class));
-    RangeQuery rangeQuery = (RangeQuery)request.getQuery();
-    assertThat(rangeQuery.getLowerBound(), is(Optional.of(A_KEY)));
-    assertThat(rangeQuery.getUpperBound(), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldRangeQueryWithCorrectParams_upperBound() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-
-    // When:
-    table.get(PARTITION, null, A_KEY2);
-
-    // Then:
-    verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
-    assertThat(request.getQuery(), instanceOf(RangeQuery.class));
-    RangeQuery rangeQuery = (RangeQuery)request.getQuery();
-    assertThat(rangeQuery.getLowerBound(), is(Optional.empty()));
-    assertThat(rangeQuery.getUpperBound(), is(Optional.of(A_KEY2)));
-  }
-
-  @Test
-  public void shouldRangeQueryWithCorrectParams_bothBounds() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-
-    // When:
-    table.get(PARTITION, A_KEY, A_KEY2);
-
-    // Then:
-    verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
-    assertThat(request.getQuery(), instanceOf(RangeQuery.class));
-    RangeQuery rangeQuery = (RangeQuery)request.getQuery();
-    assertThat(rangeQuery.getLowerBound(), is(Optional.of(A_KEY)));
-    assertThat(rangeQuery.getUpperBound(), is(Optional.of(A_KEY2)));
-  }
-
-  @Test
-  public void shouldRangeQueryWithCorrectParams_noBounds() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-
-    // When:
-    table.get(PARTITION, null, null);
-
-    // Then:
-    verify(kafkaStreams).query(queryTypeCaptor.capture());
-    StateQueryRequest request = queryTypeCaptor.getValue();
-    assertThat(request.getQuery(), instanceOf(RangeQuery.class));
-    RangeQuery rangeQuery = (RangeQuery)request.getQuery();
-    assertThat(rangeQuery.getLowerBound(), is(Optional.empty()));
-    assertThat(rangeQuery.getUpperBound(), is(Optional.empty()));
+    verify(tableStore).get(A_KEY);
   }
 
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(keyResult);
-
     // When:
     final Optional<?> result = table.get(A_KEY, PARTITION);
 
@@ -266,9 +184,7 @@ public class KsMaterializedTableTest {
     // Given:
     final GenericRow value = GenericRow.genericRow("col0");
     final long rowTime = 2343553L;
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(keyResult);
-    when(keyResult.getResult()).thenReturn(ValueAndTimestamp.make(value, rowTime));
+    when(tableStore.get(any())).thenReturn(ValueAndTimestamp.make(value, rowTime));
 
     // When:
     final Optional<Row> result = table.get(A_KEY, PARTITION);
@@ -280,9 +196,7 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldReturnValuesFullTableScan() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(tableStore.all()).thenReturn(keyValueIterator);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
     when(keyValueIterator.next())
         .thenReturn(KEY_VALUE1)
@@ -298,68 +212,9 @@ public class KsMaterializedTableTest {
   }
 
   @Test
-  public void shouldReturnValuesLowerBound() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE2);
-
-    // When:
-    Iterator<Row> rows = table.get(PARTITION, A_KEY2, null);
-
-    // Then:
-    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
-    assertThat(rows.hasNext(), is(false));
-  }
-
-  @Test
-  public void shouldReturnValuesUpperBound() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1);
-
-    // When:
-    Iterator<Row> rows = table.get(PARTITION, null, A_KEY);
-
-    // Then:
-    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
-    assertThat(rows.hasNext(), is(false));
-  }
-
-  @Test
-  public void shouldReturnValuesBothBound() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1)
-        .thenReturn(KEY_VALUE2);
-
-    // When:
-    Iterator<Row> rows = table.get(PARTITION, A_KEY, A_KEY2);
-
-    // Then:
-    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
-    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
-    assertThat(rows.hasNext(), is(false));
-  }
-
-
-  @Test
   public void shouldCloseIterator_fullTableScan() {
     // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
+    when(tableStore.all()).thenReturn(keyValueIterator);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
     when(keyValueIterator.next())
         .thenReturn(KEY_VALUE1)
@@ -367,25 +222,6 @@ public class KsMaterializedTableTest {
 
     // When:
     Streams.stream(table.get(PARTITION))
-        .collect(Collectors.toList());
-
-    // Then:
-    verify(keyValueIterator).close();
-  }
-
-  @Test
-  public void shouldCloseIterator_rangeBothBounds() {
-    // Given:
-    when(kafkaStreams.query(any())).thenReturn(queryResult);
-    when(queryResult.getOnlyPartitionResult()).thenReturn(rangeResult);
-    when(rangeResult.getResult()).thenReturn(keyValueIterator);
-    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
-    when(keyValueIterator.next())
-        .thenReturn(KEY_VALUE1)
-        .thenReturn(KEY_VALUE2);
-
-    // When:
-    Streams.stream(table.get(PARTITION, A_KEY, A_KEY2))
         .collect(Collectors.toList());
 
     // Then:

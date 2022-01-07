@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 
 /**
@@ -34,15 +35,18 @@ public final class KsMaterialization implements Materialization {
   private final Optional<WindowInfo> windowInfo;
   private final KsStateStore stateStore;
   private final Locator locator;
+  private final KsqlConfig ksqlConfig;
 
   KsMaterialization(
       final Optional<WindowInfo> windowInfo,
       final Locator locator,
-      final KsStateStore stateStore
+      final KsStateStore stateStore,
+      final KsqlConfig ksqlConfig
   ) {
     this.windowInfo = requireNonNull(windowInfo, "windowInfo");
     this.stateStore = requireNonNull(stateStore, "stateStore");
     this.locator = requireNonNull(locator, "locator");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   @Override
@@ -65,7 +69,10 @@ public final class KsMaterialization implements Materialization {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
-    return new KsMaterializedTable(stateStore);
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+      return new KsMaterializedTableIQv2(stateStore);
+    }
+    return new  KsMaterializedTable(stateStore);
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Enforced by type

@@ -37,4 +37,8 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
   public Map<String, Object> getUserProperties() {
     return Collections.emptyMap();
   }
+
+  public Principal getOriginalPrincipal() {
+    return principal;
+  }
 }

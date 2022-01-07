@@ -10,6 +10,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.kafka.common.security.ssl.DefaultSslEngineFactory;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public class TestRestServiceContextFactory {
@@ -44,8 +45,12 @@ public class TestRestServiceContextFactory {
           ksqlConfig,
           kafkaClientSupplier,
           srClientFactory,
-          () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
-              authHeader, Collections.emptyMap()),
+          () -> new DefaultConnectClient(
+              ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
+              authHeader,
+              Collections.emptyMap(),
+              Optional.empty(),
+              false),
           () -> ksqlClientFactory.create(authHeader, sharedClient)
       );
     };

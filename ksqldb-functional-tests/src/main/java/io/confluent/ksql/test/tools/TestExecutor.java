@@ -574,7 +574,9 @@ public class TestExecutor implements Closeable {
         () -> new DefaultConnectClient(
             "http://localhost:8083",
             Optional.empty(),
-            Collections.emptyMap()),
+            Collections.emptyMap(),
+            Optional.empty(),
+            false),
         DisabledKsqlClient::instance,
         new StubKafkaConsumerGroupClient()
     );

@@ -69,21 +69,22 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         throw new MaterializationException("The query did not return exactly one partition result: "
                 + result.getPartitionResults());
       }
-      if (queryResultMap.containsKey(partition)) {
-        final QueryResult<ValueAndTimestamp<GenericRow>> queryResult =
-            queryResultMap.get(partition);
-        if (queryResult.isFailure()) {
-          throw new MaterializationException(queryResult.getFailureMessage());
-        }
-        if (queryResult.getResult() == null) {
-          return Optional.empty();
-        } else {
-          final ValueAndTimestamp<GenericRow> row = queryResult.getResult();
-          return Optional.of(Row.of(stateStore.schema(), key, row.value(), row.timestamp()));
-        }
+      if (!queryResultMap.containsKey(partition)) {
+        throw new MaterializationException(
+            "The query did not return the requested partition result: "
+                + result.getPartitionResults());
       }
-      throw new MaterializationException("The query did not return the requested partition result: "
-                                             + result.getPartitionResults());
+      final QueryResult<ValueAndTimestamp<GenericRow>> queryResult =
+          queryResultMap.get(partition);
+      if (queryResult.isFailure()) {
+        throw new MaterializationException(queryResult.getFailureMessage());
+      }
+      if (queryResult.getResult() == null) {
+        return Optional.empty();
+      } else {
+        final ValueAndTimestamp<GenericRow> row = queryResult.getResult();
+        return Optional.of(Row.of(stateStore.schema(), key, row.value(), row.timestamp()));
+      }
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
@@ -105,32 +106,35 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         throw new MaterializationException("The query did not return exactly one partition result: "
                                                + result.getPartitionResults());
       }
-      if (queryResultMap.containsKey(partition)) {
-        final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
-            queryResultMap.get(partition);
-        if (queryResult.isFailure()) {
-          throw new MaterializationException(queryResult.getFailureMessage());
-        }
-        if (queryResult.getResult() == null) {
-          return Collections.emptyIterator();
-        } else {
-          final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
-              queryResult.getResult();
-          return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
-              .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
-                                      keyValue.value.timestamp()))
-              .iterator();
-        }
+      if (!queryResultMap.containsKey(partition)) {
+        throw new MaterializationException(
+            "The query did not return the requested partition result: "
+                + result.getPartitionResults());
       }
-      throw new MaterializationException("The query did not return the requested partition result: "
-                                             + result.getPartitionResults());
+      final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
+          queryResultMap.get(partition);
+      if (queryResult.isFailure()) {
+        throw new MaterializationException(queryResult.getFailureMessage());
+      }
+      if (queryResult.getResult() == null) {
+        return Collections.emptyIterator();
+      } else {
+        final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
+            queryResult.getResult();
+        return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+            .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
+                                    keyValue.value.timestamp()))
+            .iterator();
+      }
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public Iterator<Row> get(final int partition, final GenericKey from, final GenericKey to) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     try {
       final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query;
       if (from != null && to != null) {
@@ -155,25 +159,26 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         throw new MaterializationException("The query did not return exactly one partition result: "
                                                + result.getPartitionResults());
       }
-      if (queryResultMap.containsKey(partition)) {
-        final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
-            queryResultMap.get(partition);
-        if (queryResult.isFailure()) {
-          throw new MaterializationException(queryResult.getFailureMessage());
-        }
-        if (queryResult.getResult() == null) {
-          return Collections.emptyIterator();
-        } else {
-          final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
-              queryResult.getResult();
-          return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
-              .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
-                  keyValue.value.timestamp()))
-              .iterator();
-        }
+      if (!queryResultMap.containsKey(partition)) {
+        throw new MaterializationException(
+            "The query did not return the requested partition result: "
+                + result.getPartitionResults());
       }
-      throw new MaterializationException("The query did not return the requested partition result: "
-                                             + result.getPartitionResults());
+      final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
+          queryResultMap.get(partition);
+      if (queryResult.isFailure()) {
+        throw new MaterializationException(queryResult.getFailureMessage());
+      }
+      if (queryResult.getResult() == null) {
+        return Collections.emptyIterator();
+      } else {
+        final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
+            queryResult.getResult();
+        return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+            .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
+                keyValue.value.timestamp()))
+            .iterator();
+      }
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);
     }

@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.query.KeyQuery;
@@ -63,23 +62,13 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
       final StateQueryResult<ValueAndTimestamp<GenericRow>>
           result = stateStore.getKafkaStreams().query(request);
 
-      final Map<Integer, QueryResult<ValueAndTimestamp<GenericRow>>> queryResultMap =
-          result.getPartitionResults();
-      if (queryResultMap.size() != 1) {
-        throw new MaterializationException("The query did not return exactly one partition result: "
-                + result.getPartitionResults());
-      }
-      if (!queryResultMap.containsKey(partition)) {
-        throw new MaterializationException(
-            "The query did not return the requested partition result: "
-                + result.getPartitionResults());
-      }
       final QueryResult<ValueAndTimestamp<GenericRow>> queryResult =
-          queryResultMap.get(partition);
+          result.getPartitionResults().get(partition);
+      // Some of these failures are retriable, and in the future, we may want to retry
+      // locally before throwing.
       if (queryResult.isFailure()) {
-        throw new MaterializationException(queryResult.getFailureMessage());
-      }
-      if (queryResult.getResult() == null) {
+        throw failedQueryException(queryResult);
+      } else if (queryResult.getResult() == null) {
         return Optional.empty();
       } else {
         final ValueAndTimestamp<GenericRow> row = queryResult.getResult();
@@ -102,23 +91,12 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
           .withPartitions(ImmutableSet.of(partition));
       final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           result = stateStore.getKafkaStreams().query(request);
-      final Map<Integer, QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>>
-          queryResultMap = result.getPartitionResults();
-      if (queryResultMap.size() != 1) {
-        throw new MaterializationException("The query did not return exactly one partition result: "
-                                               + result.getPartitionResults());
-      }
-      if (!queryResultMap.containsKey(partition)) {
-        throw new MaterializationException(
-            "The query did not return the requested partition result: "
-                + result.getPartitionResults());
-      }
+
       final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
-          queryResultMap.get(partition);
+          result.getPartitionResults().get(partition);
       if (queryResult.isFailure()) {
-        throw new MaterializationException(queryResult.getFailureMessage());
-      }
-      if (queryResult.getResult() == null) {
+        throw failedQueryException(queryResult);
+      } else if (queryResult.getResult() == null) {
         return Collections.emptyIterator();
       } else {
         final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
@@ -157,23 +135,12 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
           .withPartitions(ImmutableSet.of(partition));
       final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           result = stateStore.getKafkaStreams().query(request);
-      final Map<Integer, QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>>
-          queryResultMap = result.getPartitionResults();
-      if (queryResultMap.size() != 1) {
-        throw new MaterializationException("The query did not return exactly one partition result: "
-                                               + result.getPartitionResults());
-      }
-      if (!queryResultMap.containsKey(partition)) {
-        throw new MaterializationException(
-            "The query did not return the requested partition result: "
-                + result.getPartitionResults());
-      }
+
       final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
-          queryResultMap.get(partition);
+          result.getPartitionResults().get(partition);
       if (queryResult.isFailure()) {
-        throw new MaterializationException(queryResult.getFailureMessage());
-      }
-      if (queryResult.getResult() == null) {
+        throw failedQueryException(queryResult);
+      } else if (queryResult.getResult() == null) {
         return Collections.emptyIterator();
       } else {
         final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
@@ -188,6 +155,14 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);
     }
+  }
+
+  private MaterializationException failedQueryException(final QueryResult<?> queryResult) {
+    return new MaterializationException(
+        "Failed to get value from materialized table: "
+            + queryResult.getFailureReason() + ": "
+            + queryResult.getFailureMessage()
+    );
   }
 
 }

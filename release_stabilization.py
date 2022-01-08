@@ -52,6 +52,24 @@ class Callbacks:
         v_version = "v" + version
         try:
 
+            # is a final version build
+            if "rc" not in version:
+                # promote production images to dockerhub
+                for docker_repo in DOCKER_REPOS:
+                    print(f"docker pull {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{version}")
+                    subprocess.run(shlex.split(f"docker pull {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{version}"))
+
+                    print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{version} {docker_repo}:{version}")
+                    subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{version} {docker_repo}:{version}"))
+                    print(f"docker push {docker_repo}:{version}")
+                    subprocess.run(shlex.split(f"docker push {docker_repo}:{version}"))
+
+                    # update latest tag images on dockerhub
+                    print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{version} {docker_repo}:latest")
+                    subprocess.run(shlex.split(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{docker_repo}:{version} {docker_repo}:latest"))
+                    print(f"docker push {docker_repo}:latest")
+                    subprocess.run(shlex.split(f"docker push {docker_repo}:latest"))
+
             # pull, tag, and push latest docker on-prem images
             for docker_repo in DOCKER_REPOS:
                 print(f"docker tag {DOCKER_UPSTREAM_REGISTRY}{DOCKER_ARTIFACT}:{version} {DOCKER_INTERNAL_REGISTRY}{docker_repo}:{version}")

@@ -10,7 +10,6 @@ PACKAGES_MAVEN_URL = r'${env.ORG_GRADLE_PROJECT_mavenUrl}'
 CC_SPEC_KSQL_BRANCH = "master"
 CCLOUD_DOCKER_REPO = 'confluentinc/cc-ksql'
 CCLOUD_DOCKER_HOTFIX_REPO = 'confluentinc/cc-ksql-hotfix'
-# need to update below automatically?
 DOCKER_REPOS = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
 DOCKER_ARTIFACT = 'confluentinc/ksqldb-docker'
 KAFKA_TUTORIALS_BRANCH = 'ksqldb-latest'

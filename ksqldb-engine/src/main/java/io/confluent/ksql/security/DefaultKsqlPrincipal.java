@@ -20,6 +20,11 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * A {@link KsqlPrincipal} implementation that wraps another {@code Principal}.
+ * If the wrapped principal is a KsqlPrincipal, then its user properties are
+ * passed through. Otherwise, an empty map is returned.
+ */
 public class DefaultKsqlPrincipal implements KsqlPrincipal {
 
   private final Principal principal;
@@ -35,6 +40,18 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
 
   @Override
   public Map<String, Object> getUserProperties() {
-    return Collections.emptyMap();
+    if (principal instanceof KsqlPrincipal) {
+      return ((KsqlPrincipal) principal).getUserProperties();
+    } else {
+      return Collections.emptyMap();
+    }
+  }
+
+  /**
+   * Exposes the wrapped principal so custom extensions can access the original
+   * principal. This is part of the public API and should not be removed.
+   */
+  public Principal getOriginalPrincipal() {
+    return principal;
   }
 }

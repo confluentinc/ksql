@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRows;
+import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -28,7 +30,9 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -44,6 +48,7 @@ import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -357,6 +362,146 @@ public class PullQueryIQv2FunctionalTest {
     assertThat(rowsNoHeader, containsInAnyOrder(
         ImmutableList.of(key0, 1), ImmutableList.of(key1, 1), ImmutableList.of(key2, 1),
         ImmutableList.of(key3, 1), ImmutableList.of(key4, 1)));
+  }
+
+  @Test
+  public void shouldGetSingleWindowedKey() {
+    // Given:
+    final String key = USER_PROVIDER.getStringKey(0);
+
+    makeAdminRequest(
+      "CREATE TABLE " + output + " AS"
+        + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+        + " WINDOW TUMBLING (SIZE 1 SECOND)"
+        + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output
+      + " WHERE USERID = '" + key + "'"
+      + " AND WINDOWSTART = " + BASE_TIME + ";";
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(
+      key,                    // USERID
+      BASE_TIME,              // WINDOWSTART
+      BASE_TIME + ONE_SECOND, // WINDOWEND
+      1                       // COUNT
+    )));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldGetMultipleWindowedKeys() {
+    // Given:
+    final String key0 = USER_PROVIDER.getStringKey(0);
+    final String key1 = USER_PROVIDER.getStringKey(1);
+    final String key2 = USER_PROVIDER.getStringKey(2);
+
+    makeAdminRequest(
+      "CREATE TABLE " + output + " AS"
+        + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+        + " WINDOW TUMBLING (SIZE 1 SECOND)"
+        + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output
+      + " WHERE USERID IN ('" + key0 + "'," + "'" + key1 + "'," + "'" + key2 + "') "
+      + " AND WINDOWSTART = " + BASE_TIME + ";";
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 3));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+      .map(sr -> sr.getRow().get().getColumns())
+      .collect(Collectors.toList());
+    assertThat(rows, containsInAnyOrder(ImmutableList.of(
+      key0,                    // USERID
+      BASE_TIME,              // WINDOWSTART
+      BASE_TIME + ONE_SECOND, // WINDOWEND
+      1                       // COUNT
+      ),
+      ImmutableList.of(
+        key1,                    // USERID
+        BASE_TIME,              // WINDOWSTART
+        BASE_TIME + ONE_SECOND, // WINDOWEND
+        1                       // COUNT
+      ),
+      ImmutableList.of(
+        key2,                    // USERID
+        BASE_TIME,              // WINDOWSTART
+        BASE_TIME + ONE_SECOND, // WINDOWEND
+        1                       // COUNT
+      )));
+  }
+
+  @Test
+  public void shouldDoTableScanWindowedBothNodes() {
+    // Given:
+    makeAdminRequest(
+      "CREATE TABLE " + output + " AS"
+        + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+        + " WINDOW TUMBLING (SIZE 1 SECOND)"
+        + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output + ";";
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 5));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+
+    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+      .map(sr -> sr.getRow().get().getColumns())
+      .collect(Collectors.toList());
+    assertThat(rows, containsInAnyOrder(
+      ImmutableList.of(
+        USER_PROVIDER.getStringKey(0),  // USERID
+        BASE_TIME,                      // WINDOWSTART
+        BASE_TIME + ONE_SECOND,         // WINDOWEND
+        1                               // COUNT
+      ),
+      ImmutableList.of(
+        USER_PROVIDER.getStringKey(1),  // USERID
+        BASE_TIME,                      // WINDOWSTART
+        BASE_TIME + ONE_SECOND,         // WINDOWEND
+        1                               // COUNT
+      ),
+      ImmutableList.of(
+        USER_PROVIDER.getStringKey(2),  // USERID
+        BASE_TIME,                      // WINDOWSTART
+        BASE_TIME + ONE_SECOND,         // WINDOWEND
+        1                               // COUNT
+      ),
+      ImmutableList.of(
+        USER_PROVIDER.getStringKey(3),  // USERID
+        BASE_TIME,                      // WINDOWSTART
+        BASE_TIME + ONE_SECOND,         // WINDOWEND
+        1                               // COUNT
+      ),
+      ImmutableList.of(
+        USER_PROVIDER.getStringKey(4),  // USERID
+        BASE_TIME,                      // WINDOWSTART
+        BASE_TIME + ONE_SECOND,         // WINDOWEND
+        1                               // COUNT
+      )
+    ));
   }
 
 

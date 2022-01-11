@@ -120,6 +120,9 @@ FROM orders
 EMIT CHANGES;
 ```
 
+!!! Tip "See CASE in action"
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+
 ## CAST
 Change the type of an expression to a different type.
 
@@ -148,6 +151,11 @@ information, see [CREATE CONNECTOR](../../ksqldb-reference/create-connector).
 CREATE SOURCE | SINK CONNECTOR connector_name
   WITH( property_name = expression [, ...]);
 ```
+
+!!! Tip "See CREATE CONNECTOR in action"
+    - [Materialized cache - Start the Debezium source connector](/tutorials/materialized/#start-the-debezium-connector)
+    - [Streaming ETL pipeline - Start the source connectors](/tutorials/etl#start-the-postgres-and-mongodb-debezium-source-connectors)
+    - [Streaming ETL pipeline- Start the Elasticsearch sink connector](/tutorials/etl/#start-the-elasticsearch-sink-connector)
 
 ## CREATE STREAM
 Register a stream on a {{ site.ak }} topic. For more information, see
@@ -394,6 +402,12 @@ SELECT column_name(s)
    INNER JOIN stream_name2 | table_name2
    ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
 ```
+
+!!! Tip "See INNER_JOIN in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Notify passengers of flight updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
 
 ## INSERT INTO
 Stream the result of a SELECT query into an existing stream and its underlying
@@ -678,6 +692,10 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   WINDOW window_expression
   EMIT CHANGES;
 ```
+
+!!! Tip "See WINDOWSTART in action"
+    - [Detect unusual credit card activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://confluentinc.github.io/ksqldb-recipes/customer-360/clickstream/#ksqldb-code)
 
 ## NULLIF
 Returns NULL if two expressions are equal, otherwise it returns the first expression.

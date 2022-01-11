@@ -64,3 +64,8 @@ INSERT INTO foo (KEY_COL) VALUES ('key');
 
 The values are serialized by using the format(s) specified in the original
 `CREATE` statement.
+
+!!! Tip "See INSERT INTO VALUES in action"
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+    - [Event-driven microservice](/tutorials/event-driven-microservice/#seed-some-transaction-events)
+    - [Match users for online dating](https://confluentinc.github.io/ksqldb-recipes/customer-360/online-dating/#ksqldb-code)

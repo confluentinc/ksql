@@ -20,7 +20,7 @@ class Callbacks:
     def __init__(self, working_dir, leaf, dry_run):
         self.leaf = leaf
         self.working_dir = working_dir
-        self.settings_path = os.path.join(self.working_dir, 'maven-settings.xml')
+        self.settings_path = os.path.join(self.working_dir, 'stabilization_settings.xml')
 
     """This is a callback to Confluent's cloud release tooling,
     and allows us to have consistent versioning"""

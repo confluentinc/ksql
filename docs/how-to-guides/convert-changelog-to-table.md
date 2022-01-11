@@ -14,7 +14,7 @@ You have a topic or a stream of events that represent a series of changes, known
 
 ## Materializing a changelog topic
 
-If you have a `changelog` topic, and you want view of the data that reflects the latest values for each key then simply create a table with the `changelog` topic using the `CREATE SOURCE TABLE` statement.
+If you have a `changelog` topic, and you want a view of the data that reflects the latest values for each key then simply create a table with the `changelog` topic using the `CREATE SOURCE TABLE` statement.
 
 Let's say that you have the following data in your `changelog` topic where the first row is the record that has the earliest offset and the last row is the record that has the latest offset:
 ```sql

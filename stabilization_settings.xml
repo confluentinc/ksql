@@ -1,0 +1,151 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <mirrors>
+        <mirror>
+            <id>confluent-artifactory-jenkins</id>
+            <url>https://confluent.jfrog.io/confluent/maven-public</url>
+            <mirrorOf>central,confluent,java.net,findify,jcenter,confluent-snapshots</mirrorOf>
+        </mirror>
+    </mirrors>
+
+    <servers>
+        <server>
+            <id>confluent-other</id>
+            <username>${env.ORG_GRADLE_PROJECT_mavenUsername}</username>
+            <password>${env.ORG_GRADLE_PROJECT_mavenPassword}</password>
+        </server>
+        <server>
+            <id>confluent-artifactory-jenkins</id>
+            <username>${env.ORG_GRADLE_PROJECT_mavenUsername}</username>
+            <password>${env.ORG_GRADLE_PROJECT_mavenPassword}</password>
+        </server>
+        <server>
+            <id>confluent-artifactory-internal</id>
+            <username>${env.ORG_GRADLE_PROJECT_mavenUsername}</username>
+            <password>${env.ORG_GRADLE_PROJECT_mavenPassword}</password>
+        </server>
+        <server>
+            <id>confluent-artifactory-stabilization</id>
+            <username>${env.ORG_GRADLE_PROJECT_mavenUsername}</username>
+            <password>${env.ORG_GRADLE_PROJECT_mavenPassword}</password>
+        </server>
+    </servers>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+
+            <repositories>
+                <repository>
+                    <id>confluent-other</id>
+                    <name>Confluent</name>
+                    <url>https://confluent.jfrog.io/confluent/maven-releases-stabilization</url>
+                </repository>
+
+                <!-- needed for HTML API doc generation post-release only -->
+                <repository>
+                    <id>ksqldb-staging</id>
+                    <name>ksqlDB staging</name>
+                    <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+                </repository>
+            </repositories>
+
+            <pluginRepositories>
+
+                <pluginRepository>
+                    <id>confluent-other</id>
+                    <name>Confluent Plugin Repository</name>
+                    <url>https://confluent.jfrog.io/confluent/maven-releases-stabilization</url>
+                    <layout>default</layout>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                </pluginRepository>
+
+            </pluginRepositories>
+        </profile>
+        <profile>
+            <id>stabilization</id>
+            <repositories>
+                <repository>
+                    <id>confluent-artifactory-stabilization</id>
+                    <url>${env.ORG_GRADLE_PROJECT_mavenUrl}</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+        </profile>
+        <profile>
+            <id>jenkins</id>
+            <activation>
+                <property>
+                    <name>env.ENABLE_SNAPSHOT_REPOS</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>confluent-artifactory-jenkins</id>
+                    <url>https://confluent.jfrog.io/confluent/maven-public/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>ancestor</id>
+                    <url>file://${env.WORKSPACE}/maven/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>confluent-artifactory-internal</id>
+                    <url>https://confluent.jfrog.io/confluent/maven-releases</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>confluent-artifactory-jenkins</id>
+                    <name>Confluent Plugin Repository</name>
+                    <url>https://confluent.jfrog.io/confluent/maven-public</url>
+                    <layout>default</layout>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+    <activeProfiles>
+        <activeProfile>stabilization</activeProfile>
+    </activeProfiles>
+</settings>

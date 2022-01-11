@@ -325,6 +325,12 @@
 
             <dependency>
                 <groupId>io.confluent</groupId>
+                <artifactId>common-docker</artifactId>
+                <version>${io.confluent.common-docker.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.confluent</groupId>
                 <artifactId>kafka-json-schema-provider</artifactId>
                 <version>${io.confluent.schema-registry.version}</version>
             </dependency>
@@ -632,7 +638,17 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>confluent-log4j</artifactId>
-            <version>1.2.17-cp5</version>
+            <version>1.2.17-cp6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

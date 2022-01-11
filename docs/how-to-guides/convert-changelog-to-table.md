@@ -74,7 +74,7 @@ SELECT * FROM latest WHERE k = 'k2';
 
 ## Materializing a changelog `STREAM`
 
-Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want view of the data that reflects the latest values for each key. 
+The best way to materialize an input topic as a table is the `CREATE SOURCE TABLE` statement. If you already have a `STREAM`, though, you can also materialize it as a table with the `CREATE TABLE ... AS ...` statement. Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want a view of the data that reflects the latest values for each key. 
 
 Begin by telling ksqlDB to start all queries from the earliest point in each topic:
 ```sql

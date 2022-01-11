@@ -519,7 +519,7 @@ windows, both with a SIZE of 5 minutes:
   overflow:hidden;padding:10px 5px;word-break:normal;}
 .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
   font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-zlqz{background-color:#c0c0c0;border-color:inherit;font-weight:bold;text-align:center;vertical-align:top}
+.tg .tg-lzqt{background-color:#656565;border-color:inherit;color:#ffffff;font-weight:bold;text-align:center;vertical-align:top}
 .tg .tg-gdc4{background-color:#96fffb;border-color:inherit;text-align:center;vertical-align:top}
 .tg .tg-4m7p{background-color:#9aff99;border-color:inherit;text-align:center;vertical-align:top}
 .tg .tg-84w4{background-color:#9aff99;border-color:inherit;font-weight:bold;text-align:center;vertical-align:top}
@@ -527,12 +527,12 @@ windows, both with a SIZE of 5 minutes:
 <table class="tg">
 <thead>
   <tr>
-    <th class="tg-zlqz">Message order</th>
-    <th class="tg-zlqz">order_zipcode</th>
-    <th class="tg-zlqz">Window_Start</th>
-    <th class="tg-zlqz">Window_End</th>
-    <th class="tg-zlqz">Window_Emit</th>
-    <th class="tg-zlqz">number_of_orders</th>
+    <th class="tg-lzqt">Message order</th>
+    <th class="tg-lzqt">order_zipcode</th>
+    <th class="tg-lzqt">Window_Start</th>
+    <th class="tg-lzqt">Window_End</th>
+    <th class="tg-lzqt">Window_Emit</th>
+    <th class="tg-lzqt">number_of_orders</th>
   </tr>
 </thead>
 <tbody>

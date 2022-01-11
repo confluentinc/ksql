@@ -40,6 +40,9 @@ CREATE TABLE AGG AS
    GROUP BY ID;
 ```
 
+!!! Tip "See AS_VALUE in action"
+    - [Understand user behavior with clickstream data](https://confluentinc.github.io/ksqldb-recipes/customer-360/clickstream/#ksqldb-code)
+
 ### `CAST`
 
 Since: -
@@ -64,6 +67,10 @@ Converts one type to another. The following casts are supported:
 | `ARRAY` | `ARRAY` | (Since 0.14) Convert between arrays of different element types |   
 | `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
 | `STRUCT` | `STRUCT` | (Since 0.14) Convert between structs of different field types. Only fields that exist in the target STRUCT type are copied across. Any fields in the target type that don't exist in the source are set to `NULL`. Field name matching is case-sensitive. |
+
+!!! Tip "See CAST in action"
+    - [Match users for online dating](https://confluentinc.github.io/ksqldb-recipes/customer-360/online-dating/#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://confluentinc.github.io/ksqldb-recipes/customer-360/clickstream/#ksqldb-code)
 
 ### `CEIL`
 
@@ -257,6 +264,9 @@ Given an array, checks if a search value is contained in the array.
 
 Accepts any `ARRAY` type. The type of the second param must match the element type of the `ARRAY`.
 
+!!! Tip "See ARRAY_CONTAINS in action"
+    - [Build Customer Loyalty Programs](https://confluentinc.github.io/ksqldb-recipes/customer-360/loyalty-rewards/#ksqldb-code)
+
 ### `ARRAY_DISTINCT`
 
 Since: 0.10.0
@@ -324,6 +334,9 @@ Creates a flat string representation of all the elements contained in the given 
 The elements in the resulting string are separated by the chosen `delimiter`, 
 which is an optional parameter that falls back to a comma `,`. The current implementation only
 allows for array elements of primitive ksqlDB types.
+
+!!! Tip "See ARRAY_JOIN in action"
+    - [Match users for online dating](https://confluentinc.github.io/ksqldb-recipes/customer-360/online-dating/#ksqldb-code)
 
 ### `ARRAY_LENGTH`
 
@@ -408,6 +421,9 @@ If the array field is NULL then NULL is returned.
 
 An optional second parameter can be used to specify whether to sort the elements in 'ASC'ending or 'DESC'ending order. If neither is specified then the default is ascending order. 
 
+!!! Tip "See ARRAY_SORT in action"
+    - [Match users for online dating](https://confluentinc.github.io/ksqldb-recipes/customer-360/online-dating/#ksqldb-code)
+
 ### `ARRAY_UNION`
 
 Since: 0.10.0
@@ -435,6 +451,9 @@ AS_MAP(keys, vals)
 ```
 
 Construct a map from a list of keys and a list of values.
+
+!!! Tip "See AS_MAP in action"
+    - [Match users for online dating](https://confluentinc.github.io/ksqldb-recipes/customer-360/online-dating/#ksqldb-code)
 
 ### `ELT`
 
@@ -634,7 +653,11 @@ Since: -
 CONCAT(col1, col2, 'hello', ..., col-n)
 ```
 
-Concatenate two or more string expressions. Any input strings which evaluate to NULL are replaced with empty string in the output.
+Concatenate two or more string expressions. Any input strings which evaluate
+to NULL are replaced with an empty string in the output.
+
+!!! Tip "See CONCAT in action"
+    - [Enrich orders with change data capture (CDC)](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/denormalization/#ksqldb-code)
 
 ### `CONCAT_WS`
 
@@ -878,6 +901,9 @@ REPLACE(col1, 'foo', 'bar')
 
 Replace all instances of a substring in a string with a new string.
 
+!!! Tip "See REPLACE in action"
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+
 ### `REGEXP_EXTRACT`
 
 Since: 0.8.0
@@ -989,6 +1015,9 @@ If the delimiter is found at the beginning or end
 of the string, or there are contiguous delimiters,
 then an empty space is added to the array.
 
+!!! Tip "See SPLIT in action"
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+
 ### `SPLIT_TO_MAP`
 
 Since: 0.10.0
@@ -1047,6 +1076,9 @@ UCASE(col1)
 ```
 
 Convert a string to uppercase.
+
+!!! Tip "See UCASE in action"
+    - [Handle corrupted data from Salesforce](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/salesforce/#ksqldb-code)
 
 ### `UUID`
 
@@ -1197,17 +1229,17 @@ Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
 
-Converts a BIGINT millisecond timestamp value into
-the string representation of the timestamp in
-the given format. Single quotes in the
-timestamp format can be escaped with two
-successive single quotes, `''`, for example:
+Converts a BIGINT millisecond timestamp value into the string representation
+of the timestamp in the given format. Single quotes in the timestamp format
+can be escaped with two successive single quotes, `''`, for example:
 `'yyyy-MM-dd''T''HH:mm:ssX'`.
-TIMEZONE is an optional parameter and it is a
-`java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For
-more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
+for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
+information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! Tip "See TIMESTAMPTOSTRING in action"
+    - [Detect unusual credit card activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
 
 ### `FORMAT_TIMESTAMP`
 
@@ -1222,6 +1254,10 @@ example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
 TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! Tip "See FORMAT_TIMESTAMP in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
 
 ### `PARSE_TIMESTAMP`
 
@@ -1302,6 +1338,9 @@ FROM_UNIXTIME(milliseconds)
 ```
 
 Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
+
+!!! Tip "See FROM_UNIXTIME in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
 
 ### `FROM_DAYS`
 

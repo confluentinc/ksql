@@ -29,6 +29,10 @@ stream the result of the query as a changelog into the topic.
 The WINDOW clause can only be used if the `from_item` is a stream and the query contains
 a `GROUP BY` clause.
 
+!!! Tip "See CREATE TABLE AS SELECT in action"
+    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://confluentinc.github.io/ksqldb-recipes/customer-360/clickstream/#ksqldb-code)
 ### Joins
 
 Joins to streams can use any stream column. If the join criteria is not the key column of the stream

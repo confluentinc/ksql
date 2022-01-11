@@ -18,6 +18,11 @@ Stream, Table
 
 Return the average value for a given column.
 
+!!! Tip "See AVG in action"
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+
+
+
 ## `COLLECT_LIST`
 
 Since: -
@@ -35,6 +40,7 @@ Currently only works for simple types (not Map, Array, or Struct).
 The size of the result Array can be limited to a maximum of
 `ksql.functions.collect_list.limit` entries and any values beyond this 
 limit are silently ignored.
+
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
 out-of-order record with a timestamp between the two windows is
@@ -42,6 +48,9 @@ processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
 out-of-order record, then the records from the second window in
 the order they were originally processed.
+
+!!! Tip "See COLLECT_LIST in action"
+    - [Automate instant payment verifications](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/payment-status-check/#ksqldb-code)
 
 ## `COLLECT_SET`
 
@@ -86,6 +95,10 @@ Count the number of rows. When `col1` is specified, the count
 returned will be the number of rows where `col1` is non-null.
 When `*` is specified, the count returned will be the total
 number of rows.
+
+!!! Tip "See COUNT in action"
+    - [Build Customer Loyalty Programs](https://confluentinc.github.io/ksqldb-recipes/customer-360/loyalty-rewards/#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://confluentinc.github.io/ksqldb-recipes/customer-360/clickstream/#ksqldb-code)
 
 ## `COUNT_DISTINCT`
 
@@ -158,6 +171,9 @@ first considering all the records from the first window, then the
 out-of-order record, then the records from the second window in
 the order they were originally processed.
 
+!!! Tip "See HISTOGRAM in action"
+    - [Automate instant payment verifications](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/payment-status-check/#ksqldb-code)
+
 ## `LATEST_BY_OFFSET`
 
 Since: 0.8.0
@@ -204,6 +220,10 @@ Stream
 Return the maximum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
+!!! Tip "See MAX in action"
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
+
 ## `MIN`
 
 Since: -
@@ -216,6 +236,9 @@ Stream
 
 Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
+
+!!! Tip "See MIN in action"
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
 
 ## `STDDEV_SAMP`
 
@@ -241,6 +264,10 @@ Stream, Table
 
 Sums the column values.
 Rows that have `col1` set to null are ignored.
+
+!!! Tip "See SUM in action"
+    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
+    - [Build Customer Loyalty Programs](https://confluentinc.github.io/ksqldb-recipes/customer-360/loyalty-rewards/#ksqldb-code)
 
 ## `TOPK`
 

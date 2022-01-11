@@ -24,11 +24,16 @@ CREATE [OR REPLACE] STREAM stream_name
 
 ## Description
 
-Create a new materialized stream view, along with the corresponding Kafka topic, and
-stream the result of the query into the topic.
+Create a new materialized stream view, along with the corresponding {{ site.ak }}
+topic, and stream the result of the query into the topic.
 
 The PARTITION BY clause, if supplied, is applied to the source _after_ any JOIN
 or WHERE clauses, and _before_ the SELECT clause, in much the same way as GROUP BY.
+
+!!! Tip "See CREATE STREAM AS SELECT in action"
+    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
 
 ### Joins
 

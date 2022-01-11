@@ -56,7 +56,7 @@ SELECT * FROM latest_view;
 
 Notice how for each key, the columns reflect the latest set of values.
 
-If you just want to lookup the latest value for a particular key (let's assume `k2` in this case), then you can simply issue a pull query for that particular key:
+If you just want to look up the latest value for a particular key (let's assume `k2` in this case), then you can simply issue a pull query for that particular key:
 ```sql
 SELECT * FROM latest WHERE k = 'k2';
 +------+------+------+------+

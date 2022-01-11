@@ -152,6 +152,12 @@ You can fetch the current state of your table `INNER_JOIN` by using a pull query
 SELECT * FROM INNER_JOIN [ WHERE where_condition ];
 ```
 
+!!! Tip "See INNER_JOIN in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Notify passengers of flight updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
+
 #### WINDOW
 
 Pull queries against a windowed table `NUMBER_OF_TESTS` created by aggregating the stream `STUDENTS` 

@@ -410,6 +410,183 @@ SELECT orderzip_code, TOPK(order_total, 5) FROM orders
 Events that arrive after the grace period has passed are called *late* and aren't
 included in the aggregation result.
 
+### Window emission
+
+By default, a windowed aggregate is updated (a new row is emitted) whenever
+a new event enters the window for the given grouping key(s). This enables a
+real-time snapshot of the current aggregate value. Each window continues to be
+updated until the end of the grace period, which is 24 hours, by default.
+
+The following built-in columns are useful to identify windows and when they are
+emitted:
+
+- WINDOWSTART: time the window started (in Unix time)
+- WINDOWEND: time the window ended or will end (in Unix time)
+- ROWTIME: time the current update of the window was updated (in Unix time).
+  You can use ROWTIME in the aggregate, for example, using the MAX function,
+  to know when the window was updated.
+
+For example, the following SELECT statement counts the number of orders in each
+five-minute tumbling window. Also, the output has fields that show the start
+and end time for each window.
+
+```sql
+SELECT orderzip_code, 
+  from_unixtime(WINDOWSTART) as Window_Start,
+  from_unixtime(WINDOWEND) as Window_End,
+  from_unixtime(max(rowtime)) as Window_Emit,
+  count(orderId) as number_of_orders
+FROM orders
+  WINDOW TUMBLING (SIZE 5 minute, GRACE PERIOD 1 minute)
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```
+
+Running the previous query on the following input messages and input messages emit two
+tumbling windows.
+
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-m0ac{background-color:#656565;color:#ffffff;font-weight:bold;text-align:center;vertical-align:top}
+.tg .tg-b67n{background-color:#96FFFB;text-align:center;vertical-align:top}
+.tg .tg-8phe{background-color:#9AFF99;text-align:center;vertical-align:top}
+.tg .tg-w0k3{background-color:#9AFF99;font-weight:bold;text-align:center;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-m0ac"><span style="font-weight:bold">Message order</span></th>
+    <th class="tg-m0ac"><span style="font-weight:bold">order_zipcode</span></th>
+    <th class="tg-m0ac"><span style="font-weight:bold">Event time</span></th>
+    <th class="tg-m0ac"><span style="font-weight:bold">OrderID</span></th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">1</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">94041</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">12h00mn02s</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">100_1</span></td>
+  </tr>
+  <tr>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">2</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">94041</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">12h01mn23s</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">100_2</span></td>
+  </tr>
+  <tr>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">3</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">94041</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">12h03mm00s</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">100_3</span></td>
+  </tr>
+  <tr>
+    <td class="tg-8phe"><span style="background-color:#9AFF99">4</span></td>
+    <td class="tg-8phe"><span style="background-color:#9AFF99">94041</span></td>
+    <td class="tg-w0k3"><span style="background-color:#9AFF99">12h05mm30s</span></td>
+    <td class="tg-8phe"><span style="background-color:#9AFF99">100_4</span></td>
+  </tr>
+  <tr>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">5</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">94041</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">12h04mn00s</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">100_5</span></td>
+  </tr>
+  <tr>
+    <td class="tg-8phe"><span style="background-color:#9AFF99">6</span></td>
+    <td class="tg-8phe"><span style="background-color:#9AFF99">98041</span></td>
+    <td class="tg-w0k3"><span style="background-color:#9AFF99">12h06mm10s</span></td>
+    <td class="tg-8phe"><span style="background-color:#9AFF99">100_6</span></td>
+  </tr>
+</tbody>
+</table>
+
+Actual windows emitted
+
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-lzqt{background-color:#656565;border-color:inherit;color:#ffffff;font-weight:bold;text-align:center;vertical-align:top}
+.tg .tg-gdc4{background-color:#96fffb;border-color:inherit;text-align:center;vertical-align:top}
+.tg .tg-4m7p{background-color:#9aff99;border-color:inherit;text-align:center;vertical-align:top}
+.tg .tg-84w4{background-color:#9aff99;border-color:inherit;font-weight:bold;text-align:center;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-lzqt">Message order</th>
+    <th class="tg-lzqt">order_zipcode</th>
+    <th class="tg-lzqt">Window_Start</th>
+    <th class="tg-lzqt">Window_End</th>
+    <th class="tg-lzqt">Window_Emit</th>
+    <th class="tg-lzqt">number_of_orders</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-gdc4">1</td>
+    <td class="tg-gdc4">94041</td>
+    <td class="tg-gdc4">12h00mn02s</td>
+    <td class="tg-gdc4">12h05mn00s</td>
+    <td class="tg-gdc4">12h00mn02s</td>
+    <td class="tg-gdc4">1</td>
+  </tr>
+  <tr>
+    <td class="tg-gdc4">2</td>
+    <td class="tg-gdc4">94041</td>
+    <td class="tg-gdc4">12h00mn00s</td>
+    <td class="tg-gdc4">12h05mn00s</td>
+    <td class="tg-gdc4">12h01mn23s</td>
+    <td class="tg-gdc4">2</td>
+  </tr>
+  <tr>
+    <td class="tg-gdc4">3</td>
+    <td class="tg-gdc4">94041</td>
+    <td class="tg-gdc4">12h00mn00s</td>
+    <td class="tg-gdc4">12h05mn00s</td>
+    <td class="tg-gdc4">12h03mm00s</td>
+    <td class="tg-gdc4">3</td>
+  </tr>
+  <tr>
+    <td class="tg-4m7p">4</td>
+    <td class="tg-4m7p">94041</td>
+    <td class="tg-84w4">12h05mn00s</td>
+    <td class="tg-84w4">12h10mn00s</td>
+    <td class="tg-84w4">12h05mm30s</td>
+    <td class="tg-4m7p">1</td>
+  </tr>
+  <tr>
+    <td class="tg-gdc4">5</td>
+    <td class="tg-gdc4">94041</td>
+    <td class="tg-gdc4">12h00mn00s</td>
+    <td class="tg-gdc4">12h05mn00s</td>
+    <td class="tg-gdc4">12h04mn00s</td>
+    <td class="tg-gdc4">4</td>
+  </tr>
+  <tr>
+    <td class="tg-4m7p">6</td>
+    <td class="tg-4m7p">98041</td>
+    <td class="tg-84w4">12h05mn00s</td>
+    <td class="tg-84w4">12h10mn00s</td>
+    <td class="tg-84w4">12h06mm10s</td>
+    <td class="tg-4m7p">2</td>
+  </tr>
+</tbody>
+</table>
+
+!!! note
+    On {{ site.cp }}, you can emit only the final result of the window by
+    using EMIT FINAL instead of EMIT CHANGES. In this case, you should set the
+    GRACE PERIOD explicitly, otherwise the window is emitted only after the
+    default grace period of 24 hours.
+
 ### Window retention 
 
 For each window type, you can configure the number of windows in the past that ksqlDB retains. This 

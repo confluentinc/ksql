@@ -87,7 +87,7 @@ public final class TimestampExtractionPolicyFactory {
         "Timestamp column, " + col + ", should be LONG(INT64), TIMESTAMP,"
             + " or a String with a "
             + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()
-            + " specified");
+            + " specified.");
   }
 
   private static TimestampExtractor getDefaultTimestampExtractor(final KsqlConfig ksqlConfig) {

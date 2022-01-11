@@ -36,7 +36,6 @@ SET 'auto.offset.reset' = 'earliest';
 ```
 
 Make a table `latest_view` with four columns. `k` represents the key of the table. Rows with the same key represent information about the same entity. `v1`, `v2`, and `v3` are various value columns.
-
 ```sql
 CREATE SOURCE TABLE latest_view (
     k VARCHAR PRIMARY KEY,
@@ -71,12 +70,18 @@ SELECT * FROM latest WHERE k = 'k2';
 +------+------+------+------+
 |k2    |4     |e     |true  |
 ```
-You can learn more about pull queries here.
 
 
 ## Materializing a changelog stream
 
-Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want view of the data that reflects the latest values for each key. Let's mimic adding a few records to the `changelog_stream` by using the `INSERT INTO` statement:
+Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want view of the data that reflects the latest values for each key. 
+
+Begin by telling ksqlDB to start all queries from the earliest point in each topic:
+```sql
+SET 'auto.offset.reset' = 'earliest';
+```
+
+Let's mimic adding a few records to the `changelog_stream` by using the `INSERT INTO` statement:
 ```sql
 INSERT INTO changelog_stream (
     k, v1, v2, v3
@@ -134,6 +139,7 @@ CREATE TABLE latest_events AS
     GROUP BY k
     EMIT CHANGES;
 ```
+
 Now, you can view the latest values for each key in your `changelog_stream` by issuing a pull query against the `latest_events` table that we just created above:
 ```sql
 SELECT * FROM latest_events;

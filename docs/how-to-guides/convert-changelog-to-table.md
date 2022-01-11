@@ -72,7 +72,7 @@ SELECT * FROM latest WHERE k = 'k2';
 ```
 
 
-## Materializing a changelog stream
+## Materializing a changelog `STREAM`
 
 Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want view of the data that reflects the latest values for each key. 
 

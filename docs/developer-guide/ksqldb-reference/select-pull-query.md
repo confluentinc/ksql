@@ -26,6 +26,11 @@ materialized views are incrementally updated as new events arrive.
 They are a great match for request/response flows. For asynchronous application flows, see 
 [Push Queries](select-push-query.md).
 
+!!! Tip "See pull queries in action"
+    - [Confluent Platform quickstart](https://ksqldb.io/quickstart-platform.html#quickstart-content)
+    - [Confluent Cloud quickstart](https://ksqldb.io/quickstart-cloud.html#quickstart-content)
+    - Recipe: [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/)
+
 You can execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
@@ -146,6 +151,12 @@ You can fetch the current state of your table `INNER_JOIN` by using a pull query
 ```sql
 SELECT * FROM INNER_JOIN [ WHERE where_condition ];
 ```
+
+!!! Tip "See INNER_JOIN in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Notify passengers of flight updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
 
 #### WINDOW
 

@@ -417,6 +417,12 @@ a new event enters the window for the specified grouping key(s), which enables
 a real-time snapshot of the current aggregate value. Each window continues to be
 updated until the end of the grace period. The default grace period is 24 hours.
 
+!!! tip
+    Tune the update frequency by using the
+    [ksql.streams.cache.max.bytes.buffering](/reference/server-configuration/#ksqlstreamscachemaxbytesbuffering)
+    and [ksql.streams.commit.interval.ms](/reference/server-configuration/#ksqlstreamscommitintervalms)
+    configuration settings.
+
 The following built-in columns are useful to identify windows and when they're
 emitted:
 
@@ -586,12 +592,6 @@ windows, both with a SIZE of 5 minutes:
   </tr>
 </tbody>
 </table>
-
-!!! note
-    On {{ site.cp }}, you can emit only the final result of the window by
-    using EMIT FINAL instead of EMIT CHANGES. In this case, you should set the
-    GRACE PERIOD explicitly, otherwise the window is emitted only after the
-    default grace period of 24 hours.
 
 ### Window retention 
 

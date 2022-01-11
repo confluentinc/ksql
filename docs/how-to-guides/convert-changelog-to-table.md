@@ -29,12 +29,6 @@ Let's say that you have the following data in your `changelog` topic where the f
 ```
 Note that there are 2 records for the keys `k1` and `k2` in the `changelog` topic.
 
-Begin by telling ksqlDB to start all queries from the earliest point in each topic:
-
-```sql
-SET 'auto.offset.reset' = 'earliest';
-```
-
 Make a table `latest_view` with four columns. `k` represents the key of the table. Rows with the same key represent information about the same entity. `v1`, `v2`, and `v3` are various value columns.
 ```sql
 CREATE SOURCE TABLE latest_view (

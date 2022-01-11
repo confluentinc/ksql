@@ -413,11 +413,11 @@ included in the aggregation result.
 ### Window emission
 
 By default, a windowed aggregate is updated (a new row is emitted) whenever
-a new event enters the window for the given grouping key(s). This enables a
-real-time snapshot of the current aggregate value. Each window continues to be
-updated until the end of the grace period, which is 24 hours, by default.
+a new event enters the window for the specified grouping key(s), which enables
+a real-time snapshot of the current aggregate value. Each window continues to be
+updated until the end of the grace period. The default grace period is 24 hours.
 
-The following built-in columns are useful to identify windows and when they are
+The following built-in columns are useful to identify windows and when they're
 emitted:
 
 - WINDOWSTART: time the window started (in Unix time)
@@ -434,7 +434,7 @@ and end time for each window.
 SELECT orderzip_code, 
   from_unixtime(WINDOWSTART) as Window_Start,
   from_unixtime(WINDOWEND) as Window_End,
-  from_unixtime(max(rowtime)) as Window_Emit,
+  from_unixtime(max(ROWTIME)) as Window_Emit,
   count(orderId) as number_of_orders
 FROM orders
   WINDOW TUMBLING (SIZE 5 minute, GRACE PERIOD 1 minute)
@@ -442,8 +442,9 @@ FROM orders
   EMIT CHANGES;
 ```
 
-Running the previous query on the following input messages and input messages emit two
-tumbling windows.
+Running the previous query on the following example input emits windows that
+have a SIZE of 5 minutes each. The ROWTIME for each message determines which
+window receives the message. 
 
 <style type="text/css">
 .tg  {border-collapse:collapse;border-spacing:0;}
@@ -481,13 +482,13 @@ tumbling windows.
   <tr>
     <td class="tg-b67n"><span style="background-color:#96FFFB">3</span></td>
     <td class="tg-b67n"><span style="background-color:#96FFFB">94041</span></td>
-    <td class="tg-b67n"><span style="background-color:#96FFFB">12h03mm00s</span></td>
+    <td class="tg-b67n"><span style="background-color:#96FFFB">12h03mn00s</span></td>
     <td class="tg-b67n"><span style="background-color:#96FFFB">100_3</span></td>
   </tr>
   <tr>
     <td class="tg-8phe"><span style="background-color:#9AFF99">4</span></td>
     <td class="tg-8phe"><span style="background-color:#9AFF99">94041</span></td>
-    <td class="tg-w0k3"><span style="background-color:#9AFF99">12h05mm30s</span></td>
+    <td class="tg-w0k3"><span style="background-color:#9AFF99">12h05mn30s</span></td>
     <td class="tg-8phe"><span style="background-color:#9AFF99">100_4</span></td>
   </tr>
   <tr>
@@ -499,13 +500,18 @@ tumbling windows.
   <tr>
     <td class="tg-8phe"><span style="background-color:#9AFF99">6</span></td>
     <td class="tg-8phe"><span style="background-color:#9AFF99">98041</span></td>
-    <td class="tg-w0k3"><span style="background-color:#9AFF99">12h06mm10s</span></td>
+    <td class="tg-w0k3"><span style="background-color:#9AFF99">12h06mn10s</span></td>
     <td class="tg-8phe"><span style="background-color:#9AFF99">100_6</span></td>
   </tr>
 </tbody>
 </table>
 
-Actual windows emitted
+The following table shows the actual windows that are emitted when the previous
+SELECT statement runs on the example input events. The output has two tumbling
+windows, both with a SIZE of 5 minutes:
+
+- Window between 12:00 and 12:05 (`12h00mn00s` - `12h05mn00s`), colored blue 
+- Window between 12:05 and 12:10 (`12h05mn00s` - `12h10mn00s`), colored green
 
 <style type="text/css">
 .tg  {border-collapse:collapse;border-spacing:0;}
@@ -513,7 +519,7 @@ Actual windows emitted
   overflow:hidden;padding:10px 5px;word-break:normal;}
 .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
   font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-lzqt{background-color:#656565;border-color:inherit;color:#ffffff;font-weight:bold;text-align:center;vertical-align:top}
+.tg .tg-zlqz{background-color:#c0c0c0;border-color:inherit;font-weight:bold;text-align:center;vertical-align:top}
 .tg .tg-gdc4{background-color:#96fffb;border-color:inherit;text-align:center;vertical-align:top}
 .tg .tg-4m7p{background-color:#9aff99;border-color:inherit;text-align:center;vertical-align:top}
 .tg .tg-84w4{background-color:#9aff99;border-color:inherit;font-weight:bold;text-align:center;vertical-align:top}
@@ -521,19 +527,19 @@ Actual windows emitted
 <table class="tg">
 <thead>
   <tr>
-    <th class="tg-lzqt">Message order</th>
-    <th class="tg-lzqt">order_zipcode</th>
-    <th class="tg-lzqt">Window_Start</th>
-    <th class="tg-lzqt">Window_End</th>
-    <th class="tg-lzqt">Window_Emit</th>
-    <th class="tg-lzqt">number_of_orders</th>
+    <th class="tg-zlqz">Message order</th>
+    <th class="tg-zlqz">order_zipcode</th>
+    <th class="tg-zlqz">Window_Start</th>
+    <th class="tg-zlqz">Window_End</th>
+    <th class="tg-zlqz">Window_Emit</th>
+    <th class="tg-zlqz">number_of_orders</th>
   </tr>
 </thead>
 <tbody>
   <tr>
     <td class="tg-gdc4">1</td>
     <td class="tg-gdc4">94041</td>
-    <td class="tg-gdc4">12h00mn02s</td>
+    <td class="tg-gdc4">12h00mn00s</td>
     <td class="tg-gdc4">12h05mn00s</td>
     <td class="tg-gdc4">12h00mn02s</td>
     <td class="tg-gdc4">1</td>
@@ -551,7 +557,7 @@ Actual windows emitted
     <td class="tg-gdc4">94041</td>
     <td class="tg-gdc4">12h00mn00s</td>
     <td class="tg-gdc4">12h05mn00s</td>
-    <td class="tg-gdc4">12h03mm00s</td>
+    <td class="tg-gdc4">12h03mn00s</td>
     <td class="tg-gdc4">3</td>
   </tr>
   <tr>
@@ -559,7 +565,7 @@ Actual windows emitted
     <td class="tg-4m7p">94041</td>
     <td class="tg-84w4">12h05mn00s</td>
     <td class="tg-84w4">12h10mn00s</td>
-    <td class="tg-84w4">12h05mm30s</td>
+    <td class="tg-84w4">12h05mn30s</td>
     <td class="tg-4m7p">1</td>
   </tr>
   <tr>
@@ -575,7 +581,7 @@ Actual windows emitted
     <td class="tg-4m7p">98041</td>
     <td class="tg-84w4">12h05mn00s</td>
     <td class="tg-84w4">12h10mn00s</td>
-    <td class="tg-84w4">12h06mm10s</td>
+    <td class="tg-84w4">12h06mn10s</td>
     <td class="tg-4m7p">2</td>
   </tr>
 </tbody>

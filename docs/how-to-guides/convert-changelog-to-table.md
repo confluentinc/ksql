@@ -65,10 +65,84 @@ Notice how for each key, the columns reflect the latest set of values.
 
 If you just want to lookup the latest value for a particular key (let's assume `k2` in this case), then you can simply issue a pull query for that particular key:
 ```sql
-SELECT * FROM latest WHERE K = 'k2';
+SELECT * FROM latest WHERE k = 'k2';
 +------+------+------+------+
 |K     |V1    |V2    |V3    |
 +------+------+------+------+
 |k2    |4     |e     |true  |
 ```
 You can learn more about pull queries here.
+
+
+## Materializing a changelog stream
+
+Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want view of the data that reflects the latest values for each key. Let's mimic adding a few records to the `changelog_stream` by using the `INSERT INTO` statement:
+```sql
+INSERT INTO changelog_stream (
+    k, v1, v2, v3
+) VALUES (
+    'k1', 0, 'a', true
+);
+
+INSERT INTO changelog_stream (
+    k, v1, v2, v3
+) VALUES (
+    'k2', 1, 'b', false
+);
+
+INSERT INTO changelog_stream (
+    k, v1, v2, v3
+) VALUES (
+    'k1', 2, 'c', false
+);
+
+INSERT INTO changelog_stream (
+    k, v1, v2, v3
+) VALUES (
+    'k3', 3, 'd', true
+);
+
+INSERT INTO changelog_stream (
+    k, v1, v2, v3
+) VALUES (
+    'k2', 4, 'e', true
+);
+```
+
+You can view the data in the `changelog_stream` by issuing a pull query:
+```sql
+SELECT * FROM changelog_stream;
++------+------+------+------+
+|K     |V1    |V2    |V3    |
++------+------+------+------+
+|k1    |0     |a     |true  |
+|k2    |1     |b     |false |
+|k1    |2     |c     |false |
+|k3    |3     |d     |true  |
+|k2    |4     |e     |true  |
+Query terminated
+```
+
+To view the data that reflects only the last change for each key in `changelog_stream`, you can derive a table called `latest_events` with a `CREATE TABLE AS SELECT` statement in conjunction with the `LATEST_BY_OFFSET` aggregation:
+```sql
+CREATE TABLE latest_events AS
+    SELECT k,
+           LATEST_BY_OFFSET(v1) AS v1,
+           LATEST_BY_OFFSET(v2) AS v2,
+           LATEST_BY_OFFSET(v3) AS v3
+    FROM changelog_stream
+    GROUP BY k
+    EMIT CHANGES;
+```
+Now, you can view the latest values for each key in your `changelog_stream` by issuing a pull query against the `latest_events` table that we just created above:
+```sql
+SELECT * FROM latest_events;
++------+------+------+------+
+|K     |V1    |V2    |V3    |
++------+------+------+------+
+|k1    |2     |c     |false |
+|k2    |4     |e     |true  |
+|k3    |3     |d     |true  |
+```
+
+Notice how for each key, the columns reflect the latest set of values.

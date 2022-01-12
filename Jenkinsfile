@@ -11,5 +11,5 @@ dockerfile {
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-}
+} 
 

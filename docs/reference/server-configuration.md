@@ -13,6 +13,7 @@ Many parameters can only be set once for the entire server, and must be
 specified using the `ksql-server.properties` file. Some parameters, however,
 can be set on a per-persistent query basis using `SET`. This is indicated in each parameter
 section below.
+The current list of configuration settings can be retrieved using the [SHOW PROPERTY](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/show-properties/) command. 
 
 For more information on setting properties, see
 [Configure ksqlDB Server](/operate-and-deploy/installation/server-config).

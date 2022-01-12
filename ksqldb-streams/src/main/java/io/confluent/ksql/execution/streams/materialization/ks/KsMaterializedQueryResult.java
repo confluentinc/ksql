@@ -24,7 +24,6 @@ import org.apache.kafka.streams.query.Position;
 public class KsMaterializedQueryResult<T extends TableRow> {
 
   final Optional<Iterator<T>> rowIterator;
-//  final Optional<Iterator<WindowedRow>> windowedRowIterator;
   final Optional<Position> position;
 
   public static <T extends TableRow> KsMaterializedQueryResult<T> rowIterator(
@@ -37,18 +36,6 @@ public class KsMaterializedQueryResult<T extends TableRow> {
     return new KsMaterializedQueryResult<>(Optional.of(iterator), Optional.of(position));
   }
 
-//  public static KsMaterializedQueryResult windowedRowIterator(
-//      final Iterator<WindowedRow> iterator) {
-//    return new KsMaterializedQueryResult(Optional.empty(), Optional.empty(), Optional.empty(),
-//                                         Optional.of(iterator), Optional.empty());
-//  }
-//
-//  public static KsMaterializedQueryResult windowedRowIteratorWithPosition(
-//      final Iterator<WindowedRow> iterator, final Position position) {
-//    return new KsMaterializedQueryResult(Optional.empty(),  Optional.empty(), Optional.empty(),
-//                                         Optional.of(iterator), Optional.of(position));
-//  }
-
   private KsMaterializedQueryResult(final Optional<Iterator<T>> rowIterator,
                                     final Optional<Position> position) {
     this.rowIterator = Objects.requireNonNull(rowIterator, "rowIterator");
@@ -58,10 +45,6 @@ public class KsMaterializedQueryResult<T extends TableRow> {
   public Optional<Iterator<T>> getRowIterator() {
     return rowIterator;
   }
-
-//  public Optional<Iterator<WindowedRow>> getWindowedRowIterator() {
-//    return windowedRowIterator;
-//  }
 
   public Optional<Position> getPosition() {
     return position;

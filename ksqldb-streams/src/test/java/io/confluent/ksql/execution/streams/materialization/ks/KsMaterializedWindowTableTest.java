@@ -18,9 +18,9 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -29,7 +29,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Range;
-import com.google.common.collect.Streams;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
@@ -47,7 +46,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -414,8 +414,8 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldCloseIterator_fetchAll() {
     // When:
-    Streams.stream(table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .collect(Collectors.toList());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     verify(keyValueIterator).close();
@@ -424,10 +424,12 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(result, is(empty()));
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -451,10 +453,14 @@ public class KsMaterializedWindowTableTest {
     when(cacheBypassFetcher.fetch(eq(tableStore), any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
         WindowedRow.of(
             SCHEMA,
             windowedKey(start.lowerEndpoint()),
@@ -492,24 +498,26 @@ public class KsMaterializedWindowTableTest {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
         is (WindowedRow.of(
             SCHEMA,
             windowedKey(start.lowerEndpoint()),
             VALUE_1.value(),
             VALUE_1.timestamp())));
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
         is(WindowedRow.of(
             SCHEMA,
             windowedKey(A_KEY2, start.upperEndpoint()),
             VALUE_2.value(),
             VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -538,10 +546,14 @@ public class KsMaterializedWindowTableTest {
     when(cacheBypassFetcher.fetch(eq(tableStore), any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
         WindowedRow.of(
             SCHEMA,
             windowedKey(startEqiv.lowerEndpoint()),
@@ -584,24 +596,27 @@ public class KsMaterializedWindowTableTest {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
         is (WindowedRow.of(
             SCHEMA,
             windowedKey(startEqiv.lowerEndpoint()),
             VALUE_1.value(),
             VALUE_1.timestamp())));
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
         is(WindowedRow.of(
             SCHEMA,
             windowedKey(A_KEY2, startEqiv.upperEndpoint()),
             VALUE_2.value(),
             VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -627,10 +642,14 @@ public class KsMaterializedWindowTableTest {
     when(cacheBypassFetcher.fetch(eq(tableStore), any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
         WindowedRow.of(
             SCHEMA,
             windowedKey(start.lowerEndpoint().plusMillis(1)),
@@ -665,17 +684,19 @@ public class KsMaterializedWindowTableTest {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
         is (WindowedRow.of(
             SCHEMA,
             windowedKey(A_KEY2, start.lowerEndpoint().plusMillis(1)),
             VALUE_2.value(),
             VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -707,10 +728,14 @@ public class KsMaterializedWindowTableTest {
     when(cacheBypassFetcher.fetch(eq(tableStore), any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
         WindowedRow.of(
             SCHEMA,
             windowedKey(startEquiv.lowerEndpoint().plusMillis(1)),
@@ -750,17 +775,19 @@ public class KsMaterializedWindowTableTest {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
         is (WindowedRow.of(
             SCHEMA,
             windowedKey(A_KEY2, startEquiv.lowerEndpoint().plusMillis(1)),
             VALUE_2.value(),
             VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -783,10 +810,14 @@ public class KsMaterializedWindowTableTest {
     when(cacheBypassFetcher.fetch(eq(tableStore), any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, Range.all(), Range.all()).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
         WindowedRow.of(
             SCHEMA,
             windowedKey(start),

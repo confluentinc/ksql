@@ -30,8 +30,6 @@ import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
@@ -60,7 +58,7 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
   }
 
   @Override
-  public List<WindowedRow> get(
+  public KsMaterializedQueryResult<WindowedRow> get(
       final GenericKey key,
       final int partition,
       final Range<Instant> windowStartBounds,
@@ -85,7 +83,8 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
       }
 
       if (queryResult.getResult() == null) {
-        return Collections.emptyList();
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            Collections.emptyIterator(), result.getPosition());
       }
 
       try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it
@@ -119,7 +118,8 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
           builder.add(row);
         }
 
-        return builder.build();
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            builder.build().iterator(), result.getPosition());
       }
     } catch (final MaterializationException e) {
       throw e;
@@ -128,7 +128,7 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
     }
   }
 
-  public Iterator<WindowedRow> get(
+  public KsMaterializedQueryResult<WindowedRow> get(
       final int partition,
       final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds) {
@@ -153,29 +153,34 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
       final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> iterator =
           queryResult.getResult();
 
-      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close)).map(next -> {
-        final Instant windowStart = next.key.window().startTime();
-        if (!windowStartBounds.contains(windowStart)) {
-          return null;
-        }
+      return KsMaterializedQueryResult.rowIteratorWithPosition(
+          Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+              .map(next -> {
+                final Instant windowStart = next.key.window().startTime();
+                if (!windowStartBounds.contains(windowStart)) {
+                  return null;
+                }
 
-        final Instant windowEnd = next.key.window().endTime();
-        if (!windowEndBounds.contains(windowEnd)) {
-          return null;
-        }
+                final Instant windowEnd = next.key.window().endTime();
+                if (!windowEndBounds.contains(windowEnd)) {
+                  return null;
+                }
 
-        final TimeWindow window =
-            new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
+                final TimeWindow window =
+                    new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
 
-        final WindowedRow row = WindowedRow.of(
-            stateStore.schema(),
-            new Windowed<>(next.key.key(), window),
-            next.value.value(),
-            next.value.timestamp()
-        );
+                final WindowedRow row = WindowedRow.of(
+                    stateStore.schema(),
+                    new Windowed<>(next.key.key(), window),
+                    next.value.value(),
+                    next.value.timestamp()
+                );
 
-        return row;
-      }).filter(Objects::nonNull).iterator();
+                return row;})
+              .filter(Objects::nonNull)
+              .iterator(),
+          result.getPosition()
+      );
     } catch (final MaterializationException e) {
       throw e;
     } catch (final Exception e) {

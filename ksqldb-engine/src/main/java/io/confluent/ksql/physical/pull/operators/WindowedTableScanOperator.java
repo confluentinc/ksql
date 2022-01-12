@@ -68,7 +68,8 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
         throw new IllegalStateException("Table scans should not be done with keys");
       }
       resultIterator = mat.windowed()
-          .get(nextLocation.getPartition(), Range.all(), Range.all());
+          .get(nextLocation.getPartition(), Range.all(), Range.all())
+          .getRowIterator().get();
     }
   }
 
@@ -90,7 +91,8 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
         throw new IllegalStateException("Table scans should not be done with keys");
       }
       resultIterator = mat.windowed()
-          .get(nextLocation.getPartition(), Range.all(), Range.all());
+          .get(nextLocation.getPartition(), Range.all(), Range.all())
+          .getRowIterator().get();
     }
 
     returnedRows++;

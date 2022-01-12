@@ -24,20 +24,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
+import io.confluent.ksql.util.IteratorUtil;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -133,13 +133,17 @@ public class KeyedWindowedTableLookupOperatorTest {
         materialization, logicalNode);
     when(materialization.windowed()).thenReturn(windowedTable);
     when(materialization.windowed().get(GKEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2)));
     when(materialization.windowed().get(GKEY2, 2, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of()));
     when(materialization.windowed().get(GKEY3, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW3));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW3)));
     when(materialization.windowed().get(GKEY4, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW2, WINDOWED_ROW4));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW2, WINDOWED_ROW4)));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
 
@@ -168,13 +172,16 @@ public class KeyedWindowedTableLookupOperatorTest {
     when(windowBounds1.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
     when(materialization.windowed()).thenReturn(windowedTable);
     when(materialization.windowed().get(GKEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2)));
     when(materialization.windowed().get(GKEY2, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(KsMaterializedQueryResult.rowIterator(IteratorUtil.of()));
     when(materialization.windowed().get(GKEY3, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW3));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW3)));
     when(materialization.windowed().get(GKEY4, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW2, WINDOWED_ROW4));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW2, WINDOWED_ROW4)));
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();
 
@@ -217,13 +224,15 @@ public class KeyedWindowedTableLookupOperatorTest {
     when(windowBounds4.getMergedEnd()).thenReturn(Range.all());
     when(materialization.windowed()).thenReturn(windowedTable);
     when(materialization.windowed().get(GKEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2)));
     when(materialization.windowed().get(GKEY2, 2, Range.all(), WINDOW_END_BOUNDS))
-        .thenReturn(Collections.emptyList());
+        .thenReturn(KsMaterializedQueryResult.rowIterator(IteratorUtil.of()));
     when(materialization.windowed().get(GKEY3, 3, WINDOW_START_BOUNDS, Range.all()))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW3));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(IteratorUtil.of(WINDOWED_ROW3)));
     when(materialization.windowed().get(GKEY4, 3, Range.all(), Range.all()))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW2, WINDOWED_ROW4));
+        .thenReturn(KsMaterializedQueryResult.rowIterator(
+            IteratorUtil.of(WINDOWED_ROW2, WINDOWED_ROW4)));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
 

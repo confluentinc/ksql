@@ -18,19 +18,15 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Range;
-import com.google.common.collect.Streams;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
@@ -38,9 +34,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
-import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
-import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherRange;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -48,7 +41,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -60,8 +54,6 @@ import org.apache.kafka.streams.query.StateQueryResult;
 import org.apache.kafka.streams.query.WindowKeyQuery;
 import org.apache.kafka.streams.query.WindowRangeQuery;
 import org.apache.kafka.streams.state.KeyValueIterator;
-import org.apache.kafka.streams.state.QueryableStoreType;
-import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.apache.kafka.streams.state.WindowStoreIterator;
 import org.junit.Before;
@@ -249,10 +241,14 @@ public class KsMaterializedWindowTableIQv2Test {
       .thenThrow(new AssertionError());
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
       WindowedRow.of(
         SCHEMA,
         windowedKey(start.lowerEndpoint()),
@@ -292,24 +288,26 @@ public class KsMaterializedWindowTableIQv2Test {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
       is (WindowedRow.of(
         SCHEMA,
         windowedKey(A_KEY, start.lowerEndpoint()),
         VALUE_1.value(),
         VALUE_1.timestamp())));
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
       is(WindowedRow.of(
         SCHEMA,
         windowedKey(A_KEY2, start.upperEndpoint()),
         VALUE_2.value(),
         VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -334,8 +332,8 @@ public class KsMaterializedWindowTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(false);
 
-    Streams.stream(table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
-      .collect(Collectors.toList());
+    final Optional<Iterator<WindowedRow>> rowIterator = table.get(
+        PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     verify(keyValueIterator).close();
@@ -349,25 +347,28 @@ public class KsMaterializedWindowTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(partitionResult);
     when(fetchIterator.hasNext()).thenReturn(false);
 
-    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final Optional<Iterator<WindowedRow>> rowIterator = table.get(
+        A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(result, is(empty()));
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
   public void shouldReturnEmptyIfKeyNotPresent_fetchAll() {
-    // When:
     // When:
     final StateQueryResult partitionResult = new StateQueryResult();
     partitionResult.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
     when(kafkaStreams.query(any())).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(false);
 
-    final List<?> result = Streams.stream(table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)).collect(Collectors.toList());
+    final Optional<Iterator<WindowedRow>> rowIterator = table.get(
+        PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(result, is(empty()));
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
 
@@ -399,10 +400,14 @@ public class KsMaterializedWindowTableIQv2Test {
       .thenThrow(new AssertionError());
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator = table.get(
+        A_KEY, PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
       WindowedRow.of(
         SCHEMA,
         windowedKey(startEqiv.lowerEndpoint()),
@@ -449,24 +454,26 @@ public class KsMaterializedWindowTableIQv2Test {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
       is (WindowedRow.of(
         SCHEMA,
         windowedKey(startEqiv.lowerEndpoint()),
         VALUE_1.value(),
         VALUE_1.timestamp())));
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
       is(WindowedRow.of(
         SCHEMA,
         windowedKey(A_KEY2, startEqiv.upperEndpoint()),
         VALUE_2.value(),
         VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -494,16 +501,19 @@ public class KsMaterializedWindowTableIQv2Test {
       .thenThrow(new AssertionError());
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator = table.get(
+        A_KEY, PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result, contains(
-      WindowedRow.of(
-        SCHEMA,
-        windowedKey(start.lowerEndpoint().plusMillis(1)),
-        VALUE_2.value(),
-        VALUE_2.timestamp()
-      )
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(), is(
+        WindowedRow.of(
+            SCHEMA,
+          windowedKey(start.lowerEndpoint().plusMillis(1)),
+          VALUE_2.value(),
+          VALUE_2.timestamp()
+        )
     ));
   }
 
@@ -536,17 +546,19 @@ public class KsMaterializedWindowTableIQv2Test {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, start, Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator  =
+        table.get(PARTITION, start, Range.all()).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
       is (WindowedRow.of(
         SCHEMA,
         windowedKey(A_KEY2, start.lowerEndpoint().plusMillis(1)),
         VALUE_2.value(),
         VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -580,10 +592,14 @@ public class KsMaterializedWindowTableIQv2Test {
       .thenThrow(new AssertionError());
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
       WindowedRow.of(
         SCHEMA,
         windowedKey(startEquiv.lowerEndpoint().plusMillis(1)),
@@ -627,17 +643,19 @@ public class KsMaterializedWindowTableIQv2Test {
 
 
     // When:
-    final Iterator<WindowedRow> result = table.get(PARTITION, Range.all(), end);
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(PARTITION, Range.all(), end).rowIterator;
 
     // Then:
-    assertThat(result.hasNext(), is(true));
-    assertThat(result.next(),
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(),
       is (WindowedRow.of(
         SCHEMA,
         windowedKey(A_KEY2, startEquiv.lowerEndpoint().plusMillis(1)),
         VALUE_2.value(),
         VALUE_2.timestamp())));
-    assertThat(result.hasNext(), is(false));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -662,10 +680,14 @@ public class KsMaterializedWindowTableIQv2Test {
       .thenThrow(new AssertionError());
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), Range.all());
+    final Optional<Iterator<WindowedRow>> rowIterator =
+        table.get(A_KEY, PARTITION, Range.all(), Range.all()).rowIterator;
 
     // Then:
-    assertThat(result, contains(
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(resultList, contains(
       WindowedRow.of(
         SCHEMA,
         windowedKey(start),

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
@@ -22,9 +23,8 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.util.IteratorUtil;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
@@ -42,7 +42,7 @@ class KsMaterializedTable implements MaterializedTable {
   }
 
   @Override
-  public Optional<Row> get(
+  public KsMaterializedQueryResult<Row> get(
       final GenericKey key,
       final int partition
   ) {
@@ -50,41 +50,50 @@ class KsMaterializedTable implements MaterializedTable {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
-      return Optional.ofNullable(store.get(key))
-          .map(v -> Row.of(stateStore.schema(), key, v.value(), v.timestamp()));
+      final ValueAndTimestamp<GenericRow> row = store.get(key);
+      if (row == null) {
+        return KsMaterializedQueryResult.rowIterator(Collections.emptyIterator());
+      } else {
+        return KsMaterializedQueryResult.rowIterator(ImmutableList.of(Row.of(
+            stateStore.schema(), key, row.value(), row.timestamp())).iterator());
+      }
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
   }
 
   @Override
-  public Iterator<Row> get(final int partition) {
+  public KsMaterializedQueryResult<Row> get(final int partition) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator = store.all();
-      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
-          .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
-                                  keyValue.value.timestamp()))
-          .iterator();
+      return KsMaterializedQueryResult.rowIterator(
+          Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+              .map(keyValue -> Row.of(stateStore.schema(), keyValue.key,
+                                      keyValue.value.value(), keyValue.value.timestamp()))
+              .iterator()
+      );
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
     }
   }
 
   @Override
-  public Iterator<Row> get(final int partition, final GenericKey from, final GenericKey to) {
+  public KsMaterializedQueryResult<Row> get(final int partition, final GenericKey from, final GenericKey to) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
       final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
           store.range(from, to);
-      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
-          .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
-                                  keyValue.value.timestamp()))
-          .iterator();
+      return KsMaterializedQueryResult.rowIterator(
+          Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+              .map(keyValue -> Row.of(stateStore.schema(), keyValue.key,
+                                      keyValue.value.value(), keyValue.value.timestamp()))
+              .iterator()
+      );
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);
     }

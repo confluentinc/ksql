@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -36,6 +37,7 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -173,10 +175,10 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Optional<?> result = table.get(A_KEY, PARTITION);
+    final Optional<?> result = table.get(A_KEY, PARTITION).rowIterator;
 
     // Then:
-    assertThat(result, is(Optional.empty()));
+    assertThat(result, is(Optional.of(Collections.emptyIterator())));
   }
 
   @Test
@@ -187,10 +189,12 @@ public class KsMaterializedTableTest {
     when(tableStore.get(any())).thenReturn(ValueAndTimestamp.make(value, rowTime));
 
     // When:
-    final Optional<Row> result = table.get(A_KEY, PARTITION);
+    final Optional<Iterator<Row>> rowIterator = table.get(A_KEY, PARTITION).rowIterator;
 
     // Then:
-    assertThat(result, is(Optional.of(Row.of(SCHEMA, A_KEY, value, rowTime))));
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(), is(Row.of(SCHEMA, A_KEY, value, rowTime)));
   }
 
   @Test
@@ -203,12 +207,14 @@ public class KsMaterializedTableTest {
         .thenReturn(KEY_VALUE2);
 
     // When:
-    Iterator<Row> rows = table.get(PARTITION);
+    final Optional<Iterator<Row>> rowIterator = table.get(PARTITION).rowIterator;
 
     // Then:
-    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
-    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
-    assertThat(rows.hasNext(), is(false));
+    assertThat(rowIterator, not(Optional.empty()));
+    assertThat(rowIterator.get().hasNext(), is(true));
+    assertThat(rowIterator.get().next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
+    assertThat(rowIterator.get().next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
+    assertThat(rowIterator.get().hasNext(), is(false));
   }
 
   @Test
@@ -221,7 +227,7 @@ public class KsMaterializedTableTest {
         .thenReturn(KEY_VALUE2);
 
     // When:
-    Streams.stream(table.get(PARTITION))
+    Streams.stream(table.get(PARTITION).rowIterator.get())
         .collect(Collectors.toList());
 
     // Then:

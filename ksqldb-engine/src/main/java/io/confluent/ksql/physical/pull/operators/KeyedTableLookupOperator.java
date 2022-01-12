@@ -32,6 +32,8 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import org.apache.kafka.streams.query.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,7 @@ public class KeyedTableLookupOperator
   private KsqlPartitionLocation nextLocation;
   private KsqlKey nextKey;
   private long returnedRows = 0;
+  private Optional<Position> position;
 
   public KeyedTableLookupOperator(
       final Materialization mat,
@@ -116,8 +119,7 @@ public class KeyedTableLookupOperator
     if (keyConstraintKey.getOperator() == ConstraintOperator.EQUAL) {
       return mat.nonWindowed()
         .get(ksqlKey.getKey(), nextLocation.getPartition())
-        .map(ImmutableList::of)
-        .orElse(ImmutableList.of()).iterator();
+        .getRowIterator().get();
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
@@ -125,7 +127,8 @@ public class KeyedTableLookupOperator
       final GenericKey fromKey = keyConstraintKey.getKey();
       final GenericKey toKey = null;
       return mat.nonWindowed()
-        .get(nextLocation.getPartition(), fromKey, toKey);
+          .get(nextLocation.getPartition(), fromKey, toKey)
+          .getRowIterator().get();
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
@@ -133,7 +136,8 @@ public class KeyedTableLookupOperator
       final GenericKey fromKey = null;
       final GenericKey toKey = keyConstraintKey.getKey();
       return mat.nonWindowed()
-        .get(nextLocation.getPartition(), fromKey, toKey);
+          .get(nextLocation.getPartition(), fromKey, toKey)
+          .getRowIterator().get();
     } else {
       throw new IllegalStateException(String.format("Invalid comparator type "
         + keyConstraintKey.getOperator()));

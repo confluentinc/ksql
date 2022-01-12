@@ -23,19 +23,19 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
+import io.confluent.ksql.util.IteratorUtil;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -112,10 +112,14 @@ public class KeyedTableLookupOperatorTest {
 
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(Optional.of(ROW1));
-    when(materialization.nonWindowed().get(GKEY2, 2)).thenReturn(Optional.empty());
-    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(Optional.of(ROW3));
-    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(Optional.of(ROW4));
+    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
+    when(materialization.nonWindowed().get(GKEY2, 2)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of()));
+    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
+    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW4)));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
@@ -140,9 +144,12 @@ public class KeyedTableLookupOperatorTest {
 
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(Optional.of(ROW1));
-    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(Optional.of(ROW3));
-    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(Optional.of(ROW4));
+    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
+    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
+    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW4)));
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();
 
@@ -164,7 +171,8 @@ public class KeyedTableLookupOperatorTest {
 
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(1,null, GKEY3)).thenReturn(Arrays.asList(ROW1, ROW3).iterator());
+    when(materialization.nonWindowed().get(1,null, GKEY3)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1, ROW3)));
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
@@ -188,8 +196,10 @@ public class KeyedTableLookupOperatorTest {
 
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(1,null, GKEY2)).thenReturn(Arrays.asList(ROW1).iterator());
-    when(materialization.nonWindowed().get(3,null, GKEY3)).thenReturn(Arrays.asList(ROW3).iterator());
+    when(materialization.nonWindowed().get(1,null, GKEY2)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
+    when(materialization.nonWindowed().get(3,null, GKEY3)).thenReturn(
+        KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
 
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();

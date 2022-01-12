@@ -67,7 +67,8 @@ public class TableScanOperator extends AbstractPhysicalOperator
         throw new IllegalStateException("Table scans should not be done with keys");
       }
       resultIterator = mat.nonWindowed()
-          .get(nextLocation.getPartition());
+          .get(nextLocation.getPartition())
+          .getRowIterator().get();
     }
   }
 
@@ -89,7 +90,8 @@ public class TableScanOperator extends AbstractPhysicalOperator
         throw new IllegalStateException("Table scans should not be done with keys");
       }
       resultIterator = mat.nonWindowed()
-          .get(nextLocation.getPartition());
+          .get(nextLocation.getPartition())
+          .getRowIterator().get();
     }
 
     returnedRows++;

@@ -24,7 +24,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -167,7 +166,7 @@ public final class BackupReplayFile implements Closeable {
 
   @VisibleForTesting
   interface Filesystem {
-    FileOutputStream outputStream(final File file, final boolean append)
+    FileOutputStream outputStream(File file, boolean append)
         throws FileNotFoundException;
   }
 }

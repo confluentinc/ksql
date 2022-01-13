@@ -164,7 +164,6 @@ public class TerminateTransientQueryFunctionalTest {
 
   public boolean checkForTransientQuery (){
     List<RunningQuery> queries = showQueries();
-    System.out.println("Got queries size: " + queries.size() + " value: " + queries);
     return queries.stream()
         .anyMatch(q -> q.getId().toString().contains("transient"));
   }

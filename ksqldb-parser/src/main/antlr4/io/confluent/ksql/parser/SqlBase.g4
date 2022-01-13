@@ -336,6 +336,7 @@ nonReserved
     | EMIT
     | CHANGES
     | ESCAPE
+    | GRACE | PERIOD
     ;
 
 EMIT: 'EMIT';

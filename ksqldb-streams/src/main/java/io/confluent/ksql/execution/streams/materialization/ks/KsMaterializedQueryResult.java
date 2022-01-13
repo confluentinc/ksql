@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.query.Position;
 
+@SuppressFBWarnings(value = "EI_EXPOSE_REP")
 public final class KsMaterializedQueryResult<T extends TableRow> {
 
   final Iterator<T> rowIterator;

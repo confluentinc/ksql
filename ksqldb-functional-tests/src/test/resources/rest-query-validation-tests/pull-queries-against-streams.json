@@ -98,6 +98,35 @@
       ]
     },
     {
+      "name": "simple-source",
+      "properties": {
+        "ksql.query.pull.stream.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM S1 (MYKEY INT KEY, MYVALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "SELECT * FROM S1;"
+      ],
+      "topics": [
+        {"name": "test_topic", "partitions": 1} // to get a stable ordering
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {"myvalue": 1}},
+        {"topic": "test_topic", "timestamp": 12366, "key": 11, "value": {"myvalue": 2}},
+        {"topic": "test_topic", "timestamp": 12367, "key": 12, "value": {"myvalue": 3}},
+        {"topic": "test_topic", "timestamp": 12368, "key": 13, "value": {"myvalue": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`MYKEY` INTEGER, `MYVALUE` INTEGER"}},
+          {"row":{"columns":[10, 1]}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[12, 3]}},
+          {"row":{"columns":[13, 4]}}
+        ]}
+      ]
+    },
+    {
       "name": "select key",
       "properties": {
         "ksql.query.pull.stream.enabled": true

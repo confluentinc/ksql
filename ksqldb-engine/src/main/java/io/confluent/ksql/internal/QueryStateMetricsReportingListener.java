@@ -86,10 +86,8 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
   @Override
   public void onDeregister(final QueryMetadata query) {
-    perQuery.computeIfPresent(query.getQueryId(), (queryId, perQueryListener) -> {
-      perQueryListener.onDeregister();
-      return null;
-    });
+    perQuery.get(query.getQueryId()).onDeregister();
+    perQuery.remove(query.getQueryId());
   }
 
   private static final String NO_ERROR = "NO_ERROR";

@@ -176,7 +176,7 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
                     next.value.timestamp()
                 );
 
-                return row;})
+                return row; })
               .filter(Objects::nonNull)
               .iterator(),
           result.getPosition()

@@ -107,7 +107,9 @@ class KsMaterializedSessionTableIQv2 implements MaterializedWindowedTable {
   }
 
   @Override
-  public KsMaterializedQueryResult<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
+  public KsMaterializedQueryResult<WindowedRow> get(
+      final int partition,
+      final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds) {
     throw new MaterializationException("Table scan unsupported on session tables");
   }

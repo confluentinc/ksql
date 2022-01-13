@@ -271,7 +271,7 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition).getRowIterator().get().next();
+    table.get(aKey, partition).getRowIterator().next();
 
     // Then:
     verify(filter).apply(aKey, aValue, new PullProcessingContext(aRowtime));
@@ -285,7 +285,7 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition, windowStartBounds, windowEndBounds).getRowIterator().get().next();
+    table.get(aKey, partition, windowStartBounds, windowEndBounds).getRowIterator().next();
 
     // Then:
     verify(filter).apply(
@@ -307,8 +307,7 @@ public class KsqlMaterializationTest {
     final KsMaterializedQueryResult<Row> result = table.get(aKey, partition);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(false));
+    assertThat(result.getRowIterator().hasNext(), is(false));
   }
 
   @Test
@@ -324,8 +323,7 @@ public class KsqlMaterializationTest {
         table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(false));
+    assertThat(result.getRowIterator().hasNext(), is(false));
   }
 
   @Test
@@ -339,8 +337,7 @@ public class KsqlMaterializationTest {
     final KsMaterializedQueryResult<Row> result = table.get(aKey, partition);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(false));
+    assertThat(result.getRowIterator().hasNext(), is(false));
   }
 
   @Test
@@ -355,8 +352,7 @@ public class KsqlMaterializationTest {
         table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(false));
+    assertThat(result.getRowIterator().hasNext(), is(false));
   }
 
   @Test
@@ -370,8 +366,7 @@ public class KsqlMaterializationTest {
     final KsMaterializedQueryResult<Row> result = table.get(partition);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(false));
+    assertThat(result.getRowIterator().hasNext(), is(false));
   }
 
   @Test
@@ -386,8 +381,8 @@ public class KsqlMaterializationTest {
         table.get(partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(false));
+    
+    assertThat(result.getRowIterator().hasNext(), is(false));
   }
 
   @Test
@@ -398,7 +393,7 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition).getRowIterator().get().next();
+    table.get(aKey, partition).getRowIterator().next();
 
     // Then:
     final InOrder inOrder = inOrder(project, filter);
@@ -430,7 +425,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition).getRowIterator().get().next();
+    table.get(aKey, partition).getRowIterator().next();
 
     // Then:
     verify(project).apply(aKey, transformed, new PullProcessingContext(aRowtime));
@@ -464,8 +459,8 @@ public class KsqlMaterializationTest {
     // When:
     final KsMaterializedQueryResult<Row> result =
         table.get(partition);
-    result.getRowIterator().get().next();
-    result.getRowIterator().get().next();
+    result.getRowIterator().next();
+    result.getRowIterator().next();
 
     // Then:
     verify(project).apply(aKey, transformed, new PullProcessingContext(aRowtime));
@@ -482,8 +477,8 @@ public class KsqlMaterializationTest {
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
         table.get(partition, windowStartBounds, windowEndBounds);
-    result.getRowIterator().get().next();
-    result.getRowIterator().get().next();
+    result.getRowIterator().next();
+    result.getRowIterator().next();
 
     // Then:
     verify(project).apply(
@@ -511,8 +506,8 @@ public class KsqlMaterializationTest {
 
     // Then:
     assertThat(result.getRowIterator(), is(not(Optional.empty())));
-    assertThat(result.getRowIterator().get().hasNext(), is(true));
-    final Row row = result.getRowIterator().get().next();
+    assertThat(result.getRowIterator().hasNext(), is(true));
+    final Row row = result.getRowIterator().next();
     assertThat(row.key(), is(aKey));
     assertThat(row.window(), is(Optional.empty()));
     assertThat(row.value(), is(transformed));
@@ -531,8 +526,8 @@ public class KsqlMaterializationTest {
 
     // Then:
     assertThat(result.getRowIterator(), is(not(Optional.empty())));
-    assertThat(result.getRowIterator().get().hasNext(), is(true));
-    final WindowedRow row = result.getRowIterator().get().next();
+    assertThat(result.getRowIterator().hasNext(), is(true));
+    final WindowedRow row = result.getRowIterator().next();
     assertThat(row.key(), is(aKey));
     assertThat(row.window(), is(Optional.of(aWindow)));
     assertThat(row.value(), is(transformed));
@@ -569,9 +564,8 @@ public class KsqlMaterializationTest {
         table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    assertThat(result.getRowIterator(), not(Optional.empty()));
-    assertThat(result.getRowIterator().get().hasNext(), is(true));
-    final List<WindowedRow> resultList = Lists.newArrayList(result.getRowIterator().get());
+    assertThat(result.getRowIterator().hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(result.getRowIterator());
     assertThat(resultList, hasSize(rows.size()));
     assertThat(resultList.get(0).windowedKey().window(), is(window1));
     assertThat(resultList.get(1).windowedKey().window(), is(window2));

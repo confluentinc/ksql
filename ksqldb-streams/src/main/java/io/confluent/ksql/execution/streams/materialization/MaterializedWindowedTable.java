@@ -35,8 +35,8 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  KsMaterializedQueryResult<WindowedRow> get(GenericKey key, int partition, Range<Instant> windowStart,
-                                Range<Instant> windowEnd);
+  KsMaterializedQueryResult<WindowedRow> get(
+      GenericKey key, int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
 
   /**
    * Get the values in table where the window start time is within the
@@ -47,5 +47,6 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  KsMaterializedQueryResult<WindowedRow> get(int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
+  KsMaterializedQueryResult<WindowedRow> get(
+      int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
 }

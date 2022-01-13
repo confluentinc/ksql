@@ -119,8 +119,8 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
-  public KsMaterializedQueryResult<Row> get(final int partition, final GenericKey from,
-  final GenericKey to) {
+  public KsMaterializedQueryResult<Row> get(
+      final int partition, final GenericKey from, final GenericKey to) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     try {
       final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query;

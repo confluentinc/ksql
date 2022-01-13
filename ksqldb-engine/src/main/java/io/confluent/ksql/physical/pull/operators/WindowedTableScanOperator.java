@@ -69,7 +69,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       }
       resultIterator = mat.windowed()
           .get(nextLocation.getPartition(), Range.all(), Range.all())
-          .getRowIterator().get();
+          .getRowIterator();
     }
   }
 
@@ -92,7 +92,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       }
       resultIterator = mat.windowed()
           .get(nextLocation.getPartition(), Range.all(), Range.all())
-          .getRowIterator().get();
+          .getRowIterator();
     }
 
     returnedRows++;

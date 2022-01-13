@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -45,7 +44,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -188,12 +186,11 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -202,12 +199,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.minusMillis(1));
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -216,12 +212,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -236,13 +231,12 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, wend);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(true));
-    assertThat(rowIterator.get().next(), is(
+    assertThat(rowIterator.hasNext(), is(true));
+    assertThat(rowIterator.next(), is(
         WindowedRow.of(
             SCHEMA,
             sessionKey(LOWER_INSTANT, wend),
@@ -263,12 +257,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -283,11 +276,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, wend);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
-    assertThat(rowIterator.get().next(), is(
+    assertThat(rowIterator.next(), is(
         WindowedRow.of(
             SCHEMA,
             sessionKey(UPPER_INSTANT, wend),
@@ -308,12 +301,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -323,11 +315,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.plusMillis(1), wend);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all()).rowIterator;
 
     // Then:
-    assertThat(rowIterator.get().next(), is(
+    assertThat(rowIterator.next(), is(
         WindowedRow.of(
             SCHEMA,
             sessionKey(LOWER_INSTANT.plusMillis(1), wend),
@@ -349,11 +341,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(wstart, LOWER_INSTANT);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
-    assertThat(rowIterator.get().next(), is(
+    assertThat(rowIterator.next(), is(
         WindowedRow.of(
             SCHEMA,
             sessionKey(wstart, LOWER_INSTANT),
@@ -374,12 +366,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -394,11 +385,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(wstart, UPPER_INSTANT);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
-    assertThat(rowIterator.get().next(), is(
+    assertThat(rowIterator.next(), is(
         WindowedRow.of(
             SCHEMA,
             sessionKey(wstart, UPPER_INSTANT),
@@ -419,12 +410,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.minusMillis(1), UPPER_INSTANT);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(false));
+    assertThat(rowIterator.hasNext(), is(false));
   }
 
   @Test
@@ -435,11 +425,11 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(wstart, wend);
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(rowIterator.get().next(), is(
+    assertThat(rowIterator.next(), is(
         WindowedRow.of(
             SCHEMA,
             sessionKey(wstart, wend),
@@ -460,13 +450,12 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusSeconds(1));
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(true));
-    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(rowIterator.hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator);
     assertThat(resultList, contains(
         WindowedRow.of(
             SCHEMA,
@@ -490,13 +479,12 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
 
     // When:
-    final Optional<Iterator<WindowedRow>> rowIterator =
+    final Iterator<WindowedRow> rowIterator =
         table.get(A_KEY, PARTITION, Range.all(), Range.all()).rowIterator;
 
     // Then:
-    assertThat(rowIterator, not(Optional.empty()));
-    assertThat(rowIterator.get().hasNext(), is(true));
-    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator.get());
+    assertThat(rowIterator.hasNext(), is(true));
+    final List<WindowedRow> resultList = Lists.newArrayList(rowIterator);
     assertThat(resultList, hasSize(2));
   }
 

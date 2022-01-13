@@ -142,9 +142,7 @@ class KsqlMaterialization implements Materialization {
         return table.get(key, partition);
       }
 
-      final Iterator<Row> result = table.get(key, partition)
-          .getRowIterator()
-          .get();
+      final Iterator<Row> result = table.get(key, partition).getRowIterator();
 
       return KsMaterializedQueryResult.rowIterator(
           Streams.stream(result)
@@ -161,9 +159,7 @@ class KsqlMaterialization implements Materialization {
         return table.get(partition);
       }
 
-      final Iterator<Row> result = table.get(partition)
-          .getRowIterator()
-          .get();
+      final Iterator<Row> result = table.get(partition).getRowIterator();
 
       return KsMaterializedQueryResult.rowIterator(
           Streams.stream(result)
@@ -175,15 +171,13 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public KsMaterializedQueryResult<Row> get(final int partition, final GenericKey from,
-    final GenericKey to) {
+    public KsMaterializedQueryResult<Row> get(
+        final int partition, final GenericKey from, final GenericKey to) {
       if (transforms.isEmpty()) {
         return table.get(partition, from, to);
       }
 
-      final Iterator<Row> result = table.get(partition, from, to)
-          .getRowIterator()
-          .get();
+      final Iterator<Row> result = table.get(partition, from, to).getRowIterator();
 
       return KsMaterializedQueryResult.rowIterator(
           Streams.stream(result)
@@ -215,8 +209,7 @@ class KsqlMaterialization implements Materialization {
       }
 
       final Iterator<WindowedRow> iterator = table.get(key, partition, windowStart, windowEnd)
-          .getRowIterator()
-          .get();
+          .getRowIterator();
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 
@@ -239,8 +232,7 @@ class KsqlMaterialization implements Materialization {
       }
 
       final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds)
-          .getRowIterator()
-          .get();
+          .getRowIterator();
 
       return KsMaterializedQueryResult.rowIterator(
           Streams.stream(result)
@@ -254,32 +246,32 @@ class KsqlMaterialization implements Materialization {
     }
   }
 
-    /*
-     Today, we are unconditionally adding the extra fields to windowed rows.
-     We should decide if we need these additional fields for the
-     Windowed Rows case and remove them if possible.
-     */
-    public static GenericRow getIntermediateRow(final TableRow row) {
-      final GenericKey key = row.key();
-      final GenericRow value = row.value();
+  /*
+   Today, we are unconditionally adding the extra fields to windowed rows.
+   We should decide if we need these additional fields for the
+   Windowed Rows case and remove them if possible.
+   */
+  public static GenericRow getIntermediateRow(final TableRow row) {
+    final GenericKey key = row.key();
+    final GenericRow value = row.value();
 
-      final List<?> keyFields = key.values();
+    final List<?> keyFields = key.values();
 
-      value.ensureAdditionalCapacity(
-          1 // ROWTIME
-              + keyFields.size() //all the keys
-              + row.window().map(w -> 2).orElse(0) //windows
-      );
+    value.ensureAdditionalCapacity(
+        1 // ROWTIME
+            + keyFields.size() //all the keys
+            + row.window().map(w -> 2).orElse(0) //windows
+    );
 
-      value.append(row.rowTime());
-      value.appendAll(keyFields);
+    value.append(row.rowTime());
+    value.appendAll(keyFields);
 
-      row.window().ifPresent(window -> {
-        value.append(window.start().toEpochMilli());
-        value.append(window.end().toEpochMilli());
-      });
+    row.window().ifPresent(window -> {
+      value.append(window.start().toEpochMilli());
+      value.append(window.end().toEpochMilli());
+    });
 
-      return value;
-    }
+    return value;
+  }
 }
 

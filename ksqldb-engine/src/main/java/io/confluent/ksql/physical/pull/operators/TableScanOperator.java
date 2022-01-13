@@ -68,7 +68,7 @@ public class TableScanOperator extends AbstractPhysicalOperator
       }
       resultIterator = mat.nonWindowed()
           .get(nextLocation.getPartition())
-          .getRowIterator().get();
+          .getRowIterator();
     }
   }
 
@@ -91,7 +91,7 @@ public class TableScanOperator extends AbstractPhysicalOperator
       }
       resultIterator = mat.nonWindowed()
           .get(nextLocation.getPartition())
-          .getRowIterator().get();
+          .getRowIterator();
     }
 
     returnedRows++;

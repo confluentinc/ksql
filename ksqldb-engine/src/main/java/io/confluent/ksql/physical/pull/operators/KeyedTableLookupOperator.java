@@ -119,7 +119,7 @@ public class KeyedTableLookupOperator
     if (keyConstraintKey.getOperator() == ConstraintOperator.EQUAL) {
       return mat.nonWindowed()
         .get(ksqlKey.getKey(), nextLocation.getPartition())
-        .getRowIterator().get();
+        .getRowIterator();
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
@@ -128,7 +128,7 @@ public class KeyedTableLookupOperator
       final GenericKey toKey = null;
       return mat.nonWindowed()
           .get(nextLocation.getPartition(), fromKey, toKey)
-          .getRowIterator().get();
+          .getRowIterator();
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
@@ -137,7 +137,7 @@ public class KeyedTableLookupOperator
       final GenericKey toKey = keyConstraintKey.getKey();
       return mat.nonWindowed()
           .get(nextLocation.getPartition(), fromKey, toKey)
-          .getRowIterator().get();
+          .getRowIterator();
     } else {
       throw new IllegalStateException(String.format("Invalid comparator type "
         + keyConstraintKey.getOperator()));

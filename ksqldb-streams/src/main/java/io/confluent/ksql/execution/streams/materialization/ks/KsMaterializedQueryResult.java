@@ -21,28 +21,28 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.query.Position;
 
-public class KsMaterializedQueryResult<T extends TableRow> {
+public final class KsMaterializedQueryResult<T extends TableRow> {
 
-  final Optional<Iterator<T>> rowIterator;
+  final Iterator<T> rowIterator;
   final Optional<Position> position;
 
   public static <T extends TableRow> KsMaterializedQueryResult<T> rowIterator(
       final Iterator<T> iterator) {
-    return new KsMaterializedQueryResult<>(Optional.of(iterator), Optional.empty());
+    return new KsMaterializedQueryResult<>(iterator, Optional.empty());
   }
 
   public static <T extends TableRow> KsMaterializedQueryResult<T> rowIteratorWithPosition(
       final Iterator<T> iterator, final Position position) {
-    return new KsMaterializedQueryResult<>(Optional.of(iterator), Optional.of(position));
+    return new KsMaterializedQueryResult<>(iterator, Optional.of(position));
   }
 
-  private KsMaterializedQueryResult(final Optional<Iterator<T>> rowIterator,
+  private KsMaterializedQueryResult(final Iterator<T> rowIterator,
                                     final Optional<Position> position) {
     this.rowIterator = Objects.requireNonNull(rowIterator, "rowIterator");
     this.position = Objects.requireNonNull(position, "position");
   }
 
-  public Optional<Iterator<T>> getRowIterator() {
+  public Iterator<T> getRowIterator() {
     return rowIterator;
   }
 

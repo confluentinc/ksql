@@ -386,6 +386,7 @@ nonReserved
     | ASSERT
     | ALTER
     | ADD
+    | GRACE | PERIOD
     ;
 
 EMIT: 'EMIT';

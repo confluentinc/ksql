@@ -62,6 +62,10 @@ In the WHERE expression, you can use any operator that ksqlDB supports.
 For more information, see
 [Operators in ksqlDB](/developer-guide/ksqldb-reference/operators/#operators).
 
+!!! tip
+    [How to Efficiently Subscribe to a SQL Query for Changes](https://www.confluent.io/blog/push-queries-v2-with-ksqldb-scalable-sql-query-subscriptions/)
+
+
 ### EMIT
 
 The EMIT clause lets you control the output refinement of your push query. The output refinement is

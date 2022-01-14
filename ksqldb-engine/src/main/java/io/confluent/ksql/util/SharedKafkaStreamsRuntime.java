@@ -95,7 +95,7 @@ public abstract class SharedKafkaStreamsRuntime {
         .collect(Collectors.toSet());
   }
 
-  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags() {
+  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
     throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
                                         + " version and should not be used.");
   }

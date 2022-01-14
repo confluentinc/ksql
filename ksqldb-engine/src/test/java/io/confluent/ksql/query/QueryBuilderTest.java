@@ -223,28 +223,7 @@ public class QueryBuilderTest {
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
-    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
-    when(physicalPlan.build(any())).thenReturn(tableHolder);
-    when(streamsBuilder.build(any())).thenReturn(topology);
-    when(namedTopologyBuilder.buildNamedTopology(any())).thenReturn(namedTopology);
-    when(config.getConfig(true)).thenReturn(ksqlConfig);
-    when(config.getOverrides()).thenReturn(OVERRIDES);
-    sharedKafkaStreamsRuntimes = new ArrayList<>();
-
-    queryBuilder = new QueryBuilder(
-        config,
-        processingLogContext,
-        serviceContext,
-        functionRegistry,
-        kafkaStreamsBuilder,
-        new MaterializationProviderBuilderFactory(
-            ksqlConfig,
-            serviceContext,
-            ksMaterializationFactory,
-            ksqlMaterializationFactory
-        ),
-        sharedKafkaStreamsRuntimes,
+    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICEsharedKafkaStreamsRuntimes,
         true);
 
     runtimeAssignor = new RuntimeAssignor(ksqlConfig);
@@ -370,8 +349,6 @@ public class QueryBuilderTest {
 
   @Test
   public void shouldStartCreateSourceQueryWithMaterializationProvider() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
     // Given:
     final DataSource source = givenSource("foo");
     when(source.getSchema()).thenReturn(SINK_SCHEMA);
@@ -641,8 +618,6 @@ public class QueryBuilderTest {
 
   @Test
   public void shouldMakePersistentQueriesWithSameSources() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
-
     // When:
     buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID);
     buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID_2);
@@ -652,7 +627,6 @@ public class QueryBuilderTest {
 
   @Test
   public void shouldMakePersistentQueriesWithDifferentSources() {
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
     // When:
     PersistentQueryMetadata queryMetadata = buildPersistentQuery(

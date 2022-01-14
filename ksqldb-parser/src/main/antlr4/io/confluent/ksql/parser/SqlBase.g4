@@ -401,6 +401,8 @@ nonReserved
     | ASSERT
     | ALTER
     | ADD
+    | GRACE | PERIOD
+    | DEFINE | UNDEFINE | VARIABLES
     ;
 
 EMIT: 'EMIT';

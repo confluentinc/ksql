@@ -83,19 +83,19 @@ public abstract class SharedKafkaStreamsRuntime {
     return kafkaStreams.state();
   }
 
-  public Collection<StreamsMetadata> streamsMetadataForQuery(final QueryId queryId) {
-    return kafkaStreams.streamsMetadataForTopology(queryId.toString());
+  public Collection<StreamsMetadata> getAllStreamsClientsMetadataForQuery(final QueryId queryId) {
+    return kafkaStreams.allStreamsClientsMetadataForTopology(queryId.toString());
   }
 
-  public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return kafkaStreams.metadataForLocalThreads()
+  public Set<StreamsTaskMetadata> getAllTaskMetadataForQuery(final QueryId queryId) {
+    return kafkaStreams.metadataForLocalThreads(queryId.toString())
         .stream()
         .flatMap(t -> t.activeTasks().stream())
         .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
         .collect(Collectors.toSet());
   }
 
-  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
+  public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLagsForQuery(final QueryId queryId) {
     try {
       return kafkaStreams.allLocalStorePartitionLagsForTopology(queryId.toString());
     } catch (IllegalStateException | StreamsException e) {

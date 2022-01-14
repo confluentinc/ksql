@@ -522,7 +522,7 @@ public class ListQueriesExecutorTest {
     final List<StreamsMetadata> streamsData = new ArrayList<>();
     streamsData.add(localStreamsMetadata);
     streamsData.add(remoteStreamsMetadata);
-    when(metadata.getAllMetadata()).thenReturn(streamsData);
+    when(metadata.getAllStreamsHostMetadata()).thenReturn(streamsData);
   }
 
   public static RunningQuery persistentQueryMetadataToRunningQuery(

@@ -102,7 +102,7 @@ public class ClusterStatusResource {
   ) {
     final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
     for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
-      for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
+      for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllStreamsHostMetadata()) {
         if (streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)
             || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {
           continue;

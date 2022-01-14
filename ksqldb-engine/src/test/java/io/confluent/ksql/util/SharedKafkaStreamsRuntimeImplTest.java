@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -34,11 +32,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -213,7 +209,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     
     @Test
     public void allLocalStorePartitionLagsCallsTopologyMethod() {
-        sharedKafkaStreamsRuntimeImpl.allLocalStorePartitionLags(queryId);
+        sharedKafkaStreamsRuntimeImpl.getAllLocalStorePartitionLagsForQuery(queryId);
         verify(kafkaStreamsNamedTopologyWrapper)
             .allLocalStorePartitionLagsForTopology("query-1");
     }

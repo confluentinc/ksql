@@ -223,7 +223,28 @@ public class QueryBuilderTest {
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
-    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICEsharedKafkaStreamsRuntimes,
+    when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
+    when(physicalPlan.build(any())).thenReturn(tableHolder);
+    when(streamsBuilder.build(any())).thenReturn(topology);
+    when(namedTopologyBuilder.build()).thenReturn(namedTopology);
+    when(config.getConfig(true)).thenReturn(ksqlConfig);
+    when(config.getOverrides()).thenReturn(OVERRIDES);
+    sharedKafkaStreamsRuntimes = new ArrayList<>();
+
+    queryBuilder = new QueryBuilder(
+        config,
+        processingLogContext,
+        serviceContext,
+        functionRegistry,
+        kafkaStreamsBuilder,
+        new MaterializationProviderBuilderFactory(
+            ksqlConfig,
+            serviceContext,
+            ksMaterializationFactory,
+            ksqlMaterializationFactory
+        ),
+        sharedKafkaStreamsRuntimes,
         true);
 
     runtimeAssignor = new RuntimeAssignor(ksqlConfig);

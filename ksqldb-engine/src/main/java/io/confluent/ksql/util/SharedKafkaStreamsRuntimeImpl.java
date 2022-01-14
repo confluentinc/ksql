@@ -173,8 +173,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void start(final QueryId queryId) {
-    throw new UnsupportedOperationException("Shared runtimes have not been fully implemented in this"
-                                                + " version and should not be used.");
+    throw new UnsupportedOperationException("Shared runtimes have not been fully implemented"
+                                                + " in this version and should not be used.");
   }
 
   @Override

@@ -410,6 +410,9 @@ nonReserved
     | ALTER
     | ADD
     | HEADER | HEADERS
+    | GRACE | PERIOD
+    | DEFINE | UNDEFINE | VARIABLES
+    | PLUGINS | SYSTEM
     ;
 
 EMIT: 'EMIT';

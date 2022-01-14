@@ -139,8 +139,7 @@ public class KsMaterializedSessionTableIQv2Test {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Boom"));
+    assertThat(e.getMessage(), containsString("Boom"));
     assertThat(e, (instanceOf(MaterializationTimeOutException.class)));
   }
 
@@ -158,8 +157,7 @@ public class KsMaterializedSessionTableIQv2Test {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-      "Boom"));
+    assertThat(e.getMessage(), containsString("Boom"));
     assertThat(e, (instanceOf(MaterializationException.class)));
   }
 
@@ -223,7 +221,6 @@ public class KsMaterializedSessionTableIQv2Test {
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    
     assertThat(rowIterator.hasNext(), is(false));
   }
 
@@ -237,7 +234,6 @@ public class KsMaterializedSessionTableIQv2Test {
         table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
-    
     assertThat(rowIterator.hasNext(), is(false));
   }
 
@@ -256,7 +252,6 @@ public class KsMaterializedSessionTableIQv2Test {
         table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
-    
     assertThat(rowIterator.hasNext(), is(false));
   }
 
@@ -305,7 +300,6 @@ public class KsMaterializedSessionTableIQv2Test {
         table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
-    
     assertThat(rowIterator.hasNext(), is(false));
   }
 

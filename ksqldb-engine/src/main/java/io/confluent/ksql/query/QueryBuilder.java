@@ -429,7 +429,8 @@ final class QueryBuilder {
         valueFormat.getFeatures()
     );
 
-    final NamedTopologyStreamsBuilder namedTopologyBuilder = new NamedTopologyStreamsBuilder(queryId.toString());
+    final NamedTopologyStreamsBuilder namedTopologyBuilder =
+        new NamedTopologyStreamsBuilder(queryId.toString());
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
@@ -437,7 +438,8 @@ final class QueryBuilder {
             namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology = namedTopologyBuilder.buildNamedTopology(PropertiesUtil.asProperties(queryOverrides));
+    final NamedTopology topology =
+        namedTopologyBuilder.buildNamedTopology(PropertiesUtil.asProperties(queryOverrides));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -503,7 +505,8 @@ final class QueryBuilder {
                                         final String applicationId,
                                         final Map<String, Object>  queryOverrides,
                                         final ExecutionStep<?> physicalPlan) {
-    final NamedTopologyStreamsBuilder namedTopologyBuilder = new NamedTopologyStreamsBuilder(queryId.toString());
+    final NamedTopologyStreamsBuilder namedTopologyBuilder =
+        new NamedTopologyStreamsBuilder(queryId.toString());
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,

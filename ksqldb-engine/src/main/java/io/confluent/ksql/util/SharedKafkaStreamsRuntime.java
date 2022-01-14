@@ -32,7 +32,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
-import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

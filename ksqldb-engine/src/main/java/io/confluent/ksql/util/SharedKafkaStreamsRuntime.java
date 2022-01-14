@@ -95,13 +95,9 @@ public abstract class SharedKafkaStreamsRuntime {
         .collect(Collectors.toSet());
   }
 
-  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
-    try {
-      return kafkaStreams.allLocalStorePartitionLagsForTopology(queryId.toString());
-    } catch (IllegalStateException | StreamsException e) {
-      log.error(e.getMessage());
-      return ImmutableMap.of();
-    }
+  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags() {
+    throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
+                                        + " version and should not be used.");
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is immutable")

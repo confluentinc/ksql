@@ -303,7 +303,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
-    return sharedKafkaStreamsRuntime.allLocalStorePartitionLags(queryId);
+    throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
+                                        + " version and should not be used.");
   }
 
   @Override

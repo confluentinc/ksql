@@ -82,10 +82,9 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -162,7 +161,7 @@ public class QueryBuilderTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
-  private NamedTopologyBuilder namedTopologyBuilder;
+  private NamedTopologyStreamsBuilder namedTopologyBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -194,8 +193,6 @@ public class QueryBuilderTest {
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
   @Mock
-  private AddNamedTopologyResult addNamedTopologyResult;
-  @Mock
   private KafkaFuture<Void> future;
   private RuntimeAssignor runtimeAssignor;
 
@@ -213,8 +210,6 @@ public class QueryBuilderTest {
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
-    when(kafkaStreamsNamedTopologyWrapper.newNamedTopologyBuilder(any(), any())).thenReturn(namedTopologyBuilder);
-    when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -232,10 +227,9 @@ public class QueryBuilderTest {
     when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
-    when(namedTopologyBuilder.build()).thenReturn(namedTopology);
+    when(namedTopologyBuilder.buildNamedTopology(any())).thenReturn(namedTopology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
     when(config.getOverrides()).thenReturn(OVERRIDES);
-    when(addNamedTopologyResult.all()).thenReturn(future);
     sharedKafkaStreamsRuntimes = new ArrayList<>();
 
     queryBuilder = new QueryBuilder(

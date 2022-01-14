@@ -164,33 +164,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void stop(final QueryId queryId, final boolean resetOffsets) {
-    log.info("Attempting to stop Query: " + queryId.toString());
-    if (collocatedQueries.containsKey(queryId)) {
-      if (kafkaStreams.state().isRunningOrRebalancing()) {
-        try {
-          kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
-              .all()
-              .get(shutdownTimeout, TimeUnit.SECONDS);
-          if (resetOffsets) {
-            kafkaStreams.cleanUpNamedTopology(queryId.toString());
-          }
-        } catch (final TimeoutException | ExecutionException | InterruptedException e) {
-          log.error("Failed to close query {} within the allotted timeout {} due to",
-              queryId,
-              shutdownTimeout,
-              e);
-          if (e instanceof TimeoutException) {
-            log.warn(
-                "query has not terminated even after trying to remove the topology. "
-                    + "This may happen when streams threads are hung. State: "
-                    + kafkaStreams.state());
-          }
-        }
-      } else {
-        throw new IllegalStateException("Streams in not running but is in state "
-            + kafkaStreams.state());
-      }
-    }
+    throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
+                                        + " version and should not be used.");
   }
 
   @Override
@@ -201,27 +176,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void start(final QueryId queryId) {
-    if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
-      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        try {
-          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology())
-              .all()
-              .get(shutdownTimeout, TimeUnit.SECONDS);
-        } catch (final TimeoutException | ExecutionException | InterruptedException e) {
-          log.error("Failed to start query {} within the allotted timeout {} due to",
-              queryId,
-              shutdownTimeout,
-              e);
-          throw new IllegalStateException(
-              "Encountered an error when trying to add query " + queryId + " to runtime: ",
-              e);
-        }
-      } else {
-        throw new IllegalArgumentException("not done removing query: " + queryId);
-      }
-    } else {
-      throw new IllegalArgumentException("query: " + queryId + " not added to runtime");
-    }
+    throw new UnsupportedOperationException("Shared runtimes have not been fully implemented in this"
+                                                + " version and should not be used.");
   }
 
   @Override

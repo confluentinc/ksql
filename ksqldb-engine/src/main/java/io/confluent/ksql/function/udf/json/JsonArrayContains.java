@@ -53,7 +53,7 @@ public class JsonArrayContains {
   private static final JsonFactory PARSER_FACTORY = new JsonFactoryBuilder()
       .disable(CANONICALIZE_FIELD_NAMES)
       .build()
-      .setCodec(UdfJsonMapper.INSTANCE.get());
+      .setCodec(UdfJsonMapper.INSTANCE);
 
   private static final EnumMap<JsonToken, Predicate<Object>> TOKEN_COMPAT;
 

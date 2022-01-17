@@ -16,16 +16,13 @@
 package io.confluent.ksql.function.udf.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.FunctionCategory;
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
-import java.io.IOException;
 import java.util.List;
 
 @UdfDescription(
@@ -34,8 +31,6 @@ import java.util.List;
     description = "Given a STRING that contains JSON data, extract the value at the specified "
         + " JSONPath or NULL if the specified path does not exist.")
 public class JsonExtractString {
-
-  private static final ObjectReader OBJECT_READER = UdfJsonMapper.INSTANCE.get().reader();
 
   private String latestPath = null;
   private List<String> latestTokens = null;
@@ -56,7 +51,7 @@ public class JsonExtractString {
       latestPath = path;
     }
 
-    JsonNode currentNode = parseJsonDoc(input);
+    JsonNode currentNode = UdfJsonMapper.parseJson(input);
     for (final String token : latestTokens) {
       if (currentNode instanceof ArrayNode) {
         try {
@@ -78,14 +73,6 @@ public class JsonExtractString {
       return currentNode.asText();
     } else {
       return currentNode.toString();
-    }
-  }
-
-  private static JsonNode parseJsonDoc(final String jsonString) {
-    try {
-      return OBJECT_READER.readTree(jsonString);
-    } catch (final IOException e) {
-      throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
     }
   }
 }

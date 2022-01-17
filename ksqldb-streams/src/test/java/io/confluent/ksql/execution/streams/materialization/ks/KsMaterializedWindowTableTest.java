@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Range;
+import com.google.common.collect.Streams;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
@@ -45,6 +46,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -77,7 +79,7 @@ public class KsMaterializedWindowTableTest {
   private static final GenericKey A_KEY2 = GenericKey.genericKey(1);
   private static final GenericKey A_KEY3 = GenericKey.genericKey(1);
 
-  protected static final Instant NOW = Instant.now();
+  protected static final Instant NOW = Instant.ofEpochMilli(System.currentTimeMillis());
 
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
       NOW,
@@ -412,8 +414,8 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldCloseIterator_fetchAll() {
     // When:
-    final Iterator<WindowedRow> rowIterator =
-        table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
+    Streams.stream((table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).getRowIterator()))
+        .collect(Collectors.toList());
 
     // Then:
     verify(keyValueIterator).close();

@@ -69,7 +69,7 @@ public class KsMaterializedSessionTableTest {
   private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
   private static final int PARTITION = 0;
 
-  private static final Instant LOWER_INSTANT = Instant.now();
+  private static final Instant LOWER_INSTANT = Instant.ofEpochMilli(System.currentTimeMillis());
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
 
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(

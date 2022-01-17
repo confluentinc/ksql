@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.Range;
@@ -246,7 +245,8 @@ public class KsMaterializationFunctionalTest {
     });
 
     final GenericKey key = genericKey("Won't find me");
-    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)), is(Optional.empty()));
+    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION).getRowIterator().hasNext()),
+               is(false));
   }
 
   @Test
@@ -285,7 +285,8 @@ public class KsMaterializationFunctionalTest {
     });
 
     final GenericKey key = genericKey("Won't find me");
-    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)), is(Optional.empty()));
+    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)).getRowIterator().hasNext(),
+               is(false));
   }
 
   @Test

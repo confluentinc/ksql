@@ -211,7 +211,7 @@ intra-cluster communication.
 
 If not set, the internal listener defaults to the first listener defined by `listeners`.
 
-This setting is most often useful in a IaaS environment to separate external-facing
+This setting is most often useful in an IaaS environment to separate external-facing
 traffic from internal traffic.
 
 ## `ksql.internal.topic.replicas`
@@ -225,7 +225,7 @@ configured separately. For more information, see
 
 ## `ksql.lag.reporting.enable`
 
-If enabled, ksqlDB servers in the same ksqlDB cluster sends state-store 
+If enabled, ksqlDB servers in the same ksqlDB cluster send state-store 
 lag information to each other as a form of heartbeat, for improved pull query routing.
 Only applicable if [`ksql.heartbeat.enable`](#ksqlheartbeatenable) is also set to `true`.
 The default is `false`.
@@ -254,13 +254,13 @@ the [ksql.service.id](#ksqlserviceid) property.
 ## `ksql.logging.processing.topic.partitions`
 
 If automatic processing log topic creation is enabled, ksqlDB creates the
-topic with number of partitions set to the value of this property. By
+topic with the number of partitions set to the value of this property. By
 default, this property has the value `1`.
 
 ## `ksql.logging.processing.topic.replication.factor`
 
 If automatic processing log topic creation is enabled, ksqlDB creates the
-topic with number of replicas set to the value of this property. By
+topic with the number of replicas set to the value of this property. By
 default, this property has the value `1`.
 
 ## `ksql.logging.processing.stream.auto.create`

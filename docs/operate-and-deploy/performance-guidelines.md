@@ -46,7 +46,7 @@ amount of system resource overhead. As a result, you should structure your
 workload such that all required work is consolidated into as few persistent
 queries as possible. A workload consolidated into a single persistent query
 requires significantly less system-resource overhead as the same workload
-spread across two persistent queries.
+is spread across two persistent queries.
 
 Minimizing the number of persistent queries that your workload uses is probably
 the single most impactful design pattern that you can leverage, so it's a

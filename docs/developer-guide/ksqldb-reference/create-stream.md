@@ -49,7 +49,7 @@ situation is handled differently by [ksqlDB TABLEs](../create-table), as shown i
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
 | NON NULL key constraint  | No                                                            | Yes <br> Records in the {{ site.ak }} topic with a NULL `PRIMARY KEY` are ignored.  |
-| Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier. |
+| Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier ones. |
 | Tombstones               | No <br> Messages with NULL values are ignored.                | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted. |
 
 Each column is defined by:

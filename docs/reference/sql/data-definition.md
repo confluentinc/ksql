@@ -140,7 +140,7 @@ As with a stream, you can declare a table directly on top of an existing
 You can mark a column with the `KEY` keyword to indicate that it's a key
 column. Key columns constitute the key portion of the row's underlying
 {{ site.ak }} record. Only streams can mark columns as keys, and it's optional
-for them to do do. Tables must use the `PRIMARY KEY` constraint instead.
+for them to do. Tables must use the `PRIMARY KEY` constraint instead.
 
 In the following example statement, `k1`'s data is stored in the key portion of
 the row, and `v1`'s data is stored in the value.

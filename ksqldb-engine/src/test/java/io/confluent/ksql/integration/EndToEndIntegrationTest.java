@@ -22,6 +22,7 @@ import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
@@ -240,6 +241,13 @@ public class EndToEndIntegrationTest {
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
+    if (sharedRuntimes) {
+      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+          hasItem("_confluent-ksql-default_-CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+    } else {
+      assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
+          hasItem("_confluent-ksql-default_query_CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+    }
     assertThat(CONSUMED_COUNT.get(), greaterThan(0));
     assertThat(PRODUCED_COUNT.get(), greaterThan(0));
     assertThat(columns.get(0).toString(), startsWith("USER_"));

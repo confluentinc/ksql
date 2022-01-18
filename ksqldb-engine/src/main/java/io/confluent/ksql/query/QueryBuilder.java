@@ -66,6 +66,7 @@ import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedSharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
@@ -564,6 +565,12 @@ final class QueryBuilder {
         StreamsConfig.METRIC_REPORTER_CLASSES_CONFIG,
         StorageUtilizationMetricsReporter.class.getName()
     );
+
+    if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
+          ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX +
+              config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+    }
 
     // Passing shared state into managed components
     newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);

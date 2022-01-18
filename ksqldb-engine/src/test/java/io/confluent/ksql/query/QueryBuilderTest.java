@@ -748,7 +748,7 @@ public class QueryBuilderTest {
           STATEMENT_TEXT,
           queryId,
           sink,
-          SOURCES,
+          sources,
           physicalPlan,
           SUMMARY,
           queryListener,

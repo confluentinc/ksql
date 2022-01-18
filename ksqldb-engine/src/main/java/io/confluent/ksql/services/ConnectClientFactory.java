@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.services;
 
-import io.confluent.ksql.security.KsqlPrincipal;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 public interface ConnectClientFactory {
 
-  ConnectClient get(Optional<String> authHeader, Optional<KsqlPrincipal> userPrincipal);
+  ConnectClient get(
+      Optional<String> authHeader,
+      List<Entry<String, String>> incomingRequestHeaders
+  );
 
   default void close() {}
 }

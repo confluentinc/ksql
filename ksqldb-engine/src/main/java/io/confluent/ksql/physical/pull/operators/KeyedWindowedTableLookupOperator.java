@@ -78,7 +78,7 @@ public class KeyedWindowedTableLookupOperator
             nextLocation.getPartition(),
             windowBounds.getMergedStart(),
             windowBounds.getMergedEnd())
-            .iterator();
+            .getRowIterator();
       }
     }
   }
@@ -106,7 +106,7 @@ public class KeyedWindowedTableLookupOperator
           nextLocation.getPartition(),
           windowBounds.getMergedStart(),
           windowBounds.getMergedEnd())
-          .iterator();
+          .getRowIterator();
     }
     returnedRows++;
     final WindowedRow row = resultIterator.next();

@@ -13,9 +13,9 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,9 +85,12 @@ public class TableScanOperatorTest {
         = new TableScanOperator(materialization, logicalNode, shouldCancelOperations);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
-    when(nonWindowedTable.get(1)).thenReturn(IteratorUtil.of(ROW1_1, ROW1_2));
-    when(nonWindowedTable.get(2)).thenReturn(IteratorUtil.of());
-    when(nonWindowedTable.get(3)).thenReturn(IteratorUtil.of(ROW3_1, ROW3_2));
+    when(nonWindowedTable.get(1)).thenReturn(KsMaterializedQueryResult.rowIterator(
+        IteratorUtil.of(ROW1_1, ROW1_2)));
+    when(nonWindowedTable.get(2)).thenReturn(KsMaterializedQueryResult.rowIterator(
+        IteratorUtil.of()));
+    when(nonWindowedTable.get(3)).thenReturn(KsMaterializedQueryResult.rowIterator(
+        IteratorUtil.of(ROW3_1, ROW3_2)));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
@@ -119,7 +122,8 @@ public class TableScanOperatorTest {
         = new TableScanOperator(materialization, logicalNode, shouldCancelOperations);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
-    when(nonWindowedTable.get(1)).thenReturn(IteratorUtil.of(ROW1_1, ROW1_2));
+    when(nonWindowedTable.get(1)).thenReturn(KsMaterializedQueryResult.rowIterator(
+        IteratorUtil.of(ROW1_1, ROW1_2)));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);

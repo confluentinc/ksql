@@ -92,7 +92,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyBuilder;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
 
 /**
  * A builder for creating queries metadata.
@@ -429,11 +429,8 @@ final class QueryBuilder {
         valueFormat.getFeatures()
     );
 
-    final NamedTopologyBuilder namedTopologyBuilder = sharedKafkaStreamsRuntime.getKafkaStreams()
-            .newNamedTopologyBuilder(
-                queryId.toString(),
-                PropertiesUtil.asProperties(queryOverrides)
-            );
+    final NamedTopologyStreamsBuilder namedTopologyBuilder =
+        new NamedTopologyStreamsBuilder(queryId.toString());
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
             applicationId,
@@ -441,7 +438,8 @@ final class QueryBuilder {
             namedTopologyBuilder
     );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final NamedTopology topology = namedTopologyBuilder.build();
+    final NamedTopology topology =
+        namedTopologyBuilder.buildNamedTopology(PropertiesUtil.asProperties(queryOverrides));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -507,11 +505,8 @@ final class QueryBuilder {
                                         final String applicationId,
                                         final Map<String, Object>  queryOverrides,
                                         final ExecutionStep<?> physicalPlan) {
-    final NamedTopologyBuilder namedTopologyBuilder =
-        sharedRuntime.getKafkaStreams().newNamedTopologyBuilder(
-            queryId.toString(),
-            PropertiesUtil.asProperties(queryOverrides)
-        );
+    final NamedTopologyStreamsBuilder namedTopologyBuilder =
+        new NamedTopologyStreamsBuilder(queryId.toString());
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(
         applicationId,
@@ -519,7 +514,7 @@ final class QueryBuilder {
         namedTopologyBuilder
     );
     buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    return namedTopologyBuilder.build();
+    return namedTopologyBuilder.buildNamedTopology(PropertiesUtil.asProperties(queryOverrides));
   }
 
   public static Map<String, Object> buildStreamsProperties(

@@ -194,6 +194,7 @@ public class TemporaryEngine extends ExternalResource {
     return ksqlConfig;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public KsqlEngine getEngine() {
     return engine;
   }

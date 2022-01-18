@@ -264,9 +264,9 @@ public final class KsLocator implements Locator {
    */
   @VisibleForTesting
   protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
-    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
-          .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
+    if (sharedRuntimesEnabled || kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+      throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
+                                          + " version and should not be used.");
     }
     return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
   }
@@ -277,9 +277,9 @@ public final class KsLocator implements Locator {
    */
   @VisibleForTesting
   protected Collection<StreamsMetadata> getStreamsMetadata() {
-    if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-      return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
-          .streamsMetadataForStore(storeName, queryId);
+    if (sharedRuntimesEnabled || kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+      throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
+                                          + " version and should not be used.");
     }
 
     return kafkaStreams.streamsMetadataForStore(storeName);

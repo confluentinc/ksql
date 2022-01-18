@@ -638,32 +638,6 @@ public class QueryBuilderTest {
   }
 
   @Test
-  public void shouldMakePersistentQueriesWithSameSources() {
-    // When:
-    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID);
-    buildPersistentQuery(SOURCES, KsqlConstants.PersistentQueryType.CREATE_AS, QUERY_ID_2);
-
-    assertThat("chose same source", sharedKafkaStreamsRuntimes.size() > 1);
-  }
-
-  @Test
-  public void shouldMakePersistentQueriesWithDifferentSources() {
-
-    // When:
-    PersistentQueryMetadata queryMetadata = buildPersistentQuery(
-        SOURCES,
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        QUERY_ID);
-
-    PersistentQueryMetadata queryMetadata2 = buildPersistentQuery(
-            ImmutableSet.of(givenSource("food"), givenSource("bard")),
-        KsqlConstants.PersistentQueryType.CREATE_AS,
-        QUERY_ID);
-    assertThat("did not chose the same runtime", queryMetadata.getKafkaStreams().equals(queryMetadata2.getKafkaStreams()));
-
-  }
-
-  @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);

@@ -29,7 +29,7 @@ generator to do so.
 
 To generate new plans, just run `PlannedTestGeneratorTest.manuallyGeneratePlans`
 
-## Topology comparision
+## Topology comparison
 These tests also validate the generated topology matches the expected topology,
 i.e. a test will fail if the topology has changed from previous runs.
 This is needed to detect potentially non-backwards compatible changes to the generated topology.

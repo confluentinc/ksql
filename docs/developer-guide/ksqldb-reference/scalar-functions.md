@@ -757,6 +757,30 @@ is_json_string("abc") => false
 is_json_string(NULL) => false
 ```
 
+### `JSON_ARRAY_LENGTH`
+
+Since: 0.25.0
+
+```sql
+JSON_ARRAY_LENGTH(json_string) -> Integer
+```
+
+Given a string, parses it as a JSON value and returns the length of the top-level array. Returns
+`NULL` if the string can't be interpreted as a JSON array, for example, when the string is `NULL`
+or it does not contain valid JSON, or the JSON value is not an array.
+
+Examples:
+
+```sql
+json_array_length("[1, 2, 3]") => 3
+json_array_length("[1, [1, [2]], 3]") =>  3
+json_array_length("[]") => 0
+json_array_length("{}") => NULL
+json_array_length("123") => NULL
+json_array_length(NULL) => NULL
+json_array_length("abc") => throws "Invalid JSON format"
+```
+
 ### `INITCAP`
 
 Since: 0.6.0

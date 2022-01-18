@@ -46,7 +46,7 @@ ksqlDB provides two mechanisms to change a query that is already running:
 
 Obviously, it would be preferable to always perform an in-place upgrade
 when you change a query. But because of how streaming programs are constructed,
-it isn't not always possible to do thatso.
+this is not always possible.
 
 To better understand the different types of upgrades that are allowed on persistent
 queries, here's a taxonomy using the combination of three

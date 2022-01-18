@@ -569,7 +569,8 @@ final class QueryBuilder {
     if (config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX +
-              config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+              config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG) +
+              "query");
     }
 
     // Passing shared state into managed components

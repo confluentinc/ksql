@@ -243,7 +243,7 @@ public class EndToEndIntegrationTest {
 
     if (sharedRuntimes) {
       assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
-          hasItem("_confluent-ksql-default_-CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
+          hasItem("_confluent-ksql-default_query-CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));
     } else {
       assertThat(TEST_HARNESS.getKafkaCluster().getTopics(),
           hasItem("_confluent-ksql-default_query_CSAS_CART_EVENT_PRODUCT_1-Join-repartition"));

@@ -43,7 +43,7 @@ CREATE SOURCE TABLE latest_view (
 );
 ```
 
-Now, you can view the latest values for each key in your `changelog` topic by issuing a pull query against the `latest_view` table that we just created above:
+Now, you can view the latest values for each key in your `changelog` topic by issuing a pull query against the `latest_view` table that you created above:
 ```sql
 SELECT * FROM latest_view;
 +------+------+------+------+
@@ -56,7 +56,7 @@ SELECT * FROM latest_view;
 
 Notice how for each key, the columns reflect the latest set of values.
 
-If you just want to look up the latest value for a particular key (let's assume `k2` in this case), then you can simply issue a pull query for that particular key:
+If you want to look up the latest value for a particular key, for example, `k2`, issue a pull query for that key:
 ```sql
 SELECT * FROM latest WHERE k = 'k2';
 +------+------+------+------+
@@ -68,7 +68,7 @@ SELECT * FROM latest WHERE k = 'k2';
 
 ## Materializing a changelog `STREAM`
 
-The best way to materialize an input topic as a table is the `CREATE SOURCE TABLE` statement. If you already have a `STREAM`, though, you can also materialize it as a table with the `CREATE TABLE ... AS ...` statement. Let's say you have a `STREAM` of events in ksqlDB that represent a series of changes called `changelog_stream`, and you want a view of the data that reflects the latest values for each key. 
+The best way to materialize an input topic as a table is the `CREATE SOURCE TABLE` statement. If you already have a `STREAM`, you can also materialize it as a table with the `CREATE TABLE ... AS ...` statement. This is useful if you have a `STREAM` of events in ksqlDB that represents a series of changes called `changelog_stream`, and you want a view of the data that reflects the latest values for each key. 
 
 Begin by telling ksqlDB to start all queries from the earliest point in each topic:
 ```sql
@@ -134,7 +134,7 @@ CREATE TABLE latest_events AS
     EMIT CHANGES;
 ```
 
-Now, you can view the latest values for each key in your `changelog_stream` by issuing a pull query against the `latest_events` table that we just created above:
+Now, you can view the latest values for each key in your `changelog_stream` by issuing a pull query against the `latest_events` table that you created above:
 ```sql
 SELECT * FROM latest_events;
 +------+------+------+------+

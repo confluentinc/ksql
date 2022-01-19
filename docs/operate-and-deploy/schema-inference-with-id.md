@@ -7,7 +7,7 @@ keywords: ksqlDB, serialization, schema, schema registry, json, avro, delimited,
 ---
 
 For supported [serialization formats](/reference/serialization), ksqlDB can use 
-[schema inference](/operate-and-deploy/schema-registry-integration.md)
+[schema inference](/operate-and-deploy/schema-registry-integration)
 to retrieve (read) and register (write) schemas as needed. If you specify a
 `KEY_SCHEMA_ID` or `VALUE_SCHEMA_ID` explicitly in the `CREATE` statements,
 ksqlDB retrieves and registers the schema specified by the ID from {{ site.sr }},

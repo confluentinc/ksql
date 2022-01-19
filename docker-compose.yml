@@ -53,7 +53,8 @@ services:
       - kafka
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:32181
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+
 
   primary-ksqldb-server:
     image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-server:${KSQL_VERSION}
@@ -86,7 +87,7 @@ services:
   # Access the cli by running:
   # > docker-compose exec ksqldb-cli  ksql http://primary-ksqldb-server:8088
   ksqldb-cli:
-    image: ${KSQL_IMAGE_BASE}confluentinc/ksqldb-cli:${KSQL_VERSION}
+    image: confluentinc/ksqldb-cli:0.23.1
     container_name: ksqldb-cli
     depends_on:
       - primary-ksqldb-server

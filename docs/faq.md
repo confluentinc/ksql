@@ -188,7 +188,7 @@ How can I scale out ksqlDB?
 
 The maximum parallelism depends on the number of partitions.
 
--   To scale out: start additional ksqlDB servers with same config. This
+-   To scale out: start additional ksqlDB servers with the same config. This
     can be done during live operations. For more information, see
     [How do I add ksqlDB servers to an existing ksqlDB cluster?](#how-do-i-add-ksqldb-servers-to-an-existing-ksqldb-cluster).
 -   To scale in: stop the desired running ksqlDB servers, but keep at
@@ -197,7 +197,7 @@ The maximum parallelism depends on the number of partitions.
     work from stopped servers.
 
 !!! tip
-	Idle servers will consume a small amount of resource. For example, if
+	Idle servers will consume a small amount of resources. For example, if
     you have 10 ksqlDB servers and run a query against a two-partition input
     topic, only two servers perform the actual work, but the other eight
     will run an "idle" query.

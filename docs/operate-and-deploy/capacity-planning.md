@@ -52,7 +52,7 @@ while aggregation and join state is a function of topic partition count,
 key space size, and windowing. A good starting point here is 32 GB.
 
 **Network**: ksqlDB relies heavily on {{ site.ak }}, so fast and reliable
-network is important for optimal throughput. A 1 Gbit NIC is a good starting
+networking is important for optimal throughput. A 1 Gbit NIC is a good starting
 point.
 
 General guidelines for a basic ksqlDB server are:
@@ -478,7 +478,7 @@ state store memory. 8 GB are recommended for the Java heap space for
 record processing.
 
 ksqlDB uses the network to consume records from the {{ site.ak }} input topic
-and produce records to the output topic. In this example query 50 MB/s are
+and produce records to the output topic. In this example, 50 MB/s are
 received. If you assume that 90 percent of the page views are meaningful,
 then you would produce 45 MB/s as output.
 

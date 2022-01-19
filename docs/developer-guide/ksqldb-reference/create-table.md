@@ -28,7 +28,7 @@ used by pull queries. You can't terminate this query manually. You can terminate
 by dropping the table with the DROP TABLE statement.
 
 Also, when you provide the SOURCE clause, the table is created as read-only. For a read-only table,
-INSERT statements and the DELETE TOPIC on DROP TABLE statements aren't be permitted.
+INSERT statements and the DELETE TOPIC on DROP TABLE statements aren't permitted.
 
 To disable the SOURCE table feature, set `ksql.source.table.materialization.enabled` to
 `false` in your ksqlDB server properties file.
@@ -65,7 +65,7 @@ shown in the following table.
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
 | NON NULL key constraint  | No                                                            | Yes <br> Messages in the {{ site.ak }} topic with a NULL `PRIMARY KEY` are ignored. |
-| Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier. |
+| Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier ones. |
 | Tombstones               | No <br> Messages with NULL values are ignored.                | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted. |
 
 Each column is defined by:

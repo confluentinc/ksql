@@ -1051,7 +1051,7 @@ ClientOptions options = ClientOptions.create()
 
 Get the API key and endpoint URL from your {{ site.ccloud }} cluster.
 
-- For the the API key, see 
+- For the API key, see 
   [Create an API key for Confluent Cloud ksqlDB](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#create-an-api-key-for-ccloud-ksql-cloud-through-the-ccloud-cli).
 - For the endpoint, run the `ccloud ksql app list` command. For more information,
   see [Access a ksqlDB application in Confluent Cloud with an API key](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#access-a-ksql-cloud-application-in-ccloud-with-an-api-key).

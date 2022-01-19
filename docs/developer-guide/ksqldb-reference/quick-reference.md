@@ -33,7 +33,7 @@ ALTER STREAM stream_name
 ```
 
 ## ALTER TABLE
-Add new columns to a table. This is not supported for table defined using queries
+Add new columns to a table. This is not supported for tables defined using queries
 (`CREATE TABLE ... AS`)
 ```sql
 ALTER TABLE stream_name
@@ -683,7 +683,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 ```
 
 ## WINDOWSTART / WINDOWEND
-Specify the beginning and end bounds a window. For more information, see
+Specify the beginning and end bounds of a window. For more information, see
 [WINDOW](../../ksqldb-reference/select-push-query/#window).
 
 ```sql hl_lines="1"

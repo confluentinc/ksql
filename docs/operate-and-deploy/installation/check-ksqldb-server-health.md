@@ -82,7 +82,7 @@ readiness of a headless deployment.
 
 !!! note
     JMX indicates that the JVM is up and responsive. This test is similar to
-    confirming is the ksqlDB process is running, but a successful response
+    confirming if the ksqlDB process is running, but a successful response
     doesn't necessarily mean that the ksqlDB service is fully operational.
     To get better exposure, you can monitor the nodes from {{ site.c3 }} or JMX.
 

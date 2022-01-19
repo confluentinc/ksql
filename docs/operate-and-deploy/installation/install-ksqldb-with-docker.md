@@ -81,7 +81,7 @@ docker run -d \
 `KSQL_LISTENERS`
 
 :   A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6, set to `http://[::]:8088`.
+    If you are using IPv6, set it to `http://[::]:8088`.
 
 `KSQL_CLASSPATH`
 
@@ -166,7 +166,7 @@ docker run -d \
 `KSQL_LISTENERS`
 
 :   A list of URIs, including the protocol, that the broker listens on.
-    If you are using IPv6, set to `http://[::]:8088`.
+    If you are using IPv6, set it to `http://[::]:8088`.
 
 `KSQL_KSQL_SINK_REPLICAS`
 
@@ -341,7 +341,7 @@ dockerized ksqlDB CLI.
 
 ### Start ksqlDB CLI With a Provided Configuration File
 
-Set up a a ksqlDB CLI instance by using a configuration file, and run it
+Set up a ksqlDB CLI instance by using a configuration file, and run it
 in a container:
 
 ```bash

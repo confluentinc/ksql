@@ -228,7 +228,7 @@ partitioners specified in
 the same custom partitioner logic must be used for records on both sides
 of the join. The applications that write to the join inputs must have
 the same partitioning strategy, so that records with the same key are
-delivered to same partition number.
+delivered to the same partition.
 
 This means that the input records must be in the same partition on both
 sides of the join. For example, in a stream-table join, if a `userId`

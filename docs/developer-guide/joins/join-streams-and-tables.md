@@ -69,7 +69,7 @@ Joins and Windows
 
 ksqlDB enables grouping records that have the same key for stateful
 operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24 hours,
-which mean that a record can arrive out-of-order for up to 24 hours, and it's still joined correctly
+which means that a record can arrive out-of-order for up to 24 hours, and it's still joined correctly
 based on its timestamp.
 If a record arrives after the window's grace period has passed, the record is discarded and
 isn't processed.
@@ -330,7 +330,7 @@ record. The following assumptions apply:
 Input records with a `null` value are interpreted as tombstones for the
 corresponding key, which indicate the deletion of the key from the table.
 When an input tombstone is received, one or multiple output tombstones
-may be forwarded to the join result table, if a corresponding join results
+may be forwarded to the join result table, if a corresponding join result
 exists in the result table.
 
 

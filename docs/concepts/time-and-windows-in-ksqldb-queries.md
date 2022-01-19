@@ -89,7 +89,7 @@ topic's
 [message.timestamp.type](https://docs.confluent.io/current/installation/configuration/topic-configs.html#message-timestamp-type)
 setting can be either `CreateTime` or `LogAppendTime`.
 
-- **CreateTime:** The broker uses the the record's timestamp as set by the
+- **CreateTime:** The broker uses the record's timestamp as set by the
   producer. This setting enforces event-time semantics.
 - **LogAppendTime:** The broker overwrites the record's timestamp with the
   broker's local time when it appends the record to the topic's log. This
@@ -231,7 +231,7 @@ associated with the correct window.
 
 There are three ways to define time windows in ksqlDB: hopping windows,
 tumbling windows, and session windows. Hopping and tumbling windows are
-time windows, because they're defined by fixed durations they you
+time windows, because they are defined by fixed durations that you
 specify. Session windows are dynamically sized based on incoming data
 and defined by periods of activity separated by gaps of inactivity.
 
@@ -290,7 +290,7 @@ means that whenever a window ends, the next window starts.
 
 ![Windowing a ksqlDB stream of data records with a tumbling window](../img/ksql-time-windows-tumbling.png)
 
-For example, if you want to compute the the five highest-value orders
+For example, if you want to compute the five highest-value orders
 per zip code per hour in an `orders` stream, you might run a query like
 this:
 

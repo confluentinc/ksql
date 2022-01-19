@@ -718,7 +718,7 @@ If the requested JSONPath does not exist, the function returns NULL.
 
 The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the result to another
 type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
-instance number from the above JSON object as a INT.
+instance number from the above JSON object as an INT.
 
 The return type of the UDF is STRING, so JSONPaths that select
 multiple elements, like those containing wildcards, aren't supported.
@@ -753,7 +753,7 @@ Since: 0.10.0
 INSTR(string, substring, [position], [occurrence])
 ```
 
-Returns the position of `substring` in `string`. The first character is at position 1.
+Returns the position of the `substring` in the `string`. The first character is at position 1.
 
 If `position` is provided, search starts from the specified position. 
 Negative `position` causes the search to work from end to start of `string`.
@@ -936,7 +936,7 @@ REGEXP_EXTRACT_ALL('.*', col1)
 REGEXP_EXTRACT_ALL('(([AEIOU]).)', col1, 2)
 ```
 
-Extract all subtrings matched by the regex pattern from the input.
+Extract all substrings matched by the regex pattern from the input.
 
 A capturing group number can also be specified in order to return that specific group. If a number isn't specified,
 the entire substring is returned by default.
@@ -1186,7 +1186,7 @@ COALESCE(a, b, c, d)
 Returns the first parameter that is not NULL. All parameters must be of the same type.
 
 Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
-complex type are not inspected. The behaviour is the same: the first NOT NULL element is returned.
+complex type are not inspected. The behavior is the same: the first NOT NULL element is returned.
 
 ### `IFNULL`
 

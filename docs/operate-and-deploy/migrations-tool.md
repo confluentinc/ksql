@@ -248,7 +248,7 @@ If both your ksqlDB server and migration tool are version 0.18 and newer, you ca
 $ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties apply --next -d foo=bar -d car=3
 ```
 
-is equivalent to having the following lines at the begining of each migration file:
+is equivalent to having the following lines at the beginning of each migration file:
 
 ```
 DEFINE foo='bar';
@@ -406,7 +406,7 @@ Your output should resemble:
 
 ```
 Cleaning migrations metadata stream and table from ksqlDB server
-Found 1 query writing to metadata table. Query ID: CTAS_MIGRATION_SCHEMA_VERSIONS_3
+Found 1 query writing to the metadata table. Query ID: CTAS_MIGRATION_SCHEMA_VERSIONS_3
 Terminating query with ID: CTAS_MIGRATION_SCHEMA_VERSIONS_3
 Dropping migrations metadata table: MIGRATION_SCHEMA_VERSIONS
 Dropping migrations metadata stream: MIGRATION_EVENTS
@@ -512,7 +512,7 @@ INSERT INTO <MIGRATIONS_STREAM_NAME> (
 );
 ```
 
-For example, if validation fails because of the latest migration version has
+For example, if validation fails because the latest migration version has
 status `RUNNING`, you can manually transition the migration status to
 `ERROR` in order to repair the migrations metadata.
 

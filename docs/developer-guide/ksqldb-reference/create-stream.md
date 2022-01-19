@@ -111,10 +111,12 @@ For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
 !!! note
-	  - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
-    `ksql.schema.registry.url` must be set in the ksqlDB Server configuration
-    file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
-    - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB column name behavior.
+
+    - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
+      `ksql.schema.registry.url` must be set in the ksqlDB Server configuration file.
+      See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
+    - Avro and Protobuf field names are not case sensitive in ksqlDB.
+      This matches the ksqlDB column name behavior.
 
 ## Example
 

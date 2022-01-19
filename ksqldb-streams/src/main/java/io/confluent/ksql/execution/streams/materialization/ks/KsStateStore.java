@@ -26,7 +26,6 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StoreQueryParameters;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStoreQueryParameters;
 import org.apache.kafka.streams.state.QueryableStoreType;
 
 /**
@@ -76,18 +75,9 @@ class KsStateStore {
       final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(
           stateStoreName, queryableStoreType).withPartition(partition);
       if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-          && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-        NamedTopologyStoreQueryParameters<T> namedTopologyParameters =
-            NamedTopologyStoreQueryParameters.fromNamedTopologyAndStoreNameAndType(
-                queryId,
-                parameters.storeName(),
-                parameters.queryableStoreType()
-            );
-
-        if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-          namedTopologyParameters = namedTopologyParameters.enableStaleStores();
-        }
-        return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams).store(namedTopologyParameters);
+          || kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
+        throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
+                                            + " version and should not be used.");
       } else if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
         // True flag allows queries on standby and replica state stores
         return kafkaStreams.store(parameters.enableStaleStores());

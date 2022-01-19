@@ -14,6 +14,7 @@ branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.2
 len=${#repos[@]}
 
 for (( i=0; i<$len; i++ ));
+do
   echo $i
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
   echo "git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}"

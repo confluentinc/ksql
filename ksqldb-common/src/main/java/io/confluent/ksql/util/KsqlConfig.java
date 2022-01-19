@@ -1389,6 +1389,33 @@ public class KsqlConfig extends AbstractConfig {
   }
   // CHECKSTYLE_RULES.ON: MethodLength
 
+  public Map<String, Object> originalsWithPrefixOverride(final String prefix) {
+    final Map<String, Object> originals = originals();
+    final Map<String, Object> result = new HashMap<>();
+    // first we iterate over the originals and we add only the entries without the prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (!isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey(), entry.getValue());
+      }
+    }
+    // then we add only prefixed entries with dropped prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey().substring(prefix.length()), entry.getValue());
+      }
+    }
+    // two iterations are necessary to avoid a situation where the unprefixed value
+    // is handled after the prefixed one, because we do not control the order in which
+    // the entries are presented from the originals map
+    return result;
+  }
+
+  private boolean isKeyPrefixed(final String key, final String prefix) {
+    Objects.requireNonNull(key);
+    Objects.requireNonNull(prefix);
+    return key.startsWith(prefix) && key.length() > prefix.length();
+  }
+
   private static final class ConfigValue {
     final ConfigItem configItem;
     final String key;
@@ -1477,7 +1504,8 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
+            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
   }
 
   private static Set<String> streamTopicConfigNames() {

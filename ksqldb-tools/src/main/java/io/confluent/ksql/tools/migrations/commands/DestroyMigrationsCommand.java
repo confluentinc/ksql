@@ -181,7 +181,8 @@ public class DestroyMigrationsCommand extends BaseCommand {
     }
 
     if (queries.size() > 1) {
-      throw new MigrationException("Found multiple queries writing to the metadata table. Query IDs: "
+      throw new MigrationException(
+              "Found multiple queries writing to the metadata table. Query IDs: "
           + queries.stream()
               .map(QueryInfo::getId)
               .collect(Collectors.joining("', '", "'", "'.")));

@@ -63,7 +63,7 @@ If `ksql.internal.listener` resolves to a URL that uses `localhost`, a wildcard 
 like `0.0.0.0`, or a hostname that other ksqlDB nodes either can't resolve or can't route requests
 to, set `ksql.advertised.listener` to a URL that ksqlDB nodes can resolve.
 
-For more information, see [Configuring Listeners of a ksqlDB Cluster](./index.md#configuring-listeners-of-a-ksqldb-cluster)
+For more information, see [Configuring Listeners of a ksqlDB Cluster](/operate-and-deploy/installation/server-config/#configuring-listeners-of-a-ksqldb-cluster)
 
 ## `ksql.connect.url`
 
@@ -132,14 +132,14 @@ is explored in detail [here](/how-to-guides/create-a-user-defined-function/).
 Limit the size of the resultant Array to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
-Also see [aggregate-functions](/reference/aggregate-functions)
+Also see [aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_list)
 
 ## `ksql.functions.collect_set.limit`
 
 Limits the size of the resultant Set to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
-Also see [aggregate-functions](/reference/aggregate-functions)
+Also see [aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_set)
 
 ## `ksql.functions.substring.legacy.args`
 
@@ -169,9 +169,9 @@ If heartbeats are enabled, this config controls the interval, in milliseconds, a
 heartbeats are sent between nodes. The default value is `100`.
 
 If you tune this value, also consider tuning
-[`ksql.heartbeat.check.interval.ms`](#ksql.heartbeat.check.interval.ms), 
+[`ksql.heartbeat.check.interval.ms`](#ksqlheartbeatcheckintervalms), 
 which controls how often a node processes received heartbeats, and
-[`ksql.heartbeat.window.ms`](#ksql.heartbeat.window.ms),
+[`ksql.heartbeat.window.ms`](#ksqlheartbeatwindowms),
 which controls the window size for checking if heartbeats were missed 
 and deciding whether a node is up or down.
 
@@ -464,7 +464,7 @@ Specifies the server properties that ksqlDB clients and users can't override.
 
 The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
 over a secure connection, see
-[Configure ksqlDB for Secured {{ site.srlong }}](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
+[Configure ksqlDB for Secured {{ site.srlong }}](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-secured-confluent-schema-registry).
 
 ## `ksql.service.id`
 
@@ -549,7 +549,7 @@ SET 'commit.interval.ms'='5000';
 ```
 
 For more information, see the
-[Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+[Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and 
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
@@ -564,7 +564,7 @@ SET 'cache.max.bytes.buffering'='20000000';
 ```
 
 For more information, see the
-[Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+[Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
 [CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
@@ -613,7 +613,7 @@ joins, to a durable location. By default, state is stored in the
 
 A file that specifies a predefined set of queries for the ksqlDB cluster.
 For an example, see
-[Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
+[Non-interactive (Headless) ksqlDB Usage](/operate-and-deploy/installation/server-config/#non-interactive-headless-ksqldb-usage).
 
 ## `ksql.query.persistent.active.limit`
 

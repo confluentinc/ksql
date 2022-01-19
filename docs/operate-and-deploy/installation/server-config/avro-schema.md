@@ -19,7 +19,7 @@ Configure ksqlDB for Avro, Protobuf, and JSON
 You must configure the REST endpoint of {{ site.sr }} by setting
 `ksql.schema.registry.url` in the ksqlDB Server configuration file
 (`<path-to-confluent>/etc/ksqldb/ksql-server.properties`). For more
-information, see [Installation Instructions](../installing.md#installation-instructions).
+information, see [Installation Instructions](../installing.md).
 {{ site.sr }} is [included by default](https://docs.confluent.io/current/quickstart/index.html) with
 {{ site.cp }}.
 

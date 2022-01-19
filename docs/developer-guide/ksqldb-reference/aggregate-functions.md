@@ -19,7 +19,7 @@ Stream, Table
 Return the average value for a given column.
 
 !!! Tip "See AVG in action"
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
 
 
 
@@ -221,7 +221,7 @@ Return the maximum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
 !!! Tip "See MAX in action"
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
     - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
 
 ## `MIN`
@@ -238,7 +238,7 @@ Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
 !!! Tip "See MIN in action"
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
 
 ## `STDDEV_SAMP`
 

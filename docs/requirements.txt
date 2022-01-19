@@ -1,5 +1,5 @@
 mdx_gh_links==0.2
-mdx_truly_sane_lists==3.3.4
+mdx_truly_sane_lists==1.2
 mkdocs==1.2.3
 mkdocs-macros-plugin==0.6.3
 mkdocs-git-revision-date-plugin==0.3.1

@@ -29,7 +29,7 @@ If a column is given a null value or is not set, it does not act as a tombstone.
 
 Tombstones are not supported with `INSERT INTO`.
 Pseudo columns are supported on a case by case basis. `ROWTIME`, may be provided.
-However, `ROWPARTITION` and `ROWOFFSET` are disallowed.
+However, `ROWPARTITION` and `ROWOFFSET` are disallowed. Header columns are also disallowed.
 
 If no columns are specified, a value for every column is expected in the same
 order as the schema, with key columns first.

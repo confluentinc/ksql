@@ -78,8 +78,14 @@ Each column is defined by:
 * `data_type`: the SQL type of the column. Columns can be any of the
    [data types](/reference/sql/data-types) supported by ksqlDB.
 
+* `HEADERS` or `HEADER('<key>')`: columns that are populated by the Kafka message's header should be
+   marked as `HEADERS` or `HEADER('<key>')` columns. If a column is marked by `HEADERS`, it contains
+
+   the full list of header keys and values. If a column is marked by `HEADER('<key>')`, then it will contain
+   the last header that matches the key (or `NULL` if that key is not in the list of headers).
+
 * `PRIMARY KEY`: columns that are stored in the Kafka message's key should be marked as
-   `PRIMARY KEY` columns. If a column is not marked as a `PRIMARY KEY` column ksqlDB loads it
+   `PRIMARY KEY` columns. If a column is unmarked, ksqlDB loads it
    from the {{ site.ak }} message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
    are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
 

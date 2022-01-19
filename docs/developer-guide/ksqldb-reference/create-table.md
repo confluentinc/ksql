@@ -99,10 +99,10 @@ ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-infere
 columns automatically and enable you using a physical schema for data serialization.
 
 !!! note
-    - To use Avro, Protobuf, or JSON_SR you must have {{ site.sr }} enabled and
-      `ksql.schema.registry.url` must be set in the ksqlDB server configuration
-      file. For more information, see
-      [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md).
+    
+    - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
+      `ksql.schema.registry.url` must be set in the ksqlDB Server configuration file.
+      See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
     - Avro and Protobuf field names are not case sensitive in ksqlDB.
       This matches the ksqlDB column name behavior.
 

@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-SHOW | LIST CONNECTORS;
+SHOW | LIST [SOURCE | SINK] CONNECTORS;
 ```
 
 Description

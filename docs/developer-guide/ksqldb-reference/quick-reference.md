@@ -21,6 +21,13 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
+## ALTER property
+Change a property value.
+
+```sql
+ALTER 'auto.offset.reset'='earliest';
+```
+
 ## ALTER STREAM
 Add new columns to a stream. This is not supported for streams defined using queries
 (`CREATE STREAM ... AS`).
@@ -60,6 +67,13 @@ Alias a column, expression, or type. For more information, see
 ```sql hl_lines="1"
 SELECT column_name AS column_alias
   FROM stream_name | table_name
+```
+
+## ASSERT
+Assert values, stream, table, or tombstones.
+
+```sql
+ASSERT NULL VALUES sourceName (columns)? KEY values            
 ```
 
 ## BETWEEN
@@ -222,7 +236,7 @@ CREATE TYPE <type_name> AS <type>;
 
 ## DEFINE
 
-Defines a variable.
+Defines a variable. For more information, see [DEFINE](define.md).
 
 ```sql
 DEFINE <name> = '<value>';
@@ -313,6 +327,17 @@ SELECT column_name(s)
   FROM stream_name1 | table_name1
    FULL JOIN stream_name2 | table_name2
    ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
+```
+
+## GRACE PERIOD
+Allow events to be accepted for a time period after a window ends. For more
+information, see [Out-of-order events](../../../concepts/time-and-windows-in-ksqldb-queries#out-of-order-events)
+
+```sql hl_lines="2"
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
 ```
 
 ## GROUP BY
@@ -542,6 +567,13 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   EMIT CHANGES;
 ```
 
+## SET property
+Assign a property value.
+
+```sql
+SET 'auto.offset.reset'='earliest';
+```
+
 ## SHOW CONNECTORS
 List all connectors in the {{ site.kconnect }} cluster. For more information,
 see [SHOW CONNECTORS](../../ksqldb-reference/show-connectors).
@@ -658,6 +690,13 @@ Undefines a variable.
 
 ```sql
 UNDEFINE name;
+```
+
+## UNSET property
+Unassign a property value.
+
+```sql
+UNSET 'auto.offset.reset';
 ```
 
 ## WHERE

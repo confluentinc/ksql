@@ -21,15 +21,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.apache.kafka.streams.query.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +45,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   private final Materialization mat;
   private final DataSourceNode logicalNode;
   private final CompletableFuture<Void> shouldCancelOperations;
+  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   private ImmutableList<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
@@ -51,12 +56,15 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   public WindowedTableScanOperator(
       final Materialization mat,
       final DataSourceNode logicalNode,
-      final CompletableFuture<Void> shouldCancelOperations
+      final CompletableFuture<Void> shouldCancelOperations,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     this.mat = Objects.requireNonNull(mat, "mat");
     this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
     this.shouldCancelOperations =  Objects.requireNonNull(shouldCancelOperations,
         "shouldCancelOperations");
+    this.consistencyOffsetVector = Objects.requireNonNull(
+        consistencyOffsetVector, "consistencyOffsetVector");
   }
 
   @Override
@@ -67,9 +75,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       if (nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table scans should not be done with keys");
       }
-      resultIterator = mat.windowed()
-          .get(nextLocation.getPartition(), Range.all(), Range.all())
-          .getRowIterator();
+      updateIteratorAndPosition();
     }
   }
 
@@ -90,9 +96,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       if (nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table scans should not be done with keys");
       }
-      resultIterator = mat.windowed()
-          .get(nextLocation.getPartition(), Range.all(), Range.all())
-          .getRowIterator();
+      updateIteratorAndPosition();
     }
 
     returnedRows++;
@@ -154,5 +158,15 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   @Override
   public long getReturnedRowCount() {
     return returnedRows;
+  }
+
+  private void updateIteratorAndPosition() {
+    final KsMaterializedQueryResult<WindowedRow> result = mat.windowed()
+        .get(nextLocation.getPartition(), Range.all(), Range.all());
+    resultIterator = result.getRowIterator();
+    final Optional<Position> position = result.getPosition();
+    if (position.isPresent() && consistencyOffsetVector.isPresent()) {
+      consistencyOffsetVector.get().updateFromPosition(position.get());
+    }
   }
 }

@@ -49,12 +49,14 @@ import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryLimitNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConstants.QuerySourceType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -74,6 +76,7 @@ public class PullPhysicalPlanBuilder {
   private final QueryId queryId;
   private final Materialization mat;
   private final QueryPlannerOptions queryPlannerOptions;
+  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   private List<LookupConstraint> lookupConstraints;
   private PullPhysicalPlanType pullPhysicalPlanType;
@@ -85,7 +88,8 @@ public class PullPhysicalPlanBuilder {
       final PersistentQueryMetadata persistentQueryMetadata,
       final ImmutableAnalysis analysis,
       final QueryPlannerOptions queryPlannerOptions,
-      final CompletableFuture<Void> shouldCancelOperations
+      final CompletableFuture<Void> shouldCancelOperations,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
@@ -93,6 +97,8 @@ public class PullPhysicalPlanBuilder {
         persistentQueryMetadata, "persistentQueryMetadata");
     this.shouldCancelOperations =  Objects.requireNonNull(shouldCancelOperations,
         "shouldCancelOperations");
+    this.consistencyOffsetVector = Objects.requireNonNull(
+        consistencyOffsetVector, "consistencyOffsetVector");
     this.contextStacker = new Stacker();
     queryId = uniqueQueryId();
     mat = this.persistentQueryMetadata
@@ -238,16 +244,18 @@ public class PullPhysicalPlanBuilder {
         ? QuerySourceType.WINDOWED : QuerySourceType.NON_WINDOWED;
     if (pullPhysicalPlanType == PullPhysicalPlanType.TABLE_SCAN) {
       if (!logicalNode.isWindowed()) {
-        return new TableScanOperator(mat, logicalNode, shouldCancelOperations);
+        return new TableScanOperator(
+            mat, logicalNode, shouldCancelOperations, consistencyOffsetVector);
       } else {
-        return new WindowedTableScanOperator(mat, logicalNode, shouldCancelOperations);
+        return new WindowedTableScanOperator(
+            mat, logicalNode, shouldCancelOperations, consistencyOffsetVector);
       }
     }
 
     if (!logicalNode.isWindowed()) {
-      return new KeyedTableLookupOperator(mat, logicalNode);
+      return new KeyedTableLookupOperator(mat, logicalNode, consistencyOffsetVector);
     } else {
-      return new KeyedWindowedTableLookupOperator(mat, logicalNode);
+      return new KeyedWindowedTableLookupOperator(mat, logicalNode, consistencyOffsetVector);
     }
   }
 

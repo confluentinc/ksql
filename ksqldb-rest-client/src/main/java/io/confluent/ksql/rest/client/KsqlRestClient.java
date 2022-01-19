@@ -208,7 +208,7 @@ public final class KsqlRestClient implements Closeable {
   ) {
     KsqlTarget target = target();
     final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(localProperties.toMap())) {
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
       final String serializedCV = serializedConsistencyVector.get();
       // KsqlRequest:serializeClassValues throws NPE for null value
       requestPropertiesToSend.put(
@@ -250,8 +250,16 @@ public final class KsqlRestClient implements Closeable {
     if (properties != null) {
       target = target.properties(properties);
     }
+    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
+      final String serializedCV = serializedConsistencyVector.get();
+      // KsqlRequest:serializeClassValues throws NPE for null value
+      requestPropertiesToSend.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          serializedCV == null ? "" : serializedCV);
+    }
     return target.postQueryRequest(
-        ksql, requestProperties, Optional.ofNullable(commandSeqNum));
+        ksql, requestPropertiesToSend, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<StreamPublisher<String>> makePrintTopicRequest(

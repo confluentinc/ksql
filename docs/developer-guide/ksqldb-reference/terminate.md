@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-TERMINATE query_id;
+TERMINATE query_id | ALL;
 ```
 
 Description
@@ -26,4 +26,4 @@ they are explicitly terminated.
     queries, because the ksqlDB Server(s) continue to process the
     queries.
 
-A non-persistent query can also be terminated by using Ctrl+C in the CLI
+A non-persistent query can also be terminated by using Ctrl+C in the CLI.

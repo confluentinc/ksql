@@ -77,8 +77,8 @@
         <profile>
             <id>stabilization</id>
             <properties>
-                <altSnapshotDeploymentRepository>confluent-artifactory-central::default::https://staging-ksqldb-maven.s3.us-west-2.amazonaws.com/</altSnapshotDeploymentRepository>
-                <altReleaseDeploymentRepository>confluent-artifactory-central::default::https://staging-ksqldb-maven.s3.us-west-2.amazonaws.com/</altReleaseDeploymentRepository>
+                <altSnapshotDeploymentRepository>confluent-artifactory-central::default::https://s3-us-west-2.amazonaws.com/staging-ksqldb-maven/</altSnapshotDeploymentRepository>
+                <altReleaseDeploymentRepository>confluent-artifactory-central::default::https://s3-us-west-2.amazonaws.com/staging-ksqldb-maven/</altReleaseDeploymentRepository>
             </properties>
             <repositories>
                 <repository>

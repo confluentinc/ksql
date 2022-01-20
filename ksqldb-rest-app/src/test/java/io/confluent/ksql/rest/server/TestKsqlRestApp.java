@@ -186,7 +186,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -195,7 +196,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -204,7 +206,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpInternalListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -213,7 +216,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpInternalListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 

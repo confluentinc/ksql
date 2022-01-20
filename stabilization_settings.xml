@@ -76,6 +76,10 @@
         </profile>
         <profile>
             <id>stabilization</id>
+            <properties>
+                <altSnapshotDeploymentRepository>snapshots::default::https://YOUR_NEXUS_URL/snapshots</altSnapshotDeploymentRepository>
+                <altReleaseDeploymentRepository>releases::default::https://YOUR_NEXUS_URL/releases</altReleaseDeploymentRepository>
+            </properties>
             <repositories>
                 <repository>
                     <id>confluent-artifactory-stabilization</id>

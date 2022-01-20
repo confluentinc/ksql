@@ -24,9 +24,9 @@ do
   echo "$gitcmd checkout ${branches[i]}"
 
   deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
-  deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://ksqldb-maven/maven"
+  deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
   deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"
-  deploy_cmd+=" -DnexusUrl=s3://ksqldb-maven/maven"
+  deploy_cmd+=" -DnexusUrl=s3://staging-ksqldb-maven/maven"
   echo $deploy_cmd
   eval $deploy_cmd
 

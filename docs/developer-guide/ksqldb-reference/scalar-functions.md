@@ -828,6 +828,40 @@ json_records(NULL) // => NULL
 json_records("abc") // => NULL
 ```
 
+### `TO_JSON_STRING`
+
+Since: 0.25.0
+
+```sql
+to_json_string(val) -> String
+```
+
+Given any ksqlDB type returns the equivalent JSON string.
+
+Examples:
+
+**Primitives types**
+
+```sql
+to_json_string(1) // => "1"
+to_json_string(15.3) // => "15.3"
+to_json_string("abc") // => "\"abc\""
+to_json_string(true) // => "true"
+to_json_string(2021-10-11) // DATE type, => "\"2021-10-11\""
+to_json_string(13:25) // TIME type, => "\"13:25:10\""
+to_json_string(2021-06-31T12:18:39.446) // TIMESTAMP type, => "\"2021-06-31T12:18:39.446\""
+to_json_string(NULL) // => "null"
+```
+
+**Compound types**
+
+```sql
+to_json_string(Array[1, 2, 3]) // => "[1, 2, 3]"
+to_json_string(Struct{id=1,name=A}) // => "{\"id\": 1, \"name\": \"a\"}"
+to_json_string(Map('c' := 2, 'd' := 4)) // => "{\"c\": 2, \"d\": 4}"
+to_json_string(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) // => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
+```
+
 ### `INITCAP`
 
 Since: 0.6.0

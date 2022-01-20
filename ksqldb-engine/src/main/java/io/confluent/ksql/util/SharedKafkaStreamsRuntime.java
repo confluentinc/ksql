@@ -32,6 +32,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,8 +96,12 @@ public abstract class SharedKafkaStreamsRuntime {
   }
 
   public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
-    throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
-                                        + " version and should not be used.");
+    try {
+      return kafkaStreams.allLocalStorePartitionLagsForTopology(queryId.toString());
+    } catch (IllegalStateException | StreamsException e) {
+      log.error(e.getMessage());
+      return ImmutableMap.of();
+    }
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is immutable")

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.auth;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
@@ -63,6 +64,6 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
   @Override
   public List<Entry<String, String>> getRequestHeaders() {
-    return requestHeaders;
+    return ImmutableList.copyOf(requestHeaders);
   }
 }

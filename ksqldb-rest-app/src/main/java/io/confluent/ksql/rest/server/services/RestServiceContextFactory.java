@@ -17,11 +17,12 @@ package io.confluent.ksql.rest.server.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.rest.client.KsqlClient;
-import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -40,7 +41,7 @@ public final class RestServiceContextFactory {
         Supplier<SchemaRegistryClient> srClientFactory,
         ConnectClientFactory connectClientFactory,
         KsqlClient sharedClient,
-        Optional<KsqlPrincipal> userPrincipal
+        List<Entry<String, String>> requestHeaders
     );
   }
 
@@ -53,7 +54,7 @@ public final class RestServiceContextFactory {
         Supplier<SchemaRegistryClient> srClientFactory,
         ConnectClientFactory connectClientFactory,
         KsqlClient sharedClient,
-        Optional<KsqlPrincipal> userPrincipal
+        List<Entry<String, String>> requestHeaders
     );
   }
 
@@ -63,7 +64,7 @@ public final class RestServiceContextFactory {
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
       final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient,
-      final Optional<KsqlPrincipal> userPrincipal
+      final List<Entry<String, String>> requestHeaders
   ) {
     return create(
         ksqlConfig,
@@ -72,7 +73,7 @@ public final class RestServiceContextFactory {
         schemaRegistryClientFactory,
         connectClientFactory,
         sharedClient,
-        userPrincipal
+        requestHeaders
     );
   }
 
@@ -83,13 +84,13 @@ public final class RestServiceContextFactory {
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClientFactory connectClientFactory,
       final KsqlClient sharedClient,
-      final Optional<KsqlPrincipal> userPrincipal
+      final List<Entry<String, String>> requestHeaders
   ) {
     return ServiceContextFactory.create(
         ksqlConfig,
         kafkaClientSupplier,
         srClientFactory,
-        () -> connectClientFactory.get(authHeader, userPrincipal),
+        () -> connectClientFactory.get(authHeader, requestHeaders),
         () -> new DefaultKsqlClient(authHeader, sharedClient)
     );
   }

@@ -15,15 +15,19 @@
 
 package io.confluent.ksql.api.auth;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 public final class DefaultApiSecurityContext implements ApiSecurityContext {
 
   private final Optional<KsqlPrincipal> principal;
   private final Optional<String> authToken;
+  private final List<Entry<String, String>> requestHeaders;
 
   public static DefaultApiSecurityContext create(final RoutingContext routingContext) {
     final User user = routingContext.user();
@@ -32,13 +36,20 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
     }
     final ApiUser apiUser = (ApiUser) user;
     final String authToken = routingContext.request().getHeader("Authorization");
-    return new DefaultApiSecurityContext(apiUser != null ? apiUser.getPrincipal() : null,
-        authToken);
+    final List<Entry<String, String>> requestHeaders = routingContext.request().headers().entries();
+    return new DefaultApiSecurityContext(
+        apiUser != null ? apiUser.getPrincipal() : null,
+        authToken,
+        requestHeaders);
   }
 
-  private DefaultApiSecurityContext(final KsqlPrincipal principal, final String authToken) {
+  private DefaultApiSecurityContext(
+      final KsqlPrincipal principal,
+      final String authToken,
+      final List<Entry<String, String>> requestHeaders) {
     this.principal = Optional.ofNullable(principal);
     this.authToken = Optional.ofNullable(authToken);
+    this.requestHeaders = requestHeaders;
   }
 
   @Override
@@ -51,4 +62,8 @@ public final class DefaultApiSecurityContext implements ApiSecurityContext {
     return authToken;
   }
 
+  @Override
+  public List<Entry<String, String>> getRequestHeaders() {
+    return ImmutableList.copyOf(requestHeaders);
+  }
 }

@@ -33,6 +33,8 @@ import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,6 +67,8 @@ public class DefaultKsqlSecurityContextProviderTest {
   @Mock
   private KsqlPrincipal user1;
   @Mock
+  private List<Entry<String, String>> incomingRequestHeaders;
+  @Mock
   private ApiSecurityContext apiSecurityContext;
 
   private DefaultKsqlSecurityContextProvider ksqlSecurityContextProvider;
@@ -83,6 +87,7 @@ public class DefaultKsqlSecurityContextProviderTest {
 
     when(apiSecurityContext.getPrincipal()).thenReturn(Optional.of(user1));
     when(apiSecurityContext.getAuthToken()).thenReturn(Optional.empty());
+    when(apiSecurityContext.getRequestHeaders()).thenReturn(incomingRequestHeaders);
 
     when(defaultServiceContextFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(defaultServiceContext);
@@ -163,7 +168,7 @@ public class DefaultKsqlSecurityContextProviderTest {
   }
 
   @Test
-  public void shouldPassUserPrincipalToDefaultFactory() {
+  public void shouldPassRequestHeadersToDefaultFactory() {
     // Given:
     when(securityExtension.getUserContextProvider()).thenReturn(Optional.empty());
 
@@ -171,11 +176,11 @@ public class DefaultKsqlSecurityContextProviderTest {
     ksqlSecurityContextProvider.provide(apiSecurityContext);
 
     // Then:
-    verify(defaultServiceContextFactory).create(any(), any(), any(), any(), any(), eq(Optional.of(user1)));
+    verify(defaultServiceContextFactory).create(any(), any(), any(), any(), any(), eq(incomingRequestHeaders));
   }
 
   @Test
-  public void shouldPassUserPrincipalToUserFactory() {
+  public void shouldPassRequestHeadersToUserFactory() {
     // Given:
     when(securityExtension.getUserContextProvider()).thenReturn(Optional.of(userContextProvider));
 
@@ -184,6 +189,6 @@ public class DefaultKsqlSecurityContextProviderTest {
 
     // Then:
     verify(userServiceContextFactory)
-        .create(any(), any(), any(), any(), any(), any(), eq(Optional.of(user1)));
+        .create(any(), any(), any(), any(), any(), any(), eq(incomingRequestHeaders));
   }
 }

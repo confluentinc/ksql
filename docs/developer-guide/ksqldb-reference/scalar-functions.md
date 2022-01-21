@@ -734,6 +734,29 @@ multiple elements, like those containing wildcards, aren't supported.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
 
+### `IS_JSON_STRING`
+
+Since: 0.25.0
+
+```sql
+is_json_string(json_string) -> Boolean
+```
+
+Given a string, returns `true` if it can be parsed as a valid JSON value, `false` otherwise.
+
+Examples:
+
+```sql
+is_json_string("[1, 2, 3]") => true
+is_json_string("{}") => true
+is_json_string("1") => true
+is_json_string("\"abc\"") => true
+is_json_string("null") => true
+is_json_string("") => false
+is_json_string("abc") => false
+is_json_string(NULL) => false
+```
+
 ### `INITCAP`
 
 Since: 0.6.0

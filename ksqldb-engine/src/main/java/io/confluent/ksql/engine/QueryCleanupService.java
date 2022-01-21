@@ -108,7 +108,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
       this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
-      queryTopicPrefix = topologyName.map(s -> appId + "-" + s).orElse(appId);
+      queryTopicPrefix = topologyName.map(s -> getQueryTopicPrefix() + "-" + s).orElse(appId);
       //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
       pathName = topologyName
@@ -117,6 +117,11 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       if (isTransient && topologyName.isPresent()) {
         throw new IllegalArgumentException("Transient Queries can not have named topologies");
       }
+    }
+
+    private String getQueryTopicPrefix() {
+      return appId.split("query")[0]
+          + "query"; //we need to chop off the runtime ID form the appID
     }
 
     public String getAppId() {

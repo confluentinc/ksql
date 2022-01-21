@@ -30,10 +30,17 @@ public interface ConnectRequestHeadersExtension {
   /**
    * Returns whether to use the custom auth header returned from
    * {@link ConnectRequestHeadersExtension#getAuthHeader(List)} instead of
-   * ksqlDB's default auth header for ksqlDB connector requests. This auth header
-   * configured by this extension takes precedence over any other custom auth
-   * configurations for ksqlDB connector requests, including basic auth configured in
-   * ksqlDB server properties.
+   * ksqlDB's default auth header for ksqlDB connector requests.
+   *
+   * <p>If {@code true}, then the auth header configured by this extension
+   * takes precedence over any other custom auth configurations for ksqlDB
+   * connector requests, including basic auth configured in ksqlDB server
+   * properties.
+   *
+   * <p>Set this to {@code false} in order to use this
+   * {@code ConnectRequestHeadersExtension} for additional custom headers
+   * (via {@link ConnectRequestHeadersExtension#getHeaders()}) only, without
+   * impacting ksqlDB's default behavior for the auth header.
    *
    * @return whether to use the custom auth header returned from
    *         {@link ConnectRequestHeadersExtension#getAuthHeader(List)} instead of

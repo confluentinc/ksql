@@ -1416,7 +1416,8 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId() + "-" + query.get(0).getQueryId().toString());
+    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query";
+    verify(topicClient).deleteInternalTopics( topicPrefix + "-" + query.get(0).getQueryId().toString());
   }
 
   @Test
@@ -1475,15 +1476,15 @@ public class KsqlEngineTest {
         ksqlConfig,
         Collections.emptyMap()
     );
-    final String applicationId = query.get(0).getQueryApplicationId();
+    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query";
     final String internalTopic1Val = KsqlConstants.getSRSubject(
-        applicationId + "-" + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
+        topicPrefix + "-" + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
     final String internalTopic2Val = KsqlConstants.getSRSubject(
-        applicationId + "-" + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
+        topicPrefix + "-" + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
     final String internalTopic1Key = KsqlConstants.getSRSubject(
-        applicationId + "-" + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
+        topicPrefix + "-" + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
     final String internalTopic2Key = KsqlConstants.getSRSubject(
-        applicationId  + "-" + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
+        topicPrefix  + "-" + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
     when(schemaRegistryClient.getAllSubjects()).thenReturn(
         Arrays.asList(
             internalTopic1Val,
@@ -1498,6 +1499,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
+    verify(schemaRegistryClient).getAllSubjects();
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
@@ -2350,7 +2352,13 @@ public class KsqlEngineTest {
   private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", Optional.empty(), false, "") {
+    Optional<String> nameTopology;
+    if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      nameTopology = Optional.of("test");
+    } else {
+      nameTopology = Optional.empty();
+    }
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, "") {
       @Override
       public void run() {
         // do nothing

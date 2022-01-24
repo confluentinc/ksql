@@ -27,16 +27,27 @@ do
   echo "cd ${repos[i]}"
   eval cd ${repos[i]}
 
-  deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
-  deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
-  deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"
-  deploy_cmd+=" -DnexusUrl=s3://staging-ksqldb-maven/maven"
-  echo $deploy_cmd
-  eval $deploy_cmd
+  if [[ -e 'pom.xml' ]]
+  then
+    # pom file means this is a maven project
+    deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
+    deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
+    deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"
+    deploy_cmd+=" -DnexusUrl=s3://staging-ksqldb-maven/maven"
+    echo $deploy_cmd
+    eval $deploy_cmd
 
-  echo "cd .."
-  eval cd ..
+    echo "cd .."
+    eval cd ..
+  elif [[ -e 'build.gradle' ]]
+    # gradle file means this is a gradle project
+    deploy_cmd="./gradlewAll publish -PmavenUrl=s3://staging-ksqldb-maven/maven -PignoreFailures -PskipSigning"
+    echo $deploy_cmd
+    eval $deploy_cmd
 
+    echo "cd .."
+    eval cd ..
+  fi
 done
 
 # git clone each repo in list

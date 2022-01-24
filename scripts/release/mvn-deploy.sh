@@ -40,6 +40,7 @@ do
     echo "cd .."
     eval cd ..
   elif [[ -e 'build.gradle' ]]
+  then
     # gradle file means this is a gradle project
     deploy_cmd="./gradlewAll publish -PmavenUrl=s3://staging-ksqldb-maven/maven -PignoreFailures -PskipSigning"
     echo $deploy_cmd

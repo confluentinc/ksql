@@ -60,7 +60,7 @@ public class JsonRecords {
       return null;
     }
 
-    final List<Struct> ret = new ArrayList<>();
+    final List<Struct> ret = new ArrayList<>(node.size());
     node.fieldNames().forEachRemaining(k -> {
       final Struct struct = new Struct(STRUCT_SCHEMA);
       struct.put(KEY_FIELD_NAME, k);

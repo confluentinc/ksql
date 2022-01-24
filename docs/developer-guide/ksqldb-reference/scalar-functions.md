@@ -781,6 +781,29 @@ json_array_length(NULL) => NULL
 json_array_length("abc") => throws "Invalid JSON format"
 ```
 
+### `JSON_KEYS`
+
+Since: 0.25.0
+
+```sql
+json_keys(json_string) -> Array<String>
+```
+
+Given a string, parses it as a JSON object and returns a ksqlDB array of strings representing the
+top-level keys. Returns `NULL` if the string can't be interpreted as a JSON object, for example,
+when the string is `NULL` or it does not contain valid JSON, or the JSON value is not an object.
+
+Examples:
+
+```sql
+json_keys("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // => ["a", "b", "d"]
+json_keys("{}") // => []
+json_keys("[]") // => NULL
+json_keys("123") // => NULL
+json_keys(NULL) // => NULL
+json_keys("") // => NULL
+```
+
 ### `INITCAP`
 
 Since: 0.6.0

@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests covering conversions of BYTES to STRINGS and viceversa using different encodings."
+    "Tests covering conversions of ksqlDB types to JSON strings."
   ],
   "tests": [
     {

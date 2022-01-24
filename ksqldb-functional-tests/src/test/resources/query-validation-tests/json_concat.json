@@ -1,0 +1,45 @@
+{
+  "comments": [
+    "Tests covering the use of the JSON_CONCAT function."
+  ],
+  "tests": [
+    {
+      "name": "filter rows that contain valid JSON",
+      "statements": [
+        "CREATE STREAM test (K STRING KEY, val1 STRING, val2 STRING) WITH (kafka_topic='test_topic', VALUE_FORMAT='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, JSON_CONCAT(val1, val2) as JSON FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "1", "value": {"val1": "{\"a\": 1}", "val2":  "{\"b\": 2}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "{}", "val2":  "{}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "{\"a\": {\"5\": 6}}",
+                                                      "val2":  "{\"a\": {\"3\": 4}}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "[1, 2]", "val2": "[3, 4]"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "null", "val2": "null"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "[1, 2]", "val2":  "{\"a\": 1}"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "[]", "val2":  "[]"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "[1, [2]]", "val2": "[[[3]], [[[4]]]]"}, "timestamp": 0},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "1", "val2": "", "timestamp": 0}},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "", "val2": "1", "timestamp": 0}},
+        {"topic": "test_topic", "key": "1", "value": {"val1": "", "val2": "", "timestamp": 0}},
+        {"topic": "test_topic", "key": "1", "value": {"val1": null, "val2": null, "timestamp": 0}},
+        {"topic": "test_topic", "key": "1", "value": {"val1": null, "val2": "", "timestamp": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "{\"a\":1,\"b\":2}"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "{}"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "{\"a\":{\"3\":4}}"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "[1,2,3,4]"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "[null,null]"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "[1,2,{\"a\":1}]"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "[]"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": "[1,[2],[[3]],[[[4]]]]"}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"JSON": null}, "timestamp": 0}
+      ]
+    }
+  ]
+}

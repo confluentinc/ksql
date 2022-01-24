@@ -862,6 +862,42 @@ to_json_string(Map('c' := 2, 'd' := 4)) // => "{\"c\": 2, \"d\": 4}"
 to_json_string(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) // => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
 ```
 
+### `JSON_CONCAT`
+
+Since: 0.25.0
+
+```sql
+json_concat(json_string, json_string) -> String
+```
+
+Given 2 strings, parse them as JSON values and return a string representing their concatenation.
+Concatenation rules are identical to PostgreSQL's [|| operator](https://www.postgresql.org/docs/14/functions-json.html):
+* If both strings deserialize into JSON objects, then return an object with a union of the input key,
+  taking values from the second object in the case of duplicates.
+* If both strings deserialize into JSON arrays, then return the result of array concatenation.
+* If at least one of the deserialized values is not an object, then convert non-array inputs to a
+  single-element array and return the result of array concatenation.
+* If at least one of the input strings is `NULL` or can't be deserialized as JSON, then return `NULL`.
+
+Akin to PostgreSQL's `||` operator, this function merges only top-level object keys or arrays.
+
+Examples:
+
+```
+json_concat("{\"a\": 1}", "{\"b\": 2}") // => "{\"a\": 1, \"b\": 2}"
+json_concat("{\"a\": {\"5\": 6}}", "{\"a\": {\"3\": 4}}") // => "{\"a\": {\"3\": 4}}"
+json_concat("{}", "{}") // => "{}"
+json_concat("[1, 2]", "[3, 4]") // => "[1,2,3,4]"
+json_concat("[1, [2]]", "[[[3]], [[[4]]]]") // => "[ 1, [2], [[3]], [[[4]]] ]"
+json_concat("null", "null") // => "[null, null]"
+json_concat("[1, 2]", "{\"a\": 1}") // => "[1, 2, {\"a\": 1}]"
+json_concat("[1, 2]", "3") // => "[1, 2, 3]"
+json_concat("1", "2") // => "[1, 2]"
+json_concat("[]", "[]") // => []
+json_concat("abc", "[1]") // => NULL
+json_concat(NULL, "[1]") // => NULL
+```
+
 ### `INITCAP`
 
 Since: 0.6.0

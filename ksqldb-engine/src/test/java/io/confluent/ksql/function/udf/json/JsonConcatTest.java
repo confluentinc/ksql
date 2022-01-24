@@ -96,6 +96,16 @@ public class JsonConcatTest {
     assertEquals("[]", result);
   }
 
+
+  @Test
+  public void shouldMerge3Args() {
+    // When:
+    final String result = udf.concat("1", "2", "3");
+
+    // Then:
+    assertEquals("[1,2,3]", result);
+  }
+
   @Test
   public void shouldReturnNullIfTheFirstArgIsNull() {
     assertNull(udf.concat(null, "1"));

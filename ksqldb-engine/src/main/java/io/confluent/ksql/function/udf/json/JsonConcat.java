@@ -23,15 +23,17 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.ArrayList;
+import java.util.List;
 
 @UdfDescription(
     name = "JSON_CONCAT",
     category = FunctionCategory.JSON,
-    description = "Given 2 strings, parse them as JSON values and return a string representing "
+    description = "Given N strings, parse them as JSON values and return a string representing "
         + "their concatenation. Concatenation rules are identical to PostgreSQL's || operator:"
-        + "* If both strings deserialize into JSON objects, then return an object with a union of "
-        + "the input key, taking values from the second object in the case of duplicates.\n"
-        + "* If both strings deserialize into JSON arrays, then return the result of array "
+        + "* If all strings deserialize into JSON objects, then return an object with a union of "
+        + "the input key, taking values from the last object in the case of duplicates.\n"
+        + "* If all strings deserialize into JSON arrays, then return the result of array "
         + "concatenation.\n"
         + "* If at least one of the deserialized values is not an object, then convert non-array "
         + "inputs to a single-element array and return the result of array concatenation.\n"
@@ -43,39 +45,47 @@ import io.confluent.ksql.util.KsqlConstants;
 )
 public class JsonConcat {
   @Udf
-  public String concat(
-      @UdfParameter final String jsonString1,
-      @UdfParameter final String jsonString2) {
-    if (jsonString1 == null || jsonString2 == null) {
-      return null;
-    }
-    final JsonNode node1 = UdfJsonMapper.parseJson(jsonString1);
-    if (node1.isMissingNode()) {
-      return null;
+  public String concat(@UdfParameter final String... jsonStrings) {
+    final List<JsonNode> nodes = new ArrayList<>(jsonStrings.length);
+    boolean allObjects = true;
+    for (final String jsonString : jsonStrings) {
+      if (jsonString == null) {
+        return null;
+      }
+
+      final JsonNode node = UdfJsonMapper.parseJson(jsonString);
+      if (node.isMissingNode()) {
+        return null;
+      }
+
+      if (allObjects && !node.isObject()) {
+        allObjects = false;
+      }
+
+      nodes.add(node);
     }
 
-    final JsonNode node2 = UdfJsonMapper.parseJson(jsonString2);
-    if (node2.isMissingNode()) {
-      return null;
-    }
+    JsonNode result = nodes.get(0);
 
-    if (node1.isObject() && node2.isObject()) {
-      return concatObjects((ObjectNode) node1, (ObjectNode) node2);
-    } else if (node1.isArray() && node2.isArray()) {
-      return concatArrays((ArrayNode) node1, (ArrayNode) node2);
+    if (allObjects) {
+      for (int i = 1; i < nodes.size(); i++) {
+        result = concatObjects((ObjectNode) result, (ObjectNode) nodes.get(i));
+      }
     } else {
-      return concatArrays(toArrayNode(node1), toArrayNode(node2));
+      for (int i = 1; i < nodes.size(); i++) {
+        result = concatArrays(toArrayNode(result), toArrayNode(nodes.get(i)));
+      }
     }
+
+    return UdfJsonMapper.writeValueAsJson(result);
   }
 
-  private String concatObjects(final ObjectNode node1, final ObjectNode node2) {
-    // it's okay to mutate node1 as the top method returns immediately without touching node1 again.
-    return UdfJsonMapper.writeValueAsJson(node1.setAll(node2));
+  private ObjectNode concatObjects(final ObjectNode acc, final ObjectNode node) {
+    return acc.setAll(node);
   }
 
-  private String concatArrays(final ArrayNode node1, final ArrayNode node2) {
-    // it's okay to mutate node1 as the top method returns immediately without touching node1 again.
-    return UdfJsonMapper.writeValueAsJson(node1.addAll(node2));
+  private ArrayNode concatArrays(final ArrayNode acc, final ArrayNode node) {
+    return acc.addAll(node);
   }
 
   private ArrayNode toArrayNode(final JsonNode node) {

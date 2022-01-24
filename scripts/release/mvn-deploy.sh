@@ -16,12 +16,16 @@ len=${#repos[@]}
 for (( i=0; i<$len; i++ ));
 do
   echo $i
-  git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
+
   echo "git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}"
+  git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
 
   gitcmd="git --git-dir=./${repos[i]}/.git --work-tree=./${repos[i]}"
-  $gitcmd checkout ${branches[i]}
   echo "$gitcmd checkout ${branches[i]}"
+  $gitcmd checkout ${branches[i]}
+
+  echo "cd ${repos[i]}"
+  eval cd ${repos[i]}
 
   deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
   deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
@@ -29,6 +33,9 @@ do
   deploy_cmd+=" -DnexusUrl=s3://staging-ksqldb-maven/maven"
   echo $deploy_cmd
   eval $deploy_cmd
+
+  echo "cd .."
+  eval cd ..
 
 done
 

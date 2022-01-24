@@ -46,6 +46,8 @@ singleExpression
 
 statement
     : query                                                                 #queryStatement
+    | expression                                                            #expressionEvaluate
+    | EVALUTE expression                                                    #evaluateExpression
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) ALL? TOPICS EXTENDED?                                   #listTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
@@ -552,6 +554,7 @@ PLUGINS: 'PLUGINS';
 HEADERS: 'HEADERS';
 HEADER: 'HEADER';
 SYSTEM: 'SYSTEM';
+EVALUATE: 'EVALUATE';
 
 IF: 'IF';
 

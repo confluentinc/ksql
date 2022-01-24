@@ -78,7 +78,9 @@ import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.EvaluateExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.ExpressionEvaluateContext;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.GracePeriodClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
@@ -122,6 +124,7 @@ import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.EvaluateExpression;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -671,6 +674,18 @@ public class AstBuilder {
       lambdaArgs.clear();
       lambdaArgs.addAll(previousLambdaArgs);
       return new LambdaFunctionCall(getLocation(context), arguments, body);
+    }
+
+    @Override
+    public Node visitExpressionEvaluate(final ExpressionEvaluateContext ctx) {
+      final Expression expression = (Expression) visit(ctx.expression());
+      return new EvaluateExpression(getLocation(ctx), expression);
+    }
+
+    @Override
+    public Node visitEvaluateExpression(final EvaluateExpressionContext ctx) {
+      final Expression expression = (Expression) visit(ctx.expression());
+      return new EvaluateExpression(getLocation(ctx), expression);
     }
 
     @Override

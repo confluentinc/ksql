@@ -226,7 +226,7 @@ Run the following command to start the ksqlDB CLI in the running `ksqldb-cli`
 container.
 
 ```bash
-docker exec ksqldb-cli ksql http://primary-ksqldb-server:8088
+docker exec -it ksqldb-cli ksql http://primary-ksqldb-server:8088
 ```
 
 After the ksqlDB CLI starts, your terminal should resemble the following.
@@ -273,7 +273,7 @@ To interact with a CLI container that's defined this way, use the
 `docker exec` command to start the `ksql` process within the container.
 
 ```bash
-docker exec ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
+docker exec -it ksqldb-cli ksql http://<ksqldb-server-host>:<ksqldb-port>
 ```
 
 ### Run a ksqlDB CLI container

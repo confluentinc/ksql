@@ -42,7 +42,8 @@ do
   elif [[ -e 'build.gradle' ]]
   then
     # gradle file means this is a gradle project
-    deploy_cmd="./gradlewAll uploadArchives -PmavenUrl=s3://staging-ksqldb-maven/maven -PignoreFailures=true -PskipSigning=true --no-daemon"
+    deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"
+    deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"
     echo $deploy_cmd
     eval $deploy_cmd
 

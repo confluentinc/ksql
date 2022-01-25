@@ -19,9 +19,7 @@ diff --git a/gradle.properties b/gradle.properties
 index 727c337003..e9d451063c 100644
 --- a/gradle.properties
 +++ b/gradle.properties
-@@ -23,5 +23,5 @@ group=org.apache.kafka
- version=7.0.0-0-ccs
- scalaVersion=2.13.5
+@@ -25,3 +25,3 @@ group=org.apache.kafka
  task=build
 -org.gradle.jvmargs=-Xmx2g -Xss4m -XX:+UseParallelGC
 +org.gradle.jvmargs=-Xmx2g -Xss4m -XX:+UseParallelGC --add-modules=java.xml.bind -XX:+IgnoreUnrecognizedVMOptions

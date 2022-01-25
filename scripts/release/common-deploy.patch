@@ -1,0 +1,100 @@
+diff --git a/assembly-plugin-boilerplate/pom.xml b/assembly-plugin-boilerplate/pom.xml
+index df3c2fb..59b1372 100644
+--- a/assembly-plugin-boilerplate/pom.xml
++++ b/assembly-plugin-boilerplate/pom.xml
+@@ -12,6 +12,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+     <description>Maven Assembly Plugin boilerplate for Dockerized projects</description>
+
+     <build>
++        <extensions>
++            <extension>
++                <groupId>org.springframework.build</groupId>
++                <artifactId>aws-maven</artifactId>
++                <version>5.0.0.RELEASE</version>
++            </extension>
++        </extensions>
++
+         <!-- assembly-plugin-boilerplate does not inherit from common
+         so we need to define plugin versions again -->
+         <pluginManagement>
+@@ -50,4 +58,17 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             </plugin>
+         </plugins>
+     </build>
++
++    <distributionManagement>
++        <repository>
++            <id>aws-release</id>
++            <name>AWS Release Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </repository>
++        <snapshotRepository>
++            <id>aws-snapshot</id>
++            <name>AWS Snapshot Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </snapshotRepository>
++    </distributionManagement>
+ </project>
+diff --git a/build-tools/pom.xml b/build-tools/pom.xml
+index c999fc8..2528ef3 100644
+--- a/build-tools/pom.xml
++++ b/build-tools/pom.xml
+@@ -34,5 +34,25 @@
+                 </plugin>
+             </plugins>
+         </pluginManagement>
++
++        <extensions>
++            <extension>
++                <groupId>org.springframework.build</groupId>
++                <artifactId>aws-maven</artifactId>
++                <version>5.0.0.RELEASE</version>
++            </extension>
++        </extensions>
+     </build>
++    <distributionManagement>
++        <repository>
++            <id>aws-release</id>
++            <name>AWS Release Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </repository>
++        <snapshotRepository>
++            <id>aws-snapshot</id>
++            <name>AWS Snapshot Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </snapshotRepository>
++    </distributionManagement>
+ </project>
+diff --git a/pom.xml b/pom.xml
+index 1022cda..971fd4b 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -342,6 +342,11 @@
+                 <artifactId>os-maven-plugin</artifactId>
+                 <version>${os-maven-plugin.version}</version>
+             </extension>
++            <extension>
++                <groupId>org.springframework.build</groupId>
++                <artifactId>aws-maven</artifactId>
++                <version>5.0.0.RELEASE</version>
++            </extension>
+         </extensions>
+         <pluginManagement>
+             <plugins>
+@@ -1267,4 +1267,16 @@
+             </build>
+         </profile>
+     </profiles>
++    <distributionManagement>
++        <repository>
++            <id>aws-release</id>
++            <name>AWS Release Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </repository>
++        <snapshotRepository>
++            <id>aws-snapshot</id>
++            <name>AWS Snapshot Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </snapshotRepository>
++    </distributionManagement>
+ </project>

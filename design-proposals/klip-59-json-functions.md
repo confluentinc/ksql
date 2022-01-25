@@ -108,18 +108,17 @@ json_keys(NULL) // returns NULL
 ### json_records
 
 ```
-json_records(json_string) -> Array<Struct<json_key:String, json_value:String>>
+json_records(json_string) -> Map<String, String>
 ```
 
-Given a string, parses it as a JSON object and returns a ksqlDB array of structs containing 2 
-strings - `json_key` and `json_value` representing the top-level keys and values. Returns `NULL` if 
-the string can't be interpreted as a JSON object, i.e. it is `NULL` or it does not contain valid 
-JSON, or the JSON value is not an object.
+Given a string, parses it as a JSON object and returns a map representing the top-level keys and 
+values. Returns `NULL` if the string can't be interpreted as a JSON object, i.e. it is `NULL` or 
+it does not contain valid JSON, or the JSON value is not an object.
 
 #### Examples
 
 ```
-json_records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // returns [Struct{json_key="a", json_value="\"abc\""}, Struct{json_key="b", json_value="{ \"c\": \"a\" }}, Struct{json_key="d", json_value="1"}]
+json_records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // {"a": "\"abc\"", "b": "{ \"c\": \"a\" }", "d": "1"}
 json_records("{}") // returns []
 json_records("[]") // returns NULL
 json_records("") // returns NULL
@@ -143,13 +142,29 @@ case it is not possible to derive whether `1` is a string or a number:
 json_records("{\"a\": \"1\"}) // returns [Struct{json_key="a", json_value="1"}]
 ```
 
-**Return array of arrays rather than an array of structs**. For example:
+**Return an array of arrays rather than an array of structs**. For example:
 ```
 json_records("{\"a\": \"abc\"}) // returns [["a", "abc"]]
 ```
 
 A struct is a better return type in this case as it enables meaningful field names and reduces
 the number of potential sanity checks on the end-user side (e.g., array length).
+
+**Return an array of structs**. For example:
+
+Declaration:
+
+```
+json_records(json_string) -> Array<Struct<json_key:String, json_value:String>>
+```
+
+Usage:
+```
+json_records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // returns [Struct{json_key="a", json_value="\"abc\""}, Struct{json_key="b", json_value="{ \"c\": \"a\" }}, Struct{json_key="d", json_value="1"}]
+```
+
+While this return type provides the same amount information as `Map<String, String>`, the latter
+also allows retrieving specific keys in constant time. 
 
 ### json_concat
 

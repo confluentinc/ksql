@@ -17,8 +17,10 @@ package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -196,6 +198,12 @@ public final class SandboxedSchemaRegistryClientTest {
 
     @Test
     public void shouldGetId() throws Exception {
+      // Given:
+      when(delegate.getId(anyString(), any(ParsedSchema.class)))
+          .thenReturn(123)
+          .thenReturn(124)
+          .thenReturn(125); // we swallow the third boolean argument in the implementation
+
       // When:
       final int id = sandboxedClient.getId("some subject", schema);
       final int id1 = sandboxedClient.getId("some subject", parsedSchema);
@@ -203,8 +211,8 @@ public final class SandboxedSchemaRegistryClientTest {
 
       // Then:
       assertThat(id, is(123));
-      assertThat(id1, is(123));
-      assertThat(id2, is(123));
+      assertThat(id1, is(124));
+      assertThat(id2, is(125));
     }
   }
 }

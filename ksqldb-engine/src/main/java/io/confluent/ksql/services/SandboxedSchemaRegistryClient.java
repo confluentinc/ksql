@@ -15,19 +15,16 @@
 
 package io.confluent.ksql.services;
 
-import static io.confluent.ksql.util.LimitedProxyBuilder.anyParams;
-import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
-
+import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.ksql.util.LimitedProxyBuilder;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,47 +43,7 @@ final class SandboxedSchemaRegistryClient {
 
   static SchemaRegistryClient createProxy(final SchemaRegistryClient delegate) {
     Objects.requireNonNull(delegate, "delegate");
-    final SandboxSchemaRegistryCache sandboxSchemaRegistryCache
-        = new SandboxSchemaRegistryCache(delegate);
-
-    return LimitedProxyBuilder.forClass(SchemaRegistryClient.class)
-        .forward(
-            "register",
-            methodParams(String.class, ParsedSchema.class),
-            sandboxSchemaRegistryCache)
-        .swallow(
-            "getId",
-            anyParams(),
-            123)
-        .forward(
-            "getAllSubjects",
-            methodParams(),
-            sandboxSchemaRegistryCache)
-        .forward(
-            "getSchemaById",
-            methodParams(int.class),
-            sandboxSchemaRegistryCache)
-        .forward(
-            "getLatestSchemaMetadata",
-            methodParams(String.class),
-            sandboxSchemaRegistryCache)
-        .forward(
-            "getSchemaBySubjectAndId",
-            methodParams(String.class, int.class),
-            sandboxSchemaRegistryCache)
-        .forward(
-            "testCompatibility",
-            methodParams(String.class, ParsedSchema.class),
-            sandboxSchemaRegistryCache)
-        .swallow(
-            "deleteSubject",
-            methodParams(String.class),
-            Collections.emptyList())
-        .forward(
-            "getVersion",
-            methodParams(String.class, ParsedSchema.class),
-            sandboxSchemaRegistryCache)
-        .build();
+    return new SandboxSchemaRegistryCache(delegate);
   }
 
   private SandboxedSchemaRegistryClient() {
@@ -130,7 +87,7 @@ final class SandboxedSchemaRegistryClient {
         final ParsedSchema parsedSchema,
         final int version,
         final int id) {
-      throw new UnsupportedOperationException();
+      return -1; // swallow
     }
 
     @Override
@@ -192,8 +149,9 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public int getVersion(final String subject, final ParsedSchema parsedSchema) {
-      throw new UnsupportedOperationException();
+    public int getVersion(final String subject, final ParsedSchema parsedSchema)
+        throws RestClientException, IOException {
+      return delegate.getVersion(subject, parsedSchema);
     }
 
     @Override
@@ -202,8 +160,9 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public boolean testCompatibility(final String subject, final ParsedSchema parsedSchema) {
-      throw new UnsupportedOperationException();
+    public boolean testCompatibility(final String subject, final ParsedSchema parsedSchema)
+        throws RestClientException, IOException {
+      return delegate.testCompatibility(subject, parsedSchema);
     }
 
     @Override
@@ -237,15 +196,35 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public Collection<String> getAllSubjects() throws RestClientException, IOException {
-      final Collection<String> allSubjects = delegate.getAllSubjects();
-      allSubjects.addAll(subjectCache.keySet());
-      return allSubjects;
+    public List<Integer> deleteSubject(final String subject, final boolean isPermanent)
+        throws IOException, RestClientException {
+      return null; // swallow
     }
 
     @Override
-    public int getId(final String subject, final ParsedSchema parsedSchema) {
-      throw new UnsupportedOperationException();
+    public Collection<String> getAllSubjects() throws RestClientException, IOException {
+      final Collection<String> allSubjects = new HashSet<>(delegate.getAllSubjects());
+      allSubjects.addAll(subjectCache.keySet());
+      return ImmutableSet.copyOf(allSubjects);
+    }
+
+    @Override
+    public int getId(final String subject, final ParsedSchema schema, final boolean normalize)
+        throws IOException, RestClientException {
+      return getId(subject, schema);
+    }
+
+    @Override
+    public int getId(final String subject, final ParsedSchema parsedSchema)
+        throws RestClientException, IOException {
+      try {
+        return delegate.getId(subject, parsedSchema);
+      } catch (final RestClientException e) {
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND && subjectToId.containsKey(subject)) {
+          return subjectToId.get(subject);
+        }
+        throw e;
+      }
     }
 
     @Override

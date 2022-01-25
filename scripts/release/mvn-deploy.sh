@@ -56,9 +56,9 @@ do
     # gradle file means this is a gradle project
 
 
-    eval ls
-    echo "patch -p1 --ignore-whitespace --verbose < ../kafka-deploy.patch"
-    patch -p1 < ../kafka-deploy.patch
+    eval pwd
+    echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/kafka-deploy.patch"
+    patch -p1 < ${MY_DIR}/kafka-deploy.patch
     find . -name '*.rej'
 
     deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"

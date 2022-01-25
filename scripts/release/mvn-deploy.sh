@@ -62,7 +62,9 @@ do
     patch -p1 --ignore-whitespace --verbose -force < ${MY_DIR}/kafka-deploy.patch
     find . -name '*.rej'
 
-    deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"
+    vi build.gradle
+
+    deploy_cmd="./gradlewAll --no-daemon"
     deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"
     echo $deploy_cmd
     eval $deploy_cmd

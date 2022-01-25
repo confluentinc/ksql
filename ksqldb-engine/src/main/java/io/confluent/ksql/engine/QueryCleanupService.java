@@ -28,6 +28,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QueryApplicationId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,12 +105,14 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         final String appId,
         final Optional<String> topologyName,
         final boolean isTransient,
-        final String stateDir
-    ) {
+        final String stateDir,
+        final String serviceId) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
       this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
-      queryTopicPrefix = getQueryTopicPrefix();
+      queryTopicPrefix = topologyName
+          .map(s-> QueryApplicationId.buildPrefix(serviceId, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) + s)
+          .orElse(appId);
       //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
       pathName = topologyName
@@ -117,13 +121,6 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
       if (isTransient && topologyName.isPresent()) {
         throw new IllegalArgumentException("Transient Queries can not have named topologies");
       }
-    }
-
-    private String getQueryTopicPrefix() {
-      return topologyName.map(s -> appId.split("query")[0]
-          + "query-"
-          + s).orElse(appId);
-      //we need to chop off the runtime ID form the appID
     }
 
     public String getAppId() {

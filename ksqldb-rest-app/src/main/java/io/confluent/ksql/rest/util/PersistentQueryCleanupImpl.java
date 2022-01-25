@@ -75,14 +75,20 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
       allStateStores.removeAll(stateStoreNames);
       allStateStores.forEach((storeName) -> queryCleanupService.addCleanupTask(
           new QueryCleanupService.QueryCleanupTask(
-          serviceContext,
-          storeName.split("/")[0],
-           1 <  storeName.split("__").length
-               ? Optional.of(storeName.split("__")[1])
-               : Optional.empty(),
-          false,
-          stateDir)));
+            serviceContext,
+            storeName.split("/")[0],
+            1 <  storeName.split("__").length
+                ? Optional.of(storeName.split("__")[1])
+                : Optional.empty(),
+            false,
+            stateDir,
+            getServiceId(storeName.split("/")[0])
+          )));
     }
+  }
+
+  private String getServiceId(final String appId) {
+    return appId.split("query_")[0].split("-")[2];
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")

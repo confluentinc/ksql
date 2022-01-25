@@ -421,10 +421,9 @@ public class KsqlRestoreCommandTopic {
     // the command contains a query, clean up it's internal state store and also the internal topics
     if (queryIdFound) {
       final StreamsConfig streamsConfig = new StreamsConfig(streamsProperties);
-      String topicPrefix = streamsConfig.getString(StreamsConfig.APPLICATION_ID_CONFIG);;
-      if (sharedRuntimeQuery) {
-        topicPrefix = getQueryTopicPrefix(topicPrefix, queryId);
-      }
+      final String topicPrefix = sharedRuntimeQuery
+          ? streamsConfig.getString(StreamsConfig.APPLICATION_ID_CONFIG)
+          : QueryApplicationId.buildPrefix(ksqlConfig, sharedRuntimeQuery) + queryId;
 
       try {
         final Admin admin = new DefaultKafkaClientSupplier()
@@ -445,13 +444,6 @@ public class KsqlRestoreCommandTopic {
         System.out.println(String.format("Failed to clean up query %s ", topicPrefix));
       }
     }
-  }
-
-  private static String getQueryTopicPrefix(final String runtimeId, final String queryId) {
-    return runtimeId.split("query")[0]
-        + "query-"
-        + queryId;
-    //we need to chop off the runtime ID form the appID
   }
 
   private static boolean hasKey(final JSONObject jsonObject, final String key) {

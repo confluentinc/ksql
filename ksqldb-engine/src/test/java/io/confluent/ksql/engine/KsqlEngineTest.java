@@ -57,9 +57,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -70,7 +68,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -101,7 +98,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import it.unimi.dsi.fastutil.Hash;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
@@ -1416,8 +1412,8 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
-    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query";
-    verify(topicClient).deleteInternalTopics( topicPrefix + "-" + query.get(0).getQueryId().toString());
+    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
+    verify(topicClient).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
   }
 
   @Test
@@ -1476,15 +1472,15 @@ public class KsqlEngineTest {
         ksqlConfig,
         Collections.emptyMap()
     );
-    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query";
+    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
     final String internalTopic1Val = KsqlConstants.getSRSubject(
-        topicPrefix + "-" + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
+        topicPrefix + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
     final String internalTopic2Val = KsqlConstants.getSRSubject(
-        topicPrefix + "-" + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
+        topicPrefix + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
     final String internalTopic1Key = KsqlConstants.getSRSubject(
-        topicPrefix + "-" + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
+        topicPrefix + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
     final String internalTopic2Key = KsqlConstants.getSRSubject(
-        topicPrefix  + "-" + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
+        topicPrefix + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
     when(schemaRegistryClient.getAllSubjects()).thenReturn(
         Arrays.asList(
             internalTopic1Val,
@@ -2358,7 +2354,7 @@ public class KsqlEngineTest {
     } else {
       nameTopology = Optional.empty();
     }
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, "") {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT) {
       @Override
       public void run() {
         // do nothing

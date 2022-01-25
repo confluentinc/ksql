@@ -106,12 +106,13 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
         final Optional<String> topologyName,
         final boolean isTransient,
         final String stateDir,
-        final String serviceId) {
+        final String serviceId,
+        final String persistentQueryPrefix) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
       this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
       queryTopicPrefix = topologyName
-          .map(s-> QueryApplicationId.buildPrefix(serviceId, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) + s)
+          .map(s-> QueryApplicationId.buildPrefix(serviceId, persistentQueryPrefix) + s)
           .orElse(appId);
       //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;

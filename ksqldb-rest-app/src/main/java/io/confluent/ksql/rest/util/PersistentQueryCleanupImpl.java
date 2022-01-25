@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
 import java.util.Arrays;
@@ -36,9 +37,11 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
   private final String stateDir;
   private final ServiceContext serviceContext;
   private final QueryCleanupService queryCleanupService;
+  private final KsqlConfig ksqlConfig;
 
-  public PersistentQueryCleanupImpl(final String stateDir, final ServiceContext serviceContext) {
+  public PersistentQueryCleanupImpl(final String stateDir, final ServiceContext serviceContext, final KsqlConfig ksqlConfig) {
     this.stateDir = stateDir;
+    this.ksqlConfig = ksqlConfig;
     this.serviceContext = serviceContext;
     queryCleanupService = new QueryCleanupService();
     queryCleanupService.startAsync();
@@ -82,13 +85,9 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
                 : Optional.empty(),
             false,
             stateDir,
-            getServiceId(storeName.split("/")[0])
-          )));
+            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+            ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))));
     }
-  }
-
-  private String getServiceId(final String appId) {
-    return appId.split("query_")[0].split("-")[2];
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")

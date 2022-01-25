@@ -25,8 +25,6 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -176,20 +174,14 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         try {
           kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
               .all()
-              .get(shutdownTimeout, TimeUnit.SECONDS);
+              .get();
           if (resetOffsets) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
-        } catch (final TimeoutException | ExecutionException | InterruptedException e) {
+        } catch (ExecutionException | InterruptedException e) {
           log.error(String.format(
               "Failed to close query %s within the allotted timeout %s due to",
               queryId, shutdownTimeout), e);
-          if (e instanceof TimeoutException) {
-            log.warn(
-                "Query {} has not terminated even after trying to remove the topology. "
-                    + "This may happen when streams threads are hung. State is {}",
-                queryId, kafkaStreams.state());
-          }
         }
       } else {
         throw new IllegalStateException("Streams in not running but is in state "
@@ -212,8 +204,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         try {
           kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology())
               .all()
-              .get(shutdownTimeout, TimeUnit.SECONDS);
-        } catch (final TimeoutException | ExecutionException | InterruptedException e) {
+              .get();
+        } catch (ExecutionException | InterruptedException e) {
           log.error("Failed to start query {} within the allotted timeout {} due to",
               queryId,
               shutdownTimeout,
@@ -239,7 +231,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void restartStreamsRuntime() {
-    log.info("Restarting runtime {}", getApplicationId();
+    log.info("Restarting runtime {}", getApplicationId());
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
     kafkaStreams.close();

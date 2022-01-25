@@ -468,7 +468,8 @@ public final class KsqlRestApplication implements Executable {
           StreamsConfig.STATE_DIR_CONFIG,
           StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
         .toString(),
-        serviceContext)
+        serviceContext,
+        configWithApplicationServer)
     );
 
     commandRunner.start();

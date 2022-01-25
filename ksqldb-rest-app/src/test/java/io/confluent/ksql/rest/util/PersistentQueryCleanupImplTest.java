@@ -47,6 +47,8 @@ public class PersistentQueryCleanupImplTest {
   PersistentQueryCleanupImpl cleanup;
 
   @Mock
+  KsqlConfig ksqlConfig;
+  @Mock
   ServiceContext context;
   @Mock
   PersistentQueryMetadata runningQuery;
@@ -62,7 +64,7 @@ public class PersistentQueryCleanupImplTest {
       }
     }
 
-    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context);
+    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context, ksqlConfig);
   }
 
   @Test

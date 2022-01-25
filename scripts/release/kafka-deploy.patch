@@ -2,7 +2,7 @@ diff --git a/build.gradle b/build.gradle
 index ac2b79158b..112042995b 100644
 --- a/build.gradle
 +++ b/build.gradle
-@@ -254,10 +254,9 @@ subprojects {
+@@ -254,9 +254,8 @@ subprojects {
        repositories {
          // To test locally, invoke gradlew with `-PmavenUrl=file:///some/local/path`
          maven {

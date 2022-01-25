@@ -36,11 +36,10 @@ do
   if [[ -e 'pom.xml' ]]
   then
     # pom file means this is a maven project
-    echo "git clone git@github.com:confluentinc/packaging.git ./packaging"
-    git clone git@github.com:confluentinc/packaging.git ./packaging
-
-    echo "patch -p1 < ./packaging/patches/common-deploy.patch"
-    patch -p1 < ./packaging/patches/common-deploy.patch
+    eval pwd
+    echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
+    patch -p1 < ${MY_DIR}/common-deploy.patch
+    find . -name '*.rej'
 
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"

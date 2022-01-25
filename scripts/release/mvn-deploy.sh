@@ -19,9 +19,6 @@ branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.2
 
 len=${#repos[@]}
 
-echo "git clone git@github.com:confluentinc/packaging.git ./packaging"
-git clone git@github.com:confluentinc/packaging.git ./packaging
-
 for (( i=0; i<$len; i++ ));
 do
   echo $i
@@ -39,8 +36,11 @@ do
   if [[ -e 'pom.xml' ]]
   then
     # pom file means this is a maven project
-    echo "patch -p1 < ${MY_DIR}/packaging/patches/common-deploy.patch"
-    patch -p1 < ${MY_DIR}/packaging/patches/common-deploy.patch
+    echo "git clone git@github.com:confluentinc/packaging.git ./packaging"
+    git clone git@github.com:confluentinc/packaging.git ./packaging
+
+    echo "patch -p1 < ./packaging/patches/common-deploy.patch"
+    patch -p1 < ./packaging/patches/common-deploy.patch
 
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
@@ -54,8 +54,11 @@ do
   elif [[ -e 'build.gradle' ]]
   then
     # gradle file means this is a gradle project
-    echo "patch -p1 < ${MY_DIR}/packaging/patches/kafka-deploy.patch"
-    patch -p1 < ${MY_DIR}/packaging/patches/kafka-deploy.patch
+    echo "git clone git@github.com:confluentinc/packaging.git ./packaging"
+    git clone git@github.com:confluentinc/packaging.git ./packaging
+
+    echo "patch -p1 < ./packaging/patches/kafka-deploy.patch"
+    patch -p1 < ./packaging/patches/kafka-deploy.patch
 
     deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"
     deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"

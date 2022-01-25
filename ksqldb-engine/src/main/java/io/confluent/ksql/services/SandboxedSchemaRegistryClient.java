@@ -95,6 +95,7 @@ final class SandboxedSchemaRegistryClient {
       try {
         return delegate.getSchemaById(id);
       } catch (RestClientException e) {
+        // if we don't find the schema is SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
           final ParsedSchema schema = idCache.get(id);
           if (schema != null) {
@@ -113,6 +114,7 @@ final class SandboxedSchemaRegistryClient {
       try {
         return delegate.getSchemaBySubjectAndId(subject, id);
       } catch (final RestClientException e) {
+        // if we don't find the schema is SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
           final ParsedSchema schemaByName = subjectCache.get(subject);
           final ParsedSchema schemaById = idCache.get(id);
@@ -136,6 +138,8 @@ final class SandboxedSchemaRegistryClient {
       try {
         return delegate.getLatestSchemaMetadata(subject);
       } catch (final RestClientException e) {
+        // if we don't find the schema metadata is SR, but there subject is registered inside
+        // the sandbox, we return mocked metadata.
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND && subjectCache.containsKey(subject)) {
           return new SchemaMetadata(subjectToId.get(subject), 1, "dummy");
         }
@@ -220,6 +224,7 @@ final class SandboxedSchemaRegistryClient {
       try {
         return delegate.getId(subject, parsedSchema);
       } catch (final RestClientException e) {
+        // if we don't find the schema is SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND && subjectToId.containsKey(subject)) {
           return subjectToId.get(subject);
         }

@@ -38,7 +38,7 @@ do
     # pom file means this is a maven project
     eval pwd
     echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
-    patch -p1 < ${MY_DIR}/common-deploy.patch
+    patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
     find . -name '*.rej'
 
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"

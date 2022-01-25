@@ -140,7 +140,7 @@
         <!-- <compile.warnings-flag>-Werror</compile.warnings-flag> -->
         <!-- Only used to provide login module implementation for tests -->
         <jetty.version>9.4.28.v20200408</jetty.version>
-        <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
+        <git-commit-id-plugin.version>4.9.10</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.2.0-0</io.confluent.ksql.version>

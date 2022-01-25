@@ -54,11 +54,12 @@ do
   elif [[ -e 'build.gradle' ]]
   then
     # gradle file means this is a gradle project
-    echo "git clone git@github.com:confluentinc/packaging.git ./packaging"
-    git clone git@github.com:confluentinc/packaging.git ./packaging
 
-    echo "patch -p1 < ./packaging/patches/kafka-deploy.patch"
-    patch -p1 < ./packaging/patches/kafka-deploy.patch
+
+    eval ls
+    echo "patch -p1 --ignore-whitespace --verbose < ../kafka-deploy.patch"
+    patch -p1 < ../kafka-deploy.patch
+    find . -name '*.rej'
 
     deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"
     deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"

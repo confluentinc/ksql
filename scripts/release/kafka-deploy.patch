@@ -1,0 +1,27 @@
+diff --git a/build.gradle b/build.gradle
+index ac2b79158b..112042995b 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -254,10 +254,9 @@ subprojects {
+       repositories {
+         // To test locally, invoke gradlew with `-PmavenUrl=file:///some/local/path`
+         maven {
+-          credentials {
+-            username = mavenUsername
+-            password = mavenPassword
++          authentication {
++            awsIm(AwsImAuthentication) // Loads the AWS_* ENV Vars
+           }
+         }
+       }
+diff --git a/gradle.properties b/gradle.properties
+index 727c337003..e9d451063c 100644
+--- a/gradle.properties
++++ b/gradle.properties
+@@ -23,5 +23,5 @@ group=org.apache.kafka
+ version=7.0.0-0-ccs
+ scalaVersion=2.13.5
+ task=build
+-org.gradle.jvmargs=-Xmx2g -Xss4m -XX:+UseParallelGC
++org.gradle.jvmargs=-Xmx2g -Xss4m -XX:+UseParallelGC --add-modules=java.xml.bind -XX:+IgnoreUnrecognizedVMOptions
+ org.gradle.parallel=true

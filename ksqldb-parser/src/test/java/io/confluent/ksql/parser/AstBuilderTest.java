@@ -401,7 +401,7 @@ public class AstBuilderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
+    assertThat(e.getMessage(), containsString("no viable alternative at input 'SELECT TRANSFORM_ARRAY(X =>'"));
   }
 
   @Test

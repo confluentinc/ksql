@@ -97,3 +97,5 @@ index 1022cda..971fd4b 100644
 +            <url>s3://staging-ksqldb-maven/maven</url>
 +        </snapshotRepository>
 +    </distributionManagement>
+ </project>
+

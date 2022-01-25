@@ -81,7 +81,7 @@ index 1022cda..971fd4b 100644
          </extensions>
          <pluginManagement>
              <plugins>
-@@ -840,4 +845,16 @@
+@@ -1267,4 +1267,16 @@
              </build>
          </profile>
      </profiles>

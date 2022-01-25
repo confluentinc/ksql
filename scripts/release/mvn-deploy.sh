@@ -52,8 +52,8 @@ do
   elif [[ -e 'build.gradle' ]]
   then
     # gradle file means this is a gradle project
-    echo "$gitcmd apply ./packaging/patches/kafka-deploy.patch"
-    $gitcmd apply ./packaging/patches/kafka-deploy.patch
+    echo "patch -p1 < ./packaging/patches/kafka-deploy.patch"
+    patch -p1 < ./packaging/patches/kafka-deploy.patch
 
     deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"
     deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"

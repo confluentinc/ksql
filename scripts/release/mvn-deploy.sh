@@ -56,13 +56,14 @@ do
 
 
     eval pwd
-    echo "git apply --recount --whitespace=fix ${MY_DIR}/kafka-deploy.patch"
-    git apply --recount --whitespace=fix ${MY_DIR}/kafka-deploy.patch
-#    echo "patch -p1 --ignore-whitespace --verbose -force < ${MY_DIR}/kafka-deploy.patch"
-#    patch -p1 --ignore-whitespace --verbose -force < ${MY_DIR}/kafka-deploy.patch
+#    echo "git apply --recount --whitespace=fix ${MY_DIR}/kafka-deploy.patch"
+#    git apply --recount --whitespace=warn ${MY_DIR}/kafka-deploy.patch
+    eval ls
+    echo "patch -p1 --ignore-whitespace --verbose -force < ${MY_DIR}/kafka-deploy.patch"
+    patch -p1 --ignore-whitespace --verbose -force < ${MY_DIR}/kafka-deploy.patch
     find . -name '*.rej'
 
-    cat build.gradle
+    eval ls
 
     deploy_cmd="./gradlewAll --no-daemon"
     deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"

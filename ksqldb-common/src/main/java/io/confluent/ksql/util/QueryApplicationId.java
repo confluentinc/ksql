@@ -69,7 +69,7 @@ public final class QueryApplicationId {
   public static String buildPrefix(
       final String serviceId,
       final String queryPrefix
-   ) {
+  ) {
     return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + serviceId
         + queryPrefix;

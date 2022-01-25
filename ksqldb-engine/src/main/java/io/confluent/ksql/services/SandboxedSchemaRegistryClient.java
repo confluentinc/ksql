@@ -46,68 +46,121 @@ final class SandboxedSchemaRegistryClient {
 
   static SchemaRegistryClient createProxy(final SchemaRegistryClient delegate) {
     Objects.requireNonNull(delegate, "delegate");
-    final SandboxSchemaRegistryCache sandboxSchemaRegistryCache = new SandboxSchemaRegistryCache(delegate);
+    final SandboxSchemaRegistryCache sandboxSchemaRegistryCache
+        = new SandboxSchemaRegistryCache(delegate);
 
     return LimitedProxyBuilder.forClass(SchemaRegistryClient.class)
-        .forward("register", methodParams(String.class, ParsedSchema.class), sandboxSchemaRegistryCache)
-        .swallow("getId", anyParams(), 123)
-        .forward("getAllSubjects", methodParams(), sandboxSchemaRegistryCache)
-        .forward("getSchemaById", methodParams(int.class), sandboxSchemaRegistryCache)
-        .forward("getLatestSchemaMetadata", methodParams(String.class), sandboxSchemaRegistryCache)
-        .forward("getSchemaBySubjectAndId", methodParams(String.class, int.class), sandboxSchemaRegistryCache)
-        .forward("testCompatibility", methodParams(String.class, ParsedSchema.class), sandboxSchemaRegistryCache)
-        .swallow("deleteSubject", methodParams(String.class), Collections.emptyList())
-        .forward("getVersion", methodParams(String.class, ParsedSchema.class), sandboxSchemaRegistryCache)
+        .forward(
+            "register",
+            methodParams(String.class, ParsedSchema.class),
+            sandboxSchemaRegistryCache)
+        .swallow(
+            "getId",
+            anyParams(),
+            123)
+        .forward(
+            "getAllSubjects",
+            methodParams(),
+            sandboxSchemaRegistryCache)
+        .forward(
+            "getSchemaById",
+            methodParams(int.class),
+            sandboxSchemaRegistryCache)
+        .forward(
+            "getLatestSchemaMetadata",
+            methodParams(String.class),
+            sandboxSchemaRegistryCache)
+        .forward(
+            "getSchemaBySubjectAndId",
+            methodParams(String.class, int.class),
+            sandboxSchemaRegistryCache)
+        .forward(
+            "testCompatibility",
+            methodParams(String.class, ParsedSchema.class),
+            sandboxSchemaRegistryCache)
+        .swallow(
+            "deleteSubject",
+            methodParams(String.class),
+            Collections.emptyList())
+        .forward(
+            "getVersion",
+            methodParams(String.class, ParsedSchema.class),
+            sandboxSchemaRegistryCache)
         .build();
   }
 
   private SandboxedSchemaRegistryClient() {
   }
 
-  private static class SandboxSchemaRegistryCache implements SchemaRegistryClient {
+  private static final class SandboxSchemaRegistryCache implements SchemaRegistryClient {
+    private final SchemaRegistryClient delegate;
 
-    final SchemaRegistryClient delegate;
-    final Map<String, ParsedSchema> cache = new HashMap<>();
+    private int nextSchemaId = Integer.MAX_VALUE;
+    private final Map<String, ParsedSchema> subjectCache = new HashMap<>();
+    private final Map<String, Integer> subjectToId = new HashMap<>();
+    private final Map<Integer, ParsedSchema> idCache = new HashMap<>();
 
-    private SandboxSchemaRegistryCache(SchemaRegistryClient delegate) {
+    private SandboxSchemaRegistryCache(final SchemaRegistryClient delegate) {
       this.delegate = delegate;
     }
 
     @Override
-    public Optional<ParsedSchema> parseSchema(String schemaType, String schemaString, List<SchemaReference> references) {
+    public Optional<ParsedSchema> parseSchema(
+        final String schemaType,
+        final String schemaString,
+        final List<SchemaReference> references) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public int register(String subject, ParsedSchema parsedSchema) {
-      if(cache.containsKey(subject)) {
+    public int register(final String subject, final ParsedSchema parsedSchema) {
+      if (subjectCache.containsKey(subject)) {
         throw new IllegalStateException("Subject '" + subject + "' already in use.");
       }
-      cache.put(subject, parsedSchema);
-      return 123;
+      final int schemaId = nextSchemaId--;
+      subjectCache.put(subject, parsedSchema);
+      subjectToId.put(subject, schemaId);
+      idCache.put(schemaId, parsedSchema);
+      return schemaId;
     }
 
     @Override
-    public int register(String subject, ParsedSchema parsedSchema, int version, int id) {
+    public int register(
+        final String subject,
+        final ParsedSchema parsedSchema,
+        final int version,
+        final int id) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public ParsedSchema getSchemaById(int id) {
-      throw new UnsupportedOperationException();
+    public ParsedSchema getSchemaById(final int id) throws RestClientException, IOException {
+      try {
+        return delegate.getSchemaById(id);
+      } catch (RestClientException e) {
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          final ParsedSchema schema = idCache.get(id);
+          if (schema != null) {
+            return schema;
+          }
+
+        }
+        throw e;
+      }
     }
 
     @Override
-    public ParsedSchema getSchemaBySubjectAndId(String subject, int id)
+    public ParsedSchema getSchemaBySubjectAndId(final String subject, final int id)
         throws RestClientException, IOException {
 
       try {
         return delegate.getSchemaBySubjectAndId(subject, id);
       } catch (final RestClientException e) {
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
-          final ParsedSchema schema = cache.get(subject);
-          if (schema != null) {
-            return schema;
+          final ParsedSchema schemaByName = subjectCache.get(subject);
+          final ParsedSchema schemaById = idCache.get(id);
+          if (schemaByName != null && schemaByName == schemaById) {
+            return schemaByName;
           }
         }
         throw e;
@@ -115,61 +168,61 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public Collection<String> getAllSubjectsById(int id) {
+    public Collection<String> getAllSubjectsById(final int id) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public SchemaMetadata getLatestSchemaMetadata(String subject)
+    public SchemaMetadata getLatestSchemaMetadata(final String subject)
         throws RestClientException, IOException {
 
       try {
         return delegate.getLatestSchemaMetadata(subject);
       } catch (final RestClientException e) {
-        if (e.getStatus() == HttpStatus.SC_NOT_FOUND && cache.containsKey(subject)) {
-          return new SchemaMetadata(123, 1, "dummy");
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND && subjectCache.containsKey(subject)) {
+          return new SchemaMetadata(subjectToId.get(subject), 1, "dummy");
         }
         throw e;
       }
     }
 
     @Override
-    public SchemaMetadata getSchemaMetadata(String subject, int version) {
+    public SchemaMetadata getSchemaMetadata(final String subject, final int version) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public int getVersion(String subject, ParsedSchema parsedSchema) {
+    public int getVersion(final String subject, final ParsedSchema parsedSchema) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public List<Integer> getAllVersions(String subject) {
+    public List<Integer> getAllVersions(final String subject) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean testCompatibility(String subject, ParsedSchema parsedSchema) {
+    public boolean testCompatibility(final String subject, final ParsedSchema parsedSchema) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public String updateCompatibility(String subject, String compatibility) {
+    public String updateCompatibility(final String subject, final String compatibility) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public String getCompatibility(String subject) {
+    public String getCompatibility(final String subject) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public String setMode(String mode) {
+    public String setMode(final String mode) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public String setMode(String mode, String subject) {
+    public String setMode(final String mode, final String subject) {
       throw new UnsupportedOperationException();
     }
 
@@ -179,19 +232,19 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public String getMode(String subject) {
+    public String getMode(final String subject) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public Collection<String> getAllSubjects() throws RestClientException, IOException {
       final Collection<String> allSubjects = delegate.getAllSubjects();
-      allSubjects.addAll(cache.keySet());
+      allSubjects.addAll(subjectCache.keySet());
       return allSubjects;
     }
 
     @Override
-    public int getId(String subject, ParsedSchema parsedSchema) {
+    public int getId(final String subject, final ParsedSchema parsedSchema) {
       throw new UnsupportedOperationException();
     }
 

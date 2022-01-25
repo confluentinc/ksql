@@ -19,10 +19,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import io.confluent.ksql.function.KsqlFunctionException;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
-import org.apache.kafka.connect.data.Struct;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Test;
 
 public class JsonRecordsTest {
@@ -31,25 +30,21 @@ public class JsonRecordsTest {
   @Test
   public void shouldExtractRecords() {
     // When
-    final List<Struct> result = udf.records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}");
+    final Map<String, String> result = udf.records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}");
 
     // Then:
-    final Struct s1 = new Struct(JsonRecords.STRUCT_SCHEMA);
-    s1.put("JSON_KEY", "a");
-    s1.put("JSON_VALUE", "\"abc\"");
-    final Struct s2 = new Struct(JsonRecords.STRUCT_SCHEMA);
-    s2.put("JSON_KEY", "b");
-    s2.put("JSON_VALUE", "{\"c\":\"a\"}");
-    final Struct s3 = new Struct(JsonRecords.STRUCT_SCHEMA);
-    s3.put("JSON_KEY", "d");
-    s3.put("JSON_VALUE", "1");
+    final Map<String, String> expected = new HashMap<String, String>() {{
+        put("a", "\"abc\"");
+        put("b", "{\"c\":\"a\"}");
+        put("d", "1");
+      }};
 
-    assertEquals(Arrays.asList(s1, s2, s3), result);
+    assertEquals(expected, result);
   }
 
   @Test
-  public void shouldReturnEmptyListForEmptyObject() {
-    assertEquals(Collections.emptyList(), udf.records("{}"));
+  public void shouldReturnEmptyMapForEmptyObject() {
+    assertEquals(Collections.emptyMap(), udf.records("{}"));
   }
 
   @Test

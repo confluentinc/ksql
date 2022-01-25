@@ -16,41 +16,27 @@
 package io.confluent.ksql.function.udf.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
+import java.util.HashMap;
+import java.util.Map;
 
 @UdfDescription(
     name = "JSON_RECORDS",
     category = FunctionCategory.JSON,
-    description = "Given a string, parses it as a JSON object and returns a ksqlDB array of "
-        + "structs containing 2 strings - json_key and json_value representing the top-level "
-        + "keys and values. Returns NULL if the string can't be interpreted as a JSON object, "
-        + "for example, when the string is NULL or it does not contain valid JSON, or the JSON "
-        + "value is not an object.",
+    description = "Given a string, parses it as a JSON object and returns a map representing "
+        + "the top-level keys and values. Returns `NULL` if the string can't be interpreted as a "
+        + "JSON object, i.e. it is `NULL` or it does not contain valid JSON, or the JSON value is "
+        + "not an object.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class JsonRecords {
-  static final String KEY_FIELD_NAME = "JSON_KEY";
-  private static final String VALUE_FIELD_NAME = "JSON_VALUE";
 
-  @VisibleForTesting
-  static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
-      .field(KEY_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-      .field(VALUE_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-      .optional()
-      .build();
-
-  @Udf(schema = "ARRAY<STRUCT<JSON_KEY STRING, JSON_VALUE STRING>>")
-  public List<Struct> records(@UdfParameter final String jsonObj) {
+  @Udf
+  public Map<String, String> records(@UdfParameter final String jsonObj) {
     if (jsonObj == null) {
       return null;
     }
@@ -60,13 +46,8 @@ public class JsonRecords {
       return null;
     }
 
-    final List<Struct> ret = new ArrayList<>(node.size());
-    node.fieldNames().forEachRemaining(k -> {
-      final Struct struct = new Struct(STRUCT_SCHEMA);
-      struct.put(KEY_FIELD_NAME, k);
-      struct.put(VALUE_FIELD_NAME, node.get(k).toString());
-      ret.add(struct);
-    });
+    final Map<String, String> ret = new HashMap<>(node.size());
+    node.fieldNames().forEachRemaining(k -> ret.put(k, node.get(k).toString()));
     return ret;
   }
 }

@@ -19,17 +19,12 @@
         {"topic": "test_topic", "key": "1", "value": {"colors_obj": "", "timestamp": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": [{"JSON_KEY": "Red", "JSON_VALUE": "3"}, {"JSON_KEY": "Green", "JSON_VALUE": "5"}]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": [{"JSON_KEY": "Black", "JSON_VALUE": "2"}]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": [{"JSON_KEY": "Pink", "JSON_VALUE": "1"}, {"JSON_KEY": "Yellow", "JSON_VALUE": "3"}]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": [{"JSON_KEY": "White", "JSON_VALUE": "7"}, {"JSON_KEY": "Pink", "JSON_VALUE": "8"}]}, "timestamp": 0},
-        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": []}, "timestamp": 0}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, COLORS ARRAY<STRUCT<JSON_KEY STRING, JSON_VALUE STRING>>"}
-        ]
-      }
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"Red": "3", "Green": "5"}}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"Black": "2"}}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"Pink": "1", "Yellow": "3"}}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {"White": "7", "Pink": "8"}}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": "1", "value": {"COLORS": {}}, "timestamp": 0}
+      ]
     }
   ]
 }

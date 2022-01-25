@@ -24,7 +24,7 @@
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`K` STRING KEY, `COLORS` ARRAY<STRUCT<`JSON_KEY` STRING, `JSON_VALUE` STRING>>",
+      "schema" : "`K` STRING KEY, `COLORS` MAP<STRING, STRING>",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {

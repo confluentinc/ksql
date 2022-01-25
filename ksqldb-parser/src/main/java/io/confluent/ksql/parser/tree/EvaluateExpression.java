@@ -23,8 +23,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class EvaluateExpression extends Statement {
-  Optional<NodeLocation> location;
-  Expression expression;
+  final Optional<NodeLocation> location;
+  final Expression expression;
 
   public EvaluateExpression(
       final Optional<NodeLocation> location,

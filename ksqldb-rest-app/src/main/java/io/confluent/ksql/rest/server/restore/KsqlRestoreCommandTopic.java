@@ -423,7 +423,7 @@ public class KsqlRestoreCommandTopic {
       final StreamsConfig streamsConfig = new StreamsConfig(streamsProperties);
       final String topicPrefix = sharedRuntimeQuery
           ? streamsConfig.getString(StreamsConfig.APPLICATION_ID_CONFIG)
-          : QueryApplicationId.buildPrefix(ksqlConfig, sharedRuntimeQuery) + queryId;
+          : QueryApplicationId.buildInternalTopicPrefix(ksqlConfig, sharedRuntimeQuery) + queryId;
 
       try {
         final Admin admin = new DefaultKafkaClientSupplier()

@@ -57,7 +57,7 @@ public final class EvaluateExpressionExecutor {
         fieldName, executionContext.getMetaStore(), config, "insert value", false);
     final Object result =
         resolver.resolve(statement.getStatement().getExpression());
-    
+
     return StatementExecutorResponse.handled(
         Optional.of(new ExpressionEvaluationEntity("result " + result.toString())));
   }

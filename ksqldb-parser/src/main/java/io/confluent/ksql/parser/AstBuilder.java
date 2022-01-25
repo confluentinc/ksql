@@ -78,7 +78,6 @@ import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
-import io.confluent.ksql.parser.SqlBaseParser.EvaluateExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionContext;
 import io.confluent.ksql.parser.SqlBaseParser.ExpressionEvaluateContext;
 import io.confluent.ksql.parser.SqlBaseParser.FloatLiteralContext;
@@ -678,12 +677,6 @@ public class AstBuilder {
 
     @Override
     public Node visitExpressionEvaluate(final ExpressionEvaluateContext ctx) {
-      final Expression expression = (Expression) visit(ctx.expression());
-      return new EvaluateExpression(getLocation(ctx), expression);
-    }
-
-    @Override
-    public Node visitEvaluateExpression(final EvaluateExpressionContext ctx) {
       final Expression expression = (Expression) visit(ctx.expression());
       return new EvaluateExpression(getLocation(ctx), expression);
     }

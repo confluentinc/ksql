@@ -35,6 +35,7 @@ import io.confluent.ksql.util.KeyValueMetadata;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
@@ -98,6 +99,7 @@ public class QueryStreamHandlerTest {
     when(routingContext.request()).thenReturn(request);
     when(routingContext.response()).thenReturn(response);
     when(request.version()).thenReturn(HttpVersion.HTTP_2);
+    when(request.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
     CompletableFuture<QueryPublisher> future = new CompletableFuture<>();
     future.complete(queryPublisher);
     when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),

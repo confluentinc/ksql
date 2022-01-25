@@ -132,7 +132,7 @@ Limit the size of the resultant Array to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
 For more information, see
-[aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions).
+[aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_list).
 
 ## `ksql.functions.collect_set.limit`
 
@@ -140,7 +140,7 @@ Limits the size of the resultant Set to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
 For more information, see
-[aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions).
+[aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_set).
 
 ## `ksql.functions.substring.legacy.args`
 

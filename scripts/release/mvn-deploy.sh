@@ -57,7 +57,7 @@ do
 
     eval pwd
     echo "git apply --recount --whitespace=fix ${MY_DIR}/kafka-deploy.patch"
-    git apply --whitespace=warn ${MY_DIR}/kafka-deploy.patch
+    git apply --recount --whitespace=warn ${MY_DIR}/kafka-deploy.patch
 #    echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/kafka-deploy.patch"
 #    patch -p1 < ${MY_DIR}/kafka-deploy.patch
     find . -name '*.rej'

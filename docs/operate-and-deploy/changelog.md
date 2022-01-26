@@ -76,7 +76,7 @@ Version 0.12.0
 --------------
 
 - [ksqlDB 0.12.0 Introduces Real-Time Query Upgrades and Automatic Query Restarts](https://www.confluent.io/blog/ksqldb-0-12-0-features-updates/)
-- [ksqlDB v0.12.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0120-2020-08-26)
+- [ksqlDB v0.12.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0120-2020-09-01)
 
 Version 0.11.0
 --------------
@@ -137,7 +137,7 @@ Earlier versions
 ----------------
 
 - [KSQL 5.4.0 changelog](https://github.com/confluentinc/ksql/blob/5.4.0-post/docs/changelog.rst)
-- [KSQL 4.1.0 changelog](https://github.com/confluentinc/ksql/blob/5.4.0-post/CHANGELOG.md)
+- [KSQL 4.1.0 changelog](https://github.com/confluentinc/ksql/blob/4.1.0-post/CHANGELOG.md)
 
 Suggested Resources
 -------------------

@@ -36,8 +36,16 @@ import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
  */
 public class AllHostsLocator implements PushLocator {
 
+  private static final StreamsMetadataImpl NOT_AVAILABLE = new StreamsMetadataImpl(
+      HostInfo.unavailable(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet()
+  );
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
   private final URL localhost;
+
 
   public AllHostsLocator(
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
@@ -51,7 +59,6 @@ public class AllHostsLocator implements PushLocator {
     }
   }
 
-
   public List<KsqlNode> locate() {
     final List<PersistentQueryMetadata> currentQueries = allPersistentQueries.get();
     if (currentQueries.isEmpty()) {
@@ -62,7 +69,7 @@ public class AllHostsLocator implements PushLocator {
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
+        .filter(streamsMetadata -> !(streamsMetadata.equals(NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .map(hi -> new Node(isLocalhost(hi), buildLocation(hi)))
         .distinct()

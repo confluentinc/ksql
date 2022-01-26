@@ -68,9 +68,9 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
       id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
     }
 
-    final Map<String, String> metricsTags = KsqlConfig.parseStringAsMap(
-        KsqlConfig.KSQL_CUSTOM_METRICS_TAGS,
-        (String) map.get(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
+    final KsqlConfig config = new KsqlConfig(map);
+    final Map<String, String> metricsTags =
+        config.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS);
 
     final MetricCollectors collectors = (MetricCollectors) Objects.requireNonNull(
         map.get(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG));

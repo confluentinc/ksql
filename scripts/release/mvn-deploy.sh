@@ -37,13 +37,15 @@ do
   then
     # pom file means this is a maven project
     eval pwd
-    if [[ "${repos[i]}" == "common" || "${repos[i]}" == "kafka-rest" ]]
+    if [[ "${repos[i]}" == "common" ]]
     then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
     fi
-
+    mvn_cmd="mvn help:effective-pom"
+    echo $mvn_cmd
+    eval $mvn_cmd
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
     deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"

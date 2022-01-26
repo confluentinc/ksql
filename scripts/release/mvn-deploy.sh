@@ -37,7 +37,7 @@ do
   then
     # pom file means this is a maven project
     eval pwd
-    if [[ ${repo[i]} == "common" ]]
+    if [[ "${repos[i]}" == "common" ]]
     then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch

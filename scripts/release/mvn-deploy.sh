@@ -42,6 +42,11 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
+    elif [[ "${repos[i]}" == "kafka-rest" ]]
+    then
+      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/kafka-rest-deploy.patch"
+      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/kafka-rest-deploy.patch
+      find . -name '*.rej'
     fi
     mvn_cmd="mvn help:effective-pom"
     echo $mvn_cmd

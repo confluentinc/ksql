@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.avro.Schema;
 import org.apache.hc.core5.http.HttpStatus;
 
 /**
@@ -90,6 +91,13 @@ final class SandboxedSchemaRegistryClient {
       return -1; // swallow
     }
 
+    @Deprecated
+    @Override
+    public Schema getById(final int id) {
+      throw new UnsupportedOperationException();
+
+    }
+
     @Override
     public ParsedSchema getSchemaById(final int id) throws RestClientException, IOException {
       try {
@@ -105,6 +113,12 @@ final class SandboxedSchemaRegistryClient {
         }
         throw e;
       }
+    }
+
+    @Deprecated
+    @Override
+    public Schema getBySubjectAndId(final String subject, final int id) {
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -149,6 +163,13 @@ final class SandboxedSchemaRegistryClient {
 
     @Override
     public SchemaMetadata getSchemaMetadata(final String subject, final int version) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public int getVersion(final String subject, final Schema parsedSchema)
+        throws RestClientException, IOException {
       throw new UnsupportedOperationException();
     }
 
@@ -200,9 +221,14 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public List<Integer> deleteSubject(final String subject, final boolean isPermanent)
+    public List<Integer> deleteSubject(final String subject)
         throws IOException, RestClientException {
       return null; // swallow
+    }
+
+    @Override
+    public List<Integer> deleteSubject(final String subject, final boolean isPermanent) {
+      throw new UnsupportedOperationException();
     }
 
     @Override

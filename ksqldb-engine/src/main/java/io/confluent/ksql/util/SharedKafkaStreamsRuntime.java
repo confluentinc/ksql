@@ -34,6 +34,8 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,9 +90,10 @@ public abstract class SharedKafkaStreamsRuntime {
   }
 
   public Set<StreamsTaskMetadata> getAllTaskMetadataForQuery(final QueryId queryId) {
-    return kafkaStreams.metadataForLocalThreads(queryId.toString())
+    return kafkaStreams.metadataForLocalThreads()
         .stream()
         .flatMap(t -> t.activeTasks().stream())
+        .filter(m -> queryId.toString().equals(m.taskId().topologyName()))
         .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
         .collect(Collectors.toSet());
   }

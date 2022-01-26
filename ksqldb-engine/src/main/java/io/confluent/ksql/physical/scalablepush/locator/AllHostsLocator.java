@@ -62,7 +62,6 @@ public class AllHostsLocator implements PushLocator {
         .map(QueryMetadata::getAllStreamsHostMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .map(hi -> new Node(isLocalhost(hi), buildLocation(hi)))
         .distinct()

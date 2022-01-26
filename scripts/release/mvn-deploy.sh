@@ -37,7 +37,7 @@ do
   then
     # pom file means this is a maven project
     eval pwd
-    if [[ "${repos[i]}" == "common" ]]
+    if [[ "${repos[i]}" == "common" || "${repos[i]}" == "kafka-rest" ]]
     then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch

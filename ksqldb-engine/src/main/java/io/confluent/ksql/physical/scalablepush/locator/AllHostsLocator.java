@@ -28,7 +28,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 /**
  * This locator contacts all hosts since there currently isn't a mechanism to find which hosts own

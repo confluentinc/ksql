@@ -16,8 +16,19 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.context.QueryContext;
+import java.util.Collections;
+import org.apache.kafka.streams.state.HostInfo;
+import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 public final class StreamsUtil {
+  public static final StreamsMetadataImpl NOT_AVAILABLE = new StreamsMetadataImpl(
+      HostInfo.unavailable(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet()
+  );
+
   private StreamsUtil() {
   }
 

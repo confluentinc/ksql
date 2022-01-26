@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -25,7 +26,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 public final class DiscoverRemoteHostsUtil {
 
@@ -43,7 +43,7 @@ public final class DiscoverRemoteHostsUtil {
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
+        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsUtil.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
             && hostInfo.port() == (localHost.port())))

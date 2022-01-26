@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.scalablepush.locator;
 
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.net.MalformedURLException;
@@ -28,21 +29,12 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 /**
  * This locator contacts all hosts since there currently isn't a mechanism to find which hosts own
  * a particular persistent query task.
  */
 public class AllHostsLocator implements PushLocator {
-
-  private static final StreamsMetadataImpl NOT_AVAILABLE = new StreamsMetadataImpl(
-      HostInfo.unavailable(),
-      Collections.emptySet(),
-      Collections.emptySet(),
-      Collections.emptySet(),
-      Collections.emptySet()
-  );
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
   private final URL localhost;
 
@@ -69,7 +61,7 @@ public class AllHostsLocator implements PushLocator {
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> !(streamsMetadata.equals(NOT_AVAILABLE)))
+        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsUtil.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .map(hi -> new Node(isLocalhost(hi), buildLocation(hi)))
         .distinct()

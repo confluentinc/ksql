@@ -21,7 +21,6 @@ import io.confluent.ksql.metrics.TopicSensors.SensorMetric;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,9 +68,9 @@ public class ConsumerCollector implements MetricCollector, ConsumerInterceptor<O
       id = (String) map.get(ConsumerConfig.CLIENT_ID_CONFIG);
     }
 
-    final KsqlConfig config = new KsqlConfig(map);
-    final Map<String, String> metricsTags =
-        config.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS);
+    final Map<String, String> metricsTags = KsqlConfig.parseStringAsMap(
+        KsqlConfig.KSQL_CUSTOM_METRICS_TAGS,
+        (String) map.get(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS));
 
     final MetricCollectors collectors = (MetricCollectors) Objects.requireNonNull(
         map.get(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG));

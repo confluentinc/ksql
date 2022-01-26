@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;

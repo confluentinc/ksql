@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.scalablepush.locator;
 
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.net.MalformedURLException;
@@ -34,7 +35,6 @@ import org.apache.kafka.streams.state.HostInfo;
  * a particular persistent query task.
  */
 public class AllHostsLocator implements PushLocator {
-
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
   private final URL localhost;
 

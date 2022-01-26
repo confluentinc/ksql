@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
@@ -51,12 +52,8 @@ final class SandboxedSchemaRegistryClient {
   }
 
   private static final class SandboxSchemaRegistryCache implements SchemaRegistryClient {
+    private final MockSchemaRegistryClient mockedClient = new MockSchemaRegistryClient();
     private final SchemaRegistryClient delegate;
-
-    private int nextSchemaId = Integer.MAX_VALUE;
-    private final Map<String, ParsedSchema> subjectCache = new HashMap<>();
-    private final Map<String, Integer> subjectToId = new HashMap<>();
-    private final Map<Integer, ParsedSchema> idCache = new HashMap<>();
 
     private SandboxSchemaRegistryCache(final SchemaRegistryClient delegate) {
       this.delegate = delegate;
@@ -71,15 +68,9 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
-    public int register(final String subject, final ParsedSchema parsedSchema) {
-      if (subjectCache.containsKey(subject)) {
-        throw new IllegalStateException("Subject '" + subject + "' already in use.");
-      }
-      final int schemaId = nextSchemaId--;
-      subjectCache.put(subject, parsedSchema);
-      subjectToId.put(subject, schemaId);
-      idCache.put(schemaId, parsedSchema);
-      return schemaId;
+    public int register(final String subject, final ParsedSchema parsedSchema)
+        throws RestClientException, IOException {
+      return mockedClient.register(subject, parsedSchema);
     }
 
     @Override
@@ -105,11 +96,7 @@ final class SandboxedSchemaRegistryClient {
       } catch (RestClientException e) {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
-          final ParsedSchema schema = idCache.get(id);
-          if (schema != null) {
-            return schema;
-          }
-
+          return mockedClient.getSchemaById(id);
         }
         throw e;
       }
@@ -130,11 +117,7 @@ final class SandboxedSchemaRegistryClient {
       } catch (final RestClientException e) {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
         if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
-          final ParsedSchema schemaByName = subjectCache.get(subject);
-          final ParsedSchema schemaById = idCache.get(id);
-          if (schemaByName != null && schemaByName == schemaById) {
-            return schemaByName;
-          }
+          return mockedClient.getSchemaBySubjectAndId(subject, id);
         }
         throw e;
       }
@@ -152,10 +135,9 @@ final class SandboxedSchemaRegistryClient {
       try {
         return delegate.getLatestSchemaMetadata(subject);
       } catch (final RestClientException e) {
-        // if we don't find the schema metadata in SR, but the subject is registered inside
-        // the sandbox, we return mocked metadata.
-        if (e.getStatus() == HttpStatus.SC_NOT_FOUND && subjectCache.containsKey(subject)) {
-          return new SchemaMetadata(subjectToId.get(subject), 1, "dummy");
+        // if we don't find the schema metadata in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return mockedClient.getLatestSchemaMetadata(subject);
         }
         throw e;
       }
@@ -176,7 +158,15 @@ final class SandboxedSchemaRegistryClient {
     @Override
     public int getVersion(final String subject, final ParsedSchema parsedSchema)
         throws RestClientException, IOException {
-      return delegate.getVersion(subject, parsedSchema);
+      try {
+        return delegate.getVersion(subject, parsedSchema);
+      } catch (final RestClientException e) {
+        // if we don't find the version in SR, we try to get it from the sandbox cache
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return mockedClient.getVersion(subject, parsedSchema);
+        }
+        throw e;
+      }
     }
 
     @Override
@@ -187,7 +177,8 @@ final class SandboxedSchemaRegistryClient {
     @Override
     public boolean testCompatibility(final String subject, final ParsedSchema parsedSchema)
         throws RestClientException, IOException {
-      return delegate.testCompatibility(subject, parsedSchema);
+      return delegate.testCompatibility(subject, parsedSchema)
+          && mockedClient.testCompatibility(subject, parsedSchema);
     }
 
     @Override
@@ -234,7 +225,7 @@ final class SandboxedSchemaRegistryClient {
     @Override
     public Collection<String> getAllSubjects() throws RestClientException, IOException {
       final Collection<String> allSubjects = new HashSet<>(delegate.getAllSubjects());
-      allSubjects.addAll(subjectCache.keySet());
+      allSubjects.addAll(mockedClient.getAllSubjects());
       return ImmutableSet.copyOf(allSubjects);
     }
 
@@ -251,8 +242,8 @@ final class SandboxedSchemaRegistryClient {
         return delegate.getId(subject, parsedSchema);
       } catch (final RestClientException e) {
         // if we don't find the schema in SR, we try to get it from the sandbox cache
-        if (e.getStatus() == HttpStatus.SC_NOT_FOUND && subjectToId.containsKey(subject)) {
-          return subjectToId.get(subject);
+        if (e.getStatus() == HttpStatus.SC_NOT_FOUND) {
+          return mockedClient.getId(subject, parsedSchema);
         }
         throw e;
       }

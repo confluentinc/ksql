@@ -37,9 +37,12 @@ do
   then
     # pom file means this is a maven project
     eval pwd
-    echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
-    patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
-    find . -name '*.rej'
+    if [[$repo[i] == "common"]]
+    then
+      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
+      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
+      find . -name '*.rej'
+    fi
 
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"

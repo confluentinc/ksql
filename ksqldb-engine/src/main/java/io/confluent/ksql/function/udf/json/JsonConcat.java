@@ -30,17 +30,17 @@ import java.util.List;
     name = "JSON_CONCAT",
     category = FunctionCategory.JSON,
     description = "Given N strings, parse them as JSON values and return a string representing "
-        + "their concatenation. Concatenation rules are identical to PostgreSQL's || operator:"
-        + "* If all strings deserialize into JSON objects, then return an object with a union of "
-        + "the input key, taking values from the last object in the case of duplicates.\n"
-        + "* If all strings deserialize into JSON arrays, then return the result of array "
+        + "their concatenation. Concatenation rules are identical to PostgreSQL's || operator:\n"
+        + "* If all strings deserialize into JSON objects, return an object with a union of the "
+        + "input keys. If there are duplicate objects, take values from the last object.\n"
+        + "* If all strings deserialize into JSON arrays, return the result of array "
         + "concatenation.\n"
-        + "* If at least one of the deserialized values is not an object, then convert non-array "
-        + "inputs to a single-element array and return the result of array concatenation.\n"
+        + "* If at least one of the deserialized values is not an object, convert non-array"
+        + " inputs to a single-element array and return the result of array concatenation.\n"
         + "* If at least one of the input strings is `NULL` or can't be deserialized as JSON, "
-        + "then return `NULL`.\n\n"
-        + "Akin to PostgreSQL's `||` operator, this function merges only top-level object keys "
-        + "or arrays.",
+        + "return NULL.\n"
+        + "Similar to the PostgreSQL's || operator, this function merges only top-level object "
+        + "keys or arrays.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class JsonConcat {

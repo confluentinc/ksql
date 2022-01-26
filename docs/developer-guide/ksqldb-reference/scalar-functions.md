@@ -872,14 +872,14 @@ json_concat(json_strings...) -> String
 
 Given N strings, parse them as JSON values and return a string representing their concatenation.
 Concatenation rules are identical to PostgreSQL's [|| operator](https://www.postgresql.org/docs/14/functions-json.html):
-* If all strings deserialize into JSON objects, then return an object with a union of the input key,
-  taking values from the last object in the case of duplicates.
-* If all strings deserialize into JSON arrays, then return the result of array concatenation.
-* If at least one of the deserialized values is not an object, then convert non-array inputs to a
+* If all strings deserialize into JSON objects, return an object with a union of the input keys. If 
+  there are duplicate objects, take values from the last object.
+* If all strings deserialize into JSON arrays, return the result of array concatenation.
+* If at least one of the deserialized values is not an object, convert non-array inputs to a
   single-element array and return the result of array concatenation.
-* If at least one of the input strings is `NULL` or can't be deserialized as JSON, then return `NULL`.
+* If at least one of the input strings is `NULL` or can't be deserialized as JSON, return `NULL`.
 
-Akin to PostgreSQL's `||` operator, this function merges only top-level object keys or arrays.
+Similar to the PostgreSQL's `||` operator, this function merges only top-level object keys or arrays.
 
 Examples:
 

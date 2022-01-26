@@ -39,7 +39,10 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
   private final QueryCleanupService queryCleanupService;
   private final KsqlConfig ksqlConfig;
 
-  public PersistentQueryCleanupImpl(final String stateDir, final ServiceContext serviceContext, final KsqlConfig ksqlConfig) {
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public PersistentQueryCleanupImpl(final String stateDir,
+                                    final ServiceContext serviceContext,
+                                    final KsqlConfig ksqlConfig) {
     this.stateDir = stateDir;
     this.ksqlConfig = ksqlConfig;
     this.serviceContext = serviceContext;

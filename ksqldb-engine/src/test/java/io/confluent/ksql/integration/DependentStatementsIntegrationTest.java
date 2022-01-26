@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -21,8 +21,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -36,28 +34,15 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 @Category({IntegrationTest.class})
 public class DependentStatementsIntegrationTest {
 
   private static final Logger log = LoggerFactory.getLogger(DependentStatementsIntegrationTest.class);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Boolean> data() {
-    return Arrays.asList(
-        false, true
-    );
-  }
-
-  @Parameterized.Parameter
-  public boolean sharedRuntimes;
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
@@ -78,9 +63,6 @@ public class DependentStatementsIntegrationTest {
         .withAdditionalConfig(
             KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
             "http://foo:8080")
-        .withAdditionalConfig(
-            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
-            sharedRuntimes)
         .build();
 
     ksqlContext.before();
@@ -96,43 +78,14 @@ public class DependentStatementsIntegrationTest {
   }
 
   @Test
-  public void shouldRegisterPrimitiveAvroSchemaInSandboxViaCS() {
-    executeStatement(
-      // When:
-      "CREATE STREAM avro_input (a INT KEY, b VARCHAR)"
-        + " WITH (KAFKA_TOPIC='t1', PARTITIONS=1, FORMAT='AVRO', WRAP_SINGLE_VALUE=false);"
-
-      // Then:
-      + "CREATE STREAM should_infer_schema WITH (KAFKA_TOPIC='t1', FORMAT='AVRO', WRAP_SINGLE_VALUE=false);"
-    );
-  }
-
-  @Test
   public void shouldRegisterAvroSchemaInSandboxViaCS() {
     executeStatement(
       // When:
       "CREATE STREAM avro_input (a INT KEY, b INT KEY, c VARCHAR, d VARCHAR)"
         + " WITH (KAFKA_TOPIC='t2', PARTITIONS=1, FORMAT='AVRO');"
 
-      // Then:
+      // Then: dependent statement also executes successfully
       + "CREATE STREAM should_infer_schema WITH (KAFKA_TOPIC='t2', FORMAT='AVRO');"
-    );
-  }
-
-  @Test
-  public void shouldRegisterPrimitiveAvroSchemaInSandboxViaCSAS() {
-    // Given:
-    executeStatement(
-      "CREATE STREAM avro_input (a INT KEY, b VARCHAR)"
-        + " WITH (KAFKA_TOPIC='t3', PARTITIONS=1, FORMAT='AVRO', WRAP_SINGLE_VALUE=false);"
-    );
-    executeStatement(
-      // When:
-      "CREATE STREAM should_register_schema WITH (KAFKA_TOPIC='t4', FORMAT='AVRO', WRAP_SINGLE_VALUE=false) AS"
-        + " SELECT * FROM avro_input;"
-
-      // Then:
-      + "CREATE STREAM should_infer_schema WITH (KAFKA_TOPIC='t4', FORMAT='AVRO', WRAP_SINGLE_VALUE=false);"
     );
   }
 
@@ -148,40 +101,8 @@ public class DependentStatementsIntegrationTest {
       "CREATE STREAM should_register_schema WITH (KAFKA_TOPIC='t6', FORMAT='AVRO') AS"
         + " SELECT * FROM avro_input;"
 
-      // Then:
+      // Then: dependent statement also executes successfully
       + "CREATE STREAM should_infer_schema WITH (KAFKA_TOPIC='t6', FORMAT='AVRO');"
-    );
-  }
-
-  @Test
-  public void shouldRegisterPrimitiveAvroSchemaInSandboxViaCSandSchemaId() throws Exception {
-    // Given:
-    executeStatement(
-      "CREATE STREAM avro_input (a INT KEY, b VARCHAR)"
-        + " WITH (KAFKA_TOPIC='t7', PARTITIONS=1, FORMAT='AVRO', WRAP_SINGLE_VALUE=false);"
-    );
-    final SchemaRegistryClient srClient = TEST_HARNESS.getSchemaRegistryClient();
-    final int keySchemaId = srClient.getLatestSchemaMetadata("t7-key").getId();
-    final int valueSchemaId = srClient.getLatestSchemaMetadata("t7-value").getId();
-
-    executeStatement(
-      // When:
-      "CREATE STREAM should_register_schema WITH ("
-        + "KAFKA_TOPIC='t8',"
-        + "FORMAT='AVRO',"
-        + "WRAP_SINGLE_VALUE=false,"
-        + "KEY_SCHEMA_ID=%s,"
-        + "VALUE_SCHEMA_ID=%s"
-      + ") AS "
-          // because we use primitive avro types neither the key nor the value schema provides a column name;
-          // thus, ksqlDB defaults to `rowkey` and `rowval` as names that we must match
-          // to get a logical schema that is compatible to the physical schema
-        + "SELECT a AS rowkey, b AS rowval FROM avro_input;"
-
-      // Then:
-      + "CREATE STREAM should_infer_schema WITH (KAFKA_TOPIC='t8', FORMAT='AVRO', WRAP_SINGLE_VALUE=false);",
-      String.valueOf(keySchemaId),
-      String.valueOf(valueSchemaId)
     );
   }
 
@@ -210,7 +131,7 @@ public class DependentStatementsIntegrationTest {
         // to get a logical schema that is compatible to the physical schema
       + "SELECT Struct(a := a, b := b) AS rowkey, c, d FROM avro_input PARTITION BY Struct(a := a, b := b);"
 
-      // Then:
+      // Then: dependent statement also executes successfully
       + "CREATE STREAM should_infer_schema WITH (KAFKA_TOPIC='t10', FORMAT='AVRO');",
       String.valueOf(keySchemaId),
       String.valueOf(valueSchemaId)

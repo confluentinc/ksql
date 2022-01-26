@@ -736,7 +736,7 @@ multiple elements, like those containing wildcards, aren't supported.
 
 ### `IS_JSON_STRING`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 is_json_string(json_string) -> Boolean
@@ -759,7 +759,7 @@ is_json_string(NULL) => false
 
 ### `JSON_ARRAY_LENGTH`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 JSON_ARRAY_LENGTH(json_string) -> Integer
@@ -783,7 +783,7 @@ json_array_length("abc") => throws "Invalid JSON format"
 
 ### `JSON_KEYS`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 json_keys(json_string) -> Array<String>
@@ -806,7 +806,7 @@ json_keys("") // => NULL
 
 ### `JSON_RECORDS`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 json_records(json_string) -> Map<String, String>
@@ -830,7 +830,7 @@ json_records("abc") // => NULL
 
 ### `TO_JSON_STRING`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 to_json_string(val) -> String
@@ -864,7 +864,7 @@ to_json_string(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) 
 
 ### `JSON_CONCAT`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 json_concat(json_strings...) -> String

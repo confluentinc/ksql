@@ -736,7 +736,7 @@ multiple elements, like those containing wildcards, aren't supported.
 
 ### `IS_JSON_STRING`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 is_json_string(json_string) -> Boolean
@@ -759,7 +759,7 @@ is_json_string(NULL) => false
 
 ### `JSON_ARRAY_LENGTH`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 JSON_ARRAY_LENGTH(json_string) -> Integer
@@ -783,7 +783,7 @@ json_array_length("abc") => throws "Invalid JSON format"
 
 ### `JSON_KEYS`
 
-Since: 0.25.0
+Since: 0.24.0
 
 ```sql
 json_keys(json_string) -> Array<String>
@@ -802,6 +802,100 @@ json_keys("[]") // => NULL
 json_keys("123") // => NULL
 json_keys(NULL) // => NULL
 json_keys("") // => NULL
+```
+
+### `JSON_RECORDS`
+
+Since: 0.24.0
+
+```sql
+json_records(json_string) -> Map<String, String>
+```
+
+Given a string, parses it as a JSON object and returns a map representing the top-level keys and
+values. Returns `NULL` if the string can't be interpreted as a JSON object, i.e. it is `NULL` or
+it does not contain valid JSON, or the JSON value is not an object.
+
+
+Examples:
+
+```sql
+json_records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // {"a": "\"abc\"", "b": "{ \"c\": \"a\" }", "d": "1"}
+json_records("{}") // => []
+json_records("[]") // => NULL
+json_records("123") // => NULL
+json_records(NULL) // => NULL
+json_records("abc") // => NULL
+```
+
+### `TO_JSON_STRING`
+
+Since: 0.24.0
+
+```sql
+to_json_string(val) -> String
+```
+
+Given any ksqlDB type returns the equivalent JSON string.
+
+Examples:
+
+**Primitives types**
+
+```sql
+to_json_string(1) // => "1"
+to_json_string(15.3) // => "15.3"
+to_json_string("abc") // => "\"abc\""
+to_json_string(true) // => "true"
+to_json_string(2021-10-11) // DATE type, => "\"2021-10-11\""
+to_json_string(13:25) // TIME type, => "\"13:25:10\""
+to_json_string(2021-06-31T12:18:39.446) // TIMESTAMP type, => "\"2021-06-31T12:18:39.446\""
+to_json_string(NULL) // => "null"
+```
+
+**Compound types**
+
+```sql
+to_json_string(Array[1, 2, 3]) // => "[1, 2, 3]"
+to_json_string(Struct{id=1,name=A}) // => "{\"id\": 1, \"name\": \"a\"}"
+to_json_string(Map('c' := 2, 'd' := 4)) // => "{\"c\": 2, \"d\": 4}"
+to_json_string(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) // => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
+```
+
+### `JSON_CONCAT`
+
+Since: 0.24.0
+
+```sql
+json_concat(json_strings...) -> String
+```
+
+Given N strings, parse them as JSON values and return a string representing their concatenation.
+Concatenation rules are identical to PostgreSQL's [|| operator](https://www.postgresql.org/docs/14/functions-json.html):
+* If all strings deserialize into JSON objects, return an object with a union of the input keys. If 
+  there are duplicate objects, take values from the last object.
+* If all strings deserialize into JSON arrays, return the result of array concatenation.
+* If at least one of the deserialized values is not an object, convert non-array inputs to a
+  single-element array and return the result of array concatenation.
+* If at least one of the input strings is `NULL` or can't be deserialized as JSON, return `NULL`.
+
+Similar to the PostgreSQL's `||` operator, this function merges only top-level object keys or arrays.
+
+Examples:
+
+```
+json_concat("{\"a\": 1}", "{\"b\": 2}") // => "{\"a\": 1, \"b\": 2}"
+json_concat("{\"a\": {\"5\": 6}}", "{\"a\": {\"3\": 4}}") // => "{\"a\": {\"3\": 4}}"
+json_concat("{}", "{}") // => "{}"
+json_concat("[1, 2]", "[3, 4]") // => "[1,2,3,4]"
+json_concat("[1, [2]]", "[[[3]], [[[4]]]]") // => "[ 1, [2], [[3]], [[[4]]] ]"
+json_concat("null", "null") // => "[null, null]"
+json_concat("[1, 2]", "{\"a\": 1}") // => "[1, 2, {\"a\": 1}]"
+json_concat("[1, 2]", "3") // => "[1, 2, 3]"
+json_concat("1", "2") // => "[1, 2]"
+json_concat("[]", "[]") // => []
+json_concat("abc", "[1]") // => NULL
+json_concat(NULL, "[1]") // => NULL
 ```
 
 ### `INITCAP`

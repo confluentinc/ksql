@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.json;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,6 +67,14 @@ final class UdfJsonMapper {
       return OBJECT_READER.readTree(jsonString);
     } catch (final JacksonException e) {
       throw new KsqlFunctionException("Invalid JSON format:" + jsonString, e);
+    }
+  }
+
+  public static String writeValueAsJson(final Object obj) {
+    try {
+      return UdfJsonMapper.INSTANCE.writeValueAsString(obj);
+    } catch (JsonProcessingException e) {
+      throw new KsqlFunctionException("JSON serialization error: " + e.getMessage());
     }
   }
 }

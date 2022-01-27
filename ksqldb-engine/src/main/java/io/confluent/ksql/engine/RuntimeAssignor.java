@@ -98,7 +98,7 @@ public class RuntimeAssignor {
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
         runtimesToSources.put(queryMetadata.getQueryApplicationId(),
-            queryMetadata.getSourceNames());
+            new HashSet<>(queryMetadata.getSourceNames()));
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       }
     }

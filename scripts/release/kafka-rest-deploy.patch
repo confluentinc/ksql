@@ -2,22 +2,23 @@ diff --git a/pom.xml b/pom.xml
 index 1022cda..971fd4b 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -231,5 +231,12 @@
+@@ -113,5 +113,12 @@
      </dependencyManagement>
 
      <build>
-+       <extensions>
-+           <extension>
-+               <groupId>org.springframework.build</groupId>
-+               <artifactId>aws-maven</artifactId>
-+               <version>5.0.0.RELEASE</version>
-+           </extension>
-+       </extensions>
-        <pluginManagement>
-            <plugins>
-@@ -256,3 +256,15 @@
-        </plugins>
-     </build>
++        <extensions>
++            <extension>
++                <groupId>org.springframework.build</groupId>
++                <artifactId>aws-maven</artifactId>
++                <version>5.0.0.RELEASE</version>
++            </extension>
++        </extensions>
+     <pluginManagement>
+         <plugins>
+@@ -191,4 +191,16 @@
+             </build>
+         </profile>
+     </profiles>
 +    <distributionManagement>
 +        <repository>
 +            <id>aws-release</id>

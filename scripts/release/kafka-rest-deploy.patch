@@ -2,7 +2,7 @@ diff --git a/pom.xml b/pom.xml
 index 1022cda..971fd4b 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -36,11 +36,23 @@
+@@ -36,10 +36,22 @@
      <scm>
          <connection>scm:git:git://github.com/confluentinc/kafka-rest.git</connection>
          <developerConnection>scm:git:git@github.com:confluentinc/kafka-rest.git</developerConnection>

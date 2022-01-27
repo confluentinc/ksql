@@ -143,7 +143,6 @@ public class DependentStatementsIntegrationTest {
       final String... args
   ) {
     final String formatted = format(statement, (Object[])args);
-    log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries = ksqlContext.sql(formatted);
 

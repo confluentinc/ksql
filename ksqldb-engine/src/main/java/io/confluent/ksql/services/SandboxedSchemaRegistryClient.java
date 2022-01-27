@@ -49,7 +49,7 @@ final class SandboxedSchemaRegistryClient {
   private SandboxedSchemaRegistryClient() {
   }
 
-  private static final class SandboxSchemaRegistryCache implements SchemaRegistryClient {
+  static final class SandboxSchemaRegistryCache implements SchemaRegistryClient {
     private final MockSchemaRegistryClient mockedClient = new MockSchemaRegistryClient();
     private final SchemaRegistryClient delegate;
 

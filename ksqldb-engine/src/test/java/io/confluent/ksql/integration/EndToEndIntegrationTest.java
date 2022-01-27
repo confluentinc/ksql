@@ -351,7 +351,6 @@ public class EndToEndIntegrationTest {
       final String... args
   ) {
     final String formatted = format(statement, (Object[])args);
-    log.debug("Sending statement: {}", formatted);
 
     final List<QueryMetadata> queries = ksqlContext.sql(formatted);
 
@@ -368,14 +367,14 @@ public class EndToEndIntegrationTest {
 
   private static List<Object> waitForFirstRow(
       final TransientQueryMetadata queryMetadata
-  ) throws Exception {
+  ) {
     return verifyAvailableRows(queryMetadata, 1).get(0).values();
   }
 
   private static List<GenericRow> verifyAvailableRows(
       final TransientQueryMetadata queryMetadata,
       final int expectedRows
-  ) throws Exception {
+  ) {
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();
 
     assertThatEventually(

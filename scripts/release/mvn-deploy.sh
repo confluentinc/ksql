@@ -49,11 +49,13 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
-    else
+    elif [[ "${repos[i]}" != "rest-utils" ]]
+    then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch
       find . -name '*.rej'
     fi
+    
     mvn_cmd="mvn help:effective-pom"
     echo $mvn_cmd
     eval $mvn_cmd

@@ -25,7 +25,7 @@ index 1022cda..971fd4b 100644
     <modules>
         <module>kafka-rest</module>
     </modules>
-@@ -113,5 +113,12 @@
+@@ -113,4 +113,11 @@
      </dependencyManagement>
 
      <build>

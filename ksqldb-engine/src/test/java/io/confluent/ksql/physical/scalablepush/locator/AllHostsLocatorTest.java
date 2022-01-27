@@ -9,10 +9,8 @@ import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.streams.StreamsMetadata;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,7 +41,7 @@ public class AllHostsLocatorTest {
     when(metadata1.getAllMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata1, streamsMetadata2));
     when(metadata2.getAllMetadata())
-        .thenReturn(Collections.emptyList());
+        .thenReturn(ImmutableList.of(streamsMetadata3));
     when(streamsMetadata1.hostInfo())
         .thenReturn(new HostInfo("abc", 101), new HostInfo("localhost", 8088));
     when(streamsMetadata2.hostInfo()).thenReturn(new HostInfo("localhost", 8088));

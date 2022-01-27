@@ -1510,7 +1510,7 @@ TIMESTAMPADD(unit, interval, COL0)
 ```
 
 Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
+[time unit](/reference/sql/time/#time-units).
 
 ### TIMESTAMPSUB
 
@@ -1521,7 +1521,7 @@ TIMESTAMPSUB(unit, interval, COL0)
 ```
 
 Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
+[time unit](/reference/sql/time/#time-units).
 
 ### TIMEADD
 
@@ -1532,7 +1532,7 @@ TIMEADD(unit, interval, COL0)
 ```
 
 Adds an interval to a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
+[time unit](/reference/sql/time/#time-units).
 
 ### TIMESUB
 
@@ -1543,7 +1543,7 @@ TIMESUB(unit, interval, COL0)
 ```
 
 Subtracts an interval from a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
+[time unit](/reference/sql/time/#time-units).
 
 ### DATEADD
 
@@ -1554,7 +1554,7 @@ DATEADD(unit, interval, COL0)
 ```
 
 Adds an interval to a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
+[time unit](/reference/sql/time/#time-units).
 
 ### DATESUB
 
@@ -1565,7 +1565,7 @@ DATESUB(unit, interval, COL0)
 ```
 
 Subtracts an interval from a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
+[time unit](/reference/sql/time/#time-units).
 
 ## URLs
 

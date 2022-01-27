@@ -235,7 +235,7 @@ is achieved with twice as many partitions as nodes in your cluster.
 
 ## Aggregations
 
-ksqlDB provides one of the easiest ways to [compute aggregations](/developer-guide/syntax-reference/#aggregation)
+ksqlDB provides one of the easiest ways to [compute aggregations](/developer-guide/ksqldb-reference/aggregate-functions/)
 over your topic data stored in {{ site.ak }}. These aggregations are defined as persistent
 queries whose results are maintained within a
 [ksqlDB table](/developer-guide/ksqldb-reference/create-table-as-select/),

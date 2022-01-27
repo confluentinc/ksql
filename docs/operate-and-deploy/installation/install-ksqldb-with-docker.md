@@ -388,7 +388,7 @@ processes that run in containers.
 -   [Wait for an HTTP Endpoint to Be Available](#wait-for-an-http-endpoint-to-be-available)
 -   [Wait for a Particular Phrase in a Container's Log](#wait-for-a-particular-phrase-in-a-containers-log)
 -   [Run Custom Code Before Launching a Container's Program](#run-custom-code-before-launching-a-containers-program)
--   [Execute a ksqlDB script in the ksqlDB CLI](#execute-a-ksql-script-in-the-ksql-cli)
+-   [Execute a ksqlDB script in the ksqlDB CLI](#execute-a-ksqldb-script-in-the-ksqldb-cli)
 
 ### Wait for an HTTP endpoint to be available
 

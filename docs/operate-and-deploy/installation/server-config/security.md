@@ -185,7 +185,7 @@ also provide role-based authorization by specifying which roles can access the k
 
 !!! note
 	If you're using Basic authentication, we recommend that you
-    [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
+    [configure ksqlDB to use HTTPS for secure communication](#configuring-listener-for-ssl-encryption),
     because the Basic protocol passes credentials in plain text.
 
 ### Create the `jaas_config.file`
@@ -768,9 +768,9 @@ require `READ` and `WRITE` permissions for such topics.
 The set of input and output topics that a ksqlDB cluster requires access
 to will depend on your use case and whether the ksqlDB cluster is
 configured in
-[interactive](#interactive-ksql-clusters)
+[interactive](#interactive-ksqldb-clusters)
 or
-[non-interactive](#non-interactive-headless-ksql-clusters)
+[non-interactive](#non-interactive-headless-ksqldb-clusters)
 mode.
 
 #### Non-Interactive (headless) ksqlDB clusters
@@ -917,9 +917,9 @@ later versions of Kafka, which simplify the ACLs required to run ksqlDB
 against a Kafka cluster secured with ACLs. This means a much larger, or
 wider range, set of ACLs must be defined. The set of ACLs that must be
 defined depends on whether the ksqlDB cluster is configured for
-[interactive](#interactive-ksqldb-clusters-pre-kafka-2-0)
+[interactive](#interactive-ksqldb-clusters-pre-kafka-20)
 or
-[non-interactive (headless)](#non-interactive-headless-ksqldb-clusters-pre-kafka-2-0).
+[non-interactive (headless)](#non-interactive-headless-ksqldb-clusters-pre-kafka-20).
 
 #### ACL definition
 

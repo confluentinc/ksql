@@ -22,7 +22,6 @@ index 1022cda..971fd4b 100644
          <url>https://github.com/confluentinc/kafka-rest</url>
          <tag>HEAD</tag>
      </scm>
-
 +    <distributionManagement>
 +        <repository>
 +            <id>aws-release</id>

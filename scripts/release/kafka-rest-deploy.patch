@@ -36,7 +36,6 @@ index 1022cda..971fd4b 100644
 +                <version>5.0.0.RELEASE</version>
 +            </extension>
 +        </extensions>
-     <pluginManagement>
-         <plugins>
-
+         <pluginManagement>
+             <plugins>
 

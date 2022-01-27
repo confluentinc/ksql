@@ -22,9 +22,9 @@ index 1022cda..971fd4b 100644
 +        </snapshotRepository>
 +    </distributionManagement>
 
-    <modules>
-        <module>kafka-rest</module>
-    </modules>
+     <modules>
+         <module>kafka-rest</module>
+     </modules>
 @@ -129,5 +129,12 @@
      </dependencyManagement>
 

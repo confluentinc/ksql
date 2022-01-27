@@ -15,10 +15,14 @@ index 1022cda..971fd4b 100644
 +        </extensions>
      <pluginManagement>
          <plugins>
-@@ -191,4 +191,16 @@
-             </build>
-         </profile>
-     </profiles>
+@@ -36,11 +36,23 @@
+     <scm>
+         <connection>scm:git:git://github.com/confluentinc/kafka-rest.git</connection>
+         <developerConnection>scm:git:git@github.com:confluentinc/kafka-rest.git</developerConnection>
+         <url>https://github.com/confluentinc/kafka-rest</url>
+         <tag>HEAD</tag>
+     </scm>
+
 +    <distributionManagement>
 +        <repository>
 +            <id>aws-release</id>
@@ -31,5 +35,8 @@ index 1022cda..971fd4b 100644
 +            <url>s3://staging-ksqldb-maven/maven</url>
 +        </snapshotRepository>
 +    </distributionManagement>
- </project>
+
+    <modules>
+        <module>kafka-rest</module>
+    </modules>
 

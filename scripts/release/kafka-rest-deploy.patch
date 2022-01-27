@@ -2,19 +2,6 @@ diff --git a/pom.xml b/pom.xml
 index 1022cda..971fd4b 100644
 --- a/pom.xml
 +++ b/pom.xml
-@@ -113,5 +113,12 @@
-     </dependencyManagement>
-
-     <build>
-+        <extensions>
-+            <extension>
-+                <groupId>org.springframework.build</groupId>
-+                <artifactId>aws-maven</artifactId>
-+                <version>5.0.0.RELEASE</version>
-+            </extension>
-+        </extensions>
-     <pluginManagement>
-         <plugins>
 @@ -36,11 +36,23 @@
      <scm>
          <connection>scm:git:git://github.com/confluentinc/kafka-rest.git</connection>
@@ -38,4 +25,18 @@ index 1022cda..971fd4b 100644
     <modules>
         <module>kafka-rest</module>
     </modules>
+@@ -113,5 +113,12 @@
+     </dependencyManagement>
+
+     <build>
++        <extensions>
++            <extension>
++                <groupId>org.springframework.build</groupId>
++                <artifactId>aws-maven</artifactId>
++                <version>5.0.0.RELEASE</version>
++            </extension>
++        </extensions>
+     <pluginManagement>
+         <plugins>
+
 

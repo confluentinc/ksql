@@ -43,7 +43,7 @@ public class AllHostsLocatorTest {
     when(metadata1.getAllMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata1, streamsMetadata2));
     when(metadata2.getAllMetadata())
-        .thenReturn(Collections.emptyList());
+        .thenReturn(ImmutableList.of(streamsMetadata3));
     when(streamsMetadata1.hostInfo())
         .thenReturn(new HostInfo("abc", 101), new HostInfo("localhost", 8088));
     when(streamsMetadata2.hostInfo()).thenReturn(new HostInfo("localhost", 8088));

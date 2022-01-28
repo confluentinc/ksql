@@ -140,7 +140,6 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
-
   // for creating sandbox instances
   protected BinPackedPersistentQueryMetadataImpl(
           final BinPackedPersistentQueryMetadataImpl original,
@@ -252,7 +251,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return sharedKafkaStreamsRuntime.getTaskMetadata();
+    return sharedKafkaStreamsRuntime.getAllTaskMetadataForQuery(queryId);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "overriddenProperties is immutable")
@@ -303,13 +302,14 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
-    return sharedKafkaStreamsRuntime.allLocalStorePartitionLags(queryId);
+    return sharedKafkaStreamsRuntime.getAllLocalStorePartitionLagsForQuery(queryId);
   }
 
   @Override
-  public Collection<StreamsMetadata> getAllMetadata() {
+  public Collection<StreamsMetadata> getAllStreamsHostMetadata() {
     try {
-      return ImmutableList.copyOf(sharedKafkaStreamsRuntime.allMetadata());
+      return ImmutableList.copyOf(
+          sharedKafkaStreamsRuntime.getAllStreamsClientsMetadataForQuery(queryId));
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }

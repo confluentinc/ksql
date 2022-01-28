@@ -38,9 +38,9 @@ public class AllHostsLocatorTest {
         () -> ImmutableList.of(metadata1, metadata2),
         new URL("http://localhost:8088")
     );
-    when(metadata1.getAllMetadata())
+    when(metadata1.getAllStreamsHostMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata1, streamsMetadata2));
-    when(metadata2.getAllMetadata())
+    when(metadata2.getAllStreamsHostMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata3));
     when(streamsMetadata1.hostInfo())
         .thenReturn(new HostInfo("abc", 101), new HostInfo("localhost", 8088));

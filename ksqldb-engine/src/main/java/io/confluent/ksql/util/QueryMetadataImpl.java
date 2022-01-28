@@ -259,7 +259,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     }
   }
 
-  public Collection<StreamsMetadata> getAllMetadata() {
+  public Collection<StreamsMetadata> getAllStreamsHostMetadata() {
     try {
       return ImmutableList.copyOf(kafkaStreams.metadataForAllStreamsClients());
     } catch (IllegalStateException e) {

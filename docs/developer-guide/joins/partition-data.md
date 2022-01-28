@@ -224,7 +224,7 @@ you don't need to worry about the partitioning strategy.
 
 But if the producer applications for your records have custom
 partitioners specified in
-[configuration](http://kafka.apache.org/documentation/#producerconfigs),
+[configuration](https://kafka.apache.org/documentation/#producerconfigs),
 the same custom partitioner logic must be used for records on both sides
 of the join. The applications that write to the join inputs must have
 the same partitioning strategy, so that records with the same key are

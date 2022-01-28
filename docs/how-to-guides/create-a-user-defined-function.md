@@ -218,7 +218,7 @@ Some important points to notice:
 
 Either continue following this guide by implementing more functions or
 skip ahead to [compiling the
-classes](#add-the-uberjar-to-the-classpath) so you can use the
+classes](#add-the-uberjar-to-ksqldb-server) so you can use the
 functions in ksqlDB.
 
 ### Tabular functions
@@ -274,7 +274,7 @@ Notice how:
 
 - This UDTF uses Java generics, which enable operating over any
   [ksqlDB supported
-  types](../../concepts/functions/#supported-types). Use this if you
+  types](/reference/user-defined-functions/#data-type-mapping). Use this if you
   want to express logic that operates uniformly over many different
   column types. The generic parameter must be declared at the head of
   the method, since you can have multiple signatures, each with a
@@ -287,7 +287,7 @@ Notice how:
 
 Either continue following this guide by implementing more functions or
 skip ahead to [compiling the
-classes](#add-the-uberjar-to-the-classpath) so you can use the
+classes](#add-the-uberjar-to-ksqldb-server) so you can use the
 functions in ksqlDB.
 
 ### Aggregation functions
@@ -390,7 +390,7 @@ There are many things to observe in this class:
 
 - All types, including inputs, intermediate representations, and final
   representations, must be [types that ksqlDB
-  supports](../../concepts/functions/#supported-types).
+  supports](/reference/user-defined-functions/#data-type-mapping).
 
 - The `merge` method controls how two [session
   windows](../../concepts/time-and-windows-in-ksqldb-queries/#session-window)
@@ -840,7 +840,7 @@ working with structs, and the latter is generally used for working
 with decimals. This guide only uses explicitly provided schemas, but
 you can read more about dynamic schema returns using the
 `@UdfSchemaProvider` in the [concepts
-section](../../concepts/functions/#dynamic-return-type).
+section](/reference/user-defined-functions/#dynamic-types).
 
 As an example of explicitly provided schemas, create a simple function
 that maintains simple statistics. This example uses a UDAF, but the

@@ -743,7 +743,7 @@ listeners=http://server1245:8088
 ```
 
 You can configure ksqlDB Server to use HTTPS. For more information, see
-[Configure ksqlDB for HTTPS](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
+[Configure ksqlDB for HTTPS](/operate-and-deploy/installation/server-config/security#configuring-listener-for-ssl-encryption).
 
 ## `response.http.headers.config`
 

@@ -86,7 +86,7 @@ The maximum timestamp seen over all processed records so far.
 A record's timestamp is set either by the record's producer or by the
 {{ site.ak }} broker, depending on the topic's timestamp configuration. The
 topic's
-[message.timestamp.type](https://docs.confluent.io/current/installation/configuration/topic-configs.html#message-timestamp-type)
+[message.timestamp.type](https://docs.confluent.io/platform/current/installation/configuration/topic-configs.html#topicconfigs_message.timestamp.type)
 setting can be either `CreateTime` or `LogAppendTime`.
 
 - **CreateTime:** The broker uses the record's timestamp as set by the
@@ -157,7 +157,7 @@ value, but usually, it choses a sensible event-time or the current
 wall-clock time.
 
 If the topic's
-[message.timestamp.type](https://docs.confluent.io/current/installation/configuration/topic-configs.html#message-timestamp-type)
+[message.timestamp.type](https://docs.confluent.io/platform/current/installation/configuration/topic-configs.html#topicconfigs_message.timestamp.type)
 configuration is set to `CreateTime`, the following holds for the
 producer:
 

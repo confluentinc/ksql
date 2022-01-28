@@ -308,7 +308,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public Collection<StreamsMetadata> getAllStreamsHostMetadata() {
     try {
-      return ImmutableList.copyOf(sharedKafkaStreamsRuntime.getAllStreamsClientsMetadataForQuery(queryId));
+      return ImmutableList.copyOf(
+          sharedKafkaStreamsRuntime.getAllStreamsClientsMetadataForQuery(queryId));
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }

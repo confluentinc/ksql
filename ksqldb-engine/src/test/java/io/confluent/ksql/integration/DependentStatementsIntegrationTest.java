@@ -78,6 +78,18 @@ public class DependentStatementsIntegrationTest {
   }
 
   @Test
+  public void shouldCreateDependentTopicWithDefaultReplicationInSandbox() {
+    executeStatement(
+        // When:
+        "CREATE STREAM createNewTopic (a INT, b INT)"
+            + " WITH (KAFKA_TOPIC='t2', PARTITIONS=1, FORMAT='JSON');"
+
+        // Then: dependent statement also executes successfully
+        + "CREATE STREAM pickupDefaultReplicationFactor AS SELECT * FROM createNewTopic;"
+    );
+  }
+
+  @Test
   public void shouldRegisterAvroSchemaInSandboxViaCS() {
     executeStatement(
       // When:

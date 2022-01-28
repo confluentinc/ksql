@@ -52,7 +52,7 @@ final class SandboxedSchemaRegistryClient {
   static final class SandboxSchemaRegistryCache implements SchemaRegistryClient {
     // we use `MockSchemaRegistryClient` as a cache inside the sandbox to store
     // newly registered schemas (without polluting the actual SR)
-    // this allowd dependent statement to execute successfully inside the sandbox
+    // this allows dependent statements to execute successfully inside the sandbox
     private final MockSchemaRegistryClient sandboxCacheClient = new MockSchemaRegistryClient();
     // client to talk to the actual SR
     private final SchemaRegistryClient srClient;

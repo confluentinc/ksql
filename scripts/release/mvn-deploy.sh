@@ -48,8 +48,12 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
-    elif [[ "${repos[i]}" != "rest-utils" ]]
+    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "confluent-security-plugins"]]
     then
+      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch"
+      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch
+      find . -name '*.rej'
+    else
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch
       find . -name '*.rej'

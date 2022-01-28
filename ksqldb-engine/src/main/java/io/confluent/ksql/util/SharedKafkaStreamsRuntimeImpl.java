@@ -88,6 +88,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     QueryError.Type errorType = QueryError.Type.UNKNOWN;
     try {
       errorType = errorClassifier.classify(e);
+      if (e.getCause() != null && errorType == QueryError.Type.UNKNOWN) {
+        errorType = errorClassifier.classify(e.getCause());
+      }
     } catch (final Exception classificationException) {
       log.error("Error classifying unhandled exception", classificationException);
     } finally {

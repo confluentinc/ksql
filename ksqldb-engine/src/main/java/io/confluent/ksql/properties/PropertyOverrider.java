@@ -21,10 +21,26 @@ import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public final class PropertyOverrider {
+
+  private static final Set<String> QUERY_LEVEL_CONFIGS = new HashSet<>(Arrays.asList(
+      "auto.offset.reset",
+      "buffered.records.per.partition",
+      "cache.max.bytes.buffering",
+      "default.deserialization.exception.handler",
+      "default.timestamp.extractor",
+      "max.task.idle.ms",
+      "task.timeout.ms",
+      "topology.optimization"));
 
   private PropertyOverrider() {
   }
@@ -60,6 +76,18 @@ public final class PropertyOverrider {
               setProperty.getPropertyName(),
               setProperty.getPropertyValue()
           ));
+    if (statement
+          .getSessionConfig()
+          .getConfig(true)
+          .getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        && !QUERY_LEVEL_CONFIGS.contains(setProperty.getPropertyName())) {
+            throw new KsqlException(String.format("%s is not a settable property at the query"
+                    + " level with %s on. Please use ALTER SYSTEM to set %s for the cluster.",
+                setProperty.getPropertyName(),
+                KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
+                setProperty.getPropertyName())
+        );
+    }
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage(), statement.getStatementText(), e.getCause());
@@ -71,5 +99,4 @@ public final class PropertyOverrider {
         .resolve(propertyName, true)
         .orElseThrow(() -> new KsqlStatementException("Unknown property: " + propertyName, text));
   }
-
 }

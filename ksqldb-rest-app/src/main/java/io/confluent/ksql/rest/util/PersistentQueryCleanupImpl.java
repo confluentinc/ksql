@@ -87,17 +87,18 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
       allStateStores.removeAll(stateStoreNames);
       allStateStores.forEach((storeName) -> queryCleanupService.addCleanupTask(
           new QueryCleanupService.QueryCleanupTask(
-              serviceContext,
-              storeName.split("/")[0],
-              1 <  storeName.split("__").length
-                  ? Optional.of(storeName.split("__")[1])
-                  : Optional.empty(),
-              false,
-              stateDir,
-              ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-              ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))));
+            serviceContext,
+            storeName.split("/")[0],
+            1 <  storeName.split("__").length
+                ? Optional.of(storeName.split("__")[1])
+                : Optional.empty(),
+            false,
+            stateDir,
+            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+            ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))));
     }
   }
+
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public QueryCleanupService getQueryCleanupService() {
     return queryCleanupService;

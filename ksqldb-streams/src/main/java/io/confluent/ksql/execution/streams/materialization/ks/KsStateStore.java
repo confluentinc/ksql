@@ -73,28 +73,22 @@ class KsStateStore {
 
   <T> T store(final QueryableStoreType<T> queryableStoreType, final int partition) {
     try {
-      final StoreQueryParameters<T> parameters = StoreQueryParameters.fromNameAndType(
-          stateStoreName, queryableStoreType).withPartition(partition);
-      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-          && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
-        NamedTopologyStoreQueryParameters<T> namedTopologyParameters =
-            NamedTopologyStoreQueryParameters.fromNamedTopologyAndStoreNameAndType(
-                queryId,
-                parameters.storeName(),
-                parameters.queryableStoreType()
-            );
+      final boolean enableStaleStores =
+          ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS);
+      final boolean sharedRuntime = kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper;
 
-        if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-          namedTopologyParameters = namedTopologyParameters.enableStaleStores();
-        }
-        return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams).store(namedTopologyParameters);
-      } else if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS)) {
-        // True flag allows queries on standby and replica state stores
-        return kafkaStreams.store(parameters.enableStaleStores());
-      } else {
-        // False flag allows queries only on active state store
-        return kafkaStreams.store(parameters);
-      }
+      final StoreQueryParameters<T> parameters = sharedRuntime
+          ? NamedTopologyStoreQueryParameters.fromNamedTopologyAndStoreNameAndType(
+              queryId,
+              stateStoreName,
+              queryableStoreType).withPartition(partition)
+          : StoreQueryParameters.fromNameAndType(
+              stateStoreName,
+              queryableStoreType).withPartition(partition);
+
+      return enableStaleStores
+          ? kafkaStreams.store(parameters.enableStaleStores())
+          : kafkaStreams.store(parameters);
     } catch (final Exception e) {
       final State state = kafkaStreams.state();
       if (state != State.RUNNING) {

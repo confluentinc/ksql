@@ -98,10 +98,10 @@ public class HeartbeatAgentTest {
     heartbeatAgent.setHostsStatus(hostsStatus);
     when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
 
-    when(query0.getAllMetadata()).thenReturn(allMetadata0);
+    when(query0.getAllStreamsHostMetadata()).thenReturn(allMetadata0);
     when(streamsMetadata0.hostInfo()).thenReturn(localHostInfo);
 
-    when(query1.getAllMetadata()).thenReturn(allMetadata1);
+    when(query1.getAllStreamsHostMetadata()).thenReturn(allMetadata1);
     when(streamsMetadata1.hostInfo()).thenReturn(remoteHostInfo);
 
     DiscoverClusterService discoverService = heartbeatAgent.new DiscoverClusterService();

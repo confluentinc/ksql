@@ -34,8 +34,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +96,8 @@ public abstract class SharedKafkaStreamsRuntime {
         .collect(Collectors.toSet());
   }
 
-  public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLagsForQuery(final QueryId queryId) {
+  public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLagsForQuery(
+      final QueryId queryId) {
     try {
       return kafkaStreams.allLocalStorePartitionLagsForTopology(queryId.toString());
     } catch (IllegalStateException | StreamsException e) {

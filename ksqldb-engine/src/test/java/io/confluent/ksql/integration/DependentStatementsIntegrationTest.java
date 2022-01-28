@@ -82,7 +82,7 @@ public class DependentStatementsIntegrationTest {
     executeStatement(
         // When:
         "CREATE STREAM createNewTopic (a INT, b INT)"
-            + " WITH (KAFKA_TOPIC='t2', PARTITIONS=1, FORMAT='JSON');"
+            + " WITH (KAFKA_TOPIC='foo', PARTITIONS=1, FORMAT='JSON');"
 
         // Then: dependent statement also executes successfully
         + "CREATE STREAM pickupDefaultReplicationFactor AS SELECT * FROM createNewTopic;"
@@ -90,6 +90,18 @@ public class DependentStatementsIntegrationTest {
   }
 
   @Test
+  public void shouldUseTopicFromDependentStatementInSandbox() {
+    executeStatement(
+        // When:
+        "CREATE STREAM createNewTopic (a INT, b INT)"
+            + " WITH (KAFKA_TOPIC='bar', PARTITIONS=1, FORMAT='JSON');"
+
+        // Then: dependent statement also executes successfully
+        + "CREATE STREAM reuseTopic WITH (KAFKA_TOPIC='bar') AS SELECT * FROM createNewTopic;"
+    );
+  }
+  @Test
+
   public void shouldRegisterAvroSchemaInSandboxViaCS() {
     executeStatement(
       // When:

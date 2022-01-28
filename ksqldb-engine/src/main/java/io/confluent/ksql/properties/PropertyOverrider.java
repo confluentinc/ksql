@@ -24,7 +24,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -76,18 +75,18 @@ public final class PropertyOverrider {
               setProperty.getPropertyName(),
               setProperty.getPropertyValue()
           ));
-    if (statement
+      if (statement
           .getSessionConfig()
           .getConfig(true)
           .getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-        && !QUERY_LEVEL_CONFIGS.contains(setProperty.getPropertyName())) {
-            throw new KsqlException(String.format("%s is not a settable property at the query"
-                    + " level with %s on. Please use ALTER SYSTEM to set %s for the cluster.",
-                setProperty.getPropertyName(),
-                KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
-                setProperty.getPropertyName())
+          && !QUERY_LEVEL_CONFIGS.contains(setProperty.getPropertyName())) {
+        throw new KsqlException(String.format("%s is not a settable property at the query"
+                + " level with %s on. Please use ALTER SYSTEM to set %s for the cluster.",
+            setProperty.getPropertyName(),
+            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
+            setProperty.getPropertyName())
         );
-    }
+      }
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage(), statement.getStatementText(), e.getCause());

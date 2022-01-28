@@ -21,6 +21,7 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import java.util.HashMap;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.AddNamedTopologyResult;
@@ -49,8 +50,6 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Mock
     private KafkaStreamsBuilder kafkaStreamsBuilder;
     @Mock
-    private Map<String, Object> streamProps;
-    @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
     @Mock
     private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper2;
@@ -69,6 +68,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
     private final QueryId queryId = new QueryId("query-1");
     private final QueryId queryId2= new QueryId("query-2");
+    private Map<String, Object> streamProps = new HashMap();
 
     private final StreamsException query1Exception =
         new StreamsException("query down!", new TaskId(0, 0, queryId.toString()));
@@ -84,6 +84,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Before
     public void setUp() throws Exception {
         when(kafkaStreamsBuilder.buildNamedTopologyWrapper(any())).thenReturn(kafkaStreamsNamedTopologyWrapper).thenReturn(kafkaStreamsNamedTopologyWrapper2);
+        streamProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "runtime");
         sharedKafkaStreamsRuntimeImpl = new SharedKafkaStreamsRuntimeImpl(
             kafkaStreamsBuilder,
             queryErrorClassifier,

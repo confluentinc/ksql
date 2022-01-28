@@ -11,6 +11,6 @@ dockerfile {
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-T2"
+    extraBuildArgs = "-T3"
 }
 

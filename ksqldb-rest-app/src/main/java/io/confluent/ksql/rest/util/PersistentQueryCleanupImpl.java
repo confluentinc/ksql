@@ -60,7 +60,10 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
               final List<String> doNotDelete = new ArrayList<>(
                   Collections.singletonList(s.getQueryApplicationId()));
               if (s instanceof BinPackedPersistentQueryMetadataImpl) {
-                doNotDelete.add(s.getQueryApplicationId() + "/__" + s.getQueryId().toString() + "__");
+                doNotDelete.add(s.getQueryApplicationId()
+                    + "/__"
+                    + s.getQueryId().toString()
+                    + "__");
               }
               return doNotDelete.stream();
             })

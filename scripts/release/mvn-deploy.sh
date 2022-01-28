@@ -6,23 +6,22 @@ MY_DIR=`echo $(cd $(dirname $0); pwd)`
 
 # list of cc-docker-ksql dependencies. This will eventually be automatically parsed from the output
 # file of the release stabilization jenkins job
-repos=('kafka' 'common' 'ce-kafka' 'rest-utils' 'schema-registry' 'ksql' 'kafka-rest')
-repos+=('secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
-repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
-
 #repos=('kafka' 'common' 'ce-kafka' 'rest-utils' 'schema-registry' 'ksql' 'kafka-rest')
-#repos=('kafka-rest' 'secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
+#repos+=('secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
 #repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
+
+repos=('kafka-rest' 'secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
+repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
 
 # list of the corresponding stabilization branch for each respective repo above.
 # Should replace this with git branch --all --list '*-cc-docker-ksql.17-*' though
-branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x' '7.1.0-cc-docker-ksql.17-613-ce.x')
-branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
-branches+=('7.1.0-cc-docker-ksql.17-609.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
-branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
-
-#branches=('7.1.0-cc-docker-ksql.17-609.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
+#branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x' '7.1.0-cc-docker-ksql.17-613-ce.x')
+#branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
+#branches+=('7.1.0-cc-docker-ksql.17-609.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
 #branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
+
+branches=('7.1.0-cc-docker-ksql.17-609.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
+branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
 
 len=${#repos[@]}
 

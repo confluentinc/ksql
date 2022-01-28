@@ -22,7 +22,9 @@ import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,14 +55,19 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
   public void cleanupLeakedQueries(final List<PersistentQueryMetadata> persistentQueries) {
     final Set<String> stateStoreNames =
         persistentQueries
-        .stream()
-        .map(s -> {
-          if (s instanceof BinPackedPersistentQueryMetadataImpl) {
-            return s.getQueryApplicationId() + "/__" + s.getQueryId().toString() + "__";
-          }
-          return s.getQueryApplicationId();
-        })
-        .collect(Collectors.toSet());
+            .stream()
+            .flatMap(s -> {
+              final List<String> doNotDelete = new ArrayList<>(
+                  Collections.singletonList(s.getQueryApplicationId()));
+              if (s instanceof BinPackedPersistentQueryMetadataImpl) {
+                doNotDelete.add(s.getQueryApplicationId()
+                    + "/__"
+                    + s.getQueryId().toString()
+                    + "__");
+              }
+              return doNotDelete.stream();
+            })
+            .collect(Collectors.toSet());
 
     final String[] stateDirFileNames = new File(stateDir).list();
     if (stateDirFileNames == null) {
@@ -72,7 +79,9 @@ public class PersistentQueryCleanupImpl implements PersistentQueryCleanup {
             if (null == fileNames) {
               return Stream.of(f);
             } else if (Arrays.stream(fileNames).anyMatch(t -> t.matches("__*__"))) {
-              return Arrays.stream(fileNames).filter(t -> t.matches("__*__"));
+              return Arrays.stream(fileNames)
+                  .filter(t -> t.matches("__*__"))
+                  .map(s -> f + "/" + s);
             } else {
               return Stream.of(f);
             }

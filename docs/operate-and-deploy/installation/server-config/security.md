@@ -397,7 +397,7 @@ APIs can be accessed by unauthorized users.
 
 !!! note
 	If you're using Basic authentication, we recommend that you
-    [configure ksqlDB to use HTTPS for secure communication](#configuring-listner-for-ssl-encryption),
+    [configure ksqlDB to use HTTPS for secure communication](#configuring-listener-for-ssl-encryption),
     because the Basic protocol passes credentials in plain text.
 
 Below is an example configuration:

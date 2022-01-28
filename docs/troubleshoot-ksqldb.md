@@ -142,7 +142,7 @@ for serialization errors. For example, if your query specifies JSON for the
 ```
 
 ksqlDB CLI doesn't connect to ksqlDB Server
----------------------------------------
+-------------------------------------------
 
 The following warning may occur when you start the CLI.
 

@@ -157,7 +157,7 @@ value, but usually, it choses a sensible event-time or the current
 wall-clock time.
 
 If the topic's
-[message.timestamp.type](https://docs.confluent.io/current/installation/configuration/topic-configs.html#message-timestamp-type)
+[message.timestamp.type](https://docs.confluent.io/platform/current/installation/configuration/topic-configs.html#topicconfigs_message.timestamp.type)
 configuration is set to `CreateTime`, the following holds for the
 producer:
 

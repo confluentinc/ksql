@@ -31,6 +31,7 @@ import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -67,7 +68,7 @@ public class JsonStreamedRowResponseWriterTest {
   public void setUp() {
     when(response.write((Buffer) any())).thenAnswer(a -> {
       final Buffer buffer = a.getArgument(0);
-      stringBuilder.append(new String(buffer.getBytes()));
+      stringBuilder.append(new String(buffer.getBytes(), StandardCharsets.UTF_8));
       return response;
     });
     when(response.write((String) any())).thenAnswer(a -> {

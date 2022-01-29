@@ -22,8 +22,8 @@ public class TestRestServiceContextFactory {
   public static DefaultServiceContextFactory createDefault(
       final InternalSimpleKsqlClientFactory ksqlClientFactory
   ) {
-    return (ksqlConfig, authHeader, srClientFactory,
-            connectClientFactory, sharedClient, userPrincipal) -> {
+    return (ksqlConfig, authHeader, srClientFactory, connectClientFactory,
+            sharedClient, requestHeaders, userPrincipal) -> {
       return createUser(ksqlClientFactory).create(
           ksqlConfig,
           authHeader,
@@ -31,6 +31,7 @@ public class TestRestServiceContextFactory {
           srClientFactory,
           connectClientFactory,
           sharedClient,
+          requestHeaders,
           userPrincipal
       );
     };
@@ -39,8 +40,8 @@ public class TestRestServiceContextFactory {
   public static UserServiceContextFactory createUser(
     final InternalSimpleKsqlClientFactory ksqlClientFactory
   ) {
-    return (ksqlConfig, authHeader, kafkaClientSupplier,
-            srClientFactory, connectClientFactory, sharedClient, userPrincipal) -> {
+    return (ksqlConfig, authHeader, kafkaClientSupplier, srClientFactory,
+            connectClientFactory, sharedClient, requestHeaders, userPrincipal) -> {
       return ServiceContextFactory.create(
           ksqlConfig,
           kafkaClientSupplier,

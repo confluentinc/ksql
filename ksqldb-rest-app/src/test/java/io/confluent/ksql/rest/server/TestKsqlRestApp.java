@@ -337,7 +337,7 @@ public class TestKsqlRestApp extends ExternalResource {
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),
-          (authHeader, userPrincipal) -> serviceContext.get().getConnectClient(),
+          (authHeader, requestHeaders, userPrincipal) -> serviceContext.get().getConnectClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
               PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),

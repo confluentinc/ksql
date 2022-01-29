@@ -33,13 +33,19 @@ import java.util.Objects;
 public class JaasPrincipal extends DefaultKsqlPrincipal {
 
   private final String name;
+  private final String password;
   private final String token;
 
   public JaasPrincipal(final String name, final String password) {
-    super(new BasicJaasPrincipal(name));
+    this(name, password, "");
+  }
+
+  private JaasPrincipal(final String name, final String password, final String ipAddress) {
+    super(new BasicJaasPrincipal(name), ipAddress);
 
     this.name = Objects.requireNonNull(name, "name");
-    this.token = createToken(name, Objects.requireNonNull(password));
+    this.password = Objects.requireNonNull(password, "password");
+    this.token = createToken(name, password);
   }
 
   @Override
@@ -52,13 +58,22 @@ public class JaasPrincipal extends DefaultKsqlPrincipal {
     return Collections.emptyMap();
   }
 
-  private String createToken(final String name, final String secret) {
-    return Base64.getEncoder().encodeToString((name + ":" + secret)
-        .getBytes(StandardCharsets.ISO_8859_1));
-  }
-
   public String getToken() {
     return token;
+  }
+
+  /**
+   * Preserve token functionality by returning another JaasPrincipal when the
+   * IP address is set from the routing context.
+   */
+  @Override
+  public DefaultKsqlPrincipal withIpAddress(final String ipAddress) {
+    return new JaasPrincipal(name, password, ipAddress);
+  }
+
+  private static String createToken(final String name, final String secret) {
+    return Base64.getEncoder().encodeToString((name + ":" + secret)
+        .getBytes(StandardCharsets.ISO_8859_1));
   }
 
   static class BasicJaasPrincipal implements Principal {

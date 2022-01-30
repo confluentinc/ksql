@@ -76,7 +76,7 @@ public class DefaultConnectClient implements ConnectClient {
   private static final String STATUS = "/status";
   private static final String TOPICS = "/topics";
   private static final String VALIDATE_CONNECTOR = CONNECTOR_PLUGINS + "/%s/config/validate";
-  private static final int DEFAULT_TIMEOUT_MS = 5_000;
+  private static final int DEFAULT_TIMEOUT_MS = 30_000;
   private static final int MAX_ATTEMPTS = 3;
 
   private final URI connectUri;

@@ -105,6 +105,8 @@ public class KsqlTargetTest {
         .thenReturn(httpClientRequest);
     when(httpClientRequest.connection())
         .thenReturn(httpConnection);
+
+    error.set(null);
   }
 
   @After
@@ -234,7 +236,7 @@ public class KsqlTargetTest {
       try {
         ksqlTarget.postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.empty());
       } catch (Exception e) {
-        error.set(e);
+        // ignore response error since this test is just testing headers on the outgoing request
       }
     });
     assertThatEventually(requestStarted::get, is(true));
@@ -243,6 +245,5 @@ public class KsqlTargetTest {
     // Then:
     verify(httpClientRequest).putHeader("h1", "v1");
     verify(httpClientRequest).putHeader("h2", "v2");
-    assertThat(error.get(), is(nullValue()));
   }
 }

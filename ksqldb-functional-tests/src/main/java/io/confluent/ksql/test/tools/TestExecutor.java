@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
@@ -576,7 +577,8 @@ public class TestExecutor implements Closeable {
             Optional.empty(),
             Collections.emptyMap(),
             Optional.empty(),
-            false),
+            false,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT),
         DisabledKsqlClient::instance,
         new StubKafkaConsumerGroupClient()
     );

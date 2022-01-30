@@ -6,6 +6,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
@@ -229,12 +230,19 @@ public class KsqlTargetTest {
     ksqlTarget = new KsqlTarget(httpClient, socketAddress, localProperties, authHeader, HOST, additionalHeaders);
 
     // When:
-    executor.submit(() -> ksqlTarget.postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.empty()));
+    executor.submit(() -> {
+      try {
+        ksqlTarget.postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.empty());
+      } catch (Exception e) {
+        error.set(e);
+      }
+    });
     assertThatEventually(requestStarted::get, is(true));
     handlerCaptor.getValue().handle(Buffer.buffer());
 
     // Then:
     verify(httpClientRequest).putHeader("h1", "v1");
     verify(httpClientRequest).putHeader("h2", "v2");
+    assertThat(error.get(), is(nullValue()));
   }
 }

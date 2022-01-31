@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static io.vertx.core.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -132,7 +133,8 @@ public class DefaultConnectClientTest {
         Optional.of(AUTH_HEADER),
         ImmutableMap.of(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE),
         Optional.of(sslContext),
-        false);
+        false,
+        CONNECT_REQUEST_TIMEOUT_DEFAULT);
   }
 
   @Test

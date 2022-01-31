@@ -1,5 +1,7 @@
 package io.confluent.ksql.rest.server.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
+
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
@@ -50,7 +52,8 @@ public class TestRestServiceContextFactory {
               authHeader,
               Collections.emptyMap(),
               Optional.empty(),
-              false),
+              false,
+              CONNECT_REQUEST_TIMEOUT_DEFAULT),
           () -> ksqlClientFactory.create(authHeader, sharedClient)
       );
     };

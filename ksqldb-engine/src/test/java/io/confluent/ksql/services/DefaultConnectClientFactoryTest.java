@@ -16,6 +16,7 @@
 package io.confluent.ksql.services;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
@@ -108,6 +109,7 @@ public class DefaultConnectClientFactoryTest {
     when(config.getString(KsqlConfig.CONNECT_URL_PROPERTY)).thenReturn("http://localhost:8034");
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)).thenReturn("NONE");
     when(config.valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX)).thenReturn(DEFAULT_CONFIGS_WITH_PREFIX_OVERRIDE);
+    when(config.getLong(KsqlConfig.CONNECT_REQUEST_TIMEOUT_MS)).thenReturn(CONNECT_REQUEST_TIMEOUT_DEFAULT);
 
     connectClientFactory = new DefaultConnectClientFactory(config);
   }

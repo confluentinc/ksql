@@ -339,7 +339,7 @@ public class DefaultConnectClientTest {
   }
 
   @Test
-  public void testDelete() throws JsonProcessingException {
+  public void testDeleteWithStatusNoContentResponse() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
         WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
@@ -347,6 +347,26 @@ public class DefaultConnectClientTest {
             .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_NO_CONTENT))
+    );
+
+    // When:
+    final ConnectResponse<String> response = client.delete("foo");
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is("foo")));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testDeleteWithStatusOKResponse() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody("{\"error\":null}"))
     );
 
     // When:

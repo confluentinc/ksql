@@ -22,6 +22,7 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -30,6 +31,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -290,7 +292,9 @@ public class DefaultConnectClient implements ConnectClient {
           .connectTimeout(Timeout.ofMilliseconds(DEFAULT_TIMEOUT_MS))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_NO_CONTENT, new TypeReference<Object>() {},
+              createHandler(
+                  ImmutableList.of(HttpStatus.SC_NO_CONTENT, HttpStatus.SC_OK),
+                  new TypeReference<Object>() {},
                   foo -> connector)));
 
 
@@ -435,9 +439,17 @@ public class DefaultConnectClient implements ConnectClient {
       final TypeReference<C> entityTypeRef,
       final Function<C, T> cast
   ) {
+    return createHandler(Collections.singletonList(expectedStatus), entityTypeRef, cast);
+  }
+
+  private static <T, C> HttpClientResponseHandler<ConnectResponse<T>> createHandler(
+      final List<Integer> expectedStatuses,
+      final TypeReference<C> entityTypeRef,
+      final Function<C, T> cast
+  ) {
     return httpResponse -> {
       final int code = httpResponse.getCode();
-      if (httpResponse.getCode() != expectedStatus) {
+      if (!expectedStatuses.contains(httpResponse.getCode())) {
         final String entity = EntityUtils.toString(httpResponse.getEntity());
         return ConnectResponse.failure(entity, code);
       }

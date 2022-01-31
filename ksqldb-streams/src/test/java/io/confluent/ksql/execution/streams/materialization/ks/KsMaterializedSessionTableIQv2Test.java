@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
@@ -86,6 +87,8 @@ public class KsMaterializedSessionTableIQv2Test {
 
   private static final String TOPIC = "topic";
   private static final long OFFSET = 100L;
+  private static final Position POSITION = Position.fromMap(
+      ImmutableMap.of(TOPIC, ImmutableMap.of(PARTITION, OFFSET)));
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -106,7 +109,7 @@ public class KsMaterializedSessionTableIQv2Test {
     when(stateStore.schema()).thenReturn(SCHEMA);
     final StateQueryResult result = new StateQueryResult();
     final QueryResult queryResult = QueryResult.forResult(fetchIterator);
-    queryResult.setPosition(getTestPosition());
+    queryResult.setPosition(POSITION);
     result.addResult(PARTITION, queryResult);
     when(kafkaStreams.query(any())).thenReturn(result);
 
@@ -188,7 +191,7 @@ public class KsMaterializedSessionTableIQv2Test {
         )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -282,7 +285,7 @@ public class KsMaterializedSessionTableIQv2Test {
         )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -325,7 +328,7 @@ public class KsMaterializedSessionTableIQv2Test {
         )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -355,7 +358,7 @@ public class KsMaterializedSessionTableIQv2Test {
         )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -403,7 +406,7 @@ public class KsMaterializedSessionTableIQv2Test {
         )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -447,7 +450,7 @@ public class KsMaterializedSessionTableIQv2Test {
         )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -483,7 +486,7 @@ public class KsMaterializedSessionTableIQv2Test {
       )
     ));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -502,7 +505,7 @@ public class KsMaterializedSessionTableIQv2Test {
     final List<WindowedRow> resultList = Lists.newArrayList(rowIterator);
     assertThat(resultList, hasSize(2));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   private void givenSingleSession(
@@ -520,11 +523,5 @@ public class KsMaterializedSessionTableIQv2Test {
       A_KEY,
       new SessionWindow(sessionStart.toEpochMilli(), sessionEnd.toEpochMilli())
     );
-  }
-
-  private static Position getTestPosition() {
-    final Position position = Position.emptyPosition();
-    position.withComponent(TOPIC, PARTITION, OFFSET);
-    return position;
   }
 }

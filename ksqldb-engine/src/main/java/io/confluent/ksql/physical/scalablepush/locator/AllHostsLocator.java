@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.scalablepush.locator;
 
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.net.MalformedURLException;

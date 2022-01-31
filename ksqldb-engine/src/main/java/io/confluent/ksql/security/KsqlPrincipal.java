@@ -34,6 +34,10 @@ public interface KsqlPrincipal extends Principal {
   /**
    * Returns the user's IP address, as set by the ksqlDB server's request context.
    *
+   * <p>This method never returns {@code null}. An empty string may be returned in
+   * certain situations (those where an IP address is not available, e.g., domain
+   * socket requests).
+   *
    * <p>Overriding the implementation of this method from custom {@code KsqlPrincipal}
    * implementations has no effect on the return value of this method, when called from
    * custom extensions, because incoming {@code KsqlPrincipal} instances are wrapped

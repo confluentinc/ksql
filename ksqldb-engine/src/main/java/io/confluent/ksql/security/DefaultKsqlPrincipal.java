@@ -28,7 +28,7 @@ import java.util.Objects;
 public class DefaultKsqlPrincipal implements KsqlPrincipal {
 
   private final Principal principal;
-  private String ipAddress;
+  private final String ipAddress;
 
   public DefaultKsqlPrincipal(final Principal principal) {
     this(principal, "");
@@ -61,6 +61,7 @@ public class DefaultKsqlPrincipal implements KsqlPrincipal {
     return principal;
   }
 
+  @Override
   public String getIpAddress() {
     return ipAddress;
   }

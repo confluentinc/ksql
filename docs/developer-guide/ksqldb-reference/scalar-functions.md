@@ -55,7 +55,7 @@ Converts one type to another. The following casts are supported:
 
 | from | to | notes |
 |------|----|-------|
-| any  | `STRING` | Converts the type to its string representation. |
+| any except `BYTES` | `STRING` | Converts the type to its string representation. |
 | `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
 | `VARCHAR` | `TIME` | Converts time strings to `TIME`. Conversion fails if text is not in `HH:mm:ss` format.     |
@@ -251,6 +251,26 @@ ARRAY[exp1, exp2, ...]
 Construct an array from a variable number of inputs.
 
 All elements must be [coercible to a common Sql type][1]. 
+
+### `ARRAY_CONCAT`
+
+Since: 0.21.0
+
+```sql
+ARRAY_CONCAT(array1, array2)
+```
+
+Returns an array representing the concatenation of both input arrays.
+
+Returns NULL if both input arrays are NULL. If only one argument is NULL,
+the result is the other argument.
+
+Examples:
+
+```sql 
+ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
+ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
+```
 
 ### `ARRAY_CONTAINS`
 
@@ -571,23 +591,23 @@ include both endpoints.
 
 Apply lambda functions to collections.
 
-### `TRANSFORM`
+### `FILTER`
 
 Since: 0.17.0
 
 ```sql
-TRANSFORM(array, x => ...)
+FILTER(array, x => ...)
 
-TRANSFORM(map, (k,v) => ..., (k,v) => ...)
+FILTER(map, (k,v) => ...)
 ```
 
-Transform a collection by using a lambda function.
+Filter a collection with a lambda function.
 
 If the collection is an array, the lambda function must have one input argument.
 
-If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
+If the collection is a map, the lambda function must have two input arguments.
 
-### `Reduce`
+### `REDUCE`
 
 Since: 0.17.0
 
@@ -605,21 +625,21 @@ If the collection is a map, the lambda function must have three input arguments.
 
 If the state is `null`, the result is `null`.
 
-### `Filter`
+### `TRANSFORM`
 
 Since: 0.17.0
 
 ```sql
-FILTER(array, x => ...)
+TRANSFORM(array, x => ...)
 
-FILTER(map, (k,v) => ...)
+TRANSFORM(map, (k,v) => ..., (k,v) => ...)
 ```
 
-Filter a collection with a lambda function.
+Transform a collection by using a lambda function.
 
 If the collection is an array, the lambda function must have one input argument.
 
-If the collection is a map, the lambda function must have two input arguments.
+If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
 
 ## Strings
 
@@ -651,10 +671,11 @@ Since: -
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
+CONCAT(bytes1, bytes2, ..., bytes-n)
 ```
 
-Concatenate two or more string expressions. Any input strings which evaluate
-to NULL are replaced with an empty string in the output.
+Concatenate two or more string or bytes expressions. Any inputs which evaluate
+to NULL are replaced with an empty string or bytes in the output.
 
 !!! Tip "See CONCAT in action"
     - [Enrich orders with change data capture (CDC)](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/denormalization/#ksqldb-code)
@@ -667,7 +688,8 @@ Since: 0.10.0
 CONCAT_WS(separator, expr1, expr2, ...)
 ```
 
-Concatenates two or more string expressions, inserting a separator string between each.
+Concatenates two or more string or bytes expressions, inserting a separator
+string or bytes between each.
 
 If the separator is NULL, this function returns NULL.
 Any expressions which evaluate to NULL are skipped.
@@ -734,6 +756,17 @@ multiple elements, like those containing wildcards, aren't supported.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
 
+### `FROM_BYTES`
+
+Since: 0.21.0
+
+```sql
+FROM_BYTES(bytes, encoding)
+```
+
+Converts a BYTES column to a STRING in the specified encoding type.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
+
 ### `INITCAP`
 
 Since: 0.6.0
@@ -788,10 +821,11 @@ Convert a string to lowercase.
 Since: -
 
 ```sql
-LEN(col1)
+LEN(string)
+LEN(bytes)
 ```
 
-The length of a string.
+The length of a string or the number of bytes in a BYTES value.
 
 ### `LPAD`
 
@@ -801,10 +835,13 @@ Since: 0.10.0
 LPAD(input, length, padding)
 ```
 
-Pads the input string, beginning from the left, with the specified padding string, until the target length is reached. 
-If the input string is longer than the specified target length, it is truncated.
+Pads the input string or bytes, beginning from the left, with the specified
+padding of the same type, until the target length is reached.
 
-If the padding string is empty or NULL, or the target length is negative, NULL is returned.
+If the input is longer than the specified target length, it is truncated.
+
+If the padding string or byte array is empty or NULL, or the target length
+is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -984,9 +1021,13 @@ Since: 0.10.0
 RPAD(input, length, padding)
 ```
 
-Pads the input string, starting from the end, with the specified padding string until the target length is reached. If the input string is longer than the specified target length it will be truncated. 
+Pads the input string or bytes, starting from the end, with the specified
+padding of the same type until the target length is reached.
 
-If the padding string is empty or NULL, or the target length is negative, then NULL is returned.
+If the input is longer than the specified target length, it is truncated. 
+
+If the padding string or byte array is empty or NULL, or the target length
+is negative, NULL is returned.
 
 Examples:
 ```sql
@@ -1003,17 +1044,19 @@ Since: 0.6.0
 SPLIT(col1, delimiter)
 ```
 
-Splits a string into an array of substrings based
-on a delimiter. If the delimiter is not found,
-then the original string is returned as the only
-element in the array. If the delimiter is empty,
-then all characters in the string are split.
-If either, string or delimiter, are NULL, then a
-NULL value is returned.
+Splits a string into an array of substrings, or bytes into an array of
+subarrays, based on a delimiter.
 
-If the delimiter is found at the beginning or end
-of the string, or there are contiguous delimiters,
-then an empty space is added to the array.
+If the delimiter is not found, the original string or byte array is returned
+as the only element in the array.
+
+If the delimiter is empty, every character in the string or byte in the array
+is split.
+
+If the delimiter is found at the beginning or end of the string or bytes,
+or there are contiguous delimiters, an empty space is added to the array.
+
+Returns NULL if either parameter is NULL.
 
 !!! Tip "See SPLIT in action"
     - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
@@ -1042,20 +1085,28 @@ SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green',
 Since: -
 
 ```sql
-SUBSTRING(col1, 2, 5)
-```
-
-```sql
 SUBSTRING(str, pos, [len])
+SUBSTRING(bytes, pos, [len])
 ```
 
-Returns a substring of `str` that starts at
-`pos` (first character is at position 1) and
+Returns the portion of `str` or `bytes` that starts at
+`pos` (first character or byte is at position 1) and
 has length `len`, or continues to the end of
-the string.
+the string or bytes.
 
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
+
+### `TO_BYTES`
+
+Since: 0.21.0
+
+```sql
+TO_BYTES(string, encoding)
+```
+
+Converts a STRING column in the specified encoding type to a BYTES column.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `TRIM`
 
@@ -1135,6 +1186,181 @@ complex type are not inspected.
 
 ## Date and time
 
+### `CONVERT_TZ`
+
+```sql
+CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
+```
+
+Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
+`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
+"PDT","Europe/London". For more information on timestamp formats,
+see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `DATEADD`
+
+Since: 0.20
+
+```sql
+DATEADD(unit, interval, COL0)
+```
+
+Adds an interval to a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `DATESUB`
+
+Since: 0.20
+
+```sql
+DATESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `FORMAT_DATE`
+
+```sql
+FORMAT_DATE(date, 'yyyy-MM-dd')
+```
+
+Converts a DATE value into a string that represents the date in the given format.
+You can escape single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `FORMAT_TIME`
+
+Since: 0.20
+
+```sql
+FORMAT_TIME(time, 'HH:mm:ss.SSS')
+```
+
+Converts a TIME value into the string representation of the time in the given format.
+Single quotes in the time format can be escaped with two successive single quotes, `''`, for
+example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FORMAT_TIMESTAMP`
+
+```sql
+FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
+Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! Tip "See FORMAT_TIMESTAMP in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+
+### `FROM_DAYS`
+
+```sql
+FROM_DAYS(days)
+```
+
+Converts an INT number of days since epoch to a DATE value.
+
+### `FROM_UNIXTIME`
+
+```sql
+FROM_UNIXTIME(milliseconds)
+```
+
+Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
+
+!!! Tip "See FROM_UNIXTIME in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+
+### `PARSE_DATE`
+
+```sql
+PARSE_DATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the
+given format into a DATE value. You can escape
+single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `PARSE_TIME`
+
+Since: 0.20
+
+```sql
+PARSE_TIME(col1, 'HH:mm:ss.SSS')
+```
+
+Converts a string value in the given format into a TIME value. Single quotes in the time
+format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSE_TIMESTAMP`
+
+```sql
+PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
+format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `TIMEADD`
+
+Since: 0.20
+
+```sql
+TIMEADD(unit, interval, COL0)
+```
+
+Adds an interval to a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `TIMESUB`
+
+Since: 0.20
+
+```sql
+TIMESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `TIMESTAMPADD`
+
+Since: 0.17
+
+```sql
+TIMESTAMPADD(unit, interval, COL0)
+```
+
+Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `TIMESTAMPSUB`
+
+Since: 0.17
+
+```sql
+TIMESTAMPSUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
 ### `UNIX_DATE`
 
 Since: 0.6.0
@@ -1163,258 +1389,6 @@ value as a BIGINT value representing the number of milliseconds since `1970-01-0
 If the `timestamp` parameter is not provided, it returns the current Unix timestamp in milliseconds,
 represented as a BIGINT. The returned timestamp may differ depending on the local time of different
 ksqlDB Server instances.
-
-### `DATETOSTRING`
-
-Since: -
-
-Deprecated since 0.20.0 (use FORMAT_DATE)
-
-```sql
-DATETOSTRING(START_DATE, 'yyyy-MM-dd')
-```
-
-Converts an integer representation of a date into a string representing the
-date in the given format. Single quotes in the timestamp format can be escaped
-with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-The integer represents days since epoch matching the encoding used by
-{{ site.kconnect }} dates.
-
-### `STRINGTODATE`
-
-Since: -
-
-Deprecated since 0.20.0 (use PARSE_DATE)
-
-```sql
-STRINGTODATE(col1, 'yyyy-MM-dd')
-```
-
-Converts a string representation of a date in the
-given format into an integer representing days
-since epoch. Single quotes in the timestamp
-format can be escaped with two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `STRINGTOTIMESTAMP`
-
-Since: -
-
-Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
-
-```sql
-STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a string value in the given
-format into the BIGINT value                      
-that represents the millisecond timestamp. Single
-quotes in the timestamp format can be escaped with
-two successive single quotes, `''`, for
-example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a
-`java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For
-more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).    
-
-### `TIMESTAMPTOSTRING`
-
-Since: -
-
-Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
-
-```sql
-TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a BIGINT millisecond timestamp value into the string representation
-of the timestamp in the given format. Single quotes in the timestamp format
-can be escaped with two successive single quotes, `''`, for example:
-`'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
-for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
-information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-!!! Tip "See TIMESTAMPTOSTRING in action"
-    - [Detect unusual credit card activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
-
-### `FORMAT_TIMESTAMP`
-
-```sql
-FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
-Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
-example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
-
-!!! Tip "See FORMAT_TIMESTAMP in action"
-    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
-
-### `PARSE_TIMESTAMP`
-
-```sql
-PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
-format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `FORMAT_DATE`
-
-```sql
-FORMAT_DATE(date, 'yyyy-MM-dd')
-```
-
-Converts a DATE value into a string that represents the date in the given format.
-You can escape single-quote characters in the timestamp format by using two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `PARSE_DATE`
-
-```sql
-PARSE_DATE(col1, 'yyyy-MM-dd')
-```
-
-Converts a string representation of a date in the
-given format into a DATE value. You can escape
-single-quote characters in the timestamp format by using two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `FORMAT_TIME`
-
-Since: 0.20
-
-```sql
-FORMAT_TIME(time, 'HH:mm:ss.SSS')
-```
-
-Converts a TIME value into the string representation of the time in the given format.
-Single quotes in the time format can be escaped with two successive single quotes, `''`, for
-example: `'''T''HH:mm:ssX'`.
-
-For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `PARSE_TIME`
-
-Since: 0.20
-
-```sql
-PARSE_TIME(col1, 'HH:mm:ss.SSS')
-```
-
-Converts a string value in the given format into a TIME value. Single quotes in the time
-format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
-
-For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `CONVERT_TZ`
-
-```sql
-CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
-```
-
-Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
-`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
-"PDT","Europe/London". For more information on timestamp formats,
-see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `FROM_UNIXTIME`
-
-```sql
-FROM_UNIXTIME(milliseconds)
-```
-
-Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
-
-!!! Tip "See FROM_UNIXTIME in action"
-    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
-
-### `FROM_DAYS`
-
-```sql
-FROM_DAYS(days)
-```
-
-Converts an INT number of days since epoch to a DATE value.
-
-### TIMESTAMPADD
-
-Since: 0.17
-
-```sql
-TIMESTAMPADD(unit, interval, COL0)
-```
-
-Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMESTAMPSUB
-
-Since: 0.17
-
-```sql
-TIMESTAMPSUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMEADD
-
-Since: 0.20
-
-```sql
-TIMEADD(unit, interval, COL0)
-```
-
-Adds an interval to a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMESUB
-
-Since: 0.20
-
-```sql
-TIMESUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### DATEADD
-
-Since: 0.20
-
-```sql
-DATEADD(unit, interval, COL0)
-```
-
-Adds an interval to a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### DATESUB
-
-Since: 0.20
-
-```sql
-DATESUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
 
 ## URLs
 
@@ -1573,3 +1547,79 @@ present or `url` is not a valid URI.
 - Output: `a=foo bar&b=baz`                  
 
 [1]: type-coercion.md#implicit-type-coercion
+
+## Deprecated
+
+### `DATETOSTRING`
+
+Since: -
+
+Deprecated since 0.20.0 (use FORMAT_DATE)
+
+```sql
+DATETOSTRING(START_DATE, 'yyyy-MM-dd')
+```
+
+Converts an integer representation of a date into a string representing the
+date in the given format. Single quotes in the timestamp format can be escaped
+with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+The integer represents days since epoch matching the encoding used by
+{{ site.kconnect }} dates.
+
+### `STRINGTODATE`
+
+Since: -
+
+Deprecated since 0.20.0 (use PARSE_DATE)
+
+```sql
+STRINGTODATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the
+given format into an integer representing days
+since epoch. Single quotes in the timestamp
+format can be escaped with two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `STRINGTOTIMESTAMP`
+
+Since: -
+
+Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
+
+```sql
+STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given
+format into the BIGINT value                      
+that represents the millisecond timestamp. Single
+quotes in the timestamp format can be escaped with
+two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a
+`java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For
+more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).    
+
+### `TIMESTAMPTOSTRING`
+
+Since: -
+
+Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
+
+```sql
+TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a BIGINT millisecond timestamp value into the string representation
+of the timestamp in the given format. Single quotes in the timestamp format
+can be escaped with two successive single quotes, `''`, for example:
+`'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
+for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
+information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).

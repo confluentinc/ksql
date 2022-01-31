@@ -252,7 +252,7 @@ You can convert between different key formats in an analogous manner by specifyi
 ### Schema Inference Details
 The schema in {{ site.sr }} is a "physical schema", and the schema in ksqlDB is
 a "logical schema". The physical schema, not the logical schema, is registered
-under the subject `<topic-name>-key` or `<topic-name>-value` if corresponding key schema or value
+under the subject `<topic-name>-key` or `<topic-name>-value` if a corresponding key schema or value
 schema is inferred.
 
 #### Schema inference schema requirements
@@ -267,9 +267,9 @@ types.
 - In `JSON_SR`, the `struct` type corresponds with the `object` type.
 
 !!! note
-In the following examples, the `AVRO` schema string in {{ site.sr }}
-is a single-line raw string without newline characters (`\n`). The
-strings are shown as human-readable text for convenience.
+    In the following examples, the `AVRO` schema string in {{ site.sr }}
+    is a single-line raw string without newline characters (`\n`). The
+    strings are shown as human-readable text for convenience.
 
 For example, the following a physical schema is in `AVRO` format and is
 registered with {{ site.sr }} under subject `pageviews-value`:
@@ -326,16 +326,16 @@ Name                 : PAGEVIEWS
 ```
 
 !!! important
-- ksqlDB ignores unsupported types in the physical schema and continues
-translating supported types to the logical schema. You should verify that
-the logical schema is translated as expected.
-- During schema translation from a physical schema to a logical schema,
-`struct` type field names are used as column names in the logical schema.
-Field names are translated to uppercase, in contrast with schema
-inference with a schema id, which _does not_ translate field names to
-uppercase.
+    - ksqlDB ignores unsupported types in the physical schema and continues
+    translating supported types to the logical schema. You should verify that
+    the logical schema is translated as expected.
+    - During schema translation from a physical schema to a logical schema,
+    `struct` type field names are used as column names in the logical schema.
+    Field names are translated to uppercase, in contrast with schema
+    inference with a schema id, which _does not_ translate field names to
+    uppercase.
 
-If `WRAP_SINGLE_VALUE` is `false` in the statement, and if key schema is
+If `WRAP_SINGLE_VALUE` is `false` in the statement, and if the key schema is
 inferred, `ROWKEY` is used as the key's column name.
 
 If value schema is inferred, `ROWVAL` is used as the value's column name. The physical
@@ -375,4 +375,4 @@ Name                 : PAGEVIEW_COUNT
 ```
 
 For more information about `WRAP_SINGLE_VALUE`, see
-[Single Field (un)wrapping](/reference/serialization#single-field-unwrapping).
+[Single Field (un)wrapping](/reference/serialization/#single-field-unwrapping).

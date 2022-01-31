@@ -18,26 +18,6 @@ ABS(col1)
 
 The absolute value of a value.
 
-### `ARRAY_CONCAT`
-
-Since: 0.21.0
-
-```sql
-ARRAY_CONCAT(array1, array2)
-```
-
-Returns an array representing the concatenation of both input arrays.
-
-Returns NULL if both input arrays are NULL. If only one argument is NULL,
-the result is the other argument.
-
-Examples:
-
-```sql 
-ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
-ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
-```
-
 ### `AS_VALUE`
 
 Since: 0.9.0
@@ -271,6 +251,26 @@ ARRAY[exp1, exp2, ...]
 Construct an array from a variable number of inputs.
 
 All elements must be [coercible to a common Sql type][1]. 
+
+### `ARRAY_CONCAT`
+
+Since: 0.21.0
+
+```sql
+ARRAY_CONCAT(array1, array2)
+```
+
+Returns an array representing the concatenation of both input arrays.
+
+Returns NULL if both input arrays are NULL. If only one argument is NULL,
+the result is the other argument.
+
+Examples:
+
+```sql 
+ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
+ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
+```
 
 ### `ARRAY_CONTAINS`
 
@@ -591,23 +591,23 @@ include both endpoints.
 
 Apply lambda functions to collections.
 
-### `TRANSFORM`
+### `FILTER`
 
 Since: 0.17.0
 
 ```sql
-TRANSFORM(array, x => ...)
+FILTER(array, x => ...)
 
-TRANSFORM(map, (k,v) => ..., (k,v) => ...)
+FILTER(map, (k,v) => ...)
 ```
 
-Transform a collection by using a lambda function.
+Filter a collection with a lambda function.
 
 If the collection is an array, the lambda function must have one input argument.
 
-If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
+If the collection is a map, the lambda function must have two input arguments.
 
-### `Reduce`
+### `REDUCE`
 
 Since: 0.17.0
 
@@ -625,21 +625,21 @@ If the collection is a map, the lambda function must have three input arguments.
 
 If the state is `null`, the result is `null`.
 
-### `Filter`
+### `TRANSFORM`
 
 Since: 0.17.0
 
 ```sql
-FILTER(array, x => ...)
+TRANSFORM(array, x => ...)
 
-FILTER(map, (k,v) => ...)
+TRANSFORM(map, (k,v) => ..., (k,v) => ...)
 ```
 
-Filter a collection with a lambda function.
+Transform a collection by using a lambda function.
 
 If the collection is an array, the lambda function must have one input argument.
 
-If the collection is a map, the lambda function must have two input arguments.
+If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
 
 ## Strings
 
@@ -1186,6 +1186,181 @@ complex type are not inspected.
 
 ## Date and time
 
+### `CONVERT_TZ`
+
+```sql
+CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
+```
+
+Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
+`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
+"PDT","Europe/London". For more information on timestamp formats,
+see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `DATEADD`
+
+Since: 0.20
+
+```sql
+DATEADD(unit, interval, COL0)
+```
+
+Adds an interval to a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `DATESUB`
+
+Since: 0.20
+
+```sql
+DATESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `FORMAT_DATE`
+
+```sql
+FORMAT_DATE(date, 'yyyy-MM-dd')
+```
+
+Converts a DATE value into a string that represents the date in the given format.
+You can escape single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `FORMAT_TIME`
+
+Since: 0.20
+
+```sql
+FORMAT_TIME(time, 'HH:mm:ss.SSS')
+```
+
+Converts a TIME value into the string representation of the time in the given format.
+Single quotes in the time format can be escaped with two successive single quotes, `''`, for
+example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FORMAT_TIMESTAMP`
+
+```sql
+FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
+Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+!!! Tip "See FORMAT_TIMESTAMP in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+
+### `FROM_DAYS`
+
+```sql
+FROM_DAYS(days)
+```
+
+Converts an INT number of days since epoch to a DATE value.
+
+### `FROM_UNIXTIME`
+
+```sql
+FROM_UNIXTIME(milliseconds)
+```
+
+Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
+
+!!! Tip "See FROM_UNIXTIME in action"
+    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
+
+### `PARSE_DATE`
+
+```sql
+PARSE_DATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the
+given format into a DATE value. You can escape
+single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `PARSE_TIME`
+
+Since: 0.20
+
+```sql
+PARSE_TIME(col1, 'HH:mm:ss.SSS')
+```
+
+Converts a string value in the given format into a TIME value. Single quotes in the time
+format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSE_TIMESTAMP`
+
+```sql
+PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
+format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `TIMEADD`
+
+Since: 0.20
+
+```sql
+TIMEADD(unit, interval, COL0)
+```
+
+Adds an interval to a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `TIMESUB`
+
+Since: 0.20
+
+```sql
+TIMESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `TIMESTAMPADD`
+
+Since: 0.17
+
+```sql
+TIMESTAMPADD(unit, interval, COL0)
+```
+
+Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### `TIMESTAMPSUB`
+
+Since: 0.17
+
+```sql
+TIMESTAMPSUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
 ### `UNIX_DATE`
 
 Since: 0.6.0
@@ -1214,258 +1389,6 @@ value as a BIGINT value representing the number of milliseconds since `1970-01-0
 If the `timestamp` parameter is not provided, it returns the current Unix timestamp in milliseconds,
 represented as a BIGINT. The returned timestamp may differ depending on the local time of different
 ksqlDB Server instances.
-
-### `DATETOSTRING`
-
-Since: -
-
-Deprecated since 0.20.0 (use FORMAT_DATE)
-
-```sql
-DATETOSTRING(START_DATE, 'yyyy-MM-dd')
-```
-
-Converts an integer representation of a date into a string representing the
-date in the given format. Single quotes in the timestamp format can be escaped
-with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-The integer represents days since epoch matching the encoding used by
-{{ site.kconnect }} dates.
-
-### `STRINGTODATE`
-
-Since: -
-
-Deprecated since 0.20.0 (use PARSE_DATE)
-
-```sql
-STRINGTODATE(col1, 'yyyy-MM-dd')
-```
-
-Converts a string representation of a date in the
-given format into an integer representing days
-since epoch. Single quotes in the timestamp
-format can be escaped with two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `STRINGTOTIMESTAMP`
-
-Since: -
-
-Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
-
-```sql
-STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a string value in the given
-format into the BIGINT value                      
-that represents the millisecond timestamp. Single
-quotes in the timestamp format can be escaped with
-two successive single quotes, `''`, for
-example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a
-`java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For
-more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).    
-
-### `TIMESTAMPTOSTRING`
-
-Since: -
-
-Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
-
-```sql
-TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a BIGINT millisecond timestamp value into the string representation
-of the timestamp in the given format. Single quotes in the timestamp format
-can be escaped with two successive single quotes, `''`, for example:
-`'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
-for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
-information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-!!! Tip "See TIMESTAMPTOSTRING in action"
-    - [Detect unusual credit card activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
-
-### `FORMAT_TIMESTAMP`
-
-```sql
-FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
-Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
-example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
-
-!!! Tip "See FORMAT_TIMESTAMP in action"
-    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
-
-### `PARSE_TIMESTAMP`
-
-```sql
-PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
-```
-
-Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
-format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
-
-TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
-"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
-[DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `FORMAT_DATE`
-
-```sql
-FORMAT_DATE(date, 'yyyy-MM-dd')
-```
-
-Converts a DATE value into a string that represents the date in the given format.
-You can escape single-quote characters in the timestamp format by using two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `PARSE_DATE`
-
-```sql
-PARSE_DATE(col1, 'yyyy-MM-dd')
-```
-
-Converts a string representation of a date in the
-given format into a DATE value. You can escape
-single-quote characters in the timestamp format by using two successive single
-quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
-
-### `FORMAT_TIME`
-
-Since: 0.20
-
-```sql
-FORMAT_TIME(time, 'HH:mm:ss.SSS')
-```
-
-Converts a TIME value into the string representation of the time in the given format.
-Single quotes in the time format can be escaped with two successive single quotes, `''`, for
-example: `'''T''HH:mm:ssX'`.
-
-For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `PARSE_TIME`
-
-Since: 0.20
-
-```sql
-PARSE_TIME(col1, 'HH:mm:ss.SSS')
-```
-
-Converts a string value in the given format into a TIME value. Single quotes in the time
-format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
-
-For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `CONVERT_TZ`
-
-```sql
-CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
-```
-
-Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
-`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
-"PDT","Europe/London". For more information on timestamp formats,
-see [DateTimeFormatter](https://cnfl.io/java-dtf).
-
-### `FROM_UNIXTIME`
-
-```sql
-FROM_UNIXTIME(milliseconds)
-```
-
-Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
-
-!!! Tip "See FROM_UNIXTIME in action"
-    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
-
-### `FROM_DAYS`
-
-```sql
-FROM_DAYS(days)
-```
-
-Converts an INT number of days since epoch to a DATE value.
-
-### TIMESTAMPADD
-
-Since: 0.17
-
-```sql
-TIMESTAMPADD(unit, interval, COL0)
-```
-
-Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMESTAMPSUB
-
-Since: 0.17
-
-```sql
-TIMESTAMPSUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMEADD
-
-Since: 0.20
-
-```sql
-TIMEADD(unit, interval, COL0)
-```
-
-Adds an interval to a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### TIMESUB
-
-Since: 0.20
-
-```sql
-TIMESUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a time. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### DATEADD
-
-Since: 0.20
-
-```sql
-DATEADD(unit, interval, COL0)
-```
-
-Adds an interval to a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
-
-### DATESUB
-
-Since: 0.20
-
-```sql
-DATESUB(unit, interval, COL0)
-```
-
-Subtracts an interval from a date. Intervals are defined by an integer value and a supported
-[time unit](../../reference/sql/time.md#Time units).
 
 ## URLs
 
@@ -1624,3 +1547,79 @@ present or `url` is not a valid URI.
 - Output: `a=foo bar&b=baz`                  
 
 [1]: type-coercion.md#implicit-type-coercion
+
+## Deprecated
+
+### `DATETOSTRING`
+
+Since: -
+
+Deprecated since 0.20.0 (use FORMAT_DATE)
+
+```sql
+DATETOSTRING(START_DATE, 'yyyy-MM-dd')
+```
+
+Converts an integer representation of a date into a string representing the
+date in the given format. Single quotes in the timestamp format can be escaped
+with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+The integer represents days since epoch matching the encoding used by
+{{ site.kconnect }} dates.
+
+### `STRINGTODATE`
+
+Since: -
+
+Deprecated since 0.20.0 (use PARSE_DATE)
+
+```sql
+STRINGTODATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the
+given format into an integer representing days
+since epoch. Single quotes in the timestamp
+format can be escaped with two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `STRINGTOTIMESTAMP`
+
+Since: -
+
+Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
+
+```sql
+STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given
+format into the BIGINT value                      
+that represents the millisecond timestamp. Single
+quotes in the timestamp format can be escaped with
+two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a
+`java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For
+more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).    
+
+### `TIMESTAMPTOSTRING`
+
+Since: -
+
+Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
+
+```sql
+TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a BIGINT millisecond timestamp value into the string representation
+of the timestamp in the given format. Single quotes in the timestamp format
+can be escaped with two successive single quotes, `''`, for example:
+`'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter, and it is a `java.util.TimeZone` ID format,
+for example, "UTC", "America/Los_Angeles", "PDT", or "Europe/London". For more
+information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).

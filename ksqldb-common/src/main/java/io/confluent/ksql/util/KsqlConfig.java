@@ -1484,7 +1484,7 @@ public class KsqlConfig extends AbstractConfig {
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
         .defaultCommitIntervalMsConfig);
     streamsConfigDefaults.put(
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, KsqlConstants
+        StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG, KsqlConstants
             .defaultCacheMaxBytesBufferingConfig);
     streamsConfigDefaults.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);

@@ -71,7 +71,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
     final long configured = getCacheMaxBytesBuffering(config);
     final long usedByRunning = running.stream()
         .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
-                .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
+                .getLong(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG))
         .sum();
     if (configured + usedByRunning > limit) {
       throw new KsqlException(String.format(
@@ -83,7 +83,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   }
 
   private long getCacheMaxBytesBuffering(final SessionConfig config) {
-    return getDummyStreamsConfig(config).getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+    return getDummyStreamsConfig(config).getLong(StreamsConfig.STATESTORE_CACHE_MAX_BYTES_CONFIG);
   }
 
   private StreamsConfig getDummyStreamsConfig(final SessionConfig config) {

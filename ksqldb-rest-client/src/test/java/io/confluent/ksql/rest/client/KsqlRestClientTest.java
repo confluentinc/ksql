@@ -177,7 +177,11 @@ public class KsqlRestClientTest {
   @Test
   public void shouldNotIncludeAdditionalHeadersForOnPremConnectorRequest() throws Exception {
     // Given:
-    final KsqlRestClient ksqlRestClient = clientWithServerAddresses(SOME_SERVER_ADDRESS);
+    final KsqlRestClient ksqlRestClient = clientWithServerAddresses(
+        SOME_SERVER_ADDRESS,
+        Optional.of(BasicCredentials.of(CCLOUD_API_KEY, CCLOUD_API_SECRET)));
+    // even though a cloud apikey has been provided above, it will be ignored (not sent
+    // with any requests) because the server connected to is not a ccloud server
     ksqlRestClient.setIsCCloudServer(false);
 
     // When:

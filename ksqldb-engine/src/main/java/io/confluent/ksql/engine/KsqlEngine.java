@@ -28,6 +28,8 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.engine.TransientQueryCleanupService.TransientQueryStateCleanupTask;
+import io.confluent.ksql.engine.TransientQueryCleanupService.TransientQueryTopicCleanupTask;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -107,6 +109,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final String serviceId;
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
+  private final TransientQueryCleanupService transientQueryCleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final MetricCollectors metricCollectors;
 
@@ -152,6 +155,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
+    this.transientQueryCleanupService = new TransientQueryCleanupService();
     this.orphanedTransientQueryCleaner =
         new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
@@ -167,6 +171,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             .addAll(queryEventListeners)
             .add(engineMetrics.getQueryEventListener())
             .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
+            .add(new TransientQueryCleanupListener(
+                    transientQueryCleanupService,
+                    serviceContext,
+                    ksqlConfig))
             .build(),
         metricCollectors
     );
@@ -249,6 +257,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @VisibleForTesting
   QueryCleanupService getCleanupService() {
     return cleanupService;
+  }
+
+  @VisibleForTesting
+  public void startTransientQueryCleanupService() {
+    transientQueryCleanupService.run();
   }
 
   @VisibleForTesting
@@ -660,6 +673,53 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
               .get(KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG);
       if (o instanceof StreamsErrorCollector) {
         ((StreamsErrorCollector) o).cleanup();
+      }
+    }
+  }
+
+  private static final class TransientQueryCleanupListener implements QueryEventListener {
+    final TransientQueryCleanupService cleanupService;
+    final ServiceContext serviceContext;
+    final KsqlConfig ksqlConfig;
+
+    private TransientQueryCleanupListener(
+            final TransientQueryCleanupService cleanupService,
+            final ServiceContext serviceContext,
+            final KsqlConfig ksqlConfig) {
+      this.cleanupService = cleanupService;
+      this.serviceContext = serviceContext;
+      this.ksqlConfig = ksqlConfig;
+    }
+
+    @Override
+    public void onClose(
+            final QueryMetadata query
+    ) {
+      if (query instanceof TransientQueryMetadata) {
+        final String applicationId = query.getQueryApplicationId();
+        if (query.hasEverBeenStarted()) {
+          log.info("Cleaning up after query {}", applicationId);
+          final TransientQueryTopicCleanupTask topicTask = new TransientQueryTopicCleanupTask(
+                  serviceContext, applicationId
+          );
+
+          final String stateDir = ksqlConfig.getKsqlStreamConfigProps()
+                  .getOrDefault(
+                          StreamsConfig.STATE_DIR_CONFIG,
+                          StreamsConfig.configDef()
+                                  .defaultValues()
+                                  .get(StreamsConfig.STATE_DIR_CONFIG))
+                  .toString();
+
+          final TransientQueryStateCleanupTask stateTask = new TransientQueryStateCleanupTask(
+                  serviceContext, applicationId, stateDir
+
+          );
+          cleanupService.addCleanupTask(topicTask);
+          cleanupService.addCleanupTask(stateTask);
+        } else {
+          log.info("Skipping cleanup for query {} since it was never started", applicationId);
+        }
       }
     }
   }

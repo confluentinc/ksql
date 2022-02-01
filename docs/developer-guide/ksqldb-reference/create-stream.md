@@ -43,8 +43,7 @@ For more information, see [Stream Processing](/concepts/stream-processing).
 ### KEY and VALUE columns
 
 A stream can store its data in either `KEY` or `VALUE` columns.
-Both `KEY` and `VALUE` columns can be NULL. No special processing is done if two rows have the same
-key. This situation is handled differently by [ksqlDB TABLEs](../create-table), as shown in the following table.
+Both `KEY` and `VALUE` columns can be NULL.
 
 If two rows have the same `KEY`, no special processing is done. This
 situation is handled differently by a [ksqlDB TABLE](../create-table),

@@ -34,6 +34,7 @@ import org.apache.kafka.streams.state.HostInfo;
  * a particular persistent query task.
  */
 public class AllHostsLocator implements PushLocator {
+
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
   private final URL localhost;
 

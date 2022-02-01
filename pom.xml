@@ -145,6 +145,7 @@
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.2.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.common-docker.version>${confluent.version.range}</io.confluent.common-docker.version>
         <mockito.version>3.8.0</mockito.version>
         <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
         <!-- We normally get this from common, but Vertx is built against 4.1.49.Final -->

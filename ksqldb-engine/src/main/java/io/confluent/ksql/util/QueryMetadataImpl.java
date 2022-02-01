@@ -373,7 +373,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     private final Duration duration;
     private final Queue<QueryError> queue;
 
-    TimeBoundedQueue(final Duration duration, final int capacity) {
+    public TimeBoundedQueue(final Duration duration, final int capacity) {
       queue = EvictingQueue.create(capacity);
       this.duration = duration;
     }

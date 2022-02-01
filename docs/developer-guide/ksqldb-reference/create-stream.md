@@ -43,10 +43,10 @@ For more information, see [Stream Processing](/concepts/stream-processing).
 
 ### Columns
 
-A stream can store its data in `KEY`, `VALUE` or `HEADERS`/`HEADER('<key>')`
+A stream can store its data in `KEY`, `VALUE`, or `HEADERS`/`HEADER('<key>')`
 columns.
 
-`KEY`, `VALUE` and `HEADER('<key>')` columns can be NULL.
+`KEY`, `VALUE`, and `HEADER('<key>')` columns can be NULL.
 
 `HEADERS` columns can't be NULL. If the {{ site.ak }} message doesn't have
 headers, the `HEADERS` columns are populated by an empty array.
@@ -137,7 +137,7 @@ intensive queries. For more information, see
 ### ROWPARTITION and ROWOFFSET
 
 Like `ROWTIME`, `ROWPARTITION` and `ROWOFFSET` are pseudo columns. They
-represent the partition and offset of the *source* topic.
+represent the partition and offset of the source topic.
 
 For example, if you issue a [push query](/developer-guide/ksqldb-reference/select-push-query)
 on a stream backed by topic _x_ that specifies `ROWPARTITION` or `ROWOFFSET` in
@@ -170,7 +170,7 @@ supports the following properties.
 The serialization format of both the message key and value in the topic.
 For supported formats, see [Serialization Formats](/reference/serialization).
 
-You can't use the `FORMAT` property with the `KEY_FORMAT` and 
+You can't use the `FORMAT` property with the `KEY_FORMAT` or 
 `VALUE_FORMAT` properties in the same CREATE STREAM statement.
 
 ### KAFKA_TOPIC (required)

@@ -76,6 +76,12 @@ final class SandboxedSchemaRegistryClient {
     }
 
     @Override
+    public int register(final String subject, final ParsedSchema schema, final boolean normalize)
+        throws RestClientException, IOException {
+      return sandboxCacheClient.register(subject, schema, normalize);
+    }
+
+    @Override
     public int register(
         final String subject,
         final ParsedSchema parsedSchema,

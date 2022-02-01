@@ -175,20 +175,11 @@ The serialization format of the message key in the topic. For supported formats,
 see [Serialization Formats](/reference/serialization).
 
 If not supplied, the system default is used, defined by
-[ksql.persistence.default.format.key](/reference/server-configuration#ksqlpersistencedefaulformatkey).
+[ksql.persistence.default.format.key](/reference/server-configuration#ksqlpersistencedefaultformatkey).
 If the default is also not set, the statement is rejected as invalid.
 
 You can't use the `KEY_FORMAT` property with the `FORMAT` property in the
 same CREATE STREAM statement.
-
-### KEY_SCHEMA_ID
-
-The schema ID of the key schema in {{ site.sr }}.
-
-The schema is used for schema inference and data serialization.
-
-For more information, see
-[Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
 
 ### PARTITIONS
 
@@ -253,12 +244,6 @@ If the default is also not set, the statement is rejected as invalid.
 
 You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
 same CREATE STREAM statement.
-
-### VALUE_SCHEMA_ID
-
-The schema ID of the value schema in {{ site.sr }}. The schema is used for
-schema inference and data serialization. For more information, see
-[Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id).
 
 ### WRAP_SINGLE_VALUE
 

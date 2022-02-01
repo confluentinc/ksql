@@ -6,7 +6,6 @@ from collections import OrderedDict
 DOCKER_REGISTRY = "confluent-docker-internal-stabilization.jfrog.io/"
 DOCKER_INTERNAL_REGISTRY = "confluent-docker-internal.jfrog.io/"
 DOCKER_UPSTREAM_REGISTRY = "confluent-docker.jfrog.io/"
-PACKAGES_MAVEN_URL = r'${env.ORG_GRADLE_PROJECT_mavenUrl}'
 CC_SPEC_KSQL_BRANCH = "master"
 CCLOUD_DOCKER_REPO = 'confluentinc/cc-ksql'
 CCLOUD_DOCKER_HOTFIX_REPO = 'confluentinc/cc-ksql-hotfix'

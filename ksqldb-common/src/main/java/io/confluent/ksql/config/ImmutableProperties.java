@@ -35,6 +35,7 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG)
       .add(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED)
       .add(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED)
+      .add(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 

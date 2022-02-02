@@ -10,7 +10,7 @@ MY_DIR=`echo $(cd $(dirname $0); pwd)`
 #repos+=('secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
 #repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
 
-repos=('secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
+repos=('common' 'secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
 repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
 
 # list of the corresponding stabilization branch for each respective repo above.
@@ -20,7 +20,7 @@ repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
 #branches+=('7.1.0-cc-docker-ksql.17-609.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
 #branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
 
-branches=('7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
+branches=('7.1.0-cc-docker-ksql.17-634.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
 branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
 
 len=${#repos[@]}

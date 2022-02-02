@@ -270,7 +270,8 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
 
-    if (sharedRuntimeId.isPresent() && (oldQuery == null || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
+    if (sharedRuntimeId.isPresent() && (oldQuery == null
+        || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
       if (sandbox) {
         streams.addAll(sourceStreams.stream()
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
@@ -292,9 +293,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       );
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
-          oldQuery != null && sharedRuntimeId.isPresent()
-              ? ksqlConfig.cloneWithPropertyOverwrite(oldQuery.getOverriddenProperties())
-              : ksqlConfig,
+          ksqlConfig,
           persistentQueryType,
           statementText,
           queryId,

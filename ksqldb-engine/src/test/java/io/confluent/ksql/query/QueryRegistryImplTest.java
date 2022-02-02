@@ -501,14 +501,21 @@ public class QueryRegistryImplTest {
 
   @Test
   public void shouldReplaceQueryfromOldRuntimeUsingOldRuntime() {
+    //Given:
     sharedRuntimes = false;
     QueryMetadata query = givenCreate(registry, "q1", "source",
         Optional.of("sink1"), CREATE_AS);
     assertThat("does not use old runtime", query instanceof PersistentQueryMetadataImpl);
+    //When:
     sharedRuntimes = true;
     query = givenCreate(registry, "q1", "source",
         Optional.of("sink1"), CREATE_AS);
+    //Expect:
     assertThat("does not use old runtime", query instanceof PersistentQueryMetadataImpl);
+    query = givenCreate(registry, "q2", "source",
+        Optional.of("sink1"), CREATE_AS);
+    assertThat("does not use old runtime", query instanceof BinPackedPersistentQueryMetadataImpl);
+
   }
 
   private QueryMetadata.Listener givenCreateGetListener(

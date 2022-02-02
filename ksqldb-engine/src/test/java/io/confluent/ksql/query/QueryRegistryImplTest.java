@@ -10,14 +10,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.RETURNS_SMART_NULLS;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -30,7 +26,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryBuilderFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -42,13 +37,10 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueryMetadataImpl;
-import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
-
 import java.lang.reflect.Field;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,12 +59,10 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.quality.Strictness;
-import scala.collection.immutable.IntMap;
 
 @RunWith(Parameterized.class)
 public class QueryRegistryImplTest {
@@ -575,7 +565,8 @@ public class QueryRegistryImplTest {
       e.printStackTrace();
     }
 
-    when(runtime.getNewQueryErrorQueue()).thenReturn(new QueryMetadataImpl.TimeBoundedQueue(Duration.ZERO,1));
+
+    when(runtime.getNewQueryErrorQueue()).thenReturn(mock(QueryMetadataImpl.TimeBoundedQueue.class));
 
     when(query.getQueryId()).thenReturn(queryId);
     when(query.getSink()).thenReturn(Optional.of(sinkSource));

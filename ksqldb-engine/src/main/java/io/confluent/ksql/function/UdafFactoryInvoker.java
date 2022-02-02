@@ -16,11 +16,15 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udaf.DynamicUdaf;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -49,13 +53,12 @@ class UdafFactoryInvoker implements FunctionSignature {
   UdafFactoryInvoker(
       final Method method,
       final FunctionName functionName,
-      final String description,
-      final String inputSchema,
-      final String aggregateSchema,
-      final String outputSchema,
       final SqlTypeParser typeParser,
       final Optional<Metrics> metrics
   ) {
+    final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
+    final String description = annotation == null ? "" : annotation.description();
+
     if (!(Udaf.class.equals(method.getReturnType())
         || TableUdaf.class.equals(method.getReturnType()))) {
       final String functionInfo = String.format("method='%s', functionName='%s', UDFClass='%s'",
@@ -69,23 +72,62 @@ class UdafFactoryInvoker implements FunctionSignature {
     }
     final UdafTypes types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
-    this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
-    this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
+    this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema());
+    this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema());
     this.metrics = Objects.requireNonNull(metrics);
-    this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
+    this.params = Objects.requireNonNull(types.getInputSchema());
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
     this.method = Objects.requireNonNull(method);
     this.description = Objects.requireNonNull(description);
   }
 
   @SuppressWarnings("unchecked")
-  KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs) {
+  KsqlAggregateFunction createFunction(
+      final List<SqlArgument> argTypeList,
+      final AggregateFunctionInitArguments initArgs
+  ) {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
 
+      // JNH: Make UDAFs Configurable
       if (udaf instanceof Configurable) {
         ((Configurable) udaf).configure(initArgs.config());
+      }
+
+      // Use argTypeList to compute aggregate and return types!
+      // JNH: Compute these with annotations
+      SqlType sqlAggregateType = null;
+      SqlType sqlReturnType = null;
+
+      // JNH: Clean up if the idea of a DynamicUdaf is ok!
+      if (udaf instanceof DynamicUdaf) {
+        final DynamicUdaf dynamicUdaf = (DynamicUdaf) udaf;
+        dynamicUdaf.setInputArgumentTypes(argTypeList);
+
+        if (dynamicUdaf.getAggregateType() != null || dynamicUdaf.getAggregateType() != null) {
+          /*
+          if (!dynamicUdaf.getAggregateType().equals(sqlAggregateType)) {
+            System.out.println("Aggregate types do not match for " + argTypeList.get(0));
+            System.out.println("Annotation: " + aggregateArgType + " computed: "
+            + dynamicUdaf.getAggregateType());
+          }
+          if (!dynamicUdaf.getReturnType().equals(sqlReturnType)) {
+            System.out.println("Return types do not match for " + argTypeList.get(0));
+          }
+           */
+          sqlAggregateType = dynamicUdaf.getAggregateType();
+          sqlReturnType    = dynamicUdaf.getReturnType();
+          System.out.println("Setting agg and return types to "
+              + sqlAggregateType + " " + sqlReturnType);
+        } else {
+          throw new Exception("DynamicUdafs must implement `getAggregateType` and `getReturnType`.");
+        }
+      } else {
+        sqlAggregateType =
+            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType);
+        sqlReturnType =
+            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType);
       }
 
       final KsqlAggregateFunction function;
@@ -94,8 +136,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             functionName.text(),
             initArgs.udafIndex(),
             udaf,
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            sqlAggregateType,
+            sqlReturnType,
             params,
             description,
             metrics,
@@ -105,8 +147,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             functionName.text(),
             initArgs.udafIndex(),
             udaf,
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            sqlAggregateType,
+            sqlReturnType,
             params,
             description,
             metrics,

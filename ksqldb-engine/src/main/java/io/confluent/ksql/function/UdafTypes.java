@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -75,6 +76,7 @@ class UdafTypes {
   private final List<ParameterInfo> literalParams;
   private final String invalidClassErrorMsg;
   private final SqlTypeParser sqlTypeParser;
+  private final UdafFactory annotation;
 
   UdafTypes(
       final Method method,
@@ -95,14 +97,18 @@ class UdafTypes {
 
     this.literalParams = FunctionLoaderUtils
         .createParameters(method, functionName.text(), sqlTypeParser);
+    this.annotation = method.getAnnotation(UdafFactory.class);
 
     validateTypes(inputType);
     validateTypes(aggregateType);
     validateTypes(outputType);
   }
 
-  List<ParameterInfo> getInputSchema(final String inSchema) {
-    validateStructAnnotation(inputType, inSchema, "paramSchema");
+  List<ParameterInfo> getInputSchema() {
+    final String inSchema = (annotation == null) ? "" : annotation.paramSchema();
+
+    // JNH: Removing this check temporarily
+    //validateStructAnnotation(inputType, inSchema, "paramSchema");
     final ParamType inputSchema = getSchemaFromType(inputType, inSchema);
 
     return ImmutableList.<ParameterInfo>builder()
@@ -111,13 +117,19 @@ class UdafTypes {
         .build();
   }
 
-  ParamType getAggregateSchema(final String aggSchema) {
-    validateStructAnnotation(aggregateType, aggSchema, "aggregateSchema");
+  ParamType getAggregateSchema() {
+    final String aggSchema = (annotation == null) ? "" : annotation.aggregateSchema();
+
+    // JNH: Removing this check temporarily
+    //validateStructAnnotation(aggregateType, aggSchema, "aggregateSchema");
     return getSchemaFromType(aggregateType, aggSchema);
   }
 
-  ParamType getOutputSchema(final String outSchema) {
-    validateStructAnnotation(outputType, outSchema, "returnSchema");
+  ParamType getOutputSchema() {
+    final String outSchema = (annotation == null) ? "" : annotation.returnSchema();
+
+    // JNH: Removing this check temporarily
+    // validateStructAnnotation(outputType, outSchema, "returnSchema");
     return getSchemaFromType(outputType, outSchema);
   }
 
@@ -137,6 +149,8 @@ class UdafTypes {
     }
   }
 
+  // JNH: What format is the `schema` string in?  It appears to be an SQL Type?
+  // We convert it to a Function type?
   private ParamType getSchemaFromType(final Type type, final String schema) {
     return schema.isEmpty()
         ? UdfUtil.getSchemaFromType(type)

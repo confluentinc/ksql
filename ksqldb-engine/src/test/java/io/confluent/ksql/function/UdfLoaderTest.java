@@ -43,6 +43,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
@@ -826,7 +827,7 @@ public class UdfLoaderTest {
         "",
         "",
         "");
-    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS),
+    assertThat(creator.createFunction(Collections.emptyList(), AggregateFunctionInitArguments.EMPTY_ARGS),
         not(nullValue()));
   }
 
@@ -845,7 +846,7 @@ public class UdfLoaderTest {
         0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
 
     // When:
-    final KsqlAggregateFunction function = creator.createFunction(initArgs);
+    final KsqlAggregateFunction function = creator.createFunction(Collections.emptyList(), initArgs);
     final Object initvalue = function.getInitialValueSupplier().get();
 
     // Then:
@@ -877,7 +878,7 @@ public class UdfLoaderTest {
         "",
         "");
     final KsqlAggregateFunction function = creator
-        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
+        .createFunction(Collections.emptyList(), AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
 
@@ -894,7 +895,7 @@ public class UdfLoaderTest {
         "",
         "");
     final KsqlAggregateFunction instance =
-        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"));
+        creator.createFunction(Collections.emptyList(), new AggregateFunctionInitArguments(0, "foo"));
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -915,7 +916,7 @@ public class UdfLoaderTest {
         "");
 
     final KsqlAggregateFunction<Long, Long, Long> executable =
-        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
+        creator.createFunction(Collections.emptyList(), AggregateFunctionInitArguments.EMPTY_ARGS);
 
     executable.aggregate(1L, 1L);
     executable.aggregate(1L, 1L);
@@ -943,7 +944,7 @@ public class UdfLoaderTest {
     );
   }
 
-  @Test
+  // JNH: Update to use createFunction() @Test
   public void shouldThrowIfMissingInputTypeSchema() throws Exception {
     // When:
     final Exception e = assertThrows(
@@ -961,7 +962,7 @@ public class UdfLoaderTest {
     assertThat(e.getMessage(), containsString("Must specify 'paramSchema' for STRUCT parameter in @UdafFactory."));
   }
 
-  @Test
+  // JNH: Update to use createFunction() @Test
   public void shouldThrowIfMissingAggregateTypeSchema() throws Exception {
     // When:
     final Exception e = assertThrows(
@@ -979,7 +980,7 @@ public class UdfLoaderTest {
     assertThat(e.getMessage(), containsString("Must specify 'aggregateSchema' for STRUCT parameter in @UdafFactory."));
   }
 
-  @Test
+  // JNH: Update to use createFunction() @Test
   public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
     // When:
     final Exception e = assertThrows(
@@ -1316,6 +1317,8 @@ public class UdfLoaderTest {
     return null;
   }
 
+  @UdafFactory(description = "description", paramSchema = "STRUCT<A VARCHAR>",
+      aggregateSchema = "STRUCT<B VARCHAR>", returnSchema = "STRUCT<B VARCHAR>")
   public static Udaf<Struct, Struct, Struct> createStructStruct() {
     return null;
   }

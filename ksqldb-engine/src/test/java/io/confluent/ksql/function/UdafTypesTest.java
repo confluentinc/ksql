@@ -43,7 +43,7 @@ public class UdafTypesTest {
     final UdafTypes types = createTypes("udafWithNoInitParams");
 
     // Then:
-    assertThat(types.getInputSchema(""), is(ImmutableList.of(
+    assertThat(types.getInputSchema(), is(ImmutableList.of(
        new ParameterInfo("val", ParamTypes.INTEGER, "", false)
     )));
   }
@@ -54,7 +54,7 @@ public class UdafTypesTest {
     final UdafTypes types = createTypes("udafWithStringInitParam", String.class);
 
     // Then:
-    assertThat(types.getInputSchema(""), is(ImmutableList.of(
+    assertThat(types.getInputSchema(), is(ImmutableList.of(
         new ParameterInfo("val", ParamTypes.INTEGER, "", false),
         new ParameterInfo("initParam", ParamTypes.STRING, "", false)
     )));

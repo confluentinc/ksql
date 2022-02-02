@@ -66,7 +66,10 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
           .map(Objects::toString)
           .collect(Collectors.joining(",")));
     }
-    return creator.createFunction(initArgs);
+    // JNH: Widen createFunction to take argTypeList
+    // JNH: I think this is the same as when the UDFs are getting created and hence
+    //  the input argTypeList should be passed in
+    return creator.createFunction(argTypeList, initArgs);
   }
 
   @Override

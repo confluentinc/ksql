@@ -1251,9 +1251,12 @@ public final class KsqlRestApplication implements Executable {
   private static KafkaTopicClient createCommandTopicKafkaTopicClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
     final Map<String, Object> commandTopicProducerConfigs =
       ksqlRestConfig.getCommandProducerProperties();
+    System.out.println("command topic producer configs here leah1" + commandTopicProducerConfigs);
+    System.out.println("ksql config properties here leah2" + ksqlRestConfig.getKsqlConfigProperties());
     final Map<String, Object> adminClientConfigs =
       new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
     adminClientConfigs.putAll(commandTopicProducerConfigs);
+    System.out.println("admin client configs here leah3" + commandTopicProducerConfigs);
     final Admin admin = new DefaultKafkaClientSupplier()
       .getAdmin(adminClientConfigs);
     return new KafkaTopicClientImpl(() -> admin);

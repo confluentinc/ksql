@@ -78,7 +78,7 @@ public final class KsqlInternalTopicUtils {
 
     final short minInSyncReplicas = ksqlConfig
         .getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY);
-
+    System.out.println("going to try to create the command topic with this ksql config " + ksqlConfig.toString());
     topicClient.createTopic(
         name,
         INTERNAL_TOPIC_PARTITION_COUNT,

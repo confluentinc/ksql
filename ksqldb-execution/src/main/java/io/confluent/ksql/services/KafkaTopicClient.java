@@ -99,6 +99,9 @@ public interface KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
+    System.out.println("in create topic for " + topic);
+    System.out.println("configs  " + configs);
+
     createTopic(
         topic,
         numPartitions,

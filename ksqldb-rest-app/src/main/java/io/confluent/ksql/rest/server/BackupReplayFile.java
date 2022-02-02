@@ -31,11 +31,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A file that is used by the backup service to replay command_topic commands.
  */
 public final class BackupReplayFile implements Closeable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(BackupReplayFile.class);
+
   private static final String KEY_VALUE_SEPARATOR_STR = ":";
   private static final String NEW_LINE_SEPARATOR_STR = "\n";
   private static final String TMP_SUFFIX = ".tmp";
@@ -68,7 +72,7 @@ public final class BackupReplayFile implements Closeable {
     this.filesystem = Objects.requireNonNull(filesystem, "filesystem");
     this.writable = write;
     if (write) {
-      initDirtyCopy();
+      initFiles();
     }
   }
 
@@ -143,13 +147,14 @@ public final class BackupReplayFile implements Closeable {
   public void close() {
   }
 
-  private void initDirtyCopy() throws IOException {
+  private void initFiles() throws IOException {
     final Path dirtyFile = dirty(file).toPath();
     Files.deleteIfExists(dirtyFile);
     Files.deleteIfExists(tmp(file).toPath());
-    if (file.exists()) {
-      Files.copy(file.toPath(), dirty(file).toPath(), StandardCopyOption.REPLACE_EXISTING);
+    if (file.createNewFile()) {
+      LOGGER.info("created new backup replay file {}", file.getAbsolutePath());
     }
+    Files.copy(file.toPath(), dirty(file).toPath(), StandardCopyOption.REPLACE_EXISTING);
   }
 
   private File dirty(final File file) {

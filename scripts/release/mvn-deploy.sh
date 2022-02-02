@@ -62,9 +62,6 @@ do
     mvn_cmd="mvn help:effective-pom"
     echo $mvn_cmd
     eval $mvn_cmd
-    mvn_cmd2="mvn dependency:tree | grep internal-rest-server"
-    echo $mvn_cmd2
-    eval $mvn_cmd2
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
     deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"

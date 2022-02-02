@@ -292,7 +292,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       );
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
-          oldQuery != null
+          oldQuery != null && sharedRuntimeId.isPresent()
               ? ksqlConfig.cloneWithPropertyOverwrite(oldQuery.getOverriddenProperties())
               : ksqlConfig,
           persistentQueryType,

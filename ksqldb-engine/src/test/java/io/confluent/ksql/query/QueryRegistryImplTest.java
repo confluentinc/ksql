@@ -30,14 +30,20 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryBuilderFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryMetadataImpl;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -483,6 +489,25 @@ public class QueryRegistryImplTest {
     verify(listener2, times(0)).onClose(any());
   }
 
+  @Test
+  public void shouldReplaceQueryfromOldRuntimeUsingOldRuntime() {
+    //Given:
+    sharedRuntimes = false;
+    QueryMetadata query = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
+    assertThat("does not use old runtime", query instanceof PersistentQueryMetadataImpl);
+    //When:
+    sharedRuntimes = true;
+    query = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
+    //Expect:
+    assertThat("does not use old runtime", query instanceof PersistentQueryMetadataImpl);
+    query = givenCreate(registry, "q2", "source",
+        Optional.of("sink1"), CREATE_AS);
+    assertThat("does not use old runtime", query instanceof BinPackedPersistentQueryMetadataImpl);
+
+  }
+
   private QueryMetadata.Listener givenCreateGetListener(
       final QueryRegistry registry,
       final String id
@@ -512,28 +537,51 @@ public class QueryRegistryImplTest {
   ) {
     final QueryId queryId = new QueryId(id);
     final PersistentQueryMetadata query = mock(PersistentQueryMetadataImpl.class);
+    final PersistentQueryMetadata newQuery = mock(BinPackedPersistentQueryMetadataImpl.class);
     final DataSource sinkSource = mock(DataSource.class);
+    final ExecutionStep physicalPlan = mock(ExecutionStep.class);
 
     sink.ifPresent(s -> {
       when(sinkSource.getName()).thenReturn(SourceName.of(s));
       when(query.getSinkName()).thenReturn(Optional.of(SourceName.of(s)));
+      when(newQuery.getSinkName()).thenReturn(Optional.of(SourceName.of(s)));
     });
+
+    when(newQuery.getOverriddenProperties()).thenReturn(new HashMap<>());
+    when(newQuery.getQueryId()).thenReturn(queryId);
+    when(newQuery.getSink()).thenReturn(Optional.of(sinkSource));
+    when(newQuery.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
+    when(newQuery.getPersistentQueryType()).thenReturn(persistentQueryType);
+    when(newQuery.getPhysicalPlan()).thenReturn(physicalPlan);
+    final SharedKafkaStreamsRuntime runtime = mock(SharedKafkaStreamsRuntimeImpl.class);
+
+    try {
+      Field sharedRuntime = BinPackedPersistentQueryMetadataImpl.class.getDeclaredField("sharedKafkaStreamsRuntime");
+      sharedRuntime.setAccessible(true);
+      sharedRuntime.set(newQuery, runtime);
+    } catch (NoSuchFieldException e) {
+      e.printStackTrace();
+    } catch (IllegalAccessException e) {
+      e.printStackTrace();
+    }
+
+
+    when(runtime.getNewQueryErrorQueue()).thenReturn(mock(QueryMetadataImpl.TimeBoundedQueue.class));
 
     when(query.getQueryId()).thenReturn(queryId);
     when(query.getSink()).thenReturn(Optional.of(sinkSource));
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
     when(query.getPersistentQueryType()).thenReturn(persistentQueryType);
-    if (sharedRuntimes) {
-      when(queryBuilder.buildPersistentQueryInSharedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
-      ).thenReturn(query);
-    } else {
-      when(queryBuilder.buildPersistentQueryInDedicatedRuntime(
-          any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
-      ).thenReturn(query);
-    }
+    when(query.getPhysicalPlan()).thenReturn(physicalPlan);
+    when(queryBuilder.buildPersistentQueryInSharedRuntime(
+        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    ).thenReturn(newQuery);
+    when(queryBuilder.buildPersistentQueryInDedicatedRuntime(
+        any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+    ).thenReturn(query);
+
     when(config.getConfig(true)).thenReturn(ksqlConfig);
-    registry.createOrReplacePersistentQuery(
+    return registry.createOrReplacePersistentQuery(
         config,
         serviceContext,
         logContext,
@@ -547,7 +595,6 @@ public class QueryRegistryImplTest {
         persistentQueryType,
         sharedRuntimes ? Optional.of("applicationId") : Optional.empty()
     );
-    return query;
   }
 
   private TransientQueryMetadata givenCreateTransient(

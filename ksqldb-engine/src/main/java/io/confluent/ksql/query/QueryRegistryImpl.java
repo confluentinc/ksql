@@ -471,6 +471,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
 
+      final Set<SharedKafkaStreamsRuntime> toClose = streams
+          .stream()
+          .filter(s -> s.getCollocatedQueries().isEmpty())
+          .collect(Collectors.toSet());
+      streams.removeAll(toClose);
+      toClose.forEach(SharedKafkaStreamsRuntime::close);
+
       switch (persistentQuery.getPersistentQueryType()) {
         case CREATE_SOURCE:
           createAsQueries.remove(Iterables.getOnlyElement(persistentQuery.getSourceNames()));

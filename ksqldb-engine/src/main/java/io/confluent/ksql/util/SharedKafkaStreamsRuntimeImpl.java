@@ -63,9 +63,15 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       final QueryId queryId
   ) {
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    log.info("Registered query in shared runtime: {}\n"
+    log.info("Registered query: {}  in {} \n"
                  + "Runtime {} is executing these queries: {}",
-             queryId, getApplicationId(), collocatedQueries.keySet());
+        queryId,
+        getApplicationId(),
+        getApplicationId(),
+        collocatedQueries.keySet()
+            .stream()
+            .map(QueryId::toString)
+            .reduce("", (a, b) -> a + b));
   }
 
   private void setupAndStartKafkaStreams(final KafkaStreams kafkaStreams) {

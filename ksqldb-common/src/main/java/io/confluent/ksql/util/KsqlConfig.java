@@ -129,6 +129,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final String CONNECT_BASIC_AUTH_CREDENTIALS_RELOAD_PROPERTY =
       KSQL_CONNECT_PREFIX + "basic.auth.credentials.reload";
 
+  public static final String CONNECT_REQUEST_TIMEOUT_MS =
+      KSQL_CONNECT_PREFIX + "request.timeout.ms";
+  public static final Long CONNECT_REQUEST_TIMEOUT_DEFAULT = 5_000L;
+  private static final String CONNECT_REQUEST_TIMEOUT_MS_DOC =
+      "Timeout, in milliseconds, used for each of the connection timeout and request timeout "
+          + "for connector requests issued by ksqlDB.";
+
   public static final String CONNECT_REQUEST_HEADERS_PLUGIN =
       KSQL_CONNECT_PREFIX + "request.headers.plugin";
   private static final String CONNECT_REQUEST_HEADERS_PLUGIN_DOC =
@@ -869,6 +876,12 @@ public class KsqlConfig extends AbstractConfig {
             "If true, basic auth credentials for connector auth will automatically reload "
                 + "on file change (creation or modification). File deletion is not monitored and "
                 + "old credentials will continue to be used in this case."
+        ).define(
+            CONNECT_REQUEST_TIMEOUT_MS,
+            Type.LONG,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            CONNECT_REQUEST_TIMEOUT_MS_DOC
         ).define(
             CONNECT_REQUEST_HEADERS_PLUGIN,
             Type.CLASS,

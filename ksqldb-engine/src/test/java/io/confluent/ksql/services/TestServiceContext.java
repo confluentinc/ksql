@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
+
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.FakeKafkaClientSupplier;
@@ -96,7 +98,8 @@ public final class TestServiceContext {
             Optional.empty(),
             Collections.emptyMap(),
             Optional.empty(),
-            false),
+            false,
+            CONNECT_REQUEST_TIMEOUT_DEFAULT),
         consumerGroupClient
     );
   }

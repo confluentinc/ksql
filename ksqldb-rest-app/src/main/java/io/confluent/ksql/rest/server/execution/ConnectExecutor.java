@@ -29,8 +29,6 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.ParserUtil;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -70,10 +68,7 @@ public final class ConnectExecutor {
 
     final ConnectResponse<ConnectorInfo> response = client.create(
         createConnector.getName(),
-        Connectors.resolve(
-            Maps.transformValues(
-                createConnector.getConfig(),
-                l -> l != null ? l.getValue().toString() : null)));
+        buildConnectorConfig(createConnector));
 
     if (response.datum().isPresent()) {
       return StatementExecutorResponse.handled(Optional.of(
@@ -97,12 +92,7 @@ public final class ConnectExecutor {
 
   private static List<String> validate(final CreateConnector createConnector,
       final ConnectClient client) {
-    final Map<String, String> config = new HashMap<>(createConnector.getConfig().size());
-    createConnector.getConfig().forEach((k, v) ->
-        // Parsing the statement wraps string fields with single quotes which breaks the
-        // validation.
-        config.put(k, ParserUtil.unquote(v.toString(),"'")));
-    config.put("name", createConnector.getName());
+    final Map<String, String> config = buildConnectorConfig(createConnector);
 
     final String connectorType = config.get("connector.class");
     // Request with an empty connector type in the url results in 404.
@@ -132,6 +122,15 @@ public final class ConnectExecutor {
           .collect(Collectors.toList());
     }
     return ImmutableList.of();
+  }
+
+  private static Map<String, String> buildConnectorConfig(final CreateConnector createConnector) {
+    final Map<String, String> config = Connectors.resolve(
+        Maps.transformValues(
+            createConnector.getConfig(),
+            l -> l != null ? l.getValue().toString() : null));
+    config.put("name", createConnector.getName());
+    return config;
   }
 
   private static Optional<KsqlEntity> handleIfNotExists(

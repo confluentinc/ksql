@@ -24,6 +24,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -62,7 +63,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       final QueryId queryId
   ) {
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    log.info("mapping {}", collocatedQueries);
+    log.info("Registered query in shared runtime: {}\n"
+                 + "Runtime {} is executing these queries: {}",
+             queryId, getApplicationId(), collocatedQueries.keySet());
   }
 
   private void setupAndStartKafkaStreams(final KafkaStreams kafkaStreams) {
@@ -85,6 +88,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     QueryError.Type errorType = QueryError.Type.UNKNOWN;
     try {
       errorType = errorClassifier.classify(e);
+      if (e.getCause() != null && errorType == QueryError.Type.UNKNOWN) {
+        errorType = errorClassifier.classify(e.getCause());
+      }
     } catch (final Exception classificationException) {
       log.error("Error classifying unhandled exception", classificationException);
     } finally {
@@ -161,8 +167,27 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void stop(final QueryId queryId, final boolean resetOffsets) {
-    throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
-                                        + " version and should not be used.");
+    log.info("Attempting to stop query: {} in runtime {} with resetOffsets={}",
+             queryId, getApplicationId(), resetOffsets);
+    if (collocatedQueries.containsKey(queryId)) {
+      if (kafkaStreams.state().isRunningOrRebalancing()) {
+        try {
+          kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
+              .all()
+              .get();
+          if (resetOffsets) {
+            kafkaStreams.cleanUpNamedTopology(queryId.toString());
+          }
+        } catch (ExecutionException | InterruptedException e) {
+          log.error(String.format(
+              "Failed to close query %s within the allotted timeout %s due to",
+              queryId, shutdownTimeout), e);
+        }
+      } else {
+        throw new IllegalStateException("Streams in not running but is in state "
+            + kafkaStreams.state());
+      }
+    }
   }
 
   @Override
@@ -173,8 +198,30 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void start(final QueryId queryId) {
-    throw new UnsupportedOperationException("Shared runtimes have not been fully implemented"
-                                                + " in this version and should not be used.");
+    log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
+    if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
+      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        try {
+          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology())
+              .all()
+              .get();
+        } catch (ExecutionException | InterruptedException e) {
+          log.error("Failed to start query {} within the allotted timeout {} due to",
+              queryId,
+              shutdownTimeout,
+              e);
+          throw new IllegalStateException(
+              "Encountered an error when trying to add query " + queryId + " to runtime: ",
+              e);
+        }
+      } else {
+        throw new IllegalArgumentException("Cannot start because Streams is not done terminating"
+                                               + " an older version of query : " + queryId);
+      }
+    } else {
+      throw new IllegalArgumentException("Cannot start because query " + queryId + " was not"
+                                             + "registered to runtime " + getApplicationId());
+    }
   }
 
   @Override
@@ -184,6 +231,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void restartStreamsRuntime() {
+    log.info("Restarting runtime {}", getApplicationId());
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
     kafkaStreams.close();

@@ -11,14 +11,11 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import org.apache.kafka.streams.StreamsMetadata;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import static org.apache.kafka.streams.state.internals.StreamsMetadataImpl.NOT_AVAILABLE;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AllHostsLocatorTest {
@@ -41,10 +38,10 @@ public class AllHostsLocatorTest {
         () -> ImmutableList.of(metadata1, metadata2),
         new URL("http://localhost:8088")
     );
-    when(metadata1.getAllMetadata())
+    when(metadata1.getAllStreamsHostMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata1, streamsMetadata2));
-    when(metadata2.getAllMetadata())
-        .thenReturn(ImmutableList.of(streamsMetadata3, NOT_AVAILABLE));
+    when(metadata2.getAllStreamsHostMetadata())
+        .thenReturn(ImmutableList.of(streamsMetadata3));
     when(streamsMetadata1.hostInfo())
         .thenReturn(new HostInfo("abc", 101), new HostInfo("localhost", 8088));
     when(streamsMetadata2.hostInfo()).thenReturn(new HostInfo("localhost", 8088));

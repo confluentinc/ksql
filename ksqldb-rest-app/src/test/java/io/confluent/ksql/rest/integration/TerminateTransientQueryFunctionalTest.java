@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -32,12 +34,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -63,8 +69,6 @@ public class TerminateTransientQueryFunctionalTest {
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8089")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8089")
       .build();
-  private static ExecutorService service;
-  private static Runnable backgroundTask;
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -72,6 +76,31 @@ public class TerminateTransientQueryFunctionalTest {
       .around(TEST_HARNESS)
       .around(REST_APP_0)
       .around(REST_APP_1);
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(60);
+
+  private ExecutorService service;
+  private Runnable backgroundTask;
+  private boolean requestCompleted = false;
+
+  @Before
+  public void setUp() {
+    service = Executors.newFixedThreadPool(1);
+    backgroundTask = () -> {
+      RestIntegrationTestUtil.makeQueryRequest(
+          REST_APP_0,
+          "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
+          Optional.empty());
+      requestCompleted = true;
+    };
+  }
+
+  @After
+  public void tearDown() {
+    service.shutdownNow();
+  }
+
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
@@ -80,20 +109,14 @@ public class TerminateTransientQueryFunctionalTest {
         REST_APP_0,
         "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
-    service = Executors.newFixedThreadPool(1);
-    backgroundTask = () -> RestIntegrationTestUtil.makeQueryRequest(
-        REST_APP_0,
-        "SELECT * FROM " + PAGE_VIEW_STREAM + " EMIT CHANGES;",
-        Optional.empty());
   }
 
   @AfterClass
   public static void tearDownClass() {
-    service.shutdownNow();
   }
 
   @Test
-  public void shouldTerminatePushQueryOnSameNode() {
+  public void shouldTerminatePushQueryOnSameNode() throws InterruptedException {
     // Given:
     givenPushQuery();
     final String transientQueryId = getTransientQueryIds().get(0);
@@ -109,10 +132,11 @@ public class TerminateTransientQueryFunctionalTest {
         "Should terminate push query on same node using query id",
         !checkForTransientQuery()
     );
+    assertThatEventually(() -> requestCompleted, is(true));
   }
 
   @Test
-  public void shouldTerminatePushQueryOnAnotherNode() {
+  public void shouldTerminatePushQueryOnAnotherNode() throws InterruptedException {
     // Given:
     givenPushQuery();
     final String transientQueryId = getTransientQueryIds().get(0);
@@ -128,6 +152,7 @@ public class TerminateTransientQueryFunctionalTest {
         "Should terminate push query on another node using query id",
         !checkForTransientQuery()
     );
+    assertThatEventually(() -> requestCompleted, is(true));
   }
 
   public List<RunningQuery> showQueries (){
@@ -138,7 +163,8 @@ public class TerminateTransientQueryFunctionalTest {
   }
 
   public boolean checkForTransientQuery (){
-    return showQueries().stream()
+    List<RunningQuery> queries = showQueries();
+    return queries.stream()
         .anyMatch(q -> q.getId().toString().contains("transient"));
   }
 
@@ -149,12 +175,13 @@ public class TerminateTransientQueryFunctionalTest {
         .collect(Collectors.toList());
   }
 
-  public void givenPushQuery() {
+  public void givenPushQuery() throws InterruptedException {
     service.execute(backgroundTask);
 
     boolean repeat = true;
     while (repeat){
       repeat = !checkForTransientQuery();
+      Thread.sleep(1000L);
     }
   }
 }

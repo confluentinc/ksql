@@ -31,6 +31,8 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -58,7 +60,8 @@ class QueryEngine {
       final Optional<Sink> sink,
       final MetaStore metaStore,
       final KsqlConfig config,
-      final boolean rowpartitionRowoffsetEnabled
+      final boolean rowpartitionRowoffsetEnabled,
+      final String statementText
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
     final Boolean pullLimitClauseEnabled = config.getBoolean(
@@ -71,7 +74,12 @@ class QueryEngine {
             pullLimitClauseEnabled
         );
 
-    final Analysis analysis = queryAnalyzer.analyze(query, sink);
+    final Analysis analysis;
+    try {
+      analysis = queryAnalyzer.analyze(query, sink);
+    } catch (final KsqlException e) {
+      throw new KsqlStatementException(e.getMessage(), statementText, e);
+    }
 
     return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();
   }

@@ -23,7 +23,7 @@ Change the server configuration that controls the HTTP API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
 more info, see [listeners](../reference/server-configuration.md#listeners).
 To configure the endpoint to use HTTPS, see
-[Configure ksqlDB for HTTPS](../operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
+[Configuring Listener for SSL encryption](../operate-and-deploy/installation/server-config/security.md#configuring-listener-for-ssl-encryption).
 
 Content Types
 -------------

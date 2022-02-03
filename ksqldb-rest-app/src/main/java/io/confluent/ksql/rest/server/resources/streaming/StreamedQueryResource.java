@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
+import io.confluent.ksql.api.server.NextHandlerOutput;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -213,6 +214,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
       denyListPropertyValidator.validateAll(configProperties);
 
       if (statement.getStatement() instanceof Query) {
+        if (shouldMigrateToQueryStream(request.getConfigOverrides())) {
+          return EndpointResponse.ok(new NextHandlerOutput());
+        }
         final QueryMetadataHolder queryMetadataHolder = queryExecutor.handleStatement(
             securityContext.getServiceContext(),
             request.getConfigOverrides(),
@@ -338,5 +342,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return serviceContext.getTopicClient().listTopicNames().stream()
         .filter(name -> name.equalsIgnoreCase(topicName))
         .collect(Collectors.toSet());
+  }
+
+  private boolean shouldMigrateToQueryStream(final Map<String, Object> overrides) {
+    if (overrides.containsKey(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG)) {
+      return (Boolean) overrides.get(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG);
   }
 }

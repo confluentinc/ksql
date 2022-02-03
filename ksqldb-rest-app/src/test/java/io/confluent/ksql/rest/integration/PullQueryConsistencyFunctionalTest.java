@@ -62,7 +62,6 @@ import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
@@ -78,7 +77,6 @@ import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
-import org.checkerframework.checker.units.qual.C;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -167,6 +165,8 @@ public class PullQueryConsistencyFunctionalTest {
     .put(KsqlRestConfig.KSQL_AUTHENTICATION_PLUGIN_CLASS, NoAuthPlugin.class)
     .put(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
     .put(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
+    .put(StreamsConfig.InternalConfig.INTERNAL_TASK_ASSIGNOR_CLASS,
+      PullQueryRoutingFunctionalTest.StaticStreamsTaskAssignor.class.getName())
     .build();
 
   private static final Shutoffs APP_SHUTOFFS_0 = new Shutoffs();
@@ -314,10 +314,10 @@ public class PullQueryConsistencyFunctionalTest {
 
     // When:
     final KsqlRestClient restClient = clusterFormation.router.getApp().buildKsqlClient(USER_CREDS);
-    restClient.setProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    ConsistencyOffsetVector offsetVector = new ConsistencyOffsetVector();
-    offsetVector.update("bla", 0, 0);
-    final RestResponse<List<StreamedRow>> res = restClient.makeQueryRequest(sqlTableScan, 1L, null, ImmutableMap.of(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, ""));
+    final ImmutableMap<String, Object> requestProperties =
+        ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    final RestResponse<List<StreamedRow>> res = restClient.makeQueryRequest(
+        sqlTableScan, 1L, null, requestProperties);
     List<StreamedRow> rows = res.getResponse();
     List<List<?>> values = rows.stream()
       .skip(HEADER)
@@ -330,10 +330,11 @@ public class PullQueryConsistencyFunctionalTest {
     // Then:
     assertThat(rows, hasSize(HEADER + 6));
     assertThat(rows.get(HEADER+5).getConsistencyToken(), is(not(Optional.empty())));
-    ConsistencyOffsetVector receivedVector = ConsistencyOffsetVector.deserialize(rows.get(HEADER+5).getConsistencyToken().get().getConsistencyToken());
-    ConsistencyOffsetVector expectedVector = new ConsistencyOffsetVector();
-    expectedVector.setVersion(2);
-    expectedVector.addTopicOffsets("dummy", ImmutableMap.of(5, 5L, 6, 6L, 7, 7L));
+    final ConsistencyOffsetVector receivedVector =
+        ConsistencyOffsetVector.deserialize(rows.get(HEADER+5).getConsistencyToken().get().getConsistencyToken());
+    final ConsistencyOffsetVector expectedVector = new ConsistencyOffsetVector();
+    expectedVector.setVersion(0);
+    expectedVector.addTopicOffsets(topic, ImmutableMap.of(0, 0L, 1, 0L, 2, 2L));
     assertThat(receivedVector, is(expectedVector));
     assertThat(values, containsInAnyOrder(
       ImmutableList.of(KEY0, 1),

@@ -1,8 +1,8 @@
 ---
 layout: page
-title: TERMINATE
-tagline:  ksqlDB TERMINATE statement
-description: Syntax for the TERMINATE statement in ksqlDB
+title: RUN SCRIPT
+tagline:  ksqlDB RUN SCRIPT statement
+description: Syntax for the RUN SCRIPT statement in ksqlDB
 keywords: ksqlDB, query, end, stop
 ---
 
@@ -37,8 +37,7 @@ The RUN SCRIPT doesn't support statements such as:
 -   TERMINATE
 -   Non-persistent queries: SELECT, *etc*.
 
-RUN SCRIPT can also be used from the command line, for instance when
-writing shell scripts.
+RUN SCRIPT is only available from the ksqlDB command line.  
 
 Example
 -------

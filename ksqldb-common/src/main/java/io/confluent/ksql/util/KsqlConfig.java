@@ -539,7 +539,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_HEADERS_COLUMNS_ENABLED =
       "ksql.headers.columns.enabled";
-  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_HEADERS_COLUMNS_ENABLED_DEFAULT = true;
   public static final String KSQL_HEADERS_COLUMNS_ENABLED_DOC =
       "Feature flag that allows the use of kafka headers columns on streams and tables. "
           + "If false, the HEADERS and HEADER(<key>) columns constraints won't be allowed "
@@ -635,6 +635,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final boolean KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT = true;
   public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
       = "Enable transient query cleanup service.";
+
+  public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
+      = "ksql.endpoint.migrate.query";
+  private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
+  private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+      = "Migrates the /query endpoint to use the same handler as /query-stream.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -1369,11 +1375,18 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
         )
         .define(
-                KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG,
             Type.BOOLEAN,
-                KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
             Importance.LOW,
-                KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+            KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            Type.BOOLEAN,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
         )
         .withClientSslSupport();
 
@@ -1388,6 +1401,33 @@ public class KsqlConfig extends AbstractConfig {
     return configDef;
   }
   // CHECKSTYLE_RULES.ON: MethodLength
+
+  public Map<String, Object> originalsWithPrefixOverride(final String prefix) {
+    final Map<String, Object> originals = originals();
+    final Map<String, Object> result = new HashMap<>();
+    // first we iterate over the originals and we add only the entries without the prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (!isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey(), entry.getValue());
+      }
+    }
+    // then we add only prefixed entries with dropped prefix
+    for (Map.Entry<String, ?> entry : originals.entrySet()) {
+      if (isKeyPrefixed(entry.getKey(), prefix)) {
+        result.put(entry.getKey().substring(prefix.length()), entry.getValue());
+      }
+    }
+    // two iterations are necessary to avoid a situation where the unprefixed value
+    // is handled after the prefixed one, because we do not control the order in which
+    // the entries are presented from the originals map
+    return result;
+  }
+
+  private boolean isKeyPrefixed(final String key, final String prefix) {
+    Objects.requireNonNull(key);
+    Objects.requireNonNull(prefix);
+    return key.startsWith(prefix) && key.length() > prefix.length();
+  }
 
   private static final class ConfigValue {
     final ConfigItem configItem;
@@ -1477,7 +1517,8 @@ public class KsqlConfig extends AbstractConfig {
             config.name,
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
-    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
+    this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults,
+            originalsWithPrefixOverride(KSQL_STREAMS_PREFIX));
   }
 
   private static Set<String> streamTopicConfigNames() {

@@ -19,7 +19,7 @@ Stream, Table
 Return the average value for a given column.
 
 !!! Tip "See AVG in action"
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
 
 
 
@@ -41,8 +41,8 @@ The size of the result Array can be limited to a maximum of
 `ksql.functions.collect_list.limit` entries and any values beyond this 
 limit are silently ignored.
 
-When using with a window type of `session`, it can sometimes
-happen that two session windows get merged together into one when a
+When using a window type of `session`, it can sometimes
+happen that two session windows get merged together into one when an
 out-of-order record with a timestamp between the two windows is
 processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
@@ -69,8 +69,8 @@ Currently only works for simple types (not Map, Array, or Struct).
 The size of the result Array can be limited to a maximum of
 `ksql.functions.collect_set.limit` entries and any values beyond this
 limit are silently ignored.
-When using with a window type of `session`, it can sometimes
-happen that two session windows get merged together into one when a
+When using a window type of `session`, it can sometimes
+happen that two session windows get merged together into one when an
 out-of-order record with a timestamp between the two windows is
 processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
@@ -163,8 +163,8 @@ Return a map containing the distinct String values of `col1`
 mapped to the number of times each one occurs for the given window.
 This version limits the number of distinct values which can be
 counted to 1000, beyond which any additional entries are ignored.
-When using with a window type of `session`, it can sometimes
-happen that two session windows get merged together into one when a
+When using a window type of `session`, it can sometimes
+happen that two session windows get merged together into one when an
 out-of-order record with a timestamp between the two windows is
 processed. In this case the 1000 record limit is calculated by
 first considering all the records from the first window, then the
@@ -221,7 +221,7 @@ Return the maximum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
 !!! Tip "See MAX in action"
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
     - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
 
 ## `MIN`
@@ -238,7 +238,7 @@ Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
 !!! Tip "See MIN in action"
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
 
 ## `STDDEV_SAMP`
 

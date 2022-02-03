@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.spun.util.io.FileUtils;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.QueryApplicationId;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -101,20 +102,25 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
-        final Optional<String> topologyName,
+        final Optional<String> queryId,
         final boolean isTransient,
-        final String stateDir
-    ) {
+        final String stateDir,
+        final String serviceId,
+        final String persistentQueryPrefix) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
-      this.topologyName = Objects.requireNonNull(topologyName, "topologyName");
-      queryTopicPrefix = topologyName.map(s -> appId + "-" + s).orElse(appId);
+      this.topologyName = Objects.requireNonNull(queryId, "queryId");
+      queryTopicPrefix = queryId
+          .map(s -> QueryApplicationId.buildInternalTopicPrefix(
+              serviceId,
+              persistentQueryPrefix) + s)
+          .orElse(appId);
       //generate the prefix depending on if using named topologies
       this.isTransient = isTransient;
-      pathName = topologyName
+      pathName = queryId
           .map(s -> stateDir + "/" + appId + "/__" + s + "__")
           .orElse(stateDir + "/" + appId);
-      if (isTransient && topologyName.isPresent()) {
+      if (isTransient && queryId.isPresent()) {
         throw new IllegalArgumentException("Transient Queries can not have named topologies");
       }
     }

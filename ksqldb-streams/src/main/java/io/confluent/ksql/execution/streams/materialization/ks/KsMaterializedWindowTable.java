@@ -30,8 +30,6 @@ import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBy
 import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -67,7 +65,7 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   }
 
   @Override
-  public List<WindowedRow> get(
+  public KsMaterializedQueryResult<WindowedRow> get(
       final GenericKey key,
       final int partition,
       final Range<Instant> windowStartBounds,
@@ -112,14 +110,14 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
           builder.add(row);
         }
 
-        return builder.build();
+        return KsMaterializedQueryResult.rowIterator(builder.build().iterator());
       }
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
   }
 
-  public Iterator<WindowedRow> get(
+  public KsMaterializedQueryResult<WindowedRow> get(
       final int partition,
       final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds) {
@@ -133,29 +131,33 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
       final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> iterator
           = cacheBypassFetcherAll.fetchAll(store, lower, upper);
-      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close)).map(next -> {
-        final Instant windowStart = next.key.window().startTime();
-        if (!windowStartBounds.contains(windowStart)) {
-          return null;
-        }
+      return KsMaterializedQueryResult.rowIterator(
+          Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+              .map(next -> {
+                final Instant windowStart = next.key.window().startTime();
+                if (!windowStartBounds.contains(windowStart)) {
+                  return null;
+                }
 
-        final Instant windowEnd = next.key.window().endTime();
-        if (!windowEndBounds.contains(windowEnd)) {
-          return null;
-        }
+                final Instant windowEnd = next.key.window().endTime();
+                if (!windowEndBounds.contains(windowEnd)) {
+                  return null;
+                }
 
-        final TimeWindow window =
-            new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
+                final TimeWindow window =
+                    new TimeWindow(windowStart.toEpochMilli(), windowEnd.toEpochMilli());
 
-        final WindowedRow row = WindowedRow.of(
-            stateStore.schema(),
-            new Windowed<>(next.key.key(), window),
-            next.value.value(),
-            next.value.timestamp()
-        );
-
-        return row;
-      }).filter(Objects::nonNull).iterator();
+                final WindowedRow row = WindowedRow.of(
+                    stateStore.schema(),
+                    new Windowed<>(next.key.key(), window),
+                    next.value.value(),
+                    next.value.timestamp()
+                );
+                return row;
+              })
+              .filter(Objects::nonNull)
+              .iterator()
+      );
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
     }

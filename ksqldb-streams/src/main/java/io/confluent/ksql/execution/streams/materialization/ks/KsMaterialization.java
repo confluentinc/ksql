@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 
 /**
@@ -65,7 +66,11 @@ public final class KsMaterialization implements Materialization {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
-    return new KsMaterializedTable(stateStore);
+    if (stateStore.getKsqlConfig().getBoolean(
+        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+      return new KsMaterializedTableIQv2(stateStore);
+    }
+    return new  KsMaterializedTable(stateStore);
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Enforced by type
@@ -79,15 +84,25 @@ public final class KsMaterialization implements Materialization {
     final WindowType wndType = wndInfo.getType();
     switch (wndType) {
       case SESSION:
-        return new KsMaterializedSessionTable(stateStore,
-                SessionStoreCacheBypass::fetch, SessionStoreCacheBypass::fetchRange);
+        if (stateStore.getKsqlConfig().getBoolean(
+            KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+          return new KsMaterializedSessionTableIQv2(stateStore);
+        } else {
+          return new KsMaterializedSessionTable(stateStore,
+            SessionStoreCacheBypass::fetch, SessionStoreCacheBypass::fetchRange);
+        }
 
       case HOPPING:
       case TUMBLING:
-        return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get(),
-                WindowStoreCacheBypass::fetch,
-                WindowStoreCacheBypass::fetchAll,
-                WindowStoreCacheBypass::fetchRange);
+        if (stateStore.getKsqlConfig().getBoolean(
+            KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
+          return new KsMaterializedWindowTableIQv2(stateStore, wndInfo.getSize().get());
+        } else {
+          return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get(),
+            WindowStoreCacheBypass::fetch,
+            WindowStoreCacheBypass::fetchAll,
+            WindowStoreCacheBypass::fetchRange);
+        }
 
       default:
         throw new UnsupportedOperationException("Unknown window type: " + wndInfo);

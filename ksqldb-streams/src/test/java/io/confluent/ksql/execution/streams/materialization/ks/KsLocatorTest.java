@@ -260,6 +260,33 @@ public class KsLocatorTest {
   }
 
   @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForStreamsMetadataForStore() {
+    // Given:
+    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
+        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+
+    // When:
+    locator.getStreamsMetadata();
+
+    // Then:
+    Mockito.verify(kafkaStreamsNamedTopologyWrapper).streamsMetadataForStore(STORE_NAME, "queryId");
+  }
+
+  @Test
+  public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForQueryMetadataForKey() {
+    // Given:
+    final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
+        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+
+    // When:
+    locator.getKeyQueryMetadata(KEY);
+
+    // Then:
+    Mockito.verify(kafkaStreamsNamedTopologyWrapper)
+        .queryMetadataForKey(STORE_NAME, KEY.getKey(), keySerializer, "queryId");
+  }
+
+  @Test
   public void shouldReturnLocalOwnerIfSameAsSuppliedLocalHost() {
     // Given:
     final HostInfo localHostInfo = new HostInfo(LOCAL_HOST_URL.getHost(), LOCAL_HOST_URL.getPort());

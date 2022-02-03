@@ -32,6 +32,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.StreamsMetadata;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,21 +83,27 @@ public abstract class SharedKafkaStreamsRuntime {
     return kafkaStreams.state();
   }
 
-  public Collection<StreamsMetadata> allMetadata() {
-    return kafkaStreams.metadataForAllStreamsClients();
+  public Collection<StreamsMetadata> getAllStreamsClientsMetadataForQuery(final QueryId queryId) {
+    return kafkaStreams.allStreamsClientsMetadataForTopology(queryId.toString());
   }
 
-  public Set<StreamsTaskMetadata> getTaskMetadata() {
+  public Set<StreamsTaskMetadata> getAllTaskMetadataForQuery(final QueryId queryId) {
     return kafkaStreams.metadataForLocalThreads()
         .stream()
         .flatMap(t -> t.activeTasks().stream())
+        .filter(m -> queryId.toString().equals(m.taskId().topologyName()))
         .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
         .collect(Collectors.toSet());
   }
 
-  public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
-    throw new IllegalStateException("Shared runtimes have not been fully implemented in this"
-                                        + " version and should not be used.");
+  public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLagsForQuery(
+      final QueryId queryId) {
+    try {
+      return kafkaStreams.allLocalStorePartitionLagsForTopology(queryId.toString());
+    } catch (IllegalStateException | StreamsException e) {
+      log.error(e.getMessage());
+      return ImmutableMap.of();
+    }
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "streamsProperties is immutable")

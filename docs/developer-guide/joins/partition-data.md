@@ -224,11 +224,11 @@ you don't need to worry about the partitioning strategy.
 
 But if the producer applications for your records have custom
 partitioners specified in
-[configuration](http://kafka.apache.org/documentation/#producerconfigs),
+[configuration](https://kafka.apache.org/documentation/#producerconfigs),
 the same custom partitioner logic must be used for records on both sides
 of the join. The applications that write to the join inputs must have
 the same partitioning strategy, so that records with the same key are
-delivered to same partition number.
+delivered to the same partition.
 
 This means that the input records must be in the same partition on both
 sides of the join. For example, in a stream-table join, if a `userId`

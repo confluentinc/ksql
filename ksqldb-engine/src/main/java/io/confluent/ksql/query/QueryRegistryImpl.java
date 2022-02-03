@@ -268,7 +268,10 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     final PersistentQueryMetadata query;
 
-    if (sharedRuntimeId.isPresent()) {
+    final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+
+    if (sharedRuntimeId.isPresent() && (oldQuery == null
+        || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
       if (sandbox) {
         streams.addAll(sourceStreams.stream()
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
@@ -470,6 +473,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
+
+      final Set<SharedKafkaStreamsRuntime> toClose = streams
+          .stream()
+          .filter(s -> s.getCollocatedQueries().isEmpty())
+          .collect(Collectors.toSet());
+      streams.removeAll(toClose);
+      toClose.forEach(SharedKafkaStreamsRuntime::close);
 
       switch (persistentQuery.getPersistentQueryType()) {
         case CREATE_SOURCE:

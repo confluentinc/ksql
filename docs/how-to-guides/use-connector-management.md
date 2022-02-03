@@ -36,7 +36,7 @@ Regardless of which mode you use, the syntax to create and use connectors is the
 
 In embedded mode, ksqlDB runs connectors directly on its servers. This is convenient because it reduces the number of moving parts that you need to manage in your infrastructure. Embedded mode is highly useful for development, testing, and production workloads that have light/moderate data volumes. Use this mode when you don't need to scale your ingest/egress capacity independently from your processing capacity. When you use embedded mode, ksqlDB server is actually running a {{ site.kconnectlong }} server in distributed mode.
 
-### Dowloading connectors
+### Downloading connectors
 
 Before you can use an embedded connector, you need to download it prior to starting ksqlDB. A downloaded connector package is essentially a set of jars that contain the code for interacting with the target data store.
 
@@ -196,9 +196,9 @@ Here is what this ksqlDB statement does:
 - ksqlDB passes the remaining properties directly to the Voluble connector so that it can configure itself.
 - Voluble publishes a new event to topic `people` every `500` milliseconds with a UUID key and a map value of two keys, `name` and `creditCardNumber`.
 
-The properties are the same that you would pass to a connector if it was running in a dedicated {{ site.kconnect }} cluster. You can pass it any properties that the connector or {{ site.kconnectlong }} respects, like `max.tasks` to scale the number of instances of the connector.
+The properties are the same that you would pass to a connector if it was running in a dedicated {{ site.kconnect }} cluster. You can pass any properties that the connector or {{ site.kconnectlong }} respects, like `max.tasks` to scale the number of instances of the connector.
 
-Check that the connector working is by printing the contents of the `people` topic, which connector `s` created.
+Check that the connector is working by printing the contents of the `people` topic, which connector `s` created.
 
 ```sql
 PRINT 'people' FROM BEGINNING;

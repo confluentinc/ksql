@@ -13,6 +13,7 @@ Many parameters can only be set once for the entire server, and must be
 specified using the `ksql-server.properties` file. Some parameters, however,
 can be set on a per-persistent query basis using `SET`. This is indicated in each parameter
 section below.
+Retrieve the current list of configuration settings by using the [SHOW PROPERTIES](/developer-guide/ksqldb-reference/show-properties/) command.
 
 For more information on setting properties, see
 [Configure ksqlDB Server](/operate-and-deploy/installation/server-config).
@@ -62,7 +63,7 @@ If `ksql.internal.listener` resolves to a URL that uses `localhost`, a wildcard 
 like `0.0.0.0`, or a hostname that other ksqlDB nodes either can't resolve or can't route requests
 to, set `ksql.advertised.listener` to a URL that ksqlDB nodes can resolve.
 
-For more information, see [Configuring Listeners of a ksqlDB Cluster](./index.md#configuring-listeners-of-a-ksqldb-cluster)
+For more information, see [Configuring Listeners of a ksqlDB Cluster](/operate-and-deploy/installation/server-config/#configuring-listeners-of-a-ksqldb-cluster)
 
 ## `ksql.connect.url`
 
@@ -131,14 +132,16 @@ is explored in detail [here](/how-to-guides/create-a-user-defined-function/).
 Limit the size of the resultant Array to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
-Also see [aggregate-functions](/reference/aggregate-functions)
+For more information, see
+[aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_list).
 
 ## `ksql.functions.collect_set.limit`
 
 Limits the size of the resultant Set to N entries, beyond which
 any further values are silently ignored, by setting this configuration to N.
 
-Also see [aggregate-functions](/reference/aggregate-functions)
+For more information, see
+[aggregate-functions](/developer-guide/ksqldb-reference/aggregate-functions/#collect_set).
 
 ## `ksql.functions.substring.legacy.args`
 
@@ -168,9 +171,9 @@ If heartbeats are enabled, this config controls the interval, in milliseconds, a
 heartbeats are sent between nodes. The default value is `100`.
 
 If you tune this value, also consider tuning
-[`ksql.heartbeat.check.interval.ms`](#ksql.heartbeat.check.interval.ms), 
+[`ksql.heartbeat.check.interval.ms`](#ksqlheartbeatcheckintervalms), 
 which controls how often a node processes received heartbeats, and
-[`ksql.heartbeat.window.ms`](#ksql.heartbeat.window.ms),
+[`ksql.heartbeat.window.ms`](#ksqlheartbeatwindowms),
 which controls the window size for checking if heartbeats were missed 
 and deciding whether a node is up or down.
 
@@ -210,7 +213,7 @@ intra-cluster communication.
 
 If not set, the internal listener defaults to the first listener defined by `listeners`.
 
-This setting is most often useful in a IaaS environment to separate external-facing
+This setting is most often useful in an IaaS environment to separate external-facing
 traffic from internal traffic.
 
 ## `ksql.internal.topic.replicas`
@@ -224,7 +227,7 @@ configured separately. For more information, see
 
 ## `ksql.lag.reporting.enable`
 
-If enabled, ksqlDB servers in the same ksqlDB cluster sends state-store 
+If enabled, ksqlDB servers in the same ksqlDB cluster send state-store 
 lag information to each other as a form of heartbeat, for improved pull query routing.
 Only applicable if [`ksql.heartbeat.enable`](#ksqlheartbeatenable) is also set to `true`.
 The default is `false`.
@@ -253,13 +256,13 @@ the [ksql.service.id](#ksqlserviceid) property.
 ## `ksql.logging.processing.topic.partitions`
 
 If automatic processing log topic creation is enabled, ksqlDB creates the
-topic with number of partitions set to the value of this property. By
+topic with the number of partitions set to the value of this property. By
 default, this property has the value `1`.
 
 ## `ksql.logging.processing.topic.replication.factor`
 
 If automatic processing log topic creation is enabled, ksqlDB creates the
-topic with number of replicas set to the value of this property. By
+topic with the number of replicas set to the value of this property. By
 default, this property has the value `1`.
 
 ## `ksql.logging.processing.stream.auto.create`
@@ -463,7 +466,7 @@ Specifies the server properties that ksqlDB clients and users can't override.
 
 The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
 over a secure connection, see
-[Configure ksqlDB for Secured {{ site.srlong }}](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
+[Configure ksqlDB for Secured {{ site.srlong }}](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-secured-confluent-schema-registry).
 
 ## `ksql.service.id`
 
@@ -497,6 +500,14 @@ Controls whether the SOURCE table feature is enabled. If you specify the SOURCE
 clause when you create a table, you can execute pull queries against the table.
 For more information, see
 [SOURCE Tables](/developer-guide/ksqldb-reference/create-table/#source-tables).
+
+## `ksql.headers.columns.enabled`
+
+Controls whether creating new streams/tables with `HEADERS` or `HEADER('<key>')`
+columns is allowed. If you specify a `HEADERS` or `HEADER('<key>')` column when
+you create a stream or table and `ksql.headers.columns.enabled` is set to false,
+then the statement is rejected. Existing sources with `HEADER`columns can be
+queried though.
 
 ## `ksql.streams.auto.offset.reset`
 
@@ -540,7 +551,7 @@ SET 'commit.interval.ms'='5000';
 ```
 
 For more information, see the
-[Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+[Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and 
 [COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
@@ -555,7 +566,7 @@ SET 'cache.max.bytes.buffering'='20000000';
 ```
 
 For more information, see the
-[Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
+[Streams parameter reference](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
 [CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
@@ -604,7 +615,7 @@ joins, to a durable location. By default, state is stored in the
 
 A file that specifies a predefined set of queries for the ksqlDB cluster.
 For an example, see
-[Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
+[Non-interactive (Headless) ksqlDB Usage](/operate-and-deploy/installation/server-config/#non-interactive-headless-ksqldb-usage).
 
 ## `ksql.query.persistent.active.limit`
 
@@ -732,7 +743,7 @@ listeners=http://server1245:8088
 ```
 
 You can configure ksqlDB Server to use HTTPS. For more information, see
-[Configure ksqlDB for HTTPS](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
+[Configure ksqlDB for HTTPS](/operate-and-deploy/installation/server-config/security#configuring-listener-for-ssl-encryption).
 
 ## `response.http.headers.config`
 

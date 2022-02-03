@@ -149,7 +149,8 @@ public class StreamedQueryResourceTest {
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
       StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
       CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2",
-      KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true
+      KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true,
+      KsqlConfig.KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG, false
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 

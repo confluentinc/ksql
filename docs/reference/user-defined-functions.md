@@ -34,6 +34,7 @@ values.
 | `ARRAY`   | `java.util.List`                      |
 | `MAP`     | `java.util.Map`                       |
 | `STRUCT`  | `org.apache.kafka.connect.data.Struct`|
+| `BYTES`   | `java.nio.ByteBuffer`                 |
 
 !!! note
     Using `Struct` or `BigDecimal` in your functions requires specifying the
@@ -202,7 +203,7 @@ SQL. The annotation supports the following fields:
 If a user defined function uses primitive types in its signature it is indicating that the
 parameter should never be `null`. Conversely, using boxed types indicates
 the function can accept `null` values for the parameter. It's up to the
-implementor of the UDF to choose which is the more appropriate. A common
+implementer of the UDF to choose which is the more appropriate. A common
 pattern is to return `null` if the input is `null`, though generally
 this is only for parameters that are expected to be supplied from the
 source row being processed.

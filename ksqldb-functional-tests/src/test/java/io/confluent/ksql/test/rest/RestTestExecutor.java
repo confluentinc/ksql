@@ -102,6 +102,7 @@ public class RestTestExecutor implements Closeable {
   private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(30);
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
   private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
+  private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(5);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
   private static final String QUERY_KEY = "query";
   private static final String ROW_KEY = "row";
@@ -187,6 +188,10 @@ public class RestTestExecutor implements Closeable {
       final boolean verifyOrder = testCase.getOutputConditions().isPresent()
         && testCase.getOutputConditions().get().getVerifyOrder();
       verifyResponses(responses, testCase.getExpectedResponses(), testCase.getStatements(), verifyOrder);
+
+      // Give a few seconds for the transient queries to complete, otherwise, we'll go into teardown
+      // and leave the queries stuck.
+      waitForTransientQueriesToComplete();
 
     } finally {
       testCase.getProperties().keySet().forEach(restClient::unsetProperty);
@@ -734,6 +739,27 @@ public class RestTestExecutor implements Closeable {
     }
     LOG.info("Timed out waiting for correct response");
     throw new AssertionError("Timed out while trying to wait for offsets");
+  }
+
+  private void waitForTransientQueriesToComplete() {
+    // Wait for the transient queries to complete
+    final long queryRunningThreshold = System.currentTimeMillis()
+        + MAX_TRANSIENT_QUERY_COMPLETION_TIME.toMillis();
+    while (System.currentTimeMillis() < queryRunningThreshold) {
+      boolean notReady = false;
+      // The query is only unregistered after it has been cleaned up.
+      for (QueryMetadata queryMetadata : engine.getAllLiveQueries()) {
+        if (queryMetadata instanceof TransientQueryMetadata) {
+          notReady = true;
+        }
+      }
+
+      if (notReady) {
+        threadYield();
+      } else {
+        break;
+      }
+    }
   }
 
   private Set<String> getSourceTopics(

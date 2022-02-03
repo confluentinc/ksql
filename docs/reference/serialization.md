@@ -146,9 +146,10 @@ This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
 `STRUCT`. 
 
-`TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
-`TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
-`DATA` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+- `TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
+- `TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
+- `DATE` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
+- `BYTES` typed data is serialized as a Base64-encoded string value.
 
 ### JSON
 
@@ -296,6 +297,19 @@ a timestamp at `1970-01-03` is serialized as
 ```
 
 ksqlDb deserializes a number as a `DATE` if it corresponds to a `DATE` typed field in
+the stream.
+
+#### Bytes Serialization
+Bytes are serialized as a Base64-encoded string value. For example, the byte
+array `[61, 62, 63]` is serialized as:
+
+```json
+{
+  "value": "YWJj"
+}
+```
+
+ksqlDb deserializes a string as `BYTES` if it corresponds to a `BYTES` typed field in
 the stream.
 
 #### Field Name Case Sensitivity
@@ -497,13 +511,13 @@ Single field (un)wrapping
 
 ### (de)serialization of single keys
 
-ksqlDB assumes that any single key is unwrapped, which mean that it's not contained in an outer
+ksqlDB assumes that any single key is unwrapped, which means that it's not contained in an outer
 record or object. Conversely, ksqlDB assumes that any key with multiple columns
 (for example, `CREATE STREAM x (K1 INT KEY, K2 INT KEY, C1 INT)`) _is_ wrapped, which means that it is a record
 with each column as a field within the key. 
 
 To declare a single-column key that's wrapped, specify a `STRUCT` type
-with a single column. for example, `K STRUCT<F1 INT> KEY`. See the next two sections 
+with a single column. For example, `K STRUCT<F1 INT> KEY`. See the next two sections 
 on single values for more information about wrapped and unwrapped data.
 
 ### Controlling deserializing of single values

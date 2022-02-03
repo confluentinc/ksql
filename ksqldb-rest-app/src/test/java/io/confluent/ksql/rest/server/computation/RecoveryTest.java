@@ -272,7 +272,8 @@ public class RecoveryTest {
             StreamsConfig.STATE_DIR_CONFIG,
             StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
           .toString(),
-        serviceContext)
+        serviceContext,
+        ksqlConfig)
       );
     }
 
@@ -605,6 +606,15 @@ public class RecoveryTest {
   }
 
   @Test
+  public void shouldRecoverCreatesWithNonExistingTopic() {
+    server1.submitCommands(
+        "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='newTopic', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B AS SELECT * FROM A;"
+    );
+    shouldRecover(commands);
+  }
+  @Test
+
   public void shouldRecoverRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (ROWKEY STRING KEY, C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
@@ -643,7 +653,7 @@ public class RecoveryTest {
   public void shouldRecoverInsertIntos() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B SELECT * FROM A;"
     );
     shouldRecover(commands);
@@ -653,7 +663,7 @@ public class RecoveryTest {
   public void shouldRecoverInsertIntosWithCustomQueryId() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B WITH(QUERY_ID='MY_INSERT_ID') SELECT * FROM A;"
     );
     shouldRecover(commands);
@@ -663,7 +673,7 @@ public class RecoveryTest {
   public void shouldRecoverInsertIntosRecreates() {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON', PARTITIONS=1);",
+        "CREATE STREAM B (COLUMN STRING) WITH (KAFKA_TOPIC='B', VALUE_FORMAT='JSON');",
         "INSERT INTO B SELECT * FROM A;",
         "TERMINATE InsertQuery_2;",
         "INSERT INTO B SELECT * FROM A;"

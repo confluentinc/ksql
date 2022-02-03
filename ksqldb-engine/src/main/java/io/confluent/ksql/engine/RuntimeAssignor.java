@@ -97,8 +97,8 @@ public class RuntimeAssignor {
   public void rebuildAssignment(final Collection<PersistentQueryMetadata> queries) {
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-        runtimesToSources.put(queryMetadata.getQueryApplicationId(),
-            queryMetadata.getSourceNames());
+        runtimesToSources.get(queryMetadata.getQueryApplicationId())
+            .addAll(queryMetadata.getSourceNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       }
     }

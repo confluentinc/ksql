@@ -2,7 +2,7 @@
 
 **Author**: Hao Li (@lihaosky) | 
 **Release Target**: 0.24 | 
-**Status**: _In Discussion_ | 
+**Status**: _Merged_ | 
 **Discussion**: [Issue](https://github.com/confluentinc/ksql/issues/3634), [GitHub PR1](https://github.com/confluentinc/ksql/pull/8177)
 
 **tl;dr:** This KLIP introduces `key_schema_id` and `value_schema_id` in `C*AS` statements and details the expected behaviors in various commands.

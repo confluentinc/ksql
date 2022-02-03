@@ -1,5 +1,6 @@
 package io.confluent.ksql.engine;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
@@ -44,12 +45,14 @@ public class RuntimeAssignorTest {
     );
     when(queryMetadata.getQueryApplicationId()).thenReturn(firstRuntime);
     when(queryMetadata.getQueryId()).thenReturn(query1);
-    when(queryMetadata.getSourceNames()).thenReturn(new HashSet<>(sources1));
+    when(queryMetadata.getSourceNames()).thenReturn(ImmutableSet.copyOf(new HashSet<>(sources1)));
   }
 
   @Test
   public void shouldCreateSandboxAndDroppingAQueryWillNotChangeReal() {
     final RuntimeAssignor sandbox = runtimeAssignor.createSandbox();
+    sandbox.rebuildAssignment(Collections.singleton(queryMetadata));
+
     sandbox.dropQuery(queryMetadata);
     assertThat("Was changed by sandbox.", runtimeAssignor.getIdToRuntime().containsKey(query1));
     assertThat("The query was not removed.", !sandbox.getIdToRuntime().containsKey(query1));

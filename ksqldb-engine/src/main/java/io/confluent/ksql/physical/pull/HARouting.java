@@ -152,9 +152,6 @@ public final class HARouting implements AutoCloseable {
         .map(KsqlPartitionLocation::removeFilteredHosts)
         .collect(Collectors.toList());
 
-    // Required for integration test, to be removed in follow-up PR
-    consistencyOffsetVector.ifPresent(this::updateConsistencyOffsetVectorDummy);
-
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
     coordinatorExecutorService.submit(() -> {
       try {
@@ -286,8 +283,7 @@ public final class HARouting implements AutoCloseable {
         pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         synchronized (pullPhysicalPlan) {
-          pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, rowFactory,
-                                   consistencyOffsetVector);
+          pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, rowFactory);
           return new PartitionFetchResult(RoutingResult.SUCCESS, location, Optional.empty());
         }
       } catch (StandbyFallbackException e) {
@@ -360,7 +356,8 @@ public final class HARouting implements AutoCloseable {
               statement.getStatementText(),
               statement.getSessionConfig().getOverrides(),
               requestProperties,
-              streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema),
+              streamedRowsHandler(
+                   owner, pullQueryQueue, rowFactory, outputSchema, consistencyOffsetVector),
               shouldCancelRequests
           );
     } catch (Exception e) {
@@ -415,7 +412,8 @@ public final class HARouting implements AutoCloseable {
       final KsqlNode owner,
       final PullQueryQueue pullQueryQueue,
       final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
-      final LogicalSchema outputSchema
+      final LogicalSchema outputSchema,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     final AtomicInteger processedRows = new AtomicInteger(0);
     final AtomicReference<Header> header = new AtomicReference<>();
@@ -443,11 +441,8 @@ public final class HARouting implements AutoCloseable {
           }
 
           if (!row.getRow().isPresent()) {
-            if (row.getConsistencyToken().isPresent()) {
-              continue;
-            } else {
-              throw new KsqlException("Missing row data on row " + i + " of chunk");
-            }
+            parseNonDataRows(row, i, consistencyOffsetVector);
+            continue;
           }
 
           final List<?> r = row.getRow().get().getColumns();
@@ -462,6 +457,22 @@ public final class HARouting implements AutoCloseable {
         throw new KsqlException("Error handling streamed rows: " + e.getMessage(), e);
       }
     };
+  }
+
+  private static void parseNonDataRows(
+      final StreamedRow row,
+      final int i,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
+  ) {
+    if (row.getConsistencyToken().isPresent()) {
+      if (consistencyOffsetVector.isPresent()) {
+        final String token = row.getConsistencyToken().get().getConsistencyToken();
+        final ConsistencyOffsetVector received = ConsistencyOffsetVector.deserialize(token);
+        consistencyOffsetVector.get().merge(received);
+      }
+    } else if (!row.getFinalMessage().isPresent()) {
+      throw new KsqlException("Missing row data on row " + i + " of chunk");
+    }
   }
 
   private static void validateSchema(
@@ -512,10 +523,5 @@ public final class HARouting implements AutoCloseable {
     public Optional<OffsetVector> getOffsetVector() {
       return offsetVector;
     }
-  }
-
-  private void updateConsistencyOffsetVectorDummy(final ConsistencyOffsetVector ct) {
-    ct.setVersion(2);
-    ct.addTopicOffsets("dummy", ImmutableMap.of(5, 5L, 6, 6L, 7, 7L));
   }
 }

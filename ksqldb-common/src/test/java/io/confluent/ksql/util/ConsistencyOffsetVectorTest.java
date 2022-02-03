@@ -143,6 +143,7 @@ public class ConsistencyOffsetVectorTest {
     mergedVector.update("testTopic1", 0, 1);
     mergedVector.update("testTopic1", 1, 2);
     mergedVector.update("testTopic1", 2, 2);
+    mergedVector.update("testTopic2", 0, 1);
 
     assertThat(offsetVector, CoreMatchers.is(mergedVector));
   }

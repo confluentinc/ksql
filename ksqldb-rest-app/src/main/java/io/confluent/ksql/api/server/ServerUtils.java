@@ -115,7 +115,8 @@ public final class ServerUtils {
       log.error(logMsg, actual);
       if (actual instanceof KsqlStatementException) {
         routingContext.fail(BAD_REQUEST.code(),
-            new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT));
+            new KsqlApiException(actual.getMessage(), ERROR_CODE_BAD_STATEMENT,
+                ((KsqlStatementException) actual).getSqlStatement()));
         return null;
       } else if (actual instanceof KsqlApiException) {
         routingContext.fail(BAD_REQUEST.code(), actual);

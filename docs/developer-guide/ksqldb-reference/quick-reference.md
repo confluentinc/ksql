@@ -21,6 +21,13 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
+## ALTER property
+Change a property value.
+
+```sql
+ALTER 'auto.offset.reset'='earliest';
+```
+
 ## ALTER STREAM
 Add new columns to a stream. This is not supported for streams defined using queries
 (`CREATE STREAM ... AS`).
@@ -33,7 +40,7 @@ ALTER STREAM stream_name
 ```
 
 ## ALTER TABLE
-Add new columns to a table. This is not supported for table defined using queries
+Add new columns to a table. This is not supported for tables defined using queries
 (`CREATE TABLE ... AS`)
 ```sql
 ALTER TABLE stream_name
@@ -44,7 +51,7 @@ ALTER TABLE stream_name
 
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
-[SELECT](../../ksqldb-reference/select-push-query/#example).
+[SELECT](/developer-guide/ksqldb-reference/select-push-query/#examples).
 
 ```sql hl_lines="4"
 SELECT column_name(s)
@@ -55,11 +62,18 @@ SELECT column_name(s)
 
 ## AS
 Alias a column, expression, or type. For more information, see
-[Create a table](../../create-a-table/#create-a-ksqldb-table-from-a-ksqldb-stream).
+[Create a table](/developer-guide/ksqldb-reference/create-table-as-select/#examples).
 
 ```sql hl_lines="1"
 SELECT column_name AS column_alias
   FROM stream_name | table_name
+```
+
+## ASSERT
+Assert values, stream, table, or tombstones.
+
+```sql
+ASSERT NULL VALUES sourceName (columns)? KEY values            
 ```
 
 ## BETWEEN
@@ -222,7 +236,7 @@ CREATE TYPE <type_name> AS <type>;
 
 ## DEFINE
 
-Defines a variable.
+Defines a variable. For more information, see [DEFINE](define.md).
 
 ```sql
 DEFINE <name> = '<value>';
@@ -315,6 +329,17 @@ SELECT column_name(s)
    ON <stream_name1|table_name1>.column_name=<stream_name2|table_name2>.column_name
 ```
 
+## GRACE PERIOD
+Allow events to be accepted for a time period after a window ends. For more
+information, see [Out-of-order events](../../../concepts/time-and-windows-in-ksqldb-queries#out-of-order-events)
+
+```sql hl_lines="2"
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```
+
 ## GROUP BY
 Group records in a window. Required by the WINDOW clause. Windowing queries
 must group by the keys that are selected in the query. For more information,
@@ -336,6 +361,22 @@ SELECT column_name, aggregate_function(column_name)
   WHERE column_name operator value
   GROUP BY column_name
   HAVING aggregate_function(column_name) operator value
+```
+## HEADER
+
+Populate a column with the {{ site.ak }} record's last header that matches the key.
+
+```sql
+CREATE STREAM S (column_name BYTES HEADER('key'))
+WITH (kafka_topic='s', format='json');
+```
+
+## HEADERS
+Populate a column with the full list of the {{ site.ak }} record's headers.
+
+```sql
+CREATE STREAM S (column_name ARRAY<STRUCT<key STRING, value BYTES>> HEADERS)
+WITH (kafka_topic='s', format='json');
 ```
 
 ## HOPPING
@@ -389,7 +430,7 @@ SELECT column_name(s)
 
 !!! Tip "See INNER_JOIN in action"
     - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic_pricing/#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
     - [Notify passengers of flight updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
     - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
 
@@ -526,6 +567,13 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   EMIT CHANGES;
 ```
 
+## SET property
+Assign a property value.
+
+```sql
+SET 'auto.offset.reset'='earliest';
+```
+
 ## SHOW CONNECTORS
 List all connectors in the {{ site.kconnect }} cluster. For more information,
 see [SHOW CONNECTORS](../../ksqldb-reference/show-connectors).
@@ -644,9 +692,16 @@ Undefines a variable.
 UNDEFINE name;
 ```
 
+## UNSET property
+Unassign a property value.
+
+```sql
+UNSET 'auto.offset.reset';
+```
+
 ## WHERE
 Extract records that fulfill a specified condition. For more information, see
-[SELECT](../../ksqldb-reference/select-push-query/#example).  
+[SELECT](/developer-guide/ksqldb-reference/select-push-query/#examples).  
 
 ```sql hl_lines="3"
 SELECT column_name(s)
@@ -667,7 +722,7 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 ```
 
 ## WINDOWSTART / WINDOWEND
-Specify the beginning and end bounds a window. For more information, see
+Specify the beginning and end bounds of a window. For more information, see
 [WINDOW](../../ksqldb-reference/select-push-query/#window).
 
 ```sql hl_lines="1"

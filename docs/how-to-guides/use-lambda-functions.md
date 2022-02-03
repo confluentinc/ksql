@@ -74,7 +74,7 @@ CREATE STREAM stream1 (
 A lambda invocation function is a [scalar UDF](/developer-guide/ksqldb-reference/scalar-functions), and you use it like other scalar functions.
 
 The following example lambda function transforms both the key and value of a map and produces a new map. A built-in UDF transforms the key 
-into an uppercase string using a built in UDF, and the value is transformed through addition. The order of the variables 
+into an uppercase string using a built-in UDF, and the value is transformed through addition. The order of the variables 
 is important: the first item in the arguments list, named `k` in this example, is treated as the key, and the second, 
 named `v` in this example, is treated as the value. Pay attention to this if your map has different types. 
 Note that `transform` on a map requires two lambda functions, while `transform` on an array requires one.
@@ -191,7 +191,7 @@ Your output should resemble:
 ```
 
 ## Advanced lambda use cases
-the following example creates a stream with a column type `MAP<STRING, ARRAY<DECIMAL(2,3)>` and applies the `transform` 
+The following example creates a stream with a column type `MAP<STRING, ARRAY<DECIMAL(2,3)>` and applies the `transform` 
 lambda invocation function with a nested `transform` lambda invocation function.
 ```sql
 CREATE STREAM stream4 (

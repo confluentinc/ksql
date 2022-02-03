@@ -104,7 +104,7 @@ The WITH clause for the SELECT result supports the following properties:
 
 |     Property      |                                             Description                                              |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
-| KAFKA_TOPIC       | The name of the Kafka topic that backs this stream. If this property is not set, then the name of the stream in upper case will be used as default. |
+| KAFKA_TOPIC       | The name of the Kafka topic that backs this stream. If this property is not set, then the name of the stream in uppercase will be used as default. |
 | KEY_FORMAT        | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
 | KEY_SCHEMA_ID     | Specifies the schema ID of key schema in {{ site.sr }}. The schema will be used for data serialization. See [Schema Inference With Schema ID](/operate-and-deploy/schema-inference-with-id). |
 | VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization). If this property is not set, the format from the left-most input stream/table is used. |
@@ -119,11 +119,12 @@ The WITH clause for the SELECT result supports the following properties:
 
 
 !!! note
-      - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
-        `ksql.schema.registry.url` must be set in the ksqlDB server configuration
-        file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
-      - Avro field names are not case sensitive in ksqlDB. This matches the ksqlDB
-        column name behavior.
+      
+    - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
+      `ksql.schema.registry.url` must be set in the ksqlDB Server configuration file.
+      See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
+    - Avro and Protobuf field names are not case sensitive in ksqlDB.
+      This matches the ksqlDB column name behavior.
 
 Examples
 --------

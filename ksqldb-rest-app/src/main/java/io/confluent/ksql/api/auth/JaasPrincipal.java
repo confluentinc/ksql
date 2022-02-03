@@ -24,13 +24,17 @@ import java.util.Objects;
 
 /**
  * Principal implementation created when authenticating with the JaasAuthProvider
+ * <p>
+ *  This class and its constructor are public to make them accessible from pluggable security
+ *  extensions.
+ * </p>
  */
-class JaasPrincipal implements KsqlPrincipal {
+public class JaasPrincipal implements KsqlPrincipal {
 
   private final String name;
   private final String token;
 
-  JaasPrincipal(final String name, final String password) {
+  public JaasPrincipal(final String name, final String password) {
     this.name = Objects.requireNonNull(name, "name");
     this.token = createToken(name, Objects.requireNonNull(password));
   }

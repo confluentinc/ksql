@@ -20,6 +20,7 @@ import io.confluent.ksql.physical.pull.PullQueryRow;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KeyValueMetadata;
+import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.RowMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -207,10 +208,13 @@ public class PullQueryQueue implements BlockingRowQueue {
 
     if (row.getConsistencyOffsetVector().isPresent()) {
       LOG.info("Poll consistency vector from queue " + row.getConsistencyOffsetVector());
-      return new KeyValueMetadata<>(new RowMetadata(
-          Optional.empty(), row.getConsistencyOffsetVector()));
+      return new KeyValueMetadata<>(RowMetadata.of(row.getConsistencyOffsetVector().get()));
     }
-    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()));
+    final Optional<RowMetadata> metadata = row.getSourceNode()
+        .map(node -> new KsqlHostInfo(node.location().getHost(), node.location().getPort()))
+        .map(RowMetadata::of);
+    return new KeyValueMetadata<>(KeyValue.keyValue(null, row.getGenericRow()),
+        metadata);
   }
 
   /**

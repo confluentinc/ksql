@@ -35,12 +35,12 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
-    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "schema-registry"  ]]
+    elif [[ "${repos[i]}" == "rest-utils" ]]
     then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/plugins-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/plugins-deploy.patch
       find . -name '*.rej'
-    elif [[ "${repos[i]}" == "ksql" ]]
+    elif [[ "${repos[i]}" == "ksql" || "${repos[i]}" == "schema-registry" ]]
     then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/pluginManagement-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/pluginManagement-deploy.patch

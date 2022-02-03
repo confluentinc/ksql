@@ -71,7 +71,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         collocatedQueries.keySet()
             .stream()
             .map(QueryId::toString)
-            .reduce("", (a, b) -> a + b));
+            .reduce("", (a, b) -> a + ", " + b));
   }
 
   private void setupAndStartKafkaStreams(final KafkaStreams kafkaStreams) {

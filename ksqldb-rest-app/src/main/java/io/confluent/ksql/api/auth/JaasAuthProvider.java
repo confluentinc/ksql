@@ -53,7 +53,7 @@ public class JaasAuthProvider implements AuthProvider {
   private final String contextName;
 
   public JaasAuthProvider(final Server server, final KsqlRestConfig config) {
-    this(server, config, LoginContext::new);
+    this(server, config, () -> new JAASLoginService());
   }
 
   @VisibleForTesting
@@ -77,7 +77,7 @@ public class JaasAuthProvider implements AuthProvider {
   @VisibleForTesting
   @FunctionalInterface
   interface LoginContextSupplier {
-    LoginContext get(String name, CallbackHandler callbackHandler) throws LoginException;
+    JAASLoginService get();
   }
 
   @Override
@@ -109,7 +109,7 @@ public class JaasAuthProvider implements AuthProvider {
       final List<String> allowedRoles,
       final Promise<User> promise
   ) {
-    final JAASLoginService login = new JAASLoginService();
+    final JAASLoginService login = loginContextSupplier.get();
     login.setCallbackHandlerClass(BasicCallbackHandler.class.getName());
     login.setLoginModuleName(contextName);
 

@@ -6,22 +6,12 @@ MY_DIR=`echo $(cd $(dirname $0); pwd)`
 
 # list of cc-docker-ksql dependencies. This will eventually be automatically parsed from the output
 # file of the release stabilization jenkins job
-#repos=('kafka' 'common' 'ce-kafka' 'rest-utils' 'schema-registry' 'ksql' 'kafka-rest')
-#repos+=('secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
-#repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
-
-repos=('common' 'secret-registry' 'confluent-security-plugins' 'schema-registry-plugins')
-repos+=('confluent-cloud-plugins' 'cc-docker-ksql')
+repos=('kafka' 'common' 'rest-utils' 'schema-registry' 'ksql')
 
 # list of the corresponding stabilization branch for each respective repo above.
 # Should replace this with git branch --all --list '*-cc-docker-ksql.17-*' though
-#branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x' '7.1.0-cc-docker-ksql.17-613-ce.x')
-#branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
-#branches+=('7.1.0-cc-docker-ksql.17-609.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
-#branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
-
-branches=('7.1.0-cc-docker-ksql.17-634.x' '7.1.0-cc-docker-ksql.17-559.x' '7.1.0-cc-docker-ksql.17-1524.x')
-branches+=('7.1.0-cc-docker-ksql.17-684.x' '7.1.0-cc-docker-ksql.17-1730.x' '0.23.1-cc-docker-ksql.17.x')
+branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x')
+branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
 
 len=${#repos[@]}
 
@@ -48,7 +38,7 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
-    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "confluent-security-plugins" ]]
+    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "confluent-security-plugins" || "${repos[i]}" == "schema-registry-plugins" || "${repos[i]}" == "confluent-cloud-plugins" ]]
     then
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch

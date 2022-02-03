@@ -96,7 +96,8 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
             .map(extension -> extension.getHeaders(userPrincipal))
             .orElse(Collections.emptyMap()),
         Optional.ofNullable(newSslContext(configWithPrefixOverrides)),
-        shouldVerifySslHostname(configWithPrefixOverrides)
+        shouldVerifySslHostname(configWithPrefixOverrides),
+        ksqlConfig.getLong(KsqlConfig.CONNECT_REQUEST_TIMEOUT_MS)
     );
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import static io.confluent.ksql.util.KsqlConfig.CONNECT_REQUEST_TIMEOUT_DEFAULT;
 import static io.vertx.core.http.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -132,7 +133,8 @@ public class DefaultConnectClientTest {
         Optional.of(AUTH_HEADER),
         ImmutableMap.of(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE),
         Optional.of(sslContext),
-        false);
+        false,
+        CONNECT_REQUEST_TIMEOUT_DEFAULT);
   }
 
   @Test
@@ -339,7 +341,7 @@ public class DefaultConnectClientTest {
   }
 
   @Test
-  public void testDelete() throws JsonProcessingException {
+  public void testDeleteWithStatusNoContentResponse() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(
         WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
@@ -347,6 +349,26 @@ public class DefaultConnectClientTest {
             .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_NO_CONTENT))
+    );
+
+    // When:
+    final ConnectResponse<String> response = client.delete("foo");
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is("foo")));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
+  public void testDeleteWithStatusOKResponse() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.delete(WireMock.urlEqualTo(pathPrefix + "/connectors/foo"))
+            .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
+            .withHeader(CUSTOM_HEADER_NAME, new EqualToPattern(CUSTOM_HEADER_VALUE))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_OK)
+                .withBody("{\"error\":null}"))
     );
 
     // When:

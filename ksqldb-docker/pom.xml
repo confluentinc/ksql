@@ -139,6 +139,7 @@
                 <DOCKER_UPSTREAM_REGISTRY>${docker.upstream-registry}</DOCKER_UPSTREAM_REGISTRY>
                 <DOCKER_UPSTREAM_TAG>${docker.upstream-tag}</DOCKER_UPSTREAM_TAG>
               </buildArgs>
+              <skip>${docker.skip-build}</skip>
             </configuration>
           </execution>
         </executions>

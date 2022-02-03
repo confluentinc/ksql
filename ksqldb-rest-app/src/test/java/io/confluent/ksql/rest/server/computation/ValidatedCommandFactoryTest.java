@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
@@ -55,6 +56,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,6 +100,10 @@ public class ValidatedCommandFactoryTest {
   public void setup() {
     commandFactory = new ValidatedCommandFactory();
     when(executionContext.getKsqlConfig()).thenReturn(config);
+    KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
+    PersistentQueryMetadataImpl queryMetadata = mock(PersistentQueryMetadataImpl.class);
+    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
   }
 
   @Test
@@ -276,6 +283,24 @@ public class ValidatedCommandFactoryTest {
 
     // Then:
     assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
+  }
+
+  @Test
+  public void shouldCreateCommandForPlannedQueryInDedicatedRuntime() {
+    // Given:
+    givenPlannedQuery();
+    when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command,
+        is(Command.of(
+            ConfiguredKsqlPlan.of(
+                A_PLAN,
+                SessionConfig.of(config,
+                    ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))))));
   }
 
   @Test

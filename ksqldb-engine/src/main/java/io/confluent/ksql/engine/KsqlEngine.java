@@ -155,7 +155,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
-    this.transientQueryCleanupService = new TransientQueryCleanupService(serviceContext, ksqlConfig);
+    this.transientQueryCleanupService = new TransientQueryCleanupService(
+            serviceContext,
+            ksqlConfig);
     this.orphanedTransientQueryCleaner =
         new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");

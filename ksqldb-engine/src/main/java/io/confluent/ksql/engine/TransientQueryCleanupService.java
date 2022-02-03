@@ -45,7 +45,8 @@ import org.slf4j.LoggerFactory;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
-  private static final Pattern TRANSIENT_PATTERN = Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
+  private static final Pattern TRANSIENT_PATTERN =
+          Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
 
   private final BlockingQueue<Callable<Boolean>> cleanupTasks;
   private final Retryer<Boolean> retryer;
@@ -80,7 +81,9 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() {
-    LOG.info("Starting cleanup for transient topics: {}; size: {}", cleanupTasks, cleanupTasks.size());
+    LOG.info("Starting cleanup for transient topics: {}; size: {}",
+            cleanupTasks,
+            cleanupTasks.size());
     findCleanupTasks();
     try {
       while (!cleanupTasks.isEmpty()) {
@@ -117,16 +120,29 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   private void findPossiblyLeakedStateDirs() {
     final String stateDir = this.stateDir;
-    File folder = new File(stateDir);
-    File[] listOfFiles = folder.listFiles();
+    final File folder = new File(stateDir);
+    final File[] listOfFiles = folder.listFiles();
+
     LOG.info("LIsting all the transient state files: ");
+
     for (File f: listOfFiles) {
-      String fileName = f.getName();
-      Matcher m = TRANSIENT_PATTERN.matcher(fileName);
-      if (m.find()) {
-        String leakingQueryId = m.group(0);
+      final String fileName = f.getName();
+      final Matcher filenameMatcher = TRANSIENT_PATTERN.matcher(fileName);
+
+      if (filenameMatcher.find()) {
+        final String leakingQueryId = filenameMatcher.group(0);
         if (allTransientQueriesEverCreatedIds.contains(leakingQueryId)) {
-          boolean isRunning =  allTransientQueriesEverCreated.stream().filter(queryMetadata -> queryMetadata.getQueryApplicationId().equals(leakingQueryId)).collect(Collectors.toList()).get(0).isRunning();
+          final boolean isRunning =  allTransientQueriesEverCreated
+                  .stream()
+                  .filter(queryMetadata ->
+                                  queryMetadata
+                                          .getQueryApplicationId()
+                                          .equals(leakingQueryId)
+                  )
+                  .collect(Collectors.toList())
+                  .get(0)
+                  .isRunning();
+
           if (isRunning) {
             LOG.info("kk {} is still running, don't try to clean", leakingQueryId);
           } else {
@@ -145,14 +161,26 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   private void findPossiblyLeakedTranientTopics() {
     LOG.info("Listing out all the transient topic names: ");
+
     for (String topic : this.serviceContext
             .getTopicClient()
             .listTopicNames()) {
-      Matcher m = TRANSIENT_PATTERN.matcher(topic);
-      if (m.find()) {
-        String leakingQueryId = m.group(0);
+      final Matcher topicNameMatcher = TRANSIENT_PATTERN.matcher(topic);
+      if (topicNameMatcher.find()) {
+        final String leakingQueryId = topicNameMatcher.group(0);
         if (allTransientQueriesEverCreatedIds.contains(leakingQueryId)) {
-          boolean isRunning = allTransientQueriesEverCreated.stream().filter(queryMetadata -> queryMetadata.getQueryApplicationId().equals(leakingQueryId)).collect(Collectors.toList()).get(0).isRunning();
+          final boolean isRunning = allTransientQueriesEverCreated
+                  .stream()
+                  .filter(
+                          queryMetadata ->
+                                  queryMetadata
+                                          .getQueryApplicationId()
+                                          .equals(leakingQueryId)
+                  )
+                  .collect(Collectors.toList())
+                  .get(0)
+                  .isRunning();
+
           if (isRunning) {
             LOG.info("kk {} is still running, don't try to clean", leakingQueryId);
           } else {
@@ -169,12 +197,12 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     }
   }
 
-  public void recordTransientQueryOnStart(TransientQueryMetadata tqmd) {
-    this.allTransientQueriesEverCreated.add(tqmd);
-    this.allTransientQueriesEverCreatedIds.add(tqmd.getQueryApplicationId());
+  public void recordTransientQueryOnStart(final TransientQueryMetadata queryMetadata) {
+    this.allTransientQueriesEverCreated.add(queryMetadata);
+    this.allTransientQueriesEverCreatedIds.add(queryMetadata.getQueryApplicationId());
   }
 
-  public void setQueryRegistry(QueryRegistry queryRegistry) {
+  public void setQueryRegistry(final QueryRegistry queryRegistry) {
     this.queryRegistry = queryRegistry;
   }
 

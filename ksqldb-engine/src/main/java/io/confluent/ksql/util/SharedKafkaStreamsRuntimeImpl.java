@@ -25,6 +25,8 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -71,7 +73,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         collocatedQueries.keySet()
             .stream()
             .map(QueryId::toString)
-            .reduce("", (a, b) -> a + ", " + b));
+            .collect(Collectors.joining(", ")));
   }
 
   private void setupAndStartKafkaStreams(final KafkaStreams kafkaStreams) {

@@ -111,7 +111,7 @@ public class RuntimeAssignor {
         idToRuntime.entrySet()
             .stream()
             .map(e -> e.getKey() + "->" + e.getValue())
-            .reduce("", (x, y) -> x + ", " + y));
+            .collect(Collectors.joining(", ")));
   }
 
   public Map<String, Collection<SourceName>> getRuntimesToSources() {

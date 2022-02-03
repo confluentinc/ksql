@@ -20,26 +20,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.KsqlConfigResolver;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public final class PropertyOverrider {
-
-  private static final Set<String> QUERY_LEVEL_CONFIGS = new HashSet<>(Arrays.asList(
-      "auto.offset.reset",
-      "buffered.records.per.partition",
-      "cache.max.bytes.buffering",
-      "default.deserialization.exception.handler",
-      "default.timestamp.extractor",
-      "max.task.idle.ms",
-      "task.timeout.ms",
-      "topology.optimization"));
 
   private PropertyOverrider() {
   }
@@ -79,12 +67,13 @@ public final class PropertyOverrider {
           .getSessionConfig()
           .getConfig(true)
           .getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
-          && !QUERY_LEVEL_CONFIGS.contains(setProperty.getPropertyName())) {
-        throw new KsqlException(String.format("%s is not a settable property at the query"
-                + " level with %s on. Please use ALTER SYSTEM to set %s for the cluster.",
+          && !PropertiesList.QueryLevelPropertyList.contains(setProperty.getPropertyName())) {
+        throw new KsqlException(String.format("When shared runtimes are enabled, the config %s"
+                + " can only be set for the entire cluster and all queries currently running in it,"
+                + " and not configurable for individual queries for example by using `SET`."
+                + "  Please use ALTER SYSTEM",
             setProperty.getPropertyName(),
-            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED,
-            setProperty.getPropertyName())
+            KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         );
       }
     } catch (final Exception e) {

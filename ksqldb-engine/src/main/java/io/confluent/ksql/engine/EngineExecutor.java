@@ -152,6 +152,9 @@ final class EngineExecutor {
     this.config = Objects.requireNonNull(config, "config");
 
     KsqlEngineProps.throwOnImmutableOverride(config.getOverrides());
+    if (config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      KsqlEngineProps.throwOnNonQueryLevelConfigs(config.getOverrides());
+    }
   }
 
   static EngineExecutor create(

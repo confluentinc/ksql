@@ -16,6 +16,8 @@
 package io.confluent.ksql.engine;
 
 import io.confluent.ksql.config.ImmutableProperties;
+import io.confluent.ksql.rest.entity.PropertiesList;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -32,6 +34,17 @@ final class KsqlEngineProps {
 
     if (!immutableProps.isEmpty()) {
       throw new IllegalArgumentException("Cannot override properties: " + immutableProps);
+    }
+  }
+
+  static void throwOnNonQueryLevelConfigs(final Map<String, Object> overriddenProperties) {
+    final String nonQueryLevelConfigs = overriddenProperties.keySet().stream()
+        .filter(s -> !PropertiesList.QueryLevelPropertyList.contains(s))
+        .distinct()
+        .collect(Collectors.joining(","));
+
+    if (!nonQueryLevelConfigs.isEmpty()) {
+      throw new IllegalArgumentException("Cannot override properties: " + nonQueryLevelConfigs);
     }
   }
 

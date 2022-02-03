@@ -29,9 +29,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.kafka.streams.query.Position;
 
 /**
  * Represents a consistency token that is communicated between the client and server.
@@ -206,6 +206,14 @@ public class ConsistencyOffsetVector implements OffsetVector {
     }
   }
 
+  public void updateFromPosition(final Position position) {
+    for (String topic: position.getTopics()) {
+      for (Entry<Integer, Long> entry : position.getPartitionPositions(topic).entrySet()) {
+        update(topic, entry.getKey(), entry.getValue());
+      }
+    }
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -214,13 +222,21 @@ public class ConsistencyOffsetVector implements OffsetVector {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final ConsistencyOffsetVector that = (ConsistencyOffsetVector) o;
-    return this.dominates(that) && that.dominates(this);
+    final ConsistencyOffsetVector other = (ConsistencyOffsetVector) o;
+
+    try {
+      rwLock.readLock().lock();
+      other.rwLock.readLock().lock();
+      return offsetVector.equals(other.offsetVector);
+    } finally {
+      rwLock.readLock().unlock();
+      other.rwLock.readLock().unlock();
+    }
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(version, offsetVector, rwLock);
+    throw new UnsupportedOperationException("Mutable object not suitable for hash key");
   }
 
   @Override

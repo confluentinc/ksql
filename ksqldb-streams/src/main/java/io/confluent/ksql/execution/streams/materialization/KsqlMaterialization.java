@@ -142,15 +142,20 @@ class KsqlMaterialization implements Materialization {
         return table.get(key, partition);
       }
 
-      final Iterator<Row> result = table.get(key, partition).getRowIterator();
+      final KsMaterializedQueryResult<Row> result = table.get(key, partition);
+      final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
+          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+              .map(v -> row.withValue(v, schema())))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
 
-      return KsMaterializedQueryResult.rowIterator(
-          Streams.stream(result)
-              .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
-                  .map(v -> row.withValue(v, schema())))
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .iterator());
+      if (result.getPosition().isPresent()) {
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            iterator, result.getPosition().get());
+      } else {
+        return KsMaterializedQueryResult.rowIterator(iterator);
+      }
     }
 
     @Override
@@ -159,33 +164,46 @@ class KsqlMaterialization implements Materialization {
         return table.get(partition);
       }
 
-      final Iterator<Row> result = table.get(partition).getRowIterator();
+      final KsMaterializedQueryResult<Row> result = table.get(partition);
 
-      return KsMaterializedQueryResult.rowIterator(
-          Streams.stream(result)
-              .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
-                  .map(v -> row.withValue(v, schema())))
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .iterator());
+      final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
+          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+              .map(v -> row.withValue(v, schema())))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
+
+      if (result.getPosition().isPresent()) {
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            iterator, result.getPosition().get());
+      } else {
+        return KsMaterializedQueryResult.rowIterator(iterator);
+      }
     }
 
     @Override
     public KsMaterializedQueryResult<Row> get(
-        final int partition, final GenericKey from, final GenericKey to) {
+        final int partition, final GenericKey from, final GenericKey to
+    ) {
       if (transforms.isEmpty()) {
         return table.get(partition, from, to);
       }
 
-      final Iterator<Row> result = table.get(partition, from, to).getRowIterator();
+      final KsMaterializedQueryResult<Row> result = table.get(partition, from, to);
 
-      return KsMaterializedQueryResult.rowIterator(
-          Streams.stream(result)
-              .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
-                  .map(v -> row.withValue(v, schema())))
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .iterator());
+      final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
+          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+              .map(v -> row.withValue(v, schema())))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
+
+      if (result.getPosition().isPresent()) {
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            iterator, result.getPosition().get());
+      } else {
+        return KsMaterializedQueryResult.rowIterator(iterator);
+      }
     }
   }
 
@@ -208,41 +226,51 @@ class KsqlMaterialization implements Materialization {
         return table.get(key, partition, windowStart, windowEnd);
       }
 
-      final Iterator<WindowedRow> iterator = table.get(key, partition, windowStart, windowEnd)
-          .getRowIterator();
+      final KsMaterializedQueryResult<WindowedRow> result = table.get(
+          key, partition, windowStart, windowEnd);
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 
-      while (iterator.hasNext()) {
-        final WindowedRow row = iterator.next();
+      while (result.getRowIterator().hasNext()) {
+        final WindowedRow row = result.getRowIterator().next();
         filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
             .ifPresent(v -> builder.add(row.withValue(v, schema())));
       }
 
-      return KsMaterializedQueryResult.rowIterator(builder.build().iterator());
+      if (result.getPosition().isPresent()) {
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            builder.build().iterator(), result.getPosition().get());
+      } else {
+        return KsMaterializedQueryResult.rowIterator(builder.build().iterator());
+      }
     }
 
     @Override
-    public KsMaterializedQueryResult<WindowedRow> get(final int partition,
-                                         final Range<Instant> windowStartBounds,
-                                         final Range<Instant> windowEndBounds
+    public KsMaterializedQueryResult<WindowedRow> get(
+        final int partition,
+        final Range<Instant> windowStartBounds,
+        final Range<Instant> windowEndBounds
     ) {
       if (transforms.isEmpty()) {
         return table.get(partition, windowStartBounds, windowEndBounds);
       }
 
-      final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds)
-          .getRowIterator();
+      final KsMaterializedQueryResult<WindowedRow> result = table.get(
+          partition, windowStartBounds, windowEndBounds);
 
-      return KsMaterializedQueryResult.rowIterator(
-          Streams.stream(result)
-              .map(row -> filterAndTransform(row.windowedKey(),
-                                             getIntermediateRow(row),
-                                             row.rowTime())
-                  .map(v -> row.withValue(v, schema())))
-              .filter(Optional::isPresent)
-              .map(Optional::get)
-              .iterator());
+      final Iterator<WindowedRow> iterator = Streams.stream(result.getRowIterator())
+          .map(row -> filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
+              .map(v -> row.withValue(v, schema())))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
+
+      if (result.getPosition().isPresent()) {
+        return KsMaterializedQueryResult.rowIteratorWithPosition(
+            iterator, result.getPosition().get());
+      } else {
+        return KsMaterializedQueryResult.rowIterator(iterator);
+      }
     }
   }
 

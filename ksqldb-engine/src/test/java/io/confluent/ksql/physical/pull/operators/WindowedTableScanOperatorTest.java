@@ -84,7 +84,8 @@ public class WindowedTableScanOperatorTest {
         Optional.empty(), 3, ImmutableList.of(node3)));
 
     final WindowedTableScanOperator lookupOperator =
-        new WindowedTableScanOperator(materialization, logicalNode, shouldCancelOperations);
+        new WindowedTableScanOperator(
+            materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.windowed()).thenReturn(windowedTable);
     when(windowedTable.get(1, Range.all(), Range.all()))
         .thenReturn(KsMaterializedQueryResult.rowIterator(
@@ -121,7 +122,8 @@ public class WindowedTableScanOperatorTest {
         Optional.empty(), 3, ImmutableList.of(node3)));
 
     final WindowedTableScanOperator lookupOperator =
-        new WindowedTableScanOperator(materialization, logicalNode, shouldCancelOperations);
+        new WindowedTableScanOperator(
+            materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.windowed()).thenReturn(windowedTable);
     when(windowedTable.get(1, Range.all(), Range.all()))
         .thenReturn(KsMaterializedQueryResult.rowIterator(

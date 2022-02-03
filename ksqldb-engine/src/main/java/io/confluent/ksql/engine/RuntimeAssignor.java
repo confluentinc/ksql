@@ -23,6 +23,10 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntimeImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +37,7 @@ import java.util.stream.Collectors;
 public class RuntimeAssignor {
   private final Map<String, Collection<SourceName>> runtimesToSources;
   private final Map<QueryId, String> idToRuntime;
+  private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
 
   public RuntimeAssignor(final KsqlConfig config) {
     runtimesToSources = new HashMap<>();
@@ -102,6 +107,11 @@ public class RuntimeAssignor {
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       }
     }
+    log.info("The current assignment of queries to runtimes is: {}",
+        idToRuntime.entrySet()
+            .stream()
+            .map(e -> e.getKey() + "->" + e.getValue())
+            .collect(Collectors.joining(", ")));
   }
 
   public Map<String, Collection<SourceName>> getRuntimesToSources() {

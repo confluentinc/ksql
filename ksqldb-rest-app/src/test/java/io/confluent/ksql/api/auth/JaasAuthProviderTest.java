@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -41,7 +42,8 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
+import org.eclipse.jetty.jaas.JAASLoginService;
+import org.eclipse.jetty.server.UserIdentity;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +74,9 @@ public class JaasAuthProviderTest {
   @Mock
   private LoginContextSupplier loginContextSupplier;
   @Mock
-  private LoginContext loginContext;
+  private JAASLoginService loginService;
+  @Mock
+  private UserIdentity userIdentity;
   @Mock
   private Subject subject;
 
@@ -80,13 +84,17 @@ public class JaasAuthProviderTest {
 
   @Before
   public void setUp() throws Exception {
+    final BasicCallbackHandler callbackHandler = new BasicCallbackHandler();
+    callbackHandler.setUserName(USERNAME);
+    callbackHandler.setCredential(PASSWORD);
+
     handleAsyncExecution();
     when(config.getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG)).thenReturn(REALM);
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
-    when(loginContextSupplier.get(REALM, new BasicCallbackHandler(USERNAME, PASSWORD)))
-        .thenReturn(loginContext);
-    when(loginContext.getSubject()).thenReturn(subject);
+    when(loginContextSupplier.get()).thenReturn(loginService);
+    when(loginService.login(eq(USERNAME), eq(PASSWORD), any())).thenReturn(userIdentity);
+    when(userIdentity.getSubject()).thenReturn(subject);
 
     authProvider = new JaasAuthProvider(server, config, loginContextSupplier);
   }

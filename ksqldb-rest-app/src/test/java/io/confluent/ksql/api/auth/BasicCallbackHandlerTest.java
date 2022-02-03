@@ -46,7 +46,9 @@ public class BasicCallbackHandlerTest {
 
   @Before
   public void setUp() {
-    callbackHandler = new BasicCallbackHandler(USERNAME, PASSWORD);
+    callbackHandler = new BasicCallbackHandler();
+    callbackHandler.setUserName(USERNAME);
+    callbackHandler.setCredential(PASSWORD);
   }
 
   @Test

@@ -81,12 +81,15 @@ public class JaasAuthProviderTest {
 
   @Before
   public void setUp() throws Exception {
+    final BasicCallbackHandler callbackHandler = new BasicCallbackHandler();
+    callbackHandler.setUserName(USERNAME);
+    callbackHandler.setCredential(PASSWORD);
+
     handleAsyncExecution();
     when(config.getString(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG)).thenReturn(REALM);
     when(authInfo.getString("username")).thenReturn(USERNAME);
     when(authInfo.getString("password")).thenReturn(PASSWORD);
-    when(loginContextSupplier.get(REALM, new BasicCallbackHandler(USERNAME, PASSWORD)))
-        .thenReturn(loginContext);
+    when(loginContextSupplier.get(REALM, callbackHandler)).thenReturn(loginContext);
     when(loginContext.getSubject()).thenReturn(subject);
 
     authProvider = new JaasAuthProvider(server, config, loginContextSupplier);

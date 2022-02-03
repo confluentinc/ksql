@@ -1,17 +1,12 @@
 #!/bin/bash
 
 set -e
-stabiliazation_unique_identifier=$1
+stabilization_unique_identifier=$1
 MY_DIR=`echo $(cd $(dirname $0); pwd)`
 
 # list of cc-docker-ksql dependencies. This will eventually be automatically parsed from the output
 # file of the release stabilization jenkins job
 repos=('kafka' 'common' 'rest-utils' 'schema-registry' 'ksql')
-
-# list of the corresponding stabilization branch for each respective repo above.
-# Should replace this with git branch --all --list '*-cc-docker-ksql.17-*' though
-#branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x')
-#branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
 
 len=${#repos[@]}
 
@@ -23,8 +18,8 @@ do
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
 
   gitcmd="git --git-dir=./${repos[i]}/.git --work-tree=./${repos[i]}"
-  echo "branch=$($gitcmd branch --list '$stabiliazation_unique_identifier')"
-  branch=$($gitcmd branch --list '$stabiliazation_unique_identifier')
+  echo "branch=$($gitcmd branch --list '$stabilization_unique_identifier')"
+  branch=$($gitcmd branch --list '$stabilization_unique_identifier')
   echo "$gitcmd checkout $branch"
   $gitcmd checkout $branch
 
@@ -40,15 +35,16 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
-    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "confluent-security-plugins" || "${repos[i]}" == "schema-registry-plugins" || "${repos[i]}" == "confluent-cloud-plugins" ]]
+    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "schema-registry"  ]]
     then
-      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch"
-      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch
+      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/plugins-deploy.patch"
+      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/plugins-deploy.patch
       find . -name '*.rej'
-#    else
-#      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch"
-#      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch
-#      find . -name '*.rej'
+    elif [[ "${repos[i]}" == "ksql" ]]
+    then
+      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/pluginManagement-deploy.patch"
+      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/pluginManagement-deploy.patch
+      find . -name '*.rej'
     fi
     
 #    mvn_cmd="mvn help:effective-pom"

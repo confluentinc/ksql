@@ -180,9 +180,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             .build(),
         metricCollectors
     );
-    this.transientQueryCleanupService.setQueryRegistry(
-            this.primaryContext.getQueryRegistry()
-    );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.aggregateMetricsCollector.scheduleAtFixedRate(
         () -> {

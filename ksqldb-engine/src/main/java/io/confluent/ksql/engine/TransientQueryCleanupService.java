@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
   private static final Pattern TRANSIENT_PATTERN =
-          Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
+          Pattern.compile("(?i).*transient_.*_[0-9]\\d*");
 
   private final BlockingQueue<Callable<Boolean>> cleanupTasks;
   private final Retryer<Boolean> retryer;
@@ -133,8 +133,6 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
       return;
     }
 
-    LOG.info("LIsting all the transient state files: ");
-
     for (File f: listOfFiles) {
       final String fileName = f.getName();
       final Matcher filenameMatcher = TRANSIENT_PATTERN.matcher(fileName);
@@ -170,8 +168,6 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   private void findPossiblyLeakedTranientTopics() {
-    LOG.info("Listing out all the transient topic names: ");
-
     for (String topic : this.serviceContext
             .getTopicClient()
             .listTopicNames()) {

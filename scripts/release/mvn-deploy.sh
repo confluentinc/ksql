@@ -16,7 +16,7 @@ do
   # clone each repo and checkout the stabilization branch
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
   gitcmd="git --git-dir=./${repos[i]}/.git --work-tree=./${repos[i]}"
-  eval branch=$($gitcmd branch --list "${stabilization_unique_identifier}")
+  eval branch=$($gitcmd branch --list "*${stabilization_unique_identifier}*")
   $gitcmd checkout $branch
 
   cd ${repos[i]}

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-
+stabiliazation_unique_identifier=$1
 MY_DIR=`echo $(cd $(dirname $0); pwd)`
 
 # list of cc-docker-ksql dependencies. This will eventually be automatically parsed from the output
@@ -10,8 +10,8 @@ repos=('kafka' 'common' 'rest-utils' 'schema-registry' 'ksql')
 
 # list of the corresponding stabilization branch for each respective repo above.
 # Should replace this with git branch --all --list '*-cc-docker-ksql.17-*' though
-branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x')
-branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
+#branches=('7.1.0-cc-docker-ksql.17-99-ccs.x' '7.1.0-cc-docker-ksql.17-634.x')
+#branches+=('7.1.0-cc-docker-ksql.17-615.x' '7.1.0-cc-docker-ksql.17-644.x' '0.23.1-cc-docker-ksql.17.x')
 
 len=${#repos[@]}
 
@@ -23,13 +23,15 @@ do
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
 
   gitcmd="git --git-dir=./${repos[i]}/.git --work-tree=./${repos[i]}"
-  echo "$gitcmd checkout ${branches[i]}"
-  $gitcmd checkout ${branches[i]}
+  echo "branch=$($gitcmd branch --list '$stabiliazation_unique_identifier')"
+  branch=$($gitcmd branch --list '$stabiliazation_unique_identifier')
+  echo "$gitcmd checkout $branch"
+  $gitcmd checkout $branch
 
   echo "cd ${repos[i]}"
   eval cd ${repos[i]}
 
-  if [[ -e 'pom.xml' ]]
+  if [[ -e "pom.xml" ]]
   then
     # pom file means this is a maven project
     eval pwd
@@ -38,20 +40,20 @@ do
       echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch"
       patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/common-deploy.patch
       find . -name '*.rej'
-    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "confluent-security-plugins" || "${repos[i]}" == "schema-registry-plugins" || "${repos[i]}" == "confluent-cloud-plugins" ]]
-    then
-      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch"
-      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch
-      find . -name '*.rej'
-    else
-      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch"
-      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch
-      find . -name '*.rej'
+#    elif [[ "${repos[i]}" == "rest-utils" || "${repos[i]}" == "confluent-security-plugins" || "${repos[i]}" == "schema-registry-plugins" || "${repos[i]}" == "confluent-cloud-plugins" ]]
+#    then
+#      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch"
+#      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy-plugins.patch
+#      find . -name '*.rej'
+#    else
+#      echo "patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch"
+#      patch -p1 --ignore-whitespace --verbose < ${MY_DIR}/s3-deploy.patch
+#      find . -name '*.rej'
     fi
     
-    mvn_cmd="mvn help:effective-pom"
-    echo $mvn_cmd
-    eval $mvn_cmd
+#    mvn_cmd="mvn help:effective-pom"
+#    echo $mvn_cmd
+#    eval $mvn_cmd
     deploy_cmd="mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
     deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"

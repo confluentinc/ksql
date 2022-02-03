@@ -274,10 +274,24 @@ public final class DecimalUtil {
         ? value.setScale(0, BigDecimal.ROUND_UNNECESSARY)
         : value;
 
-    /* When a BigDecimal has value 0, the built-in method precision() always returns 1. To account
-    for this edge case, we just take the scale and add one and use that for the precision instead.
-    */
-    if (decimal.compareTo(BigDecimal.ZERO) == 0) {
+    /* We can't use BigDecimal.precision() directly for all cases, since it defines
+     * precision differently from SQL Decimal.
+     * In particular, if the decimal is between -0.1 and 0.1, BigDecimal precision can be
+     * lower than scale, which is disallowed in SQL Decimal. For example, 0.005 in
+     * BigDecimal has a precision,scale of 1,3; whereas we expect 4,3.
+     * If the decimal is in (-1,1) but outside (-0.1,0.1), the code doesn't throw, but
+     * gives lower precision than expected (e.g., 0.8 has precision 1 instead of 2).
+     * To account for this edge case, we just take the scale and add one and use that
+     * for the precision instead. This works since BigDecimal defines scale as the
+     * number of digits to the right of the period; which is one lower than the precision for
+     * anything in the range (-1, 1).
+     * This covers the case where BigDecimal has a value of 0.
+     * Note: This solution differs from the SQL definition in that it returns (4, 3) for
+     * both "0.005" and ".005", whereas SQL expects (3, 3) for the latter. This is unavoidable
+     * if we use BigDecimal as an intermediate representation, since the two strings are parsed
+     * identically by it to have precision 1.
+     */
+    if (decimal.compareTo(BigDecimal.ONE) < 0 && decimal.compareTo(BigDecimal.ONE.negate()) > 0) {
       return SqlTypes.decimal(decimal.scale() + 1, decimal.scale());
     }
     return SqlTypes.decimal(decimal.precision(), Math.max(decimal.scale(), 0));

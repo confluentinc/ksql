@@ -358,6 +358,18 @@
       ]
     },
     {
+      "name": "should insert decimals between zero and one",
+      "statements": [
+        "CREATE STREAM S (ID INT KEY, V0 DECIMAL(12, 2))  WITH (kafka_topic='test_topic',partitions = 1, value_format='JSON');",
+        "INSERT INTO S (ID,V0) VALUES (1,0.05);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": 1, "value": {"V0": 0.05}}
+      ]
+    },
+    {
       "name": "should fail on column reference",
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",

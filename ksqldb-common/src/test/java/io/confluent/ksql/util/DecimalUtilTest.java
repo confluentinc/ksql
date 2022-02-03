@@ -355,8 +355,12 @@ public class DecimalUtilTest {
     // When:
     final SqlType schema = DecimalUtil.fromValue(new BigDecimal(".12"));
 
+    // Note: this behavior is different from the SQL specification, where
+    // we expect precision = 2, scale = 2. This difference is because we use
+    // BigDecimal in our implementation, which treats precision differently.
+
     // Then:
-    assertThat(schema, is(SqlTypes.decimal(2, 2)));
+    assertThat(schema, is(SqlTypes.decimal(3, 2)));
   }
 
   @Test
@@ -384,6 +388,15 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(schema, is(SqlTypes.decimal(10, 5)));
+  }
+
+  @Test
+  public void shouldGetSchemaFromDecimal4_3() {
+    // When:
+    final SqlType schema = DecimalUtil.fromValue(new BigDecimal("0.005"));
+
+    // Then:
+    assertThat(schema, is(SqlTypes.decimal(4, 3)));
   }
 
   @Test

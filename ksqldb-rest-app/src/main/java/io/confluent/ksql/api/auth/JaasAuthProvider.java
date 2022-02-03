@@ -50,7 +50,7 @@ public class JaasAuthProvider implements AuthProvider {
   private final String contextName;
 
   public JaasAuthProvider(final Server server, final KsqlRestConfig config) {
-    this(server, config, () -> new JAASLoginService());
+    this(server, config, JAASLoginService::new);
   }
 
   @VisibleForTesting

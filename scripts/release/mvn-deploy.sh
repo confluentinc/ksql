@@ -17,7 +17,7 @@ do
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
   gitcmd="git --git-dir=./${repos[i]}/.git --work-tree=./${repos[i]}"
   eval branch=$($gitcmd branch --list "*${stabilization_unique_identifier}*")
-  $gitcmd checkout $branch
+  $gitcmd switch $branch
 
   cd ${repos[i]}
 

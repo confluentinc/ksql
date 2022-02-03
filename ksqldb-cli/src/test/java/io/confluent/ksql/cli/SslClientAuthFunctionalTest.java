@@ -32,8 +32,8 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
@@ -184,6 +184,7 @@ public class SslClientAuthFunctionalTest {
         serverAddress,
         emptyMap(),
         clientProps,
+        Optional.empty(),
         Optional.empty()
     )) {
       final RestResponse<?> response = restClient.makeKsqlRequest("show topics;");

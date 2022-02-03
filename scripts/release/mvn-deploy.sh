@@ -19,7 +19,7 @@ do
   branch=$($gitcmd branch --list '$stabilization_unique_identifier')
   $gitcmd checkout $branch
 
-  eval cd ${repos[i]}
+  cd ${repos[i]}
 
   # pom file means this is a maven project
   if [[ -e "pom.xml" ]]
@@ -40,9 +40,9 @@ do
     deploy_cmd+=" -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
     deploy_cmd+=" -DrepositoryId=confluent-artifactory-central"
     deploy_cmd+=" -DnexusUrl=s3://staging-ksqldb-maven/maven"
-    eval $deploy_cmd
+    $deploy_cmd
 
-    eval cd ..
+    cd ..
 
   # gradle file means this is a gradle project
   elif [[ -e 'build.gradle' ]]
@@ -50,9 +50,9 @@ do
     patch -p1 --verbose < ${MY_DIR}/kafka-deploy.patch
     deploy_cmd="./gradlewAll --init-script ${GRADLE_NEXUS_SETTINGS} --no-daemon"
     deploy_cmd+=" -PmavenUrl=s3://staging-ksqldb-maven/maven -PskipSigning=true uploadArchives"
-    eval $deploy_cmd
+    $deploy_cmd
 
-    eval cd ..
+    cd ..
   fi
 done
 

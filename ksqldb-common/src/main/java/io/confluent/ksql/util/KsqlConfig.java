@@ -630,6 +630,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
       = "The total time that the query cleanup spends trying to clean things up on shutdown.";
 
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE
+      = "ksql.transient.query.cleanup.service.enable";
+  public static final boolean KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT = true;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+      = "Enable transient query cleanup service.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1361,6 +1367,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CONNECT_SERVER_ERROR_HANDLER_DEFAULT,
             Importance.LOW,
             KSQL_CONNECT_SERVER_ERROR_HANDLER_DOC
+        )
+        .define(
+                KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            Type.BOOLEAN,
+                KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            Importance.LOW,
+                KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
         )
         .withClientSslSupport();
 

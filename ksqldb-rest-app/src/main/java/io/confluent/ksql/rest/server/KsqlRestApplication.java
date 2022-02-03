@@ -382,7 +382,6 @@ public final class KsqlRestApplication implements Executable {
       startAsyncThreadRef.set(null);
     }
 
-    vertx.setPeriodic(10000, id -> getEngine().startTransientQueryCleanupService());
   }
 
   @VisibleForTesting

@@ -155,7 +155,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
-    this.transientQueryCleanupService = new TransientQueryCleanupService();
+    this.transientQueryCleanupService = new TransientQueryCleanupService(serviceContext, ksqlConfig);
     this.orphanedTransientQueryCleaner =
         new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
@@ -178,6 +178,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             .build(),
         metricCollectors
     );
+    this.transientQueryCleanupService.setQueryRegistry(
+            this.primaryContext.getQueryRegistry()
+    );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.aggregateMetricsCollector.scheduleAtFixedRate(
         () -> {
@@ -194,6 +197,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     this.metricCollectors = metricCollectors;
 
     cleanupService.startAsync();
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE)) {
+      this.transientQueryCleanupService.startAsync();
+    }
   }
 
   public int numberOfLiveQueries() {
@@ -257,11 +263,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @VisibleForTesting
   QueryCleanupService getCleanupService() {
     return cleanupService;
-  }
-
-  @VisibleForTesting
-  public void startTransientQueryCleanupService() {
-    transientQueryCleanupService.run();
   }
 
   @VisibleForTesting
@@ -569,6 +570,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public void close() {
+    transientQueryCleanupService.stopAsync();
     close(false);
   }
 
@@ -689,6 +691,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       this.cleanupService = cleanupService;
       this.serviceContext = serviceContext;
       this.ksqlConfig = ksqlConfig;
+    }
+
+    @Override
+    public void onCreate(final ServiceContext serviceContext,
+                         final MetaStore metaStore,
+                         final QueryMetadata queryMetadata) {
+      if (queryMetadata instanceof TransientQueryMetadata) {
+        cleanupService.recordTransientQueryOnStart((TransientQueryMetadata) queryMetadata);
+      }
     }
 
     @Override

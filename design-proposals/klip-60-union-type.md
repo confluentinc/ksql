@@ -5,7 +5,7 @@
 **Status**: In Discussion| 
 **Discussion**: NA
 
-**tl;dr:** There is a desire from the community to be able to support multi-schema format within a single topic.  Two solutions for supporting this are available.  One is using the union type within Avro and Protobuf.  The other is called name strategy using schema registry.  This proposal will focus on the later.
+**tl;dr:** There is a desire from the community to be able to support multi-schema format within a single topic.  Two solutions for supporting this are available.  One is using the union type within Avro and Protobuf.  The other is called name strategy using schema registry.  This proposal will focus on the latter.
            
 
 ## Motivation and background

@@ -26,7 +26,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;

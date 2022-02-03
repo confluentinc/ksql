@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.connect.ConnectRequestHeadersExtension;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.vertx.core.http.HttpHeaders;
@@ -96,6 +97,8 @@ public class DefaultConnectClientFactoryTest {
   private ConnectRequestHeadersExtension requestHeadersExtension;
   @Mock
   private List<Entry<String, String>> incomingRequestHeaders;
+  @Mock
+  private KsqlPrincipal userPrincipal;
 
   private String credentialsPath;
 
@@ -107,7 +110,8 @@ public class DefaultConnectClientFactoryTest {
 
     when(config.getString(KsqlConfig.CONNECT_URL_PROPERTY)).thenReturn("http://localhost:8034");
     when(config.getString(KsqlConfig.CONNECT_BASIC_AUTH_CREDENTIALS_SOURCE_PROPERTY)).thenReturn("NONE");
-    when(config.valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX)).thenReturn(DEFAULT_CONFIGS_WITH_PREFIX_OVERRIDE);
+    when(config.valuesWithPrefixOverride(KsqlConfig.KSQL_CONNECT_PREFIX))
+        .thenReturn(DEFAULT_CONFIGS_WITH_PREFIX_OVERRIDE);
 
     connectClientFactory = new DefaultConnectClientFactory(config);
   }
@@ -115,7 +119,8 @@ public class DefaultConnectClientFactoryTest {
   @Test
   public void shouldBuildWithoutAuthHeader() {
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Collections.emptyList());
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty());
 
     // Then:
     assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
@@ -128,7 +133,8 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Collections.emptyList());
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty());
 
     // Then:
     assertThat(connectClient.getRequestHeaders(),
@@ -142,8 +148,8 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // When: get() is called twice
-    connectClientFactory.get(Optional.empty(), Collections.emptyList());
-    connectClientFactory.get(Optional.empty(), Collections.emptyList());
+    connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty());
+    connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty());
 
     // Then: only loaded the credentials once -- ideally we'd check the number of times the file
     //       was read but this is an acceptable proxy for this unit test
@@ -154,7 +160,7 @@ public class DefaultConnectClientFactoryTest {
   public void shouldUseKsqlAuthHeaderIfNoAuthHeaderPresent() {
     // When:
     final DefaultConnectClient connectClient =
-        connectClientFactory.get(Optional.of("some ksql request header"), Collections.emptyList());
+        connectClientFactory.get(Optional.of("some ksql request header"), Collections.emptyList(), Optional.empty());
 
     // Then:
     assertThat(connectClient.getRequestHeaders(),
@@ -168,7 +174,8 @@ public class DefaultConnectClientFactoryTest {
     givenInvalidCredentialsFiles();
 
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Collections.emptyList());
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty());
 
     // Then:
     assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
@@ -181,7 +188,8 @@ public class DefaultConnectClientFactoryTest {
     // no credentials file present
 
     // When:
-    final DefaultConnectClient connectClient = connectClientFactory.get(Optional.empty(), Collections.emptyList());
+    final DefaultConnectClient connectClient =
+        connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty());
 
     // Then:
     assertThat(connectClient.getRequestHeaders(), is(EMPTY_HEADERS));
@@ -195,7 +203,7 @@ public class DefaultConnectClientFactoryTest {
     // no credentials file present
 
     // verify that no auth header is present
-    assertThat(connectClientFactory.get(Optional.empty(), Collections.emptyList()).getRequestHeaders(),
+    assertThat(connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty()).getRequestHeaders(),
         is(EMPTY_HEADERS));
 
     // When: credentials file is created
@@ -205,7 +213,7 @@ public class DefaultConnectClientFactoryTest {
     // Then: auth header is present
     assertThatEventually(
         "Should load newly created credentials",
-        () -> connectClientFactory.get(Optional.empty(), Collections.emptyList()).getRequestHeaders(),
+        () -> connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty()).getRequestHeaders(),
         arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)),
         TimeUnit.SECONDS.toMillis(1),
         TimeUnit.SECONDS.toMillis(1)
@@ -220,7 +228,7 @@ public class DefaultConnectClientFactoryTest {
     givenValidCredentialsFile();
 
     // verify auth header is present
-    assertThat(connectClientFactory.get(Optional.empty(), Collections.emptyList()).getRequestHeaders(),
+    assertThat(connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty()).getRequestHeaders(),
         arrayContaining(header(AUTH_HEADER_NAME, EXPECTED_HEADER)));
 
     // When: credentials file is modified
@@ -230,7 +238,7 @@ public class DefaultConnectClientFactoryTest {
     // Then: new auth header is present
     assertThatEventually(
         "Should load updated credentials",
-        () -> connectClientFactory.get(Optional.empty(), Collections.emptyList()).getRequestHeaders(),
+        () -> connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.empty()).getRequestHeaders(),
         arrayContaining(header(AUTH_HEADER_NAME, OTHER_EXPECTED_HEADER)),
         TimeUnit.SECONDS.toMillis(1),
         TimeUnit.SECONDS.toMillis(1)
@@ -247,12 +255,12 @@ public class DefaultConnectClientFactoryTest {
     // re-initialize client factory since request headers extension is configured in constructor
     connectClientFactory = new DefaultConnectClientFactory(config);
 
-    when(requestHeadersExtension.getHeaders())
+    when(requestHeadersExtension.getHeaders(Optional.of(userPrincipal)))
         .thenReturn(ImmutableMap.of("header", "value"));
 
     // When:
     final DefaultConnectClient connectClient =
-        connectClientFactory.get(Optional.empty(), Collections.emptyList());
+        connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.of(userPrincipal));
 
     // Then:
     assertThat(connectClient.getRequestHeaders(), arrayContaining(header("header", "value")));
@@ -271,13 +279,13 @@ public class DefaultConnectClientFactoryTest {
     // re-initialize client factory since request headers extension is configured in constructor
     connectClientFactory = new DefaultConnectClientFactory(config);
 
-    when(requestHeadersExtension.getHeaders())
+    when(requestHeadersExtension.getHeaders(Optional.of(userPrincipal)))
         .thenReturn(ImmutableMap.of("header", "value"));
     when(requestHeadersExtension.shouldUseCustomAuthHeader()).thenReturn(false);
 
     // When:
     final DefaultConnectClient connectClient =
-        connectClientFactory.get(Optional.empty(), Collections.emptyList());
+        connectClientFactory.get(Optional.empty(), Collections.emptyList(), Optional.of(userPrincipal));
 
     // Then:
     assertThat(connectClient.getRequestHeaders(),
@@ -299,14 +307,14 @@ public class DefaultConnectClientFactoryTest {
     // re-initialize client factory since request headers extension is configured in constructor
     connectClientFactory = new DefaultConnectClientFactory(config);
 
-    when(requestHeadersExtension.getHeaders())
+    when(requestHeadersExtension.getHeaders(Optional.of(userPrincipal)))
         .thenReturn(ImmutableMap.of("header", "value"));
     when(requestHeadersExtension.shouldUseCustomAuthHeader()).thenReturn(true);
     when(requestHeadersExtension.getAuthHeader(incomingRequestHeaders)).thenReturn(Optional.of("some custom auth"));
 
     // When:
     final DefaultConnectClient connectClient =
-        connectClientFactory.get(Optional.empty(), incomingRequestHeaders);
+        connectClientFactory.get(Optional.empty(), incomingRequestHeaders, Optional.of(userPrincipal));
 
     // Then:
     assertThat(connectClient.getRequestHeaders(),

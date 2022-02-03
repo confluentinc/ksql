@@ -42,7 +42,8 @@ public final class ServiceContextFactory {
             Collections.emptyMap())::get,
         () -> new DefaultConnectClientFactory(ksqlConfig).get(
             Optional.empty(),
-            Collections.emptyList()),
+            Collections.emptyList(),
+            Optional.empty()),
         ksqlClientSupplier
     );
   }

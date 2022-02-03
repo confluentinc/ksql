@@ -123,6 +123,10 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     final File folder = new File(stateDir);
     final File[] listOfFiles = folder.listFiles();
 
+    if (listOfFiles == null) {
+      return;
+    }
+
     LOG.info("LIsting all the transient state files: ");
 
     for (File f: listOfFiles) {

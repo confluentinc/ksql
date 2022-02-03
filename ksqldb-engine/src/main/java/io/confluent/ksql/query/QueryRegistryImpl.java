@@ -272,7 +272,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
 
     if (sharedRuntimeId.isPresent()
-        && config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
+        && ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         && (oldQuery == null
         || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
       throwOnNonQueryLevelConfigs(config.getOverrides());

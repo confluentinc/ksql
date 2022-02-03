@@ -52,7 +52,7 @@ public class DiscoverRemoteHostsUtilTest {
   @Before
   public void setUp() {
     when(runningQuery.getState()).thenReturn(State.RUNNING);
-    when(runningQuery.getAllMetadata()).thenReturn(Collections.singleton(streamsMetadata));
+    when(runningQuery.getAllStreamsHostMetadata()).thenReturn(Collections.singleton(streamsMetadata));
     when(notRunningQuery.getState()).thenReturn(State.CREATED);
     when(streamsMetadata.hostInfo()).thenReturn(OTHER_HOST_INFO);
   }
@@ -68,7 +68,7 @@ public class DiscoverRemoteHostsUtilTest {
     // Then:
     assertThat(info, contains(OTHER_HOST_INFO));
 
-    verify(notRunningQuery, never()).getAllMetadata();
+    verify(notRunningQuery, never()).getAllStreamsHostMetadata();
   }
 
 }

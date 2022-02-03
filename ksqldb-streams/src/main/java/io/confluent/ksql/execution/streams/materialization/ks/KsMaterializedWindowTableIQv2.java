@@ -119,7 +119,7 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
         }
 
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            builder.build().iterator(), result.getPosition());
+            builder.build().iterator(), queryResult.getPosition());
       }
     } catch (final MaterializationException e) {
       throw e;

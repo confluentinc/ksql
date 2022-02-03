@@ -39,7 +39,7 @@ public final class DiscoverRemoteHostsUtil {
     return currentQueries.stream()
         // required filter else QueryMetadata.getAllMetadata() throws
         .filter(q -> q.getState().isRunningOrRebalancing())
-        .map(QueryMetadata::getAllMetadata)
+        .map(QueryMetadata::getAllStreamsHostMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
         .map(StreamsMetadata::hostInfo)

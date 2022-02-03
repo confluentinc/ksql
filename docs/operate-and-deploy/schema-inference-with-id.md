@@ -444,3 +444,7 @@ default values in the specified physical schema.
     properly, either by making physical schema fields optional or by using the
     [IFNULL](/developer-guide/ksqldb-reference/scalar-functions/#ifnull)
     function to ensure that `null` is never inserted.
+
+!!! important
+    If `key_schema_id` is used in table creation with windowed aggregation, the serialized key value
+    also contain window information in addition to original key value.

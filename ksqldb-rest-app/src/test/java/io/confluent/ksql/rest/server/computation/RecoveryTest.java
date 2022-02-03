@@ -272,7 +272,8 @@ public class RecoveryTest {
             StreamsConfig.STATE_DIR_CONFIG,
             StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
           .toString(),
-        serviceContext)
+        serviceContext,
+        ksqlConfig)
       );
     }
 

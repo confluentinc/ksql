@@ -15,8 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRows;
-import static io.confluent.ksql.rest.entity.StreamedRowMatchers.matchersRowsAnyOrder;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -25,14 +24,15 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -43,12 +43,14 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -99,6 +101,15 @@ public class PullQueryIQv2FunctionalTest {
 
   private static final int BASE_TIME = 1_000_000;
   private static final int ONE_SECOND = (int) TimeUnit.SECONDS.toMillis(1);
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_0 =
+      new ConsistencyOffsetVector(0, ImmutableMap.of(USER_TOPIC,
+                                                     ImmutableMap.of(0, 0L)));
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_1 =
+      new ConsistencyOffsetVector(0, ImmutableMap.of(USER_TOPIC,
+                                                     ImmutableMap.of(1, 3L)));
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BOTH =
+      new ConsistencyOffsetVector(0, ImmutableMap.of(USER_TOPIC,
+                                                     ImmutableMap.of(0, 0L, 1, 3L)));
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
@@ -185,6 +196,31 @@ public class PullQueryIQv2FunctionalTest {
   }
 
   @Test
+  public void shouldGetSingleKeyWithPosition() {
+    // Given:
+    final String key = USER_PROVIDER.getStringKey(0);
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+    final String sql = "SELECT * FROM " + output + " WHERE USERID = '" + key + "';";
+
+    // When:
+    final List<StreamedRow> rows = makePullQueryRequestWithConsistency(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows, hasSize(HEADER + 2));
+    assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
+    assertThat(rows.get(2).getConsistencyToken().get(), not(Optional.empty()));
+    final String serialized = rows.get(2).getConsistencyToken().get().getConsistencyToken();
+    verifyConsistencyVector(serialized, CONSISTENCY_OFFSET_VECTOR_1);
+  }
+
+  @Test
   public void shouldNotFailWithNonExistingKey() {
     // Given:
     final String key = "USER_6";
@@ -267,6 +303,42 @@ public class PullQueryIQv2FunctionalTest {
         ImmutableList.of(key0, 1), ImmutableList.of(key1, 1), ImmutableList.of(key2, 1),
         ImmutableList.of(key3, 1), ImmutableList.of(key4, 1)));
   }
+
+  @Test
+  public void shouldDoFullTableScanWithPosition() {
+    // Given:
+    final String key0 = USER_PROVIDER.getStringKey(0);
+    final String key1 = USER_PROVIDER.getStringKey(1);
+    final String key2 = USER_PROVIDER.getStringKey(2);
+    final String key3 = USER_PROVIDER.getStringKey(3);
+    final String key4 = USER_PROVIDER.getStringKey(4);
+
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " + USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+    final String sql = "SELECT * FROM " + output + ";";
+
+    // When:
+    final List<StreamedRow> rows = makePullQueryRequestWithConsistency(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows, hasSize(HEADER + 6));
+    assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()-1).stream()
+        .map(sr -> sr.getRow().get().getColumns())
+        .collect(Collectors.toList());
+    assertThat(rowsNoHeader, containsInAnyOrder(
+        ImmutableList.of(key0, 1), ImmutableList.of(key1, 1), ImmutableList.of(key2, 1),
+        ImmutableList.of(key3, 1), ImmutableList.of(key4, 1)));
+    assertThat(rows.get(6).getConsistencyToken().get(), not(Optional.empty()));
+    final String serialized = rows.get(6).getConsistencyToken().get().getConsistencyToken();
+    verifyConsistencyVector(serialized, CONSISTENCY_OFFSET_VECTOR_BOTH);
+  }
+
 
   @Test
   public void shouldDoRangeQueriesBothBounds() {
@@ -396,6 +468,41 @@ public class PullQueryIQv2FunctionalTest {
     )));
   }
 
+  @Test
+  public void shouldGetSingleWindowedKeyWithPosition() {
+    // Given:
+    final String key = USER_PROVIDER.getStringKey(0);
+
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " WINDOW TUMBLING (SIZE 1 SECOND)"
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output
+        + " WHERE USERID = '" + key + "'"
+        + " AND WINDOWSTART = " + BASE_TIME + ";";
+
+    // When:
+    final List<StreamedRow> rows = makePullQueryRequestWithConsistency(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows, hasSize(HEADER + 2));
+    assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows.get(1).getRow().get().getColumns(), is(ImmutableList.of(
+        key,                    // USERID
+        BASE_TIME,              // WINDOWSTART
+        BASE_TIME + ONE_SECOND, // WINDOWEND
+        1                       // COUNT
+    )));
+    assertThat(rows.get(2).getConsistencyToken().get(), not(Optional.empty()));
+    final String serialized = rows.get(2).getConsistencyToken().get().getConsistencyToken();
+    verifyConsistencyVector(serialized, CONSISTENCY_OFFSET_VECTOR_1);
+  }
+
   @SuppressWarnings("unchecked")
   @Test
   public void shouldGetMultipleWindowedKeys() {
@@ -504,6 +611,67 @@ public class PullQueryIQv2FunctionalTest {
     ));
   }
 
+  @Test
+  public void shouldDoTableScanWindowedBothNodesWithPosition() {
+    // Given:
+    makeAdminRequest(
+        "CREATE TABLE " + output + " AS"
+            + " SELECT " +  USER_PROVIDER.key() + ", COUNT(1) AS COUNT FROM " + USERS_STREAM
+            + " WINDOW TUMBLING (SIZE 1 SECOND)"
+            + " GROUP BY " + USER_PROVIDER.key() + ";"
+    );
+
+    waitForTableRows();
+
+    final String sql = "SELECT * FROM " + output + ";";
+
+    // When:
+    final List<StreamedRow> rows = makePullQueryRequestWithConsistency(REST_APP_0, sql);
+
+    // Then:
+    assertThat(rows, hasSize(HEADER + 6));
+    assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
+
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()-1).stream()
+        .map(sr -> sr.getRow().get().getColumns())
+        .collect(Collectors.toList());
+    assertThat(rowsNoHeader, containsInAnyOrder(
+        ImmutableList.of(
+            USER_PROVIDER.getStringKey(0),  // USERID
+            BASE_TIME,                      // WINDOWSTART
+            BASE_TIME + ONE_SECOND,         // WINDOWEND
+            1                               // COUNT
+        ),
+        ImmutableList.of(
+            USER_PROVIDER.getStringKey(1),  // USERID
+            BASE_TIME,                      // WINDOWSTART
+            BASE_TIME + ONE_SECOND,         // WINDOWEND
+            1                               // COUNT
+        ),
+        ImmutableList.of(
+            USER_PROVIDER.getStringKey(2),  // USERID
+            BASE_TIME,                      // WINDOWSTART
+            BASE_TIME + ONE_SECOND,         // WINDOWEND
+            1                               // COUNT
+        ),
+        ImmutableList.of(
+            USER_PROVIDER.getStringKey(3),  // USERID
+            BASE_TIME,                      // WINDOWSTART
+            BASE_TIME + ONE_SECOND,         // WINDOWEND
+            1                               // COUNT
+        ),
+        ImmutableList.of(
+            USER_PROVIDER.getStringKey(4),  // USERID
+            BASE_TIME,                      // WINDOWSTART
+            BASE_TIME + ONE_SECOND,         // WINDOWEND
+            1                               // COUNT
+        )
+    ));
+    assertThat(rows.get(6).getConsistencyToken().get(), not(Optional.empty()));
+    final String serialized = rows.get(6).getConsistencyToken().get().getConsistencyToken();
+    verifyConsistencyVector(serialized, CONSISTENCY_OFFSET_VECTOR_BOTH);
+  }
+
 
   private static List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
@@ -514,6 +682,25 @@ public class PullQueryIQv2FunctionalTest {
 
   private static void makeAdminRequest(final String sql) {
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP_0, sql, validCreds());
+  }
+
+  private static List<StreamedRow> makePullQueryRequestWithConsistency(
+      final TestKsqlRestApp target,
+      final String sql
+  ) {
+    final KsqlRestClient ksqlRestClient = target.buildKsqlClient(validCreds());
+    final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
+        .put(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true)
+        .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    final Map<String, Object> requestProperties = builder.build();
+    final RestResponse<List<StreamedRow>> res =
+        ksqlRestClient.makeQueryRequest(sql, null, null, requestProperties);
+
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to await result. msg: " + res.getErrorMessage());
+    }
+
+    return res.getResponse();
   }
 
   private void waitForTableRows() {
@@ -541,4 +728,9 @@ public class PullQueryIQv2FunctionalTest {
     }
   }
 
+  private static void verifyConsistencyVector(
+      final String serializedCV, final ConsistencyOffsetVector offsetVector) {
+    final ConsistencyOffsetVector cvResponse = ConsistencyOffsetVector.deserialize(serializedCV);
+    assertThat(cvResponse, is(offsetVector));
+  }
 }

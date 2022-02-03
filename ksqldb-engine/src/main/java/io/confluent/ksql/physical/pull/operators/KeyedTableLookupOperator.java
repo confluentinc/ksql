@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -29,6 +30,7 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -45,6 +47,7 @@ public class KeyedTableLookupOperator
 
   private final Materialization mat;
   private final DataSourceNode logicalNode;
+  private final Optional<ConsistencyOffsetVector> consistencyOffsetVector;
 
   private ImmutableList<KsqlPartitionLocation> partitionLocations;
   private Iterator<Row> resultIterator;
@@ -53,14 +56,16 @@ public class KeyedTableLookupOperator
   private KsqlPartitionLocation nextLocation;
   private KsqlKey nextKey;
   private long returnedRows = 0;
-  private Optional<Position> position;
 
   public KeyedTableLookupOperator(
       final Materialization mat,
-      final DataSourceNode logicalNode
+      final DataSourceNode logicalNode,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
     this.mat = Objects.requireNonNull(mat, "mat");
     this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
+    this.consistencyOffsetVector = Objects.requireNonNull(
+        consistencyOffsetVector, "consistencyOffsetVector");
   }
 
   @Override
@@ -116,32 +121,32 @@ public class KeyedTableLookupOperator
         + "key constraints: %s", ksqlKey.toString()));
     }
     final KeyConstraint keyConstraintKey = (KeyConstraint) ksqlKey;
+    final KsMaterializedQueryResult<Row> result;
     if (keyConstraintKey.getOperator() == ConstraintOperator.EQUAL) {
-      return mat.nonWindowed()
-        .get(ksqlKey.getKey(), nextLocation.getPartition())
-        .getRowIterator();
+      result = mat.nonWindowed().get(ksqlKey.getKey(), nextLocation.getPartition());
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.GREATER_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
       //and filtering is used to trim start and end of the range in case of ">"
       final GenericKey fromKey = keyConstraintKey.getKey();
       final GenericKey toKey = null;
-      return mat.nonWindowed()
-          .get(nextLocation.getPartition(), fromKey, toKey)
-          .getRowIterator();
+      result =  mat.nonWindowed().get(nextLocation.getPartition(), fromKey, toKey);
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
       //and filtering is used to trim start and end of the range in case of "<"
       final GenericKey fromKey = null;
       final GenericKey toKey = keyConstraintKey.getKey();
-      return mat.nonWindowed()
-          .get(nextLocation.getPartition(), fromKey, toKey)
-          .getRowIterator();
+      result =  mat.nonWindowed().get(nextLocation.getPartition(), fromKey, toKey);
     } else {
       throw new IllegalStateException(String.format("Invalid comparator type "
         + keyConstraintKey.getOperator()));
     }
+    final Optional<Position> position = result.getPosition();
+    if (position.isPresent() && consistencyOffsetVector.isPresent()) {
+      consistencyOffsetVector.get().updateFromPosition(position.get());
+    }
+    return result.getRowIterator();
   }
 
   @Override

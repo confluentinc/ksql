@@ -315,12 +315,12 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   @Override
-  public void deleteInternalTopics(final String applicationId) {
+  public void deleteInternalTopics(final String internalTopicPrefix) {
     try {
       final Set<String> topicNames = listTopicNames();
       final List<String> internalTopics = Lists.newArrayList();
       for (final String topicName : topicNames) {
-        if (isInternalTopic(topicName, applicationId)) {
+        if (isInternalTopic(topicName, internalTopicPrefix)) {
           internalTopics.add(topicName);
         }
       }
@@ -330,7 +330,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       }
     } catch (final Exception e) {
       LOG.error("Exception while trying to clean up internal topics for application id: {}.",
-          applicationId, e
+          internalTopicPrefix, e
       );
     }
   }

@@ -649,8 +649,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
                         StreamsConfig.configDef()
                           .defaultValues()
                           .get(StreamsConfig.STATE_DIR_CONFIG))
-                    .toString()
-            ));
+                    .toString(),
+                ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+                ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)));
       } else {
         log.info("Skipping cleanup for query {} since it was never started", applicationId);
       }

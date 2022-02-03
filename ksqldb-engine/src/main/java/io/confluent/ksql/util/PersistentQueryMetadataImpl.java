@@ -133,7 +133,7 @@ public class PersistentQueryMetadataImpl
     this.schemas = original.schemas;
     this.resultSchema = original.resultSchema;
     this.materializationProvider = original.materializationProvider;
-    this.physicalPlan = original.physicalPlan;
+    this.physicalPlan = original.getPhysicalPlan();
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.processingLogger = original.processingLogger;
     this.scalablePushRegistry = original.scalablePushRegistry;

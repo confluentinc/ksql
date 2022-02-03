@@ -226,6 +226,7 @@ public class QueryBuilderTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(Collections.emptyMap());
+    when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("");
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
@@ -691,6 +692,25 @@ public class QueryBuilderTest {
     assertThat(
         streamsProps.get(ProductionExceptionHandlerUtil.KSQL_PRODUCTION_ERROR_LOGGER),
         is(logger));
+  }
+
+  @Test
+  public void shouldConfigureCustomMetricsTags() {
+    // Given:
+    when(ksqlConfig.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)).thenReturn("custom-tag:custom-tag-value");
+
+    // When:
+    buildPersistentQuery(
+        SOURCES,
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        QUERY_ID
+    ).initialize();
+
+    // Then:
+    final Map<String, Object> streamsProps = capturedStreamsProperties();
+    assertThat(
+        streamsProps.get(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),
+        is("custom-tag:custom-tag-value"));
   }
 
   public static class DummyConsumerInterceptor implements ConsumerInterceptor {

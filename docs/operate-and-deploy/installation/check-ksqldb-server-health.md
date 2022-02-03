@@ -98,4 +98,4 @@ REST health check.
 
 The general responsiveness on the port should be sufficient as a high-level
 health check. For a list of the available metrics you can collect, see
-[JMX Metrics](server-config/index.md#jmx-metrics).
+[JMX Metrics](/reference/metrics/).

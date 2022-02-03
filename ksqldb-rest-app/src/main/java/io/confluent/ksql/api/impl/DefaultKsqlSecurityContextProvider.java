@@ -86,7 +86,8 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
               schemaRegistryClientFactory,
               connectClientFactory,
               sharedClient,
-              requestHeaders)
+              requestHeaders,
+              principal)
       );
     }
 
@@ -100,7 +101,8 @@ public class DefaultKsqlSecurityContextProvider implements KsqlSecurityContextPr
                 provider.getSchemaRegistryClientFactory(principal.get()),
                 connectClientFactory,
                 sharedClient,
-                requestHeaders)))
+                requestHeaders,
+                principal)))
         .get();
   }
 

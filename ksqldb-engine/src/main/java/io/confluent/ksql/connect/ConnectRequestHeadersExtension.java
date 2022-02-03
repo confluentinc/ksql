@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.connect;
 
+import io.confluent.ksql.security.KsqlPrincipal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,7 @@ public interface ConnectRequestHeadersExtension {
    *
    * <p>Set this to {@code false} in order to use this
    * {@code ConnectRequestHeadersExtension} for additional custom headers
-   * (via {@link ConnectRequestHeadersExtension#getHeaders()}) only, without
+   * (via {@link ConnectRequestHeadersExtension#getHeaders(Optional)}) only, without
    * impacting ksqlDB's default behavior for the auth header.
    *
    * @return whether to use the custom auth header returned from
@@ -68,9 +69,12 @@ public interface ConnectRequestHeadersExtension {
    * such as those required for authenticating with Connect. The custom headers are added
    * to the request in addition to, and after, ksqlDB's default headers.
    *
+   * @param userPrincipal principal associated with the user who submitted the connector
+   *                      request to ksqlDB, if present (i.e., if user authentication
+   *                      is enabled)
    * @return additional headers to be included with connector requests made by ksqlDB
    */
-  default Map<String, String> getHeaders() {
+  default Map<String, String> getHeaders(Optional<KsqlPrincipal> userPrincipal) {
     return Collections.emptyMap();
   }
 

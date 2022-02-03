@@ -643,7 +643,7 @@ public final class KsqlRestApplication implements Executable {
     final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
             schemaRegistryClientFactory, connectClientFactory, sharedClient,
-            Collections.emptyList()));
+            Collections.emptyList(), Optional.empty()));
     final String kafkaClusterId = KafkaClusterUtil.getKafkaClusterId(tempServiceContext);
     final String ksqlServerId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     updatedRestProps.putAll(
@@ -657,7 +657,8 @@ public final class KsqlRestApplication implements Executable {
             schemaRegistryClientFactory,
             connectClientFactory,
             sharedClient,
-            Collections.emptyList()));
+            Collections.emptyList(),
+            Optional.empty()));
 
     return buildApplication(
         "",

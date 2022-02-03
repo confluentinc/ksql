@@ -46,6 +46,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -92,6 +93,8 @@ public class ValidatedCommandFactoryTest {
   private PersistentQueryMetadata query1;
   @Mock
   private PersistentQueryMetadata query2;
+  @Mock
+  private KsqlExecutionContext.ExecuteResult result;
 
   private ConfiguredStatement<? extends Statement> configuredStatement;
   private ValidatedCommandFactory commandFactory;
@@ -100,10 +103,8 @@ public class ValidatedCommandFactoryTest {
   public void setup() {
     commandFactory = new ValidatedCommandFactory();
     when(executionContext.getKsqlConfig()).thenReturn(config);
-    KsqlExecutionContext.ExecuteResult result = mock(KsqlExecutionContext.ExecuteResult.class);
-    PersistentQueryMetadataImpl queryMetadata = mock(PersistentQueryMetadataImpl.class);
     when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
-    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
+    when(result.getQuery()).thenReturn(Optional.empty());
   }
 
   @Test
@@ -286,9 +287,28 @@ public class ValidatedCommandFactoryTest {
   }
 
   @Test
+  public void shouldCreateCommandForPlannedQueryInSharedRuntime() {
+    // Given:
+    givenPlannedQuery();
+    BinPackedPersistentQueryMetadataImpl queryMetadata = mock(BinPackedPersistentQueryMetadataImpl.class);
+    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
+
+    // When:
+    final Command command = commandFactory.create(configuredStatement, executionContext);
+
+    // Then:
+    assertThat(command, is(Command.of(ConfiguredKsqlPlan.of(A_PLAN, SessionConfig.of(config, overrides)))));
+
+  }
+
+  @Test
   public void shouldCreateCommandForPlannedQueryInDedicatedRuntime() {
     // Given:
     givenPlannedQuery();
+    PersistentQueryMetadataImpl queryMetadata = mock(PersistentQueryMetadataImpl.class);
+    when(executionContext.execute(any(), any(ConfiguredKsqlPlan.class))).thenReturn(result);
+    when(result.getQuery()).thenReturn(Optional.ofNullable(queryMetadata));
     when(config.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
 
     // When:

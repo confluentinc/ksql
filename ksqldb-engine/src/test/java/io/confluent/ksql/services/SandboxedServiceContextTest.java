@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.services.SandboxedSchemaRegistryClient.SandboxSchemaRegistryCache;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.lang.reflect.Proxy;
@@ -151,7 +152,7 @@ public final class SandboxedServiceContextTest {
       final SchemaRegistryClient actual = sandboxedServiceContext.getSchemaRegistryClient();
 
       // Then:
-      assertThat(Proxy.isProxyClass(actual.getClass()), is(true));
+      assertThat(actual, instanceOf(SandboxSchemaRegistryCache.class));
 
       // When:
       actual.getLatestSchemaMetadata("some subject");

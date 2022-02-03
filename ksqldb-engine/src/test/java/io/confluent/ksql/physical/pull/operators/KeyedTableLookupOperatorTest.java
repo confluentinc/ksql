@@ -111,7 +111,8 @@ public class KeyedTableLookupOperatorTest {
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
         Optional.of(ImmutableSet.of(KEY4)), 3, ImmutableList.of(node3)));
 
-    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
+    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
+        materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
         KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
@@ -143,7 +144,8 @@ public class KeyedTableLookupOperatorTest {
     multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
         Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
 
-    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
+    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
+        materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
         KsMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
@@ -172,7 +174,8 @@ public class KeyedTableLookupOperatorTest {
     singleKeyPartitionLocations.add(new KsLocator.PartitionLocation(
       Optional.of(ImmutableSet.of(KEY1, KEY3)), 1, ImmutableList.of(node1)));
 
-    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
+    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
+        materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
         KsMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
@@ -203,7 +206,8 @@ public class KeyedTableLookupOperatorTest {
     multipleKeysPartitionLocations.add(new KsLocator.PartitionLocation(
       Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
 
-    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
+    final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
+        materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
         KsMaterializedQueryResult.rowIterator(Collections.emptyIterator()));

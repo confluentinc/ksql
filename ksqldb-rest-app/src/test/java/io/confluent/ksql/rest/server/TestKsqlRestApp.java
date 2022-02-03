@@ -186,7 +186,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -195,7 +196,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -204,7 +206,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpInternalListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -213,7 +216,8 @@ public class TestKsqlRestApp extends ExternalResource {
         getHttpInternalListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
-        credentials
+        credentials,
+        Optional.empty()
     );
   }
 
@@ -337,7 +341,7 @@ public class TestKsqlRestApp extends ExternalResource {
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),
-          (authHeader, userPrincipal) -> serviceContext.get().getConnectClient(),
+          (authHeader, requestHeaders, userPrincipal) -> serviceContext.get().getConnectClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
               PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),

@@ -46,7 +46,6 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator.PartitionLocation;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting.RouteQuery;
 import io.confluent.ksql.query.PullQueryQueue;
@@ -197,8 +196,8 @@ public class HARoutingTest {
       final PullQueryQueue queue = i.getArgument(1);
       queue.acceptRow(PQ_ROW1);
       return null;
-    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
-    doNothing().when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
+    doNothing().when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any())).thenAnswer(
       new Answer() {
         private int count = 0;
@@ -228,8 +227,8 @@ public class HARoutingTest {
     future.get();
 
     // Then:
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any());
     assertThat(pullQueryQueue.size(), is(2));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW1));
@@ -247,8 +246,8 @@ public class HARoutingTest {
     locate(location1, location2, location3, location4);
     doAnswer(i -> {
       throw new StandbyFallbackException("Error!");
-    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
-    doNothing().when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
+    doNothing().when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any())).thenAnswer(
         new Answer() {
           private int count = 0;
@@ -284,8 +283,8 @@ public class HARoutingTest {
     future.get();
 
     // Then:
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     verify(ksqlClient, times(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any());
 
     assertThat(pullQueryQueue.size(), is(2));
@@ -303,12 +302,12 @@ public class HARoutingTest {
     // Given:
     locate(location1, location2, location3, location4);
 
-    doThrow(new StandbyFallbackException("Error")).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
+    doThrow(new StandbyFallbackException("Error")).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     doAnswer(i -> {
       final PullQueryQueue queue = i.getArgument(1);
       queue.acceptRow(PQ_ROW3);
       return null;
-    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
 
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any())).thenAnswer(
       new Answer() {
@@ -349,8 +348,8 @@ public class HARoutingTest {
     future.get();
 
     // Then:
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     verify(ksqlClient, times(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any());
 
     assertThat(pullQueryQueue.size(), is(4));
@@ -379,7 +378,7 @@ public class HARoutingTest {
       final PullQueryQueue queue = i.getArgument(1);
       queue.acceptRow(PQ_ROW1);
       return null;
-    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location2.removeHeadHost())), any(), any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location2.removeHeadHost())), any(), any());
 
     // When:
     CompletableFuture<Void> future = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan,
@@ -389,7 +388,7 @@ public class HARoutingTest {
     // Then:
     verify(ksqlClient, times(1)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(),
         any());
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location2.removeHeadHost())), any(), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location2.removeHeadHost())), any(), any());
 
     assertThat(pullQueryQueue.size(), is(1));
     assertThat(pullQueryQueue.pollRow(1, TimeUnit.SECONDS).getRow(), is(ROW1));
@@ -406,10 +405,10 @@ public class HARoutingTest {
     locate(location1, location2, location3, location4);
     doAnswer(i -> {
       throw new StandbyFallbackException("Error1!");
-    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
     doAnswer(i -> {
       throw new StandbyFallbackException("Error1!");
-    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    }).when(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any())).thenAnswer(
         new Answer() {
           private int count = 0;
@@ -452,8 +451,8 @@ public class HARoutingTest {
     );
 
     // Then:
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any(), any());
-    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1)), any(), any());
+    verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location3)), any(), any());
     verify(ksqlClient, atLeast(3)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any());
 
     assertThat(e.getCause().getMessage(), containsString("Exhausted standby hosts to try."));

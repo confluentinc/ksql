@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,13 +58,15 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
-import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.exception.KsqlMissingCredentialsException;
+import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.client.exception.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -157,8 +160,6 @@ public class CliTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
-
   @Rule
   public final Timeout timeout = Timeout.builder()
       .withTimeout(1, TimeUnit.MINUTES)
@@ -189,6 +190,7 @@ public class CliTest {
         REST_APP.getHttpListener().toString(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        Optional.empty(),
         Optional.empty()
     );
 
@@ -1358,13 +1360,93 @@ public class CliTest {
     givenCommandSequenceNumber(mockRestClient, 5L);
     givenRequestPipelining("ON");
     when(mockRestClient.getServerInfo()).thenReturn(
-        RestResponse.successful(OK.code(), SERVER_INFO));
+        RestResponse.successful(OK.code(),
+            new ServerInfo("version", "kafkaClusterId", "ksqlServiceId", "serverStatus")));
 
     // When:
     runCliSpecificCommand("server foo");
 
     // Then:
     assertLastCommandSequenceNumber(mockRestClient, -1L);
+  }
+
+  @Test
+  public void shouldIssueCCloudConnectorRequest() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(true);
+    when(mockRestClient.getHasCCloudApiKey()).thenReturn(true);
+    when(mockRestClient.makeConnectorRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(
+            OK.code(),
+            new KsqlEntityList(Collections.singletonList(
+                new ConnectorList("list connectors;", Collections.emptyList(), Collections.emptyList())))
+        ));
+
+    // When:
+    localCli.handleLine("list connectors;");
+
+    // Then:
+    verify(mockRestClient).makeConnectorRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldIssueNonCCloudConnectorRequest() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(false);
+    when(mockRestClient.makeConnectorRequest(anyString(), anyLong()))
+        .thenReturn(RestResponse.successful(
+            OK.code(),
+            new KsqlEntityList(Collections.singletonList(
+                new ConnectorList("list connectors;", Collections.emptyList(), Collections.emptyList())))
+        ));
+
+    // When:
+    localCli.handleLine("list connectors;");
+
+    // Then:
+    verify(mockRestClient).makeConnectorRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldThrowOnCCloudConnectorRequestWithoutApiKey() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(true);
+    when(mockRestClient.getHasCCloudApiKey()).thenReturn(false);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlMissingCredentialsException.class,
+        () -> localCli.handleLine("list connectors;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("In order to use ksqlDB's connector "
+        + "management capabilities with a Confluent Cloud ksqlDB server, launch the "
+        + "ksqlDB command line with the additional flags '--confluent-api-key' and "
+        + "'--confluent-api-secret' to pass a Confluent Cloud API key."));
+    verify(mockRestClient, never()).makeConnectorRequest(anyString(), anyLong());
+  }
+
+  @Test
+  public void shouldNotExecuteAnyStatementsOnFailedValidation() throws Exception {
+    // Given:
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getIsCCloudServer()).thenReturn(true);
+    when(mockRestClient.getHasCCloudApiKey()).thenReturn(false);
+
+    // When: "show streams;" is valid but "list connectors;" will fail validation
+    assertThrows(
+        KsqlMissingCredentialsException.class,
+        () -> localCli.handleLine("show streams; list connectors;")
+    );
+
+    // Then:
+    verify(mockRestClient, never()).makeConnectorRequest(anyString(), anyLong());
+    // "show streams;" should not have been executed either
+    verify(mockRestClient, never()).makeKsqlRequest(anyString(), anyLong());
   }
 
   private void givenRequestPipelining(final String setting) {

@@ -268,7 +268,10 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     final PersistentQueryMetadata query;
 
-    if (sharedRuntimeId.isPresent()) {
+    final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+
+    if (sharedRuntimeId.isPresent() && (oldQuery == null
+        || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
       if (sandbox) {
         streams.addAll(sourceStreams.stream()
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)

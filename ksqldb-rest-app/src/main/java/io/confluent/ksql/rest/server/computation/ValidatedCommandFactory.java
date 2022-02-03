@@ -217,7 +217,8 @@ public final class ValidatedCommandFactory {
     ConfiguredKsqlPlan configuredPlan = ConfiguredKsqlPlan
         .of(plan, statement.getSessionConfig());
 
-    final KsqlExecutionContext.ExecuteResult result = context.execute(serviceContext, configuredPlan);
+    final KsqlExecutionContext.ExecuteResult result = context
+        .execute(serviceContext, configuredPlan);
     if (result.getQuery().isPresent()
         && result.getQuery().get() instanceof PersistentQueryMetadataImpl
         && configuredPlan.getConfig()
@@ -225,7 +226,8 @@ public final class ValidatedCommandFactory {
           .getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       configuredPlan = ConfiguredKsqlPlan.of(
           plan,
-          statement.getSessionConfig().copyWith(ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))
+          statement.getSessionConfig()
+              .copyWith(ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false))
       );
     }
     return Command.of(configuredPlan);

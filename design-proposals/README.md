@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **60**
+Next KLIP number: **61**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -100,3 +100,4 @@ Next KLIP number: **60**
 | [KLIP-57: Kafka headers](klip-57-kafka-headers.md)                                                                               |  Merged  |      0.24.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8293) |
 | KLIP-58: [`LIMIT` clause for Pull Queries](https://github.com/confluentinc/ksql/pull/8298)                                       | Approved |      0.24.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/8298) |
 | [KLIP-59: JSON functions](klip-59-json-functions.md)                                                                             | Approved |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/8550) | 
+| [KLIP-60: Support input topics with multiple message types](klip-60-multiple-message-types.md)                                                                             | Proposal |                   |            |  | 

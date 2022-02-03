@@ -21,7 +21,6 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.spun.util.io.FileUtils;
-import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -52,13 +51,20 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   private final Retryer<Boolean> retryer;
   private final String stateDir;
   private final ServiceContext serviceContext;
-  private QueryRegistry queryRegistry;
-  private Set<TransientQueryMetadata> allTransientQueriesEverCreated;
-  private Set<String> allTransientQueriesEverCreatedIds;
+  private final Set<TransientQueryMetadata> allTransientQueriesEverCreated;
+  private final Set<String> allTransientQueriesEverCreatedIds;
+  private final int initialDelay;
+  private final int intervalPeriod;
 
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
+    this.initialDelay = ksqlConfig.getInt(
+            KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
+
+    this.intervalPeriod = ksqlConfig.getInt(
+            KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS);
+
     cleanupTasks = new LinkedBlockingDeque<>();
 
     retryer = RetryerBuilder.<Boolean>newBuilder()
@@ -103,7 +109,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   public Scheduler scheduler() {
-    return Scheduler.newFixedRateSchedule(20, 10, TimeUnit.SECONDS);
+    return Scheduler.newFixedRateSchedule(initialDelay, intervalPeriod, TimeUnit.SECONDS);
   }
 
   private void findCleanupTasks() {
@@ -204,10 +210,6 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   public void recordTransientQueryOnStart(final TransientQueryMetadata queryMetadata) {
     this.allTransientQueriesEverCreated.add(queryMetadata);
     this.allTransientQueriesEverCreatedIds.add(queryMetadata.getQueryApplicationId());
-  }
-
-  public void setQueryRegistry(final QueryRegistry queryRegistry) {
-    this.queryRegistry = queryRegistry;
   }
 
   public static class TransientQueryTopicCleanupTask implements Callable<Boolean> {

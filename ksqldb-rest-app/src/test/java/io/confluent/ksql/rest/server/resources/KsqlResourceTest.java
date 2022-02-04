@@ -2535,6 +2535,21 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithNonQueryLevelProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, "");
+    givenKsqlConfigWith(ImmutableMap.of(
+        KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true
+    ));
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
   public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
     final Map<String, Object> terminateStreamProperties =
         ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));

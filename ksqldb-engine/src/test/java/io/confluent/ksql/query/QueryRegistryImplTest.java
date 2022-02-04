@@ -270,17 +270,17 @@ public class QueryRegistryImplTest {
   }
 
   @Test
-  public void shouldOnlyAllowServerLevelConfigsForDedicatedRuntimes() {
+  public void shouldOnlyAllowServerLevelConfigsForDedicatedRuntimesSandbox() {
     // Given:
     when(config.getOverrides()).thenReturn(ImmutableMap.of("commit.interval.ms", 9));
     if (sharedRuntimes) {
       final Exception e = assertThrows(IllegalArgumentException.class,
-          () -> givenCreate(registry, "q1", "source",
+          () -> givenCreate(registry.createSandbox(), "q1", "source",
           Optional.of("sink1"), CREATE_AS));
       assertThat(e.getMessage(), containsString("commit.interval.ms"));
-    } else {
-      givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
     }
+    givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+
   }
 
   @Test

@@ -275,8 +275,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         && ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)
         && (oldQuery == null
         || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
-      throwOnNonQueryLevelConfigs(config.getOverrides());
       if (sandbox) {
+        throwOnNonQueryLevelConfigs(config.getOverrides());
         streams.addAll(sourceStreams.stream()
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
             .collect(Collectors.toList()));

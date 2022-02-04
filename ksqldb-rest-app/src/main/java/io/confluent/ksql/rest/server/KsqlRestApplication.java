@@ -381,7 +381,6 @@ public final class KsqlRestApplication implements Executable {
     } finally {
       startAsyncThreadRef.set(null);
     }
-
   }
 
   @VisibleForTesting

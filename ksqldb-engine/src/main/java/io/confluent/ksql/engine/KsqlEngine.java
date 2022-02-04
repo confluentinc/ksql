@@ -28,13 +28,12 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.engine.TransientQueryCleanupService.TransientQueryStateCleanupTask;
-import io.confluent.ksql.engine.TransientQueryCleanupService.TransientQueryTopicCleanupTask;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.internal.TransientQueryCleanupListener;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -675,62 +674,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
               .get(KsqlConfig.KSQL_INTERNAL_STREAMS_ERROR_COLLECTOR_CONFIG);
       if (o instanceof StreamsErrorCollector) {
         ((StreamsErrorCollector) o).cleanup();
-      }
-    }
-  }
-
-  private static final class TransientQueryCleanupListener implements QueryEventListener {
-    final TransientQueryCleanupService cleanupService;
-    final ServiceContext serviceContext;
-    final KsqlConfig ksqlConfig;
-
-    private TransientQueryCleanupListener(
-            final TransientQueryCleanupService cleanupService,
-            final ServiceContext serviceContext,
-            final KsqlConfig ksqlConfig) {
-      this.cleanupService = cleanupService;
-      this.serviceContext = serviceContext;
-      this.ksqlConfig = ksqlConfig;
-    }
-
-    @Override
-    public void onCreate(final ServiceContext serviceContext,
-                         final MetaStore metaStore,
-                         final QueryMetadata queryMetadata) {
-      if (queryMetadata instanceof TransientQueryMetadata) {
-        cleanupService.recordTransientQueryOnStart((TransientQueryMetadata) queryMetadata);
-      }
-    }
-
-    @Override
-    public void onClose(
-            final QueryMetadata query
-    ) {
-      if (query instanceof TransientQueryMetadata) {
-        final String applicationId = query.getQueryApplicationId();
-        if (query.hasEverBeenStarted()) {
-          log.info("Cleaning up after query {}", applicationId);
-          final TransientQueryTopicCleanupTask topicTask = new TransientQueryTopicCleanupTask(
-                  serviceContext, applicationId
-          );
-
-          final String stateDir = ksqlConfig.getKsqlStreamConfigProps()
-                  .getOrDefault(
-                          StreamsConfig.STATE_DIR_CONFIG,
-                          StreamsConfig.configDef()
-                                  .defaultValues()
-                                  .get(StreamsConfig.STATE_DIR_CONFIG))
-                  .toString();
-
-          final TransientQueryStateCleanupTask stateTask = new TransientQueryStateCleanupTask(
-                  applicationId, stateDir
-
-          );
-          cleanupService.addCleanupTask(topicTask);
-          cleanupService.addCleanupTask(stateTask);
-        } else {
-          log.info("Skipping cleanup for query {} since it was never started", applicationId);
-        }
       }
     }
   }

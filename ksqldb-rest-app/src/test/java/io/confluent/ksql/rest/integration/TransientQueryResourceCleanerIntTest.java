@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.integration;
 
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.engine.TransientQueryCleanupService;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.Queries;
@@ -50,6 +51,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
@@ -58,6 +61,7 @@ import static org.junit.Assert.assertTrue;
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class TransientQueryResourceCleanerIntTest {
+    private static final Logger LOG = LoggerFactory.getLogger(TransientQueryResourceCleanerIntTest.class);
     private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
     private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
     private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
@@ -108,7 +112,7 @@ public class TransientQueryResourceCleanerIntTest {
     private boolean requestCompleted = false;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, InterruptedException {
         FileUtils.cleanDirectory(stateDir);
 
         service = Executors.newFixedThreadPool(1);
@@ -121,10 +125,13 @@ public class TransientQueryResourceCleanerIntTest {
                     Optional.empty());
             requestCompleted = true;
         };
+
+        givenPushQuery();
     }
 
     @After
     public void tearDown() {
+
         service.shutdownNow();
     }
 
@@ -153,11 +160,11 @@ public class TransientQueryResourceCleanerIntTest {
     @Test
     public void shouldCleanupLeakedTopics() throws InterruptedException {
         // Given:
-        givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
         Set<String> allTopics = TEST_HARNESS.getKafkaCluster().getTopics();
 
         // Should have the transient and persistent topics
+        LOG.warn(String.valueOf(allTopics));
         assertEquals(numPersistentTopics + numTransientTopics, allTopics.size());
 
         List<String> transientTopics = allTopics.stream()
@@ -207,7 +214,6 @@ public class TransientQueryResourceCleanerIntTest {
     @Test
     public void shouldCleanupLeakedStateDirs() throws InterruptedException, IOException {
         // Given:
-        givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
         File stateFolder = new File(stateDir);
 
@@ -250,7 +256,6 @@ public class TransientQueryResourceCleanerIntTest {
     @Test
     public void shouldNotCleanupTopicsOfRunningQueries() throws InterruptedException {
         // Given:
-        givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
         Set<String> allTopics = TEST_HARNESS.getKafkaCluster().getTopics();
 
@@ -278,12 +283,17 @@ public class TransientQueryResourceCleanerIntTest {
         assertEquals(numTransientTopics,
                 TEST_HARNESS.getKafkaCluster().getTopics().stream()
                         .filter(t -> t.contains("transient")).count());
+
+        // terminate the transient query to cleanup
+        RestIntegrationTestUtil.makeKsqlRequest(
+                REST_APP_0,
+                "terminate " + transientQueryId + ";"
+        );
     }
 
     @Test
     public void shouldNotCleanupStateDirsOfRunningQueries() throws InterruptedException, IOException {
         // Given:
-        givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
         File stateFolder = new File(stateDir);
 
@@ -301,6 +311,12 @@ public class TransientQueryResourceCleanerIntTest {
         // the state file of the transient query should still be there
         assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
+
+        // terminate the transient query to cleanup
+        RestIntegrationTestUtil.makeKsqlRequest(
+                REST_APP_0,
+                "terminate " + transientQueryId + ";"
+        );
     }
 
     public List<RunningQuery> showQueries (){

@@ -723,7 +723,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
                   .toString();
 
           final TransientQueryStateCleanupTask stateTask = new TransientQueryStateCleanupTask(
-                  serviceContext, applicationId, stateDir
+                  applicationId, stateDir
 
           );
           cleanupService.addCleanupTask(topicTask);

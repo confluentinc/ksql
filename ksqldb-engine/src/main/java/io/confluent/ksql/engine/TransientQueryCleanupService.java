@@ -48,6 +48,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
   private static final Pattern TRANSIENT_PATTERN =
           Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
+  private static final int NUM_OF_RETRIES_TO_DELETE_RESOURCE = 5;
 
   private final BlockingQueue<Callable<Boolean>> cleanupTasks;
   private final Retryer<Boolean> retryer;
@@ -71,8 +72,9 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
     retryer = RetryerBuilder.<Boolean>newBuilder()
             .retryIfResult(aBoolean -> Objects.equals(aBoolean, false))
-            .retryIfException()
-            .withStopStrategy(StopStrategies.stopAfterAttempt(5))
+            .retryIfExceptionOfType(IOException.class)
+            .retryIfRuntimeException()
+            .withStopStrategy(StopStrategies.stopAfterAttempt(NUM_OF_RETRIES_TO_DELETE_RESOURCE))
             .build();
 
     this.stateDir = ksqlConfig.getKsqlStreamConfigProps()
@@ -89,10 +91,20 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() {
-    LOG.info("Starting cleanup for transient topics: {}; size: {}",
-            cleanupTasks,
-            cleanupTasks.size());
+    LOG.info("Starting cleanup for leaked resources.");
+
     findCleanupTasks();
+
+    final long numLeakedTopics = cleanupTasks.stream()
+            .filter(p -> p.getClass().equals(TransientQueryTopicCleanupTask.class))
+            .count();
+
+    final long numLeakedStateDirs = cleanupTasks.stream()
+            .filter(p -> p.getClass().equals(TransientQueryStateCleanupTask.class))
+            .count();
+
+    LOG.info("Cleaning up {} leaked topics.", numLeakedTopics);
+    LOG.info("Cleaning up {} leaked state directories.", numLeakedStateDirs);
     try {
       while (!cleanupTasks.isEmpty()) {
         final Callable<Boolean> task = cleanupTasks.take();
@@ -115,15 +127,13 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   private void findCleanupTasks() {
-    LOG.info("lads we have created {} so far", allTransientQueriesEverCreatedIds);
+    LOG.info("Searching for leaked resources.");
     findPossiblyLeakedStateDirs();
     findPossiblyLeakedTranientTopics();
   }
 
   public void addCleanupTask(final Callable<Boolean> task) {
-    LOG.info("Adding cleanup task");
     cleanupTasks.add(task);
-    LOG.info("size after adding: {}", cleanupTasks.size());
   }
 
   private void findPossiblyLeakedStateDirs() {
@@ -141,29 +151,15 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
       if (filenameMatcher.find()) {
         final String leakingQueryId = filenameMatcher.group(0);
-        if (allTransientQueriesEverCreatedIds.contains(leakingQueryId)) {
-          final boolean isRunning =  allTransientQueriesEverCreated
-                  .stream()
-                  .filter(queryMetadata ->
-                                  queryMetadata
-                                          .getQueryApplicationId()
-                                          .equals(leakingQueryId)
-                  )
-                  .collect(Collectors.toList())
-                  .get(0)
-                  .isRunning();
+        if (allTransientQueriesEverCreatedIds.contains(leakingQueryId)
+                && isTerminatedQuery(leakingQueryId)) {
+          LOG.info("{} is leaking state directories. Adding it to the cleanup queue.",
+                  leakingQueryId);
 
-          if (isRunning) {
-            LOG.info("kk {} is still running, don't try to clean", leakingQueryId);
-          } else {
-            LOG.info("man, {} is leaking. Adding to cleanup", leakingQueryId);
-            addCleanupTask(new TransientQueryStateCleanupTask(
-                    serviceContext,
-                    leakingQueryId,
-                    stateDir));
-          }
-        } else {
-          LOG.info("couldnt find {} in the registry", leakingQueryId);
+          addCleanupTask(new TransientQueryStateCleanupTask(
+                  leakingQueryId,
+                  stateDir)
+          );
         }
       }
     }
@@ -174,32 +170,16 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .getTopicClient()
             .listTopicNames()) {
       final Matcher topicNameMatcher = TRANSIENT_PATTERN.matcher(topic);
+
       if (topicNameMatcher.find()) {
         final String leakingQueryId = topicNameMatcher.group(0);
-        if (allTransientQueriesEverCreatedIds.contains(leakingQueryId)) {
-          final boolean isRunning = allTransientQueriesEverCreated
-                  .stream()
-                  .filter(
-                          queryMetadata ->
-                                  queryMetadata
-                                          .getQueryApplicationId()
-                                          .equals(leakingQueryId)
-                  )
-                  .collect(Collectors.toList())
-                  .get(0)
-                  .isRunning();
-
-          if (isRunning) {
-            LOG.info("kk {} is still running, don't try to clean", leakingQueryId);
-          } else {
-            LOG.info("man, {} is leaking. Adding to cleanup", leakingQueryId);
-            addCleanupTask(new TransientQueryTopicCleanupTask(
-                    serviceContext,
-                    leakingQueryId
-            ));
-          }
-        } else {
-          LOG.info("couldnt find {} in the registry", leakingQueryId);
+        if (allTransientQueriesEverCreatedIds.contains(leakingQueryId)
+                && isTerminatedQuery(leakingQueryId)) {
+          LOG.info("{} is leaking topics. Adding it to the cleanup queue.", leakingQueryId);
+          addCleanupTask(new TransientQueryTopicCleanupTask(
+                  serviceContext,
+                  leakingQueryId
+          ));
         }
       }
     }
@@ -254,16 +234,13 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   public static class TransientQueryStateCleanupTask implements Callable<Boolean> {
-    private final ServiceContext serviceContext;
     private final String appId;
     private final String pathName;
 
     public TransientQueryStateCleanupTask(
-            final ServiceContext serviceContext,
             final String appId,
             final String stateDir
     ) {
-      this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
       this.pathName = stateDir + "/" + appId;
     }
@@ -281,5 +258,19 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
         return true;
       }
     }
+  }
+
+  private boolean isTerminatedQuery(final String queryId) {
+    return !allTransientQueriesEverCreated
+            .stream()
+            .filter(
+                    queryMetadata ->
+                            queryMetadata
+                                    .getQueryApplicationId()
+                                    .equals(queryId)
+            )
+            .collect(Collectors.toList())
+            .get(0)
+            .isRunning();
   }
 }

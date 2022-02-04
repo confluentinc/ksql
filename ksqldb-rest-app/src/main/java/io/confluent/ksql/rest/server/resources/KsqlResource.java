@@ -252,7 +252,11 @@ public class KsqlResource implements KsqlConfigurable {
       denyListPropertyValidator.validateAll(properties);
       if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
         if (!PropertiesList.QueryLevelPropertyList.contains(property)) {
-          throw new KsqlException("");
+          throw new KsqlException(String.format("When shared runtimes are enabled, the"
+              + " config %s can only be set for the entire cluster and all queries currently"
+              + " running in it, and not configurable for individual queries."
+              + " Please use ALTER SYSTEM to change this config for all queries.",
+              properties));
         }
       }
       return EndpointResponse.ok(true);

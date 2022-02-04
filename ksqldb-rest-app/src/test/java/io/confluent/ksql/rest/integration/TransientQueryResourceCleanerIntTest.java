@@ -66,7 +66,16 @@ public class TransientQueryResourceCleanerIntTest {
     private static final String USERS_TOPIC = USER_DATA_PROVIDER.topicName();
     private static final String USER_TABLE = USER_DATA_PROVIDER.sourceName();
 
+    // Persistent Topics:
+    // _confluent-ksql-default__command_topic,
+    // PAGEVIEW_TOPIC,
+    // USER_TOPIC
+    private static final int numPersistentTopics = 3;
 
+    // Transient Topics:
+    // _confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*-KafkaTopic_Right-Reduce-changelog
+    // _confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*-Join-repartition
+    private static final int numTransientTopics = 2;
 
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
@@ -74,7 +83,11 @@ public class TransientQueryResourceCleanerIntTest {
             .withStaticServiceContext(TEST_HARNESS::getServiceContext)
             .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
             .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8088")
-            .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS, 30)
+
+            // configure initial delay for the cleanup service to be low for testing purpose
+            .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS, 10)
+
+            // configure time period for the cleanup service to be low for testing purpose
             .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS, 2)
             .build();
 
@@ -142,26 +155,53 @@ public class TransientQueryResourceCleanerIntTest {
         // Given:
         givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
-
         Set<String> allTopics = TEST_HARNESS.getKafkaCluster().getTopics();
-        assertEquals(5, allTopics.size());
 
-        List<String> transientTopics = allTopics.stream().filter(t -> t.contains("transient")).collect(Collectors.toList());
-        assertEquals(2, transientTopics.size());
+        // Should have the transient and persistent topics
+        assertEquals(numPersistentTopics + numTransientTopics, allTopics.size());
+
+        List<String> transientTopics = allTopics.stream()
+                .filter(t -> t.contains("transient"))
+                .collect(Collectors.toList());
+
+        // Ensure that the transient topics are there
+        assertEquals(numTransientTopics, transientTopics.size());
+        assertTrue(transientTopics.get(0).contains(transientQueryId));
+        assertTrue(transientTopics.get(1).contains(transientQueryId));
+
+        // terminate the transient query
         RestIntegrationTestUtil.makeKsqlRequest(
                 REST_APP_0,
                 "terminate " + transientQueryId + ";"
         );
-        Thread.sleep(5000);
+
+        // Give some time for the natural onClose() cleanup to take effect
+        Thread.sleep(1000);
 
         Set<String> remainingTopics = TEST_HARNESS.getKafkaCluster().getTopics();
-        assertEquals(3, remainingTopics.size());
 
+        // Transient topics should have been cleaned up; only persistent ones left
+        assertEquals(numPersistentTopics, remainingTopics.size());
+
+        // simulate "leaking" transient topics from the query we terminated
+        // by recreating them
         TEST_HARNESS.ensureTopics(transientTopics.get(0), transientTopics.get(1));
 
-        assertEquals(5, TEST_HARNESS.getKafkaCluster().getTopics().size());
+        // ensure that the topics have been created ("leaked")
+        assertEquals(numPersistentTopics + numTransientTopics,
+                TEST_HARNESS.getKafkaCluster().getTopics().size());
+
+        // When:
+        // pause for a bit for the `TransientQueryCleanupService`
+        // to clean up the leaked topics
         Thread.sleep(12000);
-        assertEquals(3, TEST_HARNESS.getKafkaCluster().getTopics().size());
+
+        // Then:
+        // only the persistent topics are left and the transient topics have been cleaned up
+        assertEquals(numPersistentTopics, TEST_HARNESS.getKafkaCluster().getTopics().size());
+        assertEquals(0,
+                TEST_HARNESS.getKafkaCluster().getTopics().stream()
+                .filter(t -> t.contains("transient")).count());
     }
 
     @Test
@@ -169,22 +209,98 @@ public class TransientQueryResourceCleanerIntTest {
         // Given:
         givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
-
         File stateFolder = new File(stateDir);
+
+        // state directory for the transient query should be present
+        // it looks something like: /var/folders/yf/hc47k9x92tl3hrclf0_bblvh0000gp/T/kafka-streams/_confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*
         assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
+        assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
         File leakedStateDir = new File(Objects.requireNonNull(stateFolder.listFiles())[0].toURI());
+
+        // terminate the transient query
         RestIntegrationTestUtil.makeKsqlRequest(
                 REST_APP_0,
                 "terminate " + transientQueryId + ";"
         );
-        Thread.sleep(5000);
+
+        // Give some time for the natural onClose() cleanup to take effect
+        Thread.sleep(1000);
+
+        // state file should be cleaned up
         assertEquals(0, Objects.requireNonNull(stateFolder.listFiles()).length);
 
-
+        // simulate "leaking" state file from the query we terminated
+        // by recreating the state of the killed transient query
         assertTrue(leakedStateDir.createNewFile());
+
+        // state file has been "leaked"
         assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
+        assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
+
+        // When:
+        // pause for a bit for the `TransientQueryCleanupService`
+        // to clean up the leaked state files
         Thread.sleep(12000);
+
+        // Then:
+        // the leaked state files have been cleaned up
         assertEquals(0, Objects.requireNonNull(stateFolder.listFiles()).length);
+    }
+
+    @Test
+    public void shouldNotCleanupTopicsOfRunningQueries() throws InterruptedException {
+        // Given:
+        givenPushQuery();
+        final String transientQueryId = getTransientQueryIds().get(0);
+        Set<String> allTopics = TEST_HARNESS.getKafkaCluster().getTopics();
+
+        // Should have the transient and persistent topics
+        assertEquals(numPersistentTopics + numTransientTopics, allTopics.size());
+
+        List<String> transientTopics = allTopics.stream()
+                .filter(t -> t.contains("transient"))
+                .collect(Collectors.toList());
+
+        // Ensure that the transient topics are there
+        assertEquals(numTransientTopics, transientTopics.size());
+        assertTrue(transientTopics.get(0).contains(transientQueryId));
+        assertTrue(transientTopics.get(1).contains(transientQueryId));
+
+        // When:
+        // pause for a bit for the `TransientQueryCleanupService`
+        // to run a few times
+        Thread.sleep(12000);
+
+        // Then:
+        // transient topics have not been accidentally cleaned up
+        assertEquals(numPersistentTopics + numTransientTopics,
+                TEST_HARNESS.getKafkaCluster().getTopics().size());
+        assertEquals(numTransientTopics,
+                TEST_HARNESS.getKafkaCluster().getTopics().stream()
+                        .filter(t -> t.contains("transient")).count());
+    }
+
+    @Test
+    public void shouldNotCleanupStateDirsOfRunningQueries() throws InterruptedException, IOException {
+        // Given:
+        givenPushQuery();
+        final String transientQueryId = getTransientQueryIds().get(0);
+        File stateFolder = new File(stateDir);
+
+        // state directory for the transient query should be present
+        // it looks something like: /var/folders/yf/hc47k9x92tl3hrclf0_bblvh0000gp/T/kafka-streams/_confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*
+        assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
+        assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
+
+        // When:
+        // pause for a bit for the `TransientQueryCleanupService`
+        // to run a few times
+        Thread.sleep(12000);
+
+        // Then:
+        // the state file of the transient query should still be there
+        assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
+        assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
     }
 
     public List<RunningQuery> showQueries (){

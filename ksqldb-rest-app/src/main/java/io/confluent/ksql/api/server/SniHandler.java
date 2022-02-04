@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,10 +17,9 @@ package io.confluent.ksql.api.server;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST;
 
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.ext.web.RoutingContext;
 import io.confluent.ksql.rest.Errors;
+import io.vertx.core.Handler;
+import io.vertx.ext.web.RoutingContext;
 
 public class SniHandler implements Handler<RoutingContext> {
 
@@ -32,11 +31,14 @@ public class SniHandler implements Handler<RoutingContext> {
     if (routingContext.request().isSSL()) {
       final String indicatedServerName = routingContext.request().connection()
           .indicatedServerName();
-      if (!indicatedServerName.equals("")) {
-        if (!routingContext.request().getHeader(HttpHeaders.HOST).equals(indicatedServerName)) {
+      final String requestHost = routingContext.request().host();
+      if (indicatedServerName != null && requestHost != null) {
+        // sometimes the port is present in the host header, remove it
+        final String requestHostNoPort = requestHost.replaceFirst(":\\d+", "");
+        if (!requestHostNoPort.equals(indicatedServerName)) {
           routingContext.fail(MISDIRECTED_REQUEST.code(),
               new KsqlApiException("This request was incorrectly sent to this ksqlDB server",
-                 Errors.ERROR_CODE_MISDIRECTED_REQUEST));
+                  Errors.ERROR_CODE_MISDIRECTED_REQUEST));
           return;
         }
       }

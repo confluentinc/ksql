@@ -133,14 +133,14 @@ public class JaasAuthProvider implements AuthProvider {
 
     // if the subject from the login context is already a KsqlPrincipal, use the subject
     // directly rather than creating a new one
-    final Optional<KsqlPrincipal> ksqlPrincipal = lc.getSubject().getPrincipals().stream()
+    final Optional<KsqlPrincipal> ksqlPrincipal = user.getSubject().getPrincipals().stream()
         .filter(p -> p instanceof KsqlPrincipal)
         .map(p -> (KsqlPrincipal)p)
         .findFirst();
-    final JaasUser user = ksqlPrincipal.isPresent()
+    final JaasUser jaasUser = ksqlPrincipal.isPresent()
         ? new JaasUser(ksqlPrincipal.get(), authorized)
         : new JaasUser(username, password, authorized);
-    promise.complete(user);
+    promise.complete(jaasUser);
   }
 
   private static boolean validateRoles(final UserIdentity ui, final List<String> allowedRoles) {

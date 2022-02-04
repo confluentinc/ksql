@@ -114,6 +114,7 @@ public class ServerVerticle extends AbstractVerticle {
     final Router router = Router.router(vertx);
 
     router.route().handler(new LoggingHandler(server, loggingRateLimiter));
+    router.route().handler(new SniHandler());
 
     KsqlCorsHandler.setupCorsHandler(server, router);
 

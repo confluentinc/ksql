@@ -18,7 +18,7 @@ do
   cd ${repos[i]}
   git fetch
   branch=$((git branch --list "*${stabilization_unique_identifier}*") | cut -d'/' -f3)
-  $gitcmd switch $branch
+  git switch $branch
 
   # pom file means this is a maven project
   if [[ -e "pom.xml" ]]

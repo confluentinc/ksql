@@ -5,9 +5,11 @@ import static io.confluent.ksql.util.KsqlConstants.PersistentQueryType.CREATE_SO
 import static io.confluent.ksql.util.KsqlConstants.PersistentQueryType.INSERT;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -33,6 +35,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
@@ -263,6 +266,20 @@ public class QueryRegistryImplTest {
 
     // Then:
     assertThat(found.get(), is(query));
+  }
+
+  @Test
+  public void shouldOnlyAllowServerLevelConfigsForDedicatedRuntimes() {
+    // Given:
+    when(config.getOverrides()).thenReturn(ImmutableMap.of("commit.interval.ms", 9));
+    if (sharedRuntimes) {
+      final Exception e = assertThrows(IllegalArgumentException.class,
+          () -> givenCreate(registry, "q1", "source",
+          Optional.of("sink1"), CREATE_AS));
+      assertThat(e.getMessage(), containsString("commit.interval.ms"));
+    } else {
+      givenCreate(registry, "q1", "source", Optional.of("sink1"), CREATE_AS);
+    }
   }
 
   @Test

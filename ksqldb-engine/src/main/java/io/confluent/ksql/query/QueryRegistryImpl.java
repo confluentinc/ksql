@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
@@ -272,6 +273,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
     if (sharedRuntimeId.isPresent() && (oldQuery == null
         || oldQuery instanceof BinPackedPersistentQueryMetadataImpl)) {
+      throwOnNonQueryLevelConfigs(config.getOverrides());
       if (sandbox) {
         streams.addAll(sourceStreams.stream()
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
@@ -309,6 +311,21 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
     registerPersistentQuery(serviceContext, metaStore, query);
     return query;
+  }
+
+  private static void throwOnNonQueryLevelConfigs(final Map<String, Object> overriddenProperties) {
+    final String nonQueryLevelConfigs = overriddenProperties.keySet().stream()
+        .filter(s -> !PropertiesList.QueryLevelPropertyList.contains(s))
+        .distinct()
+        .collect(Collectors.joining(","));
+
+    if (!nonQueryLevelConfigs.isEmpty()) {
+      throw new IllegalArgumentException(String.format("When shared runtimes are enabled, the"
+              + " configs %s can only be set for the entire cluster and all queries currently"
+              + " running in it, and not configurable for individual queries."
+              + " Please use ALTER SYSTEM to change these config for all queries.",
+          nonQueryLevelConfigs));
+    }
   }
 
   @Override

@@ -15,11 +15,10 @@ for (( i=0; i<$len; i++ ));
 do
   # clone each repo and checkout the stabilization branch
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
-  gitcmd="git --git-dir=./${repos[i]}/.git --work-tree=./${repos[i]}"
-  eval branch=$($gitcmd branch --list "*${stabilization_unique_identifier}*")
-  $gitcmd switch $branch
-
   cd ${repos[i]}
+  git fetch
+  branch=$((git branch --list "*${stabilization_unique_identifier}*") | cut -d'/' -f3)
+  $gitcmd switch $branch
 
   # pom file means this is a maven project
   if [[ -e "pom.xml" ]]

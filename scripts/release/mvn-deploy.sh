@@ -17,7 +17,7 @@ do
   git clone git@github.com:confluentinc/${repos[i]}.git ./${repos[i]}
   cd ${repos[i]}
   git fetch
-  branch=$((git branch --list "*${stabilization_unique_identifier}*") | cut -d'/' -f3)
+  branch=$((git branch --list --all "*${stabilization_unique_identifier}*") | cut -d'/' -f3)
   git switch $branch
 
   # pom file means this is a maven project

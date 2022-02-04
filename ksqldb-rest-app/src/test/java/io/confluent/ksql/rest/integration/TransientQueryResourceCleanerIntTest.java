@@ -1,5 +1,19 @@
-package io.confluent.ksql.rest.integration;
+/*
+ * Copyright 2022 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
+package io.confluent.ksql.rest.integration;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -8,14 +22,13 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.UserDataProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -23,6 +36,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
+import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -32,18 +47,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static io.confluent.ksql.serde.FormatFactory.JSON;
-import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static java.lang.String.format;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @Category({IntegrationTest.class})
@@ -57,18 +66,7 @@ public class TransientQueryResourceCleanerIntTest {
     private static final String USERS_TOPIC = USER_DATA_PROVIDER.topicName();
     private static final String USER_TABLE = USER_DATA_PROVIDER.sourceName();
 
-    private static final Format KEY_FORMAT = KAFKA;
-    private static final Format VALUE_FORMAT = JSON;
 
-    private static final String TOPIC1
-            = "_confluent-ksql-default_transient_932097300573686369_1606940079718"
-            + "-Aggregate-GroupBy-repartition";
-    private static final String TOPIC2
-            = "_confluent-ksql-default_transient_932097300573686369_1606940079718"
-            + "-Aggregate-Aggregate-Materialize-changelog";
-    private static final String TOPIC3
-            = "_confluent-ksql-default_transient_123497300573686369_1606940012345"
-            + "-Aggregate-Aggregate-Materialize-changelog";
 
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
     private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
@@ -79,6 +77,9 @@ public class TransientQueryResourceCleanerIntTest {
             .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS, 30)
             .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS, 2)
             .build();
+
+    private static String stateDir;
+
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain
@@ -94,7 +95,9 @@ public class TransientQueryResourceCleanerIntTest {
     private boolean requestCompleted = false;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
+        FileUtils.cleanDirectory(stateDir);
+
         service = Executors.newFixedThreadPool(1);
         final String sql = format("select * from %s pv left join %s u on pv.userid=u.userid emit changes;",
                 PAGE_VIEW_STREAM, USER_TABLE);
@@ -118,6 +121,16 @@ public class TransientQueryResourceCleanerIntTest {
 
         RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
         RestIntegrationTestUtil.createTable(REST_APP_0, USER_DATA_PROVIDER);
+
+        stateDir = REST_APP_0.getEngine()
+                .getKsqlConfig()
+                .getKsqlStreamConfigProps()
+                .getOrDefault(
+                        StreamsConfig.STATE_DIR_CONFIG,
+                        StreamsConfig.configDef()
+                                .defaultValues()
+                                .get(StreamsConfig.STATE_DIR_CONFIG))
+                .toString();
     }
 
     @AfterClass
@@ -157,22 +170,21 @@ public class TransientQueryResourceCleanerIntTest {
         givenPushQuery();
         final String transientQueryId = getTransientQueryIds().get(0);
 
-        File stateFolder = new File("/var/folders/yf/hc47k9x92tl3hrclf0_bblvh0000gp/T/kafka-streams/");
-        File[] listOfFiles = stateFolder.listFiles();
-        assertNotNull(listOfFiles);
-        assertEquals(1, listOfFiles.length);
+        File stateFolder = new File(stateDir);
+        assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
+        File leakedStateDir = new File(Objects.requireNonNull(stateFolder.listFiles())[0].toURI());
         RestIntegrationTestUtil.makeKsqlRequest(
                 REST_APP_0,
                 "terminate " + transientQueryId + ";"
         );
         Thread.sleep(5000);
-        assertEquals(0, listOfFiles.length);
-        File leakedStateDir = new File("/var/folders/yf/hc47k9x92tl3hrclf0_bblvh0000gp/T/kafka-streams/_confluent-ksql-default_transient_"+transientQueryId+"_1643889307237");
+        assertEquals(0, Objects.requireNonNull(stateFolder.listFiles()).length);
+
+
         assertTrue(leakedStateDir.createNewFile());
-        assertEquals(1, listOfFiles.length);
+        assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
         Thread.sleep(12000);
-        assertEquals(0, listOfFiles.length);
-//        assertEquals(3, TEST_HARNESS.getKafkaCluster().getTopics().size());
+        assertEquals(0, Objects.requireNonNull(stateFolder.listFiles()).length);
     }
 
     public List<RunningQuery> showQueries (){

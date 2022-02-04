@@ -15,16 +15,18 @@
 
 package io.confluent.ksql.engine;
 
+import static java.nio.file.Files.deleteIfExists;
+
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import com.spun.util.io.FileUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -45,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
   private static final Pattern TRANSIENT_PATTERN =
-          Pattern.compile("(?i).*transient_.*_[0-9]\\d*");
+          Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
 
   private final BlockingQueue<Callable<Boolean>> cleanupTasks;
   private final Retryer<Boolean> retryer;
@@ -267,23 +269,10 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     }
 
     @Override
-    public Boolean call() {
+    public Boolean call() throws IOException {
       final Path pathName = Paths.get(this.pathName);
       final File directory = new File(String.valueOf(pathName.normalize()));
-      try {
-        if (directory.exists()) {
-          LOG.warn("Deleting local state store for non-existing query {}. "
-                          + "This is not expected and was likely due to a "
-                          + "race condition when the query was dropped before.",
-                  appId);
-          FileUtils.deleteDirectory(directory);
-        } else {
-          return true;
-        }
-      } catch (Exception e) {
-        LOG.error("Error cleaning up state directory {}\n. {}", pathName, e);
-        return false;
-      }
+      deleteIfExists(pathName);
       if (directory.exists()) {
         LOG.warn("Failed to delete local state store for non-existing query: {}",
                 appId);

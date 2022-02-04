@@ -1011,8 +1011,9 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
     assertValidJsonMessages(messages);
     assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
-                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+                                       + "\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsiX2NvbmZsdWVudC"
+                                       + "1rc3FsLWRlZmF1bHRfcXVlcnlfQ1RBU19BR0dfVEFCTEVfNS1BZ2dyZW"
+                                       + "dhdGUtR3JvdXBCeS1yZXBhcnRpdGlvbiI6eyIwIjo2fX19\"}}"));
   }
 
   @Test
@@ -1036,8 +1037,9 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
     assertValidJsonMessages(messages);
     assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjoyLCJvZmZzZXRWZWN0b3IiOnsiZHVtbXkiOnsiNS"
-                                       + "I6NSwiNiI6NiwiNyI6N319fQ==\"}}"));
+                                       + "\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsiX2NvbmZsdWVudC"
+                                       + "1rc3FsLWRlZmF1bHRfcXVlcnlfQ1RBU19BR0dfVEFCTEVfNS1BZ2dyZW"
+                                       + "dhdGUtR3JvdXBCeS1yZXBhcnRpdGlvbiI6eyIwIjo2fX19\"}}"));
   }
 
   @Test

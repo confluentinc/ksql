@@ -51,10 +51,14 @@ import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.List;
 
 @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
 @RunWith(MockitoJUnitRunner.class)
@@ -72,6 +76,9 @@ public class KsStateStoreTest {
   private KafkaStreams kafkaStreams;
   @Mock
   private KsqlConfig ksqlConfig;
+
+  @Captor
+  ArgumentCaptor<StoreQueryParameters> storeQueryParamCaptor;
 
   private KsStateStore store;
 
@@ -96,7 +103,6 @@ public class KsStateStoreTest {
     // Given:
     final QueryableStoreType<ReadOnlySessionStore<String, Long>> storeType =
         QueryableStoreTypes.sessionStore();
-    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
     final KsStateStore store =
         new KsStateStore(STORE_NAME, kafkaStreamsNamedTopologyWrapper, SCHEMA, ksqlConfig, "queryId");
 
@@ -104,7 +110,9 @@ public class KsStateStoreTest {
     store.store(storeType, 0);
 
     // Then:
-    verify(kafkaStreamsNamedTopologyWrapper).store(any(NamedTopologyStoreQueryParameters.class));
+    verify(kafkaStreamsNamedTopologyWrapper).store(storeQueryParamCaptor.capture());
+    List<StoreQueryParameters> keys = storeQueryParamCaptor.getAllValues();
+    assertThat(keys.get(0), instanceOf(NamedTopologyStoreQueryParameters.class));
   }
 
   @Test

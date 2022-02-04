@@ -174,8 +174,8 @@ How do I use Avro data and integrate with Confluent Schema Registry?
 --------------------------------------------------------------------
 
 Configure the `ksql.schema.registry.url` property in the ksqlDB server
-configuration to point to {{ site.sr }} (see
-[Configure ksqlDB for Avro, Protobuf, and JSON schemas](operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql)).
+configuration to point to {{ site.sr }}. For more information, see
+[Configure ksqlDB for Avro, Protobuf, and JSON schemas](operate-and-deploy/installation/server-config/avro-schema.md).
 
 !!! important
 	-   To use Avro data with ksqlDB you must have {{ site.sr }}
@@ -234,14 +234,14 @@ Yes. For more information, see
 [Configure Authorization of ksqlDB with Kafka ACLs](operate-and-deploy/installation/server-config/security.md#configure-authorization-of-ksqldb-with-kafka-acls).
 
 Will ksqlDB work with an HTTPS Schema Registry?
----------------------------------------------
+-----------------------------------------------
 
 Yes. ksqlDB can be configured to communicate with {{ site.srlong }} over HTTPS.
 For more information, see
-[Configure ksqlDB for Secured {{ site.srlong }}](operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
+[Configure ksqlDB for Secured {{ site.srlong }}](operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-secured-confluent-schema-registry).
 
 Where are ksqlDB-related data and metadata stored?
-------------------------------------------------
+--------------------------------------------------
 
 In interactive mode, ksqlDB stores metadata in and builds metadata from
 the ksqlDB command topic. To secure the metadata, you must secure the

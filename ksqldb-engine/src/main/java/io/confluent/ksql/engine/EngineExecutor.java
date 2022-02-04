@@ -263,7 +263,8 @@ final class EngineExecutor {
           logicalPlan,
           analysis,
           queryPlannerOptions,
-          shouldCancelRequests
+          shouldCancelRequests,
+          consistencyOffsetVector
       );
       final PullPhysicalPlan physicalPlan = plan;
 
@@ -788,7 +789,8 @@ final class EngineExecutor {
       final LogicalPlanNode logicalPlan,
       final ImmutableAnalysis analysis,
       final QueryPlannerOptions queryPlannerOptions,
-      final CompletableFuture<Void> shouldCancelRequests
+      final CompletableFuture<Void> shouldCancelRequests,
+      final Optional<ConsistencyOffsetVector> consistencyOffsetVector
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
@@ -796,7 +798,8 @@ final class EngineExecutor {
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
         analysis,
         queryPlannerOptions,
-        shouldCancelRequests
+        shouldCancelRequests,
+        consistencyOffsetVector
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }

@@ -17,6 +17,7 @@ package io.confluent.ksql.services;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.connect.ConnectRequestHeadersExtension;
+import io.confluent.ksql.security.KsqlPrincipal;
 import io.confluent.ksql.util.FileWatcher;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.FileInputStream;
@@ -78,7 +79,8 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
   @Override
   public synchronized DefaultConnectClient get(
       final Optional<String> ksqlAuthHeader,
-      final List<Entry<String, String>> incomingRequestHeaders
+      final List<Entry<String, String>> incomingRequestHeaders,
+      final Optional<KsqlPrincipal> userPrincipal
   ) {
     if (defaultConnectAuthHeader == null) {
       defaultConnectAuthHeader = buildDefaultAuthHeader();
@@ -91,10 +93,11 @@ public class DefaultConnectClientFactory implements ConnectClientFactory {
         ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
         buildAuthHeader(ksqlAuthHeader, incomingRequestHeaders),
         requestHeadersExtension
-            .map(ConnectRequestHeadersExtension::getHeaders)
+            .map(extension -> extension.getHeaders(userPrincipal))
             .orElse(Collections.emptyMap()),
         Optional.ofNullable(newSslContext(configWithPrefixOverrides)),
-        shouldVerifySslHostname(configWithPrefixOverrides)
+        shouldVerifySslHostname(configWithPrefixOverrides),
+        ksqlConfig.getLong(KsqlConfig.CONNECT_REQUEST_TIMEOUT_MS)
     );
   }
 

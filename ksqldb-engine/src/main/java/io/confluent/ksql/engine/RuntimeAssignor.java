@@ -29,10 +29,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuntimeAssignor {
   private final Map<String, Collection<SourceName>> runtimesToSources;
   private final Map<QueryId, String> idToRuntime;
+  private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
 
   public RuntimeAssignor(final KsqlConfig config) {
     runtimesToSources = new HashMap<>();
@@ -97,11 +100,16 @@ public class RuntimeAssignor {
   public void rebuildAssignment(final Collection<PersistentQueryMetadata> queries) {
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-        runtimesToSources.put(queryMetadata.getQueryApplicationId(),
-            queryMetadata.getSourceNames());
+        runtimesToSources.get(queryMetadata.getQueryApplicationId())
+            .addAll(queryMetadata.getSourceNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
       }
     }
+    log.info("The current assignment of queries to runtimes is: {}",
+        idToRuntime.entrySet()
+            .stream()
+            .map(e -> e.getKey() + "->" + e.getValue())
+            .collect(Collectors.joining(", ")));
   }
 
   public Map<String, Collection<SourceName>> getRuntimesToSources() {

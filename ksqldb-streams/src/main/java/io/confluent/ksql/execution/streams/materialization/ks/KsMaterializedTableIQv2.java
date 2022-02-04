@@ -72,7 +72,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         return KsMaterializedQueryResult.rowIteratorWithPosition(
             ImmutableList.of(Row.of(stateStore.schema(), key, row.value(), row.timestamp()))
                 .iterator(),
-            result.getPosition());
+            queryResult.getPosition());
       }
     } catch (MaterializationException e) {
       throw e;

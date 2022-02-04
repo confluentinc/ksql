@@ -18,6 +18,7 @@ package io.confluent.ksql.api.auth;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.security.DefaultKsqlPrincipal;
 import io.confluent.ksql.security.KsqlPrincipal;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -32,10 +33,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 import org.apache.commons.collections4.CollectionUtils;
+import org.eclipse.jetty.jaas.JAASLoginService;
+import org.eclipse.jetty.server.UserIdentity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public class JaasAuthProvider implements AuthProvider {
   private final String contextName;
 
   public JaasAuthProvider(final Server server, final KsqlRestConfig config) {
-    this(server, config, LoginContext::new);
+    this(server, config, JAASLoginService::new);
   }
 
   @VisibleForTesting
@@ -77,7 +77,7 @@ public class JaasAuthProvider implements AuthProvider {
   @VisibleForTesting
   @FunctionalInterface
   interface LoginContextSupplier {
-    LoginContext get(String name, CallbackHandler callbackHandler) throws LoginException;
+    JAASLoginService get();
   }
 
   @Override
@@ -110,45 +110,47 @@ public class JaasAuthProvider implements AuthProvider {
       final List<String> allowedRoles,
       final Promise<User> promise
   ) {
-    final LoginContext lc;
-    try {
-      lc = loginContextSupplier.get(contextName, new BasicCallbackHandler(username, password));
-    } catch (LoginException | SecurityException e) {
-      log.error("Failed to create LoginContext. " + e.getMessage());
-      promise.fail("Failed to create LoginContext.");
-      return;
-    }
+    final JAASLoginService login = loginContextSupplier.get();
+    login.setCallbackHandlerClass(BasicCallbackHandler.class.getName());
+    login.setLoginModuleName(contextName);
 
     try {
-      lc.login();
-    } catch (LoginException le) {
-      log.error("Failed to log in. " + le.getMessage());
+      login.start();
+    } catch (final Exception e) {
+      log.error("Could not start login service.", e);
+      promise.fail("Could not start login service.");
+    }
+
+    final UserIdentity user = login.login(username, password, null);
+
+    if (user == null) {
+      log.error("Failed to log in. ");
       promise.fail("Failed to log in: Invalid username/password.");
       return;
     }
 
     // We do the actual authorization here not in the User class
-    final boolean authorized = validateRoles(lc, allowedRoles);
+    final boolean authorized = validateRoles(user, allowedRoles);
 
     // if the subject from the login context is already a KsqlPrincipal, use the subject
-    // directly rather than creating a new one
-    final Optional<KsqlPrincipal> ksqlPrincipal = lc.getSubject().getPrincipals().stream()
+    // (wrapped inside another DefaultKsqlPrincipal) rather than creating a new one
+    final Optional<KsqlPrincipal> ksqlPrincipal = user.getSubject().getPrincipals().stream()
         .filter(p -> p instanceof KsqlPrincipal)
         .map(p -> (KsqlPrincipal)p)
         .findFirst();
-    final JaasUser user = ksqlPrincipal.isPresent()
+    final JaasUser jaasUser = ksqlPrincipal.isPresent()
         ? new JaasUser(ksqlPrincipal.get(), authorized)
         : new JaasUser(username, password, authorized);
-    promise.complete(user);
+    promise.complete(jaasUser);
   }
 
-  private static boolean validateRoles(final LoginContext lc, final List<String> allowedRoles) {
+  private static boolean validateRoles(final UserIdentity ui, final List<String> allowedRoles) {
     if (allowedRoles.contains("*")) {
       // all users allowed
       return true;
     }
 
-    final Set<String> userRoles = lc.getSubject().getPrincipals().stream()
+    final Set<String> userRoles = ui.getSubject().getPrincipals().stream()
         .map(Principal::getName)
         .collect(Collectors.toSet());
     return !CollectionUtils.intersection(userRoles, allowedRoles).isEmpty();
@@ -157,7 +159,7 @@ public class JaasAuthProvider implements AuthProvider {
   @SuppressWarnings("deprecation")
   static class JaasUser extends io.vertx.ext.auth.AbstractUser implements ApiUser {
 
-    private final KsqlPrincipal principal;
+    private final DefaultKsqlPrincipal principal;
     private final boolean authorized;
 
     JaasUser(
@@ -165,18 +167,21 @@ public class JaasAuthProvider implements AuthProvider {
         final String password,
         final boolean authorized
     ) {
-      this(
-          new JaasPrincipal(
-              Objects.requireNonNull(username, "username"),
-              Objects.requireNonNull(password, "password")),
-          authorized);
+      this.principal = new JaasPrincipal(
+          Objects.requireNonNull(username, "username"),
+          Objects.requireNonNull(password, "password")
+      );
+      this.authorized = authorized;
     }
 
     JaasUser(
         final KsqlPrincipal principal,
         final boolean authorized
     ) {
-      this.principal = Objects.requireNonNull(principal, "principal");
+      Objects.requireNonNull(principal, "principal");
+      this.principal = principal instanceof DefaultKsqlPrincipal
+          ? (DefaultKsqlPrincipal) principal
+          : new DefaultKsqlPrincipal(principal);
       this.authorized = authorized;
     }
 
@@ -198,7 +203,7 @@ public class JaasAuthProvider implements AuthProvider {
     }
 
     @Override
-    public KsqlPrincipal getPrincipal() {
+    public DefaultKsqlPrincipal getPrincipal() {
       return principal;
     }
   }

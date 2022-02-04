@@ -576,6 +576,11 @@ final class QueryBuilder {
     // Passing shared state into managed components
     newStreamsProperties.put(KsqlConfig.KSQL_INTERNAL_METRIC_COLLECTORS_CONFIG, metricCollectors);
     newStreamsProperties.put(
+        KsqlConfig.KSQL_CUSTOM_METRICS_TAGS,
+        config.getString(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+    );
+
+    newStreamsProperties.put(
         KsqlConfig.KSQL_INTERNAL_METRICS_CONFIG,
         metricCollectors.getMetrics()
     );

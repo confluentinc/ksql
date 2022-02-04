@@ -57,9 +57,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -70,7 +68,6 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.services.FakeKafkaConsumerGroupClient;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -84,6 +81,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.SandboxedBinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
@@ -100,7 +98,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import it.unimi.dsi.fastutil.Hash;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
@@ -139,6 +136,10 @@ public class KsqlEngineTest {
   @Before
   public void setUp() {
     sharedRuntimeEnabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, true);
+    sharedRuntimeEnabled.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
+        ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+            + "default_"
+            + "query");
     sharedRuntimeDisabled.put(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED, false);
     ksqlConfig = KsqlConfigTestUtil.create("what-eva", sharedRuntimeEnabled);
 
@@ -1411,7 +1412,8 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId() + "-" + query.get(0).getQueryId().toString());
+    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
+    verify(topicClient).deleteInternalTopics( topicPrefix + query.get(0).getQueryId().toString());
   }
 
   @Test
@@ -1470,15 +1472,15 @@ public class KsqlEngineTest {
         ksqlConfig,
         Collections.emptyMap()
     );
-    final String applicationId = query.get(0).getQueryApplicationId();
+    final String topicPrefix = query.get(0).getQueryApplicationId().split("query")[0] + "query_";
     final String internalTopic1Val = KsqlConstants.getSRSubject(
-        applicationId + "-" + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
+        topicPrefix + query.get(0).getQueryId() + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, false);
     final String internalTopic2Val = KsqlConstants.getSRSubject(
-        applicationId + "-" + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
+        topicPrefix + query.get(0).getQueryId()  + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, false);
     final String internalTopic1Key = KsqlConstants.getSRSubject(
-        applicationId + "-" + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
+        topicPrefix + query.get(0).getQueryId()  + "-subject1" + KsqlConstants.STREAMS_CHANGELOG_TOPIC_SUFFIX, true);
     final String internalTopic2Key = KsqlConstants.getSRSubject(
-        applicationId  + "-" + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
+        topicPrefix + query.get(0).getQueryId() + "-subject3" + KsqlConstants.STREAMS_REPARTITION_TOPIC_SUFFIX, true);
     when(schemaRegistryClient.getAllSubjects()).thenReturn(
         Arrays.asList(
             internalTopic1Val,
@@ -1493,6 +1495,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
+    verify(schemaRegistryClient).getAllSubjects();
     verify(schemaRegistryClient, times(4)).deleteSubject(any());
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Val, true);
     verify(schemaRegistryClient, never()).deleteSubject(internalTopic1Key, true);
@@ -2345,7 +2348,13 @@ public class KsqlEngineTest {
   private void awaitCleanupComplete(final KsqlEngine ksqlEngine) {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", Optional.empty(), false, "") {
+    Optional<String> nameTopology;
+    if (ksqlEngine.getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      nameTopology = Optional.of("test");
+    } else {
+      nameTopology = Optional.empty();
+    }
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", nameTopology, false, "", KsqlConfig.KSQL_SERVICE_ID_DEFAULT, KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_DEFAULT) {
       @Override
       public void run() {
         // do nothing

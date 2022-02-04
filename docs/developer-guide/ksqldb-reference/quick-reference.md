@@ -51,7 +51,7 @@ ALTER TABLE stream_name
 
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
-[SELECT](../../ksqldb-reference/select-push-query/#example).
+[SELECT](/developer-guide/ksqldb-reference/select-push-query/#examples).
 
 ```sql hl_lines="4"
 SELECT column_name(s)
@@ -62,7 +62,7 @@ SELECT column_name(s)
 
 ## AS
 Alias a column, expression, or type. For more information, see
-[Create a table](../../create-a-table/#create-a-ksqldb-table-from-a-ksqldb-stream).
+[Create a table](/developer-guide/ksqldb-reference/create-table-as-select/#examples).
 
 ```sql hl_lines="1"
 SELECT column_name AS column_alias
@@ -701,7 +701,7 @@ UNSET 'auto.offset.reset';
 
 ## WHERE
 Extract records that fulfill a specified condition. For more information, see
-[SELECT](../../ksqldb-reference/select-push-query/#example).  
+[SELECT](/developer-guide/ksqldb-reference/select-push-query/#examples).  
 
 ```sql hl_lines="3"
 SELECT column_name(s)

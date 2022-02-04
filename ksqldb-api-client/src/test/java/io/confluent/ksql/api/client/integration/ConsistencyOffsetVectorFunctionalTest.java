@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -105,8 +104,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
 
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
-      new ConsistencyOffsetVector(2, ImmutableMap.of("dummy",
-                                                     ImmutableMap.of(5, 5L, 6, 6L, 7, 7L)));
+      new ConsistencyOffsetVector(2, ImmutableMap.of(TEST_TOPIC, ImmutableMap.of(0, 5L)));
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
 
@@ -227,11 +225,12 @@ public class ConsistencyOffsetVectorFunctionalTest {
   public void shouldRoundTripCVWhenPullQueryHttp1() throws Exception {
     // Given
     final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    ksqlRestClient.setProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    final ImmutableMap<String, Object> requestProperties =
+        ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 
     // When
     final RestResponse<StreamPublisher<StreamedRow>> response =
-        ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L);
+        ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L, null, requestProperties);
     final List<StreamedRow> rows = getElementsFromPublisher(4, response.getResponse());
 
     // Then

@@ -117,6 +117,7 @@ public class QueryRegistryImplTest {
     when(listener1.createSandbox()).thenReturn(Optional.of(sandboxListener));
     when(listener2.createSandbox()).thenReturn(Optional.empty());
     registry = new QueryRegistryImpl(ImmutableList.of(listener1, listener2), executorFactory, new MetricCollectors());
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(sharedRuntimes);
   }
 
   @Test
@@ -519,6 +520,7 @@ public class QueryRegistryImplTest {
         Optional.of("sink1"), CREATE_AS);
     //Expect:
     assertThat("does not use old runtime", query instanceof PersistentQueryMetadataImpl);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(sharedRuntimes);
     query = givenCreate(registry, "q2", "source",
         Optional.of("sink1"), CREATE_AS);
     assertThat("does not use old runtime", query instanceof BinPackedPersistentQueryMetadataImpl);

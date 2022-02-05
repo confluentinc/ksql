@@ -28,6 +28,7 @@ import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
@@ -114,7 +115,9 @@ public class ServerVerticle extends AbstractVerticle {
     final Router router = Router.router(vertx);
 
     router.route().handler(new LoggingHandler(server, loggingRateLimiter));
-    router.route().handler(new SniHandler());
+    if (server.getConfig().getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
+      router.route().handler(new SniHandler());
+    }
 
     KsqlCorsHandler.setupCorsHandler(server, router);
 

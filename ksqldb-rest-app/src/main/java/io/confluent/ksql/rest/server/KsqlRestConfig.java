@@ -387,6 +387,14 @@ public class KsqlRestConfig extends AbstractConfig {
   public static final String KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC =
       "The maximum connection pool size used by Vertx for http2 internal connections";
 
+  public static final String KSQL_SERVER_SNI_CHECK_ENABLE =
+      KSQL_CONFIG_PREFIX + "server.sni.check.enable";
+  public static final boolean KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT = false;
+
+  private static final String KSQL_SERVER_SNI_CHECK_ENABLE_DOC =
+      "Whether or not to check the SNI against the Host header. If the values don't match, "
+          + "returns a 421 mis-directed response";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -734,6 +742,12 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_INTERNAL_HTTP2_MAX_POOL_SIZE_DOC
+        ).define(
+            KSQL_SERVER_SNI_CHECK_ENABLE,
+            Type.BOOLEAN,
+            KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_SERVER_SNI_CHECK_ENABLE_DOC
         );
   }
 

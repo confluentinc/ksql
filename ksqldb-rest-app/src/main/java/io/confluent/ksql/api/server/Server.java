@@ -322,7 +322,7 @@ public class Server {
       final String keyStoreAlias,
       final ClientAuth clientAuth
   ) {
-    options.setUseAlpn(true).setSsl(true);
+    options.setUseAlpn(true).setSsl(true).setSni(true);
 
     configureTlsKeyStore(ksqlRestConfig, options, keyStoreAlias);
     configureTlsTrustStore(ksqlRestConfig, options);

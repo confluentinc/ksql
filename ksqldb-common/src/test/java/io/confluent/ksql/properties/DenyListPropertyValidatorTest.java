@@ -81,4 +81,21 @@ public class DenyListPropertyValidatorTest {
             + "(use UNSET to reset their default value): [ksql.service.id]"
     ));
   }
+
+  @Test
+  public void shouldThrowOnKsqlSuppressEnabledProperty() {
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> validator.validateAll(ImmutableMap.of(
+            "ksql.suppress.enabled", true
+        ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "One or more properties overrides set locally are prohibited by the KSQL server "
+            + "(use UNSET to reset their default value): [ksql.suppress.enabled]"
+    ));
+  }
 }

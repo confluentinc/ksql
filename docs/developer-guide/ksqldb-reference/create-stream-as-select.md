@@ -139,7 +139,7 @@ ksqlDB registers the key and/or value schemas of the new stream with
 subjects `<topic-name>-key` and `<topic-name>-value`, respectively.
 
 ksqlDB can also use [Schema Inference With ID](/operate-and-deploy/schema-inference-with-id)
-to enable using physical schema for data serialization.
+to enable using a physical schema for data serialization.
 
 ## Stream properties
 
@@ -179,6 +179,9 @@ as the topic name.
 
 The serialization format of the message key in the topic. For supported formats,
 see [Serialization Formats](/reference/serialization).
+
+If this property is not set, the format from the left-most input stream or
+table is used.
 
 In join queries, the `KEY_FORMAT` value is taken from the left-most stream or
 table.
@@ -272,12 +275,14 @@ or `TAB` instead of the actual space or tab characters.
 The serialization format of the message value in the topic. For supported formats,
 see [Serialization Formats](/reference/serialization).
 
-If `VALUE_FORMAT` isn't provided, the system default is used, defined by
-[ksql.persistence.default.format.value](/reference/server-configuration#ksqlpersistencedefaultformatvalue).
-If the default is also not set, the statement is rejected as invalid.
+If this property is not set, the format from the left-most input stream or
+table is used.
+
+In join queries, the `VALUE_FORMAT` value is taken from the left-most stream or
+table.
 
 You can't use the `VALUE_FORMAT` property with the `FORMAT` property in the
-same CREATE STREAM statement.
+same `CREATE STREAM AS SELECT` statement.
 
 ### VALUE_SCHEMA_ID
 

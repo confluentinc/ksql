@@ -36,9 +36,11 @@ Materialized views keep only the aggregation, so the full history of view
 changes is stored in a _changelog_ topic, which you can replay later to restore
 state, if a materialized view is lost.
 
-Both of ksqlDB's two kinds of queries, pull and push, can fetch materialized
-view data from a table. Pull queries terminate in a traditional relational
-manner. Push queries stay alive to capture streaming changes.
+Both of ksqlDB's two kinds of queries, [pull](select-pull-query.md) and
+[push](select-push-query.md), can fetch materialized view data from a table.
+Pull queries terminate in a traditional relational manner. Push queries stay
+alive to capture streaming changes. For more information, see
+[Queries](/concepts/queries/).
 
 !!! Tip "See CREATE TABLE AS SELECT in action"
     - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)

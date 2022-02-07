@@ -66,9 +66,8 @@ public final class StandardDeviationSampUdaf {
         (agg, newValue) ->
             Double.valueOf(newValue * (agg.getInt64(COUNT) + 1) - (agg.getInt64(SUM) + newValue)),
         (agg1, agg2) ->
-            Double.valueOf(
-                agg1.getInt64(SUM) / agg1.getInt64(COUNT)
-                    - agg2.getInt64(SUM) / agg2.getInt64(COUNT)),
+            agg1.getInt64(SUM).doubleValue() / agg1.getInt64(COUNT).doubleValue()
+                - agg2.getInt64(SUM).doubleValue() / agg2.getInt64(COUNT).doubleValue(),
         (agg1, agg2) -> agg1.getInt64(SUM) + agg2.getInt64(SUM),
         (agg, valueToRemove) -> agg.getInt64(SUM) - valueToRemove);
   }
@@ -83,9 +82,8 @@ public final class StandardDeviationSampUdaf {
         (agg, newValue) ->
             Double.valueOf(newValue * (agg.getInt64(COUNT) + 1) - (agg.getInt32(SUM) + newValue)),
         (agg1, agg2) ->
-            Double.valueOf(
-                agg1.getInt32(SUM) / agg1.getInt64(COUNT)
-                    - agg2.getInt32(SUM) / agg2.getInt64(COUNT)),
+            agg1.getInt32(SUM).doubleValue() / agg1.getInt64(COUNT).doubleValue()
+                - agg2.getInt32(SUM).doubleValue() / agg2.getInt64(COUNT).doubleValue(),
         (agg1, agg2) -> agg1.getInt32(SUM) + agg2.getInt32(SUM),
         (agg, valueToRemove) -> agg.getInt32(SUM) - valueToRemove);
   }
@@ -172,7 +170,7 @@ public final class StandardDeviationSampUdaf {
         if (count < 2) {
           return 0.0;
         }
-        return aggregate.getFloat64(M2) / (count - 1);
+        return Math.sqrt(aggregate.getFloat64(M2) / (count - 1));
       }
 
       @Override

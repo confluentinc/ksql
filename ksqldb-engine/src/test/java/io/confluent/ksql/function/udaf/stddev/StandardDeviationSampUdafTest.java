@@ -45,7 +45,7 @@ public class StandardDeviationSampUdafTest {
     assertThat(agg.getFloat64(M2), equalTo(10.0));
 
     final double standardDev = udaf.map(agg);
-    assertThat(standardDev, equalTo(2.5));
+    assertThat(standardDev, equalTo(1.5811388300841898));
   }
 
   @Test
@@ -61,7 +61,7 @@ public class StandardDeviationSampUdafTest {
     assertThat(agg.getFloat64(M2), equalTo(8.75));
 
     final double standardDev = udaf.map(agg);
-    assertThat(standardDev, equalTo(2.9166666666666665));
+    assertThat(standardDev, equalTo(1.707825127659933));
   }
 
   @Test
@@ -77,7 +77,7 @@ public class StandardDeviationSampUdafTest {
     assertThat(agg.getFloat64(M2), equalTo(29.48749999999999));
 
     final double standardDev = udaf.map(agg);
-    assertThat(standardDev, equalTo(9.829166666666664));
+    assertThat(standardDev, equalTo(3.1351501824739856));
   }
 
   @Test
@@ -112,7 +112,7 @@ public class StandardDeviationSampUdafTest {
     }
     agg = udaf.aggregate(null, agg);
     final double standardDev = udaf.map(agg);
-    assertThat(standardDev, equalTo(25.333333333333332));
+    assertThat(standardDev, equalTo(5.033222956847166));
   }
 
   @Test
@@ -135,10 +135,10 @@ public class StandardDeviationSampUdafTest {
 
     assertThat(merged.getInt64(COUNT), equalTo(8L));
     assertThat(merged.getInt64(SUM), equalTo(20L));
-    assertThat(merged.getFloat64(M2), equalTo(18.166666666666664));
+    assertThat(merged.getFloat64(M2), equalTo(14.0));
 
     final double standardDev = udaf.map(merged);
-    assertThat(standardDev, equalTo(2.595238095238095));
+    assertThat(standardDev, equalTo(1.4142135623730951));
   }
 
   @Test
@@ -161,10 +161,10 @@ public class StandardDeviationSampUdafTest {
 
     assertThat(merged.getInt64(COUNT), equalTo(6L));
     assertThat(merged.getInt32(SUM), equalTo(45));
-    assertThat(merged.getFloat64(M2), equalTo(17.333333333333332));
+    assertThat(merged.getFloat64(M2), equalTo(17.5));
 
     final double standardDev = udaf.map(merged);
-    assertThat(standardDev, equalTo(3.4666666666666663));
+    assertThat(standardDev, equalTo(1.8708286933869707));
   }
 
   @Test
@@ -190,7 +190,7 @@ public class StandardDeviationSampUdafTest {
     assertThat(merged.getFloat64(M2), equalTo(21.240000000000006));
 
     final double standardDev = udaf.map(merged);
-    assertThat(standardDev, equalTo(4.248000000000001));
+    assertThat(standardDev, equalTo(2.0610676844781204));
   }
 
   @Test
@@ -206,7 +206,7 @@ public class StandardDeviationSampUdafTest {
     assertThat(agg.getFloat64(M2), equalTo(10.0));
 
     double standardDev = udaf.map(agg);
-    assertThat(standardDev, equalTo(2.5));
+    assertThat(standardDev, equalTo(1.5811388300841898));
 
     agg = udaf.undo(2L, agg);
 
@@ -215,6 +215,6 @@ public class StandardDeviationSampUdafTest {
     assertThat(agg.getFloat64(M2), equalTo(8.75));
 
     standardDev = udaf.map(agg);
-    assertThat(standardDev, equalTo(2.9166666666666665));
+    assertThat(standardDev, equalTo(1.707825127659933));
   }
 }

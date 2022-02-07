@@ -80,8 +80,8 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     this.clock = clock;
     this.bufferOutput = bufferOutput;
     this.context = context;
-    Preconditions.checkState(bufferOutput || limitMessage.isPresent() ||
-            completionMessage.isPresent(),
+    Preconditions.checkState(bufferOutput || limitMessage.isPresent()
+            || completionMessage.isPresent(),
         "If buffering isn't used, a limit/completion message must be set");
   }
 
@@ -238,8 +238,8 @@ public class JsonStreamedRowResponseWriter implements QueryStreamResponseWriter 
     if (timerId >= 0) {
       return;
     }
-    long sinceLastFlushMs = clock.millis() - writerState.getLastFlushMs();
-    long waitTimeMs = Math.min(Math.max(0, MAX_FLUSH_MS - sinceLastFlushMs), MAX_FLUSH_MS);
+    final long sinceLastFlushMs = clock.millis() - writerState.getLastFlushMs();
+    final long waitTimeMs = Math.min(Math.max(0, MAX_FLUSH_MS - sinceLastFlushMs), MAX_FLUSH_MS);
     this.timerId = context.owner().setTimer(waitTimeMs, timerId -> {
       this.timerId = -1;
       maybeFlushBuffer();

@@ -39,6 +39,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +87,8 @@ public class QueryStreamHandlerTest {
   private QueryPublisher queryPublisher;
   @Mock
   private PushQueryHolder pushQueryHolder;
+  @Mock
+  private SocketAddress requestAddress;
   @Captor
   private ArgumentCaptor<Handler<Void>> endHandler;
   @Captor
@@ -100,6 +103,7 @@ public class QueryStreamHandlerTest {
     when(routingContext.response()).thenReturn(response);
     when(request.version()).thenReturn(HttpVersion.HTTP_2);
     when(request.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+    when(request.remoteAddress()).thenReturn(SocketAddress.inetSocketAddress(9000, "remote"));
     CompletableFuture<QueryPublisher> future = new CompletableFuture<>();
     future.complete(queryPublisher);
     when(endpoints.createQueryPublisher(any(), any(), any(), any(), any(), any(), any(), any(),

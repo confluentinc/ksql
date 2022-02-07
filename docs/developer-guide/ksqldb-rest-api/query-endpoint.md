@@ -59,7 +59,7 @@ Response JSON Object:
 ### Example curl command
 
 ```bash
-curl --http1.1
+curl --http1.1 \
      -X "POST" "http://<ksqldb-host-name>:8088/query" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{

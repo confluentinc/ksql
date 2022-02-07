@@ -30,29 +30,41 @@ sink topic, and stream the result of the query into the sink topic. The new
 stream is said to be a _persistent query_ and is _derived from_ the `from_stream`.
 
 In ksqlDB, you issue a persistent query to transform one stream into another
-using its SQL programming model. You derive a new stream from an existing one
+using a SQL programming model. You derive a new stream from an existing one
 by selecting and manipulating the columns you're interested in.
 
 Creating a stream from a query creates a new backing topic with the specified
-number of partitions, if the topic doesn't exist already.   
-
-The stream metadata, like the column layout, serialization scheme, and other
-information, is placed into ksqlDB's command topic, which is its internal
-cluster communication channel.
-
-
-Each time you run a persistent query, ksqlDB’s server compiles the query’s textual representation to a physical execution plan as a Kafka Streams topology. The topology runs as a daemon, reacting to new topic records as soon as they become available. This means that all of the processing work happens on ksqlDB server; no processing work happens on the Kafka brokers. If you run ksqlDB as a cluster, the topology scales horizontally across the nodes by internally using Kafka Streams application IDs.
-
-When a persistent query is created, it is assigned a generated name (in this case, we call it pq1). Rows are read from the stream partitions that the query selects from. As each row passes through the persistent query, the transformation logic is applied to create a new row, which is what the change of color signifies. Reading a record from Kafka does not delete it—you effectively receive a copy of it. That is why the leftmost rows remain in place, and clones of them appear to the right of each partition before they are sent to the persistent query box.
-
-When you write ksqlDB programs, you chain streams (and tables) together. You create a figurative pathway for your data to traverse, with each step in the way performing a step of processing. ksqlDB handles the mechanics of how your data is propagated through the chain.
-
-
+number of partitions, if the topic doesn't exist already.
 
 !!! important
     Registering a stream on a query result with `CREATE STREAM AS SELECT` is
     distinct from using the [CREATE STREAM](/developer-guide/ksqldb-reference/create-stream)
     statement, which registers a stream on a {{ site.ak }} source topic.
+
+The stream metadata, like the column layout, serialization scheme, and other
+information, is placed into ksqlDB's
+[command topic](/operate-and-deploy/how-it-works/#command-topic),
+which is its internal cluster communication channel.
+
+When you create a persistent query, ksqlDB assigns a generated name based
+on the name you provide. For example, if you create a stream named
+"pageviews_enriched", ksqlDB might assign an ID like "CSAS_PAGEVIEWS_ENRICHED_1".
+The prepended string, "CSAS", is an acronym for `CREATE STREAM AS SELECT`. 
+
+ksqlDB reads rows from the stream partitions that the query selects from.
+As each row passes through the persistent query, the transformation logic is
+applied to create a new row. Reading a record from {{ site.ak }} doesn't delete
+it. Instead, you receive a copy of it.
+
+When you write ksqlDB programs, you chain streams and tables together. You
+create a path that your data traverses, with each step in the path performing
+a step of processing. ksqlDB handles the mechanics of how your data propagates
+through the chain.
+
+!!! Tip "See CREATE STREAM AS SELECT in action"
+    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
 
 ### Joins
 
@@ -68,15 +80,15 @@ column of the stream, ksqlDB repartitions the data internally.
 
 Joins to tables must use the table's `PRIMARY KEY` as the join criteria.
 Non-key joins aren't supported. For more information, see
-[Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
+[Joining Collections](../joins/join-streams-and-tables.md).
 
-For more information about how to correctly partition your data for joins,
+For more information on how to partition your data correctly for joins,
 see [Partition Data to Enable Joins](../joins/partition-data.md).
 
 !!! note
 
-    - Partitioning streams and tables is especially important for stateful or otherwise
-      intensive queries. For more information, see
+    - Partitioning streams and tables is especially important for stateful or
+      otherwise intensive queries. For more information, see
       [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
     - Once a stream is created, you can't change the number of partitions.
       To change the partition count, you must drop the stream and create it again.
@@ -131,12 +143,13 @@ to enable using physical schema for data serialization.
 
 ## Stream properties
 
-Use the `WITH` clause to specify details about your stream. The `WITH` clause
-supports the following properties.
+Use the `WITH` clause to specify details about your stream.
 
 !!! important
     In join queries, property values are taken from the left-most stream or
     table of the join.
+
+The `WITH` clause supports the following properties.
 
 ### FORMAT
 
@@ -293,11 +306,6 @@ topic that contain only a single column.
       `DELIMITED`, or when the value schema has multiple columns, causes an error.
 
 For more information, see [Single field unwrapping](/reference/serialization/#single-field-unwrapping).
-
-!!! Tip "See CREATE STREAM AS SELECT in action"
-    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
-    - [Notify Passengers of Flight Updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
 
 Examples
 --------

@@ -226,7 +226,7 @@ public final class FunctionLoaderUtils {
       final Class theClass,
       final String functionName
   ) {
-    // throws exception if cannot find method
+    // throws exception if it cannot find the method
     final Method m = findSchemaProvider(theClass, schemaProviderName);
     final Object instance = FunctionLoaderUtils
         .instantiateFunctionInstance(theClass, functionName);

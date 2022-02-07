@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -69,6 +70,6 @@ public class Filter {
     return map.entrySet()
         .stream()
         .filter(e -> biFunction.apply(e.getKey(), e.getValue()))
-        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 }

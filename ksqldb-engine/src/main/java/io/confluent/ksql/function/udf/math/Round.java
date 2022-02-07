@@ -33,7 +33,7 @@ import java.util.List;
 /*
 The rounding behaviour implemented here follows that of java.lang.Math.round() - we do that
 in order to provide compatibility with the previous ROUND() implementation which used
-Math.round(). The BigDecimal HALF_UP rounding behaviour is a bit more sane and would be a better
+Math.round(). The BigDecimal HALF_UP rounding behaviour is a bit saner and would be a better
 choice if we were starting from scratch.
 
 It's an implementation of rounding "half up". This means we round to the nearest integer value and

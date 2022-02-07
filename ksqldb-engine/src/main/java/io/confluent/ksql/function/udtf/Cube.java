@@ -68,7 +68,7 @@ public class Cube {
 
       if (canonicalBitMask != bitMask) {
         // if the canonicalBitMask is not the same as bitMask, then this row is a logical
-        // duplicate of another row and we should not emit it
+        // duplicate of another row, and we should not emit it
         continue;
       }
       final List<T> row = new ArrayList<>(columns.size());

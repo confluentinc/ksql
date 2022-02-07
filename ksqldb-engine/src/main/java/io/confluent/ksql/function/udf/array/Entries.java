@@ -22,7 +22,6 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -117,7 +116,7 @@ public class Entries {
     Collection<Entry<String, T>> entries = map.entrySet();
     if (sorted) {
       final List<Entry<String, T>> list = new ArrayList<>(entries);
-      list.sort(Comparator.comparing(Entry::getKey));
+      list.sort(Entry.comparingByKey());
       entries = list;
     }
     for (final Map.Entry<String, T> entry : entries) {

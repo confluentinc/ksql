@@ -111,6 +111,19 @@ public class ReduceTest {
     );
   }
 
+  @Test
+  public void shouldReturnNullForNullFunctions () {
+    BiFunction<String, Integer, String> nullBiFunction = null;
+    TriFunction<Integer, Integer, Integer, Integer> nullTriFunction = null;
+
+    assertThat(udf.reduceArray(ImmutableList.of(2, 3, 4, 4, 1000), "", nullBiFunction), is(nullValue()));
+    final Map<Integer, Integer> map1 = new HashMap<>();
+    map1.put(4, 3);
+    map1.put(6, 2);
+    assertThat(udf.reduceMap(map1, 42, nullTriFunction), is(nullValue()));
+  }
+
+
   private TriFunction<Integer, Integer, Integer, Integer> triFunction1() {
     return (x,y,z) -> x + y + z;
   }

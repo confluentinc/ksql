@@ -49,7 +49,7 @@ public class ArraySort {
       description = "The array to sort") final List<T> input,
       @UdfParameter(
           description = "Marks the end of the series (inclusive)") final String direction) {
-    if (input == null) {
+    if (input == null || direction == null) {
       return null;
     }
     if (SORT_DIRECTION_ASC.contains(direction.toUpperCase())) {

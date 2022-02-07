@@ -46,6 +46,9 @@ import java.util.List;
 public class JsonConcat {
   @Udf
   public String concat(@UdfParameter final String... jsonStrings) {
+    if (jsonStrings == null) {
+      return null;
+    }
     final List<JsonNode> nodes = new ArrayList<>(jsonStrings.length);
     boolean allObjects = true;
     for (final String jsonString : jsonStrings) {

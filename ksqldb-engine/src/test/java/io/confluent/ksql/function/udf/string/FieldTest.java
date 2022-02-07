@@ -77,4 +77,14 @@ public class FieldTest {
     // Then:
     assertThat(pos, equalTo(0));
   }
+
+  @Test
+  public void shouldNotFindStringInNullArray() {
+    // When:
+    String[] array = null;
+    final int pos = field.field("1", array);
+
+    // Then:
+    assertThat(pos, equalTo(0));
+  }
 }

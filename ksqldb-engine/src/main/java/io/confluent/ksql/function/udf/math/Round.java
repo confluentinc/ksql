@@ -95,7 +95,7 @@ public class Round {
 
   @Udf
   public Double round(@UdfParameter final Double val, @UdfParameter final Integer decimalPlaces) {
-    return val == null
+    return (val == null || decimalPlaces == null)
         ? null
         : roundBigDecimal(BigDecimal.valueOf(val), decimalPlaces).doubleValue();
   }
@@ -113,10 +113,7 @@ public class Round {
       @UdfParameter final BigDecimal val,
       @UdfParameter final Integer decimalPlaces
   ) {
-    if (val == null) {
-      return null;
-    }
-    return roundBigDecimal(val, decimalPlaces)
+    return (val == null || decimalPlaces == null) ? null : roundBigDecimal(val, decimalPlaces)
         // Must maintain source scale for now. See https://github.com/confluentinc/ksql/issues/6235.
         .setScale(val.scale(), RoundingMode.UNNECESSARY);
   }

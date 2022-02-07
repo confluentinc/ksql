@@ -57,6 +57,9 @@ public class ParseDate {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.text.SimpleDateFormat.") final String formatPattern) {
+    if (formattedDate == null || formatPattern == null) {
+      return null;
+    }
     try {
       final long time = formatters.get(formatPattern).parse(formattedDate).getTime();
       if (time % MILLIS_IN_DAY != 0) {

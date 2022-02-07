@@ -60,6 +60,9 @@ public class ParseTime {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
+    if (formattedTime == null | formatPattern == null) {
+      return null;
+    }
     try {
       final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedTime);
       final Optional<ChronoField> dateField = Arrays.stream(ChronoField.values())

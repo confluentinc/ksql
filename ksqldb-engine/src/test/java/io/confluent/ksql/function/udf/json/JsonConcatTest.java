@@ -117,6 +117,11 @@ public class JsonConcatTest {
   }
 
   @Test
+  public void shouldReturnNullIfArgumentIsNull() {
+    assertNull(udf.concat(null));
+  }
+
+  @Test
   public void shouldReturnNullIfBothdArgsAreNull() {
     assertNull(udf.concat(null, null));
   }

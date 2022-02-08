@@ -40,6 +40,8 @@ class Callbacks:
 
         mvn_docker_args["docker.registry"] = DOCKER_REGISTRY
         mvn_docker_args["docker.test-registry"] = DOCKER_REGISTRY
+        mvn_docker_args["docker.upstream-registry"] = ""
+        mvn_docker_args["docker.upstream-tag"] = "7.0.1"
         mvn_docker_args["skip.docker.build"] = "false"
         mvn_docker_args["skip.docker.test"] = "true"
         return mvn_docker_args

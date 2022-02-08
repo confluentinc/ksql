@@ -59,7 +59,7 @@ public final class LatestByOffset {
   private LatestByOffset() {
   }
 
-  static AtomicLong sequence = new AtomicLong();
+  static final AtomicLong sequence = new AtomicLong();
 
   @UdafFactory(description = "return the latest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
@@ -337,7 +337,7 @@ public final class LatestByOffset {
 
       @Override
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
-        // When merging we need some way of evaluating the "latest' one.
+        // When merging we need some way of evaluating the "latest" one.
         // We do this by keeping track of the sequence of when it was originally processed
         if (comparator.compare(aggOne, aggTwo) >= 0) {
           return aggOne;

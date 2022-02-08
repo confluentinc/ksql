@@ -57,7 +57,7 @@ public final class EarliestByOffset {
   private EarliestByOffset() {
   }
 
-  static AtomicLong sequence = new AtomicLong();
+  static final AtomicLong sequence = new AtomicLong();
 
   @UdafFactory(description = "return the earliest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
@@ -348,7 +348,7 @@ public final class EarliestByOffset {
           return aggOne;
         }
 
-        // When merging we need some way of evaluating the "earliest' one.
+        // When merging we need some way of evaluating the "earliest" one.
         // We do this by keeping track of the sequence of when it was originally processed
         if (INTERMEDIATE_STRUCT_COMPARATOR.compare(aggOne, aggTwo) < 0) {
           return aggOne;

@@ -207,4 +207,12 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   String getStateDir() {
     return stateDir;
   }
+
+  public int getNumLeakedTopics() {
+    return 0;
+  }
+
+  public int getNumLeakedStateDirs() {
+    return 0;
+  }
 }

@@ -270,6 +270,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @VisibleForTesting
+  @SuppressFBWarnings(
+          value = "EI_EXPOSE_REP",
+          justification = "See notes on getters."
+  )
+  public TransientQueryCleanupService getTransientQueryCleanupService() {
+    return transientQueryCleanupService;
+  }
+
+  @VisibleForTesting
   public KsqlEngineMetrics getEngineMetrics() {
     return engineMetrics;
   }

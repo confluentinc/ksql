@@ -35,7 +35,7 @@ public class ToBytes {
   public ByteBuffer toBytes(
       @UdfParameter(description = "The string to convert.") final String value,
       @UdfParameter(description = "The type of encoding.") final String encoding) {
-    return (value == null) ? null : ByteBuffer.wrap(BytesUtils.decode(value,
+    return (value == null || encoding == null) ? null : ByteBuffer.wrap(BytesUtils.decode(value,
         BytesUtils.Encoding.from(encoding)));
   }
 }

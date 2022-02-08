@@ -47,7 +47,7 @@ public class Filter {
       @UdfParameter(description = "The array") final List<T> array,
       @UdfParameter(description = "The lambda function") final Function<T, Boolean> function
   ) {
-    if (array == null) {
+    if (array == null || function == null) {
       return null;
     }
     return array.stream().filter(function::apply).collect(Collectors.toList());
@@ -62,7 +62,7 @@ public class Filter {
       @UdfParameter(description = "The map") final Map<K, V> map,
       @UdfParameter(description = "The lambda function") final BiFunction<K, V, Boolean> biFunction
   ) {
-    if (map == null) {
+    if (map == null || biFunction == null) {
       return null;
     }
 

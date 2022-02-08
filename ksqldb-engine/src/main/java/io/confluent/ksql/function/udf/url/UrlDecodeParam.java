@@ -38,6 +38,9 @@ public class UrlDecodeParam {
   @Udf
   public String decodeParam(
       @UdfParameter(description = "the value to decode") final String input) {
+    if (input == null) {
+      return null;
+    }
     try {
       return URLDecoder.decode(input, UTF_8.name());
     } catch (final UnsupportedEncodingException e) {

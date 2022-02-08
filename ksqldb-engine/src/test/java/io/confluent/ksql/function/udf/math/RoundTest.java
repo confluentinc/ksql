@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.math;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.math.BigDecimal;
 import org.junit.Before;
@@ -221,6 +222,13 @@ public class RoundTest {
     assertThat(udf.round((Double)null, 2), is((Long)null));
     assertThat(udf.round((BigDecimal) null, 2), is((BigDecimal) null));
   }
+
+  @Test
+  public void shoulldHandleNullDecimalPlaces() {
+    assertThat(udf.round(1.75d, null), is(nullValue()));
+    assertThat(udf.round(new BigDecimal("1.75"), null), is(nullValue()));
+  }
+
 
   @Test
   public void shouldRoundInt() {

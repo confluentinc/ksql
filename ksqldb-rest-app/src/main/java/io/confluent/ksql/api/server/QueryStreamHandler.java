@@ -167,7 +167,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
   ) {
 
     final QueryResponseMetadata metadata;
-    final Optional<String> completionMessage = Optional.empty();
+    Optional<String> completionMessage = Optional.empty();
     Optional<String> limitMessage = Optional.of("Limit Reached");
 
     if (queryPublisher.isPullQuery()) {
@@ -211,6 +211,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnNames(),
           queryPublisher.getColumnTypes(),
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
+      completionMessage = Optional.of("Query Completed");
 
       // When response is complete, publisher should be closed and query unregistered
       routingContext.response().endHandler(v -> {

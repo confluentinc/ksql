@@ -544,7 +544,7 @@ public class RestApiTest {
                 + "{\"row\":{\"columns\":[\"USER_0\",\"PAGE_5\",5]}},\n"
                 + "{\"row\":{\"columns\":[\"USER_2\",\"PAGE_5\",6]}},\n"
                 + "{\"row\":{\"columns\":[\"USER_3\",\"PAGE_5\",7]}},\n"
-                + "]"
+                + "{\"finalMessage\":\"Query Completed\"}]"
     )
     );
   }

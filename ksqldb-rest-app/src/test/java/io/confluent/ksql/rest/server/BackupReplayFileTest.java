@@ -31,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.LinkedList;
 import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.Assert;
@@ -123,11 +124,13 @@ public class BackupReplayFileTest {
   public void shouldPreserveBackupOnWriteFailure() throws IOException {
     // Given
     final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");
+    final List<FileOutputStream> streamReference = new LinkedList<>();
     replayFile.write(record);
     when(filesystem.outputStream(any(), anyBoolean()))
         .thenAnswer(i -> {
           final FileOutputStream stream
               = new FileOutputStream((File) i.getArgument(0), i.getArgument(1));
+          streamReference.add(stream);
           final FileOutputStream spy = Mockito.spy(stream);
           doCallRealMethod().doThrow(new IOException("")).when(spy).write(any(byte[].class));
           return spy;
@@ -141,6 +144,7 @@ public class BackupReplayFileTest {
     }
 
     // Then
+    streamReference.get(0).close();
     final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), is(

@@ -98,7 +98,7 @@ public final class BackupReplayFile implements Closeable {
       final File file,
       final Filesystem filesystem
   ) throws IOException {
-    try (final FileOutputStream writer = createWriter(file, filesystem)) {
+    try (FileOutputStream writer = createWriter(file, filesystem)) {
       writer.write(record.key());
       writer.write(KEY_VALUE_SEPARATOR_BYTES);
       writer.write(record.value());

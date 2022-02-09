@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.integration;
 
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.ksql.engine.TransientQueryCleanupService;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.Queries;
@@ -35,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.lang.String.format;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -98,6 +99,9 @@ public class TransientQueryResourceCleanerIntTest {
             .build();
 
     private static String stateDir;
+
+    private static final Supplier<Integer> allTopicsLambda =
+            () -> TEST_HARNESS.getKafkaCluster().getTopics().size();
 
 
     @ClassRule
@@ -186,7 +190,7 @@ public class TransientQueryResourceCleanerIntTest {
 
         // Eventually, transient topics should have been cleaned up; only persistent ones left
         assertThatEventually(
-                () -> TEST_HARNESS.getKafkaCluster().getTopics().size(),
+                allTopicsLambda,
                 is(numPersistentTopics));
 
         // simulate "leaking" transient topics from the query we terminated
@@ -194,14 +198,13 @@ public class TransientQueryResourceCleanerIntTest {
         TEST_HARNESS.ensureTopics(transientTopics.get(0), transientTopics.get(1));
 
         // ensure that the topics have been created ("leaked")
-        assertThatEventually(
-                () -> TEST_HARNESS.getKafkaCluster().getTopics().size(),
-                is(numPersistentTopics + numTransientTopics));
+        assertTrue(TEST_HARNESS.topicExists(transientTopics.get(0)));
+        assertTrue(TEST_HARNESS.topicExists(transientTopics.get(1)));
 
         // Then:
         // Eventually, only the persistent topics are left and the transient topics have been cleaned up
         assertThatEventually(
-                () -> TEST_HARNESS.getKafkaCluster().getTopics().size(),
+                allTopicsLambda,
                 is(numPersistentTopics));
 
         assertThatEventually(
@@ -273,6 +276,7 @@ public class TransientQueryResourceCleanerIntTest {
         // transient topics have not been accidentally cleaned up
         assertEquals(numPersistentTopics + numTransientTopics,
                 TEST_HARNESS.getKafkaCluster().getTopics().size());
+
         assertEquals(numTransientTopics,
                 TEST_HARNESS.getKafkaCluster().getTopics().stream()
                         .filter(t -> t.contains("transient")).count());

@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.lang.String.format;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -190,16 +189,13 @@ public class TransientQueryResourceCleanerIntTest {
 
         // Eventually, transient topics should have been cleaned up; only persistent ones left
         assertThatEventually(
-                allTopicsLambda,
-                is(numPersistentTopics));
+                () -> TEST_HARNESS.getKafkaCluster().getTopics().stream()
+                        .filter(t -> t.contains("transient")).count(),
+                is(0L));
 
         // simulate "leaking" transient topics from the query we terminated
         // by recreating them
         TEST_HARNESS.ensureTopics(transientTopics.get(0), transientTopics.get(1));
-
-        // ensure that the topics have been created ("leaked")
-        assertTrue(TEST_HARNESS.topicExists(transientTopics.get(0)));
-        assertTrue(TEST_HARNESS.topicExists(transientTopics.get(1)));
 
         // Then:
         // Eventually, only the persistent topics are left and the transient topics have been cleaned up

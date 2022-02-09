@@ -98,12 +98,12 @@ public final class BackupReplayFile implements Closeable {
       final File file,
       final Filesystem filesystem
   ) throws IOException {
-    final FileOutputStream writer = createWriter(file, filesystem);
-    writer.write(record.key());
-    writer.write(KEY_VALUE_SEPARATOR_BYTES);
-    writer.write(record.value());
-    writer.write(NEW_LINE_SEPARATOR_BYTES);
-    writer.close();
+    try (final FileOutputStream writer = createWriter(file, filesystem)) {
+      writer.write(record.key());
+      writer.write(KEY_VALUE_SEPARATOR_BYTES);
+      writer.write(record.value());
+      writer.write(NEW_LINE_SEPARATOR_BYTES);
+    }
   }
 
   public void write(final ConsumerRecord<byte[], byte[]> record) throws IOException {

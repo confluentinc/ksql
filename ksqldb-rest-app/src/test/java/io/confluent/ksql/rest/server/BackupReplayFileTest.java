@@ -122,20 +122,14 @@ public class BackupReplayFileTest {
   }
 
   @Test
-  @SuppressFBWarnings(
-      value = "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE",
-      justification = "stream is closed explicitly in test"
-  )
   public void shouldPreserveBackupOnWriteFailure() throws IOException {
     // Given
     final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");
-    final List<FileOutputStream> streamReference = new LinkedList<>();
     replayFile.write(record);
     when(filesystem.outputStream(any(), anyBoolean()))
         .thenAnswer(i -> {
           final FileOutputStream stream
               = new FileOutputStream((File) i.getArgument(0), i.getArgument(1));
-          streamReference.add(stream);
           final FileOutputStream spy = Mockito.spy(stream);
           doCallRealMethod().doThrow(new IOException("")).when(spy).write(any(byte[].class));
           return spy;
@@ -149,7 +143,6 @@ public class BackupReplayFileTest {
     }
 
     // Then
-    streamReference.get(0).close();
     final List<String> commands = Files.readAllLines(internalReplayFile.toPath());
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), is(

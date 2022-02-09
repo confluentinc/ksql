@@ -466,7 +466,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           // special case where we expect no work at all on the partition, so we don't even
           // need to check the committed offset (if we did, we'd potentially wait forever,
           // since Streams won't commit anything for an empty topic).
-          .filter(e -> e.getValue().offset() > 0L && e.getValue().offset() > startOffsetsForStreamPullQuery.get(e.getKey()))
+          .filter(e -> e.getValue().offset() > 0L
+              && e.getValue().offset() > startOffsetsForStreamPullQuery.get(e.getKey()))
           .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
       return ImmutableMap.copyOf(result);
     } catch (final InterruptedException e) {

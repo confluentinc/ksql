@@ -463,9 +463,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final Map<TopicPartition, Long> result = partitionResultMap
           .entrySet()
           .stream()
-          // special case where we expect no work at all on the partition, so we don't even
+          // Special case where we expect no work at all on the partition, so we don't even
           // need to check the committed offset (if we did, we'd potentially wait forever,
           // since Streams won't commit anything for an empty topic).
+          // Specifically, streams will never poll a record and will therefore do no work
+          // for a partition when the partition is empty, either because it has never had
+          // a record (end offset of 0), or because the log cleaner deleted all the records
+          // (start offsets == end offsets).
           .filter(e -> e.getValue().offset() > 0L
               && e.getValue().offset() > startOffsetsForStreamPullQuery.get(e.getKey()))
           .collect(toMap(Entry::getKey, e -> e.getValue().offset()));

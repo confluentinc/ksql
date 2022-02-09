@@ -44,6 +44,11 @@ final class KudafByOffsetUtils {
       .field(VAL_FIELD, Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
+  static final Schema STRUCT_ARRAY_INTEGER = SchemaBuilder.struct().optional()
+      .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+      .field(VAL_FIELD, SchemaBuilder.array(Schema.INT64_SCHEMA))
+      .build();
+
   static final Schema STRUCT_BOOLEAN = SchemaBuilder.struct().optional()
       .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(VAL_FIELD, Schema.OPTIONAL_BOOLEAN_SCHEMA)
@@ -102,6 +107,13 @@ final class KudafByOffsetUtils {
 
         return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);
       };
+
+  static Schema buildSchema(final Schema schema) {
+    return SchemaBuilder.struct().optional()
+        .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+        .field(VAL_FIELD, schema) // JNH Is this "right"?
+        .build();
+  }
 
   static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {
     final Struct struct = new Struct(schema);

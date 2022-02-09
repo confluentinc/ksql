@@ -23,6 +23,7 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.BackupReplayFile.Filesystem;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.Pair;
@@ -121,6 +122,10 @@ public class BackupReplayFileTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+      value = "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE",
+      justification = "stream is closed explicitly in test"
+  )
   public void shouldPreserveBackupOnWriteFailure() throws IOException {
     // Given
     final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");

@@ -28,6 +28,8 @@ import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.clients.admin.Admin;
+
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,7 +66,8 @@ public class HealthCheckResource {
       final ServiceContext serviceContext,
       final KsqlRestConfig restConfig,
       final KsqlConfig ksqlConfig,
-      final CommandRunner commandRunner
+      final CommandRunner commandRunner,
+      final Admin adminClient
   ) {
     return new HealthCheckResource(
         new HealthCheckAgent(
@@ -73,7 +76,8 @@ public class HealthCheckResource {
             restConfig,
             serviceContext,
             ksqlConfig,
-            commandRunner),
+            commandRunner,
+            adminClient),
         Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG))
     );
   }

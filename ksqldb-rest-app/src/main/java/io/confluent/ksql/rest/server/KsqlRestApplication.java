@@ -294,7 +294,8 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort,
-        this.commandRunner);
+        this.commandRunner,
+        createCommandTopicKafkaTopicClient(restConfig, ksqlConfig));
     metricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.scalablePushQueryMetrics =
@@ -641,6 +642,8 @@ public final class KsqlRestApplication implements Executable {
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ConnectClientFactory connectClientFactory = new DefaultConnectClientFactory(ksqlConfig);
 
+    System.out.println("configs we're putting in the service context leah7" + ksqlConfig);
+
     final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
             schemaRegistryClientFactory, connectClientFactory, sharedClient,
@@ -921,7 +924,7 @@ public final class KsqlRestApplication implements Executable {
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
         errorHandler,
-        createCommandTopicKafkaTopicClient(restConfig, ksqlConfig),
+        new KafkaTopicClientImpl(() -> createCommandTopicKafkaTopicClient(restConfig, ksqlConfig)),
         commandTopicName,
         metricCollectors.getMetrics()
     );
@@ -1057,10 +1060,11 @@ public final class KsqlRestApplication implements Executable {
   private void registerCommandTopic() {
 
     final String commandTopic = commandStore.getCommandTopicName();
+    KafkaTopicClient topicClient = new KafkaTopicClientImpl(() -> createCommandTopicKafkaTopicClient(restConfig, ksqlConfigNoPort));
 
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
         commandTopic,
-        serviceContext.getTopicClient(),
+        topicClient,
         ksqlConfigNoPort)) {
       log.warn("Command topic is not found and it is not in sync with backup. "
           + "Use backup to recover the command topic.");
@@ -1070,7 +1074,7 @@ public final class KsqlRestApplication implements Executable {
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,
         ksqlConfigNoPort,
-        createCommandTopicKafkaTopicClient(restConfig, ksqlConfigNoPort)
+        topicClient
     );
   }
 
@@ -1248,7 +1252,7 @@ public final class KsqlRestApplication implements Executable {
     return metricsOptions;
   }
   
-  private static KafkaTopicClient createCommandTopicKafkaTopicClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
+  private static Admin createCommandTopicKafkaTopicClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
     final Map<String, Object> commandTopicProducerConfigs =
       ksqlRestConfig.getCommandProducerProperties();
     System.out.println("command topic producer configs here leah1" + commandTopicProducerConfigs);
@@ -1257,8 +1261,7 @@ public final class KsqlRestApplication implements Executable {
       new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
     adminClientConfigs.putAll(commandTopicProducerConfigs);
     System.out.println("admin client configs here leah3" + commandTopicProducerConfigs);
-    final Admin admin = new DefaultKafkaClientSupplier()
+    return new DefaultKafkaClientSupplier()
       .getAdmin(adminClientConfigs);
-    return new KafkaTopicClientImpl(() -> admin);
   }
 }

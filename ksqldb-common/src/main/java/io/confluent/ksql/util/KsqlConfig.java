@@ -1582,10 +1582,6 @@ public class KsqlConfig extends AbstractConfig {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));
     map.putAll(addConfluentMetricsContextConfigsKafka(Collections.emptyMap()));
-    System.out.println("admin configs before change leah5" + map);
-    System.out.println("originals leah10 " + originalsStrings());
-    map.putAll(getConfigsForPrefix(ImmutableSet.of("ksql.server.command.producer")));
-    System.out.println("admin configs after change leah6" + map);
     return Collections.unmodifiableMap(map);
   }
 

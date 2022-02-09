@@ -115,7 +115,6 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           topic,
           (createOptions.shouldValidateOnly()) ? "(ONLY VALIDATE)" : ""
       );
-      LOG.info("whjat is the cluster we're working with {}", adminClient.get().describeCluster());
 
       ExecutorUtil.executeWithRetries(
           () -> adminClient.get().createTopics(

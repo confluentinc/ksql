@@ -57,14 +57,9 @@ public final class CommandStoreUtil {
       final Duration timeout
   ) throws InterruptedException, TimeoutException {
     final Optional<Long> commandSequenceNumber = request.getCommandSequenceNumber();
-    System.out.println("made it 0 for command sequence " + commandSequenceNumber);
-    System.out.println("the command queue is empty " + commandQueue.isEmpty());
     if (commandSequenceNumber.isPresent()) {
-      System.out.println("made it 1");
       final long seqNum = commandSequenceNumber.get();
-      System.out.println("made it 2");
       commandQueue.ensureConsumedPast(seqNum, timeout);
-      System.out.println("made it 3");
     }
   }
 }

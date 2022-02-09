@@ -156,6 +156,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -210,6 +211,7 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final Optional<LocalCommands> localCommands;
+  private KafkaTopicClient internalTopicClient;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -249,7 +251,9 @@ public final class KsqlRestApplication implements Executable {
       final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final Optional<LocalCommands> localCommands,
       final QueryExecutor queryExecutor,
-      final MetricCollectors metricCollectors
+      final MetricCollectors metricCollectors,
+      final KafkaTopicClient internalTopicClient,
+      final Admin internalAdmin
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -295,7 +299,7 @@ public final class KsqlRestApplication implements Executable {
         this.restConfig,
         this.ksqlConfigNoPort,
         this.commandRunner,
-        createCommandTopicKafkaTopicClient(restConfig, ksqlConfig));
+        internalAdmin);
     metricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.scalablePushQueryMetrics =
@@ -303,6 +307,7 @@ public final class KsqlRestApplication implements Executable {
     log.debug("ksqlDB API server instance created");
     this.localCommands = requireNonNull(localCommands, "localCommands");
     this.queryExecutor = requireNonNull(queryExecutor, "queryExecutor");
+    this.internalTopicClient = requireNonNull(internalTopicClient, "internalTopicClient");
   }
 
   @Override
@@ -415,7 +420,8 @@ public final class KsqlRestApplication implements Executable {
     for (final KsqlServerPrecondition precondition : preconditions) {
       final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
           restConfig,
-          serviceContext
+          serviceContext,
+          internalTopicClient
       );
       if (error.isPresent()) {
         serverState.setInitializingReason(error.get());
@@ -641,8 +647,6 @@ public final class KsqlRestApplication implements Executable {
     final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get;
     final ConnectClientFactory connectClientFactory = new DefaultConnectClientFactory(ksqlConfig);
-
-    System.out.println("configs we're putting in the service context leah7" + ksqlConfig);
 
     final ServiceContext tempServiceContext = new LazyServiceContext(() ->
         RestServiceContextFactory.create(ksqlConfig, Optional.empty(),
@@ -911,7 +915,8 @@ public final class KsqlRestApplication implements Executable {
     if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
-
+    final Admin internalAdmin = createCommandTopicAdminClient(restConfig, ksqlConfig);
+    final KafkaTopicClient internalKafkaTopicClient = new KafkaTopicClientImpl(() -> internalAdmin);
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
@@ -924,7 +929,7 @@ public final class KsqlRestApplication implements Executable {
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
         errorHandler,
-        new KafkaTopicClientImpl(() -> createCommandTopicKafkaTopicClient(restConfig, ksqlConfig)),
+        internalKafkaTopicClient,
         commandTopicName,
         metricCollectors.getMetrics()
     );
@@ -981,7 +986,9 @@ public final class KsqlRestApplication implements Executable {
         scalablePushQueryMetrics,
         localCommands,
         queryExecutor,
-        metricCollectors
+        metricCollectors,
+        internalKafkaTopicClient,
+        internalAdmin
     );
   }
 
@@ -1060,11 +1067,11 @@ public final class KsqlRestApplication implements Executable {
   private void registerCommandTopic() {
 
     final String commandTopic = commandStore.getCommandTopicName();
-    KafkaTopicClient topicClient = new KafkaTopicClientImpl(() -> createCommandTopicKafkaTopicClient(restConfig, ksqlConfigNoPort));
+    //KafkaTopicClient topicClient = createCommandTopicKafkaTopicClient(restConfig, ksqlConfigNoPort);
 
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
         commandTopic,
-        topicClient,
+        internalTopicClient,
         ksqlConfigNoPort)) {
       log.warn("Command topic is not found and it is not in sync with backup. "
           + "Use backup to recover the command topic.");
@@ -1074,7 +1081,7 @@ public final class KsqlRestApplication implements Executable {
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,
         ksqlConfigNoPort,
-        topicClient
+        internalTopicClient
     );
   }
 
@@ -1251,8 +1258,11 @@ public final class KsqlRestApplication implements Executable {
     }
     return metricsOptions;
   }
-  
-  private static Admin createCommandTopicKafkaTopicClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
+
+  private static KafkaTopicClient createCommandTopicKafkaTopicClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
+    return new KafkaTopicClientImpl(() -> createCommandTopicAdminClient(ksqlRestConfig, ksqlConfig));
+  }
+    private static Admin createCommandTopicAdminClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
     final Map<String, Object> commandTopicProducerConfigs =
       ksqlRestConfig.getCommandProducerProperties();
     System.out.println("command topic producer configs here leah1" + commandTopicProducerConfigs);

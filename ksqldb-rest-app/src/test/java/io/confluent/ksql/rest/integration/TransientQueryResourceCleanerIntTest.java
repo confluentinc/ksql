@@ -54,7 +54,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.lang.String.format;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -92,7 +94,7 @@ public class TransientQueryResourceCleanerIntTest {
             .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS, 10)
 
             // configure time period for the cleanup service to be low for testing purpose
-            .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS, 2)
+            .withProperty(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS, 1)
             .build();
 
     private static String stateDir;
@@ -105,7 +107,7 @@ public class TransientQueryResourceCleanerIntTest {
             .around(REST_APP_0);
 
     @Rule
-    public final Timeout timeout = Timeout.seconds(120);
+    public final Timeout timeout = Timeout.seconds(180);
 
     private ExecutorService service;
     private Runnable backgroundTask;
@@ -182,33 +184,30 @@ public class TransientQueryResourceCleanerIntTest {
                 "terminate " + transientQueryId + ";"
         );
 
-        // Give some time for the natural onClose() cleanup to take effect
-        Thread.sleep(1000);
-
-        Set<String> remainingTopics = TEST_HARNESS.getKafkaCluster().getTopics();
-
-        // Transient topics should have been cleaned up; only persistent ones left
-        assertEquals(numPersistentTopics, remainingTopics.size());
+        // Eventually, transient topics should have been cleaned up; only persistent ones left
+        assertThatEventually(
+                () -> TEST_HARNESS.getKafkaCluster().getTopics().size(),
+                is(numPersistentTopics));
 
         // simulate "leaking" transient topics from the query we terminated
         // by recreating them
         TEST_HARNESS.ensureTopics(transientTopics.get(0), transientTopics.get(1));
 
         // ensure that the topics have been created ("leaked")
-        assertEquals(numPersistentTopics + numTransientTopics,
-                TEST_HARNESS.getKafkaCluster().getTopics().size());
-
-        // When:
-        // pause for a bit for the `TransientQueryCleanupService`
-        // to clean up the leaked topics
-        Thread.sleep(12000);
+        assertThatEventually(
+                () -> TEST_HARNESS.getKafkaCluster().getTopics().size(),
+                is(numPersistentTopics + numTransientTopics));
 
         // Then:
-        // only the persistent topics are left and the transient topics have been cleaned up
-        assertEquals(numPersistentTopics, TEST_HARNESS.getKafkaCluster().getTopics().size());
-        assertEquals(0,
-                TEST_HARNESS.getKafkaCluster().getTopics().stream()
-                .filter(t -> t.contains("transient")).count());
+        // Eventually, only the persistent topics are left and the transient topics have been cleaned up
+        assertThatEventually(
+                () -> TEST_HARNESS.getKafkaCluster().getTopics().size(),
+                is(numPersistentTopics));
+
+        assertThatEventually(
+                () -> TEST_HARNESS.getKafkaCluster().getTopics().stream()
+                .filter(t -> t.contains("transient")).count(),
+                is(0L));
     }
 
     @Test
@@ -229,28 +228,27 @@ public class TransientQueryResourceCleanerIntTest {
                 "terminate " + transientQueryId + ";"
         );
 
-        // Give some time for the natural onClose() cleanup to take effect
-        Thread.sleep(1000);
-
         // state file should be cleaned up
-        assertEquals(0, Objects.requireNonNull(stateFolder.listFiles()).length);
+        assertThatEventually(
+                () -> Objects.requireNonNull(stateFolder.listFiles()).length,
+                is(0));
 
         // simulate "leaking" state file from the query we terminated
         // by recreating the state of the killed transient query
         assertTrue(leakedStateDir.createNewFile());
 
         // state file has been "leaked"
-        assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
+        assertThatEventually(
+                () -> Objects.requireNonNull(stateFolder.listFiles()).length,
+                is(1));
+
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
 
-        // When:
-        // pause for a bit for the `TransientQueryCleanupService`
-        // to clean up the leaked state files
-        Thread.sleep(12000);
-
         // Then:
-        // the leaked state files have been cleaned up
-        assertEquals(0, Objects.requireNonNull(stateFolder.listFiles()).length);
+        // Eventually, the leaked state files have been cleaned up
+        assertThatEventually(
+                () -> Objects.requireNonNull(stateFolder.listFiles()).length,
+                is(0));
     }
 
     @Test
@@ -270,11 +268,6 @@ public class TransientQueryResourceCleanerIntTest {
         assertEquals(numTransientTopics, transientTopics.size());
         assertTrue(transientTopics.get(0).contains(transientQueryId));
         assertTrue(transientTopics.get(1).contains(transientQueryId));
-
-        // When:
-        // pause for a bit for the `TransientQueryCleanupService`
-        // to run a few times
-        Thread.sleep(12000);
 
         // Then:
         // transient topics have not been accidentally cleaned up

@@ -1,0 +1,34 @@
+diff --git a/pom.xml b/pom.xml
+index 1022cda..971fd4b 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -36,4 +36,16 @@
+         <tag>HEAD</tag>
+     </scm>
++    <distributionManagement>
++        <repository>
++            <id>aws-release</id>
++            <name>AWS Release Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </repository>
++        <snapshotRepository>
++            <id>aws-snapshot</id>
++            <name>AWS Snapshot Repository</name>
++            <url>s3://staging-ksqldb-maven/maven</url>
++        </snapshotRepository>
++    </distributionManagement>
+
+     <modules>
+@@ -129,5 +129,12 @@
+     </dependencyManagement>
+
+     <build>
++        <extensions>
++            <extension>
++                <groupId>org.springframework.build</groupId>
++                <artifactId>aws-maven</artifactId>
++                <version>5.0.0.RELEASE</version>
++            </extension>
++        </extensions>
+         <pluginManagement>
+             <plugins>

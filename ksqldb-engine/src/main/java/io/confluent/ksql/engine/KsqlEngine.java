@@ -394,7 +394,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .executeStreamPullQuery(statement, excludeTombstones, endOffsets);
 
     QueryLogger.info(
-        "Streaming stream pull query results '{}'",
+        "Streaming stream pull query results '{}' from earliest to " + endOffsets,
         statement.getStatementText()
     );
 
@@ -454,16 +454,61 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         new ListOffsetsOptions(IsolationLevel.READ_UNCOMMITTED)
     );
 
+    final ImmutableMap<TopicPartition, Long> startOffsetsForStreamPullQuery =
+        getStartOffsetsForStreamPullQuery(admin, topicDescription);
+
     try {
       final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
           listOffsetsResult.all().get(10, TimeUnit.SECONDS);
       final Map<TopicPartition, Long> result = partitionResultMap
           .entrySet()
           .stream()
-          // special case where we expect no work at all on the partition, so we don't even
+          // Special case where we expect no work at all on the partition, so we don't even
           // need to check the committed offset (if we did, we'd potentially wait forever,
           // since Streams won't commit anything for an empty topic).
-          .filter(e -> e.getValue().offset() > 0L)
+          // Specifically, streams will never poll a record and will therefore do no work
+          // for a partition when the partition is empty, either because it has never had
+          // a record (end offset of 0), or because the log cleaner deleted all the records
+          // (start offsets == end offsets).
+          .filter(e -> e.getValue().offset() > 0L
+              && e.getValue().offset() > startOffsetsForStreamPullQuery.get(e.getKey()))
+          .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
+      return ImmutableMap.copyOf(result);
+    } catch (final InterruptedException e) {
+      log.error("Admin#listOffsets(" + topicDescription.name() + ") interrupted", e);
+      throw new KsqlServerException("Interrupted");
+    } catch (final ExecutionException e) {
+      log.error("Error executing Admin#listOffsets(" + topicDescription.name() + ")", e);
+      throw new KsqlServerException("Internal Server Error");
+    } catch (final TimeoutException e) {
+      log.error("Admin#listOffsets(" + topicDescription.name() + ") timed out", e);
+      throw new KsqlServerException("Backend timed out");
+    }
+  }
+
+  private ImmutableMap<TopicPartition, Long> getStartOffsetsForStreamPullQuery(
+      final Admin admin,
+      final TopicDescription topicDescription) {
+    final Map<TopicPartition, OffsetSpec> topicPartitions =
+        topicDescription
+            .partitions()
+            .stream()
+            .map(td -> new TopicPartition(topicDescription.name(), td.partition()))
+            .collect(toMap(identity(), tp -> OffsetSpec.earliest()));
+
+    final ListOffsetsResult listOffsetsResult = admin.listOffsets(
+        topicPartitions,
+        // Since stream pull queries are always ALOS, it will read uncommitted,
+        // so we should do the same when checking end offsets.
+        new ListOffsetsOptions(IsolationLevel.READ_UNCOMMITTED)
+    );
+
+    try {
+      final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
+          listOffsetsResult.all().get(10, TimeUnit.SECONDS);
+      final Map<TopicPartition, Long> result = partitionResultMap
+          .entrySet()
+          .stream()
           .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
       return ImmutableMap.copyOf(result);
     } catch (final InterruptedException e) {

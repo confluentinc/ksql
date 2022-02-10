@@ -45,7 +45,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(
-    name = "EARLIEST_BY_OFFSET",
+    name = "EARLIEST_BY_OFFSET_OLD",
     description = EarliestByOffset.DESCRIPTION,
     author = KsqlConstants.CONFLUENT_AUTHOR
 )

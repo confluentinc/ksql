@@ -34,6 +34,7 @@ public final class CommandStoreUtil {
       final KsqlRequest request,
       final Duration timeout
   ) {
+    System.out.println("thread name httpWaitForCommandSequenceNumber " + Thread.currentThread().getName());
     try {
       waitForCommandSequenceNumber(commandQueue, request, timeout);
     } catch (final InterruptedException e) {
@@ -56,6 +57,7 @@ public final class CommandStoreUtil {
       final KsqlRequest request,
       final Duration timeout
   ) throws InterruptedException, TimeoutException {
+    System.out.println("thread name waitForCommandSequenceNumber " + Thread.currentThread().getName());
     final Optional<Long> commandSequenceNumber = request.getCommandSequenceNumber();
     if (commandSequenceNumber.isPresent()) {
       final long seqNum = commandSequenceNumber.get();

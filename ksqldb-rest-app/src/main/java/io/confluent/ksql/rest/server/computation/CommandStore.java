@@ -364,6 +364,7 @@ public class CommandStore implements CommandQueue, Closeable {
 
   @Override
   public boolean isEmpty() {
+    System.out.println("thread name isEmpty " + Thread.currentThread().getName());
     return commandTopic.getEndOffset() == 0;
   }
 

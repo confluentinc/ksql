@@ -20,8 +20,11 @@ import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST
 import io.confluent.ksql.rest.Errors;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SniHandler implements Handler<RoutingContext> {
+  private static final Logger log = LoggerFactory.getLogger(SniHandler.class);
 
   public SniHandler() {
   }
@@ -36,6 +39,11 @@ public class SniHandler implements Handler<RoutingContext> {
         // sometimes the port is present in the host header, remove it
         final String requestHostNoPort = requestHost.replaceFirst(":\\d+", "");
         if (!requestHostNoPort.equals(indicatedServerName)) {
+          log.error(String.format(
+              "Sni check failed, host header: %s, sni value %s",
+              requestHostNoPort,
+              indicatedServerName)
+          );
           routingContext.fail(MISDIRECTED_REQUEST.code(),
               new KsqlApiException("This request was incorrectly sent to this ksqlDB server",
                   Errors.ERROR_CODE_MISDIRECTED_REQUEST));

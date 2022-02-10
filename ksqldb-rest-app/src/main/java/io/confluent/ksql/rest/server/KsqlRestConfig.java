@@ -393,7 +393,8 @@ public class KsqlRestConfig extends AbstractConfig {
 
   private static final String KSQL_SERVER_SNI_CHECK_ENABLE_DOC =
       "Whether or not to check the SNI against the Host header. If the values don't match, "
-          + "returns a 421 mis-directed response";
+          + "returns a 421 mis-directed response. (NOTE: this check should not be enabled if "
+          + "ksqlDB servers have mutual TLS enabled)";
 
   private static final ConfigDef CONFIG_DEF;
 

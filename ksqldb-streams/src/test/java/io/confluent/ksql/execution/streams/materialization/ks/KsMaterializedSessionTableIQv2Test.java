@@ -138,7 +138,7 @@ public class KsMaterializedSessionTableIQv2Test {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
     );
 
     // Then:
@@ -156,7 +156,7 @@ public class KsMaterializedSessionTableIQv2Test {
     // When:
     final Exception e = assertThrows(
       MaterializationException.class,
-      () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+      () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
     );
 
     // Then:
@@ -177,7 +177,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, startBounds, Range.all());
+        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -197,7 +197,7 @@ public class KsMaterializedSessionTableIQv2Test {
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
 
     // Then:
     verify(fetchIterator).close();
@@ -206,8 +206,9 @@ public class KsMaterializedSessionTableIQv2Test {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
+    final Iterator<WindowedRow> rowIterator = table.get(
+        A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+            .rowIterator;
 
     // Then:
     
@@ -220,8 +221,8 @@ public class KsMaterializedSessionTableIQv2Test {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.minusMillis(1));
 
     // When:
-    final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
+    final Iterator<WindowedRow> rowIterator = table.get(
+        A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -233,8 +234,8 @@ public class KsMaterializedSessionTableIQv2Test {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
+    final Iterator<WindowedRow> rowIterator = table.get(
+        A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -252,7 +253,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
+        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -271,7 +272,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, startBounds, Range.all());
+        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -300,7 +301,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
+        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -314,7 +315,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all());
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all(), Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -344,7 +345,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds);
+        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -373,7 +374,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -392,7 +393,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds);
+        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -421,7 +422,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -436,7 +437,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS);
+        table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS, Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -465,7 +466,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();
@@ -497,7 +498,7 @@ public class KsMaterializedSessionTableIQv2Test {
 
     // When:
     final KsMaterializedQueryResult<WindowedRow> result =
-        table.get(A_KEY, PARTITION, Range.all(), Range.all());
+        table.get(A_KEY, PARTITION, Range.all(), Range.all(), Optional.empty());
 
     // Then:
     final Iterator<WindowedRow> rowIterator = result.getRowIterator();

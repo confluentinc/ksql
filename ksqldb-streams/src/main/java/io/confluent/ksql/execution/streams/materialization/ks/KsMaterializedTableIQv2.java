@@ -28,7 +28,11 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Optional;
+import org.apache.kafka.streams.query.FailureReason;
 import org.apache.kafka.streams.query.KeyQuery;
+import org.apache.kafka.streams.query.Position;
+import org.apache.kafka.streams.query.PositionBound;
 import org.apache.kafka.streams.query.QueryResult;
 import org.apache.kafka.streams.query.RangeQuery;
 import org.apache.kafka.streams.query.StateQueryRequest;
@@ -55,9 +59,11 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
           request = inStore(stateStore.getStateStoreName())
           .withQuery(query)
           .withPartitions(ImmutableSet.of(partition));
+      if (position.isPresent()) {
+        request = request.withPositionBound(PositionBound.at(position.get()));
+      }
       final StateQueryResult<ValueAndTimestamp<GenericRow>>
           result = stateStore.getKafkaStreams().query(request);
-
       final QueryResult<ValueAndTimestamp<GenericRow>> queryResult =
           result.getPartitionResults().get(partition);
       // Some of these failures are retriable, and in the future, we may want to retry
@@ -74,7 +80,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
                 .iterator(),
             queryResult.getPosition());
       }
-    } catch (MaterializationException e) {
+    } catch (NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -82,13 +88,19 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
   }
 
   @Override
-  public KsMaterializedQueryResult<Row> get(final int partition) {
+  public KsMaterializedQueryResult<Row> get(
+      final int partition,
+      final Optional<Position> position
+  ) {
     try {
       final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query = RangeQuery.withNoBounds();
-      final StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
+      StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           request = inStore(stateStore.getStateStoreName())
           .withQuery(query)
           .withPartitions(ImmutableSet.of(partition));
+      if (position.isPresent()) {
+        request = request.withPositionBound(PositionBound.at(position.get()));
+      }
       final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           result = stateStore.getKafkaStreams().query(request);
 
@@ -110,7 +122,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
             result.getPosition()
         );
       }
-    } catch (MaterializationException e) {
+    } catch (NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
@@ -120,7 +132,11 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public KsMaterializedQueryResult<Row> get(
-      final int partition, final GenericKey from, final GenericKey to) {
+      final int partition,
+      final GenericKey from,
+      final GenericKey to,
+      final Optional<Position> position
+  ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     try {
       final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query;
@@ -134,10 +150,13 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         query = RangeQuery.withNoBounds();
       }
 
-      final StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
+      StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           request = inStore(stateStore.getStateStoreName())
           .withQuery(query)
           .withPartitions(ImmutableSet.of(partition));
+      if (position.isPresent()) {
+        request = request.withPositionBound(PositionBound.at(position.get()));
+      }
       final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
           result = stateStore.getKafkaStreams().query(request);
 
@@ -159,19 +178,22 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
             result.getPosition()
         );
       }
-    } catch (MaterializationException e) {
+    } catch (NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);
     }
   }
 
-  private MaterializationException failedQueryException(final QueryResult<?> queryResult) {
-    return new MaterializationException(
-        "Failed to get value from materialized table: "
-            + queryResult.getFailureReason() + ": "
-            + queryResult.getFailureMessage()
-    );
+  private Exception failedQueryException(final QueryResult<?> queryResult) {
+    final String message = "Failed to get value from materialized table: "
+        + queryResult.getFailureReason() + ": " + queryResult.getFailureMessage();
+
+    if (queryResult.getFailureReason().equals(FailureReason.NOT_UP_TO_BOUND)) {
+      return new NotUpToBoundException(message);
+    } else {
+      return new MaterializationException(message);
+    }
   }
 
 }

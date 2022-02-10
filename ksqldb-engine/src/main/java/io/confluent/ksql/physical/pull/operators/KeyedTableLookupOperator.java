@@ -35,7 +35,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.query.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,14 +129,20 @@ public class KeyedTableLookupOperator
       //and filtering is used to trim start and end of the range in case of ">"
       final GenericKey fromKey = keyConstraintKey.getKey();
       final GenericKey toKey = null;
-      result =  mat.nonWindowed().get(nextLocation.getPartition(), fromKey, toKey);
+      result =  mat
+          .nonWindowed()
+          .get(nextLocation.getPartition(), fromKey, toKey, consistencyOffsetVector)
+          .getRowIterator();
     } else if (keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN
         || keyConstraintKey.getOperator() == ConstraintOperator.LESS_THAN_OR_EQUAL) {
       //Underlying store will always return keys inclusive the endpoints
       //and filtering is used to trim start and end of the range in case of "<"
       final GenericKey fromKey = null;
       final GenericKey toKey = keyConstraintKey.getKey();
-      result =  mat.nonWindowed().get(nextLocation.getPartition(), fromKey, toKey);
+      result =  mat
+          .nonWindowed()
+          .get(nextLocation.getPartition(), fromKey, toKey, consistencyOffsetVector)
+          .getRowIterator();
     } else {
       throw new IllegalStateException(String.format("Invalid comparator type "
         + keyConstraintKey.getOperator()));

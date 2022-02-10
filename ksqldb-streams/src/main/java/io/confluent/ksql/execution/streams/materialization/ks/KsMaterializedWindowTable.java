@@ -23,6 +23,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
@@ -31,9 +32,11 @@ import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import org.apache.kafka.streams.query.Position;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
@@ -43,7 +46,7 @@ import org.apache.kafka.streams.state.WindowStoreIterator;
 /**
  * Kafka Streams impl of {@link MaterializedWindowedTable}.
  */
-class KsMaterializedWindowTable implements MaterializedWindowedTable {
+class KsMaterializedWindowTable implements StreamsMaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final Duration windowSize;
@@ -69,7 +72,8 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
       final GenericKey key,
       final int partition,
       final Range<Instant> windowStartBounds,
-      final Range<Instant> windowEndBounds
+      final Range<Instant> windowEndBounds,
+      final Optional<Position> position
   ) {
     try {
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
@@ -120,7 +124,9 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   public KsMaterializedQueryResult<WindowedRow> get(
       final int partition,
       final Range<Instant> windowStartBounds,
-      final Range<Instant> windowEndBounds) {
+      final Range<Instant> windowEndBounds,
+      final Optional<Position> position
+  ) {
     try {
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedWindowStore(), partition);

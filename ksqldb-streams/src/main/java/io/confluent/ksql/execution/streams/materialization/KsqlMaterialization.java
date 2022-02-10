@@ -159,117 +159,115 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public KsMaterializedQueryResult<Row> get(final int partition) {
+    public KsqlMaterializedQueryResult<Row> get(
+        final int partition,
+        final Optional<ConsistencyOffsetVector> consistencyVector
+    ) {
+      final Optional<Position> position = consistencyVector
+          .map(offsetVector -> Position.fromMap(offsetVector.getOffsetVector()));
+      final KsMaterializedQueryResult<Row> result = table.get(partition, position);
+      updateConsistencyVector(consistencyVector, result.getPosition());
+
       if (transforms.isEmpty()) {
-        return table.get(partition);
-      }
-
-      final KsMaterializedQueryResult<Row> result = table.get(partition);
-
-      final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
-          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
-              .map(v -> row.withValue(v, schema())))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .iterator();
-
-      if (result.getPosition().isPresent()) {
-        return KsMaterializedQueryResult.rowIteratorWithPosition(
-            iterator, result.getPosition().get());
+        return KsqlMaterializedQueryResult.rowIterator(result.getRowIterator());
       } else {
-        return KsMaterializedQueryResult.rowIterator(iterator);
+        final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
+            .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+                .map(v -> row.withValue(v, schema())))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .iterator();
+        return KsqlMaterializedQueryResult.rowIterator(iterator);
       }
     }
 
     @Override
-    public KsMaterializedQueryResult<Row> get(
-        final int partition, final GenericKey from, final GenericKey to
+    public KsqlMaterializedQueryResult<Row> get(
+        final int partition,
+        final GenericKey from,
+        final GenericKey to,
+        final Optional<ConsistencyOffsetVector> consistencyVector
     ) {
+      final Optional<Position> position = consistencyVector
+          .map(offsetVector -> Position.fromMap(offsetVector.getOffsetVector()));
+      final KsMaterializedQueryResult<Row> result = table.get(partition, from, to, position);
+      updateConsistencyVector(consistencyVector, result.getPosition());
+
       if (transforms.isEmpty()) {
-        return table.get(partition, from, to);
-      }
-
-      final KsMaterializedQueryResult<Row> result = table.get(partition, from, to);
-
-      final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
-          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
-              .map(v -> row.withValue(v, schema())))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .iterator();
-
-      if (result.getPosition().isPresent()) {
-        return KsMaterializedQueryResult.rowIteratorWithPosition(
-            iterator, result.getPosition().get());
+        return KsqlMaterializedQueryResult.rowIterator(result.getRowIterator());
       } else {
-        return KsMaterializedQueryResult.rowIterator(iterator);
+        final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
+            .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+                .map(v -> row.withValue(v, schema())))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .iterator();
+        return KsqlMaterializedQueryResult.rowIterator(iterator);
       }
     }
   }
 
   final class KsqlMaterializedWindowedTable implements MaterializedWindowedTable {
 
-    private final MaterializedWindowedTable table;
+    private final StreamsMaterializedWindowedTable table;
 
-    KsqlMaterializedWindowedTable(final MaterializedWindowedTable table) {
+    KsqlMaterializedWindowedTable(final StreamsMaterializedWindowedTable table) {
       this.table = requireNonNull(table, "table'");
     }
 
     @Override
-    public KsMaterializedQueryResult<WindowedRow> get(
+    public KsqlMaterializedQueryResult<WindowedRow> get(
         final GenericKey key,
         final int partition,
         final Range<Instant> windowStart,
-        final Range<Instant> windowEnd
+        final Range<Instant> windowEnd,
+        final Optional<ConsistencyOffsetVector> consistencyVector
     ) {
-      if (transforms.isEmpty()) {
-        return table.get(key, partition, windowStart, windowEnd);
-      }
-
+      final Optional<Position> position = consistencyVector
+          .map(offsetVector -> Position.fromMap(offsetVector.getOffsetVector()));
       final KsMaterializedQueryResult<WindowedRow> result = table.get(
-          key, partition, windowStart, windowEnd);
+          key, partition, windowStart, windowEnd, position);
+      updateConsistencyVector(consistencyVector, result.getPosition());
 
-      final Builder<WindowedRow> builder = ImmutableList.builder();
-
-      while (result.getRowIterator().hasNext()) {
-        final WindowedRow row = result.getRowIterator().next();
-        filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
-            .ifPresent(v -> builder.add(row.withValue(v, schema())));
-      }
-
-      if (result.getPosition().isPresent()) {
-        return KsMaterializedQueryResult.rowIteratorWithPosition(
-            builder.build().iterator(), result.getPosition().get());
+      if (transforms.isEmpty()) {
+        return KsqlMaterializedQueryResult.rowIterator(result.getRowIterator());
       } else {
-        return KsMaterializedQueryResult.rowIterator(builder.build().iterator());
+        final Builder<WindowedRow> builder = ImmutableList.builder();
+
+        while (result.getRowIterator().hasNext()) {
+          final WindowedRow row = result.getRowIterator().next();
+          filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
+              .ifPresent(v -> builder.add(row.withValue(v, schema())));
+        }
+        return KsqlMaterializedQueryResult.rowIterator(builder.build().iterator());
       }
     }
 
     @Override
-    public KsMaterializedQueryResult<WindowedRow> get(
+    public KsqlMaterializedQueryResult<WindowedRow> get(
         final int partition,
         final Range<Instant> windowStartBounds,
-        final Range<Instant> windowEndBounds
+        final Range<Instant> windowEndBounds,
+        final Optional<ConsistencyOffsetVector> consistencyVector
     ) {
-      if (transforms.isEmpty()) {
-        return table.get(partition, windowStartBounds, windowEndBounds);
-      }
-
+      final Optional<Position> position = consistencyVector
+          .map(offsetVector -> Position.fromMap(offsetVector.getOffsetVector()));
       final KsMaterializedQueryResult<WindowedRow> result = table.get(
-          partition, windowStartBounds, windowEndBounds);
+          partition, windowStartBounds, windowEndBounds, position);
+      updateConsistencyVector(consistencyVector, result.getPosition());
 
-      final Iterator<WindowedRow> iterator = Streams.stream(result.getRowIterator())
-          .map(row -> filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())
-              .map(v -> row.withValue(v, schema())))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .iterator();
-
-      if (result.getPosition().isPresent()) {
-        return KsMaterializedQueryResult.rowIteratorWithPosition(
-            iterator, result.getPosition().get());
+      if (transforms.isEmpty()) {
+        return KsqlMaterializedQueryResult.rowIterator(result.getRowIterator());
       } else {
-        return KsMaterializedQueryResult.rowIterator(iterator);
+        final Iterator<WindowedRow> iterator = Streams.stream(result.getRowIterator())
+            .map(row -> filterAndTransform(row.windowedKey(),
+                                           getIntermediateRow(row),
+                                           row.rowTime())
+                .map(v -> row.withValue(v, schema())))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .iterator();
+        return KsqlMaterializedQueryResult.rowIterator(iterator);
       }
     }
   }

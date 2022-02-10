@@ -25,16 +25,20 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import org.apache.kafka.streams.query.Position;
+import org.apache.kafka.streams.query.PositionBound;
 import org.apache.kafka.streams.query.QueryResult;
 import org.apache.kafka.streams.query.StateQueryRequest;
 import org.apache.kafka.streams.query.StateQueryResult;
@@ -47,7 +51,7 @@ import org.apache.kafka.streams.state.WindowStoreIterator;
 /**
  * Kafka Streams impl of {@link MaterializedWindowedTable}.
  */
-class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
+class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final Duration windowSize;
@@ -62,16 +66,20 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
       final GenericKey key,
       final int partition,
       final Range<Instant> windowStartBounds,
-      final Range<Instant> windowEndBounds
+      final Range<Instant> windowEndBounds,
+      final Optional<Position> position
   ) {
     try {
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
       final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
       final WindowKeyQuery<GenericKey, ValueAndTimestamp<GenericRow>> query =
           WindowKeyQuery.withKeyAndWindowStartRange(key, lower, upper);
-      final StateQueryRequest<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> request =
+      StateQueryRequest<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> request =
           inStore(stateStore.getStateStoreName()).withQuery(query);
-      final KafkaStreams streams = stateStore.getKafkaStreams();;
+      if (position.isPresent()) {
+        request = request.withPositionBound(PositionBound.at(position.get()));
+      }
+      final KafkaStreams streams = stateStore.getKafkaStreams();
       final StateQueryResult<WindowStoreIterator<ValueAndTimestamp<GenericRow>>> result =
           streams.query(request);
 
@@ -119,7 +127,7 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
         }
 
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            builder.build().iterator(), queryResult.getPosition());
+            builder.build().iterator(), result.getPosition());
       }
     } catch (final MaterializationException e) {
       throw e;
@@ -131,15 +139,20 @@ class KsMaterializedWindowTableIQv2 implements MaterializedWindowedTable {
   public KsMaterializedQueryResult<WindowedRow> get(
       final int partition,
       final Range<Instant> windowStartBounds,
-      final Range<Instant> windowEndBounds) {
+      final Range<Instant> windowEndBounds,
+      final Optional<Position> position
+  ) {
     try {
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);
       final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
 
       final WindowRangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query =
           WindowRangeQuery.withWindowStartRange(lower, upper);
-      final StateQueryRequest<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>>
+      StateQueryRequest<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>>
           request = inStore(stateStore.getStateStoreName()).withQuery(query);
+      if (position.isPresent()) {
+        request = request.withPositionBound(PositionBound.at(position.get()));
+      }
       final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>>
           result = stateStore.getKafkaStreams().query(request);
 

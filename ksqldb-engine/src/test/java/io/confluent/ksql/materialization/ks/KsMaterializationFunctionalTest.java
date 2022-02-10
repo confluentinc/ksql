@@ -318,7 +318,7 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.singleton(w.start()), Range.all()).getRowIterator()));
+              table.get(key, PARTITION, Range.singleton(w.start()), Range.all(), Optional.empty()).getRowIterator()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -328,18 +328,18 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowEnd =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.all(), Range.singleton(w.end())).getRowIterator()));
+              table.get(key, PARTITION, Range.all(), Range.singleton(w.end()), Optional.empty()).getRowIterator()));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator())));
+              Range.all(), Optional.empty()).getRowIterator())));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all(), Optional.empty()).getRowIterator()));
       assertThat("past start", resultPast, is(empty())
       );
     });
@@ -375,7 +375,7 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.singleton(w.start()), Range.all()).getRowIterator()));
+              table.get(key, PARTITION, Range.singleton(w.start()), Range.all(), Optional.empty()).getRowIterator()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -385,18 +385,18 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowEnd =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.all(), Range.singleton(w.end())).getRowIterator()));
+              table.get(key, PARTITION, Range.all(), Range.singleton(w.end()), Optional.empty()).getRowIterator()));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> Lists.newArrayList(
           table.get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all(), Optional.empty()).getRowIterator()));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all(), Optional.empty()).getRowIterator()));
 
       assertThat("past start", resultPast, is(empty()));
     });
@@ -431,7 +431,7 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.singleton(w.start())
-              , Range.all()).getRowIterator()));
+              , Range.all(), Optional.empty()).getRowIterator()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -440,18 +440,18 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
       final List<WindowedRow> resultAtWindowEnd =
-          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.all(),
-                                                       Range.singleton(w.end())).getRowIterator()));
+          withRetry(() -> Lists.newArrayList(table.get(
+              key, PARTITION, Range.all(), Range.singleton(w.end()), Optional.empty()).getRowIterator()));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all(), Optional.empty()).getRowIterator()));
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all(), Optional.empty()).getRowIterator()));
       assertThat("past start", resultPast, is(empty()));
     });
   }
@@ -683,7 +683,7 @@ public class KsMaterializationFunctionalTest {
     rows.forEach(record -> {
       final GenericKey key = genericKey(record.key().key());
       final List<WindowedRow> resultAtWindowStart =
-          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.all(), Range.all()).getRowIterator()));
+          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.all(), Range.all(), Optional.empty()).getRowIterator()));
 
       assertThat("Should have fewer windows retained",
           resultAtWindowStart,

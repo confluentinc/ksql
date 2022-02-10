@@ -20,7 +20,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -32,7 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import org.apache.kafka.streams.query.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,7 +72,8 @@ public class TableScanOperator extends AbstractPhysicalOperator
       if (nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table scans should not be done with keys");
       }
-      updateIteratorAndPosition();
+      resultIterator = mat.nonWindowed()
+          .get(nextLocation.getPartition(), consistencyOffsetVector).getRowIterator();
     }
   }
 
@@ -95,7 +94,8 @@ public class TableScanOperator extends AbstractPhysicalOperator
       if (nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table scans should not be done with keys");
       }
-      updateIteratorAndPosition();
+      resultIterator = mat.nonWindowed()
+          .get(nextLocation.getPartition(), consistencyOffsetVector).getRowIterator();
     }
 
     returnedRows++;
@@ -157,15 +157,5 @@ public class TableScanOperator extends AbstractPhysicalOperator
   @Override
   public long getReturnedRowCount() {
     return returnedRows;
-  }
-
-  private void updateIteratorAndPosition() {
-    final KsMaterializedQueryResult<Row> result = mat.nonWindowed()
-        .get(nextLocation.getPartition());
-    resultIterator = result.getRowIterator();
-    final Optional<Position> position = result.getPosition();
-    if (position.isPresent() && consistencyOffsetVector.isPresent()) {
-      consistencyOffsetVector.get().updateFromPosition(position.get());
-    }
   }
 }

@@ -63,7 +63,10 @@ class KsMaterializedTable implements MaterializedTable {
   }
 
   @Override
-  public KsMaterializedQueryResult<Row> get(final int partition) {
+  public KsMaterializedQueryResult<Row> get(
+      final int partition,
+      final Optional<Position> position
+  ) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
@@ -82,7 +85,11 @@ class KsMaterializedTable implements MaterializedTable {
 
   @Override
   public KsMaterializedQueryResult<Row> get(
-      final int partition, final GenericKey from, final GenericKey to) {
+      final int partition,
+      final GenericKey from,
+      final GenericKey to,
+      final Optional<Position> position
+  ) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);

@@ -122,6 +122,10 @@ public class BackupReplayFileTest {
   }
 
   @Test
+  @SuppressFBWarnings(
+      value = "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE",
+      justification = "stream is closed by consumer of mock (BackupReplayFile)"
+  )
   public void shouldPreserveBackupOnWriteFailure() throws IOException {
     // Given
     final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");

@@ -20,7 +20,6 @@ import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.engine.TransientQueryCleanupService;
 import io.confluent.ksql.engine.TransientQueryCleanupService.TransientQueryStateCleanupTask;
 import io.confluent.ksql.engine.TransientQueryCleanupService.TransientQueryTopicCleanupTask;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryMetadata;
@@ -52,15 +51,6 @@ public class TransientQueryCleanupListener implements QueryEventListener {
   }
 
   @Override
-  public void onCreate(final ServiceContext serviceContext,
-                     final MetaStore metaStore,
-                     final QueryMetadata queryMetadata) {
-    if (queryMetadata instanceof TransientQueryMetadata) {
-      cleanupService.recordTransientQueryOnStart((TransientQueryMetadata) queryMetadata);
-    }
-  }
-
-  @Override
   public void onClose(
           final QueryMetadata query
   ) {
@@ -79,8 +69,8 @@ public class TransientQueryCleanupListener implements QueryEventListener {
                 stateDir
         );
 
-        cleanupService.addCleanupTask(topicTask);
-        cleanupService.addCleanupTask(stateTask);
+        cleanupService.addTopicCleanupTask(topicTask);
+        cleanupService.addStateCleanupTask(stateTask);
       } else {
         log.info("Skipping cleanup for query {} since it was never started", applicationId);
       }

@@ -196,6 +196,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     cleanupService.startAsync();
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE)) {
+      this.transientQueryCleanupService
+              .setQueryRegistry(this.primaryContext.getQueryRegistry());
       this.transientQueryCleanupService.startAsync();
     }
   }

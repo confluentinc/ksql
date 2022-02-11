@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.integration;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.logging.query.TestAppender;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -38,6 +39,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.Logger;
 import org.codehaus.plexus.util.FileUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -51,19 +53,19 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.lang.String.format;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class TransientQueryResourceCleanerIntTest {
-    private static final Logger LOG = LoggerFactory.getLogger(TransientQueryResourceCleanerIntTest.class);
     private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
     private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
     private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
@@ -116,8 +118,15 @@ public class TransientQueryResourceCleanerIntTest {
     private Runnable backgroundTask;
     private boolean requestCompleted = false;
 
+    private TestAppender appender;
+    private Logger logger;
+
     @Before
     public void setUp() throws IOException, InterruptedException {
+        appender = new TestAppender();
+        logger = Logger.getRootLogger();
+        logger.addAppender(appender);
+
         FileUtils.cleanDirectory(stateDir);
 
         service = Executors.newFixedThreadPool(1);
@@ -169,7 +178,6 @@ public class TransientQueryResourceCleanerIntTest {
         Set<String> allTopics = TEST_HARNESS.getKafkaCluster().getTopics();
 
         // Should have the transient and persistent topics
-        LOG.warn(String.valueOf(allTopics));
         assertEquals(numPersistentTopics + numTransientTopics, allTopics.size());
 
         List<String> transientTopics = allTopics.stream()
@@ -209,6 +217,18 @@ public class TransientQueryResourceCleanerIntTest {
                 () -> TEST_HARNESS.getKafkaCluster().getTopics().stream()
                 .filter(t -> t.contains("transient")).count(),
                 is(0L));
+
+        final Set<String> logMessages = appender.getLog()
+                .stream().map(log -> log.getMessage().toString())
+                .collect(Collectors.toSet());
+
+        assertTrue(
+                logMessages.contains(
+                        transientTopics.get(0) + " topic seems to have leaked. Adding it to the cleanup queue."));
+
+        assertTrue(
+                logMessages.contains(
+                        transientTopics.get(1) + " topic seems to have leaked. Adding it to the cleanup queue."));
     }
 
     @Test
@@ -250,6 +270,14 @@ public class TransientQueryResourceCleanerIntTest {
         assertThatEventually(
                 () -> Objects.requireNonNull(stateFolder.listFiles()).length,
                 is(0));
+
+        final Set<String> logMessages = appender.getLog()
+                .stream().map(log -> log.getMessage().toString())
+                .collect(Collectors.toSet());
+
+        assertTrue(
+                logMessages.contains(
+                        leakedStateDir.getName() + " seems to be a leaked state directory. Adding it to the cleanup queue."));
     }
 
     @Test
@@ -284,6 +312,18 @@ public class TransientQueryResourceCleanerIntTest {
                 REST_APP_0,
                 "terminate " + transientQueryId + ";"
         );
+
+        final Set<String> logMessages = appender.getLog()
+                .stream().map(log -> log.getMessage().toString())
+                .collect(Collectors.toSet());
+
+        assertFalse(
+                logMessages.contains(
+                        transientTopics.get(0) + " topic seems to have leaked. Adding it to the cleanup queue."));
+
+        assertFalse(
+                logMessages.contains(
+                        transientTopics.get(1) + " topic seems to have leaked. Adding it to the cleanup queue."));
     }
 
     @Test
@@ -312,6 +352,14 @@ public class TransientQueryResourceCleanerIntTest {
                 REST_APP_0,
                 "terminate " + transientQueryId + ";"
         );
+
+        final Set<String> logMessages = appender.getLog()
+                .stream().map(log -> log.getMessage().toString())
+                .collect(Collectors.toSet());
+
+        assertFalse(
+                logMessages.contains(
+                        stateFolder.getName() + " seems to be a leaked state directory. Adding it to the cleanup queue."));
     }
 
     public List<RunningQuery> showQueries (){

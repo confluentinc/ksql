@@ -1,0 +1,38 @@
+-classpath
+'/Users/nbeshada/.m2/repository/io/confluent/ksql/ksqldb-rest-model/0.23.1/ksqldb-rest-model-0.23.1.jar:/Users/nbeshada/.m2/repository/io/confluent/ksql/ksqldb-common/0.23.1/ksqldb-common-0.23.1.jar:/Users/nbeshada/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.12.3/jackson-datatype-jdk8-2.12.3.jar:/Users/nbeshada/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.12.3/jackson-core-2.12.3.jar:/Users/nbeshada/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.12.3/jackson-databind-2.12.3.jar:/Users/nbeshada/.m2/repository/io/vertx/vertx-core/3.9.10/vertx-core-3.9.10.jar:/Users/nbeshada/.m2/repository/io/netty/netty-common/4.1.69.Final/netty-common-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-buffer/4.1.69.Final/netty-buffer-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-transport/4.1.69.Final/netty-transport-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-handler/4.1.69.Final/netty-handler-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-codec/4.1.69.Final/netty-codec-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-handler-proxy/4.1.69.Final/netty-handler-proxy-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-codec-socks/4.1.69.Final/netty-codec-socks-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-codec-http/4.1.69.Final/netty-codec-http-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-codec-http2/4.1.69.Final/netty-codec-http2-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-resolver/4.1.69.Final/netty-resolver-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-resolver-dns/4.1.69.Final/netty-resolver-dns-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/netty/netty-codec-dns/4.1.69.Final/netty-codec-dns-4.1.69.Final.jar:/Users/nbeshada/.m2/repository/io/vertx/vertx-codegen/3.9.10/vertx-codegen-3.9.10.jar:/Users/nbeshada/.m2/repository/org/reactivestreams/reactive-streams/1.0.3/reactive-streams-1.0.3.jar:/Users/nbeshada/.m2/repository/com/google/guava/guava/30.1.1-jre/guava-30.1.1-jre.jar:/Users/nbeshada/.m2/repository/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar:/Users/nbeshada/.m2/repository/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar:/Users/nbeshada/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/Users/nbeshada/.m2/repository/org/checkerframework/checker-qual/3.8.0/checker-qual-3.8.0.jar:/Users/nbeshada/.m2/repository/com/google/errorprone/error_prone_annotations/2.5.1/error_prone_annotations-2.5.1.jar:/Users/nbeshada/.m2/repository/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar:/Users/nbeshada/.m2/repository/com/github/spotbugs/spotbugs-annotations/4.3.0/spotbugs-annotations-4.3.0.jar:/Users/nbeshada/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.12.3/jackson-annotations-2.12.3.jar:/Users/nbeshada/.m2/repository/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar:/Users/nbeshada/.m2/repository/org/slf4j/slf4j-log4j12/1.7.30/slf4j-log4j12-1.7.30.jar:/Users/nbeshada/.m2/repository/io/confluent/confluent-log4j/1.2.17-cp6/confluent-log4j-1.2.17-cp6.jar:/Users/nbeshada/.m2/repository/io/confluent/logredactor/1.0.8/logredactor-1.0.8.jar:/Users/nbeshada/.m2/repository/com/google/re2j/re2j/1.6/re2j-1.6.jar:/Users/nbeshada/.m2/repository/io/confluent/logredactor-metrics/1.0.8/logredactor-metrics-1.0.8.jar:/Users/nbeshada/.m2/repository/com/eclipsesource/minimal-json/minimal-json/0.9.5/minimal-json-0.9.5.jar:/Users/nbeshada/.m2/repository/io/confluent/assembly-plugin-boilerplate/7.1.0-cc-docker-ksql.17-634-rc2/assembly-plugin-boilerplate-7.1.0-cc-docker-ksql.17-634-rc2-resources.zip'
+-encoding
+'UTF-8'
+-protected
+-source
+'8'
+-sourcepath
+'/Users/nbeshada/projects/ksql/ksqldb-api-client/src/main/java:/Users/nbeshada/projects/ksql/ksqldb-api-client/src/main/javadoc'
+-html5
+-author
+-bottom
+'Copyright &#169; 2022 <a href="http://confluent.io">Confluent, Inc.</a>. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/Users/nbeshada/projects/ksql/docs/developer-guide/ksqldb-clients/java-client/api'
+-docencoding
+'UTF-8'
+-Xdoclint:none
+-doctitle
+'ksqldb-api-client 0.23.1 API'
+-footer
+' '
+-header
+'<a class="docs-home" href="https://docs.ksqldb.io"><img src="https://docs.ksqldb.io/img/logo.png" alt="logo"><span>ksqlDB</span></a> <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({\'gtm.start\': -new Date().getTime(),event:\'gtm.js\'});var f=d.getElementsByTagName(s)[0], -j=d.createElement(s),dl=l!=\'dataLayer\'?\'&l=\'+l:\'\';j.async=true;j.src= -\'https://www.googletagmanager.com/gtm.js?id=\'+i+dl;f.parentNode.insertBefore(j,f); -})(window,document,\'script\',\'dataLayer\',\'GTM-WRL2Z8Z\');</script>'
+-keywords
+-linkoffline
+'https://docs.oracle.com/javase/8/docs/api' '/Users/nbeshada/projects/ksql/ksqldb-api-client/target/javadoc-bundle-options'
+-nodeprecated
+-nohelp
+-notree
+-stylesheetfile
+'/Users/nbeshada/projects/ksql/ksqldb-api-client/src/main/javadoc/javadoc.css'
+-use
+-version
+-windowtitle
+'ksqldb-api-client 0.23.1 API'

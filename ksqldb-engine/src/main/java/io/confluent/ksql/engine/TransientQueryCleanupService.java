@@ -44,15 +44,15 @@ import org.slf4j.LoggerFactory;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
-  private static final Pattern TRANSIENT_PATTERN =
-          Pattern.compile("transient_");
+  private final Pattern transientPattern;
   private static final Pattern LEAKED_TOPIC_PREFIX_PATTERN =
           Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
 
   private final BlockingQueue<Callable<Boolean>> stateDirsCleanupTasks;
   private final BlockingQueue<Callable<Boolean>> topicsCleanupTasks;
   private Set<String> localCommandsQueryAppIds;
-  private boolean localCommandsProcessed;
+  private boolean isLocalCommandsInitialized;
+  private boolean isLocalCommandsProcessed;
   private QueryRegistry queryRegistry;
   private final String stateDir;
   private final ServiceContext serviceContext;
@@ -62,6 +62,10 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
+    this.transientPattern = Pattern.compile(
+            ksqlConfig.getString(
+                    KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG));
+
     this.initialDelay = ksqlConfig.getInt(
             KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
 
@@ -80,17 +84,18 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .toString();
 
     this.serviceContext = serviceContext;
-    this.localCommandsProcessed = false;
+    this.isLocalCommandsInitialized = false;
+    this.isLocalCommandsProcessed = false;
   }
 
   @Override
   protected void runOneIteration() {
-    if (!localCommandsProcessed) {
+    if (isLocalCommandsInitialized && !isLocalCommandsProcessed) {
       localCommandsQueryAppIds.forEach(id -> {
         addTopicCleanupTask(new TransientQueryTopicCleanupTask(serviceContext, id));
         addStateCleanupTask(new TransientQueryStateCleanupTask(id, stateDir));
       });
-      localCommandsProcessed = true;
+      isLocalCommandsProcessed = true;
     }
 
     LOG.info("Starting cleanup for leaked resources.");
@@ -150,6 +155,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void setLocalCommandsQueryAppIds(final Set<String> ids) {
     this.localCommandsQueryAppIds = ids;
+    this.isLocalCommandsInitialized = true;
   }
 
   public void setQueryRegistry(final QueryRegistry queryRegistry) {
@@ -178,7 +184,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
     for (File f: listOfFiles) {
       final String fileName = f.getName();
-      final Matcher filenameMatcher = TRANSIENT_PATTERN.matcher(fileName);
+      final Matcher filenameMatcher = transientPattern.matcher(fileName);
       if (filenameMatcher.find() && !isCorrespondingQueryRunning(f.getName())) {
         LOG.info("{} seems to be a leaked state directory. Adding it to the cleanup queue.",
                 f.getName());
@@ -200,7 +206,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     for (String topic : this.serviceContext
             .getTopicClient()
             .listTopicNames()) {
-      final Matcher topicNameMatcher = TRANSIENT_PATTERN.matcher(topic);
+      final Matcher topicNameMatcher = transientPattern.matcher(topic);
       if (topicNameMatcher.find() && !isCorrespondingQueryRunning(topic)) {
         LOG.info("{} topic seems to have leaked. Adding it to the cleanup queue.", topic);
         final Matcher topicPrefixMatcher = LEAKED_TOPIC_PREFIX_PATTERN.matcher(topic);

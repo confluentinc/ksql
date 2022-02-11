@@ -12,13 +12,13 @@ ksqlDB is a database for building stream processing applications on top of Apach
 * **[Pull queries](https://docs.ksqldb.io/en/latest/concepts/queries/pull/)** - Query materialized views on demand, much like with a traditional database
 * **[Connect](https://docs.ksqldb.io/en/latest/concepts/connectors)** - Integrate with any [Kafka Connect](https://docs.confluent.io/current/connect/index.html) data source or sink, entirely from within ksqlDB
 
-Composing these powerful primitives enables you to build a complete streaming app with just SQL statements, minimizing complexity and operational overhead. ksqlDB supports a wide range of operations including aggregations, joins, windowing, sessionization, and much more. You can find more ksqlDB tutorials and resources [here](https://kafka-tutorials.confluent.io/).
+Composing these powerful primitives enables you to build a complete streaming app with just SQL statements, minimizing complexity and operational overhead. ksqlDB supports a wide range of operations including aggregations, joins, windowing, sessionization, and much more. You can find more ksqlDB tutorials and resources [here](https://developer.confluent.io/tutorials/use-cases.html).
 
 # Getting Started
 
 * Follow the [ksqlDB quickstart](https://ksqldb.io/quickstart.html) to get started in just a few minutes.
 * Read through the [ksqlDB documentation](https://docs.ksqldb.io).
-* Take a look at some [ksqlDB tutorials](https://kafka-tutorials.confluent.io/create-stateful-aggregation-count/ksql.html) for examples of common patterns.
+* Take a look at some [ksqlDB use case recipes](https://developer.confluent.io/tutorials/use-cases.html) for examples of common patterns.
 
 # Documentation
 

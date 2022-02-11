@@ -37,7 +37,7 @@ reacting to new information in real-time. They’re a good fit for asynchronous
 application flows. For request/response flows, see [Pull Queries](select-pull-query.md).
 
 !!! Tip "See push queries in action"
-    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
     - [How to Efficiently Subscribe to a SQL Query for Changes](https://www.confluent.io/blog/push-queries-v2-with-ksqldb-scalable-sql-query-subscriptions/)
 
 Push queries can use all available SQL features, which can be useful when prototyping a

@@ -44,6 +44,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
+import org.mockito.invocation.Invocation;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -121,23 +123,22 @@ public class BackupReplayFileTest {
     ));
   }
 
+  @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE")
+  private static FileOutputStream mockOutputStream(InvocationOnMock i) throws IOException {
+    final FileOutputStream stream
+        = new FileOutputStream((File) i.getArgument(0), i.getArgument(1));
+    final FileOutputStream spy = Mockito.spy(stream);
+    doCallRealMethod().doThrow(new IOException("")).when(spy).write(any(byte[].class));
+    return spy;
+  }
+
   @Test
-  @SuppressFBWarnings(
-      value = "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE",
-      justification = "stream is closed by consumer of mock (BackupReplayFile)"
-  )
   public void shouldPreserveBackupOnWriteFailure() throws IOException {
     // Given
     final ConsumerRecord<byte[], byte[]> record = newStreamRecord("stream1");
     replayFile.write(record);
     when(filesystem.outputStream(any(), anyBoolean()))
-        .thenAnswer(i -> {
-          final FileOutputStream stream
-              = new FileOutputStream((File) i.getArgument(0), i.getArgument(1));
-          final FileOutputStream spy = Mockito.spy(stream);
-          doCallRealMethod().doThrow(new IOException("")).when(spy).write(any(byte[].class));
-          return spy;
-        });
+        .thenAnswer(BackupReplayFileTest::mockOutputStream);
 
     // When/Then:
     try {

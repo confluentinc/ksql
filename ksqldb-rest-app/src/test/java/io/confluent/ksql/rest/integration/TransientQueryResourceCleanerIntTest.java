@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -57,10 +58,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.lang.String.format;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @Category({IntegrationTest.class})
@@ -116,10 +117,11 @@ public class TransientQueryResourceCleanerIntTest {
 
     private ExecutorService service;
     private Runnable backgroundTask;
-    private boolean requestCompleted = false;
 
     private TestAppender appender;
     private Logger logger;
+
+    private AtomicBoolean requestCompleted = new AtomicBoolean(false);
 
     @Before
     public void setUp() throws IOException, InterruptedException {
@@ -137,7 +139,7 @@ public class TransientQueryResourceCleanerIntTest {
                     REST_APP_0,
                     sql,
                     Optional.empty());
-            requestCompleted = true;
+            requestCompleted.set(true);
         };
 
         givenPushQuery();
@@ -241,7 +243,10 @@ public class TransientQueryResourceCleanerIntTest {
         // it looks something like: /var/folders/yf/hc47k9x92tl3hrclf0_bblvh0000gp/T/kafka-streams/_confluent-ksql-default_transient_transient_PV_[0-9]\d*_[0-9]\d*
         assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
-        File leakedStateDir = new File(Objects.requireNonNull(stateFolder.listFiles())[0].toURI());
+
+        File[] transientStateToBeLeaked = stateFolder.listFiles();
+        assertNotNull(transientStateToBeLeaked);
+        File leakedStateDir = new File(transientStateToBeLeaked[0].toURI());
 
         // terminate the transient query
         RestIntegrationTestUtil.makeKsqlRequest(

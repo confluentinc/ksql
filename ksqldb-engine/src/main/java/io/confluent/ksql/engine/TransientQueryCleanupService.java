@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static java.nio.file.Files.deleteIfExists;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -50,6 +51,8 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   private final BlockingQueue<Callable<Boolean>> stateDirsCleanupTasks;
   private final BlockingQueue<Callable<Boolean>> topicsCleanupTasks;
+  private Set<String> localCommandsQueryAppIds;
+  private boolean localCommandsProcessed;
   private QueryRegistry queryRegistry;
   private final String stateDir;
   private final ServiceContext serviceContext;
@@ -75,11 +78,21 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
                             .defaultValues()
                             .get(StreamsConfig.STATE_DIR_CONFIG))
             .toString();
+
     this.serviceContext = serviceContext;
+    this.localCommandsProcessed = false;
   }
 
   @Override
   protected void runOneIteration() {
+    if (!localCommandsProcessed) {
+      localCommandsQueryAppIds.forEach(id -> {
+        addTopicCleanupTask(new TransientQueryTopicCleanupTask(serviceContext, id));
+        addStateCleanupTask(new TransientQueryStateCleanupTask(id, stateDir));
+      });
+      localCommandsProcessed = true;
+    }
+
     LOG.info("Starting cleanup for leaked resources.");
 
     topicsCleanupTasks.addAll(findPossiblyLeakedTransientTopics());
@@ -132,6 +145,11 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   @Override
   public Scheduler scheduler() {
     return Scheduler.newFixedRateSchedule(initialDelay, intervalPeriod, TimeUnit.SECONDS);
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
+  public void setLocalCommandsQueryAppIds(final Set<String> ids) {
+    this.localCommandsQueryAppIds = ids;
   }
 
   public void setQueryRegistry(final QueryRegistry queryRegistry) {

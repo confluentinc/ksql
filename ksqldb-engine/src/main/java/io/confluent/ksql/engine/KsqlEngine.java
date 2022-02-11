@@ -586,6 +586,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
   }
 
+  public void populateTransientQueryCleanupServiceWithOldCommands(
+          final Set<String> queryApplicationIds
+  ) {
+    this.transientQueryCleanupService.setLocalCommandsQueryAppIds(queryApplicationIds);
+  }
+
   /**
    * Determines if a statement is executable by the engine.
    *

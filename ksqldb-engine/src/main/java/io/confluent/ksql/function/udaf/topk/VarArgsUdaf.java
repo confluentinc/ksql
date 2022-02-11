@@ -27,11 +27,13 @@ import io.confluent.ksql.function.ParameterInfo;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
-public class VarArgsUdaf extends BaseAggregateFunction<Object[], Struct, Object> {
+// JNH: Ok, so "Struct" needs to be something else..."
+public class VarArgsUdaf extends BaseAggregateFunction<Object[], Map<String, Long>, String> {
   public static final ObjectMapper INSTANCE;
   private static final ObjectReader OBJECT_READER;
 
@@ -66,23 +68,45 @@ public class VarArgsUdaf extends BaseAggregateFunction<Object[], Struct, Object>
   }
 
   @Override
-  public Struct aggregate(final Object[] currentValue, final Struct aggregateValue) {
-    return null;
-  }
+  public Map<String, Long> aggregate(final Object[] currentValue,
+      final Map<String, Long> aggregateValue) {
 
-  @Override
-  public Merger<GenericKey, Struct> getMerger() {
-    return null;
-  }
+    HashMap<String, Long> map = new HashMap<>();
 
-  @Override
-  public Function<Struct, Object> getResultMapper() {
-
-    try {
-      INSTANCE.writeValueAsString(null);
-    } catch (JsonProcessingException e) {
-      // meh.
+    if (aggregateValue != null) {
+      map = new HashMap<>(aggregateValue);
     }
-    return null;
+
+    for (Object o : currentValue) {
+      final String className = o.getClass().getName();
+      if (map.containsKey(className)) {
+        Long value = map.get(className);
+        map.put(className, ++value);
+      } else {
+        map.put(className, 1L);
+      }
+    }
+
+    return map;
+  }
+
+  @Override
+  public Merger<GenericKey, Map<String, Long>> getMerger() {
+    return (aggKey, aggOne, aggTwo) -> {
+      // JNH: Shortcut to see something work.
+      return aggTwo;
+    };
+  }
+
+  @Override
+  public Function<Map<String, Long>, String> getResultMapper() {
+    return struct -> {
+      try {
+        System.out.println("Returning " + INSTANCE.writeValueAsString(struct));
+        return INSTANCE.writeValueAsString(struct);
+      } catch (JsonProcessingException e) {
+        return "";  // JNH: In case of errror, return an empty string.
+      }
+    };
   }
 }

@@ -20,9 +20,13 @@ import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class VarArgsUdafFactory extends AggregateFunctionFactory {
   public static final String FUNCTION_NAME = "varargs_udaf";
@@ -35,8 +39,14 @@ public class VarArgsUdafFactory extends AggregateFunctionFactory {
   public KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
       final List<SqlArgument> argTypeList,
       final AggregateFunctionInitArguments initArgs) {
+
     // JNH: Fudging the types to get started.
-    return new VarArgsUdaf(0, SqlTypes.STRING, SqlTypes.STRING);
+    final Schema schema =
+        SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.INT64_SCHEMA).optional().build();
+    final SqlType aggregateType =
+        SchemaConverters.connectToSqlConverter().toSqlType(schema);
+
+    return new VarArgsUdaf(0, aggregateType, SqlTypes.STRING);
   }
 
   @Override

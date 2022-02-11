@@ -91,6 +91,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   @Override
   protected void runOneIteration() {
     if (isLocalCommandsInitialized && !isLocalCommandsProcessed) {
+      LOG.info("Adding LocalCommands to TransientQueryCleanupService.");
       localCommandsQueryAppIds.forEach(id -> {
         addTopicCleanupTask(new TransientQueryTopicCleanupTask(serviceContext, id));
         addStateCleanupTask(new TransientQueryStateCleanupTask(id, stateDir));
@@ -107,7 +108,18 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     final int numLeakedStateDirs = stateDirsCleanupTasks.size();
 
     LOG.info("Cleaning up {} leaked topics.", numLeakedTopics);
+    cleanupLeakedTopics();
+
     LOG.info("Cleaning up {} leaked state directories.", numLeakedStateDirs);
+    cleanupLeakedStateDirs();
+  }
+
+  @Override
+  public Scheduler scheduler() {
+    return Scheduler.newFixedRateSchedule(initialDelay, intervalPeriod, TimeUnit.SECONDS);
+  }
+
+  public void cleanupLeakedTopics() {
     try {
       while (!topicsCleanupTasks.isEmpty()) {
         final Callable<Boolean> task = topicsCleanupTasks.take();
@@ -126,7 +138,9 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
       // the interrupt flag
       Thread.currentThread().interrupt();
     }
+  }
 
+  public void cleanupLeakedStateDirs() {
     try {
       while (!stateDirsCleanupTasks.isEmpty()) {
         final Callable<Boolean> task = stateDirsCleanupTasks.take();
@@ -145,11 +159,6 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
       // the interrupt flag
       Thread.currentThread().interrupt();
     }
-  }
-
-  @Override
-  public Scheduler scheduler() {
-    return Scheduler.newFixedRateSchedule(initialDelay, intervalPeriod, TimeUnit.SECONDS);
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")

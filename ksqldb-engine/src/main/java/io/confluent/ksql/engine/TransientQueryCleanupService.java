@@ -18,7 +18,6 @@ package io.confluent.ksql.engine;
 import static java.nio.file.Files.deleteIfExists;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -45,6 +44,8 @@ import org.slf4j.LoggerFactory;
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
   private static final Pattern TRANSIENT_PATTERN =
+          Pattern.compile("transient_");
+  private static final Pattern LEAKED_TOPIC_PREFIX_PATTERN =
           Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
 
   private final BlockingQueue<Callable<Boolean>> stateDirsCleanupTasks;
@@ -160,18 +161,14 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     for (File f: listOfFiles) {
       final String fileName = f.getName();
       final Matcher filenameMatcher = TRANSIENT_PATTERN.matcher(fileName);
+      if (filenameMatcher.find() && !isCorrespondingQueryRunning(f.getName())) {
+        LOG.info("{} seems to be a leaked state directory. Adding it to the cleanup queue.",
+                f.getName());
 
-      if (filenameMatcher.find()) {
-        final String leakingQueryId = filenameMatcher.group(0);
-        if (this.queryRegistry.getQuery(new QueryId(leakingQueryId)).isPresent()) {
-          LOG.info("{} is leaking state directories. Adding it to the cleanup queue.",
-                  leakingQueryId);
-
-          leakedStates.add(new TransientQueryStateCleanupTask(
-                  leakingQueryId,
-                  stateDir)
-          );
-        }
+        leakedStates.add(new TransientQueryStateCleanupTask(
+                f.getName(),
+                stateDir)
+        );
       }
     }
 
@@ -186,14 +183,14 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .getTopicClient()
             .listTopicNames()) {
       final Matcher topicNameMatcher = TRANSIENT_PATTERN.matcher(topic);
-
-      if (topicNameMatcher.find()) {
-        final String leakingQueryId = topicNameMatcher.group(0);
-        if (this.queryRegistry.getQuery(new QueryId(leakingQueryId)).isPresent()) {
-          LOG.info("{} is leaking topics. Adding it to the cleanup queue.", leakingQueryId);
+      if (topicNameMatcher.find() && !isCorrespondingQueryRunning(topic)) {
+        LOG.info("{} topic seems to have leaked. Adding it to the cleanup queue.", topic);
+        final Matcher topicPrefixMatcher = LEAKED_TOPIC_PREFIX_PATTERN.matcher(topic);
+        if (topicPrefixMatcher.find()) {
+          final String leakedTopicPrefix = topicPrefixMatcher.group();
           leakedQueries.add(new TransientQueryTopicCleanupTask(
                   serviceContext,
-                  leakingQueryId
+                  leakedTopicPrefix
           ));
         }
       }
@@ -202,26 +199,34 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     return leakedQueries;
   }
 
+  private boolean isCorrespondingQueryRunning(final String topic) {
+    return this.queryRegistry
+            .getAllLiveQueries()
+            .stream()
+            .map(qm -> qm.getQueryId().toString())
+            .anyMatch(topic::contains);
+  }
+
   public static class TransientQueryTopicCleanupTask implements Callable<Boolean> {
 
     private final ServiceContext serviceContext;
-    private final String appId;
+    private final String leakedTopicPrefix;
 
     public TransientQueryTopicCleanupTask(
             final ServiceContext serviceContext,
-            final String appId
+            final String leakedTopicPrefix
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-      this.appId = Objects.requireNonNull(appId, "appId");
+      this.leakedTopicPrefix = Objects.requireNonNull(leakedTopicPrefix, "queryId");
     }
 
     @Override
     public Boolean call() {
       try {
-        LOG.info("Deleting topics for transient query: {}", appId);
-        serviceContext.getTopicClient().deleteInternalTopics(appId);
+        LOG.info("Deleting topics for transient query: {}", leakedTopicPrefix);
+        serviceContext.getTopicClient().deleteInternalTopics(leakedTopicPrefix);
       } catch (final Exception e) {
-        LOG.warn("Failed to cleanup topics for transient query: {}", appId, e);
+        LOG.warn("Failed to cleanup topics for transient query: {}", leakedTopicPrefix, e);
         return false;
       }
 
@@ -229,7 +234,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
               .getTopicClient()
               .listTopicNames()
               .stream()
-              .filter(topicName -> topicName.startsWith(appId))
+              .filter(topicName -> topicName.startsWith(leakedTopicPrefix))
               .collect(Collectors.toSet());
 
       if (orphanedTopics.isEmpty()) {
@@ -238,7 +243,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
       LOG.warn("Failed to cleanup topics for transient query: {}\n"
                       + "The following topics seem to have leaked: {}",
-              appId,
+              leakedTopicPrefix,
               orphanedTopics);
 
       return true;

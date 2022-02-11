@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class TransientQueryCleanupListener implements QueryEventListener {
   private static final Logger log = LoggerFactory.getLogger(TransientQueryCleanupListener.class);
+  private final KsqlConfig ksqlConfig;
   private final TransientQueryCleanupService cleanupService;
   private final ServiceContext serviceContext;
   private final String stateDir;
@@ -41,6 +42,7 @@ public class TransientQueryCleanupListener implements QueryEventListener {
         final KsqlConfig ksqlConfig) {
     this.cleanupService = cleanupService;
     this.serviceContext = serviceContext;
+    this.ksqlConfig = ksqlConfig;
     this.stateDir = ksqlConfig.getKsqlStreamConfigProps()
             .getOrDefault(
                     StreamsConfig.STATE_DIR_CONFIG,

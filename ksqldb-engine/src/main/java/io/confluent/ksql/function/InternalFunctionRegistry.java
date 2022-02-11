@@ -21,6 +21,7 @@ import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
 import io.confluent.ksql.function.udaf.offset.EarliestByOffsetFactory;
 import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
+import io.confluent.ksql.function.udaf.topk.VarArgsUdafFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -108,6 +110,21 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       return true;
     }
     return udtfs.containsKey(functionName.text().toUpperCase());
+  }
+
+  @Override
+  public KsqlAggregateFunction<?, ?, ?> getVaragsAggregateFunction(
+      final FunctionName functionName,
+      final List<SqlType> argumentTypes,
+      final AggregateFunctionInitArguments initArgs) {
+    if (functionName.text().equalsIgnoreCase(VarArgsUdafFactory.FUNCTION_NAME)) {
+      final List<SqlArgument> sqlArguments = argumentTypes.stream().map(SqlArgument::of).collect(
+          Collectors.toList());
+
+      return new VarArgsUdafFactory().createAggregateFunction(sqlArguments, null);
+    }
+
+    return null;
   }
 
   @Override
@@ -246,6 +263,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addUdafFunctions() {
+      functionRegistry.addAggregateFunctionFactory(new VarArgsUdafFactory());
       functionRegistry.addAggregateFunctionFactory(new EarliestByOffsetFactory());
 
       functionRegistry.addAggregateFunctionFactory(new CountAggFunctionFactory());

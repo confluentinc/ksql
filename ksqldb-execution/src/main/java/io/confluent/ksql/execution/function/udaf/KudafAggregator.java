@@ -64,6 +64,7 @@ public class KudafAggregator<K> implements UdafAggregator<K> {
     // the above statement.
     for (int idx = nonAggColumnCount; idx < columnCount; idx++) {
       final KsqlAggregateFunction<Object, Object, Object> func = aggregateFunctionForColumn(idx);
+      // JNH: For VarArgs UDAFs, we'll need to retrieve multiple values and pass them as an array.
       final Object currentValue = rowValue.get(func.getArgIndexInValue());
       final Object currentAggregate = result.get(idx);
       final Object newAggregate = func.aggregate(currentValue, currentAggregate);

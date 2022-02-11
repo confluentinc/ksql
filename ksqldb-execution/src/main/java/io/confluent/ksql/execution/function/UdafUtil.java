@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class UdafUtil {
 
@@ -49,6 +50,18 @@ public final class UdafUtil {
       final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
 
+      if (functionCall.getName().text().equalsIgnoreCase("VARARGS_UDAF")) {
+        final List<SqlType> types = functionCall.getArguments()
+            .stream().map(arg -> expressionTypeManager.getExpressionSqlType(arg))
+            .collect(Collectors.toList());
+
+        return functionRegistry.getVaragsAggregateFunction(
+          functionCall.getName(),
+          types, null);
+      }
+
+
+      // JNH: We need to widen this function....
       final SqlType argumentType =
           expressionTypeManager.getExpressionSqlType(functionCall.getArguments().get(0));
 
@@ -89,12 +102,13 @@ public final class UdafUtil {
     for (int idx = 1; idx < args.size(); idx++) {
       final Expression param = args.get(idx);
       if (!(param instanceof Literal)) {
-        throw new KsqlException("Parameter " + (idx + 1) + " passed to function "
-            + functionCall.getName().text()
-            + " must be a literal constant, but was expression: '" + param + "'");
+        initArgs.add(param);
+//        throw new KsqlException("Parameter " + (idx + 1) + " passed to function "
+//            + functionCall.getName().text()
+//            + " must be a literal constant, but was expression: '" + param + "'");
+      } else {
+        initArgs.add(((Literal) param).getValue());
       }
-
-      initArgs.add(((Literal) param).getValue());
     }
 
     final Map<String, Object> functionConfig = config

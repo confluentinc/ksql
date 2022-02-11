@@ -202,6 +202,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final InternalSchema internalSchema,
       final Stacker contextStacker
   ) {
+    // JNH: What does this do?!
     final List<FunctionCall> functions = internalSchema.updateFunctionList(functionList);
 
     final Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
@@ -302,18 +303,20 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       if (params.isEmpty()) {
         return ImmutableList.of();
       }
+      final List<Expression> internalParams = new ArrayList<>(params.size());
 
-      for (int idx = 1; idx != params.size(); idx++) {
+      for (int idx = 0; idx != params.size(); idx++) {
         final Expression param = params.get(idx);
         if (!(param instanceof Literal)) {
-          throw new IllegalArgumentException("Parameter " + (idx + 1)
-              + " must be a constant, but was expression: " + param);
+          internalParams.add(resolveToInternal(param));
+          // If it is not a literal, let's just resolve it:).
+          //          throw new IllegalArgumentException("Parameter " + (idx + 1)
+          //              + " must be a constant, but was expression: " + param);
+        } else {
+          internalParams.add(param);
         }
       }
 
-      final List<Expression> internalParams = new ArrayList<>(params.size());
-      internalParams.add(resolveToInternal(params.get(0)));
-      internalParams.addAll(params.subList(1, params.size()));
       return internalParams;
     }
 

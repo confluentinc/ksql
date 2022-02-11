@@ -224,6 +224,14 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return functionRegistry.isPresent(functionName);
   }
 
+  @Override
+  public KsqlAggregateFunction<?, ?, ?> getVaragsAggregateFunction(
+      final FunctionName functionName,
+      final List<SqlType> argumentTypes,
+      final AggregateFunctionInitArguments initArgs) {
+    return functionRegistry.getVaragsAggregateFunction(functionName, argumentTypes, initArgs);
+  }
+
   public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
       final FunctionName functionName,
       final SqlType argumentType,

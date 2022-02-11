@@ -107,6 +107,14 @@ public interface FunctionRegistry {
       AggregateFunctionInitArguments initArgs
   );
 
+  default KsqlAggregateFunction<?, ?, ?> getVaragsAggregateFunction(
+      FunctionName functionName,
+      List<SqlType> argumentTypes,
+      AggregateFunctionInitArguments initArgs
+  ) {
+    return null;
+  }
+
   /**
    * Get a table function.
    *

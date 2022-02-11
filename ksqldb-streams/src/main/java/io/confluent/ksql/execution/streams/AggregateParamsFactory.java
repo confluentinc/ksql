@@ -142,6 +142,14 @@ public class AggregateParamsFactory {
       final List<FunctionCall> functionList,
       final KsqlConfig config
   ) {
+    List<?> foo = functionList.stream().map(
+        funcCall -> UdafUtil.resolveAggregateFunction(
+            functionRegistry,
+            funcCall,
+            schema,
+            config
+        )
+    ).collect(Collectors.toList());
     return ImmutableList.copyOf(
         functionList.stream().map(
             funcCall -> UdafUtil.resolveAggregateFunction(

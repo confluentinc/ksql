@@ -187,8 +187,7 @@ CREATE STREAM products_rekeyed
 ```
 
 For more information, see
-[How to rekey a stream with a value](https://kafka-tutorials.confluent.io/rekey-a-stream/ksql.html)
-in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
+[How to rekey a stream with a value](https://developer.confluent.io/tutorials/rekey-a-stream/ksql.html).
 
 ### Records Have the Same Number of Partitions
 

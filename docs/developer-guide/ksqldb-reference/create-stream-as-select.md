@@ -62,9 +62,9 @@ a step of processing. ksqlDB handles the mechanics of how your data propagates
 through the chain.
 
 !!! Tip "See CREATE STREAM AS SELECT in action"
-    - [Detect Unusual Credit Card Activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
-    - [Notify Passengers of Flight Updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
-    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+    - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
+    - [Notify Passengers of Flight Updates](https://developer.confluent.io/tutorials/aviation/confluent.html#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
 
 ### Joins
 

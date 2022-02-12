@@ -71,7 +71,8 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final QueryId queryId
   ) {
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    if (!kafkaStreams.getTopologyByName(binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
+    if (!kafkaStreams.getTopologyByName(
+        binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
       kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
     }
     log.debug("mapping {}", collocatedQueries);

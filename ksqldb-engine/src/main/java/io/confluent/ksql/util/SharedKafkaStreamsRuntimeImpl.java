@@ -185,6 +185,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           if (resetOffsets) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
+          collocatedQueries.remove(queryId);
         } catch (ExecutionException | InterruptedException e) {
           log.error(String.format(
               "Failed to close query %s within the allotted timeout %s due to",

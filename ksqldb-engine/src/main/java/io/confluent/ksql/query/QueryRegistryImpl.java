@@ -295,6 +295,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           sharedRuntimeId.get(),
           metricCollectors
       );
+      query.register();
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,

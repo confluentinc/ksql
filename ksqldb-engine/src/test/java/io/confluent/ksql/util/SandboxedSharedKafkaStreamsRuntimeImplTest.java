@@ -14,24 +14,22 @@
  */
 package io.confluent.ksql.util;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryId;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -103,5 +101,14 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
 
     //Then:
     verify(kafkaStreamsNamedTopologyWrapper).close();
+  }
+
+  @Test void shouldAddTopologyDuringRegister() {
+    //When:
+    final NamedTopology topology = mock(NamedTopology.class);
+    when(binPackedPersistentQueryMetadata.getTopology()).thenReturn(topology);
+
+    //Then:
+    verify(kafkaStreamsNamedTopologyWrapper).addNamedTopology(topology);
   }
 }

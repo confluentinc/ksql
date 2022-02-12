@@ -176,7 +176,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   public void stop(final QueryId queryId, final boolean resetOffsets) {
     log.info("Attempting to stop query: {} in runtime {} with resetOffsets={}",
              queryId, getApplicationId(), resetOffsets);
-    if (collocatedQueries.containsKey(queryId)) {
+    if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         try {
           kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
@@ -185,7 +185,6 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           if (resetOffsets) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
-          collocatedQueries.remove(queryId);
         } catch (ExecutionException | InterruptedException e) {
           log.error(String.format(
               "Failed to close query %s within the allotted timeout %s due to",
@@ -196,6 +195,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
             + kafkaStreams.state());
       }
     }
+    collocatedQueries.remove(queryId);
   }
 
   @Override

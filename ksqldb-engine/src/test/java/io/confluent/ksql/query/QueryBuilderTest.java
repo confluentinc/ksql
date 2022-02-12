@@ -390,6 +390,7 @@ public class QueryBuilderTest {
         Optional.empty()
     );
     queryMetadata.initialize();
+    queryMetadata.register();
     queryMetadata.start();
 
     // When:

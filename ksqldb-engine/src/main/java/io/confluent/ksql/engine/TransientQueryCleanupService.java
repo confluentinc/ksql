@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import static io.confluent.ksql.util.QueryApplicationId.buildInternalTopicPrefix;
 import static java.nio.file.Files.deleteIfExists;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
@@ -40,11 +41,9 @@ import org.slf4j.LoggerFactory;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
-  private static final Pattern LEAKED_TOPIC_PREFIX_PATTERN =
-          Pattern.compile("(?i).*transient_.*_[0-9]\\d*_[0-9]\\d*");
-
+  private final Pattern leakedTopicPrefixPattern;
   private final Pattern transientPattern;
-  private final   Set<String> queriesGuaranteedToBeRunning;
+  private final Set<String> queriesGuaranteedToBeRunning;
   private Set<String> localCommandsQueryAppIds;
   private boolean isLocalCommandsInitialized;
   private boolean isLocalCommandsProcessed;
@@ -59,9 +58,11 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
-    this.transientPattern = Pattern.compile(
-            ksqlConfig.getString(
-                    KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG));
+    final String internalTopicPrefix = buildInternalTopicPrefix(ksqlConfig, false);
+    this.transientPattern = Pattern.compile(internalTopicPrefix);
+    this.leakedTopicPrefixPattern = Pattern.compile(
+            internalTopicPrefix + ".*_[0-9]\\d*_[0-9]\\d*"
+    );
 
     this.initialDelay = ksqlConfig.getInt(
             KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
@@ -201,7 +202,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .listTopicNames()) {
       final Matcher topicNameMatcher = transientPattern.matcher(topic);
       if (topicNameMatcher.find() && isCorrespondingQueryTerminated(topic)) {
-        final Matcher topicPrefixMatcher = LEAKED_TOPIC_PREFIX_PATTERN.matcher(topic);
+        final Matcher topicPrefixMatcher = leakedTopicPrefixPattern.matcher(topic);
         if (topicPrefixMatcher.find()
                 && queriesGuaranteedToBeRunning.contains(topicPrefixMatcher.group())) {
           final String leakedTopicPrefix = topicPrefixMatcher.group();

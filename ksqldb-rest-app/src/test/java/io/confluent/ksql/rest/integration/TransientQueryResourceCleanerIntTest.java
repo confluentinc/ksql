@@ -57,7 +57,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.lang.String.format;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -282,7 +281,8 @@ public class TransientQueryResourceCleanerIntTest {
 
         assertTrue(
                 logMessages.contains(
-                        leakedStateDir.getName() + " seems to be a leaked state directory. Adding it to the cleanup queue."));
+                        stateDir + "/" + leakedStateDir.getName()
+                      + " seems to be a leaked state directory. Adding it to the cleanup queue."));
     }
 
     @Test

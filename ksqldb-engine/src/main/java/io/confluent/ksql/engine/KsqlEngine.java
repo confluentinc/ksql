@@ -172,10 +172,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             .addAll(queryEventListeners)
             .add(engineMetrics.getQueryEventListener())
             .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
-            .add(new TransientQueryCleanupListener(
-                    transientQueryCleanupService,
-                    serviceContext,
-                    ksqlConfig))
+            .add(new TransientQueryCleanupListener(transientQueryCleanupService))
             .build(),
         metricCollectors
     );

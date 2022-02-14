@@ -195,7 +195,10 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
             + kafkaStreams.state());
       }
     }
-    collocatedQueries.remove(queryId);
+    if (resetOffsets) {
+      //If we are not resetting the offsets we are replacing the query and we don't want to lose it form this runtime
+      collocatedQueries.remove(queryId);
+    }
   }
 
   @Override
@@ -227,7 +230,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
                                                + " an older version of query : " + queryId);
       }
     } else {
-      throw new IllegalArgumentException("Cannot start because query " + queryId + " was not"
+      throw new IllegalArgumentException("Cannot start because query " + queryId + " was not "
                                              + "registered to runtime " + getApplicationId());
     }
   }

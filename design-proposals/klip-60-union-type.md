@@ -3,6 +3,7 @@
 **Author**: Zach Young (@zachariahyoung)| 
 **Release Target**: TBD| 
 **Status**: In Discussion| 
+**Status**: In Discussion| 
 **Discussion**: NA
 
 **tl;dr:** There is a desire from the community to be able to support multi-schema format within a single topic.  Two solutions for supporting this are available.  One is using the union type within Avro and Protobuf.  The other is called name strategy using schema registry.  This proposal will focus on the latter.
@@ -10,8 +11,16 @@
 
 ## Motivation and background
 
-_What problem are you trying to solve and why. Try to describe as much of the context surrounding 
-the problem as possible._
+Currently, ksqlDB doesn't support a union type.  Two schema support union types.  This include Avro and Protobuf.
+
+The main reason union type should be supported is because a common pattern used within eventing is something call event carrier state transfer or event notification.  This pattern can be broken down even further.  You can either send a course grained event which will include everthing
+from an aggregate root. The other options is to send a fine grained event.  This is normally a smaller domain event off one of the enities under the main aggregate root.  The last pattern is called event notification.  This can also be used when only a smaller part of the payload is required and only a reference number.
+
+
+Depending on the use case a developer may want to mix up these three patterns.  When it comes to stream processing some processing may need to consider all of these event the same even when only a few properties are different.
+
+
+
 
 ## What is in scope
 

@@ -776,6 +776,9 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
+    final Admin internalAdmin = createCommandTopicAdminClient(restConfig, ksqlConfig);
+    final KafkaTopicClient internalKafkaTopicClient = new KafkaTopicClientImpl(() -> internalAdmin);
+
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
         commandTopicName,
@@ -784,7 +787,7 @@ public final class KsqlRestApplication implements Executable {
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandProducerProperties()),
-        serviceContext
+        internalKafkaTopicClient
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -915,8 +918,6 @@ public final class KsqlRestApplication implements Executable {
     if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
-    final Admin internalAdmin = createCommandTopicAdminClient(restConfig, ksqlConfig);
-    final KafkaTopicClient internalKafkaTopicClient = new KafkaTopicClientImpl(() -> internalAdmin);
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,

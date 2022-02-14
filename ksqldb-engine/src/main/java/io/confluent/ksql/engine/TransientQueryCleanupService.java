@@ -52,6 +52,8 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   private final int intervalPeriod;
   private Optional<Set<String>> localCommandsQueryAppIds;
   private QueryRegistry queryRegistry;
+  private int numLeakedTopics;
+  private int numLeakedStateFiles;
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
@@ -76,19 +78,22 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     this.serviceContext = serviceContext;
     this.localCommandsQueryAppIds = Optional.empty();
     this.queriesGuaranteedToBeRunning = new HashSet<>();
+    this.numLeakedTopics = 0;
+    this.numLeakedStateFiles = 0;
   }
 
   @Override
   protected void runOneIteration() {
     try {
       final List<String> leakedTopics = findLeakedTopics();
-      final List<String> leakedStateDirs = findLeakedStateDirs();
-
-      LOG.info("Cleaning up {} leaked topics: {}", leakedTopics.size(), leakedTopics);
+      this.numLeakedTopics = leakedTopics.size();
+      LOG.info("Cleaning up {} leaked topics: {}", numLeakedTopics, leakedTopics);
       serviceContext.getTopicClient().deleteTopics(leakedTopics);
 
+      final List<String> leakedStateDirs = findLeakedStateDirs();
+      this.numLeakedStateFiles = leakedStateDirs.size();
       LOG.info("Cleaning up {} leaked state directories: {}",
-              leakedStateDirs.size(),
+              numLeakedStateFiles,
               leakedStateDirs.stream().map(file -> stateDir + "/" + file)
                       .collect(Collectors.toList()));
       leakedStateDirs.forEach(this::deleteLeakedStateDir);
@@ -179,5 +184,13 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     return localCommandsQueryAppIds
             .map(strings -> strings.stream().anyMatch(resourceName::contains))
             .orElse(false);
+  }
+
+  public int getNumLeakedTopics() {
+    return numLeakedTopics;
+  }
+
+  public int getNumLeakedStateFiles() {
+    return numLeakedStateFiles;
   }
 }

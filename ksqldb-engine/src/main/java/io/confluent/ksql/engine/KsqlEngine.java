@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -108,9 +109,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final String serviceId;
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
-  private final TransientQueryCleanupService transientQueryCleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final MetricCollectors metricCollectors;
+  private TransientQueryCleanupService transientQueryCleanupService;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -154,13 +155,24 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
-    this.transientQueryCleanupService = new TransientQueryCleanupService(
-            serviceContext,
-            ksqlConfig);
+
     this.orphanedTransientQueryCleaner =
         new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
+    final Builder<QueryEventListener> registrationListeners =
+            ImmutableList.<QueryEventListener>builder()
+                    .addAll(queryEventListeners)
+                    .add(engineMetrics.getQueryEventListener())
+                    .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig));
+
+    if (getTransientQueryCleanupServiceEnabled(ksqlConfig)) {
+      this.transientQueryCleanupService = new TransientQueryCleanupService(
+              serviceContext,
+              ksqlConfig);
+      registrationListeners.add(new TransientQueryCleanupListener(transientQueryCleanupService));
+    }
+
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
@@ -168,12 +180,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         queryIdGenerator,
         cleanupService,
         ksqlConfig,
-        ImmutableList.<QueryEventListener>builder()
-            .addAll(queryEventListeners)
-            .add(engineMetrics.getQueryEventListener())
-            .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
-            .add(new TransientQueryCleanupListener(transientQueryCleanupService))
-            .build(),
+        registrationListeners.build(),
         metricCollectors
     );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -192,7 +199,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     this.metricCollectors = metricCollectors;
 
     cleanupService.startAsync();
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE)) {
+    if (getTransientQueryCleanupServiceEnabled(ksqlConfig)) {
       this.transientQueryCleanupService
               .setQueryRegistry(this.primaryContext.getQueryRegistry());
       this.transientQueryCleanupService.startAsync();
@@ -567,7 +574,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public void close() {
-    transientQueryCleanupService.stopAsync();
+    if (getTransientQueryCleanupServiceEnabled(getKsqlConfig())) {
+      transientQueryCleanupService.stopAsync();
+    }
     close(false);
   }
 
@@ -694,5 +703,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+  }
+
+  private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE);
   }
 }

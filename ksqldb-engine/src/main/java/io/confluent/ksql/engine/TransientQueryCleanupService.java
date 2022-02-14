@@ -89,30 +89,36 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   @Override
   protected void runOneIteration() {
-    if (isLocalCommandsInitialized && !isLocalCommandsProcessed) {
-      LOG.info("Adding LocalCommands to TransientQueryCleanupService.");
-      localCommandsQueryAppIds.forEach(id -> {
-        localCommandsTopics.add(id);
-        localCommandsStates.add(stateDir + id);
-      });
-      isLocalCommandsProcessed = true;
+    try {
+      if (isLocalCommandsInitialized && !isLocalCommandsProcessed) {
+        LOG.info("Adding LocalCommands to TransientQueryCleanupService.");
+        localCommandsQueryAppIds.forEach(id -> {
+          localCommandsTopics.add(id);
+          localCommandsStates.add(stateDir + id);
+        });
+        isLocalCommandsProcessed = true;
+      }
+
+      deleteLocalCommandsStates();
+      deleteLocalCommandsTopics();
+
+      LOG.info("Starting cleanup for leaked resources.");
+
+      final List<String> leakedTopics = findPossiblyLeakedTransientTopics();
+      final List<String> leakedStateDirs = findPossiblyLeakedStateDirs();
+
+      LOG.info("Cleaning up {} leaked topics: {}", leakedTopics.size(), leakedTopics);
+      leakedTopics.forEach(this::deleteLeakedTopic);
+
+      LOG.info("Cleaning up {} leaked state directories: {}",
+              leakedStateDirs.size(),
+              leakedStateDirs);
+      leakedStateDirs.forEach(this::deleteLeakedStateDir);
+
+    } catch (Throwable t) {
+      LOG.error(
+          "Failed to run transient query cleanup service with exception: " + t.getMessage(), t);
     }
-
-    deleteLocalCommandsStates();
-    deleteLocalCommandsTopics();
-
-    LOG.info("Starting cleanup for leaked resources.");
-
-    final List<String> leakedTopics = findPossiblyLeakedTransientTopics();
-    final List<String> leakedStateDirs = findPossiblyLeakedStateDirs();
-
-    LOG.info("Cleaning up {} leaked topics: {}", leakedTopics.size(), leakedTopics);
-    leakedTopics.forEach(this::deleteLeakedTopic);
-
-    LOG.info("Cleaning up {} leaked state directories: {}",
-            leakedStateDirs.size(),
-            leakedStateDirs);
-    leakedStateDirs.forEach(this::deleteLeakedStateDir);
   }
 
   @Override

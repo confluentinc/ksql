@@ -196,7 +196,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       }
     }
     if (resetOffsets) {
-      //If we are not resetting the offsets we are replacing the query and we don't want to lose it form this runtime
+      //If we are not resetting the offsets we are replacing the query
+      // we don't want to lose it form this runtime
       collocatedQueries.remove(queryId);
     }
   }

@@ -27,52 +27,43 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
-  private final Pattern leakedTopicPrefixPattern;
-  private final Pattern transientPattern;
+  private final Pattern internalTopicPrefixPattern;
+  private final Pattern transientAppIdPattern;
   private final Set<String> queriesGuaranteedToBeRunning;
-  private Set<String> localCommandsQueryAppIds;
-  private boolean isLocalCommandsInitialized;
-  private boolean isLocalCommandsProcessed;
-  private final Set<String> localCommandsTopics;
-  private final Set<String> localCommandsStates;
-  private QueryRegistry queryRegistry;
   private final String stateDir;
   private final ServiceContext serviceContext;
   private final int initialDelay;
   private final int intervalPeriod;
-
+  private Optional<Set<String>> localCommandsQueryAppIds;
+  private QueryRegistry queryRegistry;
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
     final String internalTopicPrefix = buildInternalTopicPrefix(ksqlConfig, false);
-    this.transientPattern = Pattern.compile(internalTopicPrefix);
-    this.leakedTopicPrefixPattern = Pattern.compile(
-            internalTopicPrefix + ".*_[0-9]\\d*_[0-9]\\d*"
-    );
+    this.internalTopicPrefixPattern = Pattern.compile(internalTopicPrefix);
+    this.transientAppIdPattern = Pattern.compile(internalTopicPrefix + ".*_[0-9]\\d*_[0-9]\\d*");
 
     this.initialDelay = ksqlConfig.getInt(
             KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
 
     this.intervalPeriod = ksqlConfig.getInt(
             KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS);
-
-    this.queriesGuaranteedToBeRunning = new HashSet<>();
-    this.localCommandsTopics = new HashSet<>();
-    this.localCommandsStates = new HashSet<>();
 
     this.stateDir = ksqlConfig.getKsqlStreamConfigProps()
             .getOrDefault(
@@ -83,38 +74,24 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .toString();
 
     this.serviceContext = serviceContext;
-    this.isLocalCommandsInitialized = false;
-    this.isLocalCommandsProcessed = false;
+    this.localCommandsQueryAppIds = Optional.empty();
+    this.queriesGuaranteedToBeRunning = new HashSet<>();
   }
 
   @Override
   protected void runOneIteration() {
     try {
-      if (isLocalCommandsInitialized && !isLocalCommandsProcessed) {
-        LOG.info("Adding LocalCommands to TransientQueryCleanupService.");
-        localCommandsQueryAppIds.forEach(id -> {
-          localCommandsTopics.add(id);
-          localCommandsStates.add(stateDir + id);
-        });
-        isLocalCommandsProcessed = true;
-      }
-
-      deleteLocalCommandsStates();
-      deleteLocalCommandsTopics();
-
-      LOG.info("Starting cleanup for leaked resources.");
-
-      final List<String> leakedTopics = findPossiblyLeakedTransientTopics();
-      final List<String> leakedStateDirs = findPossiblyLeakedStateDirs();
+      final List<String> leakedTopics = findLeakedTopics();
+      final List<String> leakedStateDirs = findLeakedStateDirs();
 
       LOG.info("Cleaning up {} leaked topics: {}", leakedTopics.size(), leakedTopics);
-      leakedTopics.forEach(this::deleteLeakedTopic);
+      serviceContext.getTopicClient().deleteTopics(leakedTopics);
 
       LOG.info("Cleaning up {} leaked state directories: {}",
               leakedStateDirs.size(),
-              leakedStateDirs);
+              leakedStateDirs.stream().map(file -> stateDir + "/" + file)
+                      .collect(Collectors.toList()));
       leakedStateDirs.forEach(this::deleteLeakedStateDir);
-
     } catch (Throwable t) {
       LOG.error(
           "Failed to run transient query cleanup service with exception: " + t.getMessage(), t);
@@ -132,119 +109,75 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void setLocalCommandsQueryAppIds(final Set<String> ids) {
-    this.localCommandsQueryAppIds = ids;
-    this.isLocalCommandsInitialized = true;
+    this.localCommandsQueryAppIds = Optional.of(ids);
   }
 
-  private void deleteLocalCommandsTopics() {
-    if (localCommandsTopics.isEmpty()) {
-      return;
+  private void deleteLeakedStateDir(final String filename) {
+    final String path = stateDir + "/" + filename;
+    final Path pathName = Paths.get(path);
+    try {
+      deleteIfExists(pathName);
+    } catch (IOException e) {
+      LOG.info("Transient Query Cleanup Service failed "
+              + "to delete leaked state directory: " + path, e);
     }
-    final Set<String> allKafkaTopics = serviceContext.getTopicClient().listTopicNames();
-    final Set<String> cleanedUp = new HashSet<>();
-
-    for (String topicPrefix: localCommandsTopics) {
-      if (allKafkaTopics.stream().anyMatch(a -> a.startsWith(topicPrefix))) {
-        deleteLeakedTopic(topicPrefix);
-      } else {
-        cleanedUp.add(topicPrefix);
-      }
-    }
-
-    localCommandsTopics.removeAll(cleanedUp);
   }
 
-  private void deleteLocalCommandsStates() {
-    if (localCommandsStates.isEmpty()) {
-      return;
-    }
-    final Set<String> cleanedUp = new HashSet<>();
-    for (String localCommandState: localCommandsStates) {
-      final Path pathName = Paths.get(localCommandState);
-      final File directory = new File(String.valueOf(pathName.normalize()));
-      if (directory.exists()) {
-        deleteLeakedStateDir(localCommandState);
-      } else {
-        cleanedUp.add(localCommandState);
-      }
-    }
-    localCommandsStates.removeAll(cleanedUp);
+  private List<String> findLeakedTopics() {
+    return serviceContext
+            .getTopicClient()
+            .listTopicNames()
+            .stream()
+            .filter(this::isLeaked)
+            .collect(Collectors.toList());
   }
 
-  private List<String> findPossiblyLeakedStateDirs() {
-    final String stateDir = this.stateDir;
+  private List<String> findLeakedStateDirs() {
     final File folder = new File(stateDir);
     final File[] listOfFiles = folder.listFiles();
 
     if (listOfFiles == null) {
       return Collections.emptyList();
     }
-
-    final List<String> leakedStates
-            = new LinkedList<>();
-
-    for (File f: listOfFiles) {
-      final String fileName = f.getName();
-      final Matcher filenameMatcher = transientPattern.matcher(fileName);
-      if (filenameMatcher.find()
-              && isCorrespondingQueryTerminated(fileName)
-              && queriesGuaranteedToBeRunning.contains(fileName)) {
-        final String leakedState = stateDir + "/" + fileName;
-        LOG.info("{} seems to be a leaked state directory. Adding it to the cleanup queue.",
-                leakedState);
-
-        leakedStates.add(leakedState);
-      }
-    }
-
-    return leakedStates;
+    return Arrays.stream(listOfFiles)
+            .map(File::getName)
+            .filter(this::isLeaked)
+            .collect(Collectors.toList());
   }
 
-  private List<String> findPossiblyLeakedTransientTopics() {
-    final List<String> leakedQueries = new LinkedList<>();
-
-    for (String topic : this.serviceContext
-            .getTopicClient()
-            .listTopicNames()) {
-      final Matcher topicNameMatcher = transientPattern.matcher(topic);
-      if (topicNameMatcher.find() && isCorrespondingQueryTerminated(topic)) {
-        final Matcher topicPrefixMatcher = leakedTopicPrefixPattern.matcher(topic);
-        if (topicPrefixMatcher.find()
-                && queriesGuaranteedToBeRunning.contains(topicPrefixMatcher.group())) {
-          final String leakedTopicPrefix = topicPrefixMatcher.group();
-
-          LOG.info("{} topic seems to have leaked. Adding it to the cleanup queue.", topic);
-          leakedQueries.add(leakedTopicPrefix);
-        }
-      }
+  private boolean isLeaked(final String resource) {
+    if (foundInLocalCommands(resource)) {
+      return true;
     }
-
-    return leakedQueries;
+    if (!internalTopicPrefixPattern.matcher(resource).find()) {
+      return false;
+    }
+    if (!isCorrespondingQueryTerminated(resource)) {
+      return false;
+    }
+    final Matcher appIdMatcher = transientAppIdPattern.matcher(resource);
+    if (appIdMatcher.find()) {
+      return queriesGuaranteedToBeRunning.contains(
+              appIdMatcher.group());
+    }
+    return false;
   }
 
-  private boolean isCorrespondingQueryTerminated(final String topic) {
+  private boolean isCorrespondingQueryTerminated(final String appId) {
     return this.queryRegistry
             .getAllLiveQueries()
             .stream()
             .map(qm -> qm.getQueryId().toString())
-            .noneMatch(topic::contains);
+            .noneMatch(appId::contains);
   }
 
   public void queryIsRunning(final String appId) {
     queriesGuaranteedToBeRunning.add(appId);
   }
 
-  private void deleteLeakedTopic(final String topicPrefix) {
-    serviceContext.getTopicClient().deleteInternalTopics(topicPrefix);
-  }
-
-  private void deleteLeakedStateDir(final String filename) {
-    final Path pathName = Paths.get(filename);
-    try {
-      deleteIfExists(pathName);
-    } catch (IOException e) {
-      LOG.info("Transient Query Cleanup Service failed "
-               + "to delete leaked state directory: " + filename, e);
-    }
+  private boolean foundInLocalCommands(final String resourceName) {
+    return localCommandsQueryAppIds
+            .map(strings -> strings.stream().anyMatch(resourceName::contains))
+            .orElse(false);
   }
 }

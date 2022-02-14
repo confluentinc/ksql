@@ -225,11 +225,7 @@ public class TransientQueryResourceCleanerIntTest {
 
         assertTrue(
                 logMessages.contains(
-                        transientTopics.get(0) + " topic seems to have leaked. Adding it to the cleanup queue."));
-
-        assertTrue(
-                logMessages.contains(
-                        transientTopics.get(1) + " topic seems to have leaked. Adding it to the cleanup queue."));
+                        String.format("Cleaning up %d leaked topics: %s", transientTopics.size(), transientTopics)));
     }
 
     @Test
@@ -281,8 +277,8 @@ public class TransientQueryResourceCleanerIntTest {
 
         assertTrue(
                 logMessages.contains(
-                        stateDir + "/" + leakedStateDir.getName()
-                      + " seems to be a leaked state directory. Adding it to the cleanup queue."));
+                        String.format("Cleaning up 1 leaked state directories: [%s]",
+                                stateDir + "/" + transientStateToBeLeaked[0].getName())));
     }
 
     @Test
@@ -324,11 +320,7 @@ public class TransientQueryResourceCleanerIntTest {
 
         assertFalse(
                 logMessages.contains(
-                        transientTopics.get(0) + " topic seems to have leaked. Adding it to the cleanup queue."));
-
-        assertFalse(
-                logMessages.contains(
-                        transientTopics.get(1) + " topic seems to have leaked. Adding it to the cleanup queue."));
+                        String.format("Cleaning up %d leaked topics: %s", transientTopics.size(), transientTopics)));
     }
 
     @Test
@@ -352,19 +344,20 @@ public class TransientQueryResourceCleanerIntTest {
         assertEquals(1, Objects.requireNonNull(stateFolder.listFiles()).length);
         assertTrue(Objects.requireNonNull(stateFolder.list())[0].contains(transientQueryId));
 
-        // terminate the transient query to cleanup
-        RestIntegrationTestUtil.makeKsqlRequest(
-                REST_APP_0,
-                "terminate " + transientQueryId + ";"
-        );
-
         final Set<String> logMessages = appender.getLog()
                 .stream().map(log -> log.getMessage().toString())
                 .collect(Collectors.toSet());
 
         assertFalse(
                 logMessages.contains(
-                        stateFolder.getName() + " seems to be a leaked state directory. Adding it to the cleanup queue."));
+                        String.format("Cleaning up 1 leaked state directories: [%s]",
+                                stateDir + "/" + transientQueryId)));
+
+        // terminate the transient query to cleanup
+        RestIntegrationTestUtil.makeKsqlRequest(
+                REST_APP_0,
+                "terminate " + transientQueryId + ";"
+        );
     }
 
     public List<RunningQuery> showQueries (){

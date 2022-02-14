@@ -2,7 +2,7 @@
 layout: page
 title: ksqlDB Scalar Functions
 tagline:  ksqlDB scalar functions for queries
-description: Scalar functions to use in ksqlDB statements and queries
+description: Scalar functions to use in SQL statements and queries
 keywords: ksqlDB, function, scalar
 ---
 
@@ -10,7 +10,7 @@ keywords: ksqlDB, function, scalar
 
 ### `ABS`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 ABS(col1)
@@ -45,7 +45,7 @@ CREATE TABLE AGG AS
 
 ### `CAST`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 CAST(COL0 AS BIGINT)
@@ -74,7 +74,7 @@ Converts one type to another. The following casts are supported:
 
 ### `CEIL`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 CEIL(col1)
@@ -108,7 +108,7 @@ The exponential of a value.
 
 ### `FLOOR`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 FLOOR(col1)
@@ -183,7 +183,7 @@ The natural logarithm of a value.
 
 ### `RANDOM`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 RANDOM()
@@ -193,7 +193,7 @@ Return a random DOUBLE value between 0.0 and 1.0.
 
 ### `ROUND`
 
-Since: 0.6.0
+Since: 0.1.0
 
 ```sql
 ROUND(col1)
@@ -667,7 +667,7 @@ CHR('\u597d')  => '好'
 
 ### `CONCAT`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 CONCAT(col1, col2, 'hello', ..., col-n)
@@ -714,7 +714,7 @@ For example, to encode a string in `hex` to `utf8`, use `ENCODE(string, 'hex', '
 
 ### `EXTRACTJSONFIELD`
 
-Since: -
+Since: 0.11.0
 
 ```sql
 EXTRACTJSONFIELD(message, '$.log.cloud')
@@ -808,7 +808,7 @@ INSTR('CORPORATE FLOOR', 'MISSING') -> 0
 
 ### `LCASE`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 LCASE(col1)
@@ -818,7 +818,7 @@ Convert a string to lowercase.
 
 ### `LEN`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 LEN(string)
@@ -1082,7 +1082,7 @@ SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green',
 
 ### `SUBSTRING`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 SUBSTRING(str, pos, [len])
@@ -1110,7 +1110,7 @@ Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `TRIM`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 TRIM(col1)
@@ -1120,7 +1120,7 @@ Trim the spaces from the beginning and end of a string.
 
 ### `UCASE`
 
-Since: -
+Since: 0.1.0
 
 ```sql
 UCASE(col1)
@@ -1230,7 +1230,7 @@ complex type are not inspected. The behaviour is the same: the first NOT NULL el
 
 ### `IFNULL`
 
-Since: -
+Since: 0.9.0
 
 ```sql
 IFNULL(expression, altValue)
@@ -1243,7 +1243,7 @@ complex type are not inspected.
 
 ### `NULLIF`
 
-Since: -
+Since: 0.19.0
 
 ```sql
 NULLIF(expression1, expression2)
@@ -1622,7 +1622,7 @@ present or `url` is not a valid URI.
 
 ### `DATETOSTRING`
 
-Since: -
+Since: 0.7.1
 
 Deprecated since 0.20.0 (use FORMAT_DATE)
 
@@ -1638,7 +1638,7 @@ The integer represents days since epoch matching the encoding used by
 
 ### `STRINGTODATE`
 
-Since: -
+Since: 0.7.1
 
 Deprecated since 0.20.0 (use PARSE_DATE)
 
@@ -1654,7 +1654,7 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 ### `STRINGTOTIMESTAMP`
 
-Since: -
+Since: 0.7.1
 
 Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
 
@@ -1677,7 +1677,7 @@ more information on timestamp formats, see
 
 ### `TIMESTAMPTOSTRING`
 
-Since: -
+Since: 0.7.1
 
 Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
 

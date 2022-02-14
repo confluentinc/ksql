@@ -237,7 +237,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     }
 
     @Test
-    public void shouldRemoveQueryIfRegisteredButNotStarted() {
+    public void shouldNotStartOrAddedToStreamsIfOnlyRegistered() {
         //Given:
         sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2, queryId2);
 

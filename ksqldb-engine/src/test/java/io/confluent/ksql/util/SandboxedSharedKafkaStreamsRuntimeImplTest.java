@@ -49,6 +49,9 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
   private BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata;
 
   @Mock
+  private NamedTopology topology;
+
+  @Mock
   private QueryId queryId;
 
   @Mock
@@ -66,7 +69,9 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
         streamProps
     );
     when(queryId.toString()).thenReturn("query 1");
-    when(queryId2.toString()).thenReturn("query 2");
+
+    when(binPackedPersistentQueryMetadata.getTopologyCopy(any())).thenReturn(topology);
+    when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(queryId);
 
     validationSharedKafkaStreamsRuntime.register(
         binPackedPersistentQueryMetadata,
@@ -103,12 +108,11 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     verify(kafkaStreamsNamedTopologyWrapper).close();
   }
 
-  @Test void shouldAddTopologyDuringRegister() {
-    //When:
-    final NamedTopology topology = mock(NamedTopology.class);
-    when(binPackedPersistentQueryMetadata.getTopology()).thenReturn(topology);
+  @Test
+  public void shouldAddTopologyDuringRegister() {
 
     //Then:
+    verify(kafkaStreamsNamedTopologyWrapper).getTopologyByName(queryId.toString());
     verify(kafkaStreamsNamedTopologyWrapper).addNamedTopology(topology);
   }
 }

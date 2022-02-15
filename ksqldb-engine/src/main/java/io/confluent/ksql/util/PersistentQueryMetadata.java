@@ -58,7 +58,9 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   void stop();
 
-  void stop(boolean resetOffsets);
+  void stop(boolean isCreateOrReplace);
+
+  void register();
 
   StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       Throwable error

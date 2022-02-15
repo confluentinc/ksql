@@ -226,6 +226,11 @@ public class PersistentQueryMetadataImpl
     stop();
   }
 
+  @Override
+  public void register() {
+
+  }
+
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
   }

@@ -36,6 +36,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
         getSandboxStreamsProperties(sharedRuntime)
     );
 
+    collocatedQueries.putAll(sharedRuntime.collocatedQueries);
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
       kafkaStreams.addNamedTopology(query.getTopologyCopy(this));
     }
@@ -70,11 +71,15 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final QueryId queryId
   ) {
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
+    if (!kafkaStreams.getTopologyByName(
+        binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
+      kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
+    }
     log.debug("mapping {}", collocatedQueries);
   }
 
   @Override
-  public void stop(final QueryId queryId, final boolean resetOffsets) {
+  public void stop(final QueryId queryId, final boolean isCreateOrReplace) {
   }
 
   public TimeBoundedQueue getNewQueryErrorQueue() {
@@ -83,7 +88,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public synchronized void close() {
-    log.debug("Closing validation runtime {}", getApplicationId());
+    log.info("Closing validation runtime {}", getApplicationId());
     kafkaStreams.close();
     kafkaStreams.cleanUp();
   }

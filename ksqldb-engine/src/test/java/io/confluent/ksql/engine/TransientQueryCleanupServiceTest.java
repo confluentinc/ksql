@@ -179,9 +179,9 @@ public class TransientQueryCleanupServiceTest {
         assertEquals(results.size(), 0);
 
         service.registerRunningQuery(APP_ID_2);
-        Set<String> expected = ImmutableSet.of(
+        Set<String> expected = new HashSet<>(ImmutableList.of(
                         APP_ID_2 + "-KafkaTopic_Right-Reduce-changelog",
-                        APP_ID_2 + "-Join-repartition");
+                        APP_ID_2 + "-Join-repartition"));
         results = new HashSet<>(service.findLeakedTopics());
         assertEquals(expected, results);
 
@@ -191,7 +191,10 @@ public class TransientQueryCleanupServiceTest {
 
         service.registerRunningQuery(APP_ID_3);
         results = new HashSet<>(service.findLeakedTopics());
-        expected.addAll(ImmutableSet.of(APP_ID_3 + "-KafkaTopic_Right-Reduce-changelog", APP_ID_3 + "-Join-repartition"));
+        expected.addAll(
+                ImmutableList.of(
+                        APP_ID_3 + "-KafkaTopic_Right-Reduce-changelog",
+                        APP_ID_3 + "-Join-repartition"));
         assertEquals(expected, results);
     }
 

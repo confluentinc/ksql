@@ -295,6 +295,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           sharedRuntimeId.get(),
           metricCollectors
       );
+      query.register();
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
@@ -442,7 +443,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
       // don't close the old query so that we don't delete the changelog
       // topics and the state store, instead use QueryMetadata#stop
-      oldQuery.stop(false);
+      oldQuery.stop(true);
       unregisterQuery(oldQuery);
     }
 

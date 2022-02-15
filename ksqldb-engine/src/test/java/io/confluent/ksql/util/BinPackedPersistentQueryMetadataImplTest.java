@@ -105,7 +105,7 @@ public class BinPackedPersistentQueryMetadataImplTest {
 
         // Then:
         final InOrder inOrder = inOrder(sharedKafkaStreamsRuntimeImpl);
-        inOrder.verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, true);
+        inOrder.verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, false);
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -124,6 +124,6 @@ public class BinPackedPersistentQueryMetadataImplTest {
         query.stop();
 
         // Then:
-        verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, true);
+        verify(sharedKafkaStreamsRuntimeImpl).stop(QUERY_ID, false);
     }
 }

@@ -173,16 +173,20 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   }
 
   @Override
-  public void stop(final QueryId queryId, final boolean resetOffsets) {
-    log.info("Attempting to stop query: {} in runtime {} with resetOffsets={}",
-             queryId, getApplicationId(), resetOffsets);
-    if (collocatedQueries.containsKey(queryId)) {
+  public void stop(final QueryId queryId, final boolean isCreateOrReplace) {
+    log.info("Attempting to stop query: {} in runtime {} with isCreateOrReplace={}",
+             queryId, getApplicationId(), isCreateOrReplace);
+    if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()
+        != collocatedQueries.containsKey(queryId)) {
+      log.error("Non SandBoxed queries should not be registered and never started.");
+    }
+    if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         try {
-          kafkaStreams.removeNamedTopology(queryId.toString(), resetOffsets)
+          kafkaStreams.removeNamedTopology(queryId.toString(), !isCreateOrReplace)
               .all()
               .get();
-          if (resetOffsets) {
+          if (!isCreateOrReplace) {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
         } catch (ExecutionException | InterruptedException e) {
@@ -194,6 +198,10 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         throw new IllegalStateException("Streams in not running but is in state "
             + kafkaStreams.state());
       }
+    }
+    if (!isCreateOrReplace) {
+      // we don't want to lose it from this runtime
+      collocatedQueries.remove(queryId);
     }
   }
 
@@ -226,7 +234,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
                                                + " an older version of query : " + queryId);
       }
     } else {
-      throw new IllegalArgumentException("Cannot start because query " + queryId + " was not"
+      throw new IllegalArgumentException("Cannot start because query " + queryId + " was not "
                                              + "registered to runtime " + getApplicationId());
     }
   }

@@ -13,6 +13,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -455,6 +456,19 @@ public class QueryRegistryImplTest {
     // Then:
     verify(listener1).onError(query, error);
     verify(listener2).onError(query, error);
+  }
+
+  @Test
+  public void shouldRegisterQuery() {
+    //When:
+    final PersistentQueryMetadata q = givenCreate(registry, "q1", "source",
+        Optional.of("sink1"), CREATE_AS);
+
+    //Then:
+    if (sharedRuntimes) {
+      verify(q).register();
+    }
+    verify(q, never()).start();
   }
 
   @Test

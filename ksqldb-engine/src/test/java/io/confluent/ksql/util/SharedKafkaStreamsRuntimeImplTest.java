@@ -235,4 +235,18 @@ public class SharedKafkaStreamsRuntimeImplTest {
         verify(kafkaStreamsNamedTopologyWrapper2).start();
         verify(kafkaStreamsNamedTopologyWrapper2).setUncaughtExceptionHandler((StreamsUncaughtExceptionHandler) any());
     }
+
+    @Test
+    public void shouldNotStartOrAddedToStreamsIfOnlyRegistered() {
+        //Given:
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2, queryId2);
+
+        //When:
+        sharedKafkaStreamsRuntimeImpl.stop(queryId2, false);
+
+        //Then:
+        verify(binPackedPersistentQueryMetadata, never()).start();
+        verify(kafkaStreamsNamedTopologyWrapper, never())
+            .addNamedTopology(binPackedPersistentQueryMetadata2.getTopologyCopy(sharedKafkaStreamsRuntimeImpl));
+    }
 }

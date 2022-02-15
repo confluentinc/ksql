@@ -108,6 +108,7 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
   public static final List<String> QueryLevelPropertyList = ImmutableList.of(
+      AUTO_OFFSET_RESET_CONFIG,
       KSQL_STRING_CASE_CONFIG_TOGGLE,
       KSQL_NESTED_ERROR_HANDLING_CONFIG,
       KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,

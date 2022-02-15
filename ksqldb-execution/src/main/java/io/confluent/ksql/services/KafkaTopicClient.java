@@ -99,7 +99,6 @@ public interface KafkaTopicClient {
       final short replicationFactor,
       final Map<String, ?> configs
   ) {
-
     createTopic(
         topic,
         numPartitions,

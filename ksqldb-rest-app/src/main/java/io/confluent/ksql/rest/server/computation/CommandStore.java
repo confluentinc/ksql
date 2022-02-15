@@ -280,16 +280,12 @@ public class CommandStore implements CommandQueue, Closeable {
     try {
       future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (final ExecutionException e) {
-      System.out.println("consumed past error 1");
       if (e.getCause() instanceof RuntimeException) {
-        System.out.println("consumed past error 2 " +  e);
         throw (RuntimeException) e.getCause();
       }
-      System.out.println("consumed past error 3 " +  e);
       throw new RuntimeException(
           "Error waiting for command sequence number of " + seqNum, e.getCause());
     } catch (final TimeoutException e) {
-      System.out.println("consumed past error 4 " +  e);
       throw new TimeoutException(
           String.format(
               "Timeout reached while waiting for command sequence number of %d."
@@ -365,7 +361,6 @@ public class CommandStore implements CommandQueue, Closeable {
 
   @Override
   public boolean isEmpty() {
-    System.out.println("thread name isEmpty " + Thread.currentThread().getName());
     return commandTopic.getEndOffset() == 0;
   }
 

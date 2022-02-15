@@ -382,7 +382,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void close() {
-    sharedKafkaStreamsRuntime.stop(queryId, true);
+    sharedKafkaStreamsRuntime.stop(queryId, false);
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
     listener.onClose(this);
   }

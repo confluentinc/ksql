@@ -56,11 +56,11 @@ COLLECT_SET(col1) => ARRAY
 Returns an array containing the distinct values of `col1` from
 each input row (for the specified grouping and time window, if any).
 
-The `COLLECT_LIST` function works only for simple types and doesn't support
+The `COLLECT_SET` function works only for simple types and doesn't support
 complex types like MAP, ARRAY, and STRUCT.
 
 The size of the result ARRAY can be limited to a maximum of
-`ksql.functions.collect_list.limit` entries, and any values beyond this
+`ksql.functions.collect_set.limit` entries, and any values beyond this
 limit are ignored silently.
 
 When used with a `SESSION` window, sometimes two session windows are merged
@@ -142,7 +142,7 @@ HISTOGRAM(col1)
 Returns a map containing the distinct string values of `col1`
 mapped to the number of times each one occurs for the given window.
 
-the `HISTOGRAM` function limits the number of distinct values which can be
+The `HISTOGRAM` function limits the number of distinct values which can be
 counted to 1000, beyond which any additional entries are ignored.
 
 When used with a `SESSION` window, sometimes two session windows are merged

@@ -32,14 +32,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.junit.MockitoRule;
-import org.mockito.quality.Strictness;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -47,21 +43,15 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class TransientQueryCleanupServiceTest {
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.LENIENT);
-
-
     private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.singletonMap(
             KsqlConfig.KSQL_SERVICE_ID_CONFIG, KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
 
     private static final String internalPrefix = "_confluent-ksql-default_transient";
-
     private static final String APP_ID_1 = internalPrefix + "_transient_PV_11111_12345";
     private static final String APP_ID_2 = internalPrefix + "_transient_PV_22222_67890";
     private static final String APP_ID_3 = internalPrefix + "_transient_PV_33333_13579";
     private static final String APP_ID_4 = internalPrefix + "_transient_PV_44444_24680";
     private static final String APP_ID_5 = internalPrefix + "_transient_PV_55555_09876";
-
     private static final List<String> ALL_APP_IDS = ImmutableList.of(APP_ID_1, APP_ID_2, APP_ID_3, APP_ID_4, APP_ID_5);
 
     @Spy
@@ -93,17 +83,13 @@ public class TransientQueryCleanupServiceTest {
         when(q4.getQueryId()).thenReturn(new QueryId(APP_ID_4));
         when(q5.getQueryId()).thenReturn(new QueryId(APP_ID_5));
 
-
         FakeKafkaTopicClient client = new FakeKafkaTopicClient();
         ALL_APP_IDS.forEach(id -> {
             client.createTopic(id + "-KafkaTopic_Right-Reduce-changelog", 1, (short) 1);
             client.createTopic(id + "-Join-repartition", 1, (short) 1);
-
         });
         when(service.getTopicClient()).thenReturn(client);
-        //service.registerRunningQuery("_confluent-ksql-default_transient_transient_PV_11111_12345");
     }
-
 
     @Test
     public void shouldReturnTrueForQueriesGuaranteedToBeRunningAtSomePoint() {
@@ -111,7 +97,9 @@ public class TransientQueryCleanupServiceTest {
         ALL_APP_IDS.forEach(id -> service.registerRunningQuery(id));
 
         // When:
-        List<Boolean> results = ALL_APP_IDS.stream().map(service::wasQueryGuaranteedToBeRunningAtSomePoint).collect(Collectors.toList());
+        List<Boolean> results = ALL_APP_IDS.stream()
+                .map(service::wasQueryGuaranteedToBeRunningAtSomePoint)
+                .collect(Collectors.toList());
 
         // Then:
         results.forEach(result -> assertEquals(result, true));
@@ -123,7 +111,9 @@ public class TransientQueryCleanupServiceTest {
         ALL_APP_IDS.subList(0, 3).forEach(id -> service.registerRunningQuery(id));
 
         // When:
-        List<Boolean> results = ALL_APP_IDS.stream().map(service::wasQueryGuaranteedToBeRunningAtSomePoint).collect(Collectors.toList());
+        List<Boolean> results = ALL_APP_IDS.stream()
+                .map(service::wasQueryGuaranteedToBeRunningAtSomePoint)
+                .collect(Collectors.toList());
 
         // Then:
         results.subList(0, 3).forEach(result -> assertEquals(result, true));
@@ -136,7 +126,9 @@ public class TransientQueryCleanupServiceTest {
         when(registry.getAllLiveQueries()).thenReturn(ImmutableList.of(q1, q2, q3));
 
         // When:
-        List<Boolean> results = ALL_APP_IDS.stream().map(service::isCorrespondingQueryTerminated).collect(Collectors.toList());
+        List<Boolean> results = ALL_APP_IDS.stream()
+                .map(service::isCorrespondingQueryTerminated)
+                .collect(Collectors.toList());
 
         // Then:
         results.subList(0, 3).forEach(result -> assertEquals(result, false));
@@ -150,7 +142,9 @@ public class TransientQueryCleanupServiceTest {
         service.setLocalCommandsQueryAppIds(localCommands);
 
         // When:
-        List<Boolean> results = ALL_APP_IDS.stream().map(service::foundInLocalCommands).collect(Collectors.toList());
+        List<Boolean> results = ALL_APP_IDS.stream()
+                .map(service::foundInLocalCommands)
+                .collect(Collectors.toList());
 
         // Then:
         results.subList(0, 3).forEach(result -> assertEquals(result, true));
@@ -185,7 +179,9 @@ public class TransientQueryCleanupServiceTest {
         assertEquals(results.size(), 0);
 
         service.registerRunningQuery(APP_ID_2);
-        Set<String> expected = new HashSet<>(ImmutableList.of(APP_ID_2 + "-KafkaTopic_Right-Reduce-changelog", APP_ID_2 + "-Join-repartition"));
+        Set<String> expected = ImmutableSet.of(
+                        APP_ID_2 + "-KafkaTopic_Right-Reduce-changelog",
+                        APP_ID_2 + "-Join-repartition");
         results = new HashSet<>(service.findLeakedTopics());
         assertEquals(expected, results);
 
@@ -195,7 +191,7 @@ public class TransientQueryCleanupServiceTest {
 
         service.registerRunningQuery(APP_ID_3);
         results = new HashSet<>(service.findLeakedTopics());
-        expected.addAll(ImmutableList.of(APP_ID_3 + "-KafkaTopic_Right-Reduce-changelog", APP_ID_3 + "-Join-repartition"));
+        expected.addAll(ImmutableSet.of(APP_ID_3 + "-KafkaTopic_Right-Reduce-changelog", APP_ID_3 + "-Join-repartition"));
         assertEquals(expected, results);
     }
 
@@ -216,12 +212,15 @@ public class TransientQueryCleanupServiceTest {
         assertTrue(service.findLeakedStateDirs().isEmpty());
 
         service.registerRunningQuery(APP_ID_1);
-        assertEquals(service.findLeakedStateDirs(), ImmutableList.of(APP_ID_1));
+        assertEquals(service.findLeakedStateDirs(),
+                ImmutableList.of(APP_ID_1));
 
         service.registerRunningQuery(APP_ID_4);
-        assertEquals(service.findLeakedStateDirs(), ImmutableList.of(APP_ID_1, APP_ID_4));
+        assertEquals(service.findLeakedStateDirs(),
+                ImmutableList.of(APP_ID_1, APP_ID_4));
 
         service.setLocalCommandsQueryAppIds(ImmutableSet.of(APP_ID_5));
-        assertEquals(service.findLeakedStateDirs(), ImmutableList.of(APP_ID_1, APP_ID_4, APP_ID_5));
+        assertEquals(service.findLeakedStateDirs(),
+                ImmutableList.of(APP_ID_1, APP_ID_4, APP_ID_5));
     }
 }

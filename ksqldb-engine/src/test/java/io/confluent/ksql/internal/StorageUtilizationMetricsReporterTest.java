@@ -93,7 +93,7 @@ public class StorageUtilizationMetricsReporterTest {
     final Object storageUsedValue = storageUsedGauge.value(null, 0);
     final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", BASE_TAGS);
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
-    final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_task_storage_used_bytes", BASE_TAGS);
+    final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_used_task_storage_bytes", BASE_TAGS);
     final Object maxTaskUsageValue = maxTaskUsageGauge.value(null, 0);
     final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
     final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);

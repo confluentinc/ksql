@@ -38,7 +38,7 @@ public class TransientQueryCleanupListener implements QueryEventListener {
                      final State after) {
     if (query instanceof TransientQueryMetadata && before.isRunningOrRebalancing()) {
       final String applicationId = query.getQueryApplicationId();
-      cleanupService.queryIsRunning(applicationId);
+      cleanupService.registerRunningQuery(applicationId);
     }
   }
 }

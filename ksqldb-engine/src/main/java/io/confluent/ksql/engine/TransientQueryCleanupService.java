@@ -21,6 +21,7 @@ import static java.nio.file.Files.deleteIfExists;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.query.QueryRegistry;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
@@ -45,9 +46,9 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   private static final Logger LOG = LoggerFactory.getLogger(TransientQueryCleanupService.class);
   private final Pattern internalTopicPrefixPattern;
   private final Pattern transientAppIdPattern;
-  private final Set<String> queriesGuaranteedToBeRunning;
+  private final Set<String> queriesGuaranteedToBeRunningAtSomePoint;
   private final String stateDir;
-  private final ServiceContext serviceContext;
+  private final KafkaTopicClient topicClient;
   private final int initialDelay;
   private final int intervalPeriod;
   private Optional<Set<String>> localCommandsQueryAppIds;
@@ -75,9 +76,9 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
                             .get(StreamsConfig.STATE_DIR_CONFIG))
             .toString();
 
-    this.serviceContext = serviceContext;
+    this.topicClient = serviceContext.getTopicClient();
     this.localCommandsQueryAppIds = Optional.empty();
-    this.queriesGuaranteedToBeRunning = new HashSet<>();
+    this.queriesGuaranteedToBeRunningAtSomePoint = new HashSet<>();
     this.numLeakedTopics = 0;
     this.numLeakedStateFiles = 0;
   }
@@ -88,7 +89,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
       final List<String> leakedTopics = findLeakedTopics();
       this.numLeakedTopics = leakedTopics.size();
       LOG.info("Cleaning up {} leaked topics: {}", numLeakedTopics, leakedTopics);
-      serviceContext.getTopicClient().deleteTopics(leakedTopics);
+      getTopicClient().deleteTopics(leakedTopics);
 
       final List<String> leakedStateDirs = findLeakedStateDirs();
       this.numLeakedStateFiles = leakedStateDirs.size();
@@ -128,29 +129,34 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     }
   }
 
-  private List<String> findLeakedTopics() {
-    return serviceContext
-            .getTopicClient()
+  List<String> findLeakedTopics() {
+    return getTopicClient()
             .listTopicNames()
             .stream()
             .filter(this::isLeaked)
             .collect(Collectors.toList());
   }
 
-  private List<String> findLeakedStateDirs() {
+  List<String> findLeakedStateDirs() {
+    return listAllStateFiles()
+            .stream()
+            .filter(this::isLeaked)
+            .collect(Collectors.toList());
+  }
+
+  List<String> listAllStateFiles() {
     final File folder = new File(stateDir);
     final File[] listOfFiles = folder.listFiles();
 
     if (listOfFiles == null) {
       return Collections.emptyList();
     }
-    return Arrays.stream(listOfFiles)
+    return  Arrays.stream(listOfFiles)
             .map(File::getName)
-            .filter(this::isLeaked)
             .collect(Collectors.toList());
   }
 
-  private boolean isLeaked(final String resource) {
+  boolean isLeaked(final String resource) {
     if (foundInLocalCommands(resource)) {
       return true;
     }
@@ -162,13 +168,12 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     }
     final Matcher appIdMatcher = transientAppIdPattern.matcher(resource);
     if (appIdMatcher.find()) {
-      return queriesGuaranteedToBeRunning.contains(
-              appIdMatcher.group());
+      return wasQueryGuaranteedToBeRunningAtSomePoint(appIdMatcher.group());
     }
     return false;
   }
 
-  private boolean isCorrespondingQueryTerminated(final String appId) {
+  boolean isCorrespondingQueryTerminated(final String appId) {
     return this.queryRegistry
             .getAllLiveQueries()
             .stream()
@@ -176,21 +181,25 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
             .noneMatch(appId::contains);
   }
 
-  public void queryIsRunning(final String appId) {
-    queriesGuaranteedToBeRunning.add(appId);
+  public void registerRunningQuery(final String appId) {
+    queriesGuaranteedToBeRunningAtSomePoint.add(appId);
   }
 
-  private boolean foundInLocalCommands(final String resourceName) {
+  boolean wasQueryGuaranteedToBeRunningAtSomePoint(final String appId) {
+    return queriesGuaranteedToBeRunningAtSomePoint.contains(appId);
+  }
+
+  boolean foundInLocalCommands(final String resourceName) {
     return localCommandsQueryAppIds
             .map(strings -> strings.stream().anyMatch(resourceName::contains))
             .orElse(false);
   }
 
-  public int getNumLeakedTopics() {
-    return numLeakedTopics;
+  KafkaTopicClient getTopicClient() {
+    return topicClient;
   }
 
-  public int getNumLeakedStateFiles() {
-    return numLeakedStateFiles;
+  String getStateDir() {
+    return stateDir;
   }
 }

@@ -200,8 +200,6 @@ public class TransientQueryCleanupServiceTest {
 
     @Test
     public void shouldDetectTheCorrectLeakedStateDirs() throws IOException {
-        assertTrue(STATE_DIR.matches(".*/T//kafka-streams"));
-
         Set<String> results = new HashSet<>(service.findLeakedStateDirs());
         assertEquals(results.size(), 0);
 

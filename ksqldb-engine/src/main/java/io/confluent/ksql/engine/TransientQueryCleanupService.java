@@ -170,6 +170,7 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     if (appIdMatcher.find()) {
       return wasQueryGuaranteedToBeRunningAtSomePoint(appIdMatcher.group());
     }
+
     return false;
   }
 

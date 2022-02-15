@@ -6,35 +6,31 @@ description: Scalar functions to use in SQL statements and queries
 keywords: ksqlDB, SQL, function, scalar
 ---
 
-## Numeric functions
+## **Numeric functions**
 
 ### **`ABS`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 ABS(col1)
 ```
 
-Returns the absolute value of a value.
+Returns the absolute value of `col1`.
+
+---
 
 ### **`AS_VALUE`**
 
-Since: 0.9.0
-
-```sql
-AS_VALUE(keyCol)
+```sql title="Since: 0.9.0"
+AS_VALUE(keyColumn)
 ```
 
-Creates a copy of a key column in the value.
+Copies a row's key column into the row's value.
 
-**Example**
-
-```sql
+```sql title="Example", hl_lines="4"
 CREATE TABLE AGG AS
    SELECT 
-     ID,                  -- this is the grouping column and will be stored in the message key.
-     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, called ID2, stored in the message value.
+     ID,                  -- this is the grouping column, which is stored in the message key.
+     AS_VALUE(ID) AS ID2  -- this creates a copy of ID, named ID2, which is stored in the message value.
      COUNT(*) AS COUNT
    FROM S
    GROUP BY ID;
@@ -43,11 +39,11 @@ CREATE TABLE AGG AS
 !!! Tip "See AS_VALUE in action"
     - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
 
+---
+
 ### **`CAST`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 CAST(COL0 AS BIGINT)
 ```
 
@@ -72,55 +68,55 @@ Converts one type to another. The following casts are supported:
     - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
     - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
 
+---
+
 ### **`CEIL`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 CEIL(col1)
 ```
 
 Returns the the smallest integer value that's greater than or equal to `col1`.
 
+---
+
 ### **`ENTRIES`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 ENTRIES(map MAP, sorted BOOLEAN)
 ```
 
-Constructs an array of structs from the entries in a map. Each struct has
-a field named `K` containing the key, which is a string, and a field named
-`V`, which holds the value.
+Creates an array of structs from the entries in a map. Each struct has a field
+named `K` containing the key, which is a string, and a field named `V`, which
+holds the value.
 
 If `sorted` is true, the entries are sorted by key.
 
+---
+
 ### **`EXP`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 EXP(col1)
 ```
 
 Returns the exponential of `col1`, which is _e_ raised to the power of `col1`. 
 
+---
+
 ### **`FLOOR`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 FLOOR(col1)
 ```
 
 Returns the largest integer value that's less than or equal to `col1`.
 
+---
+
 ### **`GENERATE_SERIES`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 GENERATE_SERIES(start, end)
 GENERATE_SERIES(start, end, step)
 ```
@@ -132,11 +128,11 @@ Parameters `start` and `end` can be an `INT` or `BIGINT`.
 `step`, if supplied, specifies the step size. The step can be positive or negative.
 If not supplied, `step` defaults to `1`. Parameter `step` must be an `INT`.
 
+---
+
 ### **`GEO_DISTANCE`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)
 ```
 
@@ -144,11 +140,11 @@ The great-circle distance between two lat-long points, both specified
 in decimal degrees. An optional final parameter specifies `KM`
 (the default) or `miles`.
 
+---
+
 ### **`GREATEST`**
 
-Since: 0.20.0
-
-```sql
+```sql title="Since: 0.20.0"
 GREATEST(col1, col2, …)
 ```
 
@@ -157,11 +153,11 @@ Returns the largest non-null value from a variable number of comparable columns.
 If comparing columns of different numerical types, use [CAST](#cast) to first
 cast them to be of the same type.
 
+---
+
 ### **`LEAST`**
 
-Since: 0.20.0
-
-```sql
+```sql title="Since: 0.20.0"
 LEAST(col1, col2, …)
 ```
 
@@ -170,11 +166,11 @@ Returns the smallest non-null value from a variable number of comparable columns
 If comparing columns of different numerical types, use [CAST](#cast) to first
 cast them to be of the same type.
 
+---
+
 ### **`LN`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 LN(col1)
 ```
 
@@ -182,21 +178,21 @@ Returns the natural logarithm of `col1`, which is .
 
 The value of `col1` must be greater than 0.
 
+---
+
 ### **`RANDOM`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 RANDOM()
 ```
 
 Returns a random `DOUBLE` value between 0.0 and 1.0.
 
+---
+
 ### **`ROUND`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 ROUND(col1)
 ROUND(col1, scale)
 ```
@@ -210,11 +206,11 @@ direction.
 
 If the number of decimal places is not provided, it defaults to zero.
 
+---
+
 ### **`SIGN`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 SIGN(col1)
 ```
 
@@ -225,23 +221,23 @@ Returns the sign of `col1` as an `INTEGER`:
 * 1 if the argument is positive
 * `null` argument is `null`
 
+---
+
 ### **`SQRT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 SQRT(col1)
 ```
 
 Returns the square root of `col`.
 
-## Collections
+---
+
+## **Collections**
 
 ### **`ARRAY`**
 
-Since: 0.7.0
-
-```sql
+```sql title="Since: 0.7.0"
 ARRAY[exp1, exp2, …]
 ```
 
@@ -251,11 +247,11 @@ All elements must be coercible to a common SQL type.
 For more information, see
 [Implicit type coercion](type-coercion.md#implicit-type-coercion).
 
+---
+
 ### **`ARRAY_CONCAT`**
 
-Since: 0.21.0
-
-```sql
+```sql title="Since: 0.21.0"
 ARRAY_CONCAT(array1, array2)
 ```
 
@@ -271,11 +267,11 @@ ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
 ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
 ```
 
+---
+
 ### **`ARRAY_CONTAINS`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 ARRAY_CONTAINS(ARRAY[1, 2, 3], 3)
 ```
 
@@ -287,11 +283,11 @@ type of the `ARRAY`.
 !!! Tip "See ARRAY_CONTAINS in action"
     - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
 
+---
+
 ### **`ARRAY_DISTINCT`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_DISTINCT([1, 2, 3])
 ```
 
@@ -308,11 +304,11 @@ ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
 ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
 ```
 
+---
+
 ### **`ARRAY_EXCEPT`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_EXCEPT(array1, array2)
 ```
 
@@ -329,11 +325,11 @@ ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
 ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
 ```
 
+---
+
 ### **`ARRAY_INTERSECT`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_INTERSECT(array1, array2)
 ```
 
@@ -350,11 +346,11 @@ ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
 ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
 ```
 
+---
+
 ### **`ARRAY_JOIN`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_JOIN(col1, delimiter)
 ```
 
@@ -369,11 +365,11 @@ Array elements are limited to primitive ksqlDB types only.
 !!! Tip "See ARRAY_JOIN in action"
     - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
 
+---
+
 ### **`ARRAY_LENGTH`**
 
-Since: 0.8.0
-
-```sql
+```sql title="Since: 0.8.0"
 ARRAY_LENGTH(ARRAY[1, 2, 3])
 ```
 
@@ -381,11 +377,11 @@ Returns the number of elements in an array.
 
 If the supplied parameter is `NULL`, the method returns `NULL`.
 
+---
+
 ### **`ARRAY_MAX`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_MAX(['foo', 'bar', 'baz'])
 ```
 
@@ -408,11 +404,11 @@ ARRAY_MAX[false, NULL, true] => true
 ARRAY_MAX['Foo', 'Bar', NULL, 'baz'] => 'baz' -- (lower-case characters are "greater" than upper-case characters)
 ```
 
+---
+
 ### **`ARRAY_MIN`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_MIN(['foo', 'bar', 'baz'])
 ```
 
@@ -435,11 +431,11 @@ ARRAY_MIN[false, NULL, true] => false
 ARRAY_MIN['Foo', 'Bar', NULL, 'baz'] => 'Bar'
 ```
 
+---
+
 ### **`ARRAY_REMOVE`**
 
-Since: 0.11.0
-
-```sql
+```sql title="Since: 0.11.0"
 ARRAY_REMOVE(array, element)
 ```
 
@@ -455,11 +451,11 @@ ARRAY_REMOVE([false, NULL, true, true], false) => [NULL, true, true]
 ARRAY_REMOVE(['Foo', 'Bar', NULL, 'baz'], null) => ['Foo', 'Bar', 'baz']
 ```
 
+---
+
 ### **`ARRAY_SORT`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_SORT(['foo', 'bar', 'baz'], 'ASC|DESC')
 ```
 
@@ -488,11 +484,11 @@ ARRAY_SORT['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]
 !!! Tip "See ARRAY_SORT in action"
     - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
 
+---
+
 ### **`ARRAY_UNION`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ARRAY_UNION(array1, array2)
 ```
 
@@ -508,11 +504,11 @@ ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
 ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
 ```
 
+---
+
 ### **`AS_MAP`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 AS_MAP(keys, vals)
 ```
 
@@ -521,11 +517,11 @@ Constructs a map from a list of keys and a list of values.
 !!! Tip "See AS_MAP in action"
     - [Match users for online dating](https://developer.confluent.io/tutorials/online-dating/confluent.html#ksqldb-code)
 
+---
+
 ### **`ELT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 ELT(n INTEGER, args VARCHAR[])
 ```
 
@@ -536,11 +532,11 @@ The `ELT` function is 1-indexed.
 
 `ELT` is the complement to the `FIELD` function.
 
+---
+
 ### **`FIELD`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 FIELD(str VARCHAR, args VARCHAR[])
 ```
 
@@ -551,11 +547,11 @@ to be equal to any value.
 
 `FIELD` is the complement to the `ELT` function.
 
+---
+
 ### **`JSON_ARRAY_CONTAINS`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 JSON_ARRAY_CONTAINS('[1, 2, 3]', 3)
 ```
 
@@ -564,11 +560,11 @@ in the array.
 
 Returns `false` if the first parameter doesn't contain a JSON array.
 
+---
+
 ### **`MAP`**
 
-Since: 0.7.0
-
-```sql
+```sql title="Since: 0.7.0"
 MAP(key VARCHAR := value, …)
 ```
 
@@ -579,11 +575,11 @@ All values must be coercible to a common SQL type.
 For more information, see
 [Implicit type coercion](type-coercion.md#implicit-type-coercion).
 
+---
+
 ### **`MAP_KEYS`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 MAP_KEYS(a_map)
 ```
 
@@ -597,11 +593,11 @@ Returns `NULL` if the input map is `NULL`.
 map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana'] 
 ```
 
+---
+
 ### **`MAP_VALUES`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 MAP_VALUES(a_map)
 ```
 
@@ -615,11 +611,11 @@ Returns `NULL` if the input map is `NULL`.
 map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20] 
 ```
 
+---
+
 ### **`MAP_UNION`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 MAP_UNION(map1, map2)
 ```
 
@@ -638,11 +634,11 @@ map_union( map('apple' := 10, 'banana' := 20), map('cherry' := 99) )  => ['apple
 map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple': 50, 'banana': 20] 
 ```
 
+---
+
 ### **`SLICE`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 SLICE(col1, from, to)
 ```
 
@@ -650,17 +646,16 @@ Slices a list based on the supplied indices.
 
 The indices start at 1 and include both endpoints.
 
-## Invocation Functions
+---
+
+## **Invocation Functions**
 
 Apply lambda functions to collections.
 
 ### **`FILTER`**
 
-Since: 0.17.0
-
-```sql
+```sql title="Since: 0.17.0"
 FILTER(array, x => …)
-
 FILTER(map, (k,v) => …)
 ```
 
@@ -670,13 +665,12 @@ If the collection is an array, the lambda function must have one input argument.
 
 If the collection is a map, the lambda function must have two input arguments.
 
+---
+
 ### **`REDUCE`**
 
-Since: 0.17.0
-
-```sql
+```sql title="Since: 0.17.0"
 REDUCE(array, state, (s, x) => …)
-
 REDUCE(map, state, (s, k, v) => …)
 ```
 
@@ -688,13 +682,12 @@ If the collection is a map, the lambda function must have three input arguments.
 
 If the state is `NULL`, the result is `NULL`.
 
+---
+
 ### **`TRANSFORM`**
 
-Since: 0.17.0
-
-```sql
+```sql title="Since: 0.17.0"
 TRANSFORM(array, x => …)
-
 TRANSFORM(map, (k,v) => …, (k,v) => …)
 ```
 
@@ -705,13 +698,13 @@ If the collection is an array, the lambda function must have one input argument.
 If the collection is a map, two lambda functions must be provided, and both
 lambdas must have two arguments: a map entry key and a map entry value.
 
-## Strings
+---
+
+## **Strings**
 
 ### **`CHR`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 CHR(decimal_code | utf_string)
 ```
 
@@ -735,11 +728,11 @@ CHR(22909)     => '好'
 CHR('\u597d')  => '好'
 ```
 
+---
+
 ### **`CONCAT`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 CONCAT(col1, col2, 'hello', …, col-n)
 CONCAT(bytes1, bytes2, …, bytes-n)
 ```
@@ -752,11 +745,11 @@ in the output.
 !!! Tip "See CONCAT in action"
     - [Enrich orders with change data capture (CDC)](https://developer.confluent.io/tutorials/denormalization/confluent.html#ksqldb-code)
 
+---
+
 ### **`CONCAT_WS`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 CONCAT_WS(separator, expr1, expr2, …)
 ```
 
@@ -773,11 +766,11 @@ Any expressions which evaluate to `NULL` are skipped.
 CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
 ```
 
+---
+
 ### **`ENCODE`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 ENCODE(col1, input_encoding, output_encoding)
 ```
 
@@ -796,15 +789,17 @@ Throws an exception if the provided encodings are not supported.
 The following example encodes a `hex` representation of a string to a
 `utf8` representation.
 
+**Example**
+
 ```sql
 ENCODE(string, 'hex', 'utf8')
 ```
 
+---
+
 ### **`EXTRACTJSONFIELD`**
 
-Since: 0.11.0
-
-```sql
+```sql title="Since: 0.11.0"
 EXTRACTJSONFIELD(message, '$.log.cloud')
 ```
 
@@ -853,11 +848,11 @@ multiple elements, like those containing wildcards, aren't supported.
       WITH (VALUE_FORMAT='JSON', …)
     ```
 
+---
+
 ### **`FROM_BYTES`**
 
-Since: 0.21.0
-
-```sql
+```sql title="Since: 0.21.0"
 FROM_BYTES(bytes, encoding)
 ```
 
@@ -870,11 +865,11 @@ The following list shows the supported encoding types.
 - `ascii`
 - `base64`
 
+---
+
 ### **`INITCAP`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 INITCAP(col1)
 ```
 
@@ -883,11 +878,11 @@ to lowercase.
 
 Words are delimited by whitespace.
 
+---
+
 ### **`INSTR`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 INSTR(string, substring, [position], [occurrence])
 ```
 
@@ -915,32 +910,32 @@ INSTR('CORPORATE FLOOR', 'OR', -3, 2) -> 2b
 INSTR('CORPORATE FLOOR', 'MISSING') -> 0
 ```
 
+---
+
 ### **`LCASE`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 LCASE(col1)
 ```
 
 Converts a string to lowercase.
 
+---
+
 ### **`LEN`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 LEN(string)
 LEN(bytes)
 ```
 
 Returns the length of a `STRING` or the number of bytes in a `BYTES` value.
 
+---
+
 ### **`LPAD`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 LPAD(input, length, padding)
 ```
 
@@ -961,11 +956,11 @@ LPAD('', 2, 'Bar')  =>  'Ba'
 LPAD('123', 5, '0')  => '00123'
 ```
 
+---
+
 ### **`MASK`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 MASK(col1, 'X', 'x', 'n', '-')
 ```
 
@@ -989,11 +984,11 @@ type.
 MASK("My Test $123", '*', NULL, '1', NULL) => "*y *est $111" 
 ```
 
+---
+
 ### **`MASK_KEEP_LEFT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
@@ -1006,11 +1001,11 @@ characters aren't masked in any way.
 MASK_KEEP_LEFT("My Test $123", 4) => "My Txxx--nnn"
 ```
 
+---
+
 ### **`MASK_KEEP_RIGHT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
@@ -1023,11 +1018,11 @@ Similar to the `MASK` function, except that the last or right-most
 MASK_KEEP_RIGHT("My Test $123", 4) => "Xx-Xxxx-$123"
 ```
 
+---
+
 ### **`MASK_LEFT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
@@ -1039,11 +1034,12 @@ Similar to the `MASK` function, except that only the first or left-most
 ```sql
 MASK_LEFT("My Test $123", 4) => "Xx-Xest $123"
 ```
+
+---
+
 ### **`MASK_RIGHT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
 ```
 
@@ -1056,11 +1052,11 @@ Similar to the `MASK` function, except that only the last or right-most
 MASK_RIGHT("My Test $123", 4) => "My Test -nnn"
 ```
 
+---
+
 ### **`REPLACE`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 REPLACE(col1, 'foo', 'bar')
 ```
 
@@ -1069,11 +1065,11 @@ Replaces all instances of a substring in a string with a new string.
 !!! Tip "See REPLACE in action"
     - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
 
+---
+
 ### **`REGEXP_EXTRACT`**
 
-Since: 0.8.0
-
-```sql
+```sql title="Since: 0.8.0"
 REGEXP_EXTRACT('.*', col1)
 REGEXP_EXTRACT('(([AEIOU]).)', col1, 2)
 ```
@@ -1090,11 +1086,11 @@ number isn't specified, the entire substring is returned by default.
 REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2) => "there"
 ```
 
+---
+
 ### **`REGEXP_EXTRACT_ALL`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 REGEXP_EXTRACT_ALL('.*', col1)
 REGEXP_EXTRACT_ALL('(([AEIOU]).)', col1, 2)
 ```
@@ -1110,11 +1106,11 @@ number isn't specified, the entire substring is returned by default.
 REGEXP_EXTRACT("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
 ```
 
+---
+
 ### **`REGEXP_REPLACE`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 REGEXP_REPLACE(col1, 'a.b+', 'bar')
 ```
 
@@ -1124,11 +1120,11 @@ string.
 If either the input string, the regular expression, or the new string is `NULL`,
 the result is `NULL`.
 
+---
+
 ### **`REGEXP_SPLIT_TO_ARRAY`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 REGEXP_SPLIT_TO_ARRAY(col1, 'a.b+')
 ```
 
@@ -1145,11 +1141,11 @@ returned.
 If the regular expression is found at the beginning or end of the string, or
 there are contiguous matches, an empty element is added to the array.
 
+---
+
 ### **`RPAD`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 RPAD(input, length, padding)
 ```
 
@@ -1169,11 +1165,11 @@ RPAD('Foo', 2, 'Bar')  =>  'Fo'
 RPAD('', 2, 'Bar')  =>  'Ba'
 ```
 
+---
+
 ### **`SPLIT`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 SPLIT(col1, delimiter)
 ```
 
@@ -1194,11 +1190,11 @@ Returns `NULL` if either parameter is `NULL`.
 !!! Tip "See SPLIT in action"
     - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
 
+---
+
 ### **`SPLIT_TO_MAP`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 SPLIT_TO_MAP(input, entryDelimiter, kvDelimiter)
 ```
 
@@ -1220,11 +1216,11 @@ Returns `NULL` if either of the delimiters is `NULL` or an empty string.
 SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green', 'cherry':'red'}
 ```
 
+---
+
 ### **`SUBSTRING`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 SUBSTRING(str, pos, [len])
 SUBSTRING(bytes, pos, [len])
 ```
@@ -1240,11 +1236,11 @@ The first character or byte is at position 1.
 SUBSTRING("stream", 1, 4)  => "stre"
 ```
 
+---
+
 ### **`TO_BYTES`**
 
-Since: 0.21.0
-
-```sql
+```sql title="Since: 0.21.0"
 TO_BYTES(string, encoding)
 ```
 
@@ -1257,21 +1253,21 @@ The following list shows the supported encoding types.
 - `ascii`
 - `base64`
 
+---
+
 ### **`TRIM`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 TRIM(col1)
 ```
 
 Removes the spaces from the beginning and end of a string.
 
+---
+
 ### **`UCASE`**
 
-Since: 0.1.0
-
-```sql
+```sql title="Since: 0.1.0"
 UCASE(col1)
 ```
 
@@ -1280,11 +1276,11 @@ Converts a string to uppercase.
 !!! Tip "See UCASE in action"
     - [Handle corrupted data from Salesforce](https://developer.confluent.io/tutorials/salesforce/confluent.html#ksqldb-code)
 
+---
+
 ### **`UUID`**
 
-Since: 0.10.0
-
-```sql
+```sql title="Since: 0.10.0"
 UUID()
 ```
 Creates a Universally Unique Identifier (UUID) generated according to RFC 4122.
@@ -1295,13 +1291,13 @@ A call to UUID() returns a value conforming to UUID version 4, sometimes called
 The value is a 128-bit number represented as a string of five hexadecimal numbers,
 _aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee_, for example, `237e9877-e79b-12d4-a765-321741963000`.
 
-## Bytes
+---
+
+## **Bytes**
 
 ### **`BIGINT_FROM_BYTES`**
 
-Since: 0.23.1
-
-```sql
+```sql title="Since: 0.23.1"
 BIGINT_FROM_BYTES(col1, [byteOrder])
 ```
 
@@ -1321,11 +1317,11 @@ Example, where `b` is a `BYTES` value represented as a base64 string
 BIGINT_FROM_BYTES(b, 'BIG_ENDIAN') => 5000000000
 ```
 
+---
+
 ### **`DOUBLE_FROM_BYTES`**
 
-Since: 0.23.1
-
-```sql
+```sql title="Since: 0.23.1"
 DOUBLE_FROM_BYTES(col1, [byteOrder])
 ```
 
@@ -1345,11 +1341,11 @@ Example, where `b` is a `BYTES` value represented as a base64 string `QICm/ZvJ9Y
 DOUBLE_FROM_BYTES(b, 'BIG_ENDIAN') => 532.8738323
 ```
 
+---
+
 ### **`INT_FROM_BYTES`**
 
-Since: 0.23.1
-
-```sql
+```sql title="Since: 0.23.1"
 INT_FROM_BYTES(col1, [byteOrder])
 ```
 
@@ -1369,11 +1365,11 @@ Example, where `b_big` is a `BYTES` value represented as a base64 string `AAAH5Q
 INT_FROM_BYTES(b, 'BIG_ENDIAN') -> 2021
 ```
 
+---
+
 ### **`TO_BYTES`**
 
-Since: 0.21.0
-
-```sql
+```sql title="Since: 0.21.0"
 TO_BYTES(col1, encoding)
 ```
 
@@ -1386,13 +1382,13 @@ The following list shows the supported encoding types.
 - `ascii`
 - `base64`
 
-## Nulls
+---
+
+## **Nulls**
 
 ### **`COALESCE`**
 
-Since: 0.9.0
-
-```sql
+```sql title="Since: 0.9.0"
 COALESCE(a, b, c, d)
 ```
 
@@ -1403,11 +1399,11 @@ If the parameter is a complex type, for example, `ARRAY` or `STRUCT`, the
 contents of the complex type are not inspected. The behaviour is the same:
 the first `NOT NULL` element is returned.
 
+---
+
 ### **`IFNULL`**
 
-Since: 0.9.0
-
-```sql
+```sql title="Since: 0.9.0"
 IFNULL(expression, altValue)
 ```
 
@@ -1416,11 +1412,11 @@ If `expression` is `NULL`, returns `altValue`; otherwise, returns `expression`.
 If `expression` evaluates to a complex type, for example, `ARRAY` or `STRUCT`,
 the contents of the complex type are not inspected.
 
+---
+
 ### **`NULLIF`**
 
-Since: 0.19.0
-
-```sql
+```sql title="Since: 0.19.0"
 NULLIF(expression1, expression2)
 ```
 
@@ -1429,11 +1425,13 @@ Returns `NULL` if `expression1` is equal to `expression2`; otherwise, returns `e
 If `expression` evaluates to a complex type, for example, `ARRAY` or `STRUCT`,
 the contents of the complex type are not inspected.
 
-## Date and time
+---
+
+## **Date and time**
 
 ### **`CONVERT_TZ`**
 
-```sql
+```sql title="Since: 0.17.0"
 CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
 ```
 
@@ -1450,11 +1448,11 @@ formats, for example:
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
+---
+
 ### **`DATEADD`**
 
-Since: 0.20
-
-```sql
+```sql title="Since: 0.20.0"
 DATEADD(unit, interval, col0)
 ```
 
@@ -1463,11 +1461,11 @@ Adds an interval to a date.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+---
+
 ### **`DATESUB`**
 
-Since: 0.20
-
-```sql
+```sql title="Since: 0.20.0"
 DATESUB(unit, interval, col0)
 ```
 
@@ -1476,9 +1474,11 @@ Subtracts an interval from a date.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+---
+
 ### **`FORMAT_DATE`**
 
-```sql
+```sql title="Since: 0.20.0"
 FORMAT_DATE(date, 'yyyy-MM-dd')
 ```
 
@@ -1488,11 +1488,11 @@ specified format.
 You can escape single-quote characters in the timestamp format by using two
 successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
+---
+
 ### **`FORMAT_TIME`**
 
-Since: 0.20
-
-```sql
+```sql title="Since: 0.20.0"
 FORMAT_TIME(time, 'HH:mm:ss.SSS')
 ```
 
@@ -1505,9 +1505,11 @@ successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
 For more information on time formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
+---
+
 ### **`FORMAT_TIMESTAMP`**
 
-```sql
+```sql title="Since: 0.17.0"
 FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
 
@@ -1532,17 +1534,21 @@ For more information on timestamp formats, see
     - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
     - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
 
+---
+
 ### **`FROM_DAYS`**
 
-```sql
+```sql title="Since: 0.20.0"
 FROM_DAYS(days)
 ```
 
 Converts an `INT` number of days since epoch to a `DATE` value.
 
+---
+
 ### **`FROM_UNIXTIME`**
 
-```sql
+```sql title="Since: 0.17.0"
 FROM_UNIXTIME(milliseconds)
 ```
 
@@ -1551,9 +1557,11 @@ Converts a `BIGINT` millisecond timestamp value into a `TIMESTAMP` value.
 !!! Tip "See FROM_UNIXTIME in action"
     - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
 
+---
+
 ### **`PARSE_DATE`**
 
-```sql
+```sql title="Since: 0.20.0"
 PARSE_DATE(col1, 'yyyy-MM-dd')
 ```
 
@@ -1563,11 +1571,11 @@ value.
 You can escape single-quote characters in the timestamp format by using two
 successive single quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
+---
+
 ### **`PARSE_TIME`**
 
-Since: 0.20
-
-```sql
+```sql title="Since: 0.20.0"
 PARSE_TIME(col1, 'HH:mm:ss.SSS')
 ```
 
@@ -1578,9 +1586,11 @@ single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
 
 For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
 
+---
+
 ### **`PARSE_TIMESTAMP`**
 
-```sql
+```sql title="Since: 0.17.0"
 PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
 
@@ -1597,11 +1607,11 @@ for example:
 - "PDT"
 - "Europe/London"
 
+---
+
 ### **`TIMEADD`**
 
-Since: 0.20
-
-```sql
+```sql title="Since: 0.20.0"
 TIMEADD(unit, interval, COL0)
 ```
 
@@ -1610,11 +1620,11 @@ Adds an interval to a `TIME`.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+---
+
 ### **`TIMESUB`**
 
-Since: 0.20
-
-```sql
+```sql title="Since: 0.20.0"
 TIMESUB(unit, interval, COL0)
 ```
 
@@ -1623,11 +1633,11 @@ Subtracts an interval from a `TIME`.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+---
+
 ### **`TIMESTAMPADD`**
 
-Since: 0.17
-
-```sql
+```sql title="Since: 0.17.0"
 TIMESTAMPADD(unit, interval, COL0)
 ```
 
@@ -1636,11 +1646,11 @@ Adds an interval to a `TIMESTAMP`.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+---
+
 ### **`TIMESTAMPSUB`**
 
-Since: 0.17
-
-```sql
+```sql title="Since: 0.17.0"
 TIMESTAMPSUB(unit, interval, COL0)
 ```
 
@@ -1649,11 +1659,11 @@ Subtracts an interval from a `TIMESTAMP`.
 Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+---
+
 ### **`UNIX_DATE`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 UNIX_DATE([date])
 ```
 
@@ -1668,11 +1678,11 @@ representing days since `1970-01-01`.
     The returned integer may differ depending on the local time of different
     ksqlDB Server instances.
 
+---
+
 ### **`UNIX_TIMESTAMP`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 UNIX_TIMESTAMP([timestamp])
 ```
 
@@ -1687,7 +1697,9 @@ UNIX timestamp in milliseconds, represented as a `BIGINT`.
     The returned `BIGINT` may differ depending on the local time of different
     ksqlDB Server instances.
 
-## URLs
+---
+
+## **URLs**
 
 All ksqlDB URL functions assume URI syntax defined in
 [RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
@@ -1699,11 +1711,9 @@ convention.
 
 ### **`URL_DECODE_PARAM`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_DECODE_PARAM(col1)
 ```
-
-Since: 0.6.0
 
 Unescapes the `URL-param-encoded`_ value in `col1`.
 
@@ -1715,13 +1725,13 @@ This is the inverse of the `URL_ENCODE_PARAM` function.
 URL_DECODE_PARAM("url%20encoded") => "url encoded"
 ```
 
+---
+
 ### **`URL_ENCODE_PARAM`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_ENCODE_PARAM(col1)
 ```
-
-Since: 0.6.0
 
 Escapes the value of `col1` such that it can safely be used in URL query
 parameters.
@@ -1734,15 +1744,15 @@ parameters.
 
 ```sql
 URL_ENCODE_PARAM("url encoded") => "url%20encoded"
-```  
+```
+
+---
 
 ### **`URL_EXTRACT_FRAGMENT`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_FRAGMENT(url)
 ```
-
-Since: 0.6.0
 
 Extracts the fragment portion of the specified value.
 
@@ -1757,13 +1767,13 @@ URL_EXTRACT_FRAGMENT("http://test.com#frag") => "frag"
 URL_EXTRACT_FRAGMENT("http://test.com#frag%20space") => "frag space"
 ```
 
+---
+
 ### **`URL_EXTRACT_HOST`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_HOST(url)
 ```
-
-Since: 0.6.0
 
 Extracts the host-name portion of the specified value.
 
@@ -1775,11 +1785,11 @@ Returns `NULL` if `url` is not a valid URI according to RFC-2396.
 URL_EXTRACT_HOST("http://test.com:8080/path") => "test.com"
 ```
 
+---
+
 ### **`URL_EXTRACT_PARAMETER`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_PARAMETER(url, parameter_name)
 ```
 
@@ -1800,13 +1810,13 @@ URL_EXTRACT_PARAMETER("http://test.com?a%20b=c%20d", "a b") => "c d"
 URL_EXTRACT_PARAMETER("http://test.com?a=foo&b=bar", "b") => "bar"
 ```
 
+---
+
 ### **`URL_EXTRACT_PATH`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_PATH(url)
 ```
-
-Since: 0.6.0
 
 Extracts the path from `url`.
 
@@ -1819,13 +1829,13 @@ the path is empty.
 URL_EXTRACT_PATH("http://test.com/path/to#a") => "path/to"
 ```
 
+---
+
 ### **`URL_EXTRACT_PORT`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_PORT(url)
 ```
-
-Since: 0.6.0
 
 Extracts the port number from `url`.
 
@@ -1838,13 +1848,13 @@ an explicit port number.
 URL_EXTRACT_PORT("http://localhost:8080/path") => "8080"
 ```
 
+---
+
 ### **`URL_EXTRACT_PROTOCOL`**
 
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_PROTOCOL(url)
 ```
-
-Since: 0.6.0
 
 Extracts the protocol from `url`.
 
@@ -1856,11 +1866,11 @@ Returns `NULL` if `url` is an invalid URI or has no protocol.
 URL_EXTRACT_PROTOCOL("http://test.com?a=foo&b=bar") => "http"
 ```
 
+---
+
 ### **`URL_EXTRACT_QUERY`**
 
-Since: 0.6.0
-
-```sql
+```sql title="Since: 0.6.0"
 URL_EXTRACT_QUERY(url)
 ```
 
@@ -1874,7 +1884,9 @@ Returns `NULL` if no query-string is present or `url` is not a valid URI.
 URL_EXTRACT_QUERY("http://test.com?a=foo%20bar&b=baz") => "a=foo bar&b=baz"
 ```
 
-## Deprecated
+---
+
+## **Deprecated**
 
 ### `DATETOSTRING`
 
@@ -1912,7 +1924,7 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 Since: 0.7.1
 
-**Deprecated since 0.16.0 (use PARSE_TIMESTAMP)**
+**Deprecated since 0.17.0 (use PARSE_TIMESTAMP)**
 
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -1935,7 +1947,7 @@ more information on timestamp formats, see
 
 Since: 0.7.1
 
-**Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)**
+**Deprecated since 0.17.0 (use FORMAT_TIMESTAMP)**
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])

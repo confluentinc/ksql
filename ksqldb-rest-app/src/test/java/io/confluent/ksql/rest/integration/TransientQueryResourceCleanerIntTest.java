@@ -205,6 +205,7 @@ public class TransientQueryResourceCleanerIntTest {
         // simulate "leaking" transient topics from the query we terminated
         // by recreating them
         while (!allTopicsLambda.get().equals(numTransientTopics + numPersistentTopics)) {
+            Thread.sleep(500);
             TEST_HARNESS.ensureTopics(transientTopics.get(0), transientTopics.get(1));
         }
 

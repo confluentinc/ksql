@@ -308,6 +308,19 @@ and dropping them when they go over the threshold.
 A message will be logged every 5 seconds indicating if the rate limit
 is being hit, so an absence of this message means a complete set of logs.
 
+## `ksql.max.task.idle.ms`
+
+The maximum amount of time a task will idle without processing data when
+waiting for all of its input partition buffers to contain records. This can
+help avoid potential out-of-order processing when the task has multiple input
+streams, as in a join, for example.
+
+Setting this to a nonzero value may increase latency but will improve time
+synchronization.
+
+For more information, see
+[max.task.idle.ms](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#max-task-idle-ms).
+
 ## `ksql.metrics.tags.custom`
 
 A list of tags to be included with emitted

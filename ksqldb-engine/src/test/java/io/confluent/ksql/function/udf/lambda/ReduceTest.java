@@ -33,6 +33,8 @@ import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
 
+// Suppress at class level due to https://github.com/spotbugs/spotbugs/issues/724
+@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
 public class ReduceTest {
 
   private Reduce udf;
@@ -91,7 +93,6 @@ public class ReduceTest {
   }
 
   @Test
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldNotSkipNullValuesWhenReducing() {
     assertThrows(
         NullPointerException.class,

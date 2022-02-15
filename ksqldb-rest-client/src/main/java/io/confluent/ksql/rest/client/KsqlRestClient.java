@@ -66,6 +66,33 @@ public final class KsqlRestClient implements Closeable {
   private List<URI> serverAddresses;
   private boolean isCCloudServer;
 
+
+
+  /**
+   * @param serverAddress the address of the KSQL server to connect to.
+   * @param localProps initial set of local properties.
+   * @param clientProps properties used to build the client.
+   * @param creds optional credentials
+   */
+  @Deprecated
+  public static KsqlRestClient create(
+      final String serverAddress,
+      final Map<String, ?> localProps,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> creds
+  ) {
+    return create(
+        serverAddress,
+        localProps,
+        clientProps,
+        creds,
+        Optional.empty(),
+        (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
+            new HttpClientOptions(),
+            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
+    );
+  }
+
   /**
    * @param serverAddress the address of the KSQL server to connect to.
    * @param localProps initial set of local properties.

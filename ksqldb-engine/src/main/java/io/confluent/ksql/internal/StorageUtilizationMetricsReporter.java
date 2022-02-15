@@ -87,7 +87,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
     final MetricName nodePct =
         metricRegistry.metricName("storage_utilization", METRIC_GROUP, customTags);
     final MetricName maxTaskPerNode = 
-        metricRegistry.metricName("max_task_storage_used_bytes", METRIC_GROUP, customTags);
+        metricRegistry.metricName("max_used_task_storage_bytes", METRIC_GROUP, customTags);
     final MetricName numStatefulTasks =
         metricRegistry.metricName("num_stateful_tasks", METRIC_GROUP, customTags);
     metricRegistry.addMetric(

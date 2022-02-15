@@ -260,9 +260,7 @@ Returns an array representing the concatenation of both input arrays.
 Returns `NULL` if both input arrays are `NULL`. If only one argument is `NULL`,
 the result is the other argument.
 
-**Examples**
-
-```sql 
+```sql title="Examples" 
 ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
 ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
 ```
@@ -298,8 +296,7 @@ The output array elements are in order of their first occurrence in the input.
 
 Returns `NULL` if the input array is `NULL`.
 
-**Examples**
-```sql 
+```sql title="Examples" 
 ARRAY_DISTINCT(ARRAY[1, 1, 2, 3, 1, 2])  => [1, 2, 3]
 ARRAY_DISTINCT(ARRAY['apple', 'apple', NULL, 'cherry'])  => ['apple', NULL, 'cherry']
 ```
@@ -319,8 +316,7 @@ The order of entries in the first array is preserved but duplicates are removed.
 
 Returns `NULL` if either input is `NULL`.
 
-**Examples**
-```sql 
+```sql title="Examples" 
 ARRAY_EXCEPT(ARRAY[1, 2, 3, 1, 2], [2, 3])  => [1]
 ARRAY_EXCEPT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL]
 ```
@@ -340,8 +336,7 @@ The order of entries in the output is the same as in the first input array.
 
 Returns `NULL` if either input array is `NULL`.
 
-**Examples**
-```sql 
+```sql title="Examples" 
 ARRAY_INTERSECT(ARRAY[1, 2, 3, 1, 2], [2, 1])  => [1, 2]
 ARRAY_INTERSECT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['apple'])  => ['apple']
 ```
@@ -396,9 +391,8 @@ returned.
 Array entries are compared according to their natural sort order, which sorts
 the various data types as shown in the following examples.
 
-**Examples**
 
-```sql
+```sql title="Examples"
 ARRAY_MAX[-1, 2, NULL, 0] => 2
 ARRAY_MAX[false, NULL, true] => true
 ARRAY_MAX['Foo', 'Bar', NULL, 'baz'] => 'baz' -- (lower-case characters are "greater" than upper-case characters)
@@ -423,9 +417,7 @@ returned.
 Array entries are compared according to their natural sort order, which sorts
 the various data types as shown in the following examples.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 ARRAY_MIN[-1, 2, NULL, 0] => -1
 ARRAY_MIN[false, NULL, true] => false
 ARRAY_MIN['Foo', 'Bar', NULL, 'baz'] => 'Bar'
@@ -443,9 +435,7 @@ Removes all elements from `array` that are equal to `element`.
 
 If the `array` field is `NULL`, `NULL` is returned.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 ARRAY_REMOVE([1, 2, 3, 2, 1], 2) => [1, 3, 1]
 ARRAY_REMOVE([false, NULL, true, true], false) => [NULL, true, true]
 ARRAY_REMOVE(['Foo', 'Bar', NULL, 'baz'], null) => ['Foo', 'Bar', 'baz']
@@ -473,9 +463,7 @@ The optional second parameter specifies whether to sort the elements in ascendin
 (`ASC`) or descending (`DESC`) order. If neither is specified, the default is
 ascending order.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 ARRAY_SORT[-1, 2, NULL, 0] -> [-1, 0, 2, NULL]
 ARRAY_SORT[false, NULL, true] -> [false, true, NULL]
 ARRAY_SORT['Foo', 'Bar', NULL, 'baz'] -> ['Bar', 'Foo', 'baz', NULL]
@@ -497,9 +485,7 @@ order they're encountered.
 
 Returns `NULL` if either input array is `NULL`.
 
-**Examples**
-
-```sql 
+```sql title="Examples" 
 ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
 ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
 ```
@@ -587,9 +573,7 @@ Returns an array that contains all keys from the specified map.
 
 Returns `NULL` if the input map is `NULL`.
 
-**Example**
-
-```sql
+```sql title="Example"
 map_keys( map('apple' := 10, 'banana' := 20) )  => ['apple', 'banana'] 
 ```
 
@@ -605,9 +589,7 @@ Returns an array that contains all values from the specified map.
 
 Returns `NULL` if the input map is `NULL`.
 
-**Example**
-
-```sql
+```sql title="Example"
 map_values( map('apple' := 10, 'banana' := 20) )  => [10, 20] 
 ```
 
@@ -626,12 +608,9 @@ is returned.
 
 Returns `NULL` if all input maps are `NULL`.
 
-**Example**
-
-```sql
-map_union( map('apple' := 10, 'banana' := 20), map('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
-
-map_union( map('apple' := 10, 'banana' := 20), map('apple' := 50) )  => ['apple': 50, 'banana': 20] 
+```sql title="Examples"
+MAP_UNION( MAP('apple' := 10, 'banana' := 20), MAP('cherry' := 99) )  => ['apple': 10, 'banana': 20, 'cherry': 99] 
+MAP_UNION( MAP('apple' := 10, 'banana' := 20), MAP('apple' := 50) )  => ['apple': 50, 'banana': 20] 
 ```
 
 ---
@@ -719,9 +698,7 @@ Returns `NULL` if the input is `NULL` or doesn't represent a valid code-point.
 Commonly used to insert control characters such as `Tab` (9), `Line Feed` (10),
 or `Carriage Return` (13) into strings.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 CHR(75)        => 'K'
 CHR('\u004b')  => 'K'
 CHR(22909)     => '好'
@@ -760,9 +737,7 @@ If the separator is `NULL`, this function returns `NULL`.
 
 Any expressions which evaluate to `NULL` are skipped.
 
-**Example**
-
-```sql
+```sql title="Example"
 CONCAT_WS(', ', 'apple', 'banana', NULL, 'date')  ->  'apple, banana, date'
 ```
 
@@ -789,9 +764,7 @@ Throws an exception if the provided encodings are not supported.
 The following example encodes a `hex` representation of a string to a
 `utf8` representation.
 
-**Example**
-
-```sql
+```sql title="Example"
 ENCODE(string, 'hex', 'utf8')
 ```
 
@@ -899,9 +872,7 @@ If `occurrence` is provided, the position of the *n*-th occurrence is returned.
 
 If `substring` is not found, the return value is 0.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 INSTR('CORPORATE FLOOR', 'OR') -> 2
 INSTR('CORPORATE FLOOR', 'OR', 3) -> 5
 INSTR('CORPORATE FLOOR', 'OR', 3, 2) -> 14
@@ -947,9 +918,7 @@ If the input is longer than `length`, it is truncated.
 If the padding string or byte array is empty or `NULL`, or the target length
 is negative, `NULL` is returned.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 LPAD('Foo', 7, 'Bar')  =>  'BarBFoo'
 LPAD('Foo', 2, 'Bar')  =>  'Fo'
 LPAD('', 2, 'Bar')  =>  'Ba'
@@ -995,9 +964,7 @@ MASK_KEEP_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 Similar to the `MASK` function, except that the first or left-most `numChars`
 characters aren't masked in any way.
 
-**Example**
-
-```sql
+```sql title="Example"
 MASK_KEEP_LEFT("My Test $123", 4) => "My Txxx--nnn"
 ```
 
@@ -1012,9 +979,7 @@ MASK_KEEP_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
 Similar to the `MASK` function, except that the last or right-most
 `numChars` characters aren't masked in any way.
 
-**Example**
-
-```sql
+```sql title="Example"
 MASK_KEEP_RIGHT("My Test $123", 4) => "Xx-Xxxx-$123"
 ```
 
@@ -1029,9 +994,7 @@ MASK_LEFT(col1, numChars, 'X', 'x', 'n', '-')
 Similar to the `MASK` function, except that only the first or left-most
 `numChars` characters have any masking applied to them.
 
-**Example**
-
-```sql
+```sql title="Example"
 MASK_LEFT("My Test $123", 4) => "Xx-Xest $123"
 ```
 
@@ -1046,9 +1009,7 @@ MASK_RIGHT(col1, numChars, 'X', 'x', 'n', '-')
 Similar to the `MASK` function, except that only the last or right-most
 `numChars` characters have any masking applied to them.
 
-**Example**
-
-```sql
+```sql title="Example"
 MASK_RIGHT("My Test $123", 4) => "My Test -nnn"
 ```
 
@@ -1080,9 +1041,7 @@ input.
 You can specify a capturing group number to return that specific group. If a
 number isn't specified, the entire substring is returned by default.
 
-**Example**
-
-```sql
+```sql title="Example"
 REGEXP_EXTRACT("(.*) (.*)", 'hello there', 2) => "there"
 ```
 
@@ -1100,9 +1059,7 @@ Extracts all subtrings matched by the regular expression pattern from the input.
 You can specify a capturing group number to return that specific group. If a
 number isn't specified, the entire substring is returned by default.
 
-**Example**
-
-```sql
+```sql title="Example"
 REGEXP_EXTRACT("(\\w+) (\\w+)", "hello there nice day", 2) => ["there", "day"]
 ```
 
@@ -1157,9 +1114,7 @@ If the input is longer than the specified target length, it is truncated.
 If the padding string or byte array is empty or `NULL`, or the target length
 is negative, `NULL` is returned.
 
-**Examples**
-
-```sql
+```sql title="Examples"
 RPAD('Foo', 7, 'Bar')  =>  'FooBarB'
 RPAD('Foo', 2, 'Bar')  =>  'Fo'
 RPAD('', 2, 'Bar')  =>  'Ba'
@@ -1210,9 +1165,7 @@ Returns `NULL` if the input text is `NULL`.
 
 Returns `NULL` if either of the delimiters is `NULL` or an empty string.
 
-**Example**
-
-```sql
+```sql title="Example"
 SPLIT_TO_MAP('apple':='green'/'cherry':='red', '/', ':=')  => { 'apple':'green', 'cherry':'red'}
 ```
 
@@ -1230,9 +1183,7 @@ has length `len`, or continues to the end of the string or bytes.
 
 The first character or byte is at position 1.
 
-**Example**
-
-```sql
+```sql title="Example"
 SUBSTRING("stream", 1, 4)  => "stre"
 ```
 
@@ -1719,9 +1670,7 @@ Unescapes the `URL-param-encoded`_ value in `col1`.
 
 This is the inverse of the `URL_ENCODE_PARAM` function.
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_DECODE_PARAM("url%20encoded") => "url encoded"
 ```
 
@@ -1740,9 +1689,7 @@ parameters.
     `URL_ENCODE_PARAM` is not the same as encoding a value for use in the path
     portion of a URL.
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_ENCODE_PARAM("url encoded") => "url%20encoded"
 ```
 
@@ -1760,9 +1707,7 @@ Returns `NULL` if `url` is not a valid URL or if the fragment doesn't exist.
 
 All encoded values are decoded.                         
 
-**Examples**
-
-```sql
+```sql title="Examples"
 URL_EXTRACT_FRAGMENT("http://test.com#frag") => "frag"
 URL_EXTRACT_FRAGMENT("http://test.com#frag%20space") => "frag space"
 ```
@@ -1779,9 +1724,7 @@ Extracts the host-name portion of the specified value.
 
 Returns `NULL` if `url` is not a valid URI according to RFC-2396.                       
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_EXTRACT_HOST("http://test.com:8080/path") => "test.com"
 ```
 
@@ -1803,9 +1746,7 @@ The function encodes the parameter and decodes the output.
 To get all parameter values from a URL as a single string, use
 `URL_EXTRACT_QUERY.`
 
-**Examples**
-
-```sql
+```sql title="Examples"
 URL_EXTRACT_PARAMETER("http://test.com?a%20b=c%20d", "a b") => "c d"
 URL_EXTRACT_PARAMETER("http://test.com?a=foo&b=bar", "b") => "bar"
 ```
@@ -1823,9 +1764,7 @@ Extracts the path from `url`.
 Returns `NULL` if `url` is not a valid URI but returns an empty string if
 the path is empty.
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_EXTRACT_PATH("http://test.com/path/to#a") => "path/to"
 ```
 
@@ -1842,9 +1781,7 @@ Extracts the port number from `url`.
 Returns `NULL` if `url` is not a valid URI or does not contain
 an explicit port number.            
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_EXTRACT_PORT("http://localhost:8080/path") => "8080"
 ```
 
@@ -1860,9 +1797,7 @@ Extracts the protocol from `url`.
 
 Returns `NULL` if `url` is an invalid URI or has no protocol.
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_EXTRACT_PROTOCOL("http://test.com?a=foo&b=bar") => "http"
 ```
 
@@ -1876,11 +1811,9 @@ URL_EXTRACT_QUERY(url)
 
 Extracts the decoded query-string portion of `url`.
 
-Returns `NULL` if no query-string is present or `url` is not a valid URI.       
+Returns `NULL` if no query-string is present or `url` is not a valid URI.
 
-**Example**
-
-```sql
+```sql title="Example"
 URL_EXTRACT_QUERY("http://test.com?a=foo%20bar&b=baz") => "a=foo bar&b=baz"
 ```
 

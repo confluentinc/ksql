@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -33,6 +34,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.internal.TransientQueryCleanupListener;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -109,6 +111,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final MetricCollectors metricCollectors;
+  private TransientQueryCleanupService transientQueryCleanupService;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -152,10 +155,24 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
+
     this.orphanedTransientQueryCleaner =
         new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
+    final Builder<QueryEventListener> registrationListeners =
+            ImmutableList.<QueryEventListener>builder()
+                    .addAll(queryEventListeners)
+                    .add(engineMetrics.getQueryEventListener())
+                    .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig));
+
+    if (getTransientQueryCleanupServiceEnabled(ksqlConfig)) {
+      this.transientQueryCleanupService = new TransientQueryCleanupService(
+              serviceContext,
+              ksqlConfig);
+      registrationListeners.add(new TransientQueryCleanupListener(transientQueryCleanupService));
+    }
+
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
@@ -163,11 +180,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         queryIdGenerator,
         cleanupService,
         ksqlConfig,
-        ImmutableList.<QueryEventListener>builder()
-            .addAll(queryEventListeners)
-            .add(engineMetrics.getQueryEventListener())
-            .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
-            .build(),
+        registrationListeners.build(),
         metricCollectors
     );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -186,6 +199,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     this.metricCollectors = metricCollectors;
 
     cleanupService.startAsync();
+    if (getTransientQueryCleanupServiceEnabled(ksqlConfig)) {
+      this.transientQueryCleanupService
+              .setQueryRegistry(this.primaryContext.getQueryRegistry());
+      this.transientQueryCleanupService.startAsync();
+    }
   }
 
   public int numberOfLiveQueries() {
@@ -601,6 +619,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public void close() {
+    if (getTransientQueryCleanupServiceEnabled(getKsqlConfig())) {
+      transientQueryCleanupService.stopAsync();
+    }
     close(false);
   }
 
@@ -614,6 +635,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   ) {
     orphanedTransientQueryCleaner
         .cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
+  }
+
+  public void populateTransientQueryCleanupServiceWithOldCommands(
+          final Set<String> queryApplicationIds
+  ) {
+    this.transientQueryCleanupService.setLocalCommandsQueryAppIds(queryApplicationIds);
   }
 
   /**
@@ -721,5 +748,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+  }
+
+  private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE);
   }
 }

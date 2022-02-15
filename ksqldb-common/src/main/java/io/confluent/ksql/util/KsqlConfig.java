@@ -637,6 +637,26 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
       = "The total time that the query cleanup spends trying to clean things up on shutdown.";
 
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE
+      = "ksql.transient.query.cleanup.service.enable";
+  public static final boolean KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT = true;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+      = "Enable transient query cleanup service.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS
+      = "ksql.transient.query.cleanup.service.initial.delay.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+      = "The time to delay the first execution of the transient query cleanup service in seconds.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS
+      = "ksql.transient.query.cleanup.service.period.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+      = "the period between successive executions of the transient query cleanup service.";
+
   public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
       = "ksql.endpoint.migrate.query";
   private static final boolean KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT = true;
@@ -1387,6 +1407,27 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
             Importance.LOW,
             KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            Type.BOOLEAN,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
         )
         .withClientSslSupport();
 

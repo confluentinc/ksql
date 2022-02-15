@@ -825,176 +825,11 @@ multiple elements, like those containing wildcards, aren't supported.
 
 ### **`FROM_BYTES`**
 
-```sql
-FROM_BYTES(col1, encoding)
+```sql title="Since: 0.21.0"
+FROM_BYTES(bytes, encoding)
 ```
 
-Converts a BYTES value to STRING in the specified encoding.
-The accepted encoders are 'hex', 'utf8', 'ascii', and 'base64'.
-
-### `IS_JSON_STRING`
-
-Since: 0.24.0
-
-```sql
-is_json_string(json_string) -> Boolean
-```
-
-Given a string, returns `true` if it can be parsed as a valid JSON value, `false` otherwise.
-
-Examples:
-
-```sql
-is_json_string("[1, 2, 3]") => true
-is_json_string("{}") => true
-is_json_string("1") => true
-is_json_string("\"abc\"") => true
-is_json_string("null") => true
-is_json_string("") => false
-is_json_string("abc") => false
-is_json_string(NULL) => false
-```
-
-### `JSON_ARRAY_LENGTH`
-
-Since: 0.24.0
-
-```sql
-JSON_ARRAY_LENGTH(json_string) -> Integer
-```
-
-Given a string, parses it as a JSON value and returns the length of the top-level array. Returns
-`NULL` if the string can't be interpreted as a JSON array, for example, when the string is `NULL`
-or it does not contain valid JSON, or the JSON value is not an array.
-
-Examples:
-
-```sql
-json_array_length("[1, 2, 3]") => 3
-json_array_length("[1, [1, [2]], 3]") =>  3
-json_array_length("[]") => 0
-json_array_length("{}") => NULL
-json_array_length("123") => NULL
-json_array_length(NULL) => NULL
-json_array_length("abc") => throws "Invalid JSON format"
-```
-
-### `JSON_CONCAT`
-
-Since: 0.24.0
-
-```sql
-json_concat(json_strings...) -> String
-```
-
-Given N strings, parse them as JSON values and return a string representing their concatenation.
-Concatenation rules are identical to PostgreSQL's [|| operator](https://www.postgresql.org/docs/14/functions-json.html):
-* If all strings deserialize into JSON objects, return an object with a union of the input keys. If 
-  there are duplicate objects, take values from the last object.
-* If all strings deserialize into JSON arrays, return the result of array concatenation.
-* If at least one of the deserialized values is not an object, convert non-array inputs to a
-  single-element array and return the result of array concatenation.
-* If at least one of the input strings is `NULL` or can't be deserialized as JSON, return `NULL`.
-
-Similar to the PostgreSQL's `||` operator, this function merges only top-level object keys or arrays.
-
-Examples:
-
-```
-json_concat("{\"a\": 1}", "{\"b\": 2}") // => "{\"a\": 1, \"b\": 2}"
-json_concat("{\"a\": {\"5\": 6}}", "{\"a\": {\"3\": 4}}") // => "{\"a\": {\"3\": 4}}"
-json_concat("{}", "{}") // => "{}"
-json_concat("[1, 2]", "[3, 4]") // => "[1,2,3,4]"
-json_concat("[1, [2]]", "[[[3]], [[[4]]]]") // => "[ 1, [2], [[3]], [[[4]]] ]"
-json_concat("null", "null") // => "[null, null]"
-json_concat("[1, 2]", "{\"a\": 1}") // => "[1, 2, {\"a\": 1}]"
-json_concat("[1, 2]", "3") // => "[1, 2, 3]"
-json_concat("1", "2") // => "[1, 2]"
-json_concat("[]", "[]") // => []
-json_concat("abc", "[1]") // => NULL
-json_concat(NULL, "[1]") // => NULL
-```
-
-### `JSON_KEYS`
-
-Since: 0.24.0
-
-```sql
-json_keys(json_string) -> Array<String>
-```
-
-Given a string, parses it as a JSON object and returns a ksqlDB array of strings representing the
-top-level keys. Returns `NULL` if the string can't be interpreted as a JSON object, for example,
-when the string is `NULL` or it does not contain valid JSON, or the JSON value is not an object.
-
-Examples:
-
-```sql
-json_keys("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // => ["a", "b", "d"]
-json_keys("{}") // => []
-json_keys("[]") // => NULL
-json_keys("123") // => NULL
-json_keys(NULL) // => NULL
-json_keys("") // => NULL
-```
-
-### `JSON_RECORDS`
-
-Since: 0.24.0
-
-```sql
-json_records(json_string) -> Map<String, String>
-```
-
-Given a string, parses it as a JSON object and returns a map representing the top-level keys and
-values. Returns `NULL` if the string can't be interpreted as a JSON object, i.e. it is `NULL` or
-it does not contain valid JSON, or the JSON value is not an object.
-
-
-Examples:
-
-```sql
-json_records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // {"a": "\"abc\"", "b": "{ \"c\": \"a\" }", "d": "1"}
-json_records("{}") // => []
-json_records("[]") // => NULL
-json_records("123") // => NULL
-json_records(NULL) // => NULL
-json_records("abc") // => NULL
-```
-
-### `TO_JSON_STRING`
-
-Since: 0.24.0
-
-```sql
-to_json_string(val) -> String
-```
-
-Given any ksqlDB type returns the equivalent JSON string.
-
-Examples:
-
-**Primitives types**
-
-```sql
-to_json_string(1) // => "1"
-to_json_string(15.3) // => "15.3"
-to_json_string("abc") // => "\"abc\""
-to_json_string(true) // => "true"
-to_json_string(2021-10-11) // DATE type, => "\"2021-10-11\""
-to_json_string(13:25) // TIME type, => "\"13:25:10\""
-to_json_string(2021-06-31T12:18:39.446) // TIMESTAMP type, => "\"2021-06-31T12:18:39.446\""
-to_json_string(NULL) // => "null"
-```
-
-**Compound types**
-
-```sql
-to_json_string(Array[1, 2, 3]) // => "[1, 2, 3]"
-to_json_string(Struct{id=1,name=A}) // => "{\"id\": 1, \"name\": \"a\"}"
-to_json_string(Map('c' := 2, 'd' := 4)) // => "{\"c\": 2, \"d\": 4}"
-to_json_string(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) // => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
-```
+Converts a `BYTES` column to a `STRING` in the specified encoding type.
 
 The following list shows the supported encoding types.
 
@@ -1002,6 +837,162 @@ The following list shows the supported encoding types.
 - `utf8`
 - `ascii`
 - `base64`
+
+### `IS_JSON_STRING`
+
+```sql title="Since: 0.24.0"
+IS_JSON_STRING(json_string) => Boolean
+```
+
+Returns `true` if `json_string` can be parsed as a valid JSON value; otherwise,
+`false` .
+
+```sql title="Examples"
+IS_JSON_STRING("[1, 2, 3]") => true
+IS_JSON_STRING("{}") => true
+IS_JSON_STRING("1") => true
+IS_JSON_STRING("\"abc\"") => true
+IS_JSON_STRING("null") => true
+IS_JSON_STRING("") => false
+IS_JSON_STRING("abc") => false
+IS_JSON_STRING(NULL) => false
+```
+
+### `JSON_ARRAY_LENGTH`
+
+```sql title="Since: 0.24.0"
+JSON_ARRAY_LENGTH(json_string) => Integer
+```
+
+Parses `json_string` as a JSON value and returns the length of the top-level
+array.
+
+Returns `NULL` if the string can't be interpreted as a JSON array, for example,
+when the string is `NULL` or it doesn't contain valid JSON, or the JSON value
+is not an array.
+
+```sql title="Examples"
+JSON_ARRAY_LENGTH("[1, 2, 3]") => 3
+JSON_ARRAY_LENGTH("[1, [1, [2]], 3]") =>  3
+JSON_ARRAY_LENGTH("[]") => 0
+JSON_ARRAY_LENGTH("{}") => NULL
+JSON_ARRAY_LENGTH("123") => NULL
+JSON_ARRAY_LENGTH(NULL) => NULL
+JSON_ARRAY_LENGTH("abc") => throws an "Invalid JSON format" exception
+```
+
+### `JSON_CONCAT`
+
+```sql title="Since: 0.24.0"
+JSON_CONCAT(json_string1, json_string2, ...) => String
+```
+
+Given N strings, parses them as JSON values and returns a string representing
+their concatenation.
+
+Concatenation rules are identical to PostgreSQL's
+[|| operator](https://www.postgresql.org/docs/14/functions-json.html):
+
+* If all strings deserialize into JSON objects, return an object with a union
+  of the input keys. If there are duplicate objects, take values from the last
+  object.
+* If all strings deserialize into JSON arrays, return the result of array
+  concatenation.
+* If at least one of the deserialized values is not an object, convert
+  non-array inputs to a single-element array and return the result of
+  array concatenation.
+* If at least one of the input strings is `NULL` or can't be deserialized as
+  JSON, return `NULL`.
+
+Similar to PostgreSQL's `||` operator, this function merges only top-level
+object keys or arrays.
+
+Examples:
+
+```sql title="Examples"
+JSON_CONCAT("{\"a\": 1}", "{\"b\": 2}") => "{\"a\": 1, \"b\": 2}"
+JSON_CONCAT("{\"a\": {\"5\": 6}}", "{\"a\": {\"3\": 4}}") => "{\"a\": {\"3\": 4}}"
+JSON_CONCAT("{}", "{}") => "{}"
+JSON_CONCAT("[1, 2]", "[3, 4]") => "[1,2,3,4]"
+JSON_CONCAT("[1, [2]]", "[[[3]], [[[4]]]]") => "[ 1, [2], [[3]], [[[4]]] ]"
+JSON_CONCAT("null", "null") => "[null, null]"
+JSON_CONCAT("[1, 2]", "{\"a\": 1}") => "[1, 2, {\"a\": 1}]"
+JSON_CONCAT("[1, 2]", "3") => "[1, 2, 3]"
+JSON_CONCAT("1", "2") => "[1, 2]"
+JSON_CONCAT("[]", "[]") => []
+JSON_CONCAT("abc", "[1]") => NULL
+JSON_CONCAT(NULL, "[1]") => NULL
+```
+
+### `JSON_KEYS`
+
+```sql title="Since: 0.24.0"
+JSON_KEYS(json_string) => Array<String>
+```
+
+Parses `json_string` as a JSON object and returns an array of strings
+representing the top-level keys.
+
+Returns `NULL` if the string can't be interpreted as a JSON object,
+for example, when the string is `NULL` or it does not contain valid JSON,
+or the JSON value is not an object.
+
+```sql title="Examples"
+JSON_KEYS("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") => ["a", "b", "d"]
+JSON_KEYS("{}") => []
+JSON_KEYS("[]") => NULL
+JSON_KEYS("123") => NULL
+JSON_KEYS(NULL) => NULL
+JSON_KEYS("") => NULL
+```
+
+### `JSON_RECORDS`
+
+```sql title="Since: 0.24.0"
+JSON_RECORDS(json_string) => Map<String, String>
+```
+
+Parses `json_string` as a JSON object and returns a map representing the
+top-level keys and values.
+
+Returns `NULL` if the string can't be interpreted as a JSON object,
+for example, when the string is `NULL` or it does not contain valid JSON,
+or the JSON value is not an object.
+
+```sql title="Examples"
+JSON_RECORDS("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") => {"a": "\"abc\"", "b": "{ \"c\": \"a\" }", "d": "1"}
+JSON_RECORDS("{}") => []
+JSON_RECORDS("[]") => NULL
+JSON_RECORDS("123") => NULL
+JSON_RECORDS(NULL) => NULL
+JSON_RECORDS("abc") => NULL
+```
+
+### `TO_JSON_STRING`
+
+```sql title="Since: 0.24.0"
+TO_JSON_STRING(val) => String
+```
+
+Given any ksqlDB type, returns the equivalent JSON string.
+
+```sql title="Primitives types"
+TO_JSON_STRING(1) => "1"
+TO_JSON_STRING(15.3) => "15.3"
+TO_JSON_STRING("abc") => "\"abc\""
+TO_JSON_STRING(true) => "true"
+TO_JSON_STRING(2021-10-11) => DATE type, "\"2021-10-11\""
+TO_JSON_STRING(13:25) => TIME type, "\"13:25:10\""
+TO_JSON_STRING(2021-06-31T12:18:39.446) => TIMESTAMP type, "\"2021-06-31T12:18:39.446\""
+TO_JSON_STRING(NULL) => "null"
+```
+
+```sql title="Compound types"
+TO_JSON_STRING(Array[1, 2, 3]) => "[1, 2, 3]"
+TO_JSON_STRING(Struct{id=1,name=A}) => "{\"id\": 1, \"name\": \"a\"}"
+TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => "{\"c\": 2, \"d\": 4}"
+TO_JSON_STRING(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
+```
 
 ---
 

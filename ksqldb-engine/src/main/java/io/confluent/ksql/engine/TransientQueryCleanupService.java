@@ -90,17 +90,21 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
       this.numLeakedTopics = leakedTopics.size();
       LOG.info("Cleaning up {} leaked topics: {}", numLeakedTopics, leakedTopics);
       getTopicClient().deleteTopics(leakedTopics);
-
+    } catch (Throwable t) {
+      LOG.error(
+          "Failed to clean up topics with exception: " + t.getMessage(), t);
+    }
+    try {
       final List<String> leakedStateDirs = findLeakedStateDirs();
       this.numLeakedStateFiles = leakedStateDirs.size();
       LOG.info("Cleaning up {} leaked state directories: {}",
-              numLeakedStateFiles,
-              leakedStateDirs.stream().map(file -> stateDir + "/" + file)
-                      .collect(Collectors.toList()));
+          numLeakedStateFiles,
+          leakedStateDirs.stream().map(file -> stateDir + "/" + file)
+                  .collect(Collectors.toList()));
       leakedStateDirs.forEach(this::deleteLeakedStateDir);
     } catch (Throwable t) {
       LOG.error(
-          "Failed to run transient query cleanup service with exception: " + t.getMessage(), t);
+          "Failed to clean up state directories with exception: " + t.getMessage(), t);
     }
   }
 

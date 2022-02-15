@@ -918,6 +918,7 @@ public final class KsqlRestApplication implements Executable {
     if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
+
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,

@@ -59,7 +59,6 @@ public class HealthCheckAgent {
 
   private final SimpleKsqlClient ksqlClient;
   private final URI serverEndpoint;
-  private final ServiceContext serviceContext;
   private final KsqlConfig ksqlConfig;
   private final CommandRunner commandRunner;
   private final Admin adminClient;
@@ -74,7 +73,6 @@ public class HealthCheckAgent {
   ) {
     this.ksqlClient = Objects.requireNonNull(ksqlClient, "ksqlClient");
     this.serverEndpoint = ServerUtil.getServerAddress(restConfig);
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");

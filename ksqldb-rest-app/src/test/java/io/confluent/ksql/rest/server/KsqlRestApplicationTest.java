@@ -68,6 +68,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
+
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
@@ -135,6 +137,10 @@ public class KsqlRestApplicationTest {
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private QueryExecutor queryExecutor;
+  @Mock
+  private KafkaTopicClient internalTopicClient;
+  @Mock
+  private Admin internalAdminClient;
 
   @Mock
   private Vertx vertx;
@@ -323,8 +329,8 @@ public class KsqlRestApplicationTest {
     app.startKsql(ksqlConfig);
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(topicClient, commandQueue, commandRunner);
-    inOrder.verify(topicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
+    final InOrder inOrder = Mockito.inOrder(internalTopicClient, commandQueue, commandRunner);
+    inOrder.verify(internalTopicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
     inOrder.verify(commandQueue).start();
     inOrder.verify(commandRunner).processPriorCommands(queryCleanupArgumentCaptor.capture());
   }
@@ -369,8 +375,8 @@ public class KsqlRestApplicationTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serviceContext);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, topicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, topicClient);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
   }
 
   @Test
@@ -391,14 +397,14 @@ public class KsqlRestApplicationTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(precondition1, precondition2, serverState);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, topicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, topicClient);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
     inOrder.verify(serverState).setInitializingReason(error1);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, topicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, topicClient);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
     inOrder.verify(serverState).setInitializingReason(error2);
-    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, topicClient);
-    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, topicClient);
+    inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext, internalTopicClient);
+    inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext, internalTopicClient);
   }
 
   @Test
@@ -485,8 +491,8 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         queryExecutor,
         metricCollectors,
-        null,
-        null
+        internalTopicClient,
+        internalAdminClient
     );
   }
 

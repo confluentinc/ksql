@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.client.KsqlRestClient.CCLOUD_CONNECT_PASSWO
 import static io.confluent.ksql.rest.client.KsqlRestClient.CCLOUD_CONNECT_USERNAME_HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -220,6 +221,18 @@ public class KsqlRestClientTest {
     // Then:
     verify(client).target(new URI(SOME_SERVER_ADDRESS), Collections.emptyMap());
     verify(target).postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.of(0L));
+  }
+
+  @Test
+  public void shouldAllowCallingCreateWithoutNeedingACCloudApiKey() {
+    // This is a backwards compatibility check
+
+    final KsqlRestClient client = KsqlRestClient.create(SOME_SERVER_ADDRESS, LOCAL_PROPS, CLIENT_PROPS, Optional.empty());
+    assertThat(client, is(instanceOf(KsqlRestClient.class)));
+
+    // Also with new signature
+    final KsqlRestClient ccloudClient = KsqlRestClient.create(SOME_SERVER_ADDRESS, LOCAL_PROPS, CLIENT_PROPS, Optional.empty(), Optional.empty());
+    assertThat(ccloudClient, is(instanceOf(KsqlRestClient.class)));
   }
 
   private KsqlRestClient clientWithServerAddresses(final String serverAddresses) {

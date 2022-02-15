@@ -1689,14 +1689,13 @@ UNIX timestamp in milliseconds, represented as a `BIGINT`.
 
 ## URLs
 
-!!! note
-    All ksqlDB URL functions assume URI syntax defined in
-    [RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
-    structure of a URI, including definitions of the various components, see
-    Section 3 of the RFC.
+All ksqlDB URL functions assume URI syntax defined in
+[RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
+structure of a URI, including definitions of the various components, see
+[Section 3 of the RFC](https://datatracker.ietf.org/doc/html/rfc3986#section-3).
     
-    For encoding and decoding, the `application/x-www-form-urlencoded`
-    convention is followed.
+For encoding and decoding, ksqlDB uses the `application/x-www-form-urlencoded`
+convention.
 
 ### **`URL_DECODE_PARAM`**
 

@@ -42,8 +42,6 @@ import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
-import io.confluent.ksql.util.OffsetVector;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -74,7 +72,6 @@ public final class HARouting implements AutoCloseable {
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
-  private URL localhost;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
@@ -129,7 +126,6 @@ public final class HARouting implements AutoCloseable {
             routingFilterFactory,
             pullPhysicalPlan.getPlanType() == PullPhysicalPlanType.RANGE_SCAN
     );
-    localhost = pullPhysicalPlan.getMaterialization().locator().getLocalHost();
 
     final Map<Integer, List<Host>> emptyPartitions = allLocations.stream()
         .filter(loc -> loc.getNodes().stream().noneMatch(node -> node.getHost().isSelected()))
@@ -222,14 +218,11 @@ public final class HARouting implements AutoCloseable {
         } else {
           Preconditions.checkState(fetchResult.getResult() == RoutingResult.SUCCESS);
           processedPartitions++;
-          if (consistencyOffsetVector.isPresent() && fetchResult.offsetVector.isPresent()) {
-            consistencyOffsetVector.get().merge(fetchResult.getOffsetVector().get());
-          }
         }
-      } catch (Exception e) {
+      } catch (final Exception e) {
         final MaterializationException exception =
             new MaterializationException(
-                "Host " + localhost + " throws exception " + e.getMessage());
+                "Unable to execute pull query: " + e.getMessage());
         for (Entry<Integer, List<Exception>> entry: exceptionsPerPartition.entrySet()) {
           for (Exception excp: entry.getValue()) {
             exception.addSuppressed(excp);
@@ -305,13 +298,13 @@ public final class HARouting implements AutoCloseable {
         synchronized (pullPhysicalPlan) {
           pullPhysicalPlan.execute(ImmutableList.of(location), pullQueryQueue, rowFactory);
           return new PartitionFetchResult(
-              RoutingResult.SUCCESS, location, Optional.empty(), Optional.empty());
+              RoutingResult.SUCCESS, location, Optional.empty());
         }
       } catch (StandbyFallbackException | NotUpToBoundException e) {
         LOG.warn("Error executing query locally at node {}. Falling back to standby state which "
             + "may return stale results. Cause {}", node, e.getMessage());
         return new PartitionFetchResult(
-            RoutingResult.STANDBY_FALLBACK, location, Optional.empty(), Optional.of(e));
+            RoutingResult.STANDBY_FALLBACK, location, Optional.of(e));
       } catch (Exception e) {
         throw new KsqlException(
           String.format("Error executing query locally at node %s: %s", node.location(),
@@ -328,12 +321,12 @@ public final class HARouting implements AutoCloseable {
         forwardTo(node, ImmutableList.of(location), statement, serviceContext, pullQueryQueue,
             rowFactory, outputSchema, shouldCancelRequests, consistencyOffsetVector);
         return new PartitionFetchResult(
-            RoutingResult.SUCCESS, location, Optional.empty(), Optional.empty());
+            RoutingResult.SUCCESS, location, Optional.empty());
       } catch (StandbyFallbackException e) {
         LOG.warn("Error forwarding query to node {}. Falling back to standby state which may "
             + "return stale results", node.location(), e.getCause());
         return new PartitionFetchResult(
-            RoutingResult.STANDBY_FALLBACK, location, Optional.empty(), Optional.of(e));
+            RoutingResult.STANDBY_FALLBACK, location, Optional.of(e));
       } catch (Exception e) {
         throw new KsqlException(
           String.format("Error forwarding query to node %s: %s", node.location(), e.getMessage()),
@@ -521,18 +514,15 @@ public final class HARouting implements AutoCloseable {
 
     private final RoutingResult routingResult;
     private final KsqlPartitionLocation location;
-    private final Optional<OffsetVector> offsetVector;
     private final Optional<Exception> exception;
 
     PartitionFetchResult(
         final RoutingResult routingResult,
         final KsqlPartitionLocation location,
-        final Optional<OffsetVector> offsetVector,
         final Optional<Exception> exception
     ) {
       this.routingResult = routingResult;
       this.location = location;
-      this.offsetVector = offsetVector;
       this.exception = exception;
     }
 
@@ -546,10 +536,6 @@ public final class HARouting implements AutoCloseable {
 
     public KsqlPartitionLocation getLocation() {
       return location;
-    }
-
-    public Optional<OffsetVector> getOffsetVector() {
-      return offsetVector;
     }
 
     public Optional<Exception> getException() {

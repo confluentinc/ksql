@@ -20,7 +20,6 @@ import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import java.net.URI;
-import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -49,8 +48,6 @@ public interface Locator {
       RoutingFilterFactory routingFilterFactory,
       boolean isRangeScan
   );
-
-  URL getLocalHost();
 
   interface KsqlNode {
 

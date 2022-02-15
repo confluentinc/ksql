@@ -24,14 +24,17 @@ import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
+import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.streams.query.Position;
 
 /**
  * {@link Materialization} implementation responsible for handling HAVING and SELECT clauses.
@@ -56,7 +59,7 @@ import java.util.Optional;
  */
 class KsqlMaterialization implements Materialization {
 
-  private final Materialization inner;
+  private final StreamsMaterialization inner;
   private final LogicalSchema schema;
 
   private final List<Transform> transforms;
@@ -72,7 +75,7 @@ class KsqlMaterialization implements Materialization {
    * @param transforms list of transforms to apply
    */
   KsqlMaterialization(
-      final Materialization inner,
+      final StreamsMaterialization inner,
       final LogicalSchema schema,
       final List<Transform> transforms
   ) {
@@ -128,33 +131,44 @@ class KsqlMaterialization implements Materialization {
     return Optional.of(intermediate);
   }
 
+  private void updateConsistencyVector(
+      final Optional<ConsistencyOffsetVector> consistencyVector,
+      final Optional<Position> position
+  ) {
+    if (position.isPresent() && consistencyVector.isPresent()) {
+      consistencyVector.get().updateFromPosition(position.get());
+    }
+  }
+
   final class KsqlMaterializedTable implements MaterializedTable {
 
-    private final MaterializedTable table;
+    private final StreamsMaterializedTable table;
 
-    KsqlMaterializedTable(final MaterializedTable table) {
+    KsqlMaterializedTable(final StreamsMaterializedTable table) {
       this.table = requireNonNull(table, "table'");
     }
 
     @Override
-    public KsMaterializedQueryResult<Row> get(final GenericKey key, final int partition) {
+    public KsqlMaterializedQueryResult<Row> get(
+        final GenericKey key,
+        final int partition,
+        final Optional<ConsistencyOffsetVector> consistencyVector
+    ) {
+      final Optional<Position> position = consistencyVector
+          .map(offsetVector -> Position.fromMap(offsetVector.getOffsetVector()));
+      final KsMaterializedQueryResult<Row> result = table.get(key, partition, position);
+      updateConsistencyVector(consistencyVector, result.getPosition());
+
       if (transforms.isEmpty()) {
-        return table.get(key, partition);
-      }
-
-      final KsMaterializedQueryResult<Row> result = table.get(key, partition);
-      final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
-          .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
-              .map(v -> row.withValue(v, schema())))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .iterator();
-
-      if (result.getPosition().isPresent()) {
-        return KsMaterializedQueryResult.rowIteratorWithPosition(
-            iterator, result.getPosition().get());
+        return KsqlMaterializedQueryResult.rowIterator(result.getRowIterator());
       } else {
-        return KsMaterializedQueryResult.rowIterator(iterator);
+        final Iterator<Row> iterator = Streams.stream(result.getRowIterator())
+            .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
+                .map(v -> row.withValue(v, schema())))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .iterator();
+        return KsqlMaterializedQueryResult.rowIterator(iterator);
       }
     }
 

@@ -43,7 +43,6 @@ import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
-import io.confluent.ksql.api.client.impl.ExecuteStatementResultImpl;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
@@ -392,7 +391,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(KsqlException.class));
-    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query. Check server logs for details."));
+    assertThat(subscriber.getError().getMessage(), containsString("java.lang.RuntimeException: Failure in processing"));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));
     assertThat(streamedQueryResult.isComplete(), is(false));

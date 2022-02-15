@@ -105,7 +105,7 @@ class KsMaterializedSessionTableIQv2 implements StreamsMaterializedWindowedTable
           builder.add(row);
         }
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            builder.build().iterator(), result.getPosition());
+            builder.build().iterator(), queryResult.getPosition());
       }
     } catch (final MaterializationException e) {
       throw e;

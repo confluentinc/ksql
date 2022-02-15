@@ -96,20 +96,14 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Test to ensure pull queries route across multiple KSQL nodes correctly.
- *
- * <p>For tests on general syntax and handled see RestQueryTranslationTest's
- * materialized-aggregate-static-queries.json
+ * End to end test that uses consistency token with multiple nodes and queries.
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryConsistencyFunctionalTest {
-  private static final Logger LOG = LoggerFactory.getLogger(PullQueryConsistencyFunctionalTest.class);
 
   private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";
@@ -118,23 +112,14 @@ public class PullQueryConsistencyFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
   private static final int BASE_TIME = 1_000_000;
-  private final static String KEY0 = USER_PROVIDER.getStringKey(0);
   private final static String KEY1 = USER_PROVIDER.getStringKey(1);
-  private final static String KEY2 = USER_PROVIDER.getStringKey(2);
-  private final static String KEY3 = USER_PROVIDER.getStringKey(3);
-  private final static String KEY4 = USER_PROVIDER.getStringKey(4);
   private final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
   private String output;
   private String queryId;
-  private String sqlTableScan;
+  private String sql;
   private String topic;
   private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR;
   private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BEFORE;
-  private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_0;
-  private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_1;
-  private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_2;
-  private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BOTH;
-  private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BEFORE_2;
   private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_AFTER;
   private ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_AFTER_10;
 
@@ -249,7 +234,7 @@ public class PullQueryConsistencyFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-    .withTimeout(10, TimeUnit.MINUTES)
+    .withTimeout(2, TimeUnit.MINUTES)
     .withLookingForStuckThread(true)
     .build();
 
@@ -287,7 +272,6 @@ public class PullQueryConsistencyFunctionalTest {
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
     sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY1 + "';";
-    sqlTableScan = "SELECT * FROM " + output + ";";
     List<KsqlEntity> res = makeAdminRequestWithResponse(
       REST_APP_0,
       "CREATE TABLE " + output + " AS"
@@ -305,16 +289,6 @@ public class PullQueryConsistencyFunctionalTest {
         new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 6L)));
     CONSISTENCY_OFFSET_VECTOR_AFTER_10 =
         new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 9L)));
-
-    CONSISTENCY_OFFSET_VECTOR_1 =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(1, 0L)));
-    CONSISTENCY_OFFSET_VECTOR_2 =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(2, 2L)));
-    CONSISTENCY_OFFSET_VECTOR_BOTH =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 3L, 1, 0L)));
-    CONSISTENCY_OFFSET_VECTOR_BEFORE_2 =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(2, 1L)));
-
 
     waitForTableRows();
 

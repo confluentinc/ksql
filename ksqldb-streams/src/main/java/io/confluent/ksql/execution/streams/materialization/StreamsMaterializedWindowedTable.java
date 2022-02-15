@@ -37,6 +37,15 @@ public interface StreamsMaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
+  default KsMaterializedQueryResult<WindowedRow> get(
+      GenericKey key,
+      int partition,
+      Range<Instant> windowStart,
+      Range<Instant> windowEnd
+  ){
+    return get(key, partition, windowStart, windowEnd, Optional.empty());
+  }
+
   KsMaterializedQueryResult<WindowedRow> get(
       GenericKey key,
       int partition,
@@ -54,6 +63,14 @@ public interface StreamsMaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
+  default KsMaterializedQueryResult<WindowedRow> get(
+      int partition,
+      Range<Instant> windowStart,
+      Range<Instant> windowEnd
+  ){
+    return get(partition, windowStart, windowEnd, Optional.empty());
+  }
+
   KsMaterializedQueryResult<WindowedRow> get(
       int partition,
       Range<Instant> windowStart,

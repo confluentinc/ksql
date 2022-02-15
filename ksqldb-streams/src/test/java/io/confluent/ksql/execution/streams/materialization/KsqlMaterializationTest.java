@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.K
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
+import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -83,13 +84,13 @@ public class KsqlMaterializationTest {
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
 
   @Mock
-  private Materialization inner;
+  private StreamsMaterialization inner;
   @Mock
   private Transform project;
   @Mock
   private Transform filter;
   @Mock
-  private MaterializedTable innerNonWindowed;
+  private StreamsMaterializedTable innerNonWindowed;
   @Mock
   private StreamsMaterializedWindowedTable innerWindowed;
 
@@ -158,7 +159,7 @@ public class KsqlMaterializationTest {
 
     materialization = new KsqlMaterialization(
         inner,
-            schema,
+        schema,
         ImmutableList.of(filter, project)
     );
 
@@ -167,11 +168,11 @@ public class KsqlMaterializationTest {
 
     when(innerNonWindowed.get(any(), anyInt())).thenReturn(
         KsMaterializedQueryResult.rowIterator(Iterators.forArray(row)));
-    when(innerNonWindowed.get(anyInt(), any())).thenReturn(
+    when(innerNonWindowed.get(anyInt())).thenReturn(
         KsMaterializedQueryResult.rowIterator(Iterators.forArray(row, row2)));
-    when(innerWindowed.get(any(), anyInt(), any(), any(), any())).thenReturn(
+    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(
         KsMaterializedQueryResult.rowIterator(Iterators.forArray(windowedRow)));
-    when(innerWindowed.get(anyInt(), any(), any(), any())).thenReturn(
+    when(innerWindowed.get(anyInt(), any(), any())).thenReturn(
         KsMaterializedQueryResult.rowIterator(Iterators.forArray(windowedRow, windowedRow2)));
   }
 
@@ -179,7 +180,7 @@ public class KsqlMaterializationTest {
   @Test
   public void shouldThrowNPEs() {
     new NullPointerTester()
-        .setDefault(Materialization.class, inner)
+        .setDefault(StreamsMaterialization.class, inner)
         .setDefault(LogicalSchema.class, schema)
         .testConstructors(KsqlMaterialization.class, Visibility.PACKAGE);
   }
@@ -240,7 +241,6 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-//    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
     table.get(aKey, partition);
@@ -257,10 +257,10 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    verify(innerWindowed).get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+    verify(innerWindowed).get(aKey, partition, windowStartBounds, windowEndBounds);
   }
 
   @Test
@@ -285,7 +285,7 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty()).getRowIterator().next();
+    table.get(aKey, partition, windowStartBounds, windowEndBounds).getRowIterator().next();
 
     // Then:
     verify(filter).apply(
@@ -304,7 +304,7 @@ public class KsqlMaterializationTest {
     givenNoopTransforms();
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(aKey, partition);
+    final KsqlMaterializedQueryResult<Row> result = table.get(aKey, partition);
 
     // Then:
     assertThat(result.getRowIterator().hasNext(), is(false));
@@ -314,13 +314,13 @@ public class KsqlMaterializationTest {
   public void shouldReturnEmptyIfInnerWindowedReturnsEmpty() {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
-    when(innerWindowed.get(any(), anyInt(), any(), any(), any())).thenReturn(
+    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(
         KsMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
     givenNoopTransforms();
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =
-        table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+        table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result.getRowIterator().hasNext(), is(false));
@@ -334,7 +334,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(aKey, partition);
+    final KsqlMaterializedQueryResult<Row> result = table.get(aKey, partition);
 
     // Then:
     assertThat(result.getRowIterator().hasNext(), is(false));
@@ -349,7 +349,7 @@ public class KsqlMaterializationTest {
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =
-        table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+        table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result.getRowIterator().hasNext(), is(false));
@@ -363,7 +363,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    final KsqlMaterializedQueryResult<Row> result = table.get(partition, Optional.empty());
+    final KsqlMaterializedQueryResult<Row> result = table.get(partition);
 
     // Then:
     assertThat(result.getRowIterator().hasNext(), is(false));
@@ -378,7 +378,7 @@ public class KsqlMaterializationTest {
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =
-        table.get(partition, windowStartBounds, windowEndBounds, Optional.empty());
+        table.get(partition, windowStartBounds, windowEndBounds);
 
     // Then:
     
@@ -409,7 +409,7 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     final InOrder inOrder = inOrder(project, filter);
@@ -439,7 +439,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     verify(project).apply(
@@ -458,7 +458,7 @@ public class KsqlMaterializationTest {
 
     // When:
     final KsqlMaterializedQueryResult<Row> result =
-        table.get(partition, Optional.empty());
+        table.get(partition);
     result.getRowIterator().next();
     result.getRowIterator().next();
 
@@ -476,7 +476,7 @@ public class KsqlMaterializationTest {
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =
-        table.get(partition, windowStartBounds, windowEndBounds, Optional.empty());
+        table.get(partition, windowStartBounds, windowEndBounds);
     result.getRowIterator().next();
     result.getRowIterator().next();
 
@@ -502,7 +502,7 @@ public class KsqlMaterializationTest {
     when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(aKey, partition);
+    final KsqlMaterializedQueryResult<Row> result = table.get(aKey, partition);
 
     // Then:
     assertThat(result.getRowIterator(), is(not(Optional.empty())));
@@ -522,7 +522,7 @@ public class KsqlMaterializationTest {
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =
-        table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+        table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result.getRowIterator(), is(not(Optional.empty())));
@@ -556,12 +556,12 @@ public class KsqlMaterializationTest {
         WindowedRow.of(schema, new Windowed<>(aKey, window3), aValue, aRowtime)
     );
 
-    when(innerWindowed.get(any(), anyInt(), any(), any(), any())).thenReturn(
+    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(
         KsMaterializedQueryResult.rowIterator(rows.iterator()));
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =
-        table.get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
+        table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result.getRowIterator().hasNext(), is(true));

@@ -44,7 +44,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -129,7 +128,7 @@ public class KsMaterializedSessionTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -147,7 +146,7 @@ public class KsMaterializedSessionTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -160,7 +159,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(stateStore).store(any(SessionStoreType.class), anyInt());
@@ -169,7 +168,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldFetchWithCorrectParams() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(cacheBypassFetcher).fetch(sessionStore, A_KEY);
@@ -178,7 +177,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -188,8 +187,7 @@ public class KsMaterializedSessionTableTest {
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
-            .rowIterator;
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -202,8 +200,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
-            .rowIterator;
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -216,8 +213,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
-            .rowIterator;
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -236,7 +232,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(true));
@@ -262,7 +258,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -281,7 +277,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.next(), is(
@@ -306,7 +302,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, startBounds, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, startBounds, Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -320,7 +316,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.next(), is(
@@ -346,7 +342,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
     assertThat(rowIterator.next(), is(
@@ -371,7 +367,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -390,7 +386,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
     assertThat(rowIterator.next(), is(
@@ -415,7 +411,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), endBounds, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), endBounds).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -430,7 +426,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     assertThat(rowIterator.next(), is(
@@ -455,8 +451,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
-            .rowIterator;
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(true));
@@ -485,7 +480,7 @@ public class KsMaterializedSessionTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(true));

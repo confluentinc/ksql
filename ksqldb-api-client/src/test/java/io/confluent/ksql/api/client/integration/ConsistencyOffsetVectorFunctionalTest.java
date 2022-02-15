@@ -104,7 +104,8 @@ public class ConsistencyOffsetVectorFunctionalTest {
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
 
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
-      new ConsistencyOffsetVector(2, ImmutableMap.of(TEST_TOPIC, ImmutableMap.of(0, 5L)));
+      new ConsistencyOffsetVector(0, ImmutableMap.of(TEST_TOPIC, ImmutableMap.of(0, 5L)));
+
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
 

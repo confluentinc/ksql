@@ -25,6 +25,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedTable;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.Collections;
 import java.util.Objects;
@@ -43,7 +44,7 @@ import org.apache.kafka.streams.state.ValueAndTimestamp;
 /**
  * Kafka Streams impl of {@link MaterializedTable}.
  */
-class KsMaterializedTableIQv2 implements MaterializedTable {
+class KsMaterializedTableIQv2 implements StreamsMaterializedTable {
 
   private final KsStateStore stateStore;
 
@@ -52,10 +53,14 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
   }
 
   @Override
-  public KsMaterializedQueryResult<Row> get(final GenericKey key, final int partition) {
+  public KsMaterializedQueryResult<Row> get(
+      final GenericKey key,
+      final int partition,
+      final Optional<Position> position
+  ) {
     try {
       final KeyQuery<GenericKey, ValueAndTimestamp<GenericRow>> query = KeyQuery.withKey(key);
-      final StateQueryRequest<ValueAndTimestamp<GenericRow>>
+      StateQueryRequest<ValueAndTimestamp<GenericRow>>
           request = inStore(stateStore.getStateStoreName())
           .withQuery(query)
           .withPartitions(ImmutableSet.of(partition));
@@ -72,7 +77,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         throw failedQueryException(queryResult);
       } else if (queryResult.getResult() == null) {
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            Collections.emptyIterator(), result.getPosition());
+            Collections.emptyIterator(), queryResult.getPosition());
       } else {
         final ValueAndTimestamp<GenericRow> row = queryResult.getResult();
         return KsMaterializedQueryResult.rowIteratorWithPosition(
@@ -110,7 +115,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         throw failedQueryException(queryResult);
       } else if (queryResult.getResult() == null) {
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            Collections.emptyIterator(), result.getPosition());
+            Collections.emptyIterator(), queryResult.getPosition());
       } else {
         final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
             queryResult.getResult();
@@ -119,7 +124,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
             .map(keyValue -> Row.of(stateStore.schema(), keyValue.key,
                                     keyValue.value.value(), keyValue.value.timestamp()))
             .iterator(),
-            result.getPosition()
+            queryResult.getPosition()
         );
       }
     } catch (NotUpToBoundException | MaterializationException e) {
@@ -166,7 +171,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
         throw failedQueryException(queryResult);
       } else if (queryResult.getResult() == null) {
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            Collections.emptyIterator(), result.getPosition());
+            Collections.emptyIterator(), queryResult.getPosition());
       } else {
         final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
             queryResult.getResult();
@@ -175,7 +180,7 @@ class KsMaterializedTableIQv2 implements MaterializedTable {
             .map(keyValue -> Row.of(stateStore.schema(), keyValue.key,
                                     keyValue.value.value(), keyValue.value.timestamp()))
             .iterator(),
-            result.getPosition()
+            queryResult.getPosition()
         );
       }
     } catch (NotUpToBoundException | MaterializationException e) {

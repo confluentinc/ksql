@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
@@ -90,6 +91,8 @@ public class KsMaterializedTableIQv2Test {
   private static final String STATE_STORE_NAME = "store";
   private static final String TOPIC = "topic";
   private static final long OFFSET = 100L;
+  private static final Position POSITION = Position.fromMap(
+      ImmutableMap.of(TOPIC, ImmutableMap.of(PARTITION, OFFSET)));
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -159,7 +162,7 @@ public class KsMaterializedTableIQv2Test {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(PARTITION, A_KEY, A_KEY2, Optional.empty())
+        () -> table.get(PARTITION, A_KEY, A_KEY2)
     );
 
     // Then:
@@ -175,7 +178,7 @@ public class KsMaterializedTableIQv2Test {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(PARTITION, Optional.empty())
+        () -> table.get(PARTITION)
     );
 
     // Then:
@@ -206,7 +209,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    table.get(PARTITION, Optional.empty());
+    table.get(PARTITION);
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
@@ -223,7 +226,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    table.get(PARTITION, A_KEY, null, Optional.empty());
+    table.get(PARTITION, A_KEY, null);
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
@@ -240,7 +243,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    table.get(PARTITION, null, A_KEY2, Optional.empty());
+    table.get(PARTITION, null, A_KEY2);
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
@@ -257,7 +260,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    table.get(PARTITION, A_KEY, A_KEY2, Optional.empty());
+    table.get(PARTITION, A_KEY, A_KEY2);
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
@@ -274,7 +277,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    table.get(PARTITION, null, null, Optional.empty());
+    table.get(PARTITION, null, null);
 
     // Then:
     verify(kafkaStreams).query(queryTypeCaptor.capture());
@@ -303,7 +306,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getEmptyIteratorResult());
 
     // When:
-    final Iterator<Row> rowIterator = table.get(PARTITION, A_KEY, null, Optional.empty()).rowIterator;
+    final Iterator<Row> rowIterator = table.get(PARTITION, A_KEY, null).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -331,7 +334,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, Optional.empty());
+    final KsMaterializedQueryResult<Row> result = table.get(PARTITION);
 
     // Then:
     Iterator<Row> rowIterator = result.getRowIterator();
@@ -340,7 +343,7 @@ public class KsMaterializedTableIQv2Test {
     assertThat(rowIterator.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
     assertThat(rowIterator.hasNext(), is(false));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -349,7 +352,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, A_KEY, null, Optional.empty());
+    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, A_KEY, null);
 
     // Then:
     Iterator<Row> rowIterator = result.getRowIterator();
@@ -358,7 +361,7 @@ public class KsMaterializedTableIQv2Test {
     assertThat(rowIterator.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
     assertThat(rowIterator.hasNext(), is(false));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
 
@@ -368,7 +371,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, null, A_KEY2, Optional.empty());
+    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, null, A_KEY2);
 
     // Then:
     Iterator<Row> rowIterator = result.getRowIterator();
@@ -377,7 +380,7 @@ public class KsMaterializedTableIQv2Test {
     assertThat(rowIterator.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
     assertThat(rowIterator.hasNext(), is(false));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
   @Test
@@ -386,7 +389,7 @@ public class KsMaterializedTableIQv2Test {
     when(kafkaStreams.query(any())).thenReturn(getIteratorResult());
 
     // When:
-    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, A_KEY, A_KEY2, Optional.empty());
+    final KsMaterializedQueryResult<Row> result = table.get(PARTITION, A_KEY, A_KEY2);
 
     // Then:
     Iterator<Row> rowIterator = result.getRowIterator();
@@ -395,7 +398,7 @@ public class KsMaterializedTableIQv2Test {
     assertThat(rowIterator.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
     assertThat(rowIterator.hasNext(), is(false));
     assertThat(result.getPosition(), not(Optional.empty()));
-    assertThat(result.getPosition().get(), is(getTestPosition()));
+    assertThat(result.getPosition().get(), is(POSITION));
   }
 
 
@@ -403,11 +406,13 @@ public class KsMaterializedTableIQv2Test {
   public void shouldCloseIterator_fullTableScan() {
     // Given:
     final StateQueryResult result = new StateQueryResult();
-    result.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    queryResult.setPosition(POSITION);
+    result.addResult(PARTITION, queryResult);
     when(kafkaStreams.query(any())).thenReturn(result);
 
     // When:
-    Streams.stream((table.get(PARTITION, Optional.empty()).getRowIterator()))
+    Streams.stream((table.get(PARTITION).getRowIterator()))
         .collect(Collectors.toList());
 
     // Then:
@@ -418,7 +423,9 @@ public class KsMaterializedTableIQv2Test {
   public void shouldCloseIterator_rangeBothBounds() {
     // Given:
     final StateQueryResult result = new StateQueryResult();
-    result.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    queryResult.setPosition(POSITION);
+    result.addResult(PARTITION, queryResult);
     when(kafkaStreams.query(any())).thenReturn(result);
     when(keyValueIterator.hasNext()).thenReturn(true, true, false);
     when(keyValueIterator.next())
@@ -426,7 +433,7 @@ public class KsMaterializedTableIQv2Test {
         .thenReturn(KEY_VALUE2);
 
     // When:
-    Streams.stream(table.get(PARTITION, A_KEY, A_KEY2, Optional.empty()).rowIterator)
+    Streams.stream(table.get(PARTITION, A_KEY, A_KEY2).rowIterator)
         .collect(Collectors.toList());
 
     // Then:
@@ -459,9 +466,7 @@ public class KsMaterializedTableIQv2Test {
     map.put(A_KEY2, VALUE_AND_TIMESTAMP2);
     final KeyValueIterator iterator = new TestKeyValueIterator(keySet, map);
     final QueryResult queryResult = QueryResult.forResult(iterator);
-    final Position position = Position.emptyPosition();
-    position.withComponent(TOPIC, PARTITION, OFFSET);
-    queryResult.setPosition(position);
+    queryResult.setPosition(POSITION);
     result.addResult(PARTITION, queryResult);
     return result;
   }
@@ -471,13 +476,16 @@ public class KsMaterializedTableIQv2Test {
     Set<GenericKey> keySet = new HashSet<>();
     Map<GenericKey, ValueAndTimestamp<GenericRow>> map = new HashMap<>();
     final KeyValueIterator iterator = new TestKeyValueIterator(keySet, map);
-    result.addResult(PARTITION, QueryResult.forResult(iterator));
+    final QueryResult queryResult = QueryResult.forResult(iterator);
+    queryResult.setPosition(POSITION);
+    result.addResult(PARTITION, queryResult);
     return result;
   }
 
   private static Position getTestPosition() {
     final Position position = Position.emptyPosition();
     position.withComponent(TOPIC, PARTITION, OFFSET);
+    Position.fromMap(ImmutableMap.of(TOPIC, ImmutableMap.of(PARTITION, OFFSET)));
     return position;
   }
 

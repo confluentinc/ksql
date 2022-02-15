@@ -92,7 +92,7 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
 
       if (queryResult.getResult() == null) {
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            Collections.emptyIterator(), result.getPosition());
+            Collections.emptyIterator(), queryResult.getPosition());
       }
 
       try (WindowStoreIterator<ValueAndTimestamp<GenericRow>> it
@@ -127,7 +127,7 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
         }
 
         return KsMaterializedQueryResult.rowIteratorWithPosition(
-            builder.build().iterator(), result.getPosition());
+            builder.build().iterator(), queryResult.getPosition());
       }
     } catch (final MaterializationException e) {
       throw e;
@@ -192,7 +192,7 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
                 return row; })
               .filter(Objects::nonNull)
               .iterator(),
-          result.getPosition()
+          queryResult.getPosition()
       );
     } catch (final MaterializationException e) {
       throw e;

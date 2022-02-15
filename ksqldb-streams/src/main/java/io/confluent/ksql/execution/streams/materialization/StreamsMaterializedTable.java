@@ -32,6 +32,13 @@ public interface StreamsMaterializedTable {
    * @param partition partition to limit the get to
    * @return the value, if one is exists.
    */
+  default KsMaterializedQueryResult<Row> get(
+      GenericKey key,
+      int partition
+  ) {
+    return get(key, partition, Optional.empty());
+  }
+
   KsMaterializedQueryResult<Row> get(
       GenericKey key,
       int partition,
@@ -44,6 +51,10 @@ public interface StreamsMaterializedTable {
    * @param partition partition to limit the get to
    * @return the rows.
    */
+  default KsMaterializedQueryResult<Row> get(int partition) {
+    return get(partition, Optional.empty());
+  }
+
   KsMaterializedQueryResult<Row> get(int partition, Optional<Position> position);
 
   /**
@@ -54,6 +65,13 @@ public interface StreamsMaterializedTable {
    * @param to last key in range
    * @return the rows.
    */
+  default KsMaterializedQueryResult<Row> get(
+      int partition,
+      GenericKey from,
+      GenericKey to){
+    return get(partition, from, to, Optional.empty());
+  }
+
   KsMaterializedQueryResult<Row> get(
       int partition,
       GenericKey from,

@@ -87,12 +87,12 @@ public class WindowedTableScanOperatorTest {
         new WindowedTableScanOperator(
             materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.windowed()).thenReturn(windowedTable);
-    when(windowedTable.get(1, Range.all(), Range.all(), Optional.empty()))
+    when(windowedTable.get(1, Range.all(), Range.all()))
         .thenReturn(KsqlMaterializedQueryResult.rowIterator(
             IteratorUtil.of(WINDOWED_ROW1,WINDOWED_ROW2)));
-    when(windowedTable.get(2, Range.all(), Range.all(), Optional.empty()))
+    when(windowedTable.get(2, Range.all(), Range.all()))
         .thenReturn(KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of()));
-    when(windowedTable.get(3, Range.all(), Range.all(), Optional.empty()))
+    when(windowedTable.get(3, Range.all(), Range.all()))
         .thenReturn(KsqlMaterializedQueryResult.rowIterator(
             IteratorUtil.of(WINDOWED_ROW3, WINDOWED_ROW2, WINDOWED_ROW4)));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
@@ -125,7 +125,7 @@ public class WindowedTableScanOperatorTest {
         new WindowedTableScanOperator(
             materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.windowed()).thenReturn(windowedTable);
-    when(windowedTable.get(1, Range.all(), Range.all(), Optional.empty()))
+    when(windowedTable.get(1, Range.all(), Range.all()))
         .thenReturn(KsqlMaterializedQueryResult.rowIterator(
             IteratorUtil.of(WINDOWED_ROW1, WINDOWED_ROW2)));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);

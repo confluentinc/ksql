@@ -46,7 +46,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.KeyValue;
@@ -145,7 +144,7 @@ public class KsMaterializedWindowTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -162,7 +161,7 @@ public class KsMaterializedWindowTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+        () -> table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -180,7 +179,7 @@ public class KsMaterializedWindowTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -198,7 +197,7 @@ public class KsMaterializedWindowTableTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
+        () -> table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -210,7 +209,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
@@ -221,7 +220,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams_fetchAll() {
     // When:
-    table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
@@ -233,7 +232,7 @@ public class KsMaterializedWindowTableTest {
   public void shouldFetchWithCorrectKey() {
     // Given:
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(cacheBypassFetcher).fetch(eq(tableStore), eq(A_KEY), any(), any());
@@ -242,7 +241,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithNoBounds() {
     // When:
-    table.get(A_KEY, PARTITION, Range.all(), Range.all(), Optional.empty());
+    table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(cacheBypassFetcher).fetch(
@@ -256,7 +255,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithNoBounds_fetchAll() {
     // When:
-    table.get(PARTITION, Range.all(), Range.all(), Optional.empty());
+    table.get(PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(cacheBypassFetcherAll).fetchAll(
@@ -269,7 +268,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithOnlyStartBounds() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all(), Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all());
 
     // Then:
     verify(cacheBypassFetcher).fetch(
@@ -283,7 +282,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithOnlyStartBounds_fetchAll() {
     // When:
-    table.get(PARTITION, WINDOW_START_BOUNDS, Range.all(), Optional.empty());
+    table.get(PARTITION, WINDOW_START_BOUNDS, Range.all());
 
     // Then:
     verify(cacheBypassFetcherAll).fetchAll(
@@ -296,7 +295,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithOnlyEndBounds() {
     // When:
-    table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS);
 
     // Then:
     verify(cacheBypassFetcher).fetch(
@@ -310,7 +309,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithOnlyEndBounds_fetchAll() {
     // When:
-    table.get(PARTITION, Range.all(), WINDOW_END_BOUNDS, Optional.empty());
+    table.get(PARTITION, Range.all(), WINDOW_END_BOUNDS);
 
     // Then:
     verify(cacheBypassFetcherAll).fetchAll(
@@ -334,7 +333,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, PARTITION, startBounds, endBounds, Optional.empty());
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(cacheBypassFetcher).fetch(eq(tableStore), any(), eq(startBounds.lowerEndpoint()),
@@ -355,7 +354,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, PARTITION, startBounds, endBounds, Optional.empty());
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(cacheBypassFetcher).fetch(eq(tableStore), any(),
@@ -376,7 +375,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, PARTITION, startBounds, endBounds, Optional.empty());
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(cacheBypassFetcher).fetch(eq(tableStore), any(), any(), eq(startBounds.upperEndpoint()));
@@ -396,7 +395,7 @@ public class KsMaterializedWindowTableTest {
     );
 
     // When:
-    table.get(A_KEY, PARTITION, startBounds, endBounds, Optional.empty());
+    table.get(A_KEY, PARTITION, startBounds, endBounds);
 
     // Then:
     verify(cacheBypassFetcher).fetch(
@@ -406,7 +405,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty());
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -415,8 +414,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldCloseIterator_fetchAll() {
     // When:
-    Streams.stream((table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
-            .getRowIterator()))
+    Streams.stream((table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).getRowIterator()))
         .collect(Collectors.toList());
 
     // Then:
@@ -427,8 +425,7 @@ public class KsMaterializedWindowTableTest {
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS, Optional.empty())
-            .rowIterator;
+        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(false));
@@ -456,7 +453,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, start, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, start, Range.all()).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(true));
@@ -500,7 +497,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(PARTITION, start, Range.all(), Optional.empty()).rowIterator;
+        table.get(PARTITION, start, Range.all()).rowIterator;
 
     // Then:
     
@@ -548,7 +545,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), end, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), end).rowIterator;
 
     // Then:
     
@@ -598,7 +595,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(PARTITION, Range.all(), end, Optional.empty()).rowIterator;
+        table.get(PARTITION, Range.all(), end).rowIterator;
 
     // Then:
     
@@ -644,7 +641,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, start, Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, start, Range.all()).rowIterator;
 
     // Then:
     
@@ -686,7 +683,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(PARTITION, start, Range.all(), Optional.empty()).rowIterator;
+        table.get(PARTITION, start, Range.all()).rowIterator;
 
     // Then:
     
@@ -730,7 +727,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), end, Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), end).rowIterator;
 
     // Then:
     
@@ -777,7 +774,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(PARTITION, Range.all(), end, Optional.empty()).rowIterator;
+        table.get(PARTITION, Range.all(), end).rowIterator;
 
     // Then:
     
@@ -812,7 +809,7 @@ public class KsMaterializedWindowTableTest {
 
     // When:
     final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, Range.all(), Range.all(), Optional.empty()).rowIterator;
+        table.get(A_KEY, PARTITION, Range.all(), Range.all()).rowIterator;
 
     // Then:
     
@@ -843,7 +840,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldSupportRangeAll() {
     // When:
-    table.get(A_KEY, PARTITION, Range.all(), Range.all(), Optional.empty());
+    table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(cacheBypassFetcher).fetch(
@@ -857,7 +854,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldSupportRangeAll_fetchAll() {
     // When:
-    table.get(PARTITION, Range.all(), Range.all(), Optional.empty());
+    table.get(PARTITION, Range.all(), Range.all());
 
     // Then:
     verify(cacheBypassFetcherAll).fetchAll(

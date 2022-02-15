@@ -24,8 +24,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.execution.streams.materialization.Locator;
-import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
-import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
@@ -102,7 +100,7 @@ public class KsMaterializationTest {
     givenWindowType(Optional.empty());
 
     // When:
-    final MaterializedTable table = materialization.nonWindowed();
+    final StreamsMaterializedTable table = materialization.nonWindowed();
 
     // Then:
     assertThat(table, is(instanceOf(KsMaterializedTable.class)));

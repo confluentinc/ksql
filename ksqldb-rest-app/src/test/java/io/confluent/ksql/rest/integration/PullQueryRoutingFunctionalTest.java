@@ -452,11 +452,8 @@ public class PullQueryRoutingFunctionalTest {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
     waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3, USER_CREDS);
-    waitForRemoteServerToChangeStatus(
-        clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsReported(3),
-        USER_CREDS);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
     waitForRemoteServerToChangeStatus(
         clusterFormation.router.getApp(),
         clusterFormation.active.getHost(),

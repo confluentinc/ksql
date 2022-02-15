@@ -154,7 +154,7 @@ public class KsMaterializedTableTest {
     when(tableStore.all()).thenReturn(keyValueIterator);
 
     // When:
-    table.get(PARTITION, Optional.empty());
+    table.get(PARTITION);
 
     // Then:
     verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
@@ -204,7 +204,7 @@ public class KsMaterializedTableTest {
         .thenReturn(KEY_VALUE2);
 
     // When:
-    final Iterator<Row> rowIterator = table.get(PARTITION, Optional.empty()).rowIterator;
+    final Iterator<Row> rowIterator = table.get(PARTITION).rowIterator;
 
     // Then:
     assertThat(rowIterator.hasNext(), is(true));
@@ -223,7 +223,7 @@ public class KsMaterializedTableTest {
         .thenReturn(KEY_VALUE2);
 
     // When:
-    Streams.stream(table.get(PARTITION, Optional.empty()).rowIterator)
+    Streams.stream(table.get(PARTITION).rowIterator)
         .collect(Collectors.toList());
 
     // Then:

@@ -19,8 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
-import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.StreamsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
@@ -33,7 +31,7 @@ import java.util.Optional;
 /**
  * Kafka Streams impl of {@link Materialization}.
  */
-public final class KsMaterialization implements Materialization {
+public final class KsMaterialization implements StreamsMaterialization {
 
   private final Optional<WindowInfo> windowInfo;
   private final KsStateStore stateStore;
@@ -65,7 +63,7 @@ public final class KsMaterialization implements Materialization {
   }
 
   @Override
-  public MaterializedTable nonWindowed() {
+  public StreamsMaterializedTable nonWindowed() {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
@@ -73,7 +71,7 @@ public final class KsMaterialization implements Materialization {
         KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
       return new KsMaterializedTableIQv2(stateStore);
     }
-    return new  KsMaterializedTable(stateStore);
+    return new KsMaterializedTable(stateStore);
   }
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Enforced by type

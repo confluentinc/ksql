@@ -93,8 +93,6 @@ public class StorageUtilizationMetricsReporterTest {
     final Object storageUsedValue = storageUsedGauge.value(null, 0);
     final Gauge<?> pctUsedGauge = verifyAndGetRegisteredMetric("storage_utilization", BASE_TAGS);
     final Object pctUsedValue = pctUsedGauge.value(null, 0);
-    final Gauge<?> maxTaskUsageGauge = verifyAndGetRegisteredMetric("max_task_storage_used_bytes", BASE_TAGS);
-    final Object maxTaskUsageValue = maxTaskUsageGauge.value(null, 0);
     final Gauge<?> numStatefulTasksGauge = verifyAndGetRegisteredMetric("num_stateful_tasks", BASE_TAGS);
     final Object numStatefulTasksValue = numStatefulTasksGauge.value(null, 0);
     
@@ -103,7 +101,6 @@ public class StorageUtilizationMetricsReporterTest {
     assertThat((Long) storageTotalValue, greaterThan(0L));
     assertThat((Long) storageUsedValue, greaterThan(0L));
     assertThat((Double) pctUsedValue, greaterThan(0.0));
-    assertThat((BigInteger) maxTaskUsageValue, greaterThanOrEqualTo(BigInteger.ZERO));
     assertEquals(numStatefulTasksValue, 7);
   }
 
@@ -266,44 +263,6 @@ public class StorageUtilizationMetricsReporterTest {
 
     // Then:
     assertThrows(AssertionError.class, () -> verifyAndGetRegisteredMetric(TASK_STORAGE_METRIC, TASK_ONE_TAGS));
-  }
-  
-  @Test
-  public void shouldRecordMaxTaskUsage() {
-    // Given:
-    KafkaMetric m1 = mockMetric(
-      KSQL_METRIC_GROUP,
-      TASK_STORAGE_METRIC,
-      BigInteger.valueOf(2),
-      ImmutableMap.of("task-id", "t1"));
-    KafkaMetric m2 = mockMetric(
-      KSQL_METRIC_GROUP,
-      TASK_STORAGE_METRIC,
-      BigInteger.valueOf(5),
-      ImmutableMap.of("task-id", "t2"));
-    MetricName n1 = m1.metricName();
-    MetricName n2 = m2.metricName();
-    when(metrics.metrics()).thenReturn(ImmutableMap.of(n1, m1, n2, m2));
-    
-    // When:
-    listener.metricChange(m1);
-    listener.metricChange(m2);
-    
-    // Then:
-    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
-    assertTrue(maxVal.equals(BigInteger.valueOf(5)));
-  }
-
-  @Test
-  public void shouldRecordMaxTaskUsageWithNoTasks() {
-    // Given:
-    when(metrics.metrics()).thenReturn(Collections.EMPTY_MAP);
-
-    // When:
-
-    // Then:
-    BigInteger maxVal = StorageUtilizationMetricsReporter.getMaxTaskUsage(metrics);
-    assertTrue(maxVal.equals(BigInteger.valueOf(0)));
   }
   
   @Test

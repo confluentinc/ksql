@@ -19,7 +19,7 @@ Returns the average value for `col1`.
 
 ---
 
-## `COLLECT_LIST`
+## **`COLLECT_LIST`**
 
 ```sql title="Applies to: stream, table<br>"
 COLLECT_LIST(col1) => ARRAY
@@ -45,7 +45,9 @@ originally processed.
 !!! Tip "See COLLECT_LIST in action"
     - [Automate instant payment verifications](https://developer.confluent.io/tutorials/payment-status-check/confluent.html#ksqldb-code)
 
-## `COLLECT_SET`
+---
+
+## **`COLLECT_SET`**
 
 ```sql title="Applies to: stream<br>"
 COLLECT_SET(col1) => ARRAY
@@ -68,7 +70,9 @@ first considering all the records from the first window, then the out-of-order
 record, then the records from the second window in the order they were
 originally processed.
 
-## `COUNT`
+---
+
+## **`COUNT`**
 
 ```sql title="Applies to: stream, table<br>"
 COUNT(col1)
@@ -86,9 +90,9 @@ When `*` is specified, the count returned is the total number of rows.
     - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
     - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
 
-## `COUNT_DISTINCT`
+---
 
-Since: 0.7.0
+## **`COUNT_DISTINCT`**
 
 ```sql  title="Applies to: stream<br>Since: 0.7.0"
 COUNT_DISTINCT(col1)
@@ -99,7 +103,9 @@ Returns the _approximate_ number of unique values of `col1` in a group.
 The function implementation uses [HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
 to estimate cardinalities of 10^9 with a typical standard error of 2 percent.
 
-## `EARLIEST_BY_OFFSET`
+---
+
+## **`EARLIEST_BY_OFFSET`**
 
 ```sql title="Applies to: stream<br>Since: 0.10.0"
 EARLIEST_BY_OFFSET(col1, [ignoreNulls])
@@ -125,7 +131,9 @@ The optional `ignoreNulls` parameter, available since version 0.13.0,
 controls whether `NULL` values are ignored. The default is to ignore
 `NULL` values.
 
-## `HISTOGRAM`
+---
+
+## **`HISTOGRAM`**
 
 ```sql title="Applies to: stream, table<br>"
 HISTOGRAM(col1)
@@ -147,7 +155,9 @@ were originally processed.
 !!! Tip "See HISTOGRAM in action"
     - [Automate instant payment verifications](https://developer.confluent.io/tutorials/payment-status-check/confluent.html#ksqldb-code)
 
-## `LATEST_BY_OFFSET`
+---
+
+## **`LATEST_BY_OFFSET`**
 
 ```sql title="Applies to: stream<br>Since: 0.8.0"
 LATEST_BY_OFFSET(col1, [ignoreNulls])
@@ -173,7 +183,9 @@ The optional `ignoreNulls` parameter, available since version 0.13.0,
 controls whether `NULL` values are ignored. The default is to ignore
 `NULL` values.
 
-## `MAX`
+---
+
+## **`MAX`**
 
 ```sql title="Applies to: stream<br>"
 MAX(col1)
@@ -187,7 +199,9 @@ Rows that have `col1` set to `NULL` are ignored.
     - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
     - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
 
-## `MIN`
+---
+
+## **`MIN`**
 
 ```sql title="Applies to: stream<br>"
 MIN(col1)
@@ -200,7 +214,9 @@ Rows that have `col1` set to `NULL` are ignored.
 !!! Tip "See MIN in action"
     - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
 
-## `STDDEV_SAMP`
+---
+
+## **`STDDEV_SAMP`**
 
 ```sql title="Applies to: stream, table<br>Since: 0.16.0"
 STDDEV_SAMP(col1)
@@ -208,7 +224,9 @@ STDDEV_SAMP(col1)
 
 Returns the sample standard deviation for the column.
 
-## `SUM`
+---
+
+## **`SUM`**
 
 ```sql title="Applies to: stream, table<br>"
 SUM(col1)
@@ -221,7 +239,9 @@ Rows that have `col1` set to `NULL` are ignored.
     - [Detect Unusual Credit Card Activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
     - [Build Customer Loyalty Programs](https://developer.confluent.io/tutorials/loyalty-rewards/confluent.html#ksqldb-code)
 
-## `TOPK`
+---
+
+## **`TOPK`**
 
 ```sql title="Applies to: stream<br>"
 TOPK(col1, k)
@@ -238,7 +258,9 @@ SELECT orderzip_code, TOPK(order_total, 5)
   EMIT CHANGES;
 ```
 
-## `TOPKDISTINCT`
+---
+
+## **`TOPKDISTINCT`**
 
 ```sql title="Applies to: stream<br>"
 TOPKDISTINCT(col1, k)

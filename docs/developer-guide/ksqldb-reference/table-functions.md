@@ -130,6 +130,8 @@ The `CUBE_EXPLODE` function produces the following output:
 {"topic": "OUTPUT", "key": "1", "value": {"VAL": [1, null]}}
 ```
 
+---
+
 ### **`EXPLODE`**
 
 ```sql title="Applies to: array<br>Since: 0.6.0"

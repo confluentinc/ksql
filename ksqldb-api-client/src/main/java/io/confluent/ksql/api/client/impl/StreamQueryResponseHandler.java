@@ -40,12 +40,15 @@ public class StreamQueryResponseHandler
   private Map<String, Integer> columnNameToIndex;
   private boolean paused;
   private AtomicReference<String> serializedConsistencyVector;
+  private AtomicReference<String> serializedContinuationToken;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
-      final AtomicReference<String> serializedCV) {
+      final AtomicReference<String> serializedCV,
+      final AtomicReference<String> serializedCT) {
     super(context, recordParser, cf);
     this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
+    this.serializedContinuationToken = Objects.requireNonNull(serializedCT, "serializedCT");
   }
 
   @Override
@@ -88,6 +91,10 @@ public class StreamQueryResponseHandler
         LOG.info("Response contains consistency vector " + jsonObject);
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
+      } else if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
+        LOG.info("Response contains continuation token " + jsonObject);
+        serializedContinuationToken.set((String) ((JsonObject) json).getMap().get(
+                "continuationToken"));
       } else {
         queryResult.handleError(new KsqlException(
             jsonObject.getString("message")

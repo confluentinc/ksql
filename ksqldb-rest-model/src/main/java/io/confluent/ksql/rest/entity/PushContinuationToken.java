@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -65,5 +67,16 @@ public class PushContinuationToken {
   @Override
   public int hashCode() {
     return Objects.hash(continuationToken);
+  }
+
+  public static boolean isContinuationTokenEnabled(final Map<String, Object> requestProperties) {
+    final Object continuationTokenEnabled
+            = requestProperties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
+
+    if (continuationTokenEnabled instanceof Boolean) {
+      return (boolean) continuationTokenEnabled;
+    }
+
+    return KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT;
   }
 }

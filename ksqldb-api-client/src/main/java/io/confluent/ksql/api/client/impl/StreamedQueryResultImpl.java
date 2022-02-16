@@ -21,6 +21,7 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.reactive.BufferedPublisher;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -125,6 +126,11 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
 
   private void handleErrorWhilePolling(final Throwable t) {
     log.error("Unexpected error while polling: " + t);
+  }
+
+  public void hasContinuationToken() {
+
+    KsqlRequestConfig
   }
 
   public static Row pollWithCallback(

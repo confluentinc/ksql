@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
 
 /**
@@ -89,5 +90,9 @@ public interface StreamedQueryResult extends Publisher<Row> {
    * @return whether the {@code StreamedQueryResult} is failed.
    */
   boolean isFailed();
+
+  boolean hasContinuationToken();
+
+  AtomicReference<String> getContinuationToken();
 
 }

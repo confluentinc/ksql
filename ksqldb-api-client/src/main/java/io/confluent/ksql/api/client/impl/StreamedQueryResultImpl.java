@@ -21,12 +21,12 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.reactive.BufferedPublisher;
-import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
@@ -39,18 +39,21 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
+  private final AtomicReference<String> continuationToken;
 
   StreamedQueryResultImpl(
       final Context context,
       final String queryId,
       final List<String> columnNames,
-      final List<ColumnType> columnTypes
+      final List<ColumnType> columnTypes,
+      final AtomicReference<String> continuationToken
   ) {
     super(context);
     this.queryId = queryId;
     this.columnNames = ImmutableList.copyOf(columnNames);
     this.columnTypes = ImmutableList.copyOf(columnTypes);
     this.pollableSubscriber = new PollableSubscriber(ctx, this::handleErrorWhilePolling);
+    this.continuationToken = continuationToken;
   }
 
   @Override
@@ -128,10 +131,16 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     log.error("Unexpected error while polling: " + t);
   }
 
-  public void hasContinuationToken() {
-
-    KsqlRequestConfig
+  @Override
+  public boolean hasContinuationToken() {
+    return !this.continuationToken.get().equalsIgnoreCase("");
   }
+
+  @Override
+  public AtomicReference<String> getContinuationToken() {
+    return this.continuationToken;
+  }
+
 
   public static Row pollWithCallback(
       final StreamedQueryResult queryResult,

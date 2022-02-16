@@ -164,4 +164,15 @@ public class PushOffsetVector implements OffsetVector {
     final PushOffsetVector that = (PushOffsetVector) o;
     return Objects.equals(offsets.get(), that.offsets.get());
   }
+
+  public static boolean isContinuationTokenEnabled(final Map<String, Object> requestProperties) {
+    final Object continuationTokenEnabled
+            = requestProperties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
+
+    if (continuationTokenEnabled instanceof Boolean) {
+      return (boolean) continuationTokenEnabled;
+    }
+
+    return KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT;
+  }
 }

@@ -19,6 +19,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.RETRY_AFTER;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.PRECONDITION_REQUIRED;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
@@ -35,6 +36,8 @@ import org.apache.kafka.common.errors.TopicAuthorizationException;
 public final class Errors {
 
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
+
+  public static final int ERROR_CODE_MISDIRECTED_REQUEST = toErrorCode(MISDIRECTED_REQUEST.code());
 
   public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.code());
   public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.code()) + 1;

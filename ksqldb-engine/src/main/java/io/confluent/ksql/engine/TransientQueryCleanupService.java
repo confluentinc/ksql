@@ -55,6 +55,10 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   private QueryRegistry queryRegistry;
   private int numLeakedTopics;
   private int numLeakedStateFiles;
+  private int numLeakedTopicsBeforeServerStart;
+  private int numLeakedStateFilesBeforeServerStart;
+  private int numLeakedTopicsFailedToCleanUp;
+  private int numLeakedStateFilesFailedToCleanUp;
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {

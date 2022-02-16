@@ -270,15 +270,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @VisibleForTesting
-  @SuppressFBWarnings(
-          value = "EI_EXPOSE_REP",
-          justification = "See notes on getters."
-  )
-  public TransientQueryCleanupService getTransientQueryCleanupService() {
-    return transientQueryCleanupService;
-  }
-
-  @VisibleForTesting
   public KsqlEngineMetrics getEngineMetrics() {
     return engineMetrics;
   }
@@ -690,6 +681,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         analysis,
         new QueryExecutionUtil.ColumnReferenceRewriter()::process
     );
+  }
+
+  public int reportNumberOfLeakedTopics() {
+    return transientQueryCleanupService.getNumLeakedTopics();
+  }
+
+  public int reportNumberOfLeakedStateDirs() {
+    return transientQueryCleanupService.getNumLeakedStateDirs();
   }
 
   private static final class CleanupListener implements QueryEventListener {

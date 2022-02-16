@@ -778,7 +778,9 @@ public final class KsqlRestApplication implements Executable {
             ksqlEngine,
             new JmxDataPointsReporter(
                     metricCollectors.getMetrics(),
-                    "misc-change-this",
+                    ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+                            + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+                            + "leaked_resources_metrics",
                     Duration.ofMinutes(10)),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
             );

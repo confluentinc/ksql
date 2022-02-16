@@ -17,7 +17,6 @@ package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TransientQueryCleanupService;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
@@ -58,12 +57,8 @@ public class LeakedResourcesMetrics implements Runnable {
     final Instant now = time.get();
 
     try {
-      final TransientQueryCleanupService cleanupService =
-              this.engine.getTransientQueryCleanupService();
-
-      final int numLeakedTopics = cleanupService.getNumLeakedTopics();
-      final int numLeakedStateDirs = cleanupService.getNumLeakedStateDirs();
-
+      final int numLeakedTopics = engine.reportNumberOfLeakedTopics();
+      final int numLeakedStateDirs = engine.reportNumberOfLeakedStateDirs();
       reportLeakedResources(now, numLeakedTopics, numLeakedStateDirs);
     } catch (final RuntimeException e) {
       LOGGER.error("Error collecting leaked resources metrics", e);
@@ -85,7 +80,7 @@ public class LeakedResourcesMetrics implements Runnable {
             ImmutableList.of(
                     new MetricsReporter.DataPoint(
                             now,
-                            "-leaked-topics-name-need-to-change",
+                            "leaked-topics",
                             numLeakedTopics,
                             customTags
                     )
@@ -94,12 +89,12 @@ public class LeakedResourcesMetrics implements Runnable {
   }
 
   private void reportNumLeakedStateDirs(final Instant now, final int numLeakedStateDirs) {
-    LOGGER.info("Reporting number of leaked topics: {}", numLeakedStateDirs);
+    LOGGER.info("Reporting number of leaked state files: {}", numLeakedStateDirs);
     reporter.report(
             ImmutableList.of(
                     new MetricsReporter.DataPoint(
                             now,
-                            "-leaked-STATE-DIRS-name-need-to-change",
+                            "leaked-state-files",
                             numLeakedStateDirs,
                             customTags
                     )

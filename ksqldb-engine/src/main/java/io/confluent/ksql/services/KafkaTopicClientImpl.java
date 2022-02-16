@@ -169,15 +169,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     LOG.trace("Checking for existence of topic '{}'", topic);
     try {
       ExecutorUtil.executeWithRetries(
-          () -> {
-            final DescribeTopicsResult result = adminClient.get().describeTopics(
-                ImmutableList.of(topic),
-                new DescribeTopicsOptions().includeAuthorizedOperations(true));
-            return adminClient.get().describeTopics(
+          () -> adminClient.get().describeTopics(
               ImmutableList.of(topic),
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
-          ).values().get(topic).get();
-          },
+          ).values().get(topic).get(),
           RetryBehaviour.ON_RETRYABLE.and(e -> !(e instanceof UnknownTopicOrPartitionException))
       );
       return true;

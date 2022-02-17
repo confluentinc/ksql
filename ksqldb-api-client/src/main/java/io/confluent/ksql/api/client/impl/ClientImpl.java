@@ -60,6 +60,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -555,6 +556,11 @@ public class ClientImpl implements Client {
         .exceptionHandler(cf::completeExceptionally);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
+    }
+    if (clientOptions.getRequestHeaders() != null) {
+      for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
+        request.putHeader(entry.getKey(), entry.getValue());
+      }
     }
     if (endRequest) {
       request.end(requestBody);

@@ -16,6 +16,8 @@
 package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.ClientOptions;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class ClientOptionsImpl implements ClientOptions {
@@ -36,6 +38,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private String basicAuthPassword;
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
   private int http2MultiplexingLimit = ClientOptions.DEFAULT_HTTP2_MULTIPLEXING_LIMIT;
+  private Map<String, String> requestHeaders;
 
   /**
    * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
@@ -53,7 +56,8 @@ public class ClientOptionsImpl implements ClientOptions {
       final String trustStorePath, final String trustStorePassword,
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
       final String keyAlias, final String basicAuthUsername, final String basicAuthPassword,
-      final int executeQueryMaxResultRows, final int http2MultiplexingLimit) {
+      final int executeQueryMaxResultRows, final int http2MultiplexingLimit,
+      final Map<String, String> requestHeaders) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -70,6 +74,7 @@ public class ClientOptionsImpl implements ClientOptions {
     this.basicAuthPassword = basicAuthPassword;
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
     this.http2MultiplexingLimit = http2MultiplexingLimit;
+    this.requestHeaders = requestHeaders;
   }
 
   @Override
@@ -159,6 +164,12 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public ClientOptions setRequestHeaders(final Map<String, String> requestHeaders) {
+    this.requestHeaders = requestHeaders;
+    return this;
+  }
+
+  @Override
   public String getHost() {
     return host == null ? "" : host;
   }
@@ -239,6 +250,11 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public Map<String, String> getRequestHeaders() {
+    return requestHeaders == null ? null : new HashMap<>(requestHeaders);
+  }
+
+  @Override
   public ClientOptions copy() {
     return new ClientOptionsImpl(
         host, port,
@@ -247,7 +263,8 @@ public class ClientOptionsImpl implements ClientOptions {
         trustStorePath, trustStorePassword,
         keyStorePath, keyStorePassword, keyPassword, keyAlias,
         basicAuthUsername, basicAuthPassword,
-        executeQueryMaxResultRows, http2MultiplexingLimit);
+        executeQueryMaxResultRows, http2MultiplexingLimit,
+        requestHeaders);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -275,14 +292,16 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(keyAlias, that.keyAlias)
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
         && Objects.equals(basicAuthPassword, that.basicAuthPassword)
-        && http2MultiplexingLimit == that.http2MultiplexingLimit;
+        && http2MultiplexingLimit == that.http2MultiplexingLimit
+        && Objects.equals(requestHeaders, that.requestHeaders);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
         trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias,
-        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit);
+        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows, http2MultiplexingLimit,
+        requestHeaders);
   }
 
   @Override
@@ -301,8 +320,9 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", keyAlias='" + keyAlias + '\''
         + ", basicAuthUsername='" + basicAuthUsername + '\''
         + ", basicAuthPassword='" + basicAuthPassword + '\''
-        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows + '\''
+        + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows
         + ", http2MultiplexingLimit=" + http2MultiplexingLimit
+        + ", requestHeaders='" + requestHeaders + '\''
         + '}';
   }
 }

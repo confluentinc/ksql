@@ -43,7 +43,6 @@ import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
-import io.confluent.ksql.api.client.impl.ExecuteStatementResultImpl;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
@@ -100,6 +99,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -108,6 +108,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -138,6 +141,8 @@ public class ClientTest extends BaseApiTest {
       + "SELECT' statements. ";
   protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
       org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
+
+  protected static final Map<String, String> REQUEST_HEADERS = ImmutableMap.of("h1", "v1", "h2", "v2");
 
   protected Client javaClient;
 
@@ -1761,6 +1766,31 @@ public class ClientTest extends BaseApiTest {
     assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
   }
 
+  @Test
+  public void shouldSendCustomRequestHeaders() throws Exception {
+    // Given:
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.executeStatement("CSAS;").get();
+
+    // Then:
+    final List<Entry<String, String>> requestHeaders =
+        testEndpoints.getLastApiSecurityContext().getRequestHeaders();
+    for (final Entry<String, String> header : REQUEST_HEADERS.entrySet()) {
+      assertThat(requestHeaders, hasItems(entry(header)));
+    }
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }
@@ -1768,7 +1798,8 @@ public class ClientTest extends BaseApiTest {
   protected ClientOptions createJavaClientOptions() {
     return ClientOptions.create()
         .setHost("localhost")
-        .setPort(server.getListeners().get(0).getPort());
+        .setPort(server.getListeners().get(0).getPort())
+        .setRequestHeaders(REQUEST_HEADERS);
   }
 
   private void verifyPushQueryServerState(final String sql) {
@@ -2068,5 +2099,31 @@ public class ClientTest extends BaseApiTest {
       this.sourceDescription = sourceDescription;
       this.warnings = warnings;
     }
+  }
+
+  private static Matcher<? super Entry<String, String>> entry(
+      final Entry<String, String> entry
+  ) {
+    return new TypeSafeDiagnosingMatcher<Entry<String, String>>() {
+      @Override
+      protected boolean matchesSafely(
+          final Entry<String, String> actual,
+          final Description mismatchDescription) {
+        if (!entry.getKey().equals(actual.getKey())) {
+          return false;
+        }
+        if (!entry.getValue().equals(actual.getValue())) {
+          return false;
+        }
+        return true;
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText(String.format(
+            "key: %s. value: %s",
+            entry.getKey(), entry.getValue()));
+      }
+    };
   }
 }

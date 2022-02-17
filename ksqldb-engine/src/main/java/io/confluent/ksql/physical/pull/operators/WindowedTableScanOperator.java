@@ -21,6 +21,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -73,9 +74,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       if (nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table scans should not be done with keys");
       }
-      resultIterator = mat.windowed()
-          .get(nextLocation.getPartition(), Range.all(), Range.all(), consistencyOffsetVector)
-          .getRowIterator();
+      updateIterator();
     }
   }
 
@@ -96,9 +95,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
       if (nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table scans should not be done with keys");
       }
-      resultIterator = mat.windowed()
-          .get(nextLocation.getPartition(), Range.all(), Range.all(), consistencyOffsetVector)
-          .getRowIterator();
+      updateIterator();
     }
 
     returnedRows++;
@@ -160,5 +157,11 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   @Override
   public long getReturnedRowCount() {
     return returnedRows;
+  }
+
+  private void updateIterator() {
+    final KsqlMaterializedQueryResult<WindowedRow> result = mat.windowed()
+        .get(nextLocation.getPartition(), Range.all(), Range.all());
+    resultIterator = result.getRowIterator();
   }
 }

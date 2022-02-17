@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -78,13 +79,7 @@ public class KeyedWindowedTableLookupOperator
       keyIterator = nextLocation.getKeys().get().stream().iterator();
       if (keyIterator.hasNext()) {
         nextKey = keyIterator.next();
-        final WindowBounds windowBounds = getWindowBounds(nextKey);
-        resultIterator = mat.windowed().get(
-            nextKey.getKey(),
-            nextLocation.getPartition(),
-            windowBounds.getMergedStart(),
-            windowBounds.getMergedEnd(),
-            consistencyOffsetVector).getRowIterator();
+        updateIterator(getWindowBounds(nextKey));
       }
     }
   }
@@ -106,13 +101,7 @@ public class KeyedWindowedTableLookupOperator
         keyIterator = nextLocation.getKeys().get().iterator();
       }
       nextKey = keyIterator.next();
-      final WindowBounds windowBounds = getWindowBounds(nextKey);
-      resultIterator = mat.windowed().get(
-          nextKey.getKey(),
-          nextLocation.getPartition(),
-          windowBounds.getMergedStart(),
-          windowBounds.getMergedEnd(),
-          consistencyOffsetVector).getRowIterator();
+      updateIterator(getWindowBounds(nextKey));
     }
     returnedRows++;
     final WindowedRow row = resultIterator.next();
@@ -186,5 +175,14 @@ public class KeyedWindowedTableLookupOperator
   @Override
   public long getReturnedRowCount() {
     return returnedRows;
+  }
+
+  private void updateIterator(final WindowBounds windowBounds) {
+    final KsqlMaterializedQueryResult<WindowedRow> result = mat.windowed().get(
+        nextKey.getKey(),
+        nextLocation.getPartition(),
+        windowBounds.getMergedStart(),
+        windowBounds.getMergedEnd());
+    resultIterator = result.getRowIterator();
   }
 }

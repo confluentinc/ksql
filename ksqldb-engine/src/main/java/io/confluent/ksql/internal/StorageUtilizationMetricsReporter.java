@@ -268,7 +268,7 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
 
   private String getQueryId(final KafkaMetric metric) {
     final String taskName = metric.metricName().tags().getOrDefault("task-id", "");
-    final Pattern namedTopologyPattern = Pattern.compile("(.*?)__(\\d*_\\d*)");
+    final Pattern namedTopologyPattern = Pattern.compile("(.*?)__\\d*_\\d*");
     final Matcher namedTopologyMatcher = namedTopologyPattern.matcher(taskName);
     if (namedTopologyMatcher.find()) {
       return namedTopologyMatcher.group(1);

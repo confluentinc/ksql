@@ -18,10 +18,10 @@ package io.confluent.ksql.tools.migrations.util;
 import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.createClientOptions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
+import java.util.Collections;
 import java.util.Map;
 import org.junit.Test;
 
@@ -49,7 +49,7 @@ public class MigrationsUtilTest {
     assertThat(clientOptions.getKeyAlias(), is(""));
     assertThat(clientOptions.isUseAlpn(), is(false));
     assertThat(clientOptions.isVerifyHost(), is(true));
-    assertThat(clientOptions.getRequestHeaders(), nullValue());
+    assertThat(clientOptions.getRequestHeaders(), is(Collections.emptyMap()));
   }
 
   @Test

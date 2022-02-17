@@ -166,7 +166,7 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions setRequestHeaders(final Map<String, String> requestHeaders) {
-    this.requestHeaders = ImmutableMap.copyOf(requestHeaders);
+    this.requestHeaders = requestHeaders == null ? null : ImmutableMap.copyOf(requestHeaders);
     return this;
   }
 

@@ -310,7 +310,7 @@ some of the statements will have been run on the ksqlDB server while later state
 have not.
 
 You can optionally pass custom request headers to be sent with all ksqlDB requests 
-made as part of the `apply` command. In order to do so, pass the location of a
+made as part of the `apply` command by passing the location of a
 file containing the custom request headers with the `--headers` flag:
 
 ```

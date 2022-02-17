@@ -16,17 +16,15 @@
           <name>Confluent</name>
           <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
         </repository>
-
         <!-- needed for HTML API doc generation post-release only -->
         <repository>
           <id>ksqldb-staging</id>
           <name>ksqlDB staging</name>
-          <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
+          <url>https://staging-ksqldb-maven.s3.amazonaws.com/maven/</url>
         </repository>
       </repositories>
 
       <pluginRepositories>
-
         <pluginRepository>
           <id>confluent-other</id>
           <name>Confluent Plugin Repository</name>
@@ -39,7 +37,19 @@
             <enabled>true</enabled>
           </releases>
         </pluginRepository>
-
+        <!-- needed for running benchmarks on unreleased artifacts -->
+        <pluginRepository>
+          <id>confluent-staging</id>
+          <name>Confluent Staging Plugin Repository</name>
+          <url>https://staging-ksqldb-maven.s3.amazonaws.com/maven/</url>
+          <layout>default</layout>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+        </pluginRepository>
       </pluginRepositories>
     </profile>
   </profiles>

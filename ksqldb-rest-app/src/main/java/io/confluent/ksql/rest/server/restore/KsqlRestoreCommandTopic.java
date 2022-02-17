@@ -278,6 +278,7 @@ public class KsqlRestoreCommandTopic {
         ProducerConfig.ACKS_CONFIG,
         "all"
     );
+    transactionalProperties.putAll(serverConfig.originalsWithPrefix("ksql.server.command.consumer."));
 
     return new KafkaProducer<>(
         transactionalProperties,
@@ -287,13 +288,14 @@ public class KsqlRestoreCommandTopic {
   }
 
   KsqlRestoreCommandTopic(final KsqlConfig serverConfig) {
-    this(
-        serverConfig,
-        ReservedInternalTopics.commandTopic(serverConfig),
-        ServiceContextFactory.create(serverConfig,
-            () -> /* no ksql client */ null).getTopicClient(),
-        () -> transactionalProducer(serverConfig)
-    );
+    final Map<String, Object> adminClientConfigs =
+      new HashMap<>(serverConfig.getKsqlAdminClientConfigProps());
+    adminClientConfigs.putAll(serverConfig.originalsWithPrefix("ksql.server.command.consumer."));
+    final Admin admin = new DefaultKafkaClientSupplier().getAdmin(adminClientConfigs);
+    this.serverConfig = serverConfig;
+    commandTopicName = ReservedInternalTopics.commandTopic(serverConfig);
+    topicClient = new KafkaTopicClientImpl(() -> admin);
+    kafkaProducerSupplier = () -> transactionalProducer(serverConfig);
   }
 
   @VisibleForTesting

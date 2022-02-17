@@ -275,7 +275,7 @@ public interface ClientOptions {
 
   /**
    * Returns a copy of the custom request headers to be sent with ksqlDB requests.
-   * If not set, then this method returns {@code null}.
+   * If not set, then this method returns an empty map.
    *
    * @return custom request headers
    */

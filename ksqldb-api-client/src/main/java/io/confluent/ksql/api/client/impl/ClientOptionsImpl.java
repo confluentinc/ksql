@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
 import java.util.HashMap;
 import java.util.Map;
@@ -165,7 +166,7 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public ClientOptions setRequestHeaders(final Map<String, String> requestHeaders) {
-    this.requestHeaders = requestHeaders;
+    this.requestHeaders = ImmutableMap.copyOf(requestHeaders);
     return this;
   }
 
@@ -251,7 +252,7 @@ public class ClientOptionsImpl implements ClientOptions {
 
   @Override
   public Map<String, String> getRequestHeaders() {
-    return requestHeaders == null ? null : new HashMap<>(requestHeaders);
+    return requestHeaders == null ? new HashMap<>() : new HashMap<>(requestHeaders);
   }
 
   @Override

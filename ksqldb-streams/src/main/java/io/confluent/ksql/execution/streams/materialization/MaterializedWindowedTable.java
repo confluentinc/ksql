@@ -42,7 +42,7 @@ public interface MaterializedWindowedTable {
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd
-  ){
+  ) {
     return get(key, partition, windowStart, windowEnd, Optional.empty());
   }
 
@@ -67,7 +67,7 @@ public interface MaterializedWindowedTable {
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd
-  ){
+  ) {
     return get(partition, windowStart, windowEnd, Optional.empty());
   }
 

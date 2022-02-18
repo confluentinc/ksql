@@ -68,7 +68,7 @@ public interface StreamsMaterializedTable {
   default KsMaterializedQueryResult<Row> get(
       int partition,
       GenericKey from,
-      GenericKey to){
+      GenericKey to) {
     return get(partition, from, to, Optional.empty());
   }
 

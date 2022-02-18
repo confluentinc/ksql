@@ -114,13 +114,13 @@ public class KeyedTableLookupOperatorTest {
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
-    when(materialization.nonWindowed().get(GKEY2, 2)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY2, 2, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of()));
-    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY3, 3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
-    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY4, 3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW4)));
 
 
@@ -147,13 +147,13 @@ public class KeyedTableLookupOperatorTest {
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
-    when(materialization.nonWindowed().get(GKEY2, 1)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY2, 1, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
-    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY3, 3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
-    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY4, 3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW4)));
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();
@@ -177,14 +177,10 @@ public class KeyedTableLookupOperatorTest {
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
-    when(materialization.nonWindowed().get(GKEY2, 2)).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
-    when(materialization.nonWindowed().get(1,null, GKEY3)).thenReturn(
+    when(materialization.nonWindowed().get(1,null, GKEY3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1, ROW3)));
-    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
@@ -209,13 +205,13 @@ public class KeyedTableLookupOperatorTest {
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
-    when(materialization.nonWindowed().get(1,null, GKEY2)).thenReturn(
+    when(materialization.nonWindowed().get(1,null, GKEY2, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
-    when(materialization.nonWindowed().get(3,null, GKEY3)).thenReturn(
+    when(materialization.nonWindowed().get(3,null, GKEY3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
-    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(
+    when(materialization.nonWindowed().get(GKEY4, 3, Optional.empty())).thenReturn(
         KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
 
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);

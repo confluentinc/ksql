@@ -53,6 +53,7 @@ import org.apache.commons.compress.utils.Lists;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import org.apache.kafka.streams.query.Position;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,6 +94,8 @@ public class KsqlMaterializationTest {
   private StreamsMaterializedTable innerNonWindowed;
   @Mock
   private StreamsMaterializedWindowedTable innerWindowed;
+  @Mock
+  private Position position;
 
   private KsqlMaterialization materialization;
 
@@ -166,14 +169,15 @@ public class KsqlMaterializationTest {
     when(inner.nonWindowed()).thenReturn(innerNonWindowed);
     when(inner.windowed()).thenReturn(innerWindowed);
 
-    when(innerNonWindowed.get(any(), anyInt())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(Iterators.forArray(row)));
-    when(innerNonWindowed.get(anyInt())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(Iterators.forArray(row, row2)));
-    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(Iterators.forArray(windowedRow)));
-    when(innerWindowed.get(anyInt(), any(), any())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(Iterators.forArray(windowedRow, windowedRow2)));
+    when(innerNonWindowed.get(any(), anyInt(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(Iterators.forArray(row), position));
+    when(innerNonWindowed.get(anyInt(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(Iterators.forArray(row, row2), position));
+    when(innerWindowed.get(any(), anyInt(), any(), any(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(Iterators.forArray(windowedRow), position));
+    when(innerWindowed.get(anyInt(), any(), any(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(
+            Iterators.forArray(windowedRow, windowedRow2), position));
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -246,7 +250,7 @@ public class KsqlMaterializationTest {
     table.get(aKey, partition);
 
     // Then:
-    verify(innerNonWindowed).get(aKey, partition);
+    verify(innerNonWindowed).get(aKey, partition, Optional.empty());
   }
 
   @Test
@@ -260,7 +264,7 @@ public class KsqlMaterializationTest {
     table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    verify(innerWindowed).get(aKey, partition, windowStartBounds, windowEndBounds);
+    verify(innerWindowed).get(aKey, partition, windowStartBounds, windowEndBounds, Optional.empty());
   }
 
   @Test
@@ -299,8 +303,8 @@ public class KsqlMaterializationTest {
   public void shouldReturnEmptyIfInnerNonWindowedReturnsEmpty() {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
-    when(innerNonWindowed.get(any(), anyInt())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
+    when(innerNonWindowed.get(any(), anyInt(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(Collections.emptyIterator(), Position.emptyPosition()));
     givenNoopTransforms();
 
     // When:
@@ -314,8 +318,8 @@ public class KsqlMaterializationTest {
   public void shouldReturnEmptyIfInnerWindowedReturnsEmpty() {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
-    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
+    when(innerWindowed.get(any(), anyInt(), any(), any(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(Collections.emptyIterator(), position));
     givenNoopTransforms();
 
     // When:
@@ -556,8 +560,8 @@ public class KsqlMaterializationTest {
         WindowedRow.of(schema, new Windowed<>(aKey, window3), aValue, aRowtime)
     );
 
-    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(
-        KsMaterializedQueryResult.rowIterator(rows.iterator()));
+    when(innerWindowed.get(any(), anyInt(), any(), any(), any())).thenReturn(
+        KsMaterializedQueryResult.rowIteratorWithPosition(rows.iterator(), position));
 
     // When:
     final KsqlMaterializedQueryResult<WindowedRow> result =

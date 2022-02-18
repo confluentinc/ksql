@@ -32,7 +32,7 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the value, if one is exists.
    */
-  default KsqlMaterializedQueryResult<Row> get(GenericKey key, int partition){
+  default KsqlMaterializedQueryResult<Row> get(GenericKey key, int partition) {
     return get(key, partition, Optional.empty());
   }
 
@@ -48,7 +48,7 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the rows.
    */
-  default KsqlMaterializedQueryResult<Row> get(int partition){
+  default KsqlMaterializedQueryResult<Row> get(int partition) {
     return get(partition, Optional.empty());
   }
 
@@ -67,7 +67,7 @@ public interface MaterializedTable {
       int partition,
       GenericKey from,
       GenericKey to
-  ){
+  ) {
     return get(partition, from, to, Optional.empty());
   }
 

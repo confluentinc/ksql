@@ -86,11 +86,11 @@ public class TableScanOperatorTest {
             materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
-    when(nonWindowedTable.get(1)).thenReturn(KsqlMaterializedQueryResult.rowIterator(
+    when(nonWindowedTable.get(1, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
         IteratorUtil.of(ROW1_1, ROW1_2)));
-    when(nonWindowedTable.get(2)).thenReturn(KsqlMaterializedQueryResult.rowIterator(
+    when(nonWindowedTable.get(2, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
         IteratorUtil.of()));
-    when(nonWindowedTable.get(3)).thenReturn(KsqlMaterializedQueryResult.rowIterator(
+    when(nonWindowedTable.get(3, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
         IteratorUtil.of(ROW3_1, ROW3_2)));
 
 
@@ -124,7 +124,7 @@ public class TableScanOperatorTest {
             materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
-    when(nonWindowedTable.get(1)).thenReturn(KsqlMaterializedQueryResult.rowIterator(
+    when(nonWindowedTable.get(1, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
         IteratorUtil.of(ROW1_1, ROW1_2)));
 
 

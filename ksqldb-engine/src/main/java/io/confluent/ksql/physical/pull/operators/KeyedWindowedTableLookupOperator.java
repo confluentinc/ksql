@@ -182,7 +182,8 @@ public class KeyedWindowedTableLookupOperator
         nextKey.getKey(),
         nextLocation.getPartition(),
         windowBounds.getMergedStart(),
-        windowBounds.getMergedEnd());
+        windowBounds.getMergedEnd(),
+        consistencyOffsetVector);
     resultIterator = result.getRowIterator();
   }
 }

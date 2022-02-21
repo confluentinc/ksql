@@ -161,7 +161,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
 
   private void updateIterator() {
     final KsqlMaterializedQueryResult<WindowedRow> result = mat.windowed()
-        .get(nextLocation.getPartition(), Range.all(), Range.all());
+        .get(nextLocation.getPartition(), Range.all(), Range.all(), consistencyOffsetVector);
     resultIterator = result.getRowIterator();
   }
 }

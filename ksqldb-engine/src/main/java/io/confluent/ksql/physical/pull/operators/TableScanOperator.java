@@ -160,7 +160,7 @@ public class TableScanOperator extends AbstractPhysicalOperator
 
   private void updateIterator() {
     final KsqlMaterializedQueryResult<Row> result = mat.nonWindowed()
-        .get(nextLocation.getPartition());
+        .get(nextLocation.getPartition(), consistencyOffsetVector);
     resultIterator = result.getRowIterator();
   }
 }

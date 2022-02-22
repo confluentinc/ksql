@@ -156,7 +156,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -1260,9 +1259,12 @@ public final class KsqlRestApplication implements Executable {
     return metricsOptions;
   }
 
-    private static Admin createCommandTopicAdminClient(final KsqlRestConfig ksqlRestConfig, final KsqlConfig ksqlConfig) {
+  private static Admin createCommandTopicAdminClient(
+      final KsqlRestConfig ksqlRestConfig, 
+      final KsqlConfig ksqlConfig
+  ) {
     final Map<String, Object> adminClientConfigs =
-      new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
+        new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
     adminClientConfigs.putAll(ksqlRestConfig.getCommandProducerProperties());
     return new DefaultKafkaClientSupplier()
       .getAdmin(adminClientConfigs);

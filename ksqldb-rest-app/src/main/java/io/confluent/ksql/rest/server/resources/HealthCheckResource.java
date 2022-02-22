@@ -28,13 +28,12 @@ import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.clients.admin.Admin;
-
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
+import org.apache.kafka.clients.admin.Admin;
 
 public class HealthCheckResource {
 

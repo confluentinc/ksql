@@ -24,7 +24,6 @@ import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
 import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
 import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -93,7 +92,7 @@ public class CommandStore implements CommandQueue, Closeable {
         final Duration commandQueueCatchupTimeout,
         final Map<String, Object> kafkaConsumerProperties,
         final Map<String, Object> kafkaProducerProperties,
-        final KafkaTopicClient topicClient) {
+        final KafkaTopicClient internalTopicClient) {
       kafkaConsumerProperties.put(
           ConsumerConfig.ISOLATION_LEVEL_CONFIG,
           IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT)
@@ -116,7 +115,7 @@ public class CommandStore implements CommandQueue, Closeable {
         commandTopicBackup = new CommandTopicBackupImpl(
             CommandTopicBackupUtil.backupLocation(ksqlConfig),
             commandTopicName,
-            topicClient
+            internalTopicClient
         );
       }
 

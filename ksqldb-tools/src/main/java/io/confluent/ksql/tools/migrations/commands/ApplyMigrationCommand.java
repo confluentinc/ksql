@@ -56,7 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,6 +131,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   )
   private List<String> definedVars = null;
 
+  @Option(
+      name = {"--headers"},
+      description = "Path to custom request headers file. These headers will be sent with all "
+          + "requests to the ksqlDB server as part of applying these migrations."
+  )
+  @Once
+  private String headersFile;
+
   @Override
   protected int command() {
     if (!validateConfigFilePresent()) {
@@ -157,14 +165,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   @VisibleForTesting
   int command(
       final MigrationConfig config,
-      final Function<MigrationConfig, Client> clientSupplier,
+      final BiFunction<MigrationConfig, String, Client> clientSupplier,
       final String migrationsDir,
       final Clock clock
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     final Client ksqlClient;
     try {
-      ksqlClient = clientSupplier.apply(config);
+      ksqlClient = clientSupplier.apply(config, headersFile);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -330,9 +338,11 @@ public class ApplyMigrationCommand extends BaseCommand {
     final List<String> commands = CommandParser.splitSql(migrationFileContent);
 
     executeCommands(
-        commands, ksqlClient, config, executionStart, migration, clock, previous, true);
+        commands, ksqlClient, config, executionStart,
+        migration, clock, previous, true);
     executeCommands(
-        commands, ksqlClient, config, executionStart, migration, clock, previous, false);
+        commands, ksqlClient, config, executionStart,
+        migration, clock, previous, false);
   }
 
   /**

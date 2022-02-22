@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.List;
+
 /**
  * {@code Udaf} represents a custom UDAF (User Defined Aggregate Function)
  * that can be used to perform aggregations on KSQL Streams.
@@ -35,6 +39,17 @@ package io.confluent.ksql.function.udaf;
  * @param <O> the final output type
  */
 public interface Udaf<I, A, O> {
+
+  default void setInputArgumentTypes(List<SqlArgument> argTypeList) { }
+
+  default SqlType getAggregateSqlType() {
+    return null;
+  }
+
+  default SqlType getReturnSqlType() {
+    return null;
+  }
+
   /**
    * The initializer for the Aggregation
    * @return initial value to use when aggregating

@@ -108,7 +108,9 @@ public final class UdfUtil {
 
   public static ParamType getSchemaFromType(final Type type) {
     ParamType schema;
-    if (type instanceof TypeVariable) {
+    if (type instanceof ParamType) {
+      schema = (ParamType) type;
+    } else if (type instanceof TypeVariable) {
       schema = GenericType.of(((TypeVariable) type).getName());
     } else {
       schema = JAVA_TO_ARG_TYPE.get(type);

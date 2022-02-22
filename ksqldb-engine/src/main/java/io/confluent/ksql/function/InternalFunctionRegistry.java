@@ -245,6 +245,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addUdafFunctions() {
+      // functionRegistry.addAggregateFunctionFactory(new EarliestByOffsetFactory());
 
       functionRegistry.addAggregateFunctionFactory(new CountAggFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new SumAggFunctionFactory());

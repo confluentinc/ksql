@@ -37,6 +37,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import org.apache.kafka.streams.query.FailureReason;
 import org.apache.kafka.streams.query.Position;
 import org.apache.kafka.streams.query.PositionBound;
 import org.apache.kafka.streams.query.QueryResult;
@@ -129,7 +130,7 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
         return KsMaterializedQueryResult.rowIteratorWithPosition(
             builder.build().iterator(), queryResult.getPosition());
       }
-    } catch (final MaterializationException e) {
+    } catch (final NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -194,7 +195,7 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
               .iterator(),
           queryResult.getPosition()
       );
-    } catch (final MaterializationException e) {
+    } catch (final NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -231,11 +232,14 @@ class KsMaterializedWindowTableIQv2 implements StreamsMaterializedWindowedTable 
     return start.compareTo(end) < 0 ? end : start;
   }
 
-  private MaterializationException failedQueryException(final QueryResult<?> queryResult) {
-    return new MaterializationException(
-      "Failed to get value from materialized table: "
-        + queryResult.getFailureReason() + ": "
-        + queryResult.getFailureMessage()
-    );
+  private Exception failedQueryException(final QueryResult<?> queryResult) {
+    final String message = "Failed to get value from materialized table: "
+        + queryResult.getFailureReason() + ": " + queryResult.getFailureMessage();
+
+    if (queryResult.getFailureReason().equals(FailureReason.NOT_UP_TO_BOUND)) {
+      return new NotUpToBoundException(message);
+    } else {
+      return new MaterializationException(message);
+    }
   }
 }

@@ -85,7 +85,7 @@ class KsMaterializedTableIQv2 implements StreamsMaterializedTable {
                 .iterator(),
             queryResult.getPosition());
       }
-    } catch (NotUpToBoundException | MaterializationException e) {
+    } catch (final NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -127,7 +127,7 @@ class KsMaterializedTableIQv2 implements StreamsMaterializedTable {
             queryResult.getPosition()
         );
       }
-    } catch (NotUpToBoundException | MaterializationException e) {
+    } catch (final NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to scan materialized table", e);
@@ -183,7 +183,7 @@ class KsMaterializedTableIQv2 implements StreamsMaterializedTable {
             queryResult.getPosition()
         );
       }
-    } catch (NotUpToBoundException | MaterializationException e) {
+    } catch (final NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to range scan materialized table", e);

@@ -17,9 +17,9 @@ package io.confluent.ksql.execution.streams.materialization;
 
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.Optional;
 
 /**
@@ -37,7 +37,7 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  default KsqlMaterializedQueryResult<WindowedRow> get(
+  default Iterator<WindowedRow> get(
       GenericKey key,
       int partition,
       Range<Instant> windowStart,
@@ -46,7 +46,7 @@ public interface MaterializedWindowedTable {
     return get(key, partition, windowStart, windowEnd, Optional.empty());
   }
 
-  KsqlMaterializedQueryResult<WindowedRow> get(
+  Iterator<WindowedRow> get(
       GenericKey key,
       int partition,
       Range<Instant> windowStart,
@@ -63,7 +63,7 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  default KsqlMaterializedQueryResult<WindowedRow> get(
+  default Iterator<WindowedRow> get(
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd
@@ -71,7 +71,7 @@ public interface MaterializedWindowedTable {
     return get(partition, windowStart, windowEnd, Optional.empty());
   }
 
-  KsqlMaterializedQueryResult<WindowedRow> get(
+  Iterator<WindowedRow> get(
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd,

@@ -234,7 +234,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(rowKey);
 
       final Iterator<Row> rowIterator =
-          withRetry(() -> table.get(key, PARTITION).getRowIterator());
+          withRetry(() -> table.get(key, PARTITION));
 
       
       assertThat(rowIterator.hasNext(), is(true));
@@ -245,7 +245,7 @@ public class KsMaterializationFunctionalTest {
     });
 
     final GenericKey key = genericKey("Won't find me");
-    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION).getRowIterator().hasNext()),
+    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION).hasNext()),
                is(false));
   }
 
@@ -273,7 +273,7 @@ public class KsMaterializationFunctionalTest {
     rows.forEach((rowKey, value) -> {
       final GenericKey key = genericKey(rowKey);
       final Iterator<Row> rowIterator =
-          withRetry(() -> table.get(key, PARTITION).getRowIterator());
+          withRetry(() -> table.get(key, PARTITION));
 
       
       assertThat(rowIterator.hasNext(), is(true));
@@ -285,7 +285,7 @@ public class KsMaterializationFunctionalTest {
     });
 
     final GenericKey key = genericKey("Won't find me");
-    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)).getRowIterator().hasNext(),
+    assertThat("unknown key", withRetry(() -> table.get(key, PARTITION)).hasNext(),
                is(false));
   }
 
@@ -318,7 +318,7 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.singleton(w.start()), Range.all()).getRowIterator()));
+              table.get(key, PARTITION, Range.singleton(w.start()), Range.all())));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -328,18 +328,18 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowEnd =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.all(), Range.singleton(w.end())).getRowIterator()));
+              table.get(key, PARTITION, Range.all(), Range.singleton(w.end()))));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator())));
+              Range.all()))));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all())));
       assertThat("past start", resultPast, is(empty())
       );
     });
@@ -375,7 +375,7 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.singleton(w.start()), Range.all()).getRowIterator()));
+              table.get(key, PARTITION, Range.singleton(w.start()), Range.all())));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -385,18 +385,18 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowEnd =
           withRetry(() -> Lists.newArrayList(
-              table.get(key, PARTITION, Range.all(), Range.singleton(w.end())).getRowIterator()));
+              table.get(key, PARTITION, Range.all(), Range.singleton(w.end()))));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> Lists.newArrayList(
           table.get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all())));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all())));
 
       assertThat("past start", resultPast, is(empty()));
     });
@@ -431,7 +431,7 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowStart =
           withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.singleton(w.start())
-              , Range.all()).getRowIterator()));
+              , Range.all())));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -441,17 +441,17 @@ public class KsMaterializationFunctionalTest {
 
       final List<WindowedRow> resultAtWindowEnd =
           withRetry(() -> Lists.newArrayList(table.get(
-              key, PARTITION, Range.all(), Range.singleton(w.end())).getRowIterator()));
+              key, PARTITION, Range.all(), Range.singleton(w.end()))));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all())));
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> Lists.newArrayList(table
           .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-              Range.all()).getRowIterator()));
+              Range.all())));
       assertThat("past start", resultPast, is(empty()));
     });
   }
@@ -582,7 +582,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(rowKey);
 
       final List<Row> rowList =
-          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION).getRowIterator()));
+          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION)));
       assertThat(rowList.size(), is(1));
       assertThat(rowList.get(0).schema(), is(schema));
       assertThat(rowList.get(0).key(), is(key));
@@ -618,7 +618,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(rowKey);
 
       final List<Row> rowList =
-          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION).getRowIterator()));
+          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION)));
       assertThat(rowList.size(), is(1));
       assertThat(rowList.get(0).schema(), is(schema));
       assertThat(rowList.get(0).key(), is(key));
@@ -658,7 +658,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(rowKey);
 
       final List<Row> rowList =
-          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION).getRowIterator()));
+          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION)));
       assertThat(rowList.size(), is(1));
       assertThat(rowList.get(0).schema(), is(schema));
       assertThat(rowList.get(0).key(), is(key));
@@ -670,7 +670,7 @@ public class KsMaterializationFunctionalTest {
         .forEach(e -> {
           // Rows filtered by the HAVING clause:
           final List<Row> rowList =
-              withRetry(() -> Lists.newArrayList(table.get(e.getKey(), PARTITION).getRowIterator()));
+              withRetry(() -> Lists.newArrayList(table.get(e.getKey(), PARTITION)));
           assertThat(rowList.isEmpty(), is(true));
         });
   }
@@ -683,7 +683,7 @@ public class KsMaterializationFunctionalTest {
     rows.forEach(record -> {
       final GenericKey key = genericKey(record.key().key());
       final List<WindowedRow> resultAtWindowStart =
-          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.all(), Range.all()).getRowIterator()));
+          withRetry(() -> Lists.newArrayList(table.get(key, PARTITION, Range.all(), Range.all())));
 
       assertThat("Should have fewer windows retained",
           resultAtWindowStart,

@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -178,12 +177,11 @@ public class KeyedWindowedTableLookupOperator
   }
 
   private void updateIterator(final WindowBounds windowBounds) {
-    final KsqlMaterializedQueryResult<WindowedRow> result = mat.windowed().get(
+    resultIterator = mat.windowed().get(
         nextKey.getKey(),
         nextLocation.getPartition(),
         windowBounds.getMergedStart(),
         windowBounds.getMergedEnd(),
         consistencyOffsetVector);
-    resultIterator = result.getRowIterator();
   }
 }

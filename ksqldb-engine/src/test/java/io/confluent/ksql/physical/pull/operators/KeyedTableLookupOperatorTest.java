@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
-import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint;
@@ -115,13 +114,13 @@ public class KeyedTableLookupOperatorTest {
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
+        IteratorUtil.of(ROW1));
     when(materialization.nonWindowed().get(GKEY2, 2, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of()));
+        IteratorUtil.of());
     when(materialization.nonWindowed().get(GKEY3, 3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
+        IteratorUtil.of(ROW3));
     when(materialization.nonWindowed().get(GKEY4, 3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW4)));
+        IteratorUtil.of(ROW4));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
@@ -148,13 +147,13 @@ public class KeyedTableLookupOperatorTest {
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
+        IteratorUtil.of(ROW1));
     when(materialization.nonWindowed().get(GKEY2, 1, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
+        Collections.emptyIterator());
     when(materialization.nonWindowed().get(GKEY3, 3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
+        IteratorUtil.of(ROW3));
     when(materialization.nonWindowed().get(GKEY4, 3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW4)));
+        IteratorUtil.of(ROW4));
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();
 
@@ -178,9 +177,9 @@ public class KeyedTableLookupOperatorTest {
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
+        Collections.emptyIterator());
     when(materialization.nonWindowed().get(1,null, GKEY3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1, ROW3)));
+        IteratorUtil.of(ROW1, ROW3));
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
@@ -206,13 +205,13 @@ public class KeyedTableLookupOperatorTest {
         materialization, logicalNode, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
     when(materialization.nonWindowed().get(GKEY1, 1, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
+        Collections.emptyIterator());
     when(materialization.nonWindowed().get(1,null, GKEY2, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW1)));
+        IteratorUtil.of(ROW1));
     when(materialization.nonWindowed().get(3,null, GKEY3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(IteratorUtil.of(ROW3)));
+        IteratorUtil.of(ROW3));
     when(materialization.nonWindowed().get(GKEY4, 3, Optional.empty())).thenReturn(
-        KsqlMaterializedQueryResult.rowIterator(Collections.emptyIterator()));
+        Collections.emptyIterator());
 
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();

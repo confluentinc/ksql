@@ -13,7 +13,6 @@ import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
-import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.util.IteratorUtil;
@@ -86,12 +85,12 @@ public class TableScanOperatorTest {
             materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
-    when(nonWindowedTable.get(1, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
-        IteratorUtil.of(ROW1_1, ROW1_2)));
-    when(nonWindowedTable.get(2, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
-        IteratorUtil.of()));
-    when(nonWindowedTable.get(3, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
-        IteratorUtil.of(ROW3_1, ROW3_2)));
+    when(nonWindowedTable.get(1, Optional.empty())).thenReturn(
+        IteratorUtil.of(ROW1_1, ROW1_2));
+    when(nonWindowedTable.get(2, Optional.empty())).thenReturn(
+        IteratorUtil.of());
+    when(nonWindowedTable.get(3, Optional.empty())).thenReturn(
+        IteratorUtil.of(ROW3_1, ROW3_2));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
@@ -124,8 +123,8 @@ public class TableScanOperatorTest {
             materialization, logicalNode, shouldCancelOperations, Optional.empty());
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
 
-    when(nonWindowedTable.get(1, Optional.empty())).thenReturn(KsqlMaterializedQueryResult.rowIterator(
-        IteratorUtil.of(ROW1_1, ROW1_2)));
+    when(nonWindowedTable.get(1, Optional.empty())).thenReturn(
+        IteratorUtil.of(ROW1_1, ROW1_2));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);

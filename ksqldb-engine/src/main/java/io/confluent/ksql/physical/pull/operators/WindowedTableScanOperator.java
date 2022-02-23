@@ -21,7 +21,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.streams.materialization.ks.KsqlMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -160,8 +159,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   }
 
   private void updateIterator() {
-    final KsqlMaterializedQueryResult<WindowedRow> result = mat.windowed()
+    resultIterator = mat.windowed()
         .get(nextLocation.getPartition(), Range.all(), Range.all(), consistencyOffsetVector);
-    resultIterator = result.getRowIterator();
   }
 }

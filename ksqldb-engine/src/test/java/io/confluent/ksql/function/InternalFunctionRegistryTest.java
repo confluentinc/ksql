@@ -342,7 +342,7 @@ public class InternalFunctionRegistryTest {
   @Test
   public void shouldHaveBuiltInUDAFRegistered() {
     final Collection<String> builtInUDAF = Arrays.asList(
-        "COUNT", "SUM", "MAX", "MIN", "TOPK", "TOPKDISTINCT"
+        "COUNT", "SUM", "MAX", "MIN", "TOPK", "TOPKDISTINCT", "EARLIEST_BY_OFFSET"
     );
 
     final Collection<String> names = Collections2.transform(functionRegistry.listAggregateFunctions(),

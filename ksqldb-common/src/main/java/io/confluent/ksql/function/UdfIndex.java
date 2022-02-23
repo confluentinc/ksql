@@ -208,7 +208,7 @@ public class UdfIndex<T extends FunctionSignature> {
     }
   }
 
-  private String getParamsAsString(final List<SqlArgument> paramTypes) {
+  public static String getParamsAsString(final List<SqlArgument> paramTypes) {
     return paramTypes.stream()
         .map(argument -> {
           if (argument == null) {

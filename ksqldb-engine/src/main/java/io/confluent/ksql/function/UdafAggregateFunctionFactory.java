@@ -81,6 +81,14 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       final List<SqlArgument> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
+    return buildAllParams(argTypeList, initArgs, getName());
+  }
+
+  public static List<SqlArgument> buildAllParams(
+      final List<SqlArgument> argTypeList,
+      final AggregateFunctionInitArguments initArgs,
+      final String name
+  ) {
     if (initArgs.args().isEmpty()) {
       return argTypeList;
     }
@@ -103,7 +111,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
         allParams.add(SqlArgument.of(primitiveType));
       } catch (final Exception e) {
         throw new KsqlFunctionException("Only primitive init arguments are supported by UDAF "
-            + getName() + ", but got " + arg, e);
+            + name + ", but got " + arg, e);
       }
     }
 

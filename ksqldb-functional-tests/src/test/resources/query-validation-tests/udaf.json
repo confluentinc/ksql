@@ -5,7 +5,18 @@
   ],
   "tests": [
     {
-      "name": "throw on signature mismatch",
+      "name": "throw on signature mismatch for latest_by_offset",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0, false, 2) FROM INPUT GROUP BY ID;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'LATEST_BY_OFFSET' does not accept parameters (INTEGER, BOOLEAN, INTEGER).\nValid alternatives are:"
+      }
+    },
+    {
+      "name": "throw on signature mismatch for earliest_by_offset",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false, 2) FROM INPUT GROUP BY ID;"

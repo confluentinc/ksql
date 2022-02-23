@@ -321,7 +321,7 @@ public class LatestByOffsetTest {
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(1.1d, Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_DOUBLE, 2.2d)));
+        .aggregate(1.1d, Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_DOUBLE, 2.2d)));
 
     // Then:
     assertThat(res.size(), is(1));

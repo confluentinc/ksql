@@ -34,28 +34,33 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.function.udaf.Udaf;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 
 public class EarliestByOffsetTest {
+  final private EarliestByOffsetFactory factory = new EarliestByOffsetFactory();
+  final private GenericKey key = GenericKey.builder(1).append("key").build();
 
   @Test
   public void shouldInitialize() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset
-        .earliest(STRUCT_LONG, true);
+    final KsqlAggregateFunction<Integer, Struct, Integer> udaf = earliestInteger();
 
     // When:
-    final Struct init = udaf.initialize();
+    final Struct init = udaf.getInitialValueSupplier().get();
 
     // Then:
     assertThat(init, is(nullValue()));
@@ -64,11 +69,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldInitializeN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset
-        .earliestN(STRUCT_LONG, 2, false);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(2);
 
     // When:
-    final List<Struct> init = udaf.initialize();
+    final List<Struct> init = udaf.getInitialValueSupplier().get();
 
     // Then:
     assertThat(init, is(empty()));
@@ -77,19 +81,19 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldThrowExceptionForInvalidN() {
     try {
-      EarliestByOffset.earliestN(STRUCT_LONG, -1, true);
-    } catch (KsqlException e) {
-      assertThat(e.getMessage(), is("earliestN must be 1 or greater"));
+      earliestIntegers(-1);
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("For EarliestByOffset, n must be positive.  It was -1."));
     }
   }
 
   @Test
   public void shouldComputeEarliestInteger() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final KsqlAggregateFunction<Integer, Struct, Integer> udaf = earliestInteger();
 
     // When:
-    final Struct res = udaf.aggregate(123, EarliestByOffset.createStruct(STRUCT_INTEGER, 321));
+    final Struct res = udaf.aggregate(123, KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321));
 
     // Then:
     assertThat(res.get(VAL_FIELD), is(321));
@@ -98,11 +102,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNIntegers() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(2);
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(123, Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_INTEGER, 321)));
+        .aggregate(123, Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321)));
 
     // Then:
     assertThat(res.get(0).get(VAL_FIELD), is(321));
@@ -112,7 +116,7 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldCaptureValuesUpToN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(2);
 
     // When:
     final List<Struct> res0 = udaf.aggregate(321, new ArrayList<>());
@@ -127,10 +131,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldCaptureValuesPastN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(2);
     final List<Struct> aggregate = Lists.newArrayList(
-        EarliestByOffset.createStruct(STRUCT_INTEGER, 10),
-        EarliestByOffset.createStruct(STRUCT_INTEGER, 3)
+        KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 10),
+        KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 3)
     );
 
     // When:
@@ -145,14 +149,14 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMerge() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final KsqlAggregateFunction<Integer, Struct, Integer> udaf = earliestInteger();
 
-    final Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    final Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
+    final Struct agg1 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 123);
+    final Struct agg2 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321);
 
     // When:
-    final Struct merged1 = udaf.merge(agg1, agg2);
-    final Struct merged2 = udaf.merge(agg2, agg1);
+    final Struct merged1 = udaf.getMerger().apply(key, agg1, agg2);
+    final Struct merged2 = udaf.getMerger().apply(key, agg2, agg1);
 
     // Then:
     assertThat(merged1, is(agg1));
@@ -162,17 +166,17 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeNIntegers() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
-    final Struct struct1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    final Struct struct2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
-    final Struct struct3 = EarliestByOffset.createStruct(STRUCT_INTEGER, 543);
-    final Struct struct4 = EarliestByOffset.createStruct(STRUCT_INTEGER, 654);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(2);
+    final Struct struct1 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 123);
+    final Struct struct2 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321);
+    final Struct struct3 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 543);
+    final Struct struct4 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 654);
     final List<Struct> agg1 = new ArrayList<>(Lists.newArrayList(struct1, struct4));
     final List<Struct> agg2 = new ArrayList<>(Lists.newArrayList(struct2, struct3));
 
     // When:
-    final List<Struct> merged1 = udaf.merge(agg1, agg2);
-    final List<Struct> merged2 = udaf.merge(agg2, agg1);
+    final List<Struct> merged1 = udaf.getMerger().apply(key, agg1, agg2);
+    final List<Struct> merged2 = udaf.getMerger().apply(key, agg2, agg1);
 
     // Then:
     assertThat(merged1, contains(struct1, struct2));
@@ -182,17 +186,17 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeNIntegersSmallerThanN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(5);
-    final Struct struct1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    final Struct struct2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
-    final Struct struct3 = EarliestByOffset.createStruct(STRUCT_INTEGER, 543);
-    final Struct struct4 = EarliestByOffset.createStruct(STRUCT_INTEGER, 654);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(5);
+    final Struct struct1 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 123);
+    final Struct struct2 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321);
+    final Struct struct3 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 543);
+    final Struct struct4 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 654);
     final List<Struct> agg1 = new ArrayList<>(Lists.newArrayList(struct1, struct4));
     final List<Struct> agg2 = new ArrayList<>(Lists.newArrayList(struct2, struct3));
 
     // When:
-    final List<Struct> merged1 = udaf.merge(agg1, agg2);
-    final List<Struct> merged2 = udaf.merge(agg2, agg1);
+    final List<Struct> merged1 = udaf.getMerger().apply(key, agg1, agg2);
+    final List<Struct> merged2 = udaf.getMerger().apply(key, agg2, agg1);
 
     // Then:
     assertThat(merged1, contains(struct1, struct2, struct3, struct4));
@@ -204,16 +208,16 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeWithOverflow() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final KsqlAggregateFunction<Integer, Struct, Integer> udaf = earliestInteger();
 
-    EarliestByOffset.sequence.set(Long.MAX_VALUE);
+    KudafByOffsetUtils.sequence.set(Long.MAX_VALUE);
 
-    final Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    final Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
+    final Struct agg1 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 123);
+    final Struct agg2 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321);
 
     // When:
-    final Struct merged1 = udaf.merge(agg1, agg2);
-    final Struct merged2 = udaf.merge(agg2, agg1);
+    final Struct merged1 = udaf.getMerger().apply(key, agg1, agg2);
+    final Struct merged2 = udaf.getMerger().apply(key, agg2, agg1);
 
     // Then:
     assertThat(agg1.getInt64(SEQ_FIELD), is(Long.MAX_VALUE));
@@ -225,21 +229,21 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeWithOverflowNIntegers() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> udaf = earliestIntegers(2);
 
-    EarliestByOffset.sequence.set(Long.MAX_VALUE - 1);
+    KudafByOffsetUtils.sequence.set(Long.MAX_VALUE - 1);
 
-    final Struct struct1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
-    final Struct struct2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
-    final Struct struct3 = EarliestByOffset.createStruct(STRUCT_INTEGER, 543);
-    final Struct struct4 = EarliestByOffset.createStruct(STRUCT_INTEGER, 654);
+    final Struct struct1 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 123);
+    final Struct struct2 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 321);
+    final Struct struct3 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 543);
+    final Struct struct4 = KudafByOffsetUtils.createStruct(STRUCT_INTEGER, 654);
 
     final List<Struct> agg1 = Lists.newArrayList(struct1, struct2);
     final List<Struct> agg2 = Lists.newArrayList(struct3, struct4);
 
     // When:
-    final List<Struct> merged1 = udaf.merge(agg1, agg2);
-    final List<Struct> merged2 = udaf.merge(agg2, agg1);
+    final List<Struct> merged1 = udaf.getMerger().apply(key, agg1, agg2);
+    final List<Struct> merged2 = udaf.getMerger().apply(key, agg2, agg1);
 
     // Then:
     assertThat(agg1.get(0).getInt64(SEQ_FIELD), is(Long.MAX_VALUE - 1));
@@ -251,10 +255,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestLong() {
     // Given:
-    final Udaf<Long, Struct, Long> udaf = EarliestByOffset.earliestLong();
+    final KsqlAggregateFunction<Long, Struct, Long> udaf = earliestLong();
 
     // When:
-    final Struct res = udaf.aggregate(123L, EarliestByOffset.createStruct(STRUCT_LONG, 321L));
+    final Struct res = udaf.aggregate(123L, KudafByOffsetUtils.createStruct(STRUCT_LONG, 321L));
 
     // Then:
     assertThat(res.getInt64(VAL_FIELD), is(321L));
@@ -263,11 +267,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNLongs() {
     // Given:
-    final Udaf<Long, List<Struct>, List<Long>> udaf = EarliestByOffset.earliestLongs(3);
+    final KsqlAggregateFunction<Long, List<Struct>, List<Long>> udaf = earliestLongs(3);
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(123L, Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_LONG, 321L)));
+        .aggregate(123L, Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_LONG, 321L)));
 
     List<Struct> res2 = udaf
         .aggregate(543L, res);
@@ -282,11 +286,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestDouble() {
     // Given:
-    final Udaf<Double, Struct, Double> udaf = EarliestByOffset.earliestDouble();
+    final KsqlAggregateFunction<Double, Struct, Double> udaf = earliestDouble();
 
     // When:
     final Struct res = udaf
-        .aggregate(1.1d, EarliestByOffset.createStruct(STRUCT_DOUBLE, 2.2d));
+        .aggregate(1.1d, KudafByOffsetUtils.createStruct(STRUCT_DOUBLE, 2.2d));
 
     // Then:
     assertThat(res.getFloat64(VAL_FIELD), is(2.2d));
@@ -295,25 +299,25 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNDoubles() {
     // Given:
-    final Udaf<Double, List<Struct>, List<Double>> udaf = EarliestByOffset.earliestDoubles(1);
+    final KsqlAggregateFunction<Double, List<Struct>, List<Double>> udaf = earliestDoubles(2);
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(1.1d, Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_DOUBLE, 2.2d)));
+        .aggregate(1.1d, Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_DOUBLE, 2.2d)));
 
     // Then:
-    assertThat(res.size(), is(1));
+    assertThat(res.size(), is(2));
     assertThat(res.get(0).get(VAL_FIELD), is(2.2d));
   }
 
   @Test
   public void shouldComputeEarliestBoolean() {
     // Given:
-    final Udaf<Boolean, Struct, Boolean> udaf = EarliestByOffset.earliestBoolean();
+    final KsqlAggregateFunction<Boolean, Struct, Boolean> udaf = earliestBoolean();
 
     // When:
     final Struct res = udaf
-        .aggregate(true, EarliestByOffset.createStruct(STRUCT_BOOLEAN, false));
+        .aggregate(true, KudafByOffsetUtils.createStruct(STRUCT_BOOLEAN, false));
 
     // Then:
     assertThat(res.getBoolean(VAL_FIELD), is(false));
@@ -322,11 +326,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNBooleans() {
     // Given:
-    final Udaf<Boolean, List<Struct>, List<Boolean>> udaf = EarliestByOffset.earliestBooleans(2);
+    final KsqlAggregateFunction<Boolean, List<Struct>, List<Boolean>> udaf = earliestBooleans(2);
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(true, Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_BOOLEAN, false)));
+        .aggregate(true, Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_BOOLEAN, false)));
 
     // Then:
     assertThat(res.size(), is(2));
@@ -337,10 +341,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestTimestamp() {
     // Given:
-    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliestTimestamp();
+    final KsqlAggregateFunction<Timestamp, Struct, Timestamp> udaf = earliestTimestamp();
 
     // When:
-    final Struct res = udaf.aggregate(new Timestamp(123), EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
+    final Struct res = udaf.aggregate(new Timestamp(123), KudafByOffsetUtils.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
 
     // Then:
     assertThat(res.get(VAL_FIELD), is(new Timestamp(321)));
@@ -349,13 +353,13 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNTimestamps() {
     // Given:
-    final Udaf<Timestamp, List<Struct>, List<Timestamp>> udaf = EarliestByOffset.earliestTimestamps(3);
+    final KsqlAggregateFunction<Timestamp, List<Struct>, List<Timestamp>> udaf = earliestTimestamps(3);
 
     // When:
     final List<Struct> res = udaf.aggregate(new Timestamp(123),
-        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)),
-            EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(456)),
-            EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(654))));
+        Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)),
+            KudafByOffsetUtils.createStruct(STRUCT_TIMESTAMP, new Timestamp(456)),
+            KudafByOffsetUtils.createStruct(STRUCT_TIMESTAMP, new Timestamp(654))));
 
     // Then:
     assertThat(res.size(), is(3));
@@ -367,10 +371,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestDate() {
     // Given:
-    final Udaf<Date, Struct, Date> udaf = EarliestByOffset.earliestDate();
+    final KsqlAggregateFunction<Date, Struct, Date> udaf = earliestDate();
 
     // When:
-    final Struct res = udaf.aggregate(new Date(123), EarliestByOffset.createStruct(STRUCT_DATE, new Date(321)));
+    final Struct res = udaf.aggregate(new Date(123), KudafByOffsetUtils.createStruct(STRUCT_DATE, new Date(321)));
 
     // Then:
     assertThat(res.get(VAL_FIELD), is(new Date(321)));
@@ -379,13 +383,13 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNDates() {
     // Given:
-    final Udaf<Date, List<Struct>, List<Date>> udaf = EarliestByOffset.earliestDates(3);
+    final KsqlAggregateFunction<Date, List<Struct>, List<Date>> udaf = earliestDates(3);
 
     // When:
     final List<Struct> res = udaf.aggregate(new Date(123),
-        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_DATE, new Date(321)),
-            EarliestByOffset.createStruct(STRUCT_DATE, new Date(456)),
-            EarliestByOffset.createStruct(STRUCT_DATE, new Date(654))));
+        Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_DATE, new Date(321)),
+            KudafByOffsetUtils.createStruct(STRUCT_DATE, new Date(456)),
+            KudafByOffsetUtils.createStruct(STRUCT_DATE, new Date(654))));
 
     // Then:
     assertThat(res.size(), is(3));
@@ -397,10 +401,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestTime() {
     // Given:
-    final Udaf<Time, Struct, Time> udaf = EarliestByOffset.earliestTime();
+    final KsqlAggregateFunction<Time, Struct, Time> udaf = earliestTime();
 
     // When:
-    final Struct res = udaf.aggregate(new Time(123), EarliestByOffset.createStruct(STRUCT_TIME, new Time(321)));
+    final Struct res = udaf.aggregate(new Time(123), KudafByOffsetUtils.createStruct(STRUCT_TIME, new Time(321)));
 
     // Then:
     assertThat(res.get(VAL_FIELD), is(new Time(321)));
@@ -409,13 +413,13 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNTimes() {
     // Given:
-    final Udaf<Time, List<Struct>, List<Time>> udaf = EarliestByOffset.earliestTimes(3);
+    final KsqlAggregateFunction<Time, List<Struct>, List<Time>> udaf = earliestTimes(3);
 
     // When:
     final List<Struct> res = udaf.aggregate(new Time(123),
-        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_TIME, new Time(321)),
-            EarliestByOffset.createStruct(STRUCT_TIME, new Time(456)),
-            EarliestByOffset.createStruct(STRUCT_TIME, new Time(654))));
+        Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_TIME, new Time(321)),
+            KudafByOffsetUtils.createStruct(STRUCT_TIME, new Time(456)),
+            KudafByOffsetUtils.createStruct(STRUCT_TIME, new Time(654))));
 
     // Then:
     assertThat(res.size(), is(3));
@@ -427,10 +431,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestBytes() {
     // Given:
-    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliestTimestamp();
+    final KsqlAggregateFunction<Timestamp, Struct, Timestamp> udaf = earliestTimestamp();
 
     // When:
-    final Struct res = udaf.aggregate(new Timestamp(123), EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
+    final Struct res = udaf.aggregate(new Timestamp(123), KudafByOffsetUtils.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
 
     // Then:
     assertThat(res.get(VAL_FIELD), is(new Timestamp(321)));
@@ -439,13 +443,13 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNBytes() {
     // Given:
-    final Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> udaf = EarliestByOffset.earliestBytes(3);
+    final KsqlAggregateFunction<ByteBuffer, List<Struct>, List<ByteBuffer>> udaf = earliestBytes(3);
 
     // When:
     final List<Struct> res = udaf.aggregate(ByteBuffer.wrap(new byte[] { 123 }),
-        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 1 })),
-            EarliestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 2 })),
-            EarliestByOffset.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 3 }))));
+        Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 1 })),
+            KudafByOffsetUtils.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 2 })),
+            KudafByOffsetUtils.createStruct(STRUCT_BYTES, ByteBuffer.wrap(new byte[] { 3 }))));
 
     // Then:
     assertThat(res.size(), is(3));
@@ -457,10 +461,10 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestString() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final KsqlAggregateFunction<String, Struct, String> udaf = earliestString();
 
     // When:
-    final Struct res = udaf.aggregate("foo", EarliestByOffset.createStruct(STRUCT_STRING, "bar"));
+    final Struct res = udaf.aggregate("foo", KudafByOffsetUtils.createStruct(STRUCT_STRING, "bar"));
 
     // Then:
     assertThat(res.getString(VAL_FIELD), is("bar"));
@@ -469,13 +473,13 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNStrings() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliestStrings(3);
+    final KsqlAggregateFunction<String, List<Struct>, List<String>> udaf = earliestStrings(3);
 
     // When:
     final List<Struct> res = udaf.aggregate("boo",
-        Lists.newArrayList(EarliestByOffset.createStruct(STRUCT_STRING, "foo"),
-            EarliestByOffset.createStruct(STRUCT_STRING, "bar"),
-            EarliestByOffset.createStruct(STRUCT_STRING, "baz")));
+        Lists.newArrayList(KudafByOffsetUtils.createStruct(STRUCT_STRING, "foo"),
+            KudafByOffsetUtils.createStruct(STRUCT_STRING, "bar"),
+            KudafByOffsetUtils.createStruct(STRUCT_STRING, "baz")));
 
     // Then:
     assertThat(res.size(), is(3));
@@ -487,11 +491,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldNotAcceptNullAsEarliest() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final KsqlAggregateFunction<String, Struct, String> udaf = earliestString();
 
     // When:
     final Struct res = udaf
-        .aggregate(null, udaf.initialize());
+        .aggregate(null, udaf.getInitialValueSupplier().get());
 
     // Then:
     assertThat(res, is(nullValue()));
@@ -507,11 +511,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldAcceptNullAsEarliest() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString(false);
+    final KsqlAggregateFunction<String, Struct, String> udaf = earliestString(false);
 
     // When:
     final Struct res = udaf
-        .aggregate(null, udaf.initialize());
+        .aggregate(null, udaf.getInitialValueSupplier().get());
 
     // Then:
     assertThat(res.getString(VAL_FIELD), is(nullValue()));
@@ -527,12 +531,11 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldNotAcceptNullAsEarliestN() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset
-        .earliestStrings(1);
+    final KsqlAggregateFunction<String, List<Struct>, List<String>> udaf = earliestStrings(2);
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(null, udaf.initialize());
+        .aggregate(null, udaf.getInitialValueSupplier().get());
 
     // Then:
     assertThat(res, is(empty()));
@@ -541,12 +544,12 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldAcceptNullAsEarliestN() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset
-        .earliestStrings(1, false);
+    final KsqlAggregateFunction<String, List<Struct>, List<String>> udaf = earliestStrings(2,
+        false);
 
     // When:
     final List<Struct> res = udaf
-        .aggregate(null, udaf.initialize());
+        .aggregate(null, udaf.getInitialValueSupplier().get());
 
     // Then:
     assertThat(res, hasSize(1));
@@ -556,12 +559,12 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMapInitialized() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final KsqlAggregateFunction<String, Struct, String> udaf = earliestString();
 
-    final Struct init = udaf.initialize();
+    final Struct init = udaf.getInitialValueSupplier().get();
 
     // When:
-    final String result = udaf.map(init);
+    final String result = udaf.getResultMapper().apply(init);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -570,14 +573,14 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeAndMapInitialized() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final KsqlAggregateFunction<String, Struct, String> udaf = earliestString();
 
-    final Struct init1 = udaf.initialize();
-    final Struct init2 = udaf.initialize();
+    final Struct init1 = udaf.getInitialValueSupplier().get();
+    final Struct init2 = udaf.getInitialValueSupplier().get();
 
     // When:
-    final Struct merged = udaf.merge(init1, init2);
-    final String result = udaf.map(merged);
+    final Struct merged = udaf.getMerger().apply(key, init1, init2);
+    final String result = udaf.getResultMapper().apply(merged);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -586,12 +589,12 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMapInitializedN() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliestStrings(2);
+    final KsqlAggregateFunction<String, List<Struct>, List<String>> udaf = earliestStrings(2);
 
-    final List<Struct> init = udaf.initialize();
+    final List<Struct> init = udaf.getInitialValueSupplier().get();
 
     // When:
-    final List<String> result = udaf.map(init);
+    final List<String> result = udaf.getResultMapper().apply(init);
 
     // Then:
     assertThat(result, is(empty()));
@@ -600,16 +603,132 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeAndMapInitializedN() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliestStrings(2);
+    final KsqlAggregateFunction<String, List<Struct>, List<String>> udaf = earliestStrings(2);
 
-    final List<Struct> init1 = udaf.initialize();
-    final List<Struct> init2 = udaf.initialize();
+    final List<Struct> init1 = udaf.getInitialValueSupplier().get();
+    final List<Struct> init2 = udaf.getInitialValueSupplier().get();
 
     // When:
-    final List<Struct> merged = udaf.merge(init1, init2);
-    final List<String> result = udaf.map(merged);
+    final List<Struct> merged = udaf.getMerger().apply(key, init1, init2);
+    final List<String> result = udaf.getResultMapper().apply(merged);
 
     // Then:
     assertThat(result, is(empty()));
+  }
+
+  private KsqlAggregateFunction<Boolean, Struct, Boolean> earliestBoolean() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.BOOLEAN)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Boolean, List<Struct>, List<Boolean>> earliestBooleans(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.BOOLEAN)), args);
+  }
+
+  private KsqlAggregateFunction<ByteBuffer, List<Struct>, List<ByteBuffer>> earliestBytes(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.BYTES)), args);
+  }
+
+  private KsqlAggregateFunction<Double, Struct, Double> earliestDouble() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Date, Struct, Date> earliestDate() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.DATE)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Date, List<Struct>, List<Date>> earliestDates(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.DATE)), args);
+  }
+
+  private KsqlAggregateFunction<Double, List<Struct>, List<Double>> earliestDoubles(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.DOUBLE)), args);
+  }
+
+  private KsqlAggregateFunction<Integer, Struct, Integer> earliestInteger() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Integer, List<Struct>, List<Integer>> earliestIntegers(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)), args);
+  }
+
+  private KsqlAggregateFunction<Long, Struct, Long> earliestLong() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Long, List<Struct>, List<Long>> earliestLongs(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)), args);
+  }
+
+  private KsqlAggregateFunction<String, Struct, String> earliestString() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.STRING)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<String, Struct, String> earliestString(final boolean ignoreNulls) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, ignoreNulls);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.STRING)), args);
+  }
+
+  private KsqlAggregateFunction<String, List<Struct>, List<String>> earliestStrings(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.STRING)), args);
+  }
+
+  private KsqlAggregateFunction<String, List<Struct>, List<String>> earliestStrings(int n,
+      boolean ignoreNulls) {
+    final AggregateFunctionInitArguments args =
+        new AggregateFunctionInitArguments(0, n, ignoreNulls);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.STRING)), args);
+  }
+
+  private KsqlAggregateFunction<Time, Struct, Time> earliestTime() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.TIME)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Time, List<Struct>, List<Time>> earliestTimes(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.TIME)), args);
+  }
+
+  private KsqlAggregateFunction<Timestamp, Struct, Timestamp> earliestTimestamp() {
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP)),
+        AggregateFunctionInitArguments.EMPTY_ARGS);
+  }
+
+  private KsqlAggregateFunction<Timestamp, List<Struct>, List<Timestamp>> earliestTimestamps(int n) {
+    final AggregateFunctionInitArguments args = new AggregateFunctionInitArguments(0, n);
+    return factory.createAggregateFunction(
+        Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP)), args);
   }
 }

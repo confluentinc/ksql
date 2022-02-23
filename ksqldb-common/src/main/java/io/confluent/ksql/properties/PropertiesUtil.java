@@ -166,7 +166,7 @@ public final class PropertiesUtil {
 
   public static Map<String, Object> coerceTypes(
       final Map<String, Object> streamsProperties,
-      boolean ignoreUnresolved
+      final boolean ignoreUnresolved
   ) {
     if (streamsProperties == null) {
       return Collections.emptyMap();

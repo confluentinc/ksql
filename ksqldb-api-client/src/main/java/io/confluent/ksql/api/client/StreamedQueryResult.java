@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.api.client;
 
+import org.reactivestreams.Publisher;
+
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-import org.reactivestreams.Publisher;
+import java.util.Optional;
 
 /**
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either
@@ -93,6 +94,6 @@ public interface StreamedQueryResult extends Publisher<Row> {
 
   boolean hasContinuationToken();
 
-  AtomicReference<String> getContinuationToken();
+  Optional<String> getContinuationToken();
 
 }

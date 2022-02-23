@@ -25,12 +25,14 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
@@ -41,14 +43,18 @@ public class StreamQueryResponseHandler
   private boolean paused;
   private AtomicReference<String> serializedConsistencyVector;
   private AtomicReference<String> continuationToken;
+  private String sql;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
       final AtomicReference<String> serializedCV,
-      final AtomicReference<String> continuationToken) {
+      final AtomicReference<String> continuationToken,
+      final String sql
+  ) {
     super(context, recordParser, cf);
     this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
     this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
+    this.sql = Objects.requireNonNull(sql, "sql");
   }
 
   @Override
@@ -58,7 +64,8 @@ public class StreamQueryResponseHandler
         queryResponseMetadata.queryId,
         queryResponseMetadata.columnNames,
         RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes),
-        continuationToken
+        Optional.ofNullable(continuationToken.get()),
+        sql
     );
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);

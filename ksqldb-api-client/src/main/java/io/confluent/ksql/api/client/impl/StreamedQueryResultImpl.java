@@ -24,10 +24,12 @@ import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.reactivestreams.Subscriber;
+
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-import org.reactivestreams.Subscriber;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
 
@@ -39,14 +41,16 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
-  private final AtomicReference<String> continuationToken;
+  private final Optional<String> continuationToken;
+  private final String sql;
 
   StreamedQueryResultImpl(
       final Context context,
       final String queryId,
       final List<String> columnNames,
       final List<ColumnType> columnTypes,
-      final AtomicReference<String> continuationToken
+      final Optional<String> continuationToken,
+      final String sql
   ) {
     super(context);
     this.queryId = queryId;
@@ -54,6 +58,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     this.columnTypes = ImmutableList.copyOf(columnTypes);
     this.pollableSubscriber = new PollableSubscriber(ctx, this::handleErrorWhilePolling);
     this.continuationToken = continuationToken;
+    this.sql = sql;
   }
 
   @Override
@@ -133,14 +138,21 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
 
   @Override
   public boolean hasContinuationToken() {
-    return !this.continuationToken.get().equalsIgnoreCase("");
+    return !this.continuationToken.isPresent();
   }
 
   @Override
-  public AtomicReference<String> getContinuationToken() {
+  public Optional<String> getContinuationToken() {
     return this.continuationToken;
   }
 
+  public CompletableFuture<StreamedQueryResult> retry() throws InterruptedException {
+    return ClientImpl.retry(10, sql, continuationToken);
+  }
+
+  public CompletableFuture<StreamedQueryResult> retry(final int maxRetries) throws InterruptedException {
+    return ClientImpl.retry(maxRetries, sql, continuationToken);
+  }
 
   public static Row pollWithCallback(
       final StreamedQueryResult queryResult,

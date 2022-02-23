@@ -18,6 +18,7 @@ package io.confluent.ksql.metastore;
 import static io.confluent.ksql.name.SourceName.of;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
@@ -27,6 +28,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -261,6 +263,53 @@ public class MetaStoreImplTest {
     // Then:
     assertThat(metaStore.getSource(dataSource.getName()), is(nullValue()));
     assertThat(metaStore.getSource(dataSource1.getName()), is(nullValue()));
+  }
+
+  @Test
+  public void shouldDeleteSourceIfAnotherSourceIsLinkedAndRestoreIsInProgress() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+    metaStore.putSource(dataSource1, false);
+    metaStore.addSourceReferences(dataSource1.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // When:
+    metaStore.deleteSource(dataSource.getName(), true);
+
+    // Then:
+    assertThat(metaStore.getSource(dataSource.getName()), is(nullValue()));
+    assertThat(metaStore.getSource(dataSource1.getName()), is(dataSource1));
+
+    // check that constraints are deleted, but references are not
+    assertThat(metaStore.getSourceConstraints(dataSource.getName()),
+        containsInAnyOrder(ImmutableSet.of().toArray()));
+    assertThat(metaStore.getSourceReferences(dataSource1.getName()),
+        containsInAnyOrder(ImmutableSet.of(dataSource.getName()).toArray()));
+  }
+
+  @Test
+  public void shouldAddReferentialLinkIfRestoreIsInProgress() {
+    // Given:
+    metaStore.putSource(dataSource, false);
+    metaStore.putSource(dataSource1, false);
+    metaStore.addSourceReferences(dataSource1.getName(),
+        Collections.singleton(dataSource.getName()));
+
+    // force source delete if constraint exists
+    metaStore.deleteSource(dataSource.getName(), true);
+
+    // When:
+    metaStore.putSource(dataSource, false, true);
+
+    // Then:
+    assertThat(metaStore.getSource(dataSource.getName()), is(dataSource));
+    assertThat(metaStore.getSource(dataSource1.getName()), is(dataSource1));
+
+    // check source constraints are put back, and references weren't removed
+    assertThat(metaStore.getSourceConstraints(dataSource.getName()),
+        containsInAnyOrder(ImmutableSet.of(dataSource1.getName()).toArray()));
+    assertThat(metaStore.getSourceReferences(dataSource1.getName()),
+        containsInAnyOrder(ImmutableSet.of(dataSource.getName()).toArray()));
   }
 
   @Test

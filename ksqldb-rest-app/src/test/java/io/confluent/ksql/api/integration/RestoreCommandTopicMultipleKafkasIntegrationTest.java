@@ -27,6 +27,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.BackupReplayFile;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
@@ -55,7 +56,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -100,8 +100,8 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
         .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
         .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
-        .withProperty("ksql.server.command.consumer.bootstrap.servers", INTERNAL_TEST_HARNESS.kafkaBootstrapServers())
-        .withProperty("ksql.server.command.producer.bootstrap.servers", INTERNAL_TEST_HARNESS.kafkaBootstrapServers())
+        .withProperty(KsqlRestConfig.COMMAND_CONSUMER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, INTERNAL_TEST_HARNESS.kafkaBootstrapServers())
+        .withProperty(KsqlRestConfig.COMMAND_PRODUCER_PREFIX + StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, INTERNAL_TEST_HARNESS.kafkaBootstrapServers())
         .build();
   }
 
@@ -144,6 +144,7 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
   public void shouldBackupAndRestoreCommandTopic() throws Exception {
     // Given
     TEST_HARNESS.ensureTopics("topic1", "topic2");
+    assertFalse(TEST_HARNESS.topicExists(commandTopic));
 
     makeKsqlRequest("CREATE STREAM TOPIC1 (ID INT) "
         + "WITH (KAFKA_TOPIC='topic1', VALUE_FORMAT='JSON');");
@@ -171,54 +172,15 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
     REST_APP.start();
 
     // Then
+    assertFalse(TEST_HARNESS.topicExists(commandTopic));
+    assertTrue(INTERNAL_TEST_HARNESS.topicExists(commandTopic));
     final List<String> streamsNames = showStreams();
     assertThat("Should have TOPIC1", streamsNames.contains("TOPIC1"), is(true));
     assertThat("Should have TOPIC2", streamsNames.contains("TOPIC2"), is(true));
     assertThat("Should have STREAM1", streamsNames.contains("STREAM1"), is(true));
     assertThat("Should have STREAM2", streamsNames.contains("STREAM2"), is(true));
     assertThat("Server should NOT be in degraded state", isDegradedState(), is(false));
-  }
 
-  @Test
-  public void shouldSkipIncompatibleCommands() throws Exception {
-    // Given
-    TEST_HARNESS.ensureTopics("topic3", "topic4");
-
-    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic3', VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE STREAM TOPIC4 (ID INT) "
-        + "WITH (KAFKA_TOPIC='topic4', VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3;");
-
-    final CommandId commandId = new CommandId("TOPIC", "entity", "CREATE");
-    final Command command = new Command(
-        "statement",
-        Collections.emptyMap(),
-        Collections.emptyMap(),
-        Optional.empty(),
-        Optional.of(Command.VERSION + 1),
-        Command.VERSION + 1);
-
-    writeToBackupFile(commandId, command, backupFile);
-
-    // Delete the command topic again and restore with skip flag
-    INTERNAL_TEST_HARNESS.deleteTopics(Collections.singletonList(commandTopic));
-    REST_APP.stop();
-    KsqlRestoreCommandTopic.main(
-        new String[]{
-            "--yes",
-            "-s",
-            "--config-file", propertiesFile.toString(),
-            backupFile.toString()
-        });
-
-    // Re-load the command topic
-    REST_APP.start();
-    final List<String> streamsNames = showStreams();
-    assertThat("Should have TOPIC3", streamsNames.contains("TOPIC3"), is(true));
-    assertThat("Should have TOPIC4", streamsNames.contains("TOPIC4"), is(true));
-    assertThat("Should have STREAM3", streamsNames.contains("STREAM3"), is(true));
-    assertThat("Server should not be in degraded state", isDegradedState(), is(false));
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")

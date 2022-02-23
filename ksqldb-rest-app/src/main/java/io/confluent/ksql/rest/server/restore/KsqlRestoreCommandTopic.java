@@ -288,13 +288,9 @@ public class KsqlRestoreCommandTopic {
   }
 
   KsqlRestoreCommandTopic(final KsqlConfig serverConfig) {
-    final Map<String, Object> adminClientConfigs =
-      new HashMap<>(serverConfig.getKsqlAdminClientConfigProps());
-    adminClientConfigs.putAll(serverConfig.originalsWithPrefix("ksql.server.command.consumer."));
-    final Admin admin = new DefaultKafkaClientSupplier().getAdmin(adminClientConfigs);
     this.serverConfig = serverConfig;
     this.commandTopicName = ReservedInternalTopics.commandTopic(serverConfig);
-    this.topicClient = new KafkaTopicClientImpl(() -> admin);
+    this.topicClient = new KafkaTopicClientImpl(() -> createAdminClient(serverConfig));
     this.kafkaProducerSupplier = () -> transactionalProducer(serverConfig);
   }
 
@@ -450,5 +446,12 @@ public class KsqlRestoreCommandTopic {
 
   private static boolean hasKey(final JSONObject jsonObject, final String key) {
     return jsonObject != null && jsonObject.has(key);
+  }
+  
+  private Admin createAdminClient(final KsqlConfig serverConfig) {
+    final Map<String, Object> adminClientConfigs =
+      new HashMap<>(serverConfig.getKsqlAdminClientConfigProps());
+    adminClientConfigs.putAll(serverConfig.originalsWithPrefix("ksql.server.command.consumer."));
+    return new DefaultKafkaClientSupplier().getAdmin(adminClientConfigs);
   }
 }

@@ -207,7 +207,6 @@ public class PullQueryQueue implements BlockingRowQueue {
     }
 
     if (row.getConsistencyOffsetVector().isPresent()) {
-      LOG.info("Poll consistency vector from queue " + row.getConsistencyOffsetVector());
       return new KeyValueMetadata<>(RowMetadata.of(row.getConsistencyOffsetVector().get()));
     }
     final Optional<RowMetadata> metadata = row.getSourceNode()

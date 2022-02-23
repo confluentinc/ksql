@@ -227,7 +227,7 @@ public class ConsistencyOffsetVector implements OffsetVector {
     try {
       rwLock.readLock().lock();
       other.rwLock.readLock().lock();
-      return offsetVector.equals(other.offsetVector);
+      return this.version == other.version && offsetVector.equals(other.offsetVector);
     } finally {
       rwLock.readLock().unlock();
       other.rwLock.readLock().unlock();

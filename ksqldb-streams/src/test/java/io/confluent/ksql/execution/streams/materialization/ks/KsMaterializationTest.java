@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.execution.streams.materialization.Locator;
-import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
-import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedTable;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -100,7 +100,7 @@ public class KsMaterializationTest {
     givenWindowType(Optional.empty());
 
     // When:
-    final MaterializedTable table = materialization.nonWindowed();
+    final StreamsMaterializedTable table = materialization.nonWindowed();
 
     // Then:
     assertThat(table, is(instanceOf(KsMaterializedTable.class)));
@@ -112,7 +112,7 @@ public class KsMaterializationTest {
     givenWindowType(Optional.of(WindowType.SESSION));
 
     // When:
-    final MaterializedWindowedTable table = materialization.windowed();
+    final StreamsMaterializedWindowedTable table = materialization.windowed();
 
     // Then:
     assertThat(table, is(instanceOf(KsMaterializedSessionTable.class)));
@@ -124,7 +124,7 @@ public class KsMaterializationTest {
     givenWindowType(Optional.of(WindowType.TUMBLING));
 
     // When:
-    final MaterializedWindowedTable table = materialization.windowed();
+    final StreamsMaterializedWindowedTable table = materialization.windowed();
 
     // Then:
     assertThat(table, is(instanceOf(KsMaterializedWindowTable.class)));
@@ -136,7 +136,7 @@ public class KsMaterializationTest {
     givenWindowType(Optional.of(WindowType.HOPPING));
 
     // When:
-    final MaterializedWindowedTable table = materialization.windowed();
+    final StreamsMaterializedWindowedTable table = materialization.windowed();
 
     // Then:
     assertThat(table, is(instanceOf(KsMaterializedWindowTable.class)));

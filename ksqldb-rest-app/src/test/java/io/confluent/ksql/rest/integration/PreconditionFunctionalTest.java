@@ -94,8 +94,8 @@ public class PreconditionFunctionalTest {
   private void shouldServeClusterHealthCheckRequestsWhileWaitingForPrecondition(String subPath) {
 
     // When:
-    HttpResponse<Buffer> resp = RestIntegrationTestUtil
-        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET, "/chc/" + subPath, null);
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(
+        REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET, "/chc/" + subPath, null, Optional.empty());
 
     // Then:
     assertThat(resp.statusCode(), is(OK.code()));

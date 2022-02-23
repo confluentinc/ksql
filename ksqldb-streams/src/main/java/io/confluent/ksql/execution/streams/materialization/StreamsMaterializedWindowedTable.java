@@ -17,15 +17,15 @@ package io.confluent.ksql.execution.streams.materialization;
 
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import java.time.Instant;
-import java.util.Iterator;
 import java.util.Optional;
+import org.apache.kafka.streams.query.Position;
 
 /**
- * Materialization of a table with a windowed key
+ * Materialization of a table with a non-windowed key
  */
-public interface MaterializedWindowedTable {
+public interface StreamsMaterializedWindowedTable {
 
   /**
    * Get the values in table of the supplied {@code key}, where the window start time is within the
@@ -37,7 +37,7 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  default Iterator<WindowedRow> get(
+  default KsMaterializedQueryResult<WindowedRow> get(
       GenericKey key,
       int partition,
       Range<Instant> windowStart,
@@ -46,12 +46,12 @@ public interface MaterializedWindowedTable {
     return get(key, partition, windowStart, windowEnd, Optional.empty());
   }
 
-  Iterator<WindowedRow> get(
+  KsMaterializedQueryResult<WindowedRow> get(
       GenericKey key,
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd,
-      Optional<ConsistencyOffsetVector> consistencyVector
+      Optional<Position> position
   );
 
   /**
@@ -63,7 +63,7 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  default Iterator<WindowedRow> get(
+  default KsMaterializedQueryResult<WindowedRow> get(
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd
@@ -71,10 +71,10 @@ public interface MaterializedWindowedTable {
     return get(partition, windowStart, windowEnd, Optional.empty());
   }
 
-  Iterator<WindowedRow> get(
+  KsMaterializedQueryResult<WindowedRow> get(
       int partition,
       Range<Instant> windowStart,
       Range<Instant> windowEnd,
-      Optional<ConsistencyOffsetVector> consistencyVector
+      Optional<Position> position
   );
 }

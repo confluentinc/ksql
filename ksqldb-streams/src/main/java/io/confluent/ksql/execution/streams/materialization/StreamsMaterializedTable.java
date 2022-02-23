@@ -16,14 +16,14 @@
 package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
-import java.util.Iterator;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import java.util.Optional;
+import org.apache.kafka.streams.query.Position;
 
 /**
  * Materialization of a table with a non-windowed key
  */
-public interface MaterializedTable {
+public interface StreamsMaterializedTable {
 
   /**
    * Get the value, if one exists, of the supplied {@code key}.
@@ -32,14 +32,17 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the value, if one is exists.
    */
-  default Iterator<Row> get(GenericKey key, int partition) {
+  default KsMaterializedQueryResult<Row> get(
+      GenericKey key,
+      int partition
+  ) {
     return get(key, partition, Optional.empty());
   }
 
-  Iterator<Row> get(
+  KsMaterializedQueryResult<Row> get(
       GenericKey key,
       int partition,
-      Optional<ConsistencyOffsetVector> consistencyVector
+      Optional<Position> position
   );
 
   /**
@@ -48,12 +51,11 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the rows.
    */
-  default Iterator<Row> get(int partition) {
+  default KsMaterializedQueryResult<Row> get(int partition) {
     return get(partition, Optional.empty());
   }
 
-  Iterator<Row> get(
-      int partition, Optional<ConsistencyOffsetVector> consistencyVector);
+  KsMaterializedQueryResult<Row> get(int partition, Optional<Position> position);
 
   /**
    * RangeScan the table for rows
@@ -63,18 +65,16 @@ public interface MaterializedTable {
    * @param to last key in range
    * @return the rows.
    */
-  default Iterator<Row> get(
+  default KsMaterializedQueryResult<Row> get(
       int partition,
       GenericKey from,
-      GenericKey to
-  ) {
+      GenericKey to) {
     return get(partition, from, to, Optional.empty());
   }
 
-  Iterator<Row> get(
+  KsMaterializedQueryResult<Row> get(
       int partition,
       GenericKey from,
       GenericKey to,
-      Optional<ConsistencyOffsetVector> consistencyVector
-  );
+      Optional<Position> position);
 }

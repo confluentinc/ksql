@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.KsqlServerPrecondition;
 import io.confluent.ksql.rest.server.TestKsqlRestAppWaitingOnPrecondition;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -109,8 +110,9 @@ public class PreconditionFunctionalTest {
 
     @Override
     public Optional<KsqlErrorMessage> checkPrecondition(
-        final KsqlRestConfig restConfig,
-        final ServiceContext serviceContext) {
+      final KsqlRestConfig restConfig,
+      final ServiceContext serviceContext,
+      final KafkaTopicClient topicClient) {
       return fail();
     }
 

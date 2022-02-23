@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.Optional;
 
@@ -30,6 +31,7 @@ public interface KsqlServerPrecondition {
    */
   Optional<KsqlErrorMessage> checkPrecondition(
       KsqlRestConfig config,
-      ServiceContext serviceContext
+      ServiceContext serviceContext,
+      KafkaTopicClient internalTopicClient
   );
 }

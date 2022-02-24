@@ -217,7 +217,7 @@ public class KsqlRequestTest {
 
     // When:
     final Exception e = assertThrows(
-        RuntimeException.class,
+        KsqlException.class,
         () -> request.getConfigOverrides()
     );
 

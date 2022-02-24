@@ -288,7 +288,7 @@ public class MetaStoreImplTest {
   }
 
   @Test
-  public void shouldAddReferentialLinkIfRestoreIsInProgress() {
+  public void shouldAddReferentialLinkOnPutSource() {
     // Given:
     metaStore.putSource(dataSource, false);
     metaStore.putSource(dataSource1, false);
@@ -305,7 +305,7 @@ public class MetaStoreImplTest {
     // When:
     // quickly check the dataSource does not exist, then add it again
     assertThat(metaStore.getSource(dataSource.getName()), is(nullValue()));
-    metaStore.putSource(dataSource, false, true);
+    metaStore.putSource(dataSource, false);
 
     // Then:
     assertThat(metaStore.getSource(dataSource.getName()), is(dataSource));

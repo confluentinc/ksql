@@ -92,9 +92,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void putSource(final DataSource dataSource,
-                        final boolean allowReplace,
-                        final boolean restoreInProgress) {
+  public void putSource(final DataSource dataSource, final boolean allowReplace) {
     final SourceInfo existing = dataSources.get(dataSource.getName());
     if (existing != null && !allowReplace) {
       final SourceName name = dataSource.getName();
@@ -117,22 +115,19 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
     LOG.info("Source {} created on the metastore", dataSource.getName().text());
 
-    // If this request is part of the metastore restoration process, then re-build the DROP
-    // constraints if existing sources have references to this new source. This logic makes
-    // sure that drop constraints are set back if sources where deleted during the metastore
-    // restoration (See deleteSource()).
-    if (restoreInProgress) {
-      dataSources.forEach((name, info) -> {
-        info.references.forEach(ref -> {
-          if (ref.equals(dataSource.getName())) {
-            LOG.debug("Add a drop constraint reference back to source '{}' from source '{}'",
-                dataSource.getName().text(), name.text());
+    // Re-build the DROP constraints if existing sources have references to this new source.
+    // This logic makes sure that drop constraints are set back if sources where deleted during
+    // the metastore restoration (See deleteSource()).
+    dataSources.forEach((name, info) -> {
+      info.references.forEach(ref -> {
+        if (ref.equals(dataSource.getName())) {
+          LOG.debug("Add a drop constraint reference back to source '{}' from source '{}'",
+              dataSource.getName().text(), name.text());
 
-            addConstraint(dataSource.getName(), name);
-          }
-        });
+          addConstraint(dataSource.getName(), name);
+        }
       });
-    }
+    });
   }
 
   @Override

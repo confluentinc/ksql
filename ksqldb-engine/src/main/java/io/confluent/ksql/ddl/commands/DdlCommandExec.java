@@ -115,7 +115,7 @@ public class DdlCommandExec {
           createStream.getIsSource()
       );
 
-      metaStore.putSource(ksqlStream, createStream.isOrReplace(), restoreInProgress);
+      metaStore.putSource(ksqlStream, createStream.isOrReplace());
       metaStore.addSourceReferences(ksqlStream.getName(), withQuerySources);
       return new DdlCommandResult(true, "Stream created");
     }
@@ -142,7 +142,7 @@ public class DdlCommandExec {
           getKsqlTopic(createTable),
           createTable.getIsSource()
       );
-      metaStore.putSource(ksqlTable, createTable.isOrReplace(), restoreInProgress);
+      metaStore.putSource(ksqlTable, createTable.isOrReplace());
 
       // Source tables only has a query source reference to itself. We don't need to register
       // this source for source tables.

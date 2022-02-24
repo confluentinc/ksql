@@ -183,37 +183,6 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
 
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-  @Test
-  public void shouldCleanUpLeftoverStateStores() throws InterruptedException {
-    // Given:
-    File tempDir = new File("/tmp/cat/");
-    if (!tempDir.exists()){
-      tempDir.mkdirs();
-    }
-    File fakeStateStore = new File(tempDir.getAbsolutePath() + "/fakeStateStore");
-    if (!fakeStateStore.exists()){
-      fakeStateStore.mkdirs();
-    }
-    makeKsqlRequest("CREATE STREAM new_stream (ID INT, price int) "
-            + "WITH (KAFKA_TOPIC='temp_top', partitions=3, VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE TABLE new_stream_3 AS SELECT id, sum(price) FROM new_stream group by ID;");
-    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_NEW_STREAM_3_1");
-
-    assertTrue(tempDir.exists());
-    assertTrue(fakeStateStore.exists());
-    assertTrue(realStateStore.exists());
-
-    // When:
-    REST_APP.stop();
-    REST_APP.start();
-    sleep(3000);
-
-    // Then:
-    assertFalse(fakeStateStore.exists());
-    assertTrue(realStateStore.exists());
-  }
-
   private boolean isDegradedState() {
     // If in degraded state, then the following command will return a warning
     final List<KsqlEntity> response = makeKsqlRequest(
@@ -234,20 +203,5 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
 
   private List<KsqlEntity> makeKsqlRequest(final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
-  }
-
-  private static void writeToBackupFile(
-      final CommandId commandId,
-      final Command command,
-      final Path backUpFileLocation
-  ) throws IOException {
-    BackupReplayFile.writable(new File(String.valueOf(backUpFileLocation)))
-        .write(new ConsumerRecord<>(
-            "",
-            0,
-            0L,
-            InternalTopicSerdes.serializer().serialize("", commandId),
-            InternalTopicSerdes.serializer().serialize("", command))
-        );
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -90,6 +91,7 @@ public class CommandRunner implements Closeable {
   private final Supplier<Boolean> commandTopicExists;
   private boolean commandTopicDeleted;
   private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
+  private RateLimiter rateLimiter;
 
   public enum CommandRunnerStatus {
     RUNNING,
@@ -218,6 +220,7 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(commandTopicExists, "commandTopicExists");
     this.incompatibleCommandDetected = false;
     this.commandTopicDeleted = false;
+    this.rateLimiter = RateLimiter.create(500.0);
   }
 
   /**
@@ -346,6 +349,7 @@ public class CommandRunner implements Closeable {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
+        rateLimiter.acquire();
         statementExecutor.handleStatement(queuedCommand);
         LOG.info("Executed statement: " + commandStatement);
       }

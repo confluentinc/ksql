@@ -26,7 +26,7 @@ to achieve this.
 ## What is in scope
 
 - Queries should be supported on `TABLES` with `EMIT ALL` at the end.
-- Bootstrapped subscriptions should retrieve all past data and subscribe to any further changes.
+- Bootstrapped subscriptions should retrieve all current rows in the `TABLE` and subscribe to any further changes.
 - Bootstrapped subscriptions should not terminate until the user quits them.
 - Bootstrapped subscriptions will have feature parity with push queries v2, such as filters and projections.
 
@@ -63,6 +63,10 @@ For a bootstrapped `TABLE` subscription, we will peek at the latest offset in th
 console. We will then save this offset and start the pull query, which can now take as long as needed since we have already
 saved the latest offset. Once the pull query finishes and returns the current state, we can now begin the subscription 
 and supply the saved offset as the starting subscription token to the push query in order to receive any future changes.
+
+One limitation of this design is that there is a race condition between getting the latest offsets in the ksqlDB output 
+topic and executing the pull query, since the pull query can possibly see new data. This can result in "time travel" 
+once the subscription starts since we may return older results that the pull query has already returned until we catch up.
 
 ## Test plan
 

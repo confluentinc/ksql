@@ -31,9 +31,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.vertx.core.impl.ConcurrentHashSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -45,6 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
@@ -154,10 +153,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
           // https://github.com/confluentinc/ksql/pull/6545, which makes the restoration to fail if
           // this source has another source referencing to it.
           if (restoreInProgress) {
-            LOG.warn("The following streams and/or tables read from the '{}' source: [{}].\n" +
-                "Ignoring DROP constraints when restoring the metastore. \n" +
-                    "Future CREATE statements that recreate this '{}' source may not have " +
-                    "DROP constraints if existing source references exist.",
+            LOG.warn("The following streams and/or tables read from the '{}' source: [{}].\n"
+                    + "Ignoring DROP constraints when restoring the metastore. \n"
+                    + "Future CREATE statements that recreate this '{}' source may not have "
+                    + "DROP constraints if existing source references exist.",
                 sourceName.text(), references);
 
             dropConstraints.remove(sourceName);

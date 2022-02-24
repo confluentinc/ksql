@@ -63,6 +63,7 @@
                 <exclude>io.confluent.ksql:ksqldb-functional-tests</exclude>
                 <exclude>io.confluent:common-*</exclude>
                 <exclude>com.google.guava:guava</exclude>
+                <exclude>io.netty:*</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

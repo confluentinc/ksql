@@ -203,6 +203,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       // we don't want to lose it from this runtime
       collocatedQueries.remove(queryId);
     }
+    log.info("Query {} was stopped successfully", queryId);
   }
 
   @Override
@@ -237,6 +238,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       throw new IllegalArgumentException("Cannot start because query " + queryId + " was not "
                                              + "registered to runtime " + getApplicationId());
     }
+    log.info("Query {} was started successfully", queryId);
   }
 
   @Override

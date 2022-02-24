@@ -21,6 +21,7 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,9 +72,36 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final QueryId queryId
   ) {
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    if (!kafkaStreams.getTopologyByName(
-        binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
-      kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
+    try {
+      if (!kafkaStreams.getTopologyByName(
+          binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
+        log.debug("Registering query {} for validation", queryId);
+        try {
+          kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+              .all()
+              .get();
+        } catch (final Exception e) {
+          log.error(String.format("Validation for query %s failed due to:", queryId), e);
+          throw e;
+        }
+      } else {
+        log.info("Validation for a create or replace runtime");
+        try {
+          kafkaStreams.removeNamedTopology(binpackedPersistentQueryMetadata.getQueryId().toString())
+              .all()
+              .get();
+          kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+              .all()
+              .get();
+        } catch (final Exception e) {
+          log.error(String.format("Validation for query %s failed due to:", queryId), e);
+          throw e;
+        }
+      }
+    } catch (ExecutionException | InterruptedException e) {
+      log.error(String.format(
+          "Failed to validate query %s within the allotted timeout due to",
+          queryId), e);
     }
     log.debug("mapping {}", collocatedQueries);
   }

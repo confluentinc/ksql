@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,11 +80,15 @@ public class RuntimeAssignor {
     }
     runtimesToSources.get(runtime).addAll(sources);
     idToRuntime.put(queryId, runtime);
+    log.info("Assigning query {} to runtime {}", queryId, runtime);
     return runtime;
   }
 
   public void dropQuery(final PersistentQueryMetadata queryMetadata) {
     if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
+      log.info("Unassigning query {} form runtime {}",
+          queryMetadata.getQueryId(),
+          idToRuntime.getOrDefault(queryMetadata.getQueryId(), "no runtime"));
       runtimesToSources.get(queryMetadata.getQueryApplicationId())
           .removeAll(queryMetadata.getSourceNames());
       idToRuntime.remove(queryMetadata.getQueryId());
@@ -98,6 +103,7 @@ public class RuntimeAssignor {
   }
 
   public void rebuildAssignment(final Collection<PersistentQueryMetadata> queries) {
+    final Set<QueryId> gen1Queries = new HashSet<>();
     for (PersistentQueryMetadata queryMetadata: queries) {
       if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
         if (!runtimesToSources.containsKey(queryMetadata.getQueryApplicationId())) {
@@ -106,13 +112,28 @@ public class RuntimeAssignor {
         runtimesToSources.get(queryMetadata.getQueryApplicationId())
             .addAll(queryMetadata.getSourceNames());
         idToRuntime.put(queryMetadata.getQueryId(), queryMetadata.getQueryApplicationId());
+      } else {
+        gen1Queries.add(queryMetadata.getQueryId());
       }
     }
-    log.info("The current assignment of queries to runtimes is: {}",
-        idToRuntime.entrySet()
-            .stream()
-            .map(e -> e.getKey() + "->" + e.getValue())
-            .collect(Collectors.joining(", ")));
+    if (!idToRuntime.isEmpty()) {
+      log.info("The current assignment of queries to Gen 2 runtimes is: {}",
+          idToRuntime.entrySet()
+              .stream()
+              .map(e -> e.getKey() + "->" + e.getValue())
+              .collect(Collectors.joining(", ")));
+    } else {
+      if (gen1Queries.size() == queries.size()) {
+        log.info("There are no queries assigned to Gen 2 runtimes yet.");
+      } else {
+        log.error("Gen 2 queries are not getting assigned correctly, this should not be possible");
+      }
+    }
+    if (!gen1Queries.isEmpty()) {
+      log.info("Currently there are {} queries running on the Gen 1 runtime which are: {}",
+          gen1Queries.size(),
+          gen1Queries);
+    }
   }
 
   public Map<String, Collection<SourceName>> getRuntimesToSources() {

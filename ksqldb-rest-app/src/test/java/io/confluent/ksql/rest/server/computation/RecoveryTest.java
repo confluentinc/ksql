@@ -246,7 +246,8 @@ public class RecoveryTest {
           errorHandler,
           topicClient,
           "command_topic",
-          new Metrics()
+          new Metrics(),
+          KsqlConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT
       );
 
       this.ksqlResource = new KsqlResource(

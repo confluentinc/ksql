@@ -46,6 +46,7 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Clock;
 import java.time.Duration;
@@ -166,7 +167,8 @@ public class CommandRunnerTest {
         commandDeserializer,
         errorHandler,
         commandTopicExists,
-        new Metrics()
+        new Metrics(),
+        KsqlConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT
     );
   }
 

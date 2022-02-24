@@ -36,6 +36,7 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED)
       .add(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
+      .add(KsqlConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG)
       .build();
 
   private ImmutableProperties() {

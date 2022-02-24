@@ -932,7 +932,8 @@ public final class KsqlRestApplication implements Executable {
         errorHandler,
         internalTopicClient,
         commandTopicName,
-        metricCollectors.getMetrics()
+        metricCollectors.getMetrics(),
+        ksqlConfig.getDouble("ksql.command.topic.rate.limit")
     );
   
     final KsqlResource ksqlResource = new KsqlResource(

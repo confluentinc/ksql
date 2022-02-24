@@ -150,7 +150,8 @@ public class CommandRunner implements Closeable {
       final Errors errorHandler,
       final KafkaTopicClient kafkaTopicClient,
       final String commandTopicName,
-      final Metrics metrics
+      final Metrics metrics,
+      final double rateLimit
   ) {
     this(
         statementExecutor,
@@ -171,7 +172,8 @@ public class CommandRunner implements Closeable {
         commandDeserializer,
         errorHandler,
         () -> kafkaTopicClient.isTopicExists(commandTopicName),
-        metrics
+        metrics,
+        rateLimit
     );
   }
 
@@ -193,7 +195,8 @@ public class CommandRunner implements Closeable {
       final Deserializer<Command> commandDeserializer,
       final Errors errorHandler,
       final Supplier<Boolean> commandTopicExists,
-      final Metrics metrics
+      final Metrics metrics,
+      final double rateLimit
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -220,7 +223,7 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(commandTopicExists, "commandTopicExists");
     this.incompatibleCommandDetected = false;
     this.commandTopicDeleted = false;
-    this.rateLimiter = RateLimiter.create(500.0);
+    this.rateLimiter = RateLimiter.create(rateLimit);
   }
 
   /**

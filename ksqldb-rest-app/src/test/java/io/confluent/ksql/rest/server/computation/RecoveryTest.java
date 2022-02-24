@@ -769,13 +769,14 @@ public class RecoveryTest {
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
 
-    // Original server has both streams
+    // Original server has streams 'A' and 'B' because DROP statements weren't executed, but
+    // the previous hack added them to the list of command topic statements
     assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources().size(), is(2));
     assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("A")));
     assertThat(server1.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
     assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));
 
-    // Recovered server has only stream 'B'
+    // Recovered server has stream 'B' only. It restored the previous CREATE and DROP statements
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources().size(), is(1));
     assertThat(recovered.ksqlEngine.getMetaStore().getAllDataSources(), hasKey(SourceName.of("B")));
     assertThat(recovered.ksqlEngine.getAllLiveQueries().size(), is(2));

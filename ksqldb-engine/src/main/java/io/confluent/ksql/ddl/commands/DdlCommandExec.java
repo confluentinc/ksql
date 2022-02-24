@@ -89,7 +89,7 @@ public class DdlCommandExec {
       this.sql = Objects.requireNonNull(sql, "sql");
       this.withQuery = withQuery;
       this.withQuerySources = Objects.requireNonNull(withQuerySources, "withQuerySources");
-      this.restoreInProgress = Objects.requireNonNull(restoreInProgress, "restoreInProgress");
+      this.restoreInProgress = restoreInProgress;
     }
 
     @Override

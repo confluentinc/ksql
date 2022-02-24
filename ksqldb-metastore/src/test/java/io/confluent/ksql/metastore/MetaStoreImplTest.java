@@ -292,13 +292,19 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putSource(dataSource, false);
     metaStore.putSource(dataSource1, false);
+
+    // this constraint cannot be added if none of the sources exist, so we added them first in the
+    // prevous putSource() calls
     metaStore.addSourceReferences(dataSource1.getName(),
         Collections.singleton(dataSource.getName()));
 
-    // force source delete if constraint exists
+    // now force source delete if constraint exists, which will leave dataSource1 with a stale
+    // reference to dataSource
     metaStore.deleteSource(dataSource.getName(), true);
 
     // When:
+    // quickly check the dataSource does not exist, then add it again
+    assertThat(metaStore.getSource(dataSource.getName()), is(nullValue()));
     metaStore.putSource(dataSource, false, true);
 
     // Then:

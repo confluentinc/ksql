@@ -727,7 +727,6 @@
                     <threshold>Max</threshold>
                     <failOnError>true</failOnError>
                     <includeTests>true</includeTests>
-                    <jvmArgs>-XX:+TieredCompilation -XX:TieredStopAtLevel=1</jvmArgs>
                 </configuration>
                 <executions>
                     <!--

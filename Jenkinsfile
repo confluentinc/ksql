@@ -11,6 +11,6 @@ dockerfile {
     nanoVersion = true
     maxBuildsToKeep = 99
     maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=HTML -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16"
+    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16"
 }
 

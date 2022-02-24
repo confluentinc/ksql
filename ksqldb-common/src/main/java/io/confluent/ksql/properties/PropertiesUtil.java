@@ -197,7 +197,10 @@ public final class PropertiesUtil {
 
       return PROPERTY_PARSER.parse(key, stringValue);
     } catch (final Exception e) {
-      throw new KsqlException("Failed to set '" + key + "' to '" + value + "'", e);
+      throw new KsqlException(
+          "Failed to coerce type of value '" + value + "' for key '" + key + "'",
+          e
+      );
     }
   }
 

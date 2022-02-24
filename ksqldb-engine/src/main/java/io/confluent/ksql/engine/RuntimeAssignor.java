@@ -86,9 +86,14 @@ public class RuntimeAssignor {
 
   public void dropQuery(final PersistentQueryMetadata queryMetadata) {
     if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-      log.info("Unassigning query {} form runtime {}",
-          queryMetadata.getQueryId(),
-          idToRuntime.getOrDefault(queryMetadata.getQueryId(), "no runtime"));
+      if (idToRuntime.containsKey(queryMetadata.getQueryId())) {
+        log.info("Unassigning query {} from runtime {}",
+            queryMetadata.getQueryId(),
+            idToRuntime.get(queryMetadata.getQueryId()));
+      } else {
+        log.warn("Dropping an unassigned query {}, this should"
+            + " only possible with Gen 1 queries", queryMetadata);
+      }
       runtimesToSources.get(queryMetadata.getQueryApplicationId())
           .removeAll(queryMetadata.getSourceNames());
       idToRuntime.remove(queryMetadata.getQueryId());

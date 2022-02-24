@@ -80,7 +80,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
           kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
               .all()
               .get();
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
           log.error(String.format("Validation for query %s failed due to:", queryId), e);
           throw e;
         }
@@ -93,7 +93,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
           kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
               .all()
               .get();
-        } catch (final Exception e) {
+        } catch (final Throwable e) {
           log.error(String.format("Validation for query %s failed due to:", queryId), e);
           throw e;
         }

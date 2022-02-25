@@ -116,7 +116,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
     LOG.info("Source {} created on the metastore", dataSource.getName().text());
 
     // Re-build the DROP constraints if existing sources have references to this new source.
-    // This logic makes sure that drop constraints are set back if sources where deleted during
+    // This logic makes sure that drop constraints are set back if sources were deleted during
     // the metastore restoration (See deleteSource()).
     dataSources.forEach((name, info) -> {
       info.references.forEach(ref -> {

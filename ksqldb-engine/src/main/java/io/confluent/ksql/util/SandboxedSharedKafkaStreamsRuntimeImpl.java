@@ -76,28 +76,8 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     try {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
-            .all()
-            .get();
-
-      } else {
-        log.info("Validating a CREATE OR REPLACE query {} for runtime {}",
-            queryId,
-            getApplicationId());
-        kafkaStreams.removeNamedTopology(binpackedPersistentQueryMetadata.getQueryId().toString())
-            .all()
-            .get();
-        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
-            .all()
-            .get();
+        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
       }
-    } catch (final ExecutionException e) {
-      final Throwable t = e.getCause() == null ? e : e.getCause();
-      throw new IllegalStateException(String.format(
-          "Encountered an error when trying to add query %s to runtime: %s",
-          queryId,
-          getApplicationId()),
-          t);
     } catch (final Throwable e) {
       throw new IllegalStateException(String.format(
             "Encountered an error when trying to add query %s to runtime: %s",

@@ -21,6 +21,7 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
@@ -90,6 +91,13 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
             .all()
             .get();
       }
+    } catch (final ExecutionException e) {
+      final Throwable t = e.getCause() == null ? e : e.getCause();
+      throw new IllegalStateException(String.format(
+          "Encountered an error when trying to add query %s to runtime: %s",
+          queryId,
+          getApplicationId()),
+          t);
     } catch (final Throwable e) {
       throw new IllegalStateException(String.format(
             "Encountered an error when trying to add query %s to runtime: %s",

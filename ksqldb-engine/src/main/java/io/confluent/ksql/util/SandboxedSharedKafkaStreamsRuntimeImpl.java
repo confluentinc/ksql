@@ -19,10 +19,12 @@ import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +38,14 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
         sharedRuntime.getKafkaStreamsBuilder(),
         getSandboxStreamsProperties(sharedRuntime)
     );
-
+    Collection<NamedTopology> namedTopologies = collocatedQueries.values()
+        .stream()
+        .map(BinPackedPersistentQueryMetadataImpl::getTopology)
+        .collect(Collectors.toSet());
+    if (!namedTopologies.containsAll(sharedRuntime.kafkaStreams.getAllTopologies())
+        || !sharedRuntime.kafkaStreams.getAllTopologies().containsAll(namedTopologies)) {
+      log.warn("Streams topologies and registered queries do not align");
+    }
     collocatedQueries.putAll(sharedRuntime.collocatedQueries);
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {
       kafkaStreams.addNamedTopology(query.getTopologyCopy(this));

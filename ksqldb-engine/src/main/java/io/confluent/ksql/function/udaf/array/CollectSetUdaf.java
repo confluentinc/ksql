@@ -30,7 +30,6 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.Configurable;
-import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(name = "collect_set", 
     description = "Gather all of the distinct values from an input grouping into a single Array."

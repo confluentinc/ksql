@@ -34,7 +34,7 @@ to achieve this.
 
 - Bootstrapped subscriptions will not be supported on `STREAMS`. Instead, we will throw an informative error that tells the
 user to use `SET 'auto.offset.reset'='earliest';` with a push query in order to get all past data in the `STREAM` while 
-simultaneously subscribing to any future updates. This is because unlike `TABLES` which have a current state that a pull query retrieves,
+simultaneously subscribing to any future updates. This is because unlike `TABLES` which have a materialized current state that a pull query retrieves,
 there is no current state for a `STREAM`. 
 
 ## Value/Return
@@ -67,13 +67,16 @@ and supply the saved offset as the starting subscription token to the push query
 One limitation of this design is that there is a race condition between getting the latest offsets in the ksqlDB output 
 topic and executing the pull query, since the pull query can possibly see new data. This can result in "time travel" 
 once the subscription starts since we may return older results that the pull query has already returned until we catch up.
+However, there is future work that is possible to address this limitation, such as getting the output offsets from the 
+materialized data, or from a cache which maps upstream offsets to output offsets.
 
 ## Test plan
 
 - Unit testing.
 - Integration testing in `ksqldb-rest-app` to ensure that modules are working as expected when combined.
 - Functional testing through the rest query validation tests (RQTT) to ensure that we are returning the correct results 
-from our bootstrapped subscriptions.
+from our bootstrapped subscriptions. This will require some updates to the RQTT framework in order to produce input before
+and after the query is run. 
 
 ## Documentation Updates
 

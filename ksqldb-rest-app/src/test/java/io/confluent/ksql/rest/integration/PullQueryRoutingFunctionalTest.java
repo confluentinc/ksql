@@ -114,6 +114,7 @@ public class PullQueryRoutingFunctionalTest {
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final int HEADER = 1;
+  private static final int CONSISTENCY_TOKEN_SIZE = KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT ? 1 : 0;
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TemporaryFolder TMP = KsqlTestFolder.temporaryFolder();
   private static final int BASE_TIME = 1_000_000;
@@ -322,7 +323,7 @@ public class PullQueryRoutingFunctionalTest {
         makePullQueryRequest(clusterFormation.standBy.getApp(), sql, null, USER_CREDS);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
     KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
@@ -357,7 +358,7 @@ public class PullQueryRoutingFunctionalTest {
         null, USER_CREDS);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
     KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
@@ -392,7 +393,7 @@ public class PullQueryRoutingFunctionalTest {
         null, USER_CREDS);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
     KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
@@ -429,7 +430,7 @@ public class PullQueryRoutingFunctionalTest {
         sqlMultipleKeys, null, USER_CREDS);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 2));
+    assertThat(rows_0, hasSize(HEADER + 2 + CONSISTENCY_TOKEN_SIZE));
     KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
@@ -439,6 +440,7 @@ public class PullQueryRoutingFunctionalTest {
 
     List<List<?>> values = rows_0.stream()
         .skip(HEADER)
+        .limit(rows_0.size() - HEADER - CONSISTENCY_TOKEN_SIZE)
         .map(sr -> {
           assertThat(sr.getRow(), is(not(Optional.empty())));
           return sr.getRow().get().getColumns();
@@ -508,7 +510,7 @@ public class PullQueryRoutingFunctionalTest {
         clusterFormation.router.getApp(), sql, LAG_FILTER_6, USER_CREDS);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
     KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));

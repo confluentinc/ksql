@@ -44,6 +44,7 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.UserDataProvider;
 import io.vertx.core.net.SocketAddress;
 import java.io.IOException;
@@ -97,6 +98,7 @@ public class PullQueryFunctionalTest {
   private static final Format KEY_FORMAT = FormatFactory.KAFKA;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
+  private static final int CONSISTENCY_TOKEN_SIZE = KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT ? 1 : 0;
 
   private static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
       .builder(PROPS_JAAS_REALM)
@@ -212,7 +214,7 @@ public class PullQueryFunctionalTest {
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
@@ -241,7 +243,7 @@ public class PullQueryFunctionalTest {
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
+    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
     assertThat(rows_1, is(matchersRows(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(
@@ -277,14 +279,14 @@ public class PullQueryFunctionalTest {
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 3));
+    assertThat(rows_0, hasSize(HEADER + 3 + CONSISTENCY_TOKEN_SIZE));
     assertThat(rows_1, is(matchersRowsAnyOrder(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
+    Set<String> hosts = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
-    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+    List<List<?>> rows = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(ImmutableList.of(key0, 1), ImmutableList.of(key1, 1),
@@ -317,14 +319,14 @@ public class PullQueryFunctionalTest {
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 3));
+    assertThat(rows_0, hasSize(HEADER + 3 + CONSISTENCY_TOKEN_SIZE));
     assertThat(rows_1, is(matchersRowsAnyOrder(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
+    Set<String> hosts = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts, containsInAnyOrder("localhost:8188","localhost:8189"));
-    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+    List<List<?>> rows = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(ImmutableList.of(
@@ -368,19 +370,19 @@ public class PullQueryFunctionalTest {
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 5));
+    assertThat(rows_0, hasSize(HEADER + 5 + CONSISTENCY_TOKEN_SIZE));
     assertThat(rows_1, is(matchersRowsAnyOrder(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    Set<String> hosts1 = rows_0.subList(1, rows_0.size()).stream()
+    Set<String> hosts1 = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts1, containsInAnyOrder("localhost:8188", "localhost:8189"));
-    Set<String> hosts2 = rows_0.subList(1, rows_0.size()).stream()
+    Set<String> hosts2 = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts2, containsInAnyOrder("localhost:8188", "localhost:8189"));
 
-    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+    List<List<?>> rows = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(
@@ -410,19 +412,19 @@ public class PullQueryFunctionalTest {
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 5));
+    assertThat(rows_0, hasSize(HEADER + 5 + CONSISTENCY_TOKEN_SIZE));
     assertThat(rows_1, is(matchersRowsAnyOrder(rows_0)));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    Set<String> hosts1 = rows_0.subList(1, rows_0.size()).stream()
+    Set<String> hosts1 = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts1, containsInAnyOrder("localhost:8188", "localhost:8189"));
-    Set<String> hosts2 = rows_0.subList(1, rows_0.size()).stream()
+    Set<String> hosts2 = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
     assertThat(hosts2, containsInAnyOrder("localhost:8188", "localhost:8189"));
 
-    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
+    List<List<?>> rows = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(

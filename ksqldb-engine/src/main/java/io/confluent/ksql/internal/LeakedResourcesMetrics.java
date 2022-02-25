@@ -59,7 +59,14 @@ public class LeakedResourcesMetrics implements Runnable {
     try {
       final int numLeakedTopics = engine.reportNumberOfLeakedTopics();
       final int numLeakedStateDirs = engine.reportNumberOfLeakedStateDirs();
-      reportLeakedResources(now, numLeakedTopics, numLeakedStateDirs);
+      final int numLeakedTopicsAfterCleanup = engine.reportNumLeakedTopicsAfterCleanup();
+      final int numLeakedStateDirsAfterCleanup = engine.reportNumLeakedStateDirsAfterCleanup();
+      reportLeakedResources(
+              now,
+              numLeakedTopics,
+              numLeakedStateDirs,
+              numLeakedTopicsAfterCleanup,
+              numLeakedStateDirsAfterCleanup);
     } catch (final RuntimeException e) {
       LOGGER.error("Error collecting leaked resources metrics", e);
       throw e;
@@ -69,13 +76,18 @@ public class LeakedResourcesMetrics implements Runnable {
   private void reportLeakedResources(
           final Instant now,
           final int numLeakedTopics,
-          final int numLeakedStateDirs) {
+          final int numLeakedStateDirs,
+          final int numLeakedTopicsAfterCleanup,
+          final int numLeakedStateDirsAfterCleanup) {
     reportNumLeakedTopics(now, numLeakedTopics);
     reportNumLeakedStateDirs(now, numLeakedStateDirs);
+    reportNumLeakedTopicsAfterCleanup(now, numLeakedTopicsAfterCleanup);
+    reportNumLeakedStateDirsAfterCleanup(now, numLeakedStateDirsAfterCleanup);
   }
 
   private void reportNumLeakedTopics(final Instant now, final int numLeakedTopics) {
     LOGGER.info("Reporting number of leaked topics: {}", numLeakedTopics);
+
     reporter.report(
             ImmutableList.of(
                     new MetricsReporter.DataPoint(
@@ -90,12 +102,51 @@ public class LeakedResourcesMetrics implements Runnable {
 
   private void reportNumLeakedStateDirs(final Instant now, final int numLeakedStateDirs) {
     LOGGER.info("Reporting number of leaked state files: {}", numLeakedStateDirs);
+
     reporter.report(
             ImmutableList.of(
                     new MetricsReporter.DataPoint(
                             now,
                             "leaked-state-files",
                             numLeakedStateDirs,
+                            customTags
+                    )
+            )
+    );
+  }
+
+  private void reportNumLeakedTopicsAfterCleanup(
+          final Instant now,
+          final int numLeakedTopicsAfterCleanup) {
+    LOGGER.info(
+            "Reporting number of leaked topics after cleanup: {}",
+            numLeakedTopicsAfterCleanup);
+
+    reporter.report(
+            ImmutableList.of(
+                    new MetricsReporter.DataPoint(
+                            now,
+                            "leaked-topics-after-cleanup",
+                            numLeakedTopicsAfterCleanup,
+                            customTags
+                    )
+            )
+    );
+  }
+
+  private void reportNumLeakedStateDirsAfterCleanup(
+          final Instant now,
+          final int numLeakedStateDirsAfterCleanup) {
+    LOGGER.info(
+            "Reporting number of leaked state directories after cleanup: {}",
+            numLeakedStateDirsAfterCleanup);
+
+    reporter.report(
+            ImmutableList.of(
+                    new MetricsReporter.DataPoint(
+                            now,
+                            "leaked-state-dirs-after-cleanup",
+                            numLeakedStateDirsAfterCleanup,
                             customTags
                     )
             )

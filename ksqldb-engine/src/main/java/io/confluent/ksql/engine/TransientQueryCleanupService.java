@@ -54,11 +54,9 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   private Optional<Set<String>> localCommandsQueryAppIds;
   private QueryRegistry queryRegistry;
   private int numLeakedTopics;
-  private int numLeakedStateFiles;
-  private int numLeakedTopicsBeforeServerStart;
-  private int numLeakedStateFilesBeforeServerStart;
+  private int numLeakedStateDirs;
   private int numLeakedTopicsFailedToCleanUp;
-  private int numLeakedStateFilesFailedToCleanUp;
+  private int numLeakedStateDirsFailedToCleanUp;
 
   public TransientQueryCleanupService(final ServiceContext serviceContext,
                                       final KsqlConfig ksqlConfig) {
@@ -84,32 +82,13 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
     this.localCommandsQueryAppIds = Optional.empty();
     this.queriesGuaranteedToBeRunningAtSomePoint = new HashSet<>();
     this.numLeakedTopics = 0;
-    this.numLeakedStateFiles = 0;
+    this.numLeakedStateDirs = 0;
   }
 
   @Override
   protected void runOneIteration() {
-    try {
-      final List<String> leakedTopics = findLeakedTopics();
-      this.numLeakedTopics = leakedTopics.size();
-      LOG.info("Cleaning up {} leaked topics: {}", numLeakedTopics, leakedTopics);
-      getTopicClient().deleteTopics(leakedTopics);
-    } catch (Throwable t) {
-      LOG.error(
-          "Failed to clean up topics with exception: " + t.getMessage(), t);
-    }
-    try {
-      final List<String> leakedStateDirs = findLeakedStateDirs();
-      this.numLeakedStateFiles = leakedStateDirs.size();
-      LOG.info("Cleaning up {} leaked state directories: {}",
-          numLeakedStateFiles,
-          leakedStateDirs.stream().map(file -> stateDir + "/" + file)
-                  .collect(Collectors.toList()));
-      leakedStateDirs.forEach(this::deleteLeakedStateDir);
-    } catch (Throwable t) {
-      LOG.error(
-          "Failed to clean up state directories with exception: " + t.getMessage(), t);
-    }
+    findAndDeleteLeakedTopics();
+    findAndDeleteLeakedStateDirs();
   }
 
   @Override
@@ -124,6 +103,35 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public void setLocalCommandsQueryAppIds(final Set<String> ids) {
     this.localCommandsQueryAppIds = Optional.of(ids);
+  }
+
+  private void findAndDeleteLeakedTopics() {
+    try {
+      final List<String> leakedTopics = findLeakedTopics();
+      this.numLeakedTopics = leakedTopics.size();
+      LOG.info("Cleaning up {} leaked topics: {}", numLeakedTopics, leakedTopics);
+      getTopicClient().deleteTopics(leakedTopics);
+      this.numLeakedTopicsFailedToCleanUp = findLeakedTopics().size();
+    } catch (Throwable t) {
+      LOG.error(
+              "Failed to clean up topics with exception: " + t.getMessage(), t);
+    }
+  }
+
+  private void findAndDeleteLeakedStateDirs() {
+    try {
+      final List<String> leakedStateDirs = findLeakedStateDirs();
+      this.numLeakedStateDirs = leakedStateDirs.size();
+      LOG.info("Cleaning up {} leaked state directories: {}",
+              numLeakedStateDirs,
+              leakedStateDirs.stream().map(file -> stateDir + "/" + file)
+                      .collect(Collectors.toList()));
+      leakedStateDirs.forEach(this::deleteLeakedStateDir);
+      this.numLeakedStateDirsFailedToCleanUp = findLeakedStateDirs().size();
+    } catch (Throwable t) {
+      LOG.error(
+              "Failed to clean up state directories with exception: " + t.getMessage(), t);
+    }
   }
 
   private void deleteLeakedStateDir(final String filename) {
@@ -213,10 +221,18 @@ public class TransientQueryCleanupService extends AbstractScheduledService {
   }
 
   public int getNumLeakedTopics() {
-    return 0;
+    return numLeakedTopics;
   }
 
   public int getNumLeakedStateDirs() {
-    return 0;
+    return numLeakedStateDirs;
+  }
+
+  public int getNumLeakedTopicsFailedToCleanUp() {
+    return  numLeakedTopicsFailedToCleanUp;
+  }
+
+  public int getNumLeakedStateDirsFailedToCleanUp() {
+    return numLeakedStateDirsFailedToCleanUp;
   }
 }

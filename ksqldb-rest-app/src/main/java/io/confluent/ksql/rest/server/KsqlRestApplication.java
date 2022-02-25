@@ -758,21 +758,29 @@ public final class KsqlRestApplication implements Executable {
         Collections.emptyList(),
         metricCollectors
     );
-    
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
-        ksqlEngine,
-        new JmxDataPointsReporter(
-            metricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
-        Duration.ofMinutes(5),
-        Duration.ofSeconds(30),
-        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+            ksqlEngine,
+            new JmxDataPointsReporter(
+                    metricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
+            Duration.ofMinutes(5),
+            Duration.ofSeconds(30),
+            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
+
     executorService.scheduleAtFixedRate(
         saturation,
         0,
         Duration.ofMinutes(1).toMillis(),
         TimeUnit.MILLISECONDS
     );
+
+    final int transientQueryCleanupServicePeriod =
+            ksqlConfig.getInt(
+                    KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS);
+
+    final int transientQueryCleanupServiceInitialDelay =
+            ksqlConfig.getInt(
+                    KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
 
     final LeakedResourcesMetrics leaked = new LeakedResourcesMetrics(
             ksqlEngine,
@@ -781,15 +789,16 @@ public final class KsqlRestApplication implements Executable {
                     ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
                             + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
                             + "leaked_resources_metrics",
-                    Duration.ofMinutes(10)),
+                    Duration.ofSeconds(transientQueryCleanupServicePeriod)),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
             );
 
     leakedResourcesReporter.scheduleAtFixedRate(
             leaked,
-            0,
-            10,
-            TimeUnit.MINUTES
+            transientQueryCleanupServiceInitialDelay
+                    + transientQueryCleanupServicePeriod / 2,
+            transientQueryCleanupServicePeriod,
+            TimeUnit.SECONDS
     );
 
     UserFunctionLoader.newInstance(

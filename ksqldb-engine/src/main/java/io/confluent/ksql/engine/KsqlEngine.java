@@ -691,6 +691,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return transientQueryCleanupService.getNumLeakedStateDirs();
   }
 
+  public int reportNumLeakedTopicsAfterCleanup() {
+    return transientQueryCleanupService.getNumLeakedTopicsFailedToCleanUp();
+  }
+
+  public int reportNumLeakedStateDirsAfterCleanup() {
+    return transientQueryCleanupService.getNumLeakedStateDirsFailedToCleanUp();
+  }
+
   private static final class CleanupListener implements QueryEventListener {
     final QueryCleanupService cleanupService;
     final ServiceContext serviceContext;

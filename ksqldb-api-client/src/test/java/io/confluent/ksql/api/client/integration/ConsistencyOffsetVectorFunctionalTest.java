@@ -53,6 +53,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
@@ -152,18 +153,23 @@ public class ConsistencyOffsetVectorFunctionalTest {
   }
 
   private Vertx vertx;
-  private Client client;
+  private Client consistencClient;
+  private Client eventualClient;
 
   @Before
   public void setUp() {
     vertx = Vertx.vertx();
-    client = createClient();
+    consistencClient = createClient(true);
+    eventualClient = createClient(false);
   }
 
   @After
   public void tearDown() {
-    if (client != null) {
-      client.close();
+    if (consistencClient != null) {
+      consistencClient.close();
+    }
+    if (eventualClient != null) {
+      eventualClient.close();
     }
     if (vertx != null) {
       vertx.close();
@@ -174,8 +180,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(
-        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)).get();
+    final StreamedQueryResult streamedQueryResult = consistencClient.streamQuery(PULL_QUERY_ON_TABLE).get();
 
     // Then
     shouldReceiveRows(
@@ -186,52 +191,49 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(notNullValue()));
-    final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
+    assertThat(((ClientImpl) consistencClient).getSerializedConsistencyVector(), is(notNullValue()));
+    final String serializedCV = ((ClientImpl) consistencClient).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
 
   @Test
   public void shouldRoundTripCVWhenPullQueryOnTableSync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(
-        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)).get();
+    final StreamedQueryResult streamedQueryResult = consistencClient.streamQuery(PULL_QUERY_ON_TABLE).get();
     streamedQueryResult.poll();
 
     // Then
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
+    assertThatEventually(() -> ((ClientImpl) consistencClient).getSerializedConsistencyVector(),
                          is(notNullValue()));
-    final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
+    final String serializedCV = ((ClientImpl) consistencClient).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
 
   @Test
   public void shouldRoundTripCVWhenExecutePullQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(
-        PULL_QUERY_ON_TABLE, ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true));
+    final BatchedQueryResult batchedQueryResult = consistencClient.executeQuery(PULL_QUERY_ON_TABLE);
     final List<Row> rows = batchedQueryResult.get();
 
     // Then
     assertThat(rows, hasSize(1));
     assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
-    assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
+    assertThatEventually(() -> ((ClientImpl) consistencClient).getSerializedConsistencyVector(),
                           is(notNullValue()));
-    final String serializedCV = ((ClientImpl)client).getSerializedConsistencyVector();
+    final String serializedCV = ((ClientImpl) consistencClient).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
   }
 
   @Test(timeout = 120000L)
   public void shouldRoundTripCVWhenPullQueryHttp1() throws Exception {
     // Given
-    final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    final ImmutableMap<String, Object> requestProperties =
-        ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+    final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient(
+        Optional.empty(), ConsistencyLevel.MONOTONIC_READS);
 
     // When
     final RestResponse<StreamPublisher<StreamedRow>> response =
-        ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L, null, requestProperties);
+        ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L, null, null);
     final List<StreamedRow> rows = getElementsFromPublisher(4, response.getResponse());
 
     // Then
@@ -244,8 +246,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   @Test
   public void shouldNotRoundTripCVWhenPullQueryOnTableAsync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(
-        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false)).get();
+    final StreamedQueryResult streamedQueryResult = eventualClient.streamQuery(PULL_QUERY_ON_TABLE).get();
 
     // Then
     shouldReceiveRows(
@@ -256,38 +257,36 @@ public class ConsistencyOffsetVectorFunctionalTest {
     );
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
+    assertThat(((ClientImpl) eventualClient).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
   @Test
   public void shouldNotRoundTripCVWhenPullQueryOnTableSync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(
-        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false)).get();
+    final StreamedQueryResult streamedQueryResult = eventualClient.streamQuery(PULL_QUERY_ON_TABLE).get();
     streamedQueryResult.poll();
 
     // Then
     assertThatEventually(streamedQueryResult::isComplete, is(true));
-    assertThatEventually(() -> ((ClientImpl)client).getSerializedConsistencyVector(),
+    assertThatEventually(() -> ((ClientImpl) eventualClient).getSerializedConsistencyVector(),
                          is(isEmptyString()));
   }
 
   @Test
   public void shouldNotRoundTripCVWhenExecutePullQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(
-        PULL_QUERY_ON_TABLE,  ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false));
+    final BatchedQueryResult batchedQueryResult = eventualClient.executeQuery(PULL_QUERY_ON_TABLE);
     batchedQueryResult.get();
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
-    assertThat(((ClientImpl)client).getSerializedConsistencyVector(), is(isEmptyString()));
+    assertThat(((ClientImpl) eventualClient).getSerializedConsistencyVector(), is(isEmptyString()));
   }
 
   @Test(timeout = 120000L)
   public void shouldNotRoundTripCVHttp1() throws Exception {
-    final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient();
-    ksqlRestClient.setProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, false);
+    final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient(
+        Optional.empty(), ConsistencyLevel.EVENTUAL);
 
     final RestResponse<StreamPublisher<StreamedRow>> response =
         ksqlRestClient.makeQueryRequestStreamed(PULL_QUERY_ON_TABLE, 1L);
@@ -300,10 +299,12 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
 
 
-  private Client createClient() {
+  private Client createClient(final boolean withConsistency) {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
         .setPort(REST_APP.getListeners().get(0).getPort());
+    if (withConsistency)
+        clientOptions.setConsistencyLevel(ConsistencyLevel.MONOTONIC_READS);
     return Client.create(clientOptions, vertx);
   }
 

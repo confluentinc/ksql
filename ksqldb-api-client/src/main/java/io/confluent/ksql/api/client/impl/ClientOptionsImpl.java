@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client.impl;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -40,6 +41,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
   private int http2MultiplexingLimit = ClientOptions.DEFAULT_HTTP2_MULTIPLEXING_LIMIT;
   private Map<String, String> requestHeaders;
+  private ConsistencyLevel consistencyLevel;
 
   /**
    * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this
@@ -58,7 +60,8 @@ public class ClientOptionsImpl implements ClientOptions {
       final String keyStorePath, final String keyStorePassword, final String keyPassword,
       final String keyAlias, final String basicAuthUsername, final String basicAuthPassword,
       final int executeQueryMaxResultRows, final int http2MultiplexingLimit,
-      final Map<String, String> requestHeaders) {
+      final Map<String, String> requestHeaders,
+      final ConsistencyLevel consistencyLevel) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
     this.useTls = useTls;
@@ -76,6 +79,7 @@ public class ClientOptionsImpl implements ClientOptions {
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
     this.http2MultiplexingLimit = http2MultiplexingLimit;
     this.requestHeaders = requestHeaders;
+    this.consistencyLevel = consistencyLevel;
   }
 
   @Override
@@ -167,6 +171,12 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setRequestHeaders(final Map<String, String> requestHeaders) {
     this.requestHeaders = requestHeaders == null ? null : ImmutableMap.copyOf(requestHeaders);
+    return this;
+  }
+
+  @Override
+  public ClientOptions setConsistencyLevel(final ConsistencyLevel consistencyLevel) {
+    this.consistencyLevel = consistencyLevel;
     return this;
   }
 
@@ -265,7 +275,13 @@ public class ClientOptionsImpl implements ClientOptions {
         keyStorePath, keyStorePassword, keyPassword, keyAlias,
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows, http2MultiplexingLimit,
-        requestHeaders);
+        requestHeaders,
+        consistencyLevel);
+  }
+
+  @Override
+  public ConsistencyLevel getConsistencyLevel() {
+    return consistencyLevel;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

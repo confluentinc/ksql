@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.util.Map;
 
 /**
@@ -162,6 +163,14 @@ public interface ClientOptions {
   ClientOptions setRequestHeaders(Map<String, String> requestHeaders);
 
   /**
+   * Sets the consistency level to be used for Pull queries.
+   * @param consistencyLevel custom consistency level
+   * @return a reference to this
+   */
+  ClientOptions setConsistencyLevel(ConsistencyLevel consistencyLevel);
+
+
+  /**
    * Returns the host name of the ksqlDB server to connect to.
    *
    * @return host name
@@ -287,6 +296,12 @@ public interface ClientOptions {
    * @return the copy
    */
   ClientOptions copy();
+
+  /**
+   * Returns the consistency level this client uses for Pull queries.
+   * @return consistency level
+   */
+  ConsistencyLevel getConsistencyLevel();
 
   static ClientOptions create() {
     return new ClientOptionsImpl();

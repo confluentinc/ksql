@@ -36,7 +36,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
@@ -129,7 +129,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(properties)) {
+    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_READS) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
@@ -151,7 +151,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(properties)) {
+    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_READS) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());

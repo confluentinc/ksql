@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.api.client;
 
-import org.reactivestreams.Publisher;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import org.reactivestreams.Publisher;
 
 /**
  * The result of a query (push or pull), streamed one row at time. Records may be consumed by either

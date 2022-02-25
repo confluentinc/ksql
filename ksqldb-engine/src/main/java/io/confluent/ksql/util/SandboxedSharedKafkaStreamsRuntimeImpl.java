@@ -21,7 +21,7 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,39 +71,41 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
+    log.info("Registering query {} for validation for runtime {}", queryId, getApplicationId());
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     try {
-      if (!kafkaStreams.getTopologyByName(
-          binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
-        log.debug("Registering query {} for validation", queryId);
-        try {
-          kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
-              .all()
-              .get();
-        } catch (final Throwable e) {
-          log.error(String.format("Validation for query %s failed due to:", queryId), e);
-          throw e;
-        }
+      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+            .all()
+            .get();
+
       } else {
-        log.info("Validation for a create or replace runtime");
-        try {
-          kafkaStreams.removeNamedTopology(binpackedPersistentQueryMetadata.getQueryId().toString())
-              .all()
-              .get();
-          kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
-              .all()
-              .get();
-        } catch (final Throwable e) {
-          log.error(String.format("Validation for query %s failed due to:", queryId), e);
-          throw e;
-        }
+        log.info("Validating a CREATE OR REPLACE query {} for runtime {}",
+            queryId,
+            getApplicationId());
+        kafkaStreams.removeNamedTopology(binpackedPersistentQueryMetadata.getQueryId().toString())
+            .all()
+            .get();
+        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+            .all()
+            .get();
       }
-    } catch (ExecutionException | InterruptedException e) {
-      log.error(String.format(
-          "Failed to validate query %s within the allotted timeout due to",
-          queryId), e);
+    } catch (final Throwable e) {
+      throw new IllegalStateException(String.format(
+            "Encountered an error when trying to add query %s to runtime: %s",
+            queryId,
+            getApplicationId()),
+          e);
     }
-    log.debug("mapping {}", collocatedQueries);
+    log.info("Registered query: {}  in {} \n"
+            + "Runtime {} is executing these queries: {}",
+        queryId,
+        getApplicationId(),
+        getApplicationId(),
+        collocatedQueries.keySet()
+            .stream()
+            .map(QueryId::toString)
+            .collect(Collectors.joining(", ")));
   }
 
   @Override

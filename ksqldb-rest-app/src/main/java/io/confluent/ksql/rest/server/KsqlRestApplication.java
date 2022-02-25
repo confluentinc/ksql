@@ -33,7 +33,6 @@ import io.confluent.ksql.api.impl.MonitoredEndpoints;
 import io.confluent.ksql.api.server.Server;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.api.spi.Endpoints;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -50,8 +49,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
@@ -108,10 +105,11 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ConnectClientFactory;
 import io.confluent.ksql.services.DefaultConnectClientFactory;
 import io.confluent.ksql.services.KafkaClusterUtil;
+import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -139,6 +137,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -156,8 +155,10 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -209,6 +210,7 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics;
   private final Optional<LocalCommands> localCommands;
+  private KafkaTopicClient internalTopicClient;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -248,7 +250,9 @@ public final class KsqlRestApplication implements Executable {
       final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics,
       final Optional<LocalCommands> localCommands,
       final QueryExecutor queryExecutor,
-      final MetricCollectors metricCollectors
+      final MetricCollectors metricCollectors,
+      final KafkaTopicClient internalTopicClient,
+      final Admin internalAdmin
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -293,7 +297,8 @@ public final class KsqlRestApplication implements Executable {
         serviceContext,
         this.restConfig,
         this.ksqlConfigNoPort,
-        this.commandRunner);
+        this.commandRunner,
+        internalAdmin);
     metricCollectors.addConfigurableReporter(ksqlConfigNoPort);
     this.pullQueryMetrics = requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.scalablePushQueryMetrics =
@@ -301,6 +306,7 @@ public final class KsqlRestApplication implements Executable {
     log.debug("ksqlDB API server instance created");
     this.localCommands = requireNonNull(localCommands, "localCommands");
     this.queryExecutor = requireNonNull(queryExecutor, "queryExecutor");
+    this.internalTopicClient = requireNonNull(internalTopicClient, "internalTopicClient");
   }
 
   @Override
@@ -413,7 +419,8 @@ public final class KsqlRestApplication implements Executable {
     for (final KsqlServerPrecondition precondition : preconditions) {
       final Optional<KsqlErrorMessage> error = precondition.checkPrecondition(
           restConfig,
-          serviceContext
+          serviceContext,
+          internalTopicClient
       );
       if (error.isPresent()) {
         serverState.setInitializingReason(error.get());
@@ -768,6 +775,9 @@ public final class KsqlRestApplication implements Executable {
 
     final String commandTopicName = ReservedInternalTopics.commandTopic(ksqlConfig);
 
+    final Admin internalAdmin = createCommandTopicAdminClient(restConfig, ksqlConfig);
+    final KafkaTopicClient internalTopicClient = new KafkaTopicClientImpl(() -> internalAdmin);
+
     final CommandStore commandStore = CommandStore.Factory.create(
         ksqlConfig,
         commandTopicName,
@@ -776,7 +786,7 @@ public final class KsqlRestApplication implements Executable {
             restConfig.getCommandConsumerProperties()),
         ksqlConfig.addConfluentMetricsContextConfigsKafka(
             restConfig.getCommandProducerProperties()),
-        serviceContext
+        internalTopicClient
     );
 
     final InteractiveStatementExecutor statementExecutor =
@@ -920,7 +930,7 @@ public final class KsqlRestApplication implements Executable {
         metricsPrefix,
         InternalTopicSerdes.deserializer(Command.class),
         errorHandler,
-        serviceContext.getTopicClient(),
+        internalTopicClient,
         commandTopicName,
         metricCollectors.getMetrics()
     );
@@ -977,7 +987,9 @@ public final class KsqlRestApplication implements Executable {
         scalablePushQueryMetrics,
         localCommands,
         queryExecutor,
-        metricCollectors
+        metricCollectors,
+        internalTopicClient,
+        internalAdmin
     );
   }
 
@@ -1059,7 +1071,7 @@ public final class KsqlRestApplication implements Executable {
 
     if (CommandTopicBackupUtil.commandTopicMissingWithValidBackup(
         commandTopic,
-        serviceContext.getTopicClient(),
+        internalTopicClient,
         ksqlConfigNoPort)) {
       log.warn("Command topic is not found and it is not in sync with backup. "
           + "Use backup to recover the command topic.");
@@ -1069,21 +1081,7 @@ public final class KsqlRestApplication implements Executable {
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,
         ksqlConfigNoPort,
-        serviceContext.getTopicClient()
-    );
-
-    final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
-        + " (STATEMENT STRING)"
-        + " WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', KAFKA_TOPIC='" + commandTopic + "');";
-
-    final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
-    final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-    ksqlEngine.execute(
-        serviceContext,
-        ConfiguredStatement.of(
-            prepared,
-            SessionConfig.of(ksqlConfigNoPort, ImmutableMap.of())
-        )
+        internalTopicClient
     );
   }
 
@@ -1259,5 +1257,16 @@ public final class KsqlRestApplication implements Executable {
       metricsOptions.addMonitoredHttpServerUri(match);
     }
     return metricsOptions;
+  }
+
+  private static Admin createCommandTopicAdminClient(
+      final KsqlRestConfig ksqlRestConfig, 
+      final KsqlConfig ksqlConfig
+  ) {
+    final Map<String, Object> adminClientConfigs =
+        new HashMap<>(ksqlConfig.getKsqlAdminClientConfigProps());
+    adminClientConfigs.putAll(ksqlRestConfig.getCommandProducerProperties());
+    return new DefaultKafkaClientSupplier()
+      .getAdmin(adminClientConfigs);
   }
 }

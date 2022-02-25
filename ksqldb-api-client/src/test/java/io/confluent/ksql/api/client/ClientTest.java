@@ -397,7 +397,7 @@ public class ClientTest extends BaseApiTest {
     // Then
     assertThatEventually(subscriber::getError, is(notNullValue()));
     assertThat(subscriber.getError(), instanceOf(KsqlException.class));
-    assertThat(subscriber.getError().getMessage(), containsString("Error in processing query. Check server logs for details."));
+    assertThat(subscriber.getError().getMessage(), containsString("java.lang.RuntimeException: Failure in processing"));
 
     assertThatEventually(streamedQueryResult::isFailed, is(true));
     assertThat(streamedQueryResult.isComplete(), is(false));

@@ -343,11 +343,14 @@ public class KsMaterializedWindowTableIQv2Test {
   public void shouldCloseIterator_fetchAll() {
     // When:
     final StateQueryResult partitionResult = new StateQueryResult();
-    partitionResult.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    queryResult.setPosition(POSITION);
+    partitionResult.addResult(PARTITION, queryResult);
     when(kafkaStreams.query(any())).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(false);
 
-    Streams.stream((table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).getRowIterator()))
+    Streams.stream((table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+            .getRowIterator()))
         .collect(Collectors.toList());
 
     // Then:
@@ -375,7 +378,9 @@ public class KsMaterializedWindowTableIQv2Test {
   public void shouldReturnEmptyIfKeyNotPresent_fetchAll() {
     // When:
     final StateQueryResult partitionResult = new StateQueryResult();
-    partitionResult.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    queryResult.setPosition(POSITION);
+    partitionResult.addResult(PARTITION, queryResult);
     when(kafkaStreams.query(any())).thenReturn(partitionResult);
     when(keyValueIterator.hasNext()).thenReturn(false);
 
@@ -772,7 +777,9 @@ public class KsMaterializedWindowTableIQv2Test {
   public void shouldSupportRangeAll_fetchAll() {
     // When:
     final StateQueryResult partitionResult = new StateQueryResult();
-    partitionResult.addResult(PARTITION, QueryResult.forResult(keyValueIterator));
+    final QueryResult queryResult = QueryResult.forResult(keyValueIterator);
+    queryResult.setPosition(POSITION);
+    partitionResult.addResult(PARTITION, queryResult);
     when(kafkaStreams.query(any())).thenReturn(partitionResult);
 
     table.get(PARTITION, Range.all(), Range.all());

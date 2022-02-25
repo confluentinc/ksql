@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
 import io.confluent.ksql.physical.common.QueryRowImpl;
 import io.confluent.ksql.physical.common.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.common.operators.UnaryPhysicalOperator;
@@ -34,7 +33,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.streams.query.Position;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +78,7 @@ public class KeyedWindowedTableLookupOperator
       keyIterator = nextLocation.getKeys().get().stream().iterator();
       if (keyIterator.hasNext()) {
         nextKey = keyIterator.next();
-        updateIteratorAndPosition(getWindowBounds(nextKey));
+        updateIterator(getWindowBounds(nextKey));
       }
     }
   }
@@ -102,7 +100,7 @@ public class KeyedWindowedTableLookupOperator
         keyIterator = nextLocation.getKeys().get().iterator();
       }
       nextKey = keyIterator.next();
-      updateIteratorAndPosition(getWindowBounds(nextKey));
+      updateIterator(getWindowBounds(nextKey));
     }
     returnedRows++;
     final WindowedRow row = resultIterator.next();
@@ -178,16 +176,12 @@ public class KeyedWindowedTableLookupOperator
     return returnedRows;
   }
 
-  private void updateIteratorAndPosition(final WindowBounds windowBounds) {
-    final KsMaterializedQueryResult<WindowedRow> result = mat.windowed().get(
+  private void updateIterator(final WindowBounds windowBounds) {
+    resultIterator = mat.windowed().get(
         nextKey.getKey(),
         nextLocation.getPartition(),
         windowBounds.getMergedStart(),
-        windowBounds.getMergedEnd());
-    resultIterator = result.getRowIterator();
-    final Optional<Position> position = result.getPosition();
-    if (position.isPresent() && consistencyOffsetVector.isPresent()) {
-      consistencyOffsetVector.get().updateFromPosition(position.get());
-    }
+        windowBounds.getMergedEnd(),
+        consistencyOffsetVector);
   }
 }

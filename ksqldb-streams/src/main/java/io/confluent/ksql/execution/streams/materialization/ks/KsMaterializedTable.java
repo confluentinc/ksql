@@ -22,9 +22,12 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedTable;
 import io.confluent.ksql.util.IteratorUtil;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Optional;
+import org.apache.kafka.streams.query.Position;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
@@ -33,7 +36,7 @@ import org.apache.kafka.streams.state.ValueAndTimestamp;
 /**
  * Kafka Streams impl of {@link MaterializedTable}.
  */
-class KsMaterializedTable implements MaterializedTable {
+class KsMaterializedTable implements StreamsMaterializedTable {
 
   private final KsStateStore stateStore;
 
@@ -44,7 +47,8 @@ class KsMaterializedTable implements MaterializedTable {
   @Override
   public KsMaterializedQueryResult<Row> get(
       final GenericKey key,
-      final int partition
+      final int partition,
+      final Optional<Position> position
   ) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
@@ -63,7 +67,10 @@ class KsMaterializedTable implements MaterializedTable {
   }
 
   @Override
-  public KsMaterializedQueryResult<Row> get(final int partition) {
+  public KsMaterializedQueryResult<Row> get(
+      final int partition,
+      final Optional<Position> position
+  ) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
@@ -82,7 +89,11 @@ class KsMaterializedTable implements MaterializedTable {
 
   @Override
   public KsMaterializedQueryResult<Row> get(
-      final int partition, final GenericKey from, final GenericKey to) {
+      final int partition,
+      final GenericKey from,
+      final GenericKey to,
+      final Optional<Position> position
+  ) {
     try {
       final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);

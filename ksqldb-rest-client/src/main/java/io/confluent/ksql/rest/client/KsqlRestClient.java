@@ -269,14 +269,7 @@ public final class KsqlRestClient implements Closeable {
       final Map<String, ?> requestProperties
   ) {
     KsqlTarget target = target();
-    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
-      final String serializedCV = serializedConsistencyVector.get();
-      // KsqlRequest:serializeClassValues throws NPE for null value
-      requestPropertiesToSend.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedCV == null ? "" : serializedCV);
-    }
+    final Map<String, Object> requestPropertiesToSend = setConsistencyVector(requestProperties);
     if (properties != null) {
       target = target.properties(properties);
     }
@@ -312,14 +305,7 @@ public final class KsqlRestClient implements Closeable {
     if (properties != null) {
       target = target.properties(properties);
     }
-    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
-      final String serializedCV = serializedConsistencyVector.get();
-      // KsqlRequest:serializeClassValues throws NPE for null value
-      requestPropertiesToSend.put(
-          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          serializedCV == null ? "" : serializedCV);
-    }
+    final Map<String, Object> requestPropertiesToSend = setConsistencyVector(requestProperties);
     return target.postQueryRequest(
         ksql, requestPropertiesToSend, Optional.ofNullable(commandSeqNum));
   }
@@ -399,5 +385,19 @@ public final class KsqlRestClient implements Closeable {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);
     }
+  }
+
+  private Map<String, Object> setConsistencyVector(
+      final Map<String, ?> requestProperties
+  ) {
+    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
+    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
+      final String serializedCV = serializedConsistencyVector.get();
+      // KsqlRequest:serializeClassValues throws NPE for null value
+      requestPropertiesToSend.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
+          serializedCV == null ? "" : serializedCV);
+    }
+    return requestPropertiesToSend;
   }
 }

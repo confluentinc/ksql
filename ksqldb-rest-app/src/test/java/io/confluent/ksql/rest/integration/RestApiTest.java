@@ -22,6 +22,7 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 import static io.vertx.core.http.HttpVersion.HTTP_2;
@@ -35,6 +36,7 @@ import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -73,6 +75,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -113,10 +116,10 @@ import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-  @Category({IntegrationTest.class})
+@Category({IntegrationTest.class})
 public class RestApiTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RestApiTest.class);
 
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
   private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.
@@ -141,6 +144,21 @@ public class RestApiTest {
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final String AN_AGG_KEY = "USER_1";
+
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
+      new ConsistencyOffsetVector(0, ImmutableMap.of(
+          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", ImmutableMap.of(0, 6L)));
+
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BEFORE =
+      new ConsistencyOffsetVector(0, ImmutableMap.of(
+          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition",
+          ImmutableMap.of(0, 4L)));
+
+  private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_AFTER =
+        new ConsistencyOffsetVector(0, ImmutableMap.of(
+            "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition",
+            ImmutableMap.of(0, 7L)));
+
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
@@ -470,7 +488,7 @@ public class RestApiTest {
 
     HttpResponse<Buffer> resp = RestIntegrationTestUtil
         .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET,
-            "/", null);
+            "/", null, Optional.empty());
 
     // Then
     assertThat(resp.statusCode(), is(HttpStatus.SC_TEMPORARY_REDIRECT));
@@ -527,7 +545,7 @@ public class RestApiTest {
 
     final String response = RestIntegrationTestUtil.rawRestRequest(REST_APP, HTTP_1_1, POST,
             "/query", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
-            Optional.empty())
+            Optional.empty(), Optional.empty())
         .body()
         .toString();
 
@@ -641,7 +659,7 @@ public class RestApiTest {
           }
           String[] parts = str.split("\n");
           messages.addAll(Arrays.asList(parts));
-        });
+        }, Optional.empty());
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
@@ -702,7 +720,7 @@ public class RestApiTest {
               Arrays.stream(parts)
                   .filter(part -> !(part.equals(",") || part.equals("]")))
                   .collect(Collectors.toList()));
-        });
+        }, Optional.empty());
 
     // Wait to get the metadata so we know we've started.
     start.acquire();
@@ -864,7 +882,8 @@ public class RestApiTest {
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-          MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON
+          );
       return Arrays.asList(response.split(System.lineSeparator()));
     };
 
@@ -879,7 +898,100 @@ public class RestApiTest {
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
-  @Test
+    @Test
+    public void shouldExecutePullQueryOverRestWithNoBound() {
+      // Given:
+      final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
+      final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
+          .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
+          .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
+      final Map<String, Object> requestProperties = builder.build();
+      final Supplier<List<String>> call = () -> {
+        final String response = rawRestQueryRequest(
+            "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+            MediaType.APPLICATION_JSON,
+            Collections.emptyMap(),
+            requestProperties
+            );
+        return Arrays.asList(response.split(System.lineSeparator()));
+      };
+
+      // When:
+      final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
+
+      // Then:
+      assertThat(messages, hasSize(HEADER + 2));
+      assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+      assertThat(messages.get(0),
+                 endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+      assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
+      assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                         + "\"" + serializedCV + "\"}}]"));
+      verifyConsistencyVector(messages.get(2), CONSISTENCY_OFFSET_VECTOR);
+    }
+
+    @Test
+    public void shouldExecutePullQueryOverRestWithBound() {
+      // Given:
+      final String clientCV = CONSISTENCY_OFFSET_VECTOR_BEFORE.serialize();
+      final String serverCV = CONSISTENCY_OFFSET_VECTOR.serialize();
+      final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
+          .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
+          .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, clientCV);
+      final Map<String, Object> requestProperties = builder.build();
+      final Supplier<List<String>> call = () -> {
+        final String response = rawRestQueryRequest(
+            "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+            MediaType.APPLICATION_JSON,
+            Collections.emptyMap(),
+            requestProperties
+        );
+        return Arrays.asList(response.split(System.lineSeparator()));
+      };
+
+
+      // When:
+      final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
+
+      // Then:
+      assertThat(messages, hasSize(HEADER + 2));
+      assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+      assertThat(messages.get(0),
+                 endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
+      assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
+      assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
+                                         + "\"" + serverCV + "\"}}]"));
+      verifyConsistencyVector(messages.get(2), CONSISTENCY_OFFSET_VECTOR);
+    }
+
+    @Test
+    public void shouldFailPullQueryOverRestWithBound() {
+      // Given:
+      final String serializedCV = CONSISTENCY_OFFSET_VECTOR_AFTER.serialize();
+      final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
+          .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
+          .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, serializedCV);
+      final Map<String, Object> requestProperties = builder.build();
+
+      // When:
+      final Supplier<List<String>> call = () -> {
+        final String response = rawRestQueryRequest(
+            "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+            MediaType.APPLICATION_JSON,
+            Collections.emptyMap(),
+            requestProperties
+        );
+        return Arrays.asList(response.split(System.lineSeparator()));
+      };
+
+      // Then:
+      final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+      assertThat(messages, hasSize(HEADER + 1));
+      assertThat(messages.get(1), containsString("Failed to get value from materialized table, "
+          + "reason: NOT_UP_TO_BOUND"));
+    }
+
+    @Test
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -891,7 +1003,7 @@ public class RestApiTest {
           HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
               HTTP_2, POST,
               "/query-stream", queryStreamArgs, "application/vnd.ksqlapi.delimited.v1",
-              Optional.empty());
+              Optional.empty(), Optional.empty());
           queryResponse[0] = new QueryResponse(resp.body().toString());
           return queryResponse[0].rows.size();
         } catch (Throwable t) {
@@ -953,7 +1065,7 @@ public class RestApiTest {
                   HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                       version, POST,
                       endpoint, requestBody, "application/vnd.ksqlapi.delimited.v1",
-                      Optional.empty());
+                      Optional.empty(), Optional.empty());
                   queryResponse[0] = new QueryResponse(resp.body().toString());
                   return queryResponse[0].rows.size();
                 } catch (Throwable t) {
@@ -966,7 +1078,7 @@ public class RestApiTest {
                 HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
                     version, POST,
                     endpoint, requestBody, KsqlMediaType.KSQL_V1_JSON.mediaType(),
-                    Optional.empty());
+                    Optional.empty(), Optional.empty());
                 final String response = resp.body().toString();
                 return Arrays.asList(response.split(System.lineSeparator()));
               };
@@ -993,6 +1105,7 @@ public class RestApiTest {
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
     // Given:
+    final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
     Map<String, Object> configOverrides =  ImmutableMap.of(
         KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
     Map<String, Object> requestProperties = ImmutableMap.of(
@@ -1011,14 +1124,13 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
     assertValidJsonMessages(messages);
     assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsiX2NvbmZsdWVudC"
-                                       + "1rc3FsLWRlZmF1bHRfcXVlcnlfQ1RBU19BR0dfVEFCTEVfNS1BZ2dyZW"
-                                       + "dhdGUtR3JvdXBCeS1yZXBhcnRpdGlvbiI6eyIwIjo2fX19\"}}"));
+                                       + "\"" + serializedCV + "\"}}"));
   }
 
   @Test
   public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
     // Given:
+    final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
     Map<String, Object> configOverrides =  ImmutableMap.of(
         KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
     Map<String, Object> requestProperties = ImmutableMap.of(
@@ -1037,9 +1149,7 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
     assertValidJsonMessages(messages);
     assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"eyJ2ZXJzaW9uIjowLCJvZmZzZXRWZWN0b3IiOnsiX2NvbmZsdWVudC"
-                                       + "1rc3FsLWRlZmF1bHRfcXVlcnlfQ1RBU19BR0dfVEFCTEVfNS1BZ2dyZW"
-                                       + "dhdGUtR3JvdXBCeS1yZXBhcnRpdGlvbiI6eyIwIjo2fX19\"}}"));
+                                       + "\"" + serializedCV + "\"}}"));
   }
 
   @Test
@@ -1112,13 +1222,23 @@ public class RestApiTest {
   }
 
   private static String rawRestQueryRequest(final String sql, final String mediaType) {
-    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType)
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType, Optional.empty())
+        .body()
+        .toString();
+  }
+
+  private static String rawRestQueryRequest(
+        final String sql, final String mediaType, final Map<String, ?> configOverrides,
+        final Map<String, ?> requestProperties
+  ) {
+    return RestIntegrationTestUtil.rawRestQueryRequest(
+        REST_APP, sql, mediaType, configOverrides, requestProperties, Optional.empty())
         .body()
         .toString();
   }
 
   private static int failingRestQueryRequest(final String sql, final String mediaType) {
-    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType)
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType, Optional.empty())
         .statusCode();
   }
 
@@ -1139,7 +1259,8 @@ public class RestApiTest {
       final HttpMethod method,
       final String uri,
       final Object requestBody) {
-    return RestIntegrationTestUtil.rawRestRequest(REST_APP, httpVersion, method, uri, requestBody);
+    return RestIntegrationTestUtil.rawRestRequest(
+        REST_APP, httpVersion, method, uri, requestBody, Optional.empty());
   }
 
   private static List<String> makeWebSocketRequest(
@@ -1217,5 +1338,17 @@ public class RestApiTest {
       }
       return true;
     }, is(true));
+  }
+
+  /**
+   * The format of the json string is
+   * "{\"consistencyToken\":{\"consistencyToken\":" + "\" + CT + \"}}"
+   */
+  private static void verifyConsistencyVector(
+      final String consistencyText, final ConsistencyOffsetVector consistencyOffsetVector) {
+    String serializedCV = consistencyText.split(":\"")[1];
+    serializedCV = serializedCV.substring(0, serializedCV.length()-4);
+    final ConsistencyOffsetVector cvResponse = ConsistencyOffsetVector.deserialize(serializedCV);
+    assertThat(cvResponse.equals(consistencyOffsetVector), is(true));
   }
 }

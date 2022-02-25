@@ -303,11 +303,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
+  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan,
+                               final boolean restoreInProgress) {
     try {
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
-          .execute(plan.getPlan());
+          .execute(plan.getPlan(), restoreInProgress);
       return result;
     } catch (final KsqlStatementException e) {
       throw e;

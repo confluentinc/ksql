@@ -163,9 +163,9 @@ public class KsqlRestConfig extends AbstractConfig {
 
   private static final String KSQL_CONFIG_PREFIX = "ksql.";
 
-  private static final String COMMAND_CONSUMER_PREFIX =
+  public static final String COMMAND_CONSUMER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.consumer.";
-  private static final String COMMAND_PRODUCER_PREFIX =
+  public static final String COMMAND_PRODUCER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.producer.";
 
   public static final String ADVERTISED_LISTENER_CONFIG =

@@ -23,13 +23,13 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.DefaultErrorMessages;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.BackupReplayFile;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
-import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -278,6 +278,9 @@ public class KsqlRestoreCommandTopic {
         ProducerConfig.ACKS_CONFIG,
         "all"
     );
+    transactionalProperties.putAll(
+        serverConfig.originalsWithPrefix(KsqlRestConfig.COMMAND_CONSUMER_PREFIX)
+    );
 
     return new KafkaProducer<>(
         transactionalProperties,
@@ -290,8 +293,7 @@ public class KsqlRestoreCommandTopic {
     this(
         serverConfig,
         ReservedInternalTopics.commandTopic(serverConfig),
-        ServiceContextFactory.create(serverConfig,
-            () -> /* no ksql client */ null).getTopicClient(),
+        new KafkaTopicClientImpl(() -> createAdminClient(serverConfig)),
         () -> transactionalProducer(serverConfig)
     );
   }
@@ -448,5 +450,14 @@ public class KsqlRestoreCommandTopic {
 
   private static boolean hasKey(final JSONObject jsonObject, final String key) {
     return jsonObject != null && jsonObject.has(key);
+  }
+  
+  private static Admin createAdminClient(final KsqlConfig serverConfig) {
+    final Map<String, Object> adminClientConfigs =
+        new HashMap<>(serverConfig.getKsqlAdminClientConfigProps());
+    adminClientConfigs.putAll(
+        serverConfig.originalsWithPrefix(KsqlRestConfig.COMMAND_CONSUMER_PREFIX)
+    );
+    return new DefaultKafkaClientSupplier().getAdmin(adminClientConfigs);
   }
 }

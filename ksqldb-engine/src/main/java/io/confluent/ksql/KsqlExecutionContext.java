@@ -226,7 +226,15 @@ public interface KsqlExecutionContext {
   /**
    * Executes a KSQL plan using the supplied service context.
    */
-  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan);
+  default ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan) {
+    return execute(serviceContext, plan, false);
+  }
+
+  /**
+   * Executes a KSQL plan using the supplied service context.
+   */
+  ExecuteResult execute(ServiceContext serviceContext, ConfiguredKsqlPlan plan,
+                        boolean restoreInProgress);
 
   /**
    * Execute the supplied statement, updating the meta store and registering any query.

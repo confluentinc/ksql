@@ -179,7 +179,7 @@ public class QueryExecutor {
         // at the server
         consistencyOffsetVector = serializedCV != null && !serializedCV.equals("")
             ? Optional.of(ConsistencyOffsetVector.deserialize(serializedCV))
-            : Optional.of(new ConsistencyOffsetVector());
+            : Optional.of(ConsistencyOffsetVector.emptyVector());
       }
 
       switch (dataSourceType) {

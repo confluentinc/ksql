@@ -778,25 +778,20 @@ public final class KsqlRestApplication implements Executable {
             ksqlConfig.getInt(
                     KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS);
 
-    final int transientQueryCleanupServiceInitialDelay =
-            ksqlConfig.getInt(
-                    KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS);
-
     final LeakedResourcesMetrics leaked = new LeakedResourcesMetrics(
             ksqlEngine,
             new JmxDataPointsReporter(
                     metricCollectors.getMetrics(),
                     ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
                             + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-                            + "leaked_resources_metrics",
+                            + ".leaked_resources_metrics",
                     Duration.ofSeconds(transientQueryCleanupServicePeriod)),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
             );
 
     leakedResourcesReporter.scheduleAtFixedRate(
             leaked,
-            transientQueryCleanupServiceInitialDelay
-                    + transientQueryCleanupServicePeriod / 2,
+            0,
             transientQueryCleanupServicePeriod,
             TimeUnit.SECONDS
     );

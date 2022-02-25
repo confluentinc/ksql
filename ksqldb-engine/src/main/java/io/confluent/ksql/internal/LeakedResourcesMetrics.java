@@ -107,7 +107,7 @@ public class LeakedResourcesMetrics implements Runnable {
             ImmutableList.of(
                     new MetricsReporter.DataPoint(
                             now,
-                            "leaked-state-files",
+                            "leaked-state-dirs",
                             numLeakedStateDirs,
                             customTags
                     )

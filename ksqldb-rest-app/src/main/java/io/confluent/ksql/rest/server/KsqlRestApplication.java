@@ -759,14 +759,13 @@ public final class KsqlRestApplication implements Executable {
         metricCollectors
     );
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
-            ksqlEngine,
-            new JmxDataPointsReporter(
-                    metricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
-            Duration.ofMinutes(5),
-            Duration.ofSeconds(30),
-            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+        ksqlEngine,
+        new JmxDataPointsReporter(
+            metricCollectors.getMetrics(), "ksqldb_utilization", Duration.ofMinutes(1)),
+        Duration.ofMinutes(5),
+        Duration.ofSeconds(30),
+        ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
     );
-
     executorService.scheduleAtFixedRate(
         saturation,
         0,
@@ -777,7 +776,6 @@ public final class KsqlRestApplication implements Executable {
     final int transientQueryCleanupServicePeriod =
             ksqlConfig.getInt(
                     KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS);
-
     final LeakedResourcesMetrics leaked = new LeakedResourcesMetrics(
             ksqlEngine,
             new JmxDataPointsReporter(
@@ -788,7 +786,6 @@ public final class KsqlRestApplication implements Executable {
                     Duration.ofSeconds(transientQueryCleanupServicePeriod)),
             ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
             );
-
     leakedResourcesReporter.scheduleAtFixedRate(
             leaked,
             0,

@@ -57,6 +57,4 @@ parallel allButUnittests: {
         extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipTests -Dspotbugs.skip -Dmaven.site.skip"
     }
 }  
-
-
-failFast: true
+failFast true

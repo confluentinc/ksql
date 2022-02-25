@@ -149,20 +149,21 @@ public class ClientImpl implements Client {
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,
         (ctx, rp, fut, req) -> new StreamQueryResponseHandler(
-            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, client));
+            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, requestProperties,
+            client));
     return cf;
   }
 
-  public CompletableFuture<StreamedQueryResult> retry(
-          final int maxRetries,
-          final String sql,
-          final Optional<String> continuationToken) throws InterruptedException {
-    for (int i = 0; i < maxRetries; i++) {
-      long duration = 100;
-      Thread.sleep(duration);
-      return this.streamQuery(sql);
-    }
-  }
+//  public CompletableFuture<StreamedQueryResult> retry(
+//          final int maxRetries,
+//          final String sql,
+//          final Optional<String> continuationToken) throws InterruptedException {
+//    for (int i = 0; i < maxRetries; i++) {
+//      long duration = 100;
+//      Thread.sleep(duration);
+//      return this.streamQuery(sql);
+//    }
+//  }
 
   @Override
   public BatchedQueryResult executeQuery(final String sql) {

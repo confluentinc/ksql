@@ -25,14 +25,13 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
@@ -44,17 +43,23 @@ public class StreamQueryResponseHandler
   private AtomicReference<String> serializedConsistencyVector;
   private AtomicReference<String> continuationToken;
   private String sql;
+  private Map<String, Object> requestProperties;
+  private ClientImpl client;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
       final CompletableFuture<StreamedQueryResult> cf,
       final AtomicReference<String> serializedCV,
       final AtomicReference<String> continuationToken,
-      final String sql
+      final String sql,
+      final Map<String, Object> requestProperties,
+      final ClientImpl client
   ) {
     super(context, recordParser, cf);
     this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
     this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
     this.sql = Objects.requireNonNull(sql, "sql");
+    this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
+    this.client = Objects.requireNonNull(client, "client");
   }
 
   @Override
@@ -65,7 +70,9 @@ public class StreamQueryResponseHandler
         queryResponseMetadata.columnNames,
         RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes),
         Optional.ofNullable(continuationToken.get()),
-        sql
+        sql,
+        requestProperties,
+        client
     );
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);

@@ -20,16 +20,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.reactivestreams.Subscriber;
-
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import org.reactivestreams.Subscriber;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
 
@@ -43,6 +45,8 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private boolean subscribing;
   private final Optional<String> continuationToken;
   private final String sql;
+  private final Map<String, Object> requestProperties;
+  private final ClientImpl client;
 
   StreamedQueryResultImpl(
       final Context context,
@@ -50,7 +54,9 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
       final List<String> columnNames,
       final List<ColumnType> columnTypes,
       final Optional<String> continuationToken,
-      final String sql
+      final String sql,
+      final Map<String, Object> requestProperties,
+      final ClientImpl client
   ) {
     super(context);
     this.queryId = queryId;
@@ -59,6 +65,8 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     this.pollableSubscriber = new PollableSubscriber(ctx, this::handleErrorWhilePolling);
     this.continuationToken = continuationToken;
     this.sql = sql;
+    this.requestProperties = requestProperties;
+    this.client = client;
   }
 
   @Override
@@ -146,12 +154,27 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     return this.continuationToken;
   }
 
-  public CompletableFuture<StreamedQueryResult> retry() throws InterruptedException {
-    return ClientImpl.retry(10, sql, continuationToken);
-  }
+  public CompletableFuture<StreamedQueryResult> retry(
+      final int maxRetries) throws InterruptedException, ExecutionException {
+    long waitMs = 100;
 
-  public CompletableFuture<StreamedQueryResult> retry(final int maxRetries) throws InterruptedException {
-    return ClientImpl.retry(maxRetries, sql, continuationToken);
+    for (int i = 0; i < maxRetries; i++) {
+      waitMs = waitMs * 2;
+      Thread.sleep(waitMs);
+      CompletableFuture<StreamedQueryResult> result =
+          this.client.streamQuery(sql, requestProperties);
+
+      if (result.get().isFailed() && result.get().hasContinuationToken()) {
+        continue;
+      } else {
+        return result;
+      }
+    }
+    throw new KsqlClientException(String.format(
+        "The following query failed after %d retries: %s",
+        maxRetries,
+        sql
+    ));
   }
 
   public static Row pollWithCallback(

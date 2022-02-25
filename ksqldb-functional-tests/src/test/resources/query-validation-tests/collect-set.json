@@ -9,6 +9,26 @@
   ],
   "tests": [
     {
+      "name": "collect_set struct",
+      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE STRUCT<A VARCHAR, B BIGINT>) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_set(value) as collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": {"A": "Record0", "B": 1}}},
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": {"A": "Record1", "B": 100}}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": {"A": "Record0", "B": 100}}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": {"B": 100,"A": "Record0"}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [{"A": "Record0", "B": 1}]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [{"A": "Record0", "B": 1},{"A": "Record1", "B": 100}]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [{"A": "Record0", "B": 100}]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [{"A": "Record0", "B": 100}]}}
+      ]
+    },
+    {
       "name": "collect_set int",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [

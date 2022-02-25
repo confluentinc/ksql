@@ -19,6 +19,9 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.ByteBuffer;
 import java.sql.Date;
@@ -27,6 +30,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.Configurable;
+import org.apache.kafka.connect.data.Struct;
 
 @UdafDescription(name = "collect_set", 
     description = "Gather all of the distinct values from an input grouping into a single Array."
@@ -43,48 +47,53 @@ public final class CollectSetUdaf {
   private CollectSetUdaf() {
     // just to make the checkstyle happy
   }
-  
+
   @UdafFactory(description = "collect distinct values of a Bigint field into a single Array")
+  public static <T> Udaf<T, List<T>, List<T>> createCollectSetT() {
+    return new Collect<>();
+  }
+
+  //@UdafFactory(description = "collect distinct values of a Bigint field into a single Array")
   public static Udaf<Long, List<Long>, List<Long>> createCollectSetLong() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of an Integer field into a single Array")
+  //@UdafFactory(description = "collect distinct values of an Integer field into a single Array")
   public static Udaf<Integer, List<Integer>, List<Integer>> createCollectSetInt() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a Double field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a Double field into a single Array")
   public static Udaf<Double, List<Double>, List<Double>> createCollectSetDouble() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a String field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a String field into a single Array")
   public static Udaf<String, List<String>, List<String>> createCollectSetString() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a Boolean field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a Boolean field into a single Array")
   public static Udaf<Boolean, List<Boolean>, List<Boolean>> createCollectSetBool() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a Timestamp field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a Timestamp field into a single Array")
   public static Udaf<Timestamp, List<Timestamp>, List<Timestamp>> createCollectSetTimestamp() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a Time field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a Time field into a single Array")
   public static Udaf<Time, List<Time>, List<Time>> createCollectSetTime() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a Date field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a Date field into a single Array")
   public static Udaf<Date, List<Date>, List<Date>> createCollectSetDate() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect distinct values of a Bytes field into a single Array")
+  //@UdafFactory(description = "collect distinct values of a Bytes field into a single Array")
   public static Udaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> createCollectSetBytes() {
     return new Collect<>();
   }
@@ -92,7 +101,8 @@ public final class CollectSetUdaf {
   private static final class Collect<T> implements Udaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;
-
+    SqlType inputType;
+    
     @Override
     public void configure(final Map<String, ?> map) {
       final Object limit = map.get(LIMIT_CONFIG);
@@ -107,6 +117,21 @@ public final class CollectSetUdaf {
       if (this.limit < 0) {
         this.limit = Integer.MAX_VALUE;
       }
+    }
+
+    @Override
+    public void setInputArgumentTypes(final List<SqlArgument> argTypeList) {
+      inputType = argTypeList.get(0).getSqlTypeOrThrow();
+    }
+
+    @Override
+    public SqlType getAggregateSqlType() {
+      return SqlArray.of(inputType);
+    }
+
+    @Override
+    public SqlType getReturnSqlType() {
+      return SqlArray.of(inputType);
     }
 
     @Override

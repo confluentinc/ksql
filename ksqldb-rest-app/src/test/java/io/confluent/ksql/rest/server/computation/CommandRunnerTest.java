@@ -17,8 +17,10 @@ package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -41,7 +43,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
@@ -652,6 +656,38 @@ public class CommandRunnerTest {
     threadTask.run();
 
     verify(commandStore).close();
+  }
+  
+  @Test
+  public void shouldThrowWhenRateLimitHit() {
+    // Given:
+    final CommandRunner rateLimitedCommandRunner = new CommandRunner(
+      statementExecutor,
+      commandStore,
+      3,
+      clusterTerminator,
+      executor,
+      serverState,
+      "ksql-service-id",
+      Duration.ofMillis(COMMAND_RUNNER_HEALTH_TIMEOUT),
+      "",
+      clock,
+      compactor,
+      incompatibleCommandChecker,
+      commandDeserializer,
+      errorHandler,
+      commandTopicExists,
+      new Metrics(),
+      1.0
+    );
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    
+    // When:
+    // Then:
+    final KsqlRestException e = assertThrows(KsqlRestException.class, rateLimitedCommandRunner::fetchAndRunCommands);
+    assertEquals(e.getResponse().getStatus(), 429);
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertTrue(errorMessage.getMessage().contains("Too many requests to the command topic within a 1 second timeframe"));
   }
 
   private Runnable getThreadTask() {

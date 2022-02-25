@@ -21,11 +21,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -352,7 +354,11 @@ public class CommandRunner implements Closeable {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
-        rateLimiter.acquire();
+        if (!rateLimiter.tryAcquire()) {
+          throw new KsqlRestException(
+            Errors.tooManyRequests("Too many requests to the command topic within a 1 second timeframe")
+          );
+        }
         statementExecutor.handleStatement(queuedCommand);
         LOG.info("Executed statement: " + commandStatement);
       }

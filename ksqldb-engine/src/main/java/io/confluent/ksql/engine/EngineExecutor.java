@@ -163,10 +163,15 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
+    return execute(plan, false);
+  }
+
+  ExecuteResult execute(final KsqlPlan plan, final boolean restoreInProgress) {
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet(),
+              restoreInProgress))
           .orElseThrow(
               () -> new IllegalStateException(
                   "DdlResult should be present if there is no physical plan."));
@@ -191,7 +196,8 @@ final class EngineExecutor {
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources(),
+            restoreInProgress));
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
@@ -918,10 +924,12 @@ final class EngineExecutor {
       final DdlCommand ddlCommand,
       final String statementText,
       final boolean withQuery,
-      final Set<SourceName> withQuerySources
+      final Set<SourceName> withQuerySources,
+      final boolean restoreInProgress
   ) {
     try {
-      return engineContext.executeDdl(statementText, ddlCommand, withQuery, withQuerySources);
+      return engineContext.executeDdl(statementText, ddlCommand, withQuery, withQuerySources,
+          restoreInProgress);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

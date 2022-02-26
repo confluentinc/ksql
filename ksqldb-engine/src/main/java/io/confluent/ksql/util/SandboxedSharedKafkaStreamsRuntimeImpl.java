@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,15 +75,30 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     log.info("Registering query {} for validation for runtime {}", queryId, getApplicationId());
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     try {
-      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
+      if (!kafkaStreams.getTopologyByName(
+          binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
+        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+            .all()
+            .get();
+      } else {
+        kafkaStreams.removeNamedTopology(queryId.toString()).all().get();
+        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+            .all()
+            .get();
       }
-    } catch (final Throwable e) {
+    } catch (final ExecutionException e) {
+      final Throwable t = e.getCause() == null ? e : e.getCause();
       throw new IllegalStateException(String.format(
+          "Encountered an error when trying to add query %s to runtime: %s",
+          queryId,
+          getApplicationId()),
+          t);
+    } catch (final Throwable t) {
+        throw new IllegalStateException(String.format(
             "Encountered an error when trying to add query %s to runtime: %s",
             queryId,
             getApplicationId()),
-          e);
+            t);
     }
     log.info("Registered query: {}  in {} \n"
             + "Runtime {} is executing these queries: {}",

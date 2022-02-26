@@ -81,7 +81,7 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
             .all()
             .get();
       } else {
-        kafkaStreams.removeNamedTopology(queryId.toString()).all().get();
+        kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
         kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
             .all()
             .get();

@@ -190,9 +190,12 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
             kafkaStreams.cleanUpNamedTopology(queryId.toString());
           }
         } catch (ExecutionException | InterruptedException e) {
-          log.error(String.format(
-              "Failed to close query %s within the allotted timeout %s due to",
-              queryId, shutdownTimeout), e);
+          final Throwable t = e.getCause() == null ? e : e.getCause();
+          throw new IllegalStateException(String.format(
+                "Encountered an error when trying to stop query %s in runtime: %s",
+                queryId,
+                getApplicationId()),
+              t);
         }
       } else {
         throw new IllegalStateException("Streams in not running but is in state "
@@ -203,6 +206,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       // we don't want to lose it from this runtime
       collocatedQueries.remove(queryId);
     }
+    log.info("Query {} was stopped successfully", queryId);
   }
 
   @Override
@@ -221,13 +225,12 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
               .all()
               .get();
         } catch (ExecutionException | InterruptedException e) {
-          log.error("Failed to start query {} within the allotted timeout {} due to",
-              queryId,
-              shutdownTimeout,
-              e);
-          throw new IllegalStateException(
-              "Encountered an error when trying to add query " + queryId + " to runtime: ",
-              e);
+          final Throwable t = e.getCause() == null ? e : e.getCause();
+          throw new IllegalStateException(String.format(
+                "Encountered an error when trying to start query %s in runtime: %s",
+                queryId,
+                getApplicationId()),
+              t);
         }
       } else {
         throw new IllegalArgumentException("Cannot start because Streams is not done terminating"
@@ -237,6 +240,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
       throw new IllegalArgumentException("Cannot start because query " + queryId + " was not "
                                              + "registered to runtime " + getApplicationId());
     }
+    log.info("Query {} was started successfully", queryId);
   }
 
   @Override

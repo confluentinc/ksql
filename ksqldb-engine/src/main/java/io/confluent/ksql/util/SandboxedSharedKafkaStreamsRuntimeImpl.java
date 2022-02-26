@@ -21,6 +21,7 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,12 +71,28 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
       final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
       final QueryId queryId
   ) {
+    log.info("Registering query {} for validation for runtime {}", queryId, getApplicationId());
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
-    if (!kafkaStreams.getTopologyByName(
-        binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
-      kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
+    try {
+      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
+      }
+    } catch (final Throwable e) {
+      throw new IllegalStateException(String.format(
+            "Encountered an error when trying to add query %s to runtime: %s",
+            queryId,
+            getApplicationId()),
+          e);
     }
-    log.debug("mapping {}", collocatedQueries);
+    log.info("Registered query: {}  in {} \n"
+            + "Runtime {} is executing these queries: {}",
+        queryId,
+        getApplicationId(),
+        getApplicationId(),
+        collocatedQueries.keySet()
+            .stream()
+            .map(QueryId::toString)
+            .collect(Collectors.joining(", ")));
   }
 
   @Override

@@ -161,20 +161,7 @@ public class SystemAuthenticationFunctionalTest {
     private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
         INT_PORT_1);
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-    private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
-        .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(LOCALHOST_FACTORY)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
-        .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-1.example.com:" + INT_PORT_0)
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_0)
-        .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
-            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
-        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
-        .withProperties(COMMON_CONFIG)
-        .withProperties(JASS_AUTH_CONFIG)
-        .withProperties(internalKeyStoreProps(true))
-        .build();
+    private static final TestKsqlRestApp REST_APP_0 = null;
 
     private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
         .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -254,35 +241,9 @@ public class SystemAuthenticationFunctionalTest {
     private static final KsqlHostInfoEntity host1 = new KsqlHostInfoEntity("node-2.example.com",
         INT_PORT_1);
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-    private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
-        .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(LOCALHOST_FACTORY)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
-        .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-1.example.com:" + INT_PORT_0)
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_0)
-        .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
-            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
-        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-1.example.com")
-        .withProperty(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE, true)
-        .withProperties(COMMON_CONFIG)
-        .withProperties(internalKeyStoreProps(true))
-        .build();
+    private static final TestKsqlRestApp REST_APP_0 = null;
 
-    private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
-        .builder(TEST_HARNESS::kafkaBootstrapServers)
-        .withEnabledKsqlClient(LOCALHOST_FACTORY)
-        .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://0.0.0.0:0")
-        .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG,
-            "https://node-2.example.com:" + INT_PORT_1)
-        .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "https://0.0.0.0:" + INT_PORT_1)
-        .withProperty(KsqlRestConfig.KSQL_INTERNAL_SSL_CLIENT_AUTHENTICATION_CONFIG,
-            KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_NONE)
-        .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, "node-2.example.com")
-        .withProperty(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE, true)
-        .withProperties(COMMON_CONFIG)
-        .withProperties(internalKeyStoreProps(false))
-        .build();
+    private static final TestKsqlRestApp REST_APP_1 = null;
 
     @ClassRule
     public static final RuleChain CHAIN = RuleChain

@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import org.approvaltests.Approvals;
@@ -108,7 +109,8 @@ public class QueryAnonymizerTest {
       // Assert:
       intersection.removeAll(sqlTokens);
       intersection.remove("");
-      Assert.assertEquals(0, intersection.size());
+      Assert.assertEquals(Collections.emptySet(), intersection);
+      //Assert.assertEquals(0, intersection.size());
     }
   }
 }

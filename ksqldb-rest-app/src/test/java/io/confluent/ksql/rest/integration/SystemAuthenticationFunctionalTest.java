@@ -61,6 +61,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.experimental.runners.Enclosed;
@@ -72,6 +73,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@Ignore
 @Category({IntegrationTest.class})
 @RunWith(Enclosed.class)
 public class SystemAuthenticationFunctionalTest {

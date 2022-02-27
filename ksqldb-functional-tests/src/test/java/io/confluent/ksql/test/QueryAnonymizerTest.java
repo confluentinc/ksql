@@ -35,10 +35,12 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@Ignore
 public class QueryAnonymizerTest {
   private static final Path QUERIES_TO_ANONYMIZE_PATH =
       Paths.get("src/test/java/io/confluent/ksql/test/QueriesToAnonymizeTest.txt");

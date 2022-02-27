@@ -40,7 +40,7 @@ parallel allButUnittests: {
         nanoVersion = true
         maxBuildsToKeep = 99
         maxDaysToKeep = 90
-        extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -Dspotbugs.skip -Dmaven.site.skip '-Dtest=%regex[.*.ksql.rest.*]' -DfailIfNoTests=false"
+        extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -DexcludedGroups=io.confluent.common.utils.IntegrationTest -Dspotbugs.skip -Dmaven.site.skip '-Dtest=%regex[.*.ksql.rest.*]' -DfailIfNoTests=false"
     }
 }, unittestsIncludeFunctional: {
     dockerfile {
@@ -54,7 +54,7 @@ parallel allButUnittests: {
         nanoVersion = true
         maxBuildsToKeep = 99
         maxDaysToKeep = 90
-        extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -Dspotbugs.skip -Dmaven.site.skip '-Dtest=%regex[.*.ksql.test.*]' -DfailIfNoTests=false"
+        extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -DexcludedGroups=io.confluent.common.utils.IntegrationTest -Dspotbugs.skip -Dmaven.site.skip '-Dtest=%regex[.*.ksql.test.*]' -DfailIfNoTests=false"
     }
 }, integrationTests: {
     dockerfile {

@@ -13,6 +13,7 @@
 package io.confluent.ksql.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.test.QueryTranslationTest.QttTestFile;
 import io.confluent.ksql.test.loader.JsonTestLoader;
@@ -20,28 +21,24 @@ import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.util.GrammarTokenExporter;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Scanner;
-import java.util.stream.Collectors;
-import org.approvaltests.Approvals;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.approvaltests.Approvals;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-@Ignore
 public class QueryAnonymizerTest {
   private static final Path QUERIES_TO_ANONYMIZE_PATH =
       Paths.get("src/test/java/io/confluent/ksql/test/QueriesToAnonymizeTest.txt");
@@ -86,7 +83,8 @@ public class QueryAnonymizerTest {
     @Before
     public void setUp() {
       sqlTokens = GrammarTokenExporter.getTokens();
-      sqlTokens.addAll(Arrays.asList("INT", "DOUBLE", "VARCHAR", "BOOLEAN", "BIGINT", "*"));
+      sqlTokens.addAll(Arrays.asList("INT", "DOUBLE", "VARCHAR", "BOOLEAN", "BIGINT", "BYTES",
+          "*"));
     }
 
     @Parameterized.Parameters
@@ -100,6 +98,7 @@ public class QueryAnonymizerTest {
 
     @Test
     public void anonQuerySplitByWordsHasOnlyTokensInSetIntersectionWithQuery() {
+      System.out.println("statement: " + statement);
       final String anonStatement = anon.anonymize(statement);
       final Set<String> statementWord = new HashSet<>(Arrays.asList(statement.split("[\\s\\(\\)<>,;]")));
       final Set<String> anonStatementWord = new HashSet<>(Arrays.asList(anonStatement.split("[\\s\\(\\)<>,;]")));

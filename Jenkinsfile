@@ -29,4 +29,4 @@ parallel unitTests: { // Skip the integration tests.  The unit tests take longer
         extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipTests"
     }
 }
-failFast true
+failFast: true

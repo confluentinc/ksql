@@ -19,6 +19,6 @@ public class ClientConfig {
 
   public enum ConsistencyLevel {
     EVENTUAL,
-    MONOTONIC_READS
+    MONOTONIC_SESSION
   }
 }

@@ -229,7 +229,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
   public void shouldRoundTripCVWhenPullQueryHttp1() throws Exception {
     // Given
     final KsqlRestClient ksqlRestClient = REST_APP.buildKsqlClient(
-        Optional.empty(), ConsistencyLevel.MONOTONIC_READS);
+        Optional.empty(), ConsistencyLevel.MONOTONIC_SESSION);
 
     // When
     final RestResponse<StreamPublisher<StreamedRow>> response =
@@ -304,7 +304,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
         .setHost("localhost")
         .setPort(REST_APP.getListeners().get(0).getPort());
     if (withConsistency)
-        clientOptions.setConsistencyLevel(ConsistencyLevel.MONOTONIC_READS);
+        clientOptions.setConsistencyLevel(ConsistencyLevel.MONOTONIC_SESSION);
     return Client.create(clientOptions, vertx);
   }
 

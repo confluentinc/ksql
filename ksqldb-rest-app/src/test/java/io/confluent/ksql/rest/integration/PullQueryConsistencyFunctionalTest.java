@@ -487,7 +487,7 @@ public class PullQueryConsistencyFunctionalTest {
         USER_CREDS);
 
     final KsqlRestClient restClient = clusterFormation.router.getApp().buildKsqlClient(
-        USER_CREDS, ConsistencyLevel.MONOTONIC_READS);
+        USER_CREDS, ConsistencyLevel.MONOTONIC_SESSION);
     final ImmutableMap<String, Object> requestProperties =
         ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 

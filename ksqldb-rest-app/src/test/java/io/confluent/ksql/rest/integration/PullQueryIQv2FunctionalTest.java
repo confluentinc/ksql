@@ -689,7 +689,7 @@ public class PullQueryIQv2FunctionalTest {
       final TestKsqlRestApp target,
       final String sql
   ) {
-    final KsqlRestClient ksqlRestClient = target.buildKsqlClient(validCreds(), ConsistencyLevel.MONOTONIC_READS);
+    final KsqlRestClient ksqlRestClient = target.buildKsqlClient(validCreds(), ConsistencyLevel.MONOTONIC_SESSION);
     final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
         .put(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true)
         .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);

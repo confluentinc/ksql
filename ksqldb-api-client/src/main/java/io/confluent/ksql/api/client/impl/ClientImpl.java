@@ -129,7 +129,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_READS) {
+    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
@@ -151,7 +151,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_READS) {
+    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());

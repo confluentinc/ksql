@@ -431,7 +431,7 @@ public final class KsqlRestClient implements Closeable {
     if (requestProperties != null) {
       requestPropertiesToSend.putAll(requestProperties);
     }
-    if (consistencyLevel == ConsistencyLevel.MONOTONIC_READS) {
+    if (consistencyLevel == ConsistencyLevel.MONOTONIC_SESSION) {
       final String serializedCV = serializedConsistencyVector.get();
       // KsqlRequest:serializeClassValues throws NPE for null value
       requestPropertiesToSend.put(

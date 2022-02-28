@@ -73,7 +73,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @Category({IntegrationTest.class})
-@RunWith(Enclosed.class)
+//@RunWith(Enclosed.class)
 public class SystemAuthenticationFunctionalTest {
   private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
   @ClassRule

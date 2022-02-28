@@ -20,7 +20,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -59,8 +61,10 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -495,5 +499,34 @@ public class DistributingExecutorTest {
     // Then:
     assertThat("Should be present", response.getEntity().isPresent());
     assertThat(((WarningEntity) response.getEntity().get()).getMessage(), containsString(""));
+  }
+  
+  @Test
+  public void shouldThrowIfRateLimitHit() {
+    // Given:
+    final DistributingExecutor rateLimitedDistributor = new DistributingExecutor(
+      new KsqlConfig(ImmutableMap.of("ksql.command.topic.rate.limit", 1.0)),
+      queue,
+      DURATION_10_MS,
+      (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+      Optional.of(authorizationValidator),
+      validatedCommandFactory,
+      errorHandler,
+      commandRunnerWarning
+    );
+    
+    // When:
+    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+
+
+    // Then:
+    final KsqlRestException e = assertThrows(
+      KsqlRestException.class,
+      () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+    );
+
+    assertEquals(e.getResponse().getStatus(), 429);
+    final KsqlErrorMessage errorMessage = (KsqlErrorMessage) e.getResponse().getEntity();
+    assertTrue(errorMessage.getMessage().contains("Too many writes to the command topic within a 1 second timeframe"));
   }
 }

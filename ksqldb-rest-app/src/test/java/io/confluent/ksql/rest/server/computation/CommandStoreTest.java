@@ -23,9 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,14 +32,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -158,8 +152,7 @@ public class CommandStoreTest {
         commandIdSerializer,
         commandSerializer,
         commandIdDeserializer,
-        commandTopicBackup,
-        RateLimiter.create(KsqlConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT)
+        commandTopicBackup
     );
   }
 
@@ -384,36 +377,6 @@ public class CommandStoreTest {
     // When/Then:
     commandStore.abortCommand(commandId);
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
-  }
-
-  @Test
-  public void shouldFailEnqueueIfRateLimitHit() {
-    // Given:
-    final CommandStore lowRateLimitStore = new CommandStore(
-      COMMAND_TOPIC_NAME,
-      commandTopic,
-      sequenceNumberFutureStore,
-      Collections.emptyMap(),
-      Collections.emptyMap(),
-      TIMEOUT,
-      commandIdSerializer,
-      commandSerializer,
-      commandIdDeserializer,
-      commandTopicBackup,
-      RateLimiter.create(1.0)
-    );
-    
-    // When:
-    lowRateLimitStore.enqueueCommand(commandId, command, transactionalProducer);
-
-    // Then:
-    final KsqlRestException e = assertThrows(
-      KsqlRestException.class,
-      () -> lowRateLimitStore.enqueueCommand(commandId, command, transactionalProducer)
-    );
-    assertEquals(e.getResponse().getStatus(), 429);
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage) e.getResponse().getEntity();
-    assertTrue(errorMessage.getMessage().contains("Too many writes to the command topic within a 1 second timeframe"));
   }
 
   private static ConsumerRecords<byte[], byte[]> buildRecords(final Object... args) {

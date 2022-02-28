@@ -17,14 +17,11 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.rest.server.CommandTopicBackupImpl;
 import io.confluent.ksql.rest.server.CommandTopicBackupNoOp;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandTopicBackupUtil;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
@@ -82,7 +79,6 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Serializer<Command> commandSerializer;
   private final Deserializer<CommandId> commandIdDeserializer;
   private final CommandTopicBackup commandTopicBackup;
-  private final RateLimiter rateLimiter;
 
 
   public static final class Factory {
@@ -122,8 +118,6 @@ public class CommandStore implements CommandQueue, Closeable {
             internalTopicClient
         );
       }
-      final double rateLimit = 
-        ksqlConfig.getDouble(KsqlConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG);
 
       return new CommandStore(
           commandTopicName,
@@ -139,13 +133,11 @@ public class CommandStore implements CommandQueue, Closeable {
           InternalTopicSerdes.serializer(),
           InternalTopicSerdes.serializer(),
           InternalTopicSerdes.deserializer(CommandId.class),
-          commandTopicBackup,
-          RateLimiter.create(rateLimit)
+          commandTopicBackup
       );
     }
   }
 
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   CommandStore(
       final String commandTopicName,
       final CommandTopic commandTopic,
@@ -156,10 +148,8 @@ public class CommandStore implements CommandQueue, Closeable {
       final Serializer<CommandId> commandIdSerializer,
       final Serializer<Command> commandSerializer,
       final Deserializer<CommandId> commandIdDeserializer,
-      final CommandTopicBackup commandTopicBackup,
-      final RateLimiter rateLimiter
+      final CommandTopicBackup commandTopicBackup
   ) {
-    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandStatusMap = Maps.newConcurrentMap();
     this.sequenceNumberFutureStore =
@@ -179,8 +169,6 @@ public class CommandStore implements CommandQueue, Closeable {
         Objects.requireNonNull(commandIdDeserializer, "commandIdDeserializer");
     this.commandTopicBackup =
         Objects.requireNonNull(commandTopicBackup, "commandTopicBackup");
-    this.rateLimiter =
-        Objects.requireNonNull(rateLimiter, "rateLimiter");
   }
 
   @Override
@@ -210,12 +198,6 @@ public class CommandStore implements CommandQueue, Closeable {
       final Command command,
       final Producer<CommandId, Command> transactionalProducer
   ) {
-    if (!rateLimiter.tryAcquire()) {
-      throw new KsqlRestException(
-        Errors.tooManyRequests(
-          "Too many writes to the command topic within a 1 second timeframe"
-        ));
-    }
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {

@@ -1,6 +1,5 @@
 #!/usr/bin/env groovy
 
-failFast true
 parallel unitTests: { // Skip the integration tests.  The unit tests take longer than the ITs, so we push the spotbugs and Maven site goals to the other job.
     dockerfile {
         slackChannel = '#ksqldb-quality-oncall'
@@ -30,3 +29,4 @@ parallel unitTests: { // Skip the integration tests.  The unit tests take longer
         extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipTests"
     }
 }
+failFast: true

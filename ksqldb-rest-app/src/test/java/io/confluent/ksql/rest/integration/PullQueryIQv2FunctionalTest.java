@@ -43,6 +43,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -688,7 +689,7 @@ public class PullQueryIQv2FunctionalTest {
       final TestKsqlRestApp target,
       final String sql
   ) {
-    final KsqlRestClient ksqlRestClient = target.buildKsqlClient(validCreds());
+    final KsqlRestClient ksqlRestClient = target.buildKsqlClient(validCreds(), ConsistencyLevel.MONOTONIC_READS);
     final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
         .put(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true)
         .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);

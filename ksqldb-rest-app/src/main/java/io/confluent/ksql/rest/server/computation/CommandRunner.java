@@ -16,12 +16,10 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
@@ -92,7 +90,6 @@ public class CommandRunner implements Closeable {
   private final Supplier<Boolean> commandTopicExists;
   private boolean commandTopicDeleted;
   private Status state = new Status(CommandRunnerStatus.RUNNING, CommandRunnerDegradedReason.NONE);
-  private RateLimiter rateLimiter;
 
   public enum CommandRunnerStatus {
     RUNNING,
@@ -151,8 +148,7 @@ public class CommandRunner implements Closeable {
       final Errors errorHandler,
       final KafkaTopicClient kafkaTopicClient,
       final String commandTopicName,
-      final Metrics metrics,
-      final double rateLimit
+      final Metrics metrics
   ) {
     this(
         statementExecutor,
@@ -173,8 +169,7 @@ public class CommandRunner implements Closeable {
         commandDeserializer,
         errorHandler,
         () -> kafkaTopicClient.isTopicExists(commandTopicName),
-        metrics,
-        rateLimit
+        metrics
     );
   }
 
@@ -196,8 +191,7 @@ public class CommandRunner implements Closeable {
       final Deserializer<Command> commandDeserializer,
       final Errors errorHandler,
       final Supplier<Boolean> commandTopicExists,
-      final Metrics metrics,
-      final double rateLimit
+      final Metrics metrics
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
@@ -224,7 +218,6 @@ public class CommandRunner implements Closeable {
         Objects.requireNonNull(commandTopicExists, "commandTopicExists");
     this.incompatibleCommandDetected = false;
     this.commandTopicDeleted = false;
-    this.rateLimiter = RateLimiter.create(rateLimit);
   }
 
   /**
@@ -353,12 +346,6 @@ public class CommandRunner implements Closeable {
       if (closed) {
         LOG.info("Execution aborted as system is closing down");
       } else {
-        if (!rateLimiter.tryAcquire()) {
-          throw new KsqlRestException(
-            Errors.tooManyRequests(
-              "Too many requests to the command topic within a 1 second timeframe"
-            ));
-        }
         statementExecutor.handleStatement(queuedCommand);
         LOG.info("Executed statement: " + commandStatement);
       }

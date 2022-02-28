@@ -282,13 +282,13 @@ public class PullQueryConsistencyFunctionalTest {
     queryId = extractQueryId(res.get(0).toString());
     queryId = queryId.substring(0, queryId.length() - 1);
     CONSISTENCY_OFFSET_VECTOR =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 4L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 4L);
     CONSISTENCY_OFFSET_VECTOR_BEFORE =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 3L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 3L);
     CONSISTENCY_OFFSET_VECTOR_AFTER =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 6L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 6L);
     CONSISTENCY_OFFSET_VECTOR_AFTER_10 =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 9L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 9L);
 
     waitForTableRows();
 

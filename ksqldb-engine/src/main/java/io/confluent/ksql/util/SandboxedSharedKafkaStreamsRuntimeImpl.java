@@ -38,10 +38,12 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
         sharedRuntime.getKafkaStreamsBuilder(),
         getSandboxStreamsProperties(sharedRuntime)
     );
+
     Collection<NamedTopology> namedTopologies = collocatedQueries.values()
         .stream()
         .map(BinPackedPersistentQueryMetadataImpl::getTopology)
         .collect(Collectors.toSet());
+
     if (!namedTopologies.containsAll(sharedRuntime.kafkaStreams.getAllTopologies())
         || !sharedRuntime.kafkaStreams.getAllTopologies().containsAll(namedTopologies)) {
       log.warn("Streams topologies and registered queries do not align");

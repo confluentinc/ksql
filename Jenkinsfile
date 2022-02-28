@@ -1,7 +1,7 @@
 #!/usr/bin/env groovy
 
 failFast true
-parallel unitTests: { // Skip the integration tests.  The unit tests take longer the the ITs, so we push the spotbugs and Maven site goals to the other job.
+parallel unitTests: { // Skip the integration tests.  The unit tests take longer than the ITs, so we push the spotbugs and Maven site goals to the other job.
     dockerfile {
         slackChannel = '#ksqldb-quality-oncall'
         upstreamProjects = 'confluentinc/schema-registry'

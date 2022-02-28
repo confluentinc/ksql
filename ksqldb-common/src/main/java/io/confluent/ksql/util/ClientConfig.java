@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 public class ClientConfig {
 
   public enum ConsistencyLevel {
-    MONOTONIC_READS,
-    EVENTUAL
+    EVENTUAL,
+    MONOTONIC_READS
   }
 }

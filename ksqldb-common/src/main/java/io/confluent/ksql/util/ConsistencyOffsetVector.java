@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,12 +25,10 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import org.apache.kafka.streams.query.Position;
 
 /**
  * Represents a consistency token that is communicated between the client and server.
@@ -40,7 +37,7 @@ import org.apache.kafka.streams.query.Position;
  */
 //@JsonInclude(JsonInclude.Include.NON_ABSENT)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConsistencyOffsetVector implements OffsetVector {
+public class ConsistencyOffsetVector {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -92,15 +89,14 @@ public class ConsistencyOffsetVector implements OffsetVector {
             prior);
   }
 
-  @Override
-  public void merge(final OffsetVector other) {
+  public void merge(final ConsistencyOffsetVector other) {
     if (other == null) {
       return;
     } else if (getClass() != other.getClass()) {
       throw new KsqlException("Offset vector types don't match");
     } else {
       for (final Entry<String, ConcurrentHashMap<Integer, Long>> entry :
-          ((ConsistencyOffsetVector) other).offsetVector.entrySet()) {
+          other.offsetVector.entrySet()) {
         final String topic = entry.getKey();
         final Map<Integer, Long> partitionMap =
             offsetVector.computeIfAbsent(topic, k -> new ConcurrentHashMap<>());
@@ -160,14 +156,6 @@ public class ConsistencyOffsetVector implements OffsetVector {
     }
   }
 
-  public void updateFromPosition(final Position position) {
-    for (String topic: position.getTopics()) {
-      for (Entry<Integer, Long> entry : position.getPartitionPositions(topic).entrySet()) {
-        update(topic, entry.getKey(), entry.getValue());
-      }
-    }
-  }
-
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -204,23 +192,6 @@ public class ConsistencyOffsetVector implements OffsetVector {
     }
 
     return KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT;
-  }
-
-  @Override
-  public boolean lessThanOrEqualTo(final OffsetVector other) {
-    throw new UnsupportedOperationException("Unsupported");
-  }
-
-  @JsonIgnore
-  @Override
-  public List<Long> getDenseRepresentation() {
-    throw new UnsupportedOperationException("Unsupported");
-  }
-
-  @JsonIgnore
-  @Override
-  public boolean dominates(final OffsetVector other) {
-    throw new UnsupportedOperationException("Unsupported");
   }
 
   private static ConcurrentHashMap<String, ConcurrentHashMap<Integer, Long>> deepCopy(

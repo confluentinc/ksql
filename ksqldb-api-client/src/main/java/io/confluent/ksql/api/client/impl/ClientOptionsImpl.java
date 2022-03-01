@@ -41,7 +41,7 @@ public class ClientOptionsImpl implements ClientOptions {
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
   private int http2MultiplexingLimit = ClientOptions.DEFAULT_HTTP2_MULTIPLEXING_LIMIT;
   private Map<String, String> requestHeaders;
-  private ConsistencyLevel consistencyLevel;
+  private ConsistencyLevel consistencyLevel = ConsistencyLevel.EVENTUAL;
 
   /**
    * {@code ClientOptions} should be instantiated via {@link ClientOptions#create}, NOT via this

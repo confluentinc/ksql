@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -691,8 +690,7 @@ public class PullQueryIQv2FunctionalTest {
   ) {
     final KsqlRestClient ksqlRestClient = target.buildKsqlClient(validCreds(), ConsistencyLevel.MONOTONIC_SESSION);
     final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
-        .put(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true)
-        .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
+        .put(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true);
     final Map<String, Object> requestProperties = builder.build();
     final RestResponse<List<StreamedRow>> res =
         ksqlRestClient.makeQueryRequest(sql, null, null, requestProperties);

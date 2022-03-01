@@ -506,7 +506,7 @@ public class DistributingExecutorTest {
   public void shouldThrowIfRateLimitHit() {
     // Given:
     final DistributingExecutor rateLimitedDistributor = new DistributingExecutor(
-      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 1.0)),
+      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 0.5)),
       queue,
       DURATION_10_MS,
       (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
@@ -528,6 +528,6 @@ public class DistributingExecutorTest {
 
     assertEquals(e.getResponse().getStatus(), 429);
     final KsqlErrorMessage errorMessage = (KsqlErrorMessage) e.getResponse().getEntity();
-    assertTrue(errorMessage.getMessage().contains("Too many writes to the command topic within a 1 second timeframe"));
+    assertTrue(errorMessage.getMessage().contains("DDL/DML rate is crossing the configured rate limit of statements/second"));
   }
 }

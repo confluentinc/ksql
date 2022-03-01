@@ -397,10 +397,10 @@ public class KsqlRestConfig extends AbstractConfig {
           + "ksqlDB servers have mutual TLS enabled)";
 
   public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG = 
-    KSQL_CONFIG_PREFIX + "server.command.topic.rate.limit";
+      KSQL_CONFIG_PREFIX + "server.command.topic.rate.limit";
   public static final double KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT = Double.MAX_VALUE;
-  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
-    = "Sets the number of statements that can be executed against the command topic per second";
+  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC = 
+      "Sets the number of statements that can be executed against the command topic per second";
 
   private static final ConfigDef CONFIG_DEF;
 

@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.Producer;
@@ -63,7 +64,9 @@ import org.apache.kafka.common.errors.TimeoutException;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class DistributingExecutor {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -203,10 +206,10 @@ public class DistributingExecutor {
           statement.getStatementText()), e);
     }
 
-    if (!rateLimiter.tryAcquire()) {
+    if (!rateLimiter.tryAcquire(1, TimeUnit.SECONDS)) {
       throw new KsqlRestException(
         Errors.tooManyRequests(
-          "Too many writes to the command topic within a 1 second timeframe"
+          "DDL/DML rate is crossing the configured rate limit of statements/second"
         ));
     }
     

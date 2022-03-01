@@ -196,6 +196,8 @@ public final class PropertiesUtil {
               : String.valueOf(value);
 
       return PROPERTY_PARSER.parse(key, stringValue);
+    } catch (final PropertyNotFoundException e) {
+      throw e;
     } catch (final Exception e) {
       throw new KsqlException(
           "Failed to coerce type of value '" + value + "' for key '" + key + "'",

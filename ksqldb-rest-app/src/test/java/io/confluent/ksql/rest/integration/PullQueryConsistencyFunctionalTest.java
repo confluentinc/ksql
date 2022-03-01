@@ -63,6 +63,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -485,7 +486,8 @@ public class PullQueryConsistencyFunctionalTest {
         HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.of(10L), 10),
         USER_CREDS);
 
-    final KsqlRestClient restClient = clusterFormation.router.getApp().buildKsqlClient(USER_CREDS);
+    final KsqlRestClient restClient = clusterFormation.router.getApp().buildKsqlClient(
+        USER_CREDS, ConsistencyLevel.MONOTONIC_SESSION);
     final ImmutableMap<String, Object> requestProperties =
         ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 

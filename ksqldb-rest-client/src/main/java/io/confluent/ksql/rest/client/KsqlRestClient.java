@@ -36,7 +36,7 @@ import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpVersion;
@@ -62,6 +62,7 @@ public final class KsqlRestClient implements Closeable {
   private final LocalProperties localProperties;
   private final AtomicReference<String> serializedConsistencyVector;
   private final Optional<BasicCredentials> ccloudApiKey;
+  private final ConsistencyLevel consistencyLevel;
 
   private List<URI> serverAddresses;
   private boolean isCCloudServer;
@@ -89,7 +90,8 @@ public final class KsqlRestClient implements Closeable {
         Optional.empty(),
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
             new HttpClientOptions(),
-            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
+            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2))),
+        ConsistencyLevel.EVENTUAL
     );
   }
 
@@ -116,7 +118,38 @@ public final class KsqlRestClient implements Closeable {
         ccloudApiKey,
         (cprops, credz, lprops) -> new KsqlClient(cprops, credz, lprops,
             new HttpClientOptions(),
-            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2)))
+            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2))),
+        ConsistencyLevel.EVENTUAL
+    );
+  }
+
+  /**
+   * @param serverAddress the address of the KSQL server to connect to.
+   * @param localProps initial set of local properties.
+   * @param clientProps properties used to build the client.
+   * @param creds optional credentials
+   * @param ccloudApiKey optional Confluent Cloud credentials for connector management
+   *                     from the ksqlDB CLI
+   * @param consistencyLevel the consistency level for pull queries
+   */
+  public static KsqlRestClient create(
+      final String serverAddress,
+      final Map<String, ?> localProps,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> creds,
+      final Optional<BasicCredentials> ccloudApiKey,
+      final ConsistencyLevel consistencyLevel
+  ) {
+    return create(
+        serverAddress,
+        localProps,
+        clientProps,
+        creds,
+        ccloudApiKey,
+        (cprops, credz, lprops) -> new KsqlClient(
+            cprops, credz, lprops, new HttpClientOptions(),
+            Optional.of(new HttpClientOptions().setProtocolVersion(HttpVersion.HTTP_2))),
+        consistencyLevel
     );
   }
 
@@ -127,11 +160,13 @@ public final class KsqlRestClient implements Closeable {
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> creds,
       final Optional<BasicCredentials> ccloudApiKey,
-      final KsqlClientSupplier clientSupplier
+      final KsqlClientSupplier clientSupplier,
+      final ConsistencyLevel consistencyLevel
   ) {
     final LocalProperties localProperties = new LocalProperties(localProps);
     final KsqlClient client = clientSupplier.get(clientProps, creds, localProperties);
-    return new KsqlRestClient(client, serverAddress, localProperties, ccloudApiKey);
+    return new KsqlRestClient(
+        client, serverAddress, localProperties, ccloudApiKey, consistencyLevel);
   }
 
   @FunctionalInterface
@@ -147,7 +182,8 @@ public final class KsqlRestClient implements Closeable {
       final KsqlClient client,
       final String serverAddress,
       final LocalProperties localProps,
-      final Optional<BasicCredentials> ccloudApiKey
+      final Optional<BasicCredentials> ccloudApiKey,
+      final ConsistencyLevel consistencyLevel
   ) {
     this.client = requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
@@ -155,6 +191,7 @@ public final class KsqlRestClient implements Closeable {
     this.ccloudApiKey = ccloudApiKey;
     this.serializedConsistencyVector = new AtomicReference<>();
     this.isCCloudServer = false;
+    this.consistencyLevel = consistencyLevel;
   }
 
   public URI getServerAddress() {
@@ -390,8 +427,11 @@ public final class KsqlRestClient implements Closeable {
   private Map<String, Object> setConsistencyVector(
       final Map<String, ?> requestProperties
   ) {
-    final Map<String, Object> requestPropertiesToSend = new HashMap<>(requestProperties);
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(requestPropertiesToSend)) {
+    final Map<String, Object> requestPropertiesToSend = new HashMap<>();
+    if (requestProperties != null) {
+      requestPropertiesToSend.putAll(requestProperties);
+    }
+    if (consistencyLevel == ConsistencyLevel.MONOTONIC_SESSION) {
       final String serializedCV = serializedConsistencyVector.get();
       // KsqlRequest:serializeClassValues throws NPE for null value
       requestPropertiesToSend.put(

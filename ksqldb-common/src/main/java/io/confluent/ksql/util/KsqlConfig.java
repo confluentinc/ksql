@@ -663,12 +663,6 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_ENDPOINT_MIGRATE_QUERY_DOC
       = "Migrates the /query endpoint to use the same handler as /query-stream.";
 
-  public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG
-      = "ksql.command.topic.rate.limit";
-  public static final double KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT = 10.0;
-  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
-      = "Sets the number of statements that can be executed against the command topic per second";
-
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -1434,13 +1428,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
             Importance.LOW,
             KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
-        )
-        .define(
-          KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG,
-          Type.DOUBLE,
-          KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
-          Importance.LOW,
-          KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
         )
         .withClientSslSupport();
 

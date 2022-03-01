@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -101,8 +102,9 @@ public class DistributingExecutor {
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
     this.commandRunnerWarning =
         Objects.requireNonNull(commandRunnerWarning, "commandRunnerWarning");
+    final KsqlRestConfig restConfig = new KsqlRestConfig(ksqlConfig.originals());
     this.rateLimiter = 
-      RateLimiter.create(ksqlConfig.getDouble(KsqlConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG));
+      RateLimiter.create(restConfig.getDouble(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG));
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

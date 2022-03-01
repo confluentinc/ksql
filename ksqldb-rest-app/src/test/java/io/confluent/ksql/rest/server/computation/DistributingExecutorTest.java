@@ -63,6 +63,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.execution.StatementExecutorResponse;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -505,7 +506,7 @@ public class DistributingExecutorTest {
   public void shouldThrowIfRateLimitHit() {
     // Given:
     final DistributingExecutor rateLimitedDistributor = new DistributingExecutor(
-      new KsqlConfig(ImmutableMap.of("ksql.command.topic.rate.limit", 1.0)),
+      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 1.0)),
       queue,
       DURATION_10_MS,
       (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
@@ -516,13 +517,13 @@ public class DistributingExecutorTest {
     );
     
     // When:
-    distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
 
 
     // Then:
     final KsqlRestException e = assertThrows(
       KsqlRestException.class,
-      () -> distributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
+      () -> rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
     );
 
     assertEquals(e.getResponse().getStatus(), 429);

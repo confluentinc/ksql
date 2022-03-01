@@ -102,14 +102,13 @@ public class PullQueryIQv2FunctionalTest {
   private static final int BASE_TIME = 1_000_000;
   private static final int ONE_SECOND = (int) TimeUnit.SECONDS.toMillis(1);
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_0 =
-      new ConsistencyOffsetVector(0, ImmutableMap.of(USER_TOPIC,
-                                                     ImmutableMap.of(0, 0L)));
+      ConsistencyOffsetVector.emptyVector().withComponent(USER_TOPIC, 0, 0L);
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_1 =
-      new ConsistencyOffsetVector(0, ImmutableMap.of(USER_TOPIC,
-                                                     ImmutableMap.of(1, 3L)));
+      ConsistencyOffsetVector.emptyVector().withComponent(USER_TOPIC, 1, 3L);
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BOTH =
-      new ConsistencyOffsetVector(0, ImmutableMap.of(USER_TOPIC,
-                                                     ImmutableMap.of(0, 0L, 1, 3L)));
+      ConsistencyOffsetVector.emptyVector()
+          .withComponent(USER_TOPIC, 0, 0L)
+          .withComponent(USER_TOPIC, 1, 3L);
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()

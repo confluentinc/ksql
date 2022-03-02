@@ -189,8 +189,8 @@ public class PullQuerySingleNodeFunctionalTest {
         timestampSupplier::getAndIncrement
     );
 
-    LOG.info("Produced rows " + producedRows.size());
-    
+    LOG.info("Produced rows: " + producedRows.size());
+
     //Create stream
     makeAdminRequest(
         REST_APP_0,

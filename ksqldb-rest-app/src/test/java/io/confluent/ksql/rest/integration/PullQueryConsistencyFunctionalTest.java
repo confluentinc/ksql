@@ -266,7 +266,7 @@ public class PullQueryConsistencyFunctionalTest {
       timestampSupplier::getAndIncrement
     );
 
-    LOG.info("Produced rows " + producedRows.size());
+    LOG.info("Produced rows: " + producedRows.size());
 
     //Create stream
     makeAdminRequest(

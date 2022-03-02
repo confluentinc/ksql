@@ -158,7 +158,7 @@ public class PullQueryIQv2FunctionalTest {
         timestampSupplier::getAndIncrement
     );
 
-    LOG.info("Produced rows " + producedRows.size());
+    LOG.info("Produced rows: " + producedRows.size());
 
     makeAdminRequest(
         "CREATE STREAM " + USERS_STREAM

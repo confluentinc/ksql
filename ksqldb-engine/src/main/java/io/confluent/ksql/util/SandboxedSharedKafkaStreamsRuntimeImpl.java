@@ -69,31 +69,22 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public void register(
-      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      final QueryId queryId
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   ) {
+    final QueryId queryId = binpackedPersistentQueryMetadata.getQueryId();
     log.info("Registering query {} for validation for runtime {}", queryId, getApplicationId());
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     try {
-      if (!kafkaStreams.getTopologyByName(
-          binpackedPersistentQueryMetadata.getQueryId().toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
-            .all()
-            .get();
-      } else {
-        kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
-        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
-            .all()
-            .get();
+      if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+         kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
       }
-    } catch (final ExecutionException e) {
-      final Throwable t = e.getCause() == null ? e : e.getCause();
-      throw new IllegalStateException(String.format(
-          "Encountered an error when trying to add query %s to runtime: %s",
-          queryId,
-          getApplicationId()),
-          t);
-    } catch (final Throwable t) {
+      kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+          .all()
+          .get();
+    }  catch (final Throwable e) {
+        final Throwable t = (e instanceof ExecutionException && e.getCause() != null)
+            ? e.getCause()
+            : e;
         throw new IllegalStateException(String.format(
             "Encountered an error when trying to add query %s to runtime: %s",
             queryId,

@@ -60,9 +60,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
 
   @Override
   public void register(
-      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      final QueryId queryId
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   ) {
+    final QueryId queryId = binpackedPersistentQueryMetadata.getQueryId();
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     log.info("Registered query: {}  in {} \n"
                  + "Runtime {} is executing these queries: {}",

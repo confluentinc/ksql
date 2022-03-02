@@ -437,6 +437,11 @@ public class KsqlConfig extends AbstractConfig {
           + " with it.";
   public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
 
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED =
+      "ksql.query.push.v2.metrics.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC =
+      "Config to enable/disable collecting JMX metrics for push queries v2.";
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -1255,6 +1260,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED,
+            Type.BOOLEAN,
+            true,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

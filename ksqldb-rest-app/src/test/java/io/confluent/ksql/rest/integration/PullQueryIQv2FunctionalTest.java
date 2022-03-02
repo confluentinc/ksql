@@ -91,7 +91,6 @@ public class PullQueryIQv2FunctionalTest {
   private static final Format KEY_FORMAT = FormatFactory.KAFKA;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final int HEADER = 1;
-  private static final int CONSISTENCY_TOKEN_SIZE = KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT ? 1 : 0;
 
   private static final TestBasicJaasConfig JAAS_CONFIG = TestBasicJaasConfig
       .builder(PROPS_JAAS_REALM)
@@ -190,7 +189,7 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER + 1));
     assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
   }
@@ -237,7 +236,7 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER));
     assertThat(rows.get(0).getRow(), is(Optional.empty()));
   }
 
@@ -263,9 +262,9 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + 3 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER + 3));
     assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
-    List<List<?>> rowsNoHeader = rows.subList(1, rows.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rowsNoHeader, containsInAnyOrder(
@@ -294,9 +293,9 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + 5 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER + 5));
     assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
-    List<List<?>> rowsNoHeader = rows.subList(1, rows.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rowsNoHeader, containsInAnyOrder(
@@ -363,9 +362,9 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + 4 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER + 4));
     assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
-    List<List<?>> rowsNoHeader = rows.subList(1, rows.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rowsNoHeader, containsInAnyOrder(
@@ -394,9 +393,9 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + 3 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER + 3));
     assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
-    List<List<?>> rowsNoHeader = rows.subList(1, rows.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rowsNoHeader, containsInAnyOrder(
@@ -426,9 +425,9 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows, hasSize(HEADER + 5 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows, hasSize(HEADER + 5));
     assertThat(rows.get(1).getRow(), is(not(Optional.empty())));
-    List<List<?>> rowsNoHeader = rows.subList(1, rows.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rowsNoHeader = rows.subList(1, rows.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
     assertThat(rowsNoHeader, containsInAnyOrder(
@@ -458,7 +457,7 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 1 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(
       key,                    // USERID
@@ -528,9 +527,9 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 3 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows_0, hasSize(HEADER + 3));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    List<List<?>> rows = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
       .map(sr -> sr.getRow().get().getColumns())
       .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(ImmutableList.of(
@@ -571,10 +570,10 @@ public class PullQueryIQv2FunctionalTest {
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(HEADER + 5 + CONSISTENCY_TOKEN_SIZE));
+    assertThat(rows_0, hasSize(HEADER + 5));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
 
-    List<List<?>> rows = rows_0.subList(1, rows_0.size() - CONSISTENCY_TOKEN_SIZE).stream()
+    List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
       .map(sr -> sr.getRow().get().getColumns())
       .collect(Collectors.toList());
     assertThat(rows, containsInAnyOrder(

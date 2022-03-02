@@ -78,7 +78,6 @@ public class PullQueryLimitHARoutingTest {
     private static final UserDataProviderBig USER_PROVIDER = new UserDataProviderBig();
     private static final int TOTAL_RECORDS = USER_PROVIDER.getNumRecords();
     private static final int HEADER = 1;
-    private static final int CONSISTENCY_TOKEN_SIZE = KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT ? 1 : 0;
     private static final int LIMIT_REACHED_MESSAGE = 1;
     private static final int COMPLETE_MESSAGE = 1;
     private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
@@ -254,14 +253,14 @@ public class PullQueryLimitHARoutingTest {
                 sqlTableScan, null, USER_CREDS);
 
         //check that we got back all the rows
-        assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS + CONSISTENCY_TOKEN_SIZE));
+        assertThat(rows_0, hasSize(HEADER + TOTAL_RECORDS));
 
         // issue pull query with limit
         final List<StreamedRow> rows_1 = makePullQueryRequest(TEST_APP_0.getApp(),
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
-        assertThat(rows_1, hasSize(limitSubsetSize + CONSISTENCY_TOKEN_SIZE));
+        assertThat(rows_1, hasSize(limitSubsetSize));
 
         // Partition off one test app
         TEST_APP_1.getShutoffs().shutOffAll();
@@ -282,7 +281,7 @@ public class PullQueryLimitHARoutingTest {
                 sqlTableScan, null, USER_CREDS);
 
         // check that we get all rows back
-        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS + CONSISTENCY_TOKEN_SIZE));
+        assertThat(rows_2, hasSize(HEADER + TOTAL_RECORDS));
         assertThat(rows_0, is(matchersRowsAnyOrder(rows_2)));
 
         // issue pull query with limit after partitioning an app
@@ -290,7 +289,7 @@ public class PullQueryLimitHARoutingTest {
                 sqlLimit, null, USER_CREDS);
 
         // check that we only got limit number of rows
-        assertThat(rows_3, hasSize(limitSubsetSize + CONSISTENCY_TOKEN_SIZE));
+        assertThat(rows_3, hasSize(limitSubsetSize));
     }
 
     @Test

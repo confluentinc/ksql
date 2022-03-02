@@ -37,7 +37,7 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 public final class ConsumerTestUtil {
 
   public static final Duration DEFAULT_VERIFY_TIMEOUT = Duration.ofSeconds(90);
-  private static final Duration POLL_TIMEOUT = Duration.ofMillis(300);
+  private static final Duration POLL_TIMEOUT = Duration.ofMillis(100);
 
   private ConsumerTestUtil() {
   }

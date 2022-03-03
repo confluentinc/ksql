@@ -17,9 +17,12 @@ package io.confluent.ksql.serde.avro;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import io.confluent.connect.avro.AvroData;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -40,6 +43,22 @@ public class AvroSchemaTranslatorTest {
   public void setUp() {
     when(formatProps.getFullSchemaName()).thenReturn("FullSchemaName");
     translator = new AvroSchemaTranslator(formatProps);
+  }
+
+  @Test
+  public void shouldTranslateWithoutConnectName() {
+    // Given:
+    final Schema schema = SchemaBuilder.struct()
+        .name("somename")
+        .field("Bad", Schema.OPTIONAL_INT32_SCHEMA)
+        .build();
+
+    // When:
+    final ParsedSchema parsedSchema = translator.fromConnectSchema(schema);
+    org.apache.avro.Schema raw = (org.apache.avro.Schema) parsedSchema.rawSchema();
+
+    // Then:
+    assertThat(raw.getProp(AvroData.CONNECT_NAME_PROP), is(nullValue()));
   }
 
   @Test

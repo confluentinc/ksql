@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.avro;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
+import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.SerdeUtils;
@@ -167,8 +168,7 @@ class KsqlAvroSerdeFactory {
     avroConfig.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
 
-    // Why is this disable now?
-    //avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
 
     if (schemaId.isPresent()) {
       // Disable auto registering schema if schema id is used

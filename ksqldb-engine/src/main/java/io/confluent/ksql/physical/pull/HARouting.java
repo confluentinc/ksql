@@ -54,6 +54,9 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -200,7 +203,11 @@ public final class HARouting implements AutoCloseable {
     while (processedPartitions < totalPartitions) {
       final Future<PartitionFetchResult> future = completionService.take();
       try {
-        final PartitionFetchResult fetchResult = future.get();
+        final long fetchTimeout = ThreadLocalRandom.current().nextLong(
+            KsqlConfig.KSQL_QUERY_PULL_FETCH_TIMEOUT_DEFAULT - 1,
+            KsqlConfig.KSQL_QUERY_PULL_FETCH_TIMEOUT_DEFAULT);
+        final PartitionFetchResult fetchResult =
+            future.get(fetchTimeout, TimeUnit.SECONDS);
         if (fetchResult.isError()) {
           exceptionsPerPartition.computeIfAbsent(
               fetchResult.location.getPartition(), v -> new ArrayList<>())
@@ -219,6 +226,16 @@ public final class HARouting implements AutoCloseable {
           Preconditions.checkState(fetchResult.getResult() == RoutingResult.SUCCESS);
           processedPartitions++;
         }
+      } catch (TimeoutException timeoutException) {
+        final MaterializationException exception =
+            new MaterializationException(
+            "Query timeout exception");
+        for (Entry<Integer, List<Exception>> entry: exceptionsPerPartition.entrySet()) {
+          for (Exception excp: entry.getValue()) {
+            exception.addSuppressed(excp);
+          }
+        }
+        throw exception;
       } catch (final Exception e) {
         final MaterializationException exception =
             new MaterializationException(

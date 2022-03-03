@@ -29,6 +29,7 @@ import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -131,6 +132,7 @@ public class DependentStatementsIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldRegisterAvroSchemaInSandboxViaCSandSchemaId() throws Exception {
     // Given:
     executeStatement(

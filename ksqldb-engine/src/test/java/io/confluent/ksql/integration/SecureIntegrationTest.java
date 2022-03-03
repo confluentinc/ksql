@@ -92,6 +92,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -177,6 +178,7 @@ public class SecureIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldRunQueryAgainstKafkaClusterOverSsl() {
     // Given:
     givenAllowAcl(ALL_USERS,
@@ -309,6 +311,7 @@ public class SecureIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
@@ -376,6 +379,7 @@ public class SecureIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldClassifyTransactionIdAuthorizationExceptionAsUserError() {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);

@@ -76,7 +76,6 @@ public class SandboxedSharedKafkaStreamsRuntimeImplTest {
     when(queryId.toString()).thenReturn("query 1");
 
     when(binPackedPersistentQueryMetadata.getTopologyCopy(any())).thenReturn(topology);
-    when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(queryId);
 
     validationSharedKafkaStreamsRuntime.register(
         binPackedPersistentQueryMetadata

@@ -41,6 +41,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.internal.JmxDataPointsReporter;
+import io.confluent.ksql.internal.LeakedResourcesMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
 import io.confluent.ksql.internal.StorageUtilizationMetricsReporter;
@@ -740,6 +741,13 @@ public final class KsqlRestApplication implements Executable {
             .setNameFormat("ksql-csu-metrics-reporter-%d")
             .build()
     );
+
+    final ScheduledExecutorService leakedResourcesReporter =
+            Executors.newScheduledThreadPool(1,
+                    new ThreadFactoryBuilder()
+                            .setNameFormat("ksql-leaked-resources-metrics-reporter-%d")
+                            .build());
+
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
@@ -750,7 +758,6 @@ public final class KsqlRestApplication implements Executable {
         Collections.emptyList(),
         metricCollectors
     );
-    
     final PersistentQuerySaturationMetrics saturation = new PersistentQuerySaturationMetrics(
         ksqlEngine,
         new JmxDataPointsReporter(
@@ -764,6 +771,26 @@ public final class KsqlRestApplication implements Executable {
         0,
         Duration.ofMinutes(1).toMillis(),
         TimeUnit.MILLISECONDS
+    );
+
+    final int transientQueryCleanupServicePeriod =
+            ksqlConfig.getInt(
+                    KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS);
+    final LeakedResourcesMetrics leaked = new LeakedResourcesMetrics(
+            ksqlEngine,
+            new JmxDataPointsReporter(
+                    metricCollectors.getMetrics(),
+                    ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+                            + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+                            + ".leaked_resources_metrics",
+                    Duration.ofSeconds(transientQueryCleanupServicePeriod)),
+            ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS)
+            );
+    leakedResourcesReporter.scheduleAtFixedRate(
+            leaked,
+            0,
+            transientQueryCleanupServicePeriod,
+            TimeUnit.SECONDS
     );
 
     UserFunctionLoader.newInstance(

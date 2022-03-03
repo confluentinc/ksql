@@ -146,19 +146,16 @@ public class RestApiTest {
   private static final String AN_AGG_KEY = "USER_1";
 
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
-      new ConsistencyOffsetVector(0, ImmutableMap.of(
-          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", ImmutableMap.of(0, 6L)));
+      ConsistencyOffsetVector.emptyVector().withComponent(
+          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", 0, 6L);
 
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_BEFORE =
-      new ConsistencyOffsetVector(0, ImmutableMap.of(
-          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition",
-          ImmutableMap.of(0, 4L)));
+      ConsistencyOffsetVector.emptyVector().withComponent(
+          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", 0, 4L);
 
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR_AFTER =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(
-            "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition",
-            ImmutableMap.of(0, 7L)));
-
+      ConsistencyOffsetVector.emptyVector().withComponent(
+          "_confluent-ksql-default_query_CTAS_AGG_TABLE_5-Aggregate-GroupBy-repartition", 0, 7L);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(

@@ -35,7 +35,9 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -63,6 +65,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.test.util.TestBasicJaasConfig;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
@@ -83,6 +86,7 @@ import java.util.function.Supplier;
 import javax.ws.rs.core.MediaType;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -96,6 +100,8 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * End to end test that uses consistency token with multiple nodes and queries.
@@ -105,6 +111,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryConsistencyFunctionalTest {
 
+  private static final Logger LOG = LoggerFactory.getLogger(PullQueryConsistencyFunctionalTest.class);
   private static final String USER_TOPIC = "user_topic_";
   private static final String USERS_STREAM = "users";
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
@@ -251,13 +258,15 @@ public class PullQueryConsistencyFunctionalTest {
     topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
     TEST_HARNESS.ensureTopics(1, topic);
 
-    TEST_HARNESS.produceRows(
+    final Multimap<GenericKey, RecordMetadata> producedRows = TEST_HARNESS.produceRows(
       topic,
       USER_PROVIDER,
       FormatFactory.KAFKA,
       FormatFactory.JSON,
       timestampSupplier::getAndIncrement
     );
+
+    LOG.info("Produced rows: " + producedRows.size());
 
     //Create stream
     makeAdminRequest(
@@ -282,13 +291,13 @@ public class PullQueryConsistencyFunctionalTest {
     queryId = extractQueryId(res.get(0).toString());
     queryId = queryId.substring(0, queryId.length() - 1);
     CONSISTENCY_OFFSET_VECTOR =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 4L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 4L);
     CONSISTENCY_OFFSET_VECTOR_BEFORE =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 3L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 3L);
     CONSISTENCY_OFFSET_VECTOR_AFTER =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 6L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 6L);
     CONSISTENCY_OFFSET_VECTOR_AFTER_10 =
-        new ConsistencyOffsetVector(0, ImmutableMap.of(topic, ImmutableMap.of(0, 9L)));
+        ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 9L);
 
     waitForTableRows();
 
@@ -485,7 +494,8 @@ public class PullQueryConsistencyFunctionalTest {
         HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.of(10L), 10),
         USER_CREDS);
 
-    final KsqlRestClient restClient = clusterFormation.router.getApp().buildKsqlClient(USER_CREDS);
+    final KsqlRestClient restClient = clusterFormation.router.getApp().buildKsqlClient(
+        USER_CREDS, ConsistencyLevel.MONOTONIC_SESSION);
     final ImmutableMap<String, Object> requestProperties =
         ImmutableMap.of(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
 

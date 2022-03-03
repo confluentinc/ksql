@@ -36,9 +36,11 @@ import org.approvaltests.Approvals;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@RunWith(Enclosed.class)
 public class QueryAnonymizerTest {
   private static final Path QUERIES_TO_ANONYMIZE_PATH =
       Paths.get("src/test/java/io/confluent/ksql/test/QueriesToAnonymizeTest.txt");
@@ -109,7 +111,6 @@ public class QueryAnonymizerTest {
       intersection.removeAll(sqlTokens);
       intersection.remove("");
       Assert.assertEquals(Collections.emptySet(), intersection);
-      //Assert.assertEquals(0, intersection.size());
     }
   }
 }

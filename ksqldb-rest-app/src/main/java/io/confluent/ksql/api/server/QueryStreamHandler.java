@@ -34,6 +34,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -113,7 +114,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
       final RoutingContext routingContext,
       final QueryPublisher queryPublisher,
       final Optional<String> completionMessage,
-      final Optional<String> limitMessage
+      final Optional<String> limitMessage,
+      final boolean bufferOutput
   ) {
     final String contentType = routingContext.getAcceptableContentType();
     if (DELIMITED_CONTENT_TYPE.equals(contentType)
@@ -124,7 +126,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         || ((contentType == null || JSON_CONTENT_TYPE.equals(contentType)
         && queryCompatibilityMode))) {
       return new JsonStreamedRowResponseWriter(routingContext.response(), queryPublisher,
-          completionMessage, limitMessage);
+          completionMessage, limitMessage, Clock.systemUTC(), bufferOutput, context);
     } else {
       return new JsonQueryStreamResponseWriter(routingContext.response());
     }
@@ -169,6 +171,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final QueryResponseMetadata metadata;
     Optional<String> completionMessage = Optional.empty();
     Optional<String> limitMessage = Optional.of("Limit Reached");
+    boolean bufferOutput = false;
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -177,6 +180,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           queryPublisher.getColumnTypes(),
           queryPublisher.geLogicalSchema());
       limitMessage = Optional.empty();
+      bufferOutput = true;
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
@@ -226,7 +230,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
     final QueryStreamResponseWriter queryStreamResponseWriter
         = getQueryStreamResponseWriter(routingContext, queryPublisher, completionMessage,
-        limitMessage);
+        limitMessage, bufferOutput);
     queryStreamResponseWriter.writeMetadata(metadata);
 
     final QuerySubscriber querySubscriber = new QuerySubscriber(context,

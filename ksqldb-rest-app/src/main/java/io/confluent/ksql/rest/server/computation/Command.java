@@ -26,6 +26,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Collections;
@@ -117,7 +118,7 @@ public class Command {
       justification = "overwriteProperties is unmodifiableMap()"
   )
   public Map<String, Object> getOverwriteProperties() {
-    return overwriteProperties;
+    return PropertiesUtil.coerceTypes(overwriteProperties, true);
   }
 
   @SuppressFBWarnings(

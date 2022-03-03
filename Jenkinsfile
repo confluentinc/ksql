@@ -1,16 +1,25 @@
 #!/usr/bin/env groovy
 
-dockerfile {
-    slackChannel = '#ksqldb-quality-oncall'
-    upstreamProjects = 'confluentinc/schema-registry'
-    extraDeployArgs = '-Ddocker.skip=true'
-    dockerPush = false
-    dockerScan = false
-    dockerImageClean = false
-    downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
-    nanoVersion = true
-    maxBuildsToKeep = 99
-    maxDaysToKeep = 90
-    extraBuildArgs = "-Dmaven.gitcommitid.nativegit=true"
-}
 
+parallel unitTests: {
+    common {
+        slackChannel = '#ksqldb-quality-oncall'
+        nodeLabel = 'docker-debian-jdk8'
+        downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
+        nanoVersion = true
+        timeoutHours = 3
+        upstreamProjects = 'confluentinc/schema-registry'
+        mavenProfiles = 'jenkins -Ddocker.skip=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -Dspotbugs.skip -Dmaven.site.skip'
+    }
+}, integrationTests: {
+    common {
+        slackChannel = '#ksqldb-quality-oncall'
+        nodeLabel = 'docker-debian-jdk8'
+        downStreamRepos = ["confluent-security-plugins", "confluent-cloud-plugins"]
+        nanoVersion = true
+        timeoutHours = 3
+        upstreamProjects = 'confluentinc/schema-registry'
+        mavenProfiles = 'jenkins -Ddocker.skip=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipTests'
+    }
+}
+failFast:true

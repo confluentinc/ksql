@@ -175,9 +175,9 @@ public final class MigrationConfig extends AbstractConfig {
             "",
             Importance.MEDIUM,
             "An optional config that allows users to specify the path to the directory "
-                + "containing migrations files to be applied. If empty, "
-                + "this path will be inferred as relative to the migrations configuration file "
-                + "passed as part of using the ksql-migrations tool. Specifically, the migrations "
+                + "containing migrations files to be applied. If empty, the migrations directory "
+                + "will be inferred as relative to the migrations configuration file "
+                + "passed when using the ksql-migrations tool. Specifically, the migrations "
                 + "directory will be inferred as a directory with name 'migrations' contained in "
                 + "the same directory as the migrations configuration file. This is the "
                 + "default file structure created by the 'ksql-migrations new-project' command."

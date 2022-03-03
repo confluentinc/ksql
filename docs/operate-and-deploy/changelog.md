@@ -8,7 +8,7 @@ keywords: ksqldb, changelog
 
 Version 0.24.0
 --------------
-- [ksqlDB v0.24.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0231-2022-02-11)
+- [ksqlDB v0.24.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0240-2022-02-11)
 
 Version 0.22.0
 --------------

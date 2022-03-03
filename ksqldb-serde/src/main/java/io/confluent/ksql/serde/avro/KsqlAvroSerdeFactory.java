@@ -168,7 +168,8 @@ class KsqlAvroSerdeFactory {
     avroConfig.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
         ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
 
-    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
+    // Why is this disable now?
+    //avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
 
     if (schemaId.isPresent()) {
       // Disable auto registering schema if schema id is used

@@ -6,6 +6,6 @@ common {
     nanoVersion = true
     timeoutHours = 3
     upstreamProjects = 'confluentinc/schema-registry'
-    mavenProfiles = 'jenkins -Dmaven.gitcommitid.nativegit=true -Ddocker.skip=true'
+    mavenProfiles = 'jenkins -Dmaven.gitcommitid.nativegit=true -Ddocker.skip=true -Pprofile -DprofileFormat=CONSOLE'
 }
 

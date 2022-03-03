@@ -897,7 +897,7 @@ public final class KsqlRestApplication implements Executable {
         : Optional.empty();
 
     final Optional<ScalablePushQueryMetrics> scalablePushQueryMetrics =
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED)
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_V2_METRICS_ENABLED)
         ? Optional.of(new ScalablePushQueryMetrics(
         ksqlEngine.getServiceId(),
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS),

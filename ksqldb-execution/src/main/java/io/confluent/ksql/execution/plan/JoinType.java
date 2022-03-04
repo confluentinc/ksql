@@ -17,5 +17,6 @@ package io.confluent.ksql.execution.plan;
 public enum JoinType {
   INNER,
   LEFT,
+  RIGHT,
   OUTER
 }

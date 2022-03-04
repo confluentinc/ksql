@@ -9,7 +9,7 @@ parallel unitTests: {
         nanoVersion = true
         timeoutHours = 3
         upstreamProjects = 'confluentinc/schema-registry'
-        mavenProfiles = 'jenkins -Ddocker.skip=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -Dspotbugs.skip -Dmaven.site.skip'
+        mavenProfiles = 'jenkins -pl '!ksqldb-docker' -Ddocker.skip=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipITs -Dspotbugs.skip -Dmaven.site.skip'
     }
 }, integrationTests: {
     common {
@@ -19,7 +19,7 @@ parallel unitTests: {
         nanoVersion = true
         timeoutHours = 3
         upstreamProjects = 'confluentinc/schema-registry'
-        mavenProfiles = 'jenkins -Ddocker.skip=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipTests'
+        mavenProfiles = 'jenkins -pl '!ksqldb-docker' -Ddocker.skip=true -Dprofile -DprofileFormat=CONSOLE -Dmaven.gitcommitid.skip=true -Dassembly.skipAssembly -Dmaven.artifact.threads=16 -DskipTests'
     }
 }
 failFast:true

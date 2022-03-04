@@ -299,10 +299,10 @@ public class PullQueryConsistencyFunctionalTest {
     CONSISTENCY_OFFSET_VECTOR_AFTER_10 =
         ConsistencyOffsetVector.emptyVector().withComponent(topic, 0, 9L);
 
-    waitForTableRows();
-
     waitForStreamsMetadataToInitialize(
       REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), USER_CREDS);
+
+    waitForTableRows();
   }
 
   @After

@@ -231,7 +231,7 @@ public class MigrationsTest {
       assertThat(new File(migrationsDir).mkdirs(), is(true));
 
       writeAdditionalConfigs(configFilePath, ImmutableMap.of(
-          MigrationConfig.KSQL_MIGRATIONS_DIRECTORY_PATH,
+          MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE,
           migrationsDir
       ));
     } else {

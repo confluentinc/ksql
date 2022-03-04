@@ -57,7 +57,7 @@ public final class MigrationsDirectoryUtil {
       final String configFilePath,
       final MigrationConfig config
   ) {
-    final String migrationsDir = config.getString(MigrationConfig.KSQL_MIGRATIONS_DIRECTORY_PATH);
+    final String migrationsDir = config.getString(MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE);
     if (migrationsDir != null && !migrationsDir.isEmpty()) {
       return migrationsDir;
     } else {

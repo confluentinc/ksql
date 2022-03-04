@@ -53,7 +53,7 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
-  public static final String KSQL_MIGRATIONS_DIRECTORY_PATH = "ksql.migrations.dir.override";
+  public static final String KSQL_MIGRATIONS_DIR_OVERRIDE = "ksql.migrations.dir.override";
 
   public static final MigrationConfig DEFAULT_CONFIG =
       new MigrationConfig(Collections.emptyMap(), "ksql-service-id");
@@ -170,7 +170,7 @@ public final class MigrationConfig extends AbstractConfig {
             "The number of replicas for the migration stream topic. It defaults to "
                 + KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT
         ).define(
-            KSQL_MIGRATIONS_DIRECTORY_PATH,
+            KSQL_MIGRATIONS_DIR_OVERRIDE,
             Type.STRING,
             "",
             Importance.MEDIUM,

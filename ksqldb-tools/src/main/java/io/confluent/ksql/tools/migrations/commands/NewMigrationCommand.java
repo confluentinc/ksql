@@ -168,7 +168,7 @@ public class NewMigrationCommand extends BaseCommand {
   );
 
   private static final List<String> MIGRATIONS_STRUCTURE_CONFIGS = ImmutableList.of(
-      MigrationConfig.KSQL_MIGRATIONS_DIRECTORY_PATH
+      MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE
   );
 
   private static String createInitialConfig(final String ksqlServerUrl) {

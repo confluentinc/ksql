@@ -120,10 +120,10 @@ An optional config that allows you to specify the path to the directory
 containing migrations files to be applied. This config is not needed if you
 set up your migrations project using the `ksql-migrations new-project` command.
 
-If no override is provided, the migrations directory will be inferred relative 
+If no override is provided, the migrations directory is inferred relative 
 to the migrations configuration file passed when using the `ksql-migrations` tool. 
-Specifically, the migrations directory will be inferred as a directory with name 
+Specifically, the migrations directory is inferred as a directory with name 
 `migrations` contained in the same directory as the migrations configuration file. 
 This is the default file structure created by the `ksql-migrations new-project` command.
 
-
+This configuration is available starting with ksqlDB 0.26.0.

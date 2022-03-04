@@ -72,7 +72,7 @@ public class MigrationsDirectoryUtilTest {
   @Test
   public void shouldDefaultMigrationsDirBasedOnConfigPath() {
     // Given:
-    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_DIRECTORY_PATH)).thenReturn("");
+    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE)).thenReturn("");
 
     // When / Then:
     assertThat(MigrationsDirectoryUtil.getMigrationsDir(migrationsConfigPath, config),
@@ -82,7 +82,7 @@ public class MigrationsDirectoryUtilTest {
   @Test
   public void shouldOverrideMigrationsDirFromConfig() {
     // Given:
-    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_DIRECTORY_PATH)).thenReturn(CUSTOM_DIR);
+    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_DIR_OVERRIDE)).thenReturn(CUSTOM_DIR);
 
     // When / Then:
     assertThat(MigrationsDirectoryUtil.getMigrationsDir(migrationsConfigPath, config), is(CUSTOM_DIR));

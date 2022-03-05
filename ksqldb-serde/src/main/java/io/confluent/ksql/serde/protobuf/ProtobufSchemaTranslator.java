@@ -33,7 +33,7 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
       new ProtobufData(new ProtobufDataConfig(ImmutableMap.of()));
 
   @Override
-  public void configure(Map<String, ?> configs) {
+  public void configure(final Map<String, ?> configs) {
   }
 
   @Override

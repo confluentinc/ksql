@@ -30,7 +30,7 @@ class JsonSchemaTranslator implements ConnectSchemaTranslator {
   private final JsonSchemaData jsonData = new JsonSchemaData();
 
   @Override
-  public void configure(Map<String, ?> configs) {
+  public void configure(final Map<String, ?> configs) {
   }
 
   @Override

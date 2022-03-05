@@ -60,7 +60,7 @@ class ConnectFormatSchemaTranslator implements SchemaTranslator {
   }
 
   @Override
-  public void configure(Map<String, ?> configs) {
+  public void configure(final Map<String, ?> configs) {
     connectSrTranslator.configure(configs);
   }
 

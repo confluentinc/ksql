@@ -46,7 +46,7 @@ class AvroSchemaTranslator implements ConnectSchemaTranslator {
   }
 
   @Override
-  public void configure(Map<String, ?> configs) {
+  public void configure(final Map<String, ?> configs) {
     avroData = new AvroData(new AvroDataConfig(configs));
   }
 

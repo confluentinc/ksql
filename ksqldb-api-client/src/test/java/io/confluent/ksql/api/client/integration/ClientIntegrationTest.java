@@ -1074,6 +1074,13 @@ public class ClientIntegrationTest {
   }
 
   @Test
+  public void shouldNotFailToDropNonExistantConnector() throws Exception {
+    // When/Then:
+    client.dropConnector("nonExistentConnector", true).get();
+  }
+
+
+  @Test
   public void shouldCreateConnector() throws Exception {
     // When:
     client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
@@ -1089,6 +1096,15 @@ public class ClientIntegrationTest {
         },
         is("RUNNING")
     );
+  }
+
+  @Test
+  public void shouldNotFailToCreateConnectorThatExists() throws Exception {
+    // Given:
+    givenConnectorExists();
+
+    // When/Then:
+    client.createConnector(TEST_CONNECTOR, true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS), true).get();
   }
 
   @Test

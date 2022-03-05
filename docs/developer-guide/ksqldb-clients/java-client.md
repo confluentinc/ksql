@@ -731,12 +731,12 @@ Map<String, String> connectorProperties = ImmutableMap.of(
   "table.whitelist", "users",
   "key", "username"
 );
-client.createConnector("jdbc-connector", true, connectorProperties).get();
+client.createConnector("jdbc-connector", true, connectorProperties, false).get();
 ```
 
 Drop a connector:
 ```java
-client.dropConnector("jdbc-connector").get();
+client.dropConnector("jdbc-connector", true).get();
 ```
 
 List connectors:

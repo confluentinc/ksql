@@ -21,7 +21,9 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.ksql.util.KsqlException;
 import org.apache.kafka.connect.data.Schema;
@@ -50,12 +52,13 @@ public class AvroSchemaTranslatorTest {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .name("somename")
-        .field("Bad", Schema.OPTIONAL_INT32_SCHEMA)
+        .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
         .build();
 
     // When:
+    translator.configure(ImmutableMap.of(AvroDataConfig.CONNECT_META_DATA_CONFIG, false));
     final ParsedSchema parsedSchema = translator.fromConnectSchema(schema);
-    org.apache.avro.Schema raw = (org.apache.avro.Schema) parsedSchema.rawSchema();
+    final org.apache.avro.Schema raw = (org.apache.avro.Schema) parsedSchema.rawSchema();
 
     // Then:
     assertThat(raw.getProp(AvroData.CONNECT_NAME_PROP), is(nullValue()));

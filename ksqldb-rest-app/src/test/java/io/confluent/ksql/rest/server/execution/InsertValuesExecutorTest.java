@@ -108,6 +108,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class InsertValuesExecutorTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
+  private static final ColumnName K1 = ColumnName.of("k1");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName COL1 = ColumnName.of("COL1");
   private static final ColumnName INT_COL = ColumnName.of("INT");
@@ -121,6 +122,20 @@ public class InsertValuesExecutorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(COL1, SqlTypes.BIGINT)
+      .build();
+
+  private static final String RAW_SCHEMA = "{\"type\":\"record\","
+      + "\"name\":\"KsqlDataSourceSchema\","
+      + "\"namespace\":\"io.confluent.ksql.avro_schemas\","
+      + "\"fields\":["
+      + "{\"name\":\"k0\",\"type\":[\"null\",\"string\"],\"default\":null},"
+      + "{\"name\":\"k1\",\"type\":[\"null\",\"string\"],\"default\":null}]}";
+
+  private static final LogicalSchema SCHEMA_WITH_MUTI_KEYS = LogicalSchema.builder()
+      .keyColumn(K0, SqlTypes.STRING)
+      .keyColumn(K1, SqlTypes.STRING)
       .valueColumn(COL0, SqlTypes.STRING)
       .valueColumn(COL1, SqlTypes.BIGINT)
       .build();
@@ -921,6 +936,39 @@ public class InsertValuesExecutorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Failed to insert values into 'TOPIC'. Value for primary key column(s) k0 is required for tables"));
+  }
+
+  @Test
+  public void shouldIgnoreConnectNameComparingKeySchema() throws Exception {
+    // Given:
+    when(srClient.getLatestSchemaMetadata(Mockito.any()))
+        .thenReturn(new SchemaMetadata(1, 1, RAW_SCHEMA));
+    givenDataSourceWithSchema(
+        TOPIC_NAME,
+        SCHEMA_WITH_MUTI_KEYS,
+        SerdeFeatures.of(SerdeFeature.SCHEMA_INFERENCE),
+        SerdeFeatures.of(),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        FormatInfo.of(FormatFactory.AVRO.name()),
+        false,
+        false);
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        ImmutableList.of(K0, K1, COL0, COL1),
+        ImmutableList.of(
+            new StringLiteral("k0"),
+            new StringLiteral("k1"),
+            new StringLiteral("v0"),
+            new LongLiteral(21))
+    );
+
+    // When:
+    executor.execute(statement, mock(SessionProperties.class), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, genericKey("k0", "k1"));
+    verify(valueSerializer).serialize(TOPIC_NAME, genericRow("v0", 21L));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 
   @Test

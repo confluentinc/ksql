@@ -165,11 +165,13 @@ final class AdminResponseHandlers {
   }
 
   static boolean isCreateConnectorResponse(final JsonObject ksqlEntity) {
-    return ksqlEntity.getJsonObject("info") != null || ksqlEntity.getString("message").contains("already exists");
+    return ksqlEntity.getJsonObject("info") != null
+        || ksqlEntity.getString("message").contains("already exists");
   }
 
   static boolean isDropConnectorResponse(final JsonObject ksqlEntity) {
-    return ksqlEntity.getString("connectorName") != null || ksqlEntity.getString("message").contains("not exist");
+    return ksqlEntity.getString("connectorName") != null
+        || ksqlEntity.getString("message").contains("not exist");
   }
 
   static boolean isConnectErrorResponse(final JsonObject ksqlEntity) {

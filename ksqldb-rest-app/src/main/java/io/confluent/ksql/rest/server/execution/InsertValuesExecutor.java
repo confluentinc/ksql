@@ -47,7 +47,6 @@ import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.avro.AvroFormat;
-import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;

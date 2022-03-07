@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -152,8 +153,10 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource("`FOO`")).thenReturn(fooDescriptionCf);
-    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES)).thenReturn(voidCf);
-    when(ksqlClient.dropConnector("WOOF")).thenReturn(voidCf);
+    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, false)).thenReturn(voidCf);
+    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, true)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("WOOF", false)).thenReturn(voidCf);
+    when(ksqlClient.dropConnector("WOOF", true)).thenReturn(voidCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(statementResultCf.get()).thenReturn(statementResult);
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
@@ -617,7 +620,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES));
+        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, false));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -639,7 +642,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES));
+        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES, true));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -661,7 +664,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF"));
+        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", false));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -683,7 +686,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).dropConnector("WOOF"));
+        () -> inOrder.verify(ksqlClient).dropConnector("WOOF", true));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }

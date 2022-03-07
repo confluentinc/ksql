@@ -432,7 +432,6 @@ public class CommandParserTest {
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0).getCommand(), is(dropConnector));
     assertThat(commands.get(0), instanceOf(SqlDropConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(dropConnector));
     assertThat(((SqlDropConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
     assertThat(((SqlDropConnectorStatement) commands.get(0)).getIfExists(), is(false));
   }
@@ -449,7 +448,6 @@ public class CommandParserTest {
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0).getCommand(), is(dropConnector));
     assertThat(commands.get(0), instanceOf(SqlDropConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(dropConnector));
     assertThat(((SqlDropConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
     assertThat(((SqlDropConnectorStatement) commands.get(0)).getIfExists(), is(true));
   }

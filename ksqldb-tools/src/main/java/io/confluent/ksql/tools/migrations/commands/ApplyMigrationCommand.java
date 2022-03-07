@@ -435,7 +435,7 @@ public class ApplyMigrationCommand extends BaseCommand {
           ((SqlCreateConnectorStatement) command).getName(),
           ((SqlCreateConnectorStatement) command).isSource(),
           ((SqlCreateConnectorStatement) command).getProperties(),
-          ((SqlCreateConnectorStatement) command).getIfNotExist()
+          ((SqlCreateConnectorStatement) command).getIfNotExists()
       ).get();
     } else if (command instanceof SqlDropConnectorStatement) {
       ksqlClient.dropConnector(

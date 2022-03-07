@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles requests to the query-stream endpoint
  */
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);

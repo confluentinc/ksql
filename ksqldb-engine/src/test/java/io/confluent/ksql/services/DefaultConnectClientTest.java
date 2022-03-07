@@ -40,17 +40,18 @@ import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.http.HttpStatus;
+import org.apache.kafka.connect.runtime.isolation.PluginType;
 import org.apache.kafka.connect.runtime.rest.entities.ActiveTopicsInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigKeyInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigValueInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.apache.kafka.connect.util.ConnectorTaskId;
 import org.junit.Before;
 import org.junit.Rule;
@@ -80,9 +81,9 @@ public class DefaultConnectClientTest {
       ),
       ConnectorType.SOURCE
   );
-  private static final ConnectorPluginInfo SAMPLE_PLUGIN = new ConnectorPluginInfo(
+  private static final PluginInfo SAMPLE_PLUGIN = new PluginInfo(
       "io.confluent.connect.replicator.ReplicatorSourceConnector",
-      ConnectorType.SOURCE,
+      PluginType.SOURCE,
       "1.0"
   );
   private static final String AUTH_HEADER = "Basic FOOBAR";
@@ -275,6 +276,8 @@ public class DefaultConnectClientTest {
   @Test
   public void testListPlugins() throws JsonProcessingException {
     // Given:
+
+    MAPPER.writeValueAsString(ImmutableList.of(SAMPLE_PLUGIN));
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo(pathPrefix + "/connector-plugins"))
             .withHeader(AUTHORIZATION.toString(), new EqualToPattern(AUTH_HEADER))
@@ -285,7 +288,7 @@ public class DefaultConnectClientTest {
     );
 
     // When:
-    final ConnectResponse<List<ConnectorPluginInfo>> response = client.connectorPlugins();
+    final ConnectResponse<List<PluginInfo>> response = client.connectorPlugins();
 
     // Then:
     assertThat(response.datum(), OptionalMatchers.of(is(ImmutableList.of(SAMPLE_PLUGIN))));

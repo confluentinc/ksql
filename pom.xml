@@ -155,6 +155,7 @@
         <netty.version>4.1.72.Final</netty.version>
         <netty-codec-http2-version>4.1.72.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
+        <kafka.version>3.2.0-SNAPSHOT</kafka.version>
     </properties>
 
     <dependencyManagement>

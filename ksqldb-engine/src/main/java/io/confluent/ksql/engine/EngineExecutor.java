@@ -712,53 +712,58 @@ final class EngineExecutor {
       final MetaStore metaStore) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
-        query,
-        sink,
-        metaStore,
-        ksqlConfig,
-        getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
-        statement.getStatementText()
-    );
-
-    final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
-
-    final QueryId queryId = QueryIdUtil.buildId(
-        statement.getStatement(),
-        engineContext,
-        engineContext.idGenerator(),
-        outputNode,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
-        withQueryId
-    );
-
-    if (withQueryId.isPresent()
-        && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
-      throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
-    }
-    final Optional<PersistentQueryMetadata> persistentQueryMetadata =
-        engineContext.getQueryRegistry().getPersistentQuery(queryId);
-
-    final Optional<PlanInfo> oldPlanInfo;
-
-    if (persistentQueryMetadata.isPresent()) {
-      final ExecutionStep<?> oldPlan = persistentQueryMetadata.get().getPhysicalPlan();
-      oldPlanInfo = Optional.of(oldPlan.extractPlanInfo(new PlanInfoExtractor()));
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED)) {
+      throw new UnsupportedOperationException("New query planner not available yet. Set "
+          + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     } else {
-      oldPlanInfo = Optional.empty();
-    }
+      final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
+          query,
+          sink,
+          metaStore,
+          ksqlConfig,
+          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
+          statement.getStatementText()
+      );
 
-    final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
-        logicalPlan,
-        config,
-        metaStore,
-        queryId,
-        oldPlanInfo
-    );
-    return new ExecutorPlans(logicalPlan, physicalPlan);
+      final LogicalPlanNode logicalPlan = new LogicalPlanNode(
+          statement.getStatementText(),
+          Optional.of(outputNode)
+      );
+
+      final QueryId queryId = QueryIdUtil.buildId(
+          statement.getStatement(),
+          engineContext,
+          engineContext.idGenerator(),
+          outputNode,
+          ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
+          withQueryId
+      );
+
+      if (withQueryId.isPresent()
+          && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
+        throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
+      }
+      final Optional<PersistentQueryMetadata> persistentQueryMetadata =
+          engineContext.getQueryRegistry().getPersistentQuery(queryId);
+
+      final Optional<PlanInfo> oldPlanInfo;
+
+      if (persistentQueryMetadata.isPresent()) {
+        final ExecutionStep<?> oldPlan = persistentQueryMetadata.get().getPhysicalPlan();
+        oldPlanInfo = Optional.of(oldPlan.extractPlanInfo(new PlanInfoExtractor()));
+      } else {
+        oldPlanInfo = Optional.empty();
+      }
+
+      final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
+          logicalPlan,
+          config,
+          metaStore,
+          queryId,
+          oldPlanInfo
+      );
+      return new ExecutorPlans(logicalPlan, physicalPlan);
+    }
   }
 
   private LogicalPlanNode buildAndValidateLogicalPlan(

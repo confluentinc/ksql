@@ -576,6 +576,11 @@ public class KsqlConfig extends AbstractConfig {
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
 
+  public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
+      "ksql.new.query.planner.enabled";
+  private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
+  private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
+      "Feature flag that enables the new planner for persistent queries. Default is false.";
 
   public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
   public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 8;
@@ -1391,6 +1396,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
+        )
+        .define(
+            KSQL_NEW_QUERY_PLANNER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DOC
         )
         .define(
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS,

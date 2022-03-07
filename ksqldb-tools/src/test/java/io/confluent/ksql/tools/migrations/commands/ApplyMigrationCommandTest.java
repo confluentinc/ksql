@@ -83,7 +83,9 @@ public class ApplyMigrationCommandTest {
       + "insert into foo ( a ) values ( 'efgh' );"
       + "INSERT INTO `FOO` ( `A` ) values ( 'ijkl' );";
   private static final String CREATE_CONNECTOR = "CREATE SINK CONNECTOR woof WITH ('meow'='woof');";
+  private static final String CREATE_CONNECTOR_IF_NOT_EXISTS = "CREATE SINK CONNECTOR IF NOT EXISTS woof WITH ('meow'='woof');";
   private static final String DROP_CONNECTOR = "DROP CONNECTOR WOOF;";
+  private static final String DROP_CONNECTOR_IF_EXISTS = "DROP CONNECTOR IF EXISTS WOOF;";
   private static final Map<String, Object> CONNECTOR_PROPERTIES = ImmutableMap.of("meow", "woof");
   private static final String SET_COMMANDS = COMMAND
       + "SET 'auto.offset.reset' = 'earliest';"
@@ -621,11 +623,55 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
+  public void shouldApplyCreateConnectorIfNotExistsStatement() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir,CREATE_CONNECTOR_IF_NOT_EXISTS );
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
   public void shouldApplyDropConnectorStatement() throws Exception {
     // Given:
     command = PARSER.parse("-v", "3");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(3, NAME, migrationsDir, DROP_CONNECTOR);
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, (cfg, headers) -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> inOrder.verify(ksqlClient).dropConnector("WOOF"));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplyDropConnectorIfExistsStatement() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, DROP_CONNECTOR_IF_EXISTS);
     givenCurrentMigrationVersion("1");
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 

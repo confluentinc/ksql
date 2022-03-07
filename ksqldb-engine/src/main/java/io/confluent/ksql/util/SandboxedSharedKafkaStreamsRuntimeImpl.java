@@ -47,7 +47,14 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     if (!namedTopologies.containsAll(sharedRuntime.kafkaStreams.getAllTopologies())
         || !sharedRuntime.kafkaStreams.getAllTopologies().containsAll(namedTopologies)) {
       log.warn("Streams topologies and registered queries do not align. \nmetadata: {} \nstreams: {}",
-          namedTopologies, sharedRuntime.kafkaStreams.getAllTopologies());
+          namedTopologies
+              .stream()
+              .map(s -> s.name())
+              .collect(Collectors.toList()),
+          sharedRuntime.kafkaStreams.getAllTopologies()
+              .stream()
+              .map(s -> s.name())
+              .collect(Collectors.toList()));
     }
     collocatedQueries.putAll(sharedRuntime.collocatedQueries);
     for (BinPackedPersistentQueryMetadataImpl query : sharedRuntime.collocatedQueries.values()) {

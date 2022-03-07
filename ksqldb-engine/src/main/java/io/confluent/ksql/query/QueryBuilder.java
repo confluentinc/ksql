@@ -570,7 +570,7 @@ final class QueryBuilder {
       newStreamsProperties.put(StreamsConfig.InternalConfig.TOPIC_PREFIX_ALTERNATIVE,
           ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
               + config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-              + "query");
+              + config.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG));
     }
 
     // Passing shared state into managed components

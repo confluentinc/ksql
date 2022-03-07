@@ -95,6 +95,7 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     private final String appId;
     private final String queryTopicPrefix;
     private final String altQueryTopicPrefix;
+    //There was a mixup with - and _ for now we check both
     private final Optional<String> topologyName;
     private final String pathName;
     private final boolean isTransient;

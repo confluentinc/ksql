@@ -18,28 +18,26 @@ package io.confluent.ksql.execution.streams.transform;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer.KsProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import java.util.Optional;
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.processor.ProcessorContext;
 
-/**
- * A Kafka-streams transformer
- *
- * <p>Maps a implementation agnostic {@link KsqlTransformer} to a implementation specific {@link
- * ValueTransformerWithKey}.
- *
- * @param <K> the type of the key
- * @param <R> the return type
- */
-public class KsTransformer<K, R> implements ValueTransformerWithKey<K, GenericRow, R> {
+public class KsTransformer<KInT, KOutT>
+    implements Transformer<KInT, GenericRow, KeyValue<KOutT, GenericRow>> {
 
-  private final KsqlTransformer<K, R> delegate;
+  private final KsqlTransformer<KInT, KOutT> keyDelegate;
+  private final KsqlTransformer<KInT, GenericRow> valueDelegate;
   private Optional<KsProcessingContext> context;
 
-  public KsTransformer(final KsqlTransformer<K, R> delegate) {
-    this.delegate = requireNonNull(delegate, "delegate");
+  public KsTransformer(
+      final KsqlTransformer<KInT, KOutT> keyDelegate,
+      final KsqlTransformer<KInT, GenericRow> valueDelegate
+  ) {
+    this.keyDelegate = requireNonNull(keyDelegate, "keyDelegate");
+    this.valueDelegate = requireNonNull(valueDelegate, "valueDelegate");
     this.context = Optional.empty();
   }
 
@@ -49,29 +47,21 @@ public class KsTransformer<K, R> implements ValueTransformerWithKey<K, GenericRo
   }
 
   @Override
-  public R transform(final K readOnlyKey, final GenericRow value) {
-    return delegate.transform(
-        readOnlyKey,
-        value,
-        context.orElseThrow(() -> new IllegalStateException("Not initialized"))
+  public KeyValue<KOutT, GenericRow> transform(final KInT key, final GenericRow value) {
+    return KeyValue.pair(
+        keyDelegate.transform(
+            key,
+            value,
+            context.orElseThrow(() -> new IllegalStateException("Not initialized"))
+        ),
+        valueDelegate.transform(
+            key,
+            value,
+            context.orElseThrow(() -> new IllegalStateException("Not initialized"))
+        )
     );
   }
 
   @Override
-  public void close() {
-  }
-
-  private static final class KsProcessingContext implements KsqlProcessingContext {
-
-    private final ProcessorContext processingContext;
-
-    KsProcessingContext(final ProcessorContext processorContext) {
-      this.processingContext = requireNonNull(processorContext, "processorContext");
-    }
-
-    @Override
-    public long getRowTime() {
-      return processingContext.timestamp();
-    }
-  }
+  public void close() {}
 }

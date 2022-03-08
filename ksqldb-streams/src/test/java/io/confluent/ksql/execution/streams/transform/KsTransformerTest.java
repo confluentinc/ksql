@@ -49,11 +49,11 @@ public class KsTransformerTest {
   @Captor
   private ArgumentCaptor<KsqlProcessingContext> ctxCaptor;
 
-  private KsTransformer<Long, String> ksTransformer;
+  private KsValueTransformer<Long, String> ksTransformer;
 
   @Before
   public void setUp() {
-    ksTransformer = new KsTransformer<>(ksqlTransformer);
+    ksTransformer = new KsValueTransformer<>(ksqlTransformer);
     ksTransformer.init(ctx);
 
     when(ksqlTransformer.transform(any(), any(), any())).thenReturn(RESULT);
@@ -64,7 +64,7 @@ public class KsTransformerTest {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnTransformIfNotInitialized() {
     // Given:
-    ksTransformer = new KsTransformer<>(ksqlTransformer);
+    ksTransformer = new KsValueTransformer<>(ksqlTransformer);
 
     // When:
     ksTransformer.transform(KEY, VALUE);

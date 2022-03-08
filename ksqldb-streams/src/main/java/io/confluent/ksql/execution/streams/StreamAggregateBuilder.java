@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -119,7 +119,7 @@ public final class StreamAggregateBuilder {
 
     final KTable<GenericKey, GenericRow> result = aggregated
         .transformValues(
-            () -> new KsTransformer<>(aggregator.getResultMapper()),
+            () -> new KsValueTransformer<>(aggregator.getResultMapper()),
             Named.as(StreamsUtil.buildOpName(
                 AggregateBuilderUtils.outputContext(aggregate)))
         );
@@ -183,7 +183,7 @@ public final class StreamAggregateBuilder {
     final KudafAggregator<Windowed<GenericKey>> aggregator = aggregateParams.getAggregator();
 
     KTable<Windowed<GenericKey>, GenericRow> reduced = aggregated.transformValues(
-        () -> new KsTransformer<>(aggregator.getResultMapper()),
+        () -> new KsValueTransformer<>(aggregator.getResultMapper()),
         Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
@@ -196,7 +196,7 @@ public final class StreamAggregateBuilder {
         );
 
     reduced = reduced.transformValues(
-        () -> new KsTransformer<>(new WindowBoundsPopulator()),
+        () -> new KsValueTransformer<>(new WindowBoundsPopulator()),
         Named.as(StreamsUtil.buildOpName(
             AggregateBuilderUtils.windowSelectContext(aggregate)
         ))

@@ -151,6 +151,7 @@ public class SchemaKStream<K> {
         contextStacker,
         sourceStep,
         keyColumnNames,
+        Optional.empty(),
         selectExpressions
     );
 

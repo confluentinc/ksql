@@ -46,6 +46,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
@@ -126,6 +127,7 @@ public class StreamSelectBuilderTest {
         properties,
         sourceStep,
         ImmutableList.of(),
+        Optional.empty(),
         SELECT_EXPRESSIONS
     );
     planBuilder = new KSPlanBuilder(
@@ -183,6 +185,7 @@ public class StreamSelectBuilderTest {
         properties,
         sourceStep,
         ImmutableList.of(ColumnName.of("NEW_KEY")),
+        Optional.empty(),
         SELECT_EXPRESSIONS
     );
 

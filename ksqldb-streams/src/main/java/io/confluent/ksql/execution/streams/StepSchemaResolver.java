@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.CompiledExpression;
@@ -250,7 +251,12 @@ public final class StepSchemaResolver {
       final LogicalSchema schema,
       final StreamSelect<?> step
   ) {
-    return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
+    return buildSelectSchema(
+        schema,
+        step.getKeyColumnNames(),
+        step.getSelectedKeys(),
+        step.getSelectExpressions()
+    );
   }
 
   private LogicalSchema handleStreamSelectKeyV1(
@@ -339,7 +345,12 @@ public final class StepSchemaResolver {
       final LogicalSchema schema,
       final TableSelect<?> step
   ) {
-    return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
+    return buildSelectSchema(
+        schema,
+        step.getKeyColumnNames(),
+        Optional.empty(),
+        step.getSelectExpressions()
+    );
   }
 
   private LogicalSchema handleTableSelectKey(
@@ -369,11 +380,13 @@ public final class StepSchemaResolver {
   private LogicalSchema buildSelectSchema(
       final LogicalSchema schema,
       final List<ColumnName> keyColumnNames,
+      final Optional<ImmutableList<ColumnName>> selectedKeys,
       final List<SelectExpression> selectExpressions
   ) {
     return Selection.of(
         schema,
         keyColumnNames,
+        selectedKeys,
         selectExpressions,
         ksqlConfig,
         functionRegistry

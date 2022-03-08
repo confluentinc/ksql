@@ -182,6 +182,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         ImmutableList.of(ColumnName.of("NEW_KEY")),
+        Optional.empty(),
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
@@ -209,6 +210,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         streamSource,
         ImmutableList.of(),
+        Optional.empty(),
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),

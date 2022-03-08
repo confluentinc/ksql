@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsTransformer;
+import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -110,7 +110,7 @@ public final class TableSuppressBuilder {
     with the correct key and val serdes is passed on when we call suppress
      */
     final KTable<K, GenericRow> suppressed = table.getTable().transformValues(
-        (() -> new KsTransformer<>((k, v, ctx) -> v)),
+        (() -> new KsValueTransformer<>((k, v, ctx) -> v)),
         materialized
     ).suppress(
         (Suppressed<? super K>) Suppressed

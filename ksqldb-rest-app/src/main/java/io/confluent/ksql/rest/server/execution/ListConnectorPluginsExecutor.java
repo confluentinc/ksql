@@ -27,7 +27,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 
 public final class ListConnectorPluginsExecutor {
   private final ConnectServerErrors connectErrorHandler;
@@ -43,7 +44,7 @@ public final class ListConnectorPluginsExecutor {
       final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext
   ) {
-    final ConnectResponse<List<ConnectorPluginInfo>> plugins =
+    final ConnectResponse<List<PluginInfo>> plugins =
         serviceContext.getConnectClient().connectorPlugins();
     if (plugins.error().isPresent()) {
       return StatementExecutorResponse.handled(connectErrorHandler.handle(
@@ -51,10 +52,10 @@ public final class ListConnectorPluginsExecutor {
     }
 
     final List<SimpleConnectorPluginInfo> pluginInfos = new ArrayList<>();
-    for (final ConnectorPluginInfo info : plugins.datum().get()) {
+    for (final PluginInfo info : plugins.datum().get()) {
       pluginInfos.add(new SimpleConnectorPluginInfo(
           info.className(),
-          info.type(),
+          ConnectorType.forValue(info.type()),
           info.version()
       ));
     }

@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
@@ -88,21 +89,27 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
 
   @Override
   public void register(
-      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      final QueryId queryId
+      final BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   ) {
+    final QueryId queryId = binpackedPersistentQueryMetadata.getQueryId();
     log.info("Registering query {} for validation for runtime {}", queryId, getApplicationId());
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     try {
-      if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this));
+      if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
+        kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
       }
-    } catch (final Throwable e) {
+      kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
+          .all()
+          .get();
+    }  catch (final Throwable e) {
+      final Throwable t = (e instanceof ExecutionException && e.getCause() != null)
+          ? e.getCause()
+          : e;
       throw new IllegalStateException(String.format(
-            "Encountered an error when trying to add query %s to runtime: %s",
-            queryId,
-            getApplicationId()),
-          e);
+          "Encountered an error when trying to add query %s to runtime: %s",
+          queryId,
+          getApplicationId()),
+        t);
     }
     log.info("Registered query: {}  in {} \n"
             + "Runtime {} is executing these queries: {}",

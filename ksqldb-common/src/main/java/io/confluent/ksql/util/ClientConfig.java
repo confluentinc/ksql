@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.util;
 
+/**
+ * Consistency levels a client can specify to be used with pull queries.
+ */
 public class ClientConfig {
 
   public enum ConsistencyLevel {

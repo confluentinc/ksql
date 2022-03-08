@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.rest.client.BasicCredentials;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.config.ConfigException;
@@ -204,6 +205,41 @@ public class OptionsTest {
     assertThat(options.getVariables(), hasEntry("size", "1"));
     assertThat(options.getVariables(), hasEntry("prod", "true"));
   }
+
+  @Test
+  public void shouldThrowConfigExceptionIfConsistencyLevelWrong() {
+    // Given:
+    final Options options = parse("--consistency-level", "lala");
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> options.getConsistencyLevel()
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("The possible values for the consistency level argument are: "
+            + "EVENTUAL and MONOTONIC_SESSION"));
+  }
+
+  @Test
+  public void shouldUseDefaultConsistencyLevelIfNoneProvided() {
+    // Given:
+    final Options options = parse();
+
+    // Then:
+    assertThat(options.getConsistencyLevel(), is(ConsistencyLevel.EVENTUAL));
+  }
+
+  @Test
+  public void shouldUseProvidedConsistencyLevel() {
+    // Given:
+    final Options options = parse("--consistency-level", "monotonic_session");
+
+    // Then:
+    assertThat(options.getConsistencyLevel(), is(ConsistencyLevel.MONOTONIC_SESSION));
+  }
+
 
   private static Options parse(final String... args) {
     try {

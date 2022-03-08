@@ -1573,6 +1573,20 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldCreateConnectorIfNotExist() throws Exception {
+    // Given
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.createConnector("name", true, Collections.emptyMap(), true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR IF NOT EXISTS name WITH ();"));
+  }
+
+  @Test
   public void shouldDropConnector() throws Exception {
     // Given
     final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
@@ -1583,6 +1597,19 @@ public class ClientTest extends BaseApiTest {
 
     // Then:
     assertThat(testEndpoints.getLastSql(), is("drop connector name;"));
+  }
+
+  @Test
+  public void shouldDropConnectorIfExists() throws Exception {
+    // Given
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.dropConnector("name", true).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("drop connector if exists name;"));
   }
 
   @Test

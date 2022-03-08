@@ -38,6 +38,7 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles requests to the query-stream endpoint
  */
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class QueryStreamHandler implements Handler<RoutingContext> {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamHandler.class);
@@ -172,6 +174,11 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     Optional<String> completionMessage = Optional.empty();
     Optional<String> limitMessage = Optional.of("Limit Reached");
     boolean bufferOutput = false;
+    // The end handler can be called twice if the connection is closed by the client.  The
+    // call to response.end() resulting from queryPublisher.close() may result in a second
+    // call to the end handler, which will mess up metrics, so we ensure that this called just
+    // once by keeping track of the calls.
+    final AtomicBoolean endedResponse = new AtomicBoolean(false);
 
     if (queryPublisher.isPullQuery()) {
       metadata = new QueryResponseMetadata(
@@ -184,6 +191,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
       // When response is complete, publisher should be closed
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -199,6 +210,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
           preparePushProjectionSchema(queryPublisher.geLogicalSchema()));
 
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         queryPublisher.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),
@@ -219,6 +234,10 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
 
       // When response is complete, publisher should be closed and query unregistered
       routingContext.response().endHandler(v -> {
+        if (endedResponse.getAndSet(true)) {
+          log.warn("Connection already closed so just returning");
+          return;
+        }
         query.close();
         metricsCallbackHolder.reportMetrics(
             routingContext.response().getStatusCode(),

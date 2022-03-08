@@ -266,6 +266,7 @@ public class MigrationsTest {
         configFilePath,
         migrationsDir,
         "CREATE STREAM ${streamName} (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
+            "DROP CONNECTOR IF EXISTS nonExistant;\n" +
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "DEFINE connectorName = 'D';" +
@@ -302,6 +303,7 @@ public class MigrationsTest {
             "CREATE STREAM ${variable} (ADDR ADDRESS) WITH (KAFKA_TOPIC='${variable}', PARTITIONS=1, VALUE_FORMAT='JSON');" +
             "UNDEFINE variable;" +
             "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := '${variable}'));" +
+            "CREATE SOURCE CONNECTOR IF NOT EXISTS C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "DROP TYPE ADDRESS;"
     );
 

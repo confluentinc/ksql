@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.logicalPlanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -45,12 +46,15 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Relation;
@@ -73,6 +77,7 @@ import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.physicalPlanner.PhysicalPlanner;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.QueryPlannerOptions;
@@ -80,7 +85,9 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
@@ -92,6 +99,7 @@ import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -712,9 +720,75 @@ final class EngineExecutor {
       final MetaStore metaStore) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
+
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED)) {
-      throw new UnsupportedOperationException("New query planner not available yet. Set "
-          + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      if (query.isPullQuery()) { // should have been checked previously?
+        throw new IllegalStateException();
+      }
+      if (query.getWhere().isPresent()) {
+        throw new UnsupportedOperationException("New query planner does not support WHERE."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      if (query.getGroupBy().isPresent()) {
+        throw new UnsupportedOperationException("New query planner does not support GROUP BY."
+          + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      if (query.getHaving().isPresent()) {
+        throw new UnsupportedOperationException("New query planner does not support HAVING."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      if (query.getWindow().isPresent()) {
+        throw new UnsupportedOperationException("New query planner does not support WINDOWS."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      if (query.getPartitionBy().isPresent()) {
+        throw new UnsupportedOperationException("New query planner does not support PARTITION BY."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      if (query.getLimit().isPresent()) {
+        throw new UnsupportedOperationException("New query planner does not support LIMIT."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      final Relation fromClause = query.getFrom();
+      if (fromClause instanceof Join) {
+        throw new UnsupportedOperationException("New query planner does not support joins."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+      if (fromClause instanceof JoinedSource) {
+        throw new IllegalStateException(); // top level node should always be Join
+      }
+      if (query.getSelect().getSelectItems().size() > 2
+          || !(query.getSelect().getSelectItems().get(0) instanceof AllColumns)) {
+        throw new UnsupportedOperationException("New query planner does not support projections."
+            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+      }
+
+      final LogicalPlan logicalPlan =
+          io.confluent.ksql.logicalPlanner.LogicalPlanner.buildLogicalPlan(
+              metaStore,
+              query
+          );
+
+      // dummy
+      final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
+          query,
+          sink,
+          metaStore,
+          ksqlConfig,
+          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
+          statement.getStatementText()
+      );
+
+      final LogicalPlanNode dummyLogicalPlan = new LogicalPlanNode(
+          statement.getStatementText(),
+          Optional.of(outputNode)
+      );
+      // end dummy
+
+      return new ExecutorPlans(
+          dummyLogicalPlan,
+          PhysicalPlanner.buildPhysicalPlan(metaStore, logicalPlan)
+      );
     } else {
       final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
           query,

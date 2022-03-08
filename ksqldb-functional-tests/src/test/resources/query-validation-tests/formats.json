@@ -253,16 +253,41 @@
       }
     },
     {
-      "name": "override key format - create stream as select",
+      "name": "override key format - create stream as select (old planner)",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
         "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
       ],
+      "properties": {
+        "ksql.new.query.planner.enabled": "false"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name" : "INPUT", "type" : "stream", "keyFormat" : {"format": "KAFKA"}, "valueFormat" : "JSON"},
+          {"name" : "OUTPUT", "type" : "stream", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
+        ]
+      }
+    },
+    {
+      "name": "override key format - create stream as select (new planner)",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='JSON');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.new.query.planner.enabled": "true"
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": "hello"}, "value": {"FOO": 10}}
       ],
       "post": {
         "sources": [
@@ -291,16 +316,41 @@
       }
     },
     {
-      "name": "override formats - create stream as select",
+      "name": "override formats - create stream as select (old planner)",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH (format='JSON') AS SELECT * FROM INPUT;"
       ],
+      "properties": {
+        "ksql.new.query.planner.enabled": "false"
+      },
       "inputs": [
         {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "post": {
+        "sources": [
+          {"name" : "INPUT", "type" : "stream", "keyFormat" : {"format": "KAFKA"}, "valueFormat" : "AVRO"},
+          {"name" : "OUTPUT", "type" : "stream", "keyFormat" : {"format": "JSON"}, "valueFormat" : "JSON"}
+        ]
+      }
+    },
+    {
+      "name": "override formats - create stream as select (new planner)",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (kafka_topic='input_topic', key_format='KAFKA', value_format='AVRO');",
+        "CREATE STREAM OUTPUT WITH (format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "properties": {
+        "ksql.new.query.planner.enabled": "true"
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": "hello", "value": {"FOO": 10}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K": "hello"}, "value": {"FOO": 10}}
       ],
       "post": {
         "sources": [

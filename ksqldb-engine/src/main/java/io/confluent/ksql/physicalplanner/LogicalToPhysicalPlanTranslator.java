@@ -16,29 +16,18 @@
 package io.confluent.ksql.physicalplanner;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.plan.StreamSelect;
-import io.confluent.ksql.execution.plan.StreamSource;
-import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.logicalplanner.nodes.Node;
-import io.confluent.ksql.logicalplanner.nodes.NodeVisiter;
+import io.confluent.ksql.logicalplanner.nodes.NodeVisitor;
 import io.confluent.ksql.logicalplanner.nodes.SelectNode;
-import io.confluent.ksql.logicalplanner.nodes.StreamSourceNode;
-import io.confluent.ksql.logicalplanner.nodes.TableSourceNode;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
-import java.util.Optional;
 
-public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, ExecutionStep<?>> {
+public class LogicalToPhysicalPlanTranslator
+    implements NodeVisitor<Node<?>, io.confluent.ksql.physicalplanner.nodes.Node<?>> {
   private final MetaStore metaStore;
 
   LogicalToPhysicalPlanTranslator(final MetaStore metaStore) {
@@ -46,58 +35,63 @@ public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, Exe
   }
 
   @Override
-  public ExecutionStep<?> process(final Node<?> node) {
-    if (node instanceof StreamSourceNode) {
-      return processStreamSourceNode((StreamSourceNode) node);
-    } else if (node instanceof TableSourceNode) {
-      return processTableSourceNode((TableSourceNode) node);
+  public io.confluent.ksql.physicalplanner.nodes.Node<?> process(
+      final io.confluent.ksql.logicalplanner.nodes.Node<?> node
+  ) {
+    if (node instanceof io.confluent.ksql.logicalplanner.nodes.StreamSourceNode) {
+      return processStreamSourceNode(
+          (io.confluent.ksql.logicalplanner.nodes.StreamSourceNode) node
+      );
+//    } else if (node instanceof TableSourceNode) {
+//      final TableSourceNode tableSourceNode = (TableSourceNode) node;
+//      final io.confluent.ksql.physicalplanner.nodes.Node<?> input =
+//          process(tableSourceNode.getInputNode());
+//      return processTableSourceNode(input, tableSourceNode);
     } else if (node instanceof SelectNode) {
-      return processSelectNode((SelectNode) node);
+      final SelectNode selectNode = (SelectNode) node;
+      final io.confluent.ksql.physicalplanner.nodes.Node<?> input =
+          process(selectNode.getInputNode());
+      return processSelectNode(input, selectNode);
     } else {
       throw new IllegalStateException("Unknown node type: " + node.getClass());
     }
   }
 
-  private StreamSource processStreamSourceNode(final StreamSourceNode streamSourceNode) {
-    final KsqlTopic sourceTopic =
-        metaStore.getSource(streamSourceNode.getSourceName()).getKsqlTopic();
+  private io.confluent.ksql.physicalplanner.nodes.StreamSourceNode processStreamSourceNode(
+      final io.confluent.ksql.logicalplanner.nodes.StreamSourceNode node
+  ) {
+    final SourceName sourceName = node.getSourceName();
+    final KsqlTopic topic = metaStore.getSource(sourceName).getKsqlTopic();
 
-    return ExecutionStepFactory.streamSource(
-        new Stacker().push("SOURCE"),
-        streamSourceNode.getSimpleSchema(),
-        "test_topic",
-        Formats.from(sourceTopic),
-        Optional.empty(),
-        1 // to-do
+    return new io.confluent.ksql.physicalplanner.nodes.StreamSourceNode(
+        sourceName,
+        node.getSimpleSchema(),
+        topic.getKeyFormat(),
+        topic.getValueFormat()
     );
-
   }
 
-  private ExecutionStep<?> processTableSourceNode(final TableSourceNode tableSourceNode) {
-    throw new UnsupportedOperationException("not implemented yet");
-  }
-
-  private StreamSelect processSelectNode(final SelectNode selectNode) {
-    final StreamSource inputStep = (StreamSource) process(selectNode.getInputNode());
-    final LogicalSchema inputSchema = inputStep.getSourceSchema();
-
+  private io.confluent.ksql.physicalplanner.nodes.Node<?> processSelectNode(
+      final io.confluent.ksql.physicalplanner.nodes.Node<?> input,
+      final SelectNode selectNode
+  ) {
     final ImmutableList<ColumnName> selectedColumns = selectNode.getOutputSchema().stream()
         .map(LogicalColumn::name)
         .collect(ImmutableList.toImmutableList());
 
-    return ExecutionStepFactory.streamSelect(
-        new Stacker().push("SELECT"),
-        inputStep,
-        inputSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList()),
-        inputSchema.value().stream()
-            .map(Column::name)
-            .filter(selectedColumns::contains)
-            .map(
-              columnName -> SelectExpression.of(
-                  columnName,
-                new UnqualifiedColumnReferenceExp(columnName)
-              )
-            ).collect(ImmutableList.toImmutableList())
+    final ImmutableList<ColumnName> selectedKeys = input.keyColumnNames().stream()
+        .filter(selectedColumns::contains)
+        .collect(ImmutableList.toImmutableList());
+
+    final ImmutableList<ColumnName> selectedValue = input.valueColumnNames().stream()
+        .filter(selectedColumns::contains)
+        .collect(ImmutableList.toImmutableList());
+
+    return new io.confluent.ksql.physicalplanner.nodes.SelectNode(
+        input,
+        selectedKeys,
+        selectedValue
     );
   }
+
 }

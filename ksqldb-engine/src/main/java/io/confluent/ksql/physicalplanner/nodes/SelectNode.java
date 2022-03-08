@@ -13,21 +13,29 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalplanner.nodes;
+package io.confluent.ksql.physicalplanner.nodes;
 
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.name.ColumnName;
 
-public final class TableSourceNode extends SourceNode<TableSourceNode> {
+public final class SelectNode extends SingleInputNode<SelectNode> {
 
-  public TableSourceNode(
-      final SourceName sourceName,
-      final LogicalSchema simpleSchema
+  public SelectNode(
+      final Node<?> input,
+      final ImmutableList<ColumnName> selectedKeys,
+      final ImmutableList<ColumnName> selectedValues
   ) {
-    super(sourceName, simpleSchema);
+    super(input, selectedKeys, selectedValues);
   }
 
-  public <ReturnsT> ReturnsT accept(final NodeVisitor<TableSourceNode, ReturnsT> visitor) {
+  @Override
+  public Formats getFormats() {
+    return input.getFormats();
+  }
+
+  @Override
+  public <ReturnsT> ReturnsT accept(final NodeVisitor<SelectNode, ReturnsT> visitor) {
     return visitor.process(this);
   }
 

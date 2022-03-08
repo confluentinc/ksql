@@ -20,6 +20,14 @@ import io.confluent.ksql.logicalplanner.nodes.Node;
 import io.confluent.ksql.name.SourceName;
 import java.util.Objects;
 
+/**
+ * A logical plan represent a query as a graph of logical {@link Node}s like
+ * input stream/tables (as leaf nodes), projection, filters, grouping/aggregations, join, etc,
+ * and a single (root node).
+ *
+ * <p>Note that the root is not a "sink", because the logical plan does not know anything about
+ * physical properties (writing the result into a "sink topic" is a physical operation).
+ */
 public class LogicalPlan {
   private final Node<?> root;
   private final ImmutableSet<SourceName> sourceNames;

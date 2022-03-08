@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,22 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalplanner.nodes;
+package io.confluent.ksql.physicalplanner;
 
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.physicalplanner.nodes.Node;
+import java.util.Objects;
 
-public final class TableSourceNode extends SourceNode<TableSourceNode> {
+public class PhysicalPlan {
+  private final Node<?> root;
 
-  public TableSourceNode(
-      final SourceName sourceName,
-      final LogicalSchema simpleSchema
-  ) {
-    super(sourceName, simpleSchema);
+  PhysicalPlan(final Node<?> root) {
+    this.root = Objects.requireNonNull(root, "root");
   }
 
-  public <ReturnsT> ReturnsT accept(final NodeVisitor<TableSourceNode, ReturnsT> visitor) {
-    return visitor.process(this);
+  public Node<?> getRoot() {
+    return root;
   }
 
 }

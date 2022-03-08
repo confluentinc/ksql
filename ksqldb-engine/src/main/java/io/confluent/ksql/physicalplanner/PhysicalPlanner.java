@@ -15,56 +15,30 @@
 
 package io.confluent.ksql.physicalplanner;
 
-import io.confluent.ksql.execution.ExecutionPlan;
-import io.confluent.ksql.execution.context.QueryContext.Stacker;
-import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.StreamSink;
-import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.logicalplanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeFeatures;
-import java.util.Collections;
-import java.util.Optional;
+import io.confluent.ksql.physicalplanner.nodes.Node;
 
 /**
  * The {@code PhysicalPlanner} takes a {@link LogicalPlan} and uses the visitor pattern
- * to translate the logical plan into a physical plan.
+ * to translate the logical plan into a {@link PhysicalPlan}.
  *
- * <p>A physical plan, in contrast to a logical plan, concerns itself with physical schema
+ * <p>A {@link PhysicalPlan}, in contrast to a logical plan, concerns itself with physical schema
  * (ie, column-to-key/value-mapping), data formats, internal data repartitioning etc.
  */
 public final class PhysicalPlanner {
 
   private PhysicalPlanner() {}
 
-  public static ExecutionPlan buildPhysicalPlan(
+  public static PhysicalPlan buildPlan(
       final MetaStore metaStore,
       final LogicalPlan logicalPlan
   ) {
     final LogicalToPhysicalPlanTranslator translator =
         new LogicalToPhysicalPlanTranslator(metaStore);
 
-    final ExecutionStep<?> root = translator.process(logicalPlan.getRoot());
+    final Node<?> root = translator.process(logicalPlan.getRoot());
 
-    final Formats formats = Formats.of(
-        FormatInfo.of("KAFKA"),
-        FormatInfo.of("JSON"),
-        SerdeFeatures.from(Collections.emptySet()),
-        SerdeFeatures.from(Collections.emptySet())
-    );
-
-    final StreamSink sink = ExecutionStepFactory.streamSink(
-        new Stacker().push("OUTPUT"),
-        formats,
-        (ExecutionStep<KStreamHolder<Object>>) root,
-        "OUTPUT",
-        Optional.empty()// timestampColumn
-    );
-
-    return new ExecutionPlan(new QueryId("query-id"), sink);
+    return new PhysicalPlan(root);
   }
 }

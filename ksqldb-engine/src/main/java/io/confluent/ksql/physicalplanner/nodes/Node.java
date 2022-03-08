@@ -13,8 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalplanner.nodes;
+package io.confluent.ksql.physicalplanner.nodes;
 
-public interface NodeVisiter<AcceptsT extends Node<?>, ReturnsT> {
-  ReturnsT process(AcceptsT node);
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.name.ColumnName;
+
+public interface Node<AcceptsT extends Node<?>> {
+
+  ImmutableList<ColumnName> keyColumnNames();
+
+  ImmutableList<ColumnName> valueColumnNames();
+
+  Formats getFormats();
+
+  <ReturnsT> ReturnsT accept(NodeVisitor<AcceptsT, ReturnsT> visitor);
+
 }

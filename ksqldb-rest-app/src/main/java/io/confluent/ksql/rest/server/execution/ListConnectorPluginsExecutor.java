@@ -53,9 +53,6 @@ public final class ListConnectorPluginsExecutor {
 
     final List<SimpleConnectorPluginInfo> pluginInfos = new ArrayList<>();
     for (final PluginInfo info : plugins.datum().get()) {
-      System.out.println("Info.type(): " + info.type() + " ConnectorType: "
-          + ConnectorType.forValue(info.type()));
-
       pluginInfos.add(new SimpleConnectorPluginInfo(
           info.className(),
           ConnectorType.forValue(info.type()),

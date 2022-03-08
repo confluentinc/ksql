@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalPlanner.nodes;
+package io.confluent.ksql.logicalplanner.nodes;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -30,8 +30,8 @@ public class SelectNode extends SingleInputNode<SelectNode> {
     super(input);
 
     // expression after check only works with '*''
-    if (selectClause.getSelectItems().size() > 1 ||
-        !(selectClause.getSelectItems().get(0) instanceof AllColumns)) {
+    if (selectClause.getSelectItems().size() > 1
+        || !(selectClause.getSelectItems().get(0) instanceof AllColumns)) {
       throw new UnsupportedOperationException("Only `SELECT *` supported");
     }
     outputSchema = selectClause.getSelectItems().stream().flatMap(
@@ -48,7 +48,7 @@ public class SelectNode extends SingleInputNode<SelectNode> {
     return input;
   }
 
-  public <Returns> Returns accept(final NodeVisiter<SelectNode, Returns> visitor) {
+  public <ReturnsT> ReturnsT accept(final NodeVisiter<SelectNode, ReturnsT> visitor) {
     return visitor.process(this);
   }
 }

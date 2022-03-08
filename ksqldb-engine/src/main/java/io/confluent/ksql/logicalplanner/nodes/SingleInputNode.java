@@ -13,8 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalPlanner.nodes;
+package io.confluent.ksql.logicalplanner.nodes;
 
-public interface NodeVisiter<Accepts extends Node<?>, Returns> {
-  Returns process(final Accepts node);
+public abstract class SingleInputNode<AcceptsT extends Node<?>> implements Node<AcceptsT> {
+  final Node<?> input;
+
+  SingleInputNode(final Node<?> input) {
+    this.input = input;
+  }
+
+  public Node<?> getInputNode() {
+    return input;
+  }
+
+
 }

@@ -37,7 +37,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
-import io.confluent.ksql.logicalPlanner.LogicalPlan;
+import io.confluent.ksql.logicalplanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -77,7 +77,7 @@ import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
-import io.confluent.ksql.physicalPlanner.PhysicalPlanner;
+import io.confluent.ksql.physicalplanner.PhysicalPlanner;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.QueryPlannerOptions;
@@ -85,9 +85,7 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
@@ -99,7 +97,6 @@ import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -712,6 +709,50 @@ final class EngineExecutor {
         Optional.empty();
   }
 
+  @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
+  private void throwIfUnsupported(final Query query) {
+    if (query.isPullQuery()) { // should have been checked previously?
+      throw new IllegalStateException();
+    }
+    if (query.getWhere().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support WHERE."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getGroupBy().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support GROUP BY."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getHaving().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support HAVING."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getWindow().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support WINDOWS."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getPartitionBy().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support PARTITION BY."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getLimit().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support LIMIT."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    final Relation fromClause = query.getFrom();
+    if (fromClause instanceof Join) {
+      throw new UnsupportedOperationException("New query planner does not support joins."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (fromClause instanceof JoinedSource) {
+      throw new IllegalStateException(); // top level node should always be Join
+    }
+    if (query.getSelect().getSelectItems().size() > 2
+        || !(query.getSelect().getSelectItems().get(0) instanceof AllColumns)) {
+      throw new UnsupportedOperationException("New query planner does not support projections."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+  }
+
   private ExecutorPlans planQuery(
       final ConfiguredStatement<?> statement,
       final Query query,
@@ -722,49 +763,10 @@ final class EngineExecutor {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED)) {
-      if (query.isPullQuery()) { // should have been checked previously?
-        throw new IllegalStateException();
-      }
-      if (query.getWhere().isPresent()) {
-        throw new UnsupportedOperationException("New query planner does not support WHERE."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      if (query.getGroupBy().isPresent()) {
-        throw new UnsupportedOperationException("New query planner does not support GROUP BY."
-          + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      if (query.getHaving().isPresent()) {
-        throw new UnsupportedOperationException("New query planner does not support HAVING."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      if (query.getWindow().isPresent()) {
-        throw new UnsupportedOperationException("New query planner does not support WINDOWS."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      if (query.getPartitionBy().isPresent()) {
-        throw new UnsupportedOperationException("New query planner does not support PARTITION BY."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      if (query.getLimit().isPresent()) {
-        throw new UnsupportedOperationException("New query planner does not support LIMIT."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      final Relation fromClause = query.getFrom();
-      if (fromClause instanceof Join) {
-        throw new UnsupportedOperationException("New query planner does not support joins."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
-      if (fromClause instanceof JoinedSource) {
-        throw new IllegalStateException(); // top level node should always be Join
-      }
-      if (query.getSelect().getSelectItems().size() > 2
-          || !(query.getSelect().getSelectItems().get(0) instanceof AllColumns)) {
-        throw new UnsupportedOperationException("New query planner does not support projections."
-            + "Set "+ KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
-      }
+      throwIfUnsupported(query);
 
       final LogicalPlan logicalPlan =
-          io.confluent.ksql.logicalPlanner.LogicalPlanner.buildLogicalPlan(
+          io.confluent.ksql.logicalplanner.LogicalPlanner.buildLogicalPlan(
               metaStore,
               query
           );

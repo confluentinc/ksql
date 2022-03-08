@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physicalPlanner;
+package io.confluent.ksql.physicalplanner;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -25,11 +25,11 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.logicalPlanner.nodes.Node;
-import io.confluent.ksql.logicalPlanner.nodes.NodeVisiter;
-import io.confluent.ksql.logicalPlanner.nodes.SelectNode;
-import io.confluent.ksql.logicalPlanner.nodes.StreamSourceNode;
-import io.confluent.ksql.logicalPlanner.nodes.TableSourceNode;
+import io.confluent.ksql.logicalplanner.nodes.Node;
+import io.confluent.ksql.logicalplanner.nodes.NodeVisiter;
+import io.confluent.ksql.logicalplanner.nodes.SelectNode;
+import io.confluent.ksql.logicalplanner.nodes.StreamSourceNode;
+import io.confluent.ksql.logicalplanner.nodes.TableSourceNode;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -65,7 +65,7 @@ public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, Exe
         "test_topic",
         Formats.from(sourceTopic),
         Optional.empty(),
-        1 // TODO
+        1 // to-do
     );
 
   }
@@ -83,8 +83,13 @@ public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, Exe
         new Stacker().push("SELECT"),
         inputStep,
         inputSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList()),
-        inputSchema.value().stream().map(column -> SelectExpression.of(column.name(),
-            new UnqualifiedColumnReferenceExp(column.name()))).collect(ImmutableList.toImmutableList())
+        inputSchema.value().stream()
+            .map(
+              column -> SelectExpression.of(
+                column.name(),
+                new UnqualifiedColumnReferenceExp(column.name())
+              )
+            ).collect(ImmutableList.toImmutableList())
     );
   }
 }

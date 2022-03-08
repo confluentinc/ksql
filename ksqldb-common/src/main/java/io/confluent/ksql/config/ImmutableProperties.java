@@ -22,7 +22,8 @@ import java.util.Set;
 import org.apache.kafka.streams.StreamsConfig;
 
 /**
- * Hard coded list of known immutable properties
+ * Hard coded list of known immutable properties.
+ * They cannot be changed using `SET` command.
  */
 public final class ImmutableProperties {
 

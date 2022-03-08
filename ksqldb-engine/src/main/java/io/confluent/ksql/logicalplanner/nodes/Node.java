@@ -13,19 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalPlanner;
+package io.confluent.ksql.logicalplanner.nodes;
 
-import io.confluent.ksql.logicalPlanner.nodes.Node;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.schema.ksql.LogicalColumn;
 
-public class LogicalPlan {
-  private final Node<?> root;
+public interface Node<AcceptsT extends Node<?>> {
 
-  LogicalPlan(Node<?> root) {
-    this.root = root;
-  }
+  ImmutableList<LogicalColumn> getOutputSchema();
 
-  public Node<?> getRoot() {
-    return root;
-  }
+  <ReturnsT> ReturnsT accept(NodeVisiter<AcceptsT, ReturnsT> visitor);
 
 }

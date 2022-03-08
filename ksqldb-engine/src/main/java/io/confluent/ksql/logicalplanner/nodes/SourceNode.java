@@ -13,17 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalPlanner.nodes;
+package io.confluent.ksql.logicalplanner.nodes;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
-public abstract class SourceNode<SourceType extends SourceNode<?>> implements Node<SourceType> {
+public abstract class SourceNode<SourceT extends SourceNode<?>> implements Node<SourceT> {
   final SourceName sourceName;
   final LogicalSchema simpleSchema; // schema without system columns
-  final ImmutableList<LogicalColumn> outputSchema; // TODO: should we include system columns?
+  final ImmutableList<LogicalColumn> outputSchema; // to-do: should we include system columns?
 
   SourceNode(
       final SourceName sourceName,

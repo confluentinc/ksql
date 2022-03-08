@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physicalPlanner;
+package io.confluent.ksql.physicalplanner;
 
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -21,7 +21,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.logicalPlanner.LogicalPlan;
+import io.confluent.ksql.logicalplanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.query.QueryId;
@@ -30,7 +30,9 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Collections;
 import java.util.Optional;
 
-public class PhysicalPlanner {
+public final class PhysicalPlanner {
+
+  private PhysicalPlanner() {}
 
   public static PhysicalPlan buildPhysicalPlan(
       final MetaStore metaStore,

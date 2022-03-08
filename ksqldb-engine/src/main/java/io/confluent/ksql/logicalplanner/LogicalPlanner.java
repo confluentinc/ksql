@@ -13,13 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalPlanner;
+package io.confluent.ksql.logicalplanner;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
-import io.confluent.ksql.logicalPlanner.nodes.SelectNode;
-import io.confluent.ksql.logicalPlanner.nodes.SourceNode;
-import io.confluent.ksql.logicalPlanner.nodes.StreamSourceNode;
+import io.confluent.ksql.logicalplanner.nodes.SelectNode;
+import io.confluent.ksql.logicalplanner.nodes.SourceNode;
+import io.confluent.ksql.logicalplanner.nodes.StreamSourceNode;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -27,12 +27,17 @@ import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 
-public class LogicalPlanner {
-   public static LogicalPlan buildLogicalPlan(
-      final MetaStore metaStore,
-      final Query query) {
+public final class LogicalPlanner {
 
-    // cast will fail as long as we don't support joins -- that's ok for now as we check this condition upfront
+  private LogicalPlanner() {}
+
+  public static LogicalPlan buildLogicalPlan(
+      final MetaStore metaStore,
+      final Query query
+  ) {
+
+    // cast will fail as long as we don't support joins
+    // that's ok for now as we check this condition upfront
     final AliasedRelation inputStreamOrTable = (AliasedRelation) query.getFrom();
 
     final SourceName sourceName = inputStreamOrTable.getAlias();

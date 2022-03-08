@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.entity;
 
 import static io.confluent.ksql.util.KsqlConfig.FAIL_ON_DESERIALIZATION_ERROR_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS;
@@ -189,7 +190,8 @@ public class PropertiesList extends KsqlEntity {
       STATE_DIR_CONFIG,
       TASK_TIMEOUT_MS_CONFIG,
       WINDOW_SIZE_MS_CONFIG,
-      UPGRADE_FROM_CONFIG
+      UPGRADE_FROM_CONFIG,
+      KSQL_NEW_QUERY_PLANNER_ENABLED
   );
 
   @JsonIgnoreProperties(ignoreUnknown = true)

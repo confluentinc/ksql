@@ -60,12 +60,12 @@ public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, Exe
         metaStore.getSource(streamSourceNode.getSourceName()).getKsqlTopic();
 
     return ExecutionStepFactory.streamSource(
-      new Stacker().push("SOURCE"),
+        new Stacker().push("SOURCE"),
         streamSourceNode.getSimpleSchema(),
-      "test_topic",
-      Formats.from(sourceTopic),
-      Optional.empty(),
-      1 // TODO
+        "test_topic",
+        Formats.from(sourceTopic),
+        Optional.empty(),
+        1 // TODO
     );
 
   }

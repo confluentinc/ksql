@@ -20,7 +20,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
-public class SourceNode<SourceType extends SourceNode<?>> implements Node<SourceType> {
+public abstract class SourceNode<SourceType extends SourceNode<?>> implements Node<SourceType> {
   final SourceName sourceName;
   final LogicalSchema simpleSchema; // schema without system columns
   final ImmutableList<LogicalColumn> outputSchema; // TODO: should we include system columns?
@@ -50,10 +50,6 @@ public class SourceNode<SourceType extends SourceNode<?>> implements Node<Source
    */
   public LogicalSchema getSimpleSchema() {
     return simpleSchema;
-  }
-
-  public <Returns> Returns accept(final NodeVisiter<SourceType, Returns> visitor) {
-    throw new IllegalStateException("Must be overwritten by child class");
   }
 
 }

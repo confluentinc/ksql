@@ -21,8 +21,8 @@ import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,20 +76,20 @@ public class SandboxedSharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRu
     collocatedQueries.put(queryId, binpackedPersistentQueryMetadata);
     try {
       if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-         kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
+        kafkaStreams.removeNamedTopology(queryId.toString(), false).all().get();
       }
       kafkaStreams.addNamedTopology(binpackedPersistentQueryMetadata.getTopologyCopy(this))
           .all()
           .get();
     }  catch (final Throwable e) {
-        final Throwable t = (e instanceof ExecutionException && e.getCause() != null)
-            ? e.getCause()
-            : e;
-        throw new IllegalStateException(String.format(
-            "Encountered an error when trying to add query %s to runtime: %s",
-            queryId,
-            getApplicationId()),
-            t);
+      final Throwable t = (e instanceof ExecutionException && e.getCause() != null)
+          ? e.getCause()
+          : e;
+      throw new IllegalStateException(String.format(
+          "Encountered an error when trying to add query %s to runtime: %s",
+          queryId,
+          getApplicationId()),
+        t);
     }
     log.info("Registered query: {}  in {} \n"
             + "Runtime {} is executing these queries: {}",

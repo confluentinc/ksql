@@ -97,14 +97,14 @@ class UdafFactoryInvoker implements FunctionSignature {
       final SqlType aggregateSqlType;
       final SqlType returnSqlType;
 
-      if (udaf.getAggregateSqlType() != null) {
-        aggregateSqlType = udaf.getAggregateSqlType();
+      if (udaf.getAggregateSqlType().isPresent()) {
+        aggregateSqlType = (SqlType) udaf.getAggregateSqlType().get();
       } else {
         aggregateSqlType = SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType);
       }
 
-      if (udaf.getReturnSqlType() != null) {
-        returnSqlType = udaf.getReturnSqlType();
+      if (udaf.getReturnSqlType().isPresent()) {
+        returnSqlType = (SqlType) udaf.getReturnSqlType().get();
       } else {
         returnSqlType = SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType);
       }

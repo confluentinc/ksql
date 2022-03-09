@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -923,6 +924,26 @@ public class UdfLoaderTest {
         metrics.metricName("aggregate-test-udf-createSumLong-count",
             "ksql-udaf-test-udf-createSumLong"));
     assertThat(metric.metricValue(), equalTo(2.0));
+  }
+
+  @Test
+  public void shouldPassSqlInputTypesToUdafs() throws Exception {
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumT"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+
+    final KsqlAggregateFunction<Long, Long, Long> executable =
+        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS,
+            Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)));
+
+    executable.aggregate(1L, 1L);
+    Long agg = executable.aggregate(1L, 1L);
+    assertThat(agg, equalTo(2L));
   }
 
   @Test(expected = KsqlException.class)

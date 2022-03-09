@@ -18,6 +18,7 @@ package io.confluent.ksql.function.udaf;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * {@code Udaf} represents a custom UDAF (User Defined Aggregate Function)
@@ -83,8 +84,8 @@ public interface Udaf<I, A, O> {
    * For polymorphic UDAFs, implement this method to return the aggregate SQL Type.
    * @return The aggregate SQL Type of type `A` returned by `aggregate` and `merge`.
    */
-  default SqlType getAggregateSqlType() {
-    return null;
+  default Optional<SqlType> getAggregateSqlType() {
+    return Optional.empty();
   }
 
   /**
@@ -93,7 +94,7 @@ public interface Udaf<I, A, O> {
    * For polymorphic UDAFs, implement this method to return the return SQL Type.
    * @return The aggregate SQL Type of type `O` returned by `map`.
    */
-  default SqlType getReturnSqlType() {
-    return null;
+  default Optional<SqlType> getReturnSqlType() {
+    return Optional.empty();
   }
 }

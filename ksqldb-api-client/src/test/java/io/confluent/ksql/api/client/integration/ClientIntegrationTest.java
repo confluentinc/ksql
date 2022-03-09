@@ -117,7 +117,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.ListOffsetsResult.ListOffsetsResultInfo;
 import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.RecordsToDelete;
@@ -607,6 +606,27 @@ public class ClientIntegrationTest {
       verifyStreamRowWithIndex(row, i);
     }
     assertThat(streamedQueryResult.poll(), is(nullValue()));
+
+    assertThat(streamedQueryResult.isComplete(), is(true));
+  }
+
+  @Test
+  public void shouldRetryStreamPushQueryAfterError() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    shouldReceiveStreamRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
+    REST_APP.getServiceContext().close();
+    if (streamedQueryResult.isFailed() && streamedQueryResult.hasContinuationToken()) {
+      streamedQueryResult.retry(1);
+    }
+
+
 
     assertThat(streamedQueryResult.isComplete(), is(true));
   }

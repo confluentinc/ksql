@@ -39,7 +39,6 @@ import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
-import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
@@ -503,6 +502,11 @@ public class ClientImpl implements Client {
   @VisibleForTesting
   public String getSerializedConsistencyVector() {
     return serializedConsistencyVector.get();
+  }
+
+  @VisibleForTesting
+  public String getContinuationToken() {
+    return continuationToken.get();
   }
 
   @Override

@@ -154,6 +154,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     return this.continuationToken;
   }
 
+  @Override
   public CompletableFuture<StreamedQueryResult> retry(
       final int maxRetries) throws InterruptedException, ExecutionException {
     long waitMs = 100;

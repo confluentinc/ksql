@@ -19,6 +19,9 @@ import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -27,8 +30,8 @@ import static org.hamcrest.Matchers.isEmptyString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
@@ -43,6 +46,7 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.PushContinuationToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -56,12 +60,16 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PushOffsetRange;
+import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -103,10 +111,15 @@ public class ConsistencyOffsetVectorFunctionalTest {
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
   private static final String PULL_QUERY_ON_TABLE =
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
+  private static final String PUSH_QUERY = "SELECT * FROM " + AGG_TABLE + " EMIT CHANGES;";
 
   private static final ConsistencyOffsetVector CONSISTENCY_OFFSET_VECTOR =
       ConsistencyOffsetVector.emptyVector().withComponent(TEST_TOPIC, 0, 5L);
-
+  private static final PushContinuationToken CONTINUATION_TOKEN =
+      new PushContinuationToken(
+          new PushOffsetRange(
+              Optional.of(new PushOffsetVector(ImmutableList.of(0L, 1L))),
+              new PushOffsetVector(ImmutableList.of(0L, 3L))).serialize());
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
 
@@ -116,6 +129,9 @@ public class ConsistencyOffsetVectorFunctionalTest {
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .withProperty(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
+      .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
+      .withProperty(KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED, true)
       .build();
 
   @ClassRule
@@ -194,6 +210,25 @@ public class ConsistencyOffsetVectorFunctionalTest {
     assertThat(((ClientImpl) consistencClient).getSerializedConsistencyVector(), is(notNullValue()));
     final String serializedCV = ((ClientImpl) consistencClient).getSerializedConsistencyVector();
     verifyConsistencyVector(serializedCV);
+  }
+
+  @Test
+  public void shouldRetry() throws Exception {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("ksql.query.push.v2.enabled", true);
+    properties.put("auto.offset.reset", "latest");
+    properties.put("ksql.query.push.v2.continuation.tokens.enabled", true);
+
+    // When
+    final StreamedQueryResult streamedQueryResult = eventualClient.streamQuery(PUSH_QUERY, properties).get();
+
+    // Then
+    streamedQueryResult.poll();
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+    assertThat(((ClientImpl) eventualClient).getContinuationToken(), is(notNullValue()));
+    final String continuationToken = ((ClientImpl) eventualClient).getSerializedConsistencyVector();
+//    verifyConsistencyVector(continuationToken);
   }
 
   @Test

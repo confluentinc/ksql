@@ -310,7 +310,6 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  @Ignore
   public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
@@ -378,7 +377,6 @@ public class SecureIntegrationTest {
   }
 
   @Test
-  @Ignore
   public void shouldClassifyTransactionIdAuthorizationExceptionAsUserError() {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);

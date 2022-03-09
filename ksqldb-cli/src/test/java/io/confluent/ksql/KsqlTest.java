@@ -196,7 +196,7 @@ public class KsqlTest {
   }
 
   @Test
-  public void shouldBuildClientWithDefaultConsistencyLevel() {
+  public void shouldBuildClientWithConsistencyLevelOption() {
     // Given:
     when(options.getConsistencyLevel()).thenReturn(ConsistencyLevel.EVENTUAL);
 

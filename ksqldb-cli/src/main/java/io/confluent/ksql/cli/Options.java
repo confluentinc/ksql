@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.VariableParser;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -292,8 +293,9 @@ public class Options {
     try {
       return ConsistencyLevel.valueOf(consistencyLevel.toUpperCase());
     } catch (Exception e) {
-      throw new ConfigException("The possible values for the consistency level argument are: "
-                                     + "EVENTUAL and MONOTONIC_SESSION");
+      throw new ConfigException(
+          "The possible values for the consistency level argument are: "
+              + Arrays.toString(ConsistencyLevel.values()));
     }
   }
 }

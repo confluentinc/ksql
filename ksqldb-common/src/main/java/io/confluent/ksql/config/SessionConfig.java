@@ -57,6 +57,16 @@ public final class SessionConfig {
     return new SessionConfig(systemConfig, newOverrides);
   }
 
+  /**
+   * Create a new sessionConfig with new overrides
+   *
+   * @param newOverrides additional overrides to pass
+   * @return the session config
+   */
+  public SessionConfig withNewOverrides(final Map<String, ?> newOverrides) {
+    return new SessionConfig(systemConfig, newOverrides);
+  }
+
   private SessionConfig(final KsqlConfig systemConfig, final Map<String, ?> overrides) {
     this.systemConfig = Objects.requireNonNull(systemConfig, "systemConfig");
     this.overrides = ImmutableMap.copyOf(Objects.requireNonNull(overrides, "overrides"));

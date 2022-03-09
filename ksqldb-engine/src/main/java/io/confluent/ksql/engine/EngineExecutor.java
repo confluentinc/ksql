@@ -86,14 +86,19 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.planner.plan.VerifiableNode;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -453,15 +458,13 @@ final class EngineExecutor {
     }
   }
 
-
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeTransientQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty(), engineContext.getMetaStore());
-    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.outputNode;
     engineContext.createQueryValidator().validateQuery(
         config,
         plans.physicalPlan,
@@ -486,7 +489,6 @@ final class EngineExecutor {
     );
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeStreamPullQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones,
@@ -494,7 +496,7 @@ final class EngineExecutor {
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty(), engineContext.getMetaStore());
-    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.outputNode;
     engineContext.createQueryValidator().validateQuery(
         config,
         plans.physicalPlan,
@@ -592,7 +594,7 @@ final class EngineExecutor {
     );
 
     final KsqlBareOutputNode outputNode =
-        (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+        (KsqlBareOutputNode) plans.outputNode;
 
     final QueryPlan queryPlan = new QueryPlan(
         getSourceNames(outputNode),
@@ -621,8 +623,6 @@ final class EngineExecutor {
         .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
   }
 
-  // Known to be non-empty
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
@@ -664,7 +664,7 @@ final class EngineExecutor {
       );
 
       final KsqlStructuredDataOutputNode outputNode =
-          (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
+          (KsqlStructuredDataOutputNode) plans.outputNode;
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement,
@@ -771,24 +771,37 @@ final class EngineExecutor {
               query
           );
 
-      // dummy
-      final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
-          query,
-          sink,
-          metaStore,
-          ksqlConfig,
-          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
-          statement.getStatementText()
+      // begin stub
+      // stubbing output formats and schema for now
+      final KeyFormat keyFormat = KeyFormat.nonWindowed(
+          FormatInfo.of("KAFKA"),
+          SerdeFeatures.from(Collections.emptySet())
       );
+      final ValueFormat valueFormat = ValueFormat.of(
+          FormatInfo.of("JSON"),
+          SerdeFeatures.from(Collections.emptySet())
+      );
+      final KsqlTopic sinkTopic = new KsqlTopic("OUTPUT", keyFormat, valueFormat);
 
-      final LogicalPlanNode dummyLogicalPlan = new LogicalPlanNode(
-          statement.getStatementText(),
-          Optional.of(outputNode)
+      final Builder schemaBuilder = LogicalSchema.builder();
+      logicalPlan.getRoot().getOutputSchema().forEach(
+          column -> {
+            if (column.name().text().equals("ID")) {
+              schemaBuilder.keyColumn(column.name(), column.type());
+            } else {
+              schemaBuilder.valueColumn(column.name(), column.type());
+            }
+          }
       );
-      // end dummy
+      // end stub
 
       return new ExecutorPlans(
-          dummyLogicalPlan,
+          new StubbedOutputNode(
+              ksqlConfig,
+              metaStore.getSource(logicalPlan.getSourceNames().stream().findFirst().get()),
+              sinkTopic,
+              schemaBuilder.build()
+          ),
           PhysicalPlanner.buildPhysicalPlan(metaStore, logicalPlan)
       );
     } else {
@@ -838,7 +851,59 @@ final class EngineExecutor {
           queryId,
           oldPlanInfo
       );
-      return new ExecutorPlans(logicalPlan, physicalPlan);
+
+      return new ExecutorPlans(logicalPlan.getNode().get(), physicalPlan);
+    }
+  }
+
+  private static class StubbedOutputNode extends KsqlStructuredDataOutputNode {
+    private StubbedOutputNode(
+        final KsqlConfig ksqlConfig,
+        final DataSource source,
+        final KsqlTopic sinkTopic,
+        final LogicalSchema sinkSchema) {
+      super(
+          new PlanNodeId("stubbedOutput"),
+          new StubbedVerifiableDataSourceNode(
+              new PlanNodeId("stubbedSource"),
+              source,
+              source.getName(),
+              false,
+              ksqlConfig
+          ),
+          sinkSchema,
+          Optional.empty(),
+          sinkTopic,
+          OptionalInt.empty(),
+          true,
+          SourceName.of(sinkTopic.getKafkaTopicName()),
+          false
+      );
+    }
+
+  }
+
+  private static class StubbedVerifiableDataSourceNode extends DataSourceNode implements VerifiableNode {
+
+    public StubbedVerifiableDataSourceNode(
+        final PlanNodeId id,
+        final DataSource dataSource,
+        final SourceName alias,
+        final boolean isWindowed,
+        final KsqlConfig ksqlConfig
+    ) {
+      super(id, dataSource, alias, isWindowed, ksqlConfig);
+    }
+
+    @Override
+    public void validateKeyPresent(SourceName sinkName) {
+      // skip validation
+    }
+
+    @Override
+    public LogicalSchema getSchema() {
+      // return empty stub schema
+      return LogicalSchema.builder().build();
     }
   }
 
@@ -893,13 +958,13 @@ final class EngineExecutor {
 
   private static final class ExecutorPlans {
 
-    private final LogicalPlanNode logicalPlan;
+    private final OutputNode outputNode;
     private final PhysicalPlan physicalPlan;
 
     private ExecutorPlans(
-        final LogicalPlanNode logicalPlan,
+        final OutputNode outputNode,
         final PhysicalPlan physicalPlan) {
-      this.logicalPlan = Objects.requireNonNull(logicalPlan, "logicalPlan");
+      this.outputNode = Objects.requireNonNull(outputNode, "outputNode");
       this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlanNode");
     }
   }

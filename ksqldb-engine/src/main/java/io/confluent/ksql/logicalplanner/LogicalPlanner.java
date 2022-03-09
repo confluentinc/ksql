@@ -17,6 +17,7 @@ package io.confluent.ksql.logicalplanner;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.logicalplanner.nodes.SelectNode;
 import io.confluent.ksql.logicalplanner.nodes.SourceNode;
 import io.confluent.ksql.logicalplanner.nodes.StreamSourceNode;
@@ -60,7 +61,7 @@ public final class LogicalPlanner {
     final Select selectClause = query.getSelect();
     final SelectNode selectNode = new SelectNode(sourceNode, selectClause);
 
-    return new LogicalPlan(selectNode);
+    return new LogicalPlan(selectNode, ImmutableSet.of(sourceName));
   }
 
 }

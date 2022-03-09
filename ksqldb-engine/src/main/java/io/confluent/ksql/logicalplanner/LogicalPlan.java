@@ -15,18 +15,25 @@
 
 package io.confluent.ksql.logicalplanner;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.logicalplanner.nodes.Node;
+import io.confluent.ksql.name.SourceName;
 import java.util.Objects;
 
 public class LogicalPlan {
   private final Node<?> root;
+  private final ImmutableSet<SourceName> sourceNames;
 
-  LogicalPlan(final Node<?> root) {
+  LogicalPlan(final Node<?> root, final ImmutableSet<SourceName> sourceNames) {
     this.root = Objects.requireNonNull(root, "root");
+    this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
   }
 
   public Node<?> getRoot() {
     return root;
   }
 
+  public ImmutableSet<SourceName> getSourceNames() {
+    return sourceNames;
+  }
 }

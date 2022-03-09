@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
+import java.util.Objects;
 
 public class SelectNode extends SingleInputNode<SelectNode> {
   final ImmutableList<LogicalColumn> outputSchema;
@@ -28,6 +29,7 @@ public class SelectNode extends SingleInputNode<SelectNode> {
       final Select selectClause
   ) {
     super(input);
+    Objects.requireNonNull(selectClause, "selectClause");
 
     // expression after check only works with '*''
     if (selectClause.getSelectItems().size() > 1

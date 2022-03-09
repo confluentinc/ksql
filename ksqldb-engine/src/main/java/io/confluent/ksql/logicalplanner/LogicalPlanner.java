@@ -26,6 +26,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
+import java.util.Objects;
 
 public final class LogicalPlanner {
 
@@ -35,6 +36,8 @@ public final class LogicalPlanner {
       final MetaStore metaStore,
       final Query query
   ) {
+    Objects.requireNonNull(metaStore, "metaStore");
+    Objects.requireNonNull(query, "query");
 
     // cast will fail as long as we don't support joins
     // that's ok for now as we check this condition upfront

@@ -16,12 +16,13 @@
 package io.confluent.ksql.logicalplanner;
 
 import io.confluent.ksql.logicalplanner.nodes.Node;
+import java.util.Objects;
 
 public class LogicalPlan {
   private final Node<?> root;
 
   LogicalPlan(final Node<?> root) {
-    this.root = root;
+    this.root = Objects.requireNonNull(root, "root");
   }
 
   public Node<?> getRoot() {

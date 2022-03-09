@@ -17,14 +17,15 @@ package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Objects;
 
 public class LogicalColumn implements SimpleColumn {
   private final ColumnName name;
   private final SqlType type;
 
   public LogicalColumn(final ColumnName name, final SqlType type) {
-    this.name = name;
-    this.type = type;
+    this.name = Objects.requireNonNull(name, "name");
+    this.type = Objects.requireNonNull(type, "type");
   }
 
   @Override

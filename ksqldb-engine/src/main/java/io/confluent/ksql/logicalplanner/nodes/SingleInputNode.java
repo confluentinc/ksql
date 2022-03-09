@@ -15,16 +15,17 @@
 
 package io.confluent.ksql.logicalplanner.nodes;
 
+import java.util.Objects;
+
 public abstract class SingleInputNode<AcceptsT extends Node<?>> implements Node<AcceptsT> {
   final Node<?> input;
 
   SingleInputNode(final Node<?> input) {
-    this.input = input;
+    this.input = Objects.requireNonNull(input, "input");
   }
 
   public Node<?> getInputNode() {
     return input;
   }
-
 
 }

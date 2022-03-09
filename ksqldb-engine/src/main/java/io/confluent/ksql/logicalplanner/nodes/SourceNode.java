@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Objects;
 
 public abstract class SourceNode<SourceT extends SourceNode<?>> implements Node<SourceT> {
   final SourceName sourceName;
@@ -29,8 +30,8 @@ public abstract class SourceNode<SourceT extends SourceNode<?>> implements Node<
       final SourceName sourceName,
       final LogicalSchema simpleSchema
   ) {
-    this.sourceName = sourceName;
-    this.simpleSchema = simpleSchema;
+    this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
+    this.simpleSchema = Objects.requireNonNull(simpleSchema, "simpleSchema");
 
     outputSchema = simpleSchema.columns().stream()
         .map(column -> new LogicalColumn(column.name(), column.type()))

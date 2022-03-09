@@ -33,13 +33,14 @@ import io.confluent.ksql.logicalplanner.nodes.TableSourceNode;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Objects;
 import java.util.Optional;
 
 public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, ExecutionStep<?>> {
   private final MetaStore metaStore;
 
   LogicalToPhysicalPlanTranslator(final MetaStore metaStore) {
-    this.metaStore = metaStore;
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
   @Override

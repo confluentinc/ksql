@@ -41,7 +41,6 @@ import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.test.model.TestHeader;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
@@ -99,10 +98,10 @@ public class RestTestExecutor implements Closeable {
   private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
-  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(30);
-  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
-  private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(30);
-  private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(5);
+  private static final Duration MAX_QUERY_RUNNING_CHECK = Duration.ofSeconds(45);
+  private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(45);
+  private static final Duration MAX_TOPIC_NAME_LOOKUP = Duration.ofSeconds(45);
+  private static final Duration MAX_TRANSIENT_QUERY_COMPLETION_TIME = Duration.ofSeconds(10);
   private static final String MATCH_OPERATOR_DELIMITER = "|";
   private static final String QUERY_KEY = "query";
   private static final String ROW_KEY = "row";
@@ -617,6 +616,8 @@ public class RestTestExecutor implements Closeable {
       boolean notReady = false;
       for (PersistentQueryMetadata persistentQueryMetadata : engine.getPersistentQueries()) {
         if (persistentQueryMetadata.getState() != State.RUNNING) {
+          LOG.info("QueryId:" + persistentQueryMetadata.getQueryId().toString()
+              + "Query State:" + persistentQueryMetadata.getState());
           notReady = true;
         }
       }
@@ -624,6 +625,7 @@ public class RestTestExecutor implements Closeable {
         threadYield();
       } else {
         allRunning = true;
+        LOG.info("All persistent queries are now running");
         break;
       }
     }

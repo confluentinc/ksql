@@ -506,7 +506,7 @@ public class DistributingExecutorTest {
   public void shouldThrowIfRateLimitHit() {
     // Given:
     final DistributingExecutor rateLimitedDistributor = new DistributingExecutor(
-      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 0.5)),
+      new KsqlConfig(ImmutableMap.of(KsqlRestConfig.KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG, 0.25)),
       queue,
       DURATION_10_MS,
       (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
@@ -521,13 +521,20 @@ public class DistributingExecutorTest {
 
 
     // Then:
-    final KsqlRestException e = assertThrows(
-      KsqlRestException.class,
-      () -> rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext)
-    );
-
-    assertEquals(e.getResponse().getStatus(), 429);
-    final KsqlErrorMessage errorMessage = (KsqlErrorMessage) e.getResponse().getEntity();
-    assertTrue(errorMessage.getMessage().contains("DDL/DML rate is crossing the configured rate limit of statements/second"));
+    boolean exceptionFound = false;
+    try {
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+      rateLimitedDistributor.execute(CONFIGURED_STATEMENT, executionContext, securityContext);
+    } catch (Exception e) {
+      assertTrue(e instanceof KsqlRestException);
+      final KsqlRestException restException = (KsqlRestException) e; 
+      assertEquals(restException.getResponse().getStatus(), 429);
+      final KsqlErrorMessage errorMessage = (KsqlErrorMessage) restException.getResponse().getEntity();
+      assertTrue(errorMessage.getMessage().contains("DDL/DML rate is crossing the configured rate limit of statements/second"));
+      exceptionFound = true;
+    }
+    assertTrue(exceptionFound);
   }
 }

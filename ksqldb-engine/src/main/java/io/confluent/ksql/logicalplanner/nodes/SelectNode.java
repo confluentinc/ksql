@@ -36,10 +36,10 @@ public class SelectNode extends SingleInputNode<SelectNode> {
         || !(selectClause.getSelectItems().get(0) instanceof AllColumns)) {
       throw new UnsupportedOperationException("Only `SELECT *` supported");
     }
+
     outputSchema = selectClause.getSelectItems().stream().flatMap(
         s -> input.getOutputSchema().stream()
     ).collect(ImmutableList.toImmutableList());
-
   }
 
   public ImmutableList<LogicalColumn> getOutputSchema() {

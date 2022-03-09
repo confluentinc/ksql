@@ -36,7 +36,8 @@ public final class PhysicalPlanner {
 
   public static PhysicalPlan buildPhysicalPlan(
       final MetaStore metaStore,
-      final LogicalPlan logicalPlan) {
+      final LogicalPlan logicalPlan
+  ) {
     final LogicalToPhysicalPlanTranslator translator =
         new LogicalToPhysicalPlanTranslator(metaStore);
 

@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.List;
+
 /**
  * {@code Udaf} represents a custom UDAF (User Defined Aggregate Function)
  * that can be used to perform aggregations on KSQL Streams.
@@ -63,4 +67,33 @@ public interface Udaf<I, A, O> {
    * @return new value of current record
    */
   O map(A agg);
+
+  /**
+   * Some UDAFs can operate on any type.  In that case, the UDAF needs to be aware of the column
+   * type being used.  This method is called once when the UDAF is being created.
+   * Implementors may need to hold on to argument types or compute some other state to be re-used
+   * in methods like `aggregate` or `merge`.
+   * @param argTypeList The list of SqlArgument that this UDAF will receive as input.
+   */
+  default void initializeTypeArguments(List<SqlArgument> argTypeList) { }
+
+  /**
+   * Most UDAFs advertise their aggregate type statically via the Java type signature or
+   * annotations.
+   * For polymorphic UDAFs, implement this method to return the aggregate SQL Type.
+   * @return The aggregate SQL Type of type `A` returned by `aggregate` and `merge`.
+   */
+  default SqlType getAggregateSqlType() {
+    return null;
+  }
+
+  /**
+   * Most UDAFs advertise their return type statically via the Java type signature or
+   * annotations.
+   * For polymorphic UDAFs, implement this method to return the return SQL Type.
+   * @return The aggregate SQL Type of type `O` returned by `map`.
+   */
+  default SqlType getReturnSqlType() {
+    return null;
+  }
 }

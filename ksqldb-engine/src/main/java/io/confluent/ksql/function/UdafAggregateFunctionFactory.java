@@ -66,7 +66,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
           .map(Objects::toString)
           .collect(Collectors.joining(",")));
     }
-    return creator.createFunction(initArgs);
+    return creator.createFunction(initArgs, argTypeList);
   }
 
   @Override

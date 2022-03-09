@@ -616,8 +616,7 @@ public class RestTestExecutor implements Closeable {
       boolean notReady = false;
       for (PersistentQueryMetadata persistentQueryMetadata : engine.getPersistentQueries()) {
         if (persistentQueryMetadata.getState() != State.RUNNING) {
-          LOG.info("QueryId:" + persistentQueryMetadata.getQueryId().toString()
-              + "Query State:" + persistentQueryMetadata.getState());
+          LOG.info("Not all persistent queries are running yet");
           notReady = true;
         }
       }
@@ -672,6 +671,7 @@ public class RestTestExecutor implements Closeable {
       if (expectedNames.size() == expectedTopics) {
         foundTopics = true;
         topics.addAll(expectedNames);
+        LOG.info("All expected topics have now been found");
         break;
       }
     }
@@ -760,6 +760,7 @@ public class RestTestExecutor implements Closeable {
       if (notReady) {
         threadYield();
       } else {
+        LOG.info("All transient queries have been completed");
         break;
       }
     }

@@ -18,7 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import static io.confluent.ksql.tools.migrations.util.CommandParser.preserveCase;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDir;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
@@ -156,7 +156,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        getMigrationsDirFromConfigFile(getConfigFile()),
+        getMigrationsDir(getConfigFile(), config),
         Clock.systemDefaultZone()
     );
   }
@@ -434,10 +434,14 @@ public class ApplyMigrationCommand extends BaseCommand {
       ksqlClient.createConnector(
           ((SqlCreateConnectorStatement) command).getName(),
           ((SqlCreateConnectorStatement) command).isSource(),
-          ((SqlCreateConnectorStatement) command).getProperties()
+          ((SqlCreateConnectorStatement) command).getProperties(),
+          ((SqlCreateConnectorStatement) command).getIfNotExists()
       ).get();
     } else if (command instanceof SqlDropConnectorStatement) {
-      ksqlClient.dropConnector(((SqlDropConnectorStatement) command).getName()).get();
+      ksqlClient.dropConnector(
+          ((SqlDropConnectorStatement) command).getName(),
+          ((SqlDropConnectorStatement) command).getIfExists()
+      ).get();
     } else if (command instanceof SqlPropertyCommand) {
       if (((SqlPropertyCommand) command).isSetCommand()
           && ((SqlPropertyCommand) command).getValue().isPresent()) {

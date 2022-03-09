@@ -50,6 +50,9 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
       = LoggerFactory.getLogger(StorageUtilizationMetricsReporter.class);
   private static final String METRIC_GROUP = "ksqldb_utilization";
   private static final String TASK_STORAGE_USED_BYTES = "task_storage_used_bytes";
+  private static final Pattern NAMED_TOPOLOGY_PATTERN = Pattern.compile("(.*?)__\\d*_\\d*");
+  private static final Pattern QUERY_ID_PATTERN =
+      Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
 
   private Map<String, Map<String, TaskStorageMetric>> metricsSeen;
   private Metrics metricRegistry;
@@ -268,15 +271,13 @@ public class StorageUtilizationMetricsReporter implements MetricsReporter {
 
   private String getQueryId(final KafkaMetric metric) {
     final String taskName = metric.metricName().tags().getOrDefault("task-id", "");
-    final Pattern namedTopologyPattern = Pattern.compile("(.*?)__\\d*_\\d*");
-    final Matcher namedTopologyMatcher = namedTopologyPattern.matcher(taskName);
+    final Matcher namedTopologyMatcher = NAMED_TOPOLOGY_PATTERN.matcher(taskName);
     if (namedTopologyMatcher.find()) {
       return namedTopologyMatcher.group(1);
     }
 
     final String queryIdTag = metric.metricName().tags().getOrDefault("thread-id", "");
-    final Pattern pattern = Pattern.compile("(?<=query_|transient_)(.*?)(?=-)");
-    final Matcher matcher = pattern.matcher(queryIdTag);
+    final Matcher matcher = QUERY_ID_PATTERN.matcher(queryIdTag);
     if (matcher.find()) {
       return matcher.group(1);
     } else {

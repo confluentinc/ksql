@@ -57,8 +57,8 @@ import org.apache.hc.core5.util.TimeValue;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.kafka.connect.runtime.rest.entities.ConfigInfos;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.apache.kafka.connect.runtime.rest.entities.PluginInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -206,18 +206,18 @@ public class DefaultConnectClient implements ConnectClient {
   }
 
   @Override
-  public ConnectResponse<List<ConnectorPluginInfo>> connectorPlugins() {
+  public ConnectResponse<List<PluginInfo>> connectorPlugins() {
     try {
       LOG.debug("Issuing request to Kafka Connect at URI {} to list connector plugins", connectUri);
 
-      final ConnectResponse<List<ConnectorPluginInfo>> connectResponse = withRetries(() -> Request
+      final ConnectResponse<List<PluginInfo>> connectResponse = withRetries(() -> Request
           .get(resolveUri(CONNECTOR_PLUGINS))
           .setHeaders(requestHeaders)
           .responseTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .connectTimeout(Timeout.ofMilliseconds(requestTimeoutMs))
           .execute(httpClient)
           .handleResponse(
-              createHandler(HttpStatus.SC_OK, new TypeReference<List<ConnectorPluginInfo>>() {},
+              createHandler(HttpStatus.SC_OK, new TypeReference<List<PluginInfo>>() {},
                   Function.identity())));
 
       connectResponse.error()

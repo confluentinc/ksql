@@ -376,6 +376,36 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<Void> createConnector(
+      final String name,
+      final boolean isSource,
+      final Map<String, Object> properties,
+      final boolean ifNotExists
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String connectorConfigs = properties.entrySet()
+        .stream()
+        .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
+        .collect(Collectors.joining(","));
+    final String type = isSource ? "SOURCE" : "SINK";
+    final String ifNotExistsClause = ifNotExists ? "IF NOT EXISTS" : "";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql",
+                String.format("CREATE %s CONNECTOR %s %s WITH (%s);",
+                    type, ifNotExistsClause, name, connectorConfigs))
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleCreateConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
   public CompletableFuture<Void> dropConnector(final String name) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
@@ -383,6 +413,24 @@ public class ClientImpl implements Client {
         KSQL_ENDPOINT,
         new JsonObject()
             .put("ksql", "drop connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDropConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> dropConnector(final String name, final boolean ifExists) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String ifExistsClause = ifExists ? "if exists " : "";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", "drop connector " + ifExistsClause + name + ";")
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(

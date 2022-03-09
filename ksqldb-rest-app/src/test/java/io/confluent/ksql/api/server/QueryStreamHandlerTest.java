@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -154,5 +155,42 @@ public class QueryStreamHandlerTest {
     // Then:
     assertThat(subscriber.getValue(), notNullValue());
     verify(pushQueryHolder).close();
+  }
+
+  @Test
+  public void shouldSucceed_scalablePushQuery() {
+    // Given:
+    when(queryPublisher.isPullQuery()).thenReturn(false);
+    when(queryPublisher.isScalablePushQuery()).thenReturn(true);
+    final QueryStreamArgs req = new QueryStreamArgs("select * from foo emit changes;",
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    givenRequest(req);
+
+    // When:
+    handler.handle(routingContext);
+    endHandler.getValue().handle(null);
+
+    // Then:
+    assertThat(subscriber.getValue(), notNullValue());
+    verify(queryPublisher).close();
+  }
+
+  @Test
+  public void verifyEndHandlerNotCalledTwice_scalablePushQuery() {
+    // Given:
+    when(queryPublisher.isPullQuery()).thenReturn(false);
+    when(queryPublisher.isScalablePushQuery()).thenReturn(true);
+    final QueryStreamArgs req = new QueryStreamArgs("select * from foo emit changes;",
+        Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+    givenRequest(req);
+
+    // When:
+    handler.handle(routingContext);
+    endHandler.getValue().handle(null);
+    endHandler.getValue().handle(null);
+
+    // Then:
+    assertThat(subscriber.getValue(), notNullValue());
+    verify(queryPublisher, times(1)).close();
   }
 }

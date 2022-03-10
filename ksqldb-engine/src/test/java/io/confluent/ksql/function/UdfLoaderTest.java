@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -826,7 +827,7 @@ public class UdfLoaderTest {
         "",
         "",
         "");
-    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS),
+    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.EMPTY_LIST),
         not(nullValue()));
   }
 
@@ -845,7 +846,7 @@ public class UdfLoaderTest {
         0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
 
     // When:
-    final KsqlAggregateFunction function = creator.createFunction(initArgs);
+    final KsqlAggregateFunction function = creator.createFunction(initArgs, Collections.EMPTY_LIST);
     final Object initvalue = function.getInitialValueSupplier().get();
 
     // Then:
@@ -877,7 +878,7 @@ public class UdfLoaderTest {
         "",
         "");
     final KsqlAggregateFunction function = creator
-        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
+        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.EMPTY_LIST);
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
 
@@ -894,7 +895,7 @@ public class UdfLoaderTest {
         "",
         "");
     final KsqlAggregateFunction instance =
-        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"));
+        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"), Collections.EMPTY_LIST);
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -915,7 +916,7 @@ public class UdfLoaderTest {
         "");
 
     final KsqlAggregateFunction<Long, Long, Long> executable =
-        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
+        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS, Collections.EMPTY_LIST);
 
     executable.aggregate(1L, 1L);
     executable.aggregate(1L, 1L);
@@ -923,6 +924,26 @@ public class UdfLoaderTest {
         metrics.metricName("aggregate-test-udf-createSumLong-count",
             "ksql-udaf-test-udf-createSumLong"));
     assertThat(metric.metricValue(), equalTo(2.0));
+  }
+
+  @Test
+  public void shouldPassSqlInputTypesToUdafs() throws Exception {
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumT"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+
+    final KsqlAggregateFunction<Long, Long, Long> executable =
+        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS,
+            Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)));
+
+    executable.aggregate(1L, 1L);
+    Long agg = executable.aggregate(1L, 1L);
+    assertThat(agg, equalTo(2L));
   }
 
   @Test(expected = KsqlException.class)

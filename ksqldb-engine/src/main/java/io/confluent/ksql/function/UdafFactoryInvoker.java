@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.function;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -78,15 +81,24 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.description = Objects.requireNonNull(description);
   }
 
+  @SuppressFBWarnings({"EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS", "REC_CATCH_EXCEPTION"})
   @SuppressWarnings("unchecked")
-  KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs) {
+  KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs,
+      final List<SqlArgument> argTypeList) {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
 
+      udaf.initializeTypeArguments(argTypeList);
       if (udaf instanceof Configurable) {
         ((Configurable) udaf).configure(initArgs.config());
       }
+
+      final SqlType aggregateSqlType = (SqlType) udaf.getAggregateSqlType()
+          .orElseGet(() -> SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType));
+      final SqlType returnSqlType = (SqlType) udaf.getReturnSqlType()
+          .orElseGet(() ->
+              SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType));
 
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
@@ -94,8 +106,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             functionName.text(),
             initArgs.udafIndex(),
             udaf,
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            aggregateSqlType,
+            returnSqlType,
             params,
             description,
             metrics,
@@ -105,8 +117,8 @@ class UdafFactoryInvoker implements FunctionSignature {
             functionName.text(),
             initArgs.udafIndex(),
             udaf,
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
-            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            aggregateSqlType,
+            returnSqlType,
             params,
             description,
             metrics,

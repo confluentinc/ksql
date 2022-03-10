@@ -95,9 +95,10 @@ class UdafFactoryInvoker implements FunctionSignature {
       }
 
       final SqlType aggregateSqlType = (SqlType) udaf.getAggregateSqlType()
-          .orElse(SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType));
+          .orElseGet(() -> SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType));
       final SqlType returnSqlType = (SqlType) udaf.getReturnSqlType()
-          .orElse(SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType));
+          .orElseGet(() ->
+              SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType));
 
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {

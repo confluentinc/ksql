@@ -856,7 +856,7 @@ final class EngineExecutor {
     }
   }
 
-  private static class StubbedOutputNode extends KsqlStructuredDataOutputNode {
+  private static final class StubbedOutputNode extends KsqlStructuredDataOutputNode {
     private StubbedOutputNode(
         final KsqlConfig ksqlConfig,
         final DataSource source,
@@ -883,9 +883,11 @@ final class EngineExecutor {
 
   }
 
-  private static class StubbedVerifiableDataSourceNode extends DataSourceNode implements VerifiableNode {
+  private static final class StubbedVerifiableDataSourceNode
+      extends DataSourceNode
+      implements VerifiableNode {
 
-    public StubbedVerifiableDataSourceNode(
+    private StubbedVerifiableDataSourceNode(
         final PlanNodeId id,
         final DataSource dataSource,
         final SourceName alias,
@@ -896,7 +898,7 @@ final class EngineExecutor {
     }
 
     @Override
-    public void validateKeyPresent(SourceName sinkName) {
+    public void validateKeyPresent(final SourceName sinkName) {
       // skip validation
     }
 

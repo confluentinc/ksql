@@ -30,6 +30,13 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Collections;
 import java.util.Optional;
 
+/**
+ * The {@code PhysicalPlanner} takes a {@link LogicalPlan} and uses the visitor pattern
+ * to translate the logical plan into a physical plan.
+ *
+ * <p>A physical plan, in contrast to a logical plan, concerns itself with physical schema
+ * (ie, column-to-key/value-mapping), data formats, internal data repartitioning etc.
+ */
 public final class PhysicalPlanner {
 
   private PhysicalPlanner() {}

@@ -227,7 +227,8 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
     assertThat(((ClientImpl) eventualClient).getContinuationToken(), is(notNullValue()));
-    final String continuationToken = ((ClientImpl) eventualClient).getSerializedConsistencyVector();
+    final String continuationToken = ((ClientImpl) eventualClient).getContinuationToken();
+    System.out.println(continuationToken);
 //    verifyConsistencyVector(continuationToken);
   }
 

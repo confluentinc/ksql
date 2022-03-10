@@ -99,5 +99,4 @@ public interface StreamedQueryResult extends Publisher<Row> {
 
   CompletableFuture<StreamedQueryResult> retry(int maxRetries)
       throws InterruptedException, ExecutionException;
-
 }

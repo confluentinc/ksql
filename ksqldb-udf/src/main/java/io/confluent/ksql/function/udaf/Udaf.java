@@ -73,7 +73,7 @@ public interface Udaf<I, A, O> {
    * Some UDAFs can operate on any type.  In that case, the UDAF needs to be aware of the column
    * type being used.  This method is called once when the UDAF is being created.
    * Implementors may need to hold on to argument types or compute some other state to be re-used
-   * in methods like `aggregate` or `merge`.
+   * in methods like {@code aggregate} or {@code merge}.
    * @param argTypeList The list of SqlArgument that this UDAF will receive as input.
    */
   default void initializeTypeArguments(List<SqlArgument> argTypeList) { }
@@ -82,7 +82,7 @@ public interface Udaf<I, A, O> {
    * Most UDAFs advertise their aggregate type statically via the Java type signature or
    * annotations.
    * For polymorphic UDAFs, implement this method to return the aggregate SQL Type.
-   * @return The aggregate SQL Type of type `A` returned by `aggregate` and `merge`.
+   * @return The aggregate SQL Type
    */
   default Optional<SqlType> getAggregateSqlType() {
     return Optional.empty();
@@ -92,7 +92,7 @@ public interface Udaf<I, A, O> {
    * Most UDAFs advertise their return type statically via the Java type signature or
    * annotations.
    * For polymorphic UDAFs, implement this method to return the return SQL Type.
-   * @return The aggregate SQL Type of type `O` returned by `map`.
+   * @return The return SQL Type
    */
   default Optional<SqlType> getReturnSqlType() {
     return Optional.empty();

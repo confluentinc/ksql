@@ -290,20 +290,33 @@ final class QueryBuilder {
     final KeyFormat keyFormat;
     final ValueFormat valueFormat;
     final KsqlTopic ksqlTopic;
+    final KeyFormat pullQueryKeyFormat;
 
     switch (persistentQueryType) {
       // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
       case CREATE_SOURCE:
-        final DataSource dataSource = Iterables.getOnlyElement(sources);
+        DataSource dataSource = Iterables.getOnlyElement(sources);
 
         logicalSchema = dataSource.getSchema();
         keyFormat = dataSource.getKsqlTopic().getKeyFormat();
         valueFormat = dataSource.getKsqlTopic().getValueFormat();
         ksqlTopic = dataSource.getKsqlTopic();
-
+        pullQueryKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
+        materializationProviderBuilderFactory.setPullQueryKeyFormat(pullQueryKeyFormat);
         break;
       default:
         logicalSchema = sinkDataSource.get().getSchema();
+        if (sinkDataSource.get().getKsqlTopic().getKeyFormat()
+                .getFormatInfo().getFormat().equalsIgnoreCase("JSON")
+                || sinkDataSource.get().getKsqlTopic().getValueFormat().getFormatInfo()
+                .getFormat().equalsIgnoreCase("JSON")
+                || sources.size() != 1) {
+          pullQueryKeyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
+        } else {
+          dataSource = Iterables.getOnlyElement(sources);
+          pullQueryKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
+        }
+        materializationProviderBuilderFactory.setPullQueryKeyFormat(pullQueryKeyFormat);
         keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
         valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
         ksqlTopic = sinkDataSource.get().getKsqlTopic();

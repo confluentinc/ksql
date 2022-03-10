@@ -68,7 +68,8 @@ public class KsMaterializationFactoryTest {
   private Topology topology;
   @Mock
   private Serializer<GenericKey> keySerializer;
-
+  @Mock
+  private Serializer<GenericKey> pullQueryKeySerializer;
   @Mock
   private LocatorFactory locatorFactory;
   @Mock
@@ -95,12 +96,13 @@ public class KsMaterializationFactoryTest {
     );
 
     when(locatorFactory.create(any(), any(), any(), any(), any(), any(),
-        anyBoolean(), anyString())).thenReturn(locator);
+        anyBoolean(), anyString(), any())).thenReturn(locator);
     when(storeFactory.create(any(), any(), any(), any(), any())).thenReturn(stateStore);
     when(materializationFactory.create(any(), any(), any())).thenReturn(materialization);
 
     streamsProperties.clear();
     streamsProperties.put(StreamsConfig.APPLICATION_SERVER_CONFIG, DEFAULT_APP_SERVER.toString());
+    factory.setPullQueryKeySerializer(pullQueryKeySerializer);
   }
 
   @Test
@@ -131,7 +133,6 @@ public class KsMaterializationFactoryTest {
     // When:
     factory.create(STORE_NAME, kafkaStreams, topology, SCHEMA, keySerializer, Optional.empty(),
         streamsProperties, ksqlConfig, APPLICATION_ID, "queryId");
-
     // Then:
     verify(locatorFactory).create(
         STORE_NAME,
@@ -141,7 +142,8 @@ public class KsMaterializationFactoryTest {
         DEFAULT_APP_SERVER,
         APPLICATION_ID,
         false,
-        "queryId"
+        "queryId",
+        pullQueryKeySerializer
     );
   }
 

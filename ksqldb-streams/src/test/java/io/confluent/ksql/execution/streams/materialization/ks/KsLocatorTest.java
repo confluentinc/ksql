@@ -135,6 +135,8 @@ public class KsLocatorTest {
   @Mock
   private Serializer<GenericKey> keySerializer;
   @Mock
+  private Serializer<GenericKey> pullQueryKeySerializer;
+  @Mock
   private RoutingFilter livenessFilter;
   @Mock
   private RoutingFilter activeFilter;
@@ -168,7 +170,8 @@ public class KsLocatorTest {
         LOCAL_HOST_URL,
         APPLICATION_ID,
         false,
-        "queryId"
+        "queryId",
+        pullQueryKeySerializer
     );
 
     activeNode = locator.asNode(Host.include(ACTIVE_HOST));
@@ -206,6 +209,7 @@ public class KsLocatorTest {
         .setDefault(URL.class, LOCAL_HOST_URL)
         .setDefault(KafkaStreams.class, kafkaStreams)
         .setDefault(Serializer.class, keySerializer)
+        .setDefault(Serializer.class, pullQueryKeySerializer)
         .testConstructors(KsLocator.class, Visibility.PACKAGE);
   }
 
@@ -263,7 +267,7 @@ public class KsLocatorTest {
   public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForStreamsMetadataForStore() {
     // Given:
     final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
-        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId", pullQueryKeySerializer);
 
     // When:
     locator.getStreamsMetadata();
@@ -276,7 +280,7 @@ public class KsLocatorTest {
   public void shouldUseNamedTopologyWhenSharedRuntimeIsEnabledForQueryMetadataForKey() {
     // Given:
     final KsLocator locator = new KsLocator(STORE_NAME, kafkaStreamsNamedTopologyWrapper, topology,
-        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId");
+        keySerializer, LOCAL_HOST_URL, APPLICATION_ID, true, "queryId", pullQueryKeySerializer);
 
     // When:
     locator.getKeyQueryMetadata(KEY);

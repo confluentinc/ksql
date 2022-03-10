@@ -46,6 +46,11 @@ public final class MaterializationProviderBuilderFactory {
   private final ServiceContext serviceContext;
   private final KsMaterializationFactory ksMaterializationFactory;
   private final KsqlMaterializationFactory ksqlMaterializationFactory;
+  private KeyFormat pullQueryKeyFormat;
+
+  public void setPullQueryKeyFormat(final KeyFormat pullQueryKeyFormat) {
+    this.pullQueryKeyFormat = pullQueryKeyFormat;
+  }
 
   public MaterializationProviderBuilderFactory(
       final KsqlConfig ksqlConfig,
@@ -100,6 +105,19 @@ public final class MaterializationProviderBuilderFactory {
         NoopProcessingLogContext.INSTANCE,
         Optional.empty()
     ).serializer();
+
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      final Serializer<GenericKey> pullQueryKeySerializer = new GenericKeySerDe().create(
+              pullQueryKeyFormat.getFormatInfo(),
+              schema.keySchema(),
+              ksqlConfig,
+              serviceContext.getSchemaRegistryClientFactory(),
+              "",
+              NoopProcessingLogContext.INSTANCE,
+              Optional.empty()
+      ).serializer();
+      ksMaterializationFactory.setPullQueryKeySerializer(pullQueryKeySerializer);
+    }
 
     final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory
         .create(

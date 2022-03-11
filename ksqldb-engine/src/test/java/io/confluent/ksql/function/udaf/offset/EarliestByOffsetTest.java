@@ -35,12 +35,15 @@ import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
@@ -52,7 +55,7 @@ public class EarliestByOffsetTest {
   public void shouldInitialize() {
     // Given:
     final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset
-        .earliest(STRUCT_LONG, true);
+        .earliestT(true);
 
     // When:
     final Struct init = udaf.initialize();
@@ -65,7 +68,7 @@ public class EarliestByOffsetTest {
   public void shouldInitializeN() {
     // Given:
     final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset
-        .earliestN(STRUCT_LONG, 2, false);
+        .earliestTN( 2, false);
 
     // When:
     final List<Struct> init = udaf.initialize();
@@ -77,7 +80,7 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldThrowExceptionForInvalidN() {
     try {
-      EarliestByOffset.earliestN(STRUCT_LONG, -1, true);
+      EarliestByOffset.earliestTN( -1, true);
     } catch (KsqlException e) {
       assertThat(e.getMessage(), is("earliestN must be 1 or greater"));
     }
@@ -86,7 +89,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestInteger() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
 
     // When:
     final Struct res = udaf.aggregate(123, EarliestByOffset.createStruct(STRUCT_INTEGER, 321));
@@ -98,7 +102,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNIntegers() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
 
     // When:
     final List<Struct> res = udaf
@@ -112,7 +117,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldCaptureValuesUpToN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
 
     // When:
     final List<Struct> res0 = udaf.aggregate(321, new ArrayList<>());
@@ -127,7 +133,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldCaptureValuesPastN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
+
     final List<Struct> aggregate = Lists.newArrayList(
         EarliestByOffset.createStruct(STRUCT_INTEGER, 10),
         EarliestByOffset.createStruct(STRUCT_INTEGER, 3)
@@ -145,7 +153,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMerge() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
 
     final Struct agg1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
     final Struct agg2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
@@ -162,7 +171,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeNIntegers() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
     final Struct struct1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
     final Struct struct2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
     final Struct struct3 = EarliestByOffset.createStruct(STRUCT_INTEGER, 543);
@@ -182,7 +192,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeNIntegersSmallerThanN() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(5);
+    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliest(5);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
     final Struct struct1 = EarliestByOffset.createStruct(STRUCT_INTEGER, 123);
     final Struct struct2 = EarliestByOffset.createStruct(STRUCT_INTEGER, 321);
     final Struct struct3 = EarliestByOffset.createStruct(STRUCT_INTEGER, 543);
@@ -204,7 +215,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeWithOverflow() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliestInteger();
+    final Udaf<Integer, Struct, Integer> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
 
     EarliestByOffset.sequence.set(Long.MAX_VALUE);
 
@@ -225,7 +237,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeWithOverflowNIntegers() {
     // Given:
-    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliestIntegers(2);
+    final Udaf<Integer, List<Struct>, List<Integer>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.INTEGER)));
 
     EarliestByOffset.sequence.set(Long.MAX_VALUE - 1);
 
@@ -251,7 +264,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestLong() {
     // Given:
-    final Udaf<Long, Struct, Long> udaf = EarliestByOffset.earliestLong();
+    final Udaf<Long, Struct, Long> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)));
 
     // When:
     final Struct res = udaf.aggregate(123L, EarliestByOffset.createStruct(STRUCT_LONG, 321L));
@@ -263,7 +277,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNLongs() {
     // Given:
-    final Udaf<Long, List<Struct>, List<Long>> udaf = EarliestByOffset.earliestLongs(3);
+    final Udaf<Long, List<Struct>, List<Long>> udaf = EarliestByOffset.earliest(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)));
+
 
     // When:
     final List<Struct> res = udaf
@@ -282,7 +298,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestDouble() {
     // Given:
-    final Udaf<Double, Struct, Double> udaf = EarliestByOffset.earliestDouble();
+    final Udaf<Double, Struct, Double> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)));
+
 
     // When:
     final Struct res = udaf
@@ -295,7 +313,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNDoubles() {
     // Given:
-    final Udaf<Double, List<Struct>, List<Double>> udaf = EarliestByOffset.earliestDoubles(1);
+    final Udaf<Double, List<Struct>, List<Double>> udaf = EarliestByOffset.earliest(1);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)));
+
 
     // When:
     final List<Struct> res = udaf
@@ -309,7 +329,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestBoolean() {
     // Given:
-    final Udaf<Boolean, Struct, Boolean> udaf = EarliestByOffset.earliestBoolean();
+    final Udaf<Boolean, Struct, Boolean> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BOOLEAN)));
+
 
     // When:
     final Struct res = udaf
@@ -322,7 +344,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNBooleans() {
     // Given:
-    final Udaf<Boolean, List<Struct>, List<Boolean>> udaf = EarliestByOffset.earliestBooleans(2);
+    final Udaf<Boolean, List<Struct>, List<Boolean>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BOOLEAN)));
 
     // When:
     final List<Struct> res = udaf
@@ -337,7 +360,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestTimestamp() {
     // Given:
-    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliestTimestamp();
+    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BOOLEAN)));
 
     // When:
     final Struct res = udaf.aggregate(new Timestamp(123), EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
@@ -349,7 +373,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNTimestamps() {
     // Given:
-    final Udaf<Timestamp, List<Struct>, List<Timestamp>> udaf = EarliestByOffset.earliestTimestamps(3);
+    final Udaf<Timestamp, List<Struct>, List<Timestamp>> udaf = EarliestByOffset.earliest(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP)));
 
     // When:
     final List<Struct> res = udaf.aggregate(new Timestamp(123),
@@ -367,7 +392,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestDate() {
     // Given:
-    final Udaf<Date, Struct, Date> udaf = EarliestByOffset.earliestDate();
+    final Udaf<Date, Struct, Date> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)));
 
     // When:
     final Struct res = udaf.aggregate(new Date(123), EarliestByOffset.createStruct(STRUCT_DATE, new Date(321)));
@@ -379,7 +405,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNDates() {
     // Given:
-    final Udaf<Date, List<Struct>, List<Date>> udaf = EarliestByOffset.earliestDates(3);
+    final Udaf<Date, List<Struct>, List<Date>> udaf = EarliestByOffset.earliest(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)));
 
     // When:
     final List<Struct> res = udaf.aggregate(new Date(123),
@@ -397,7 +424,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestTime() {
     // Given:
-    final Udaf<Time, Struct, Time> udaf = EarliestByOffset.earliestTime();
+    final Udaf<Time, Struct, Time> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)));
 
     // When:
     final Struct res = udaf.aggregate(new Time(123), EarliestByOffset.createStruct(STRUCT_TIME, new Time(321)));
@@ -409,7 +437,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNTimes() {
     // Given:
-    final Udaf<Time, List<Struct>, List<Time>> udaf = EarliestByOffset.earliestTimes(3);
+    final Udaf<Time, List<Struct>, List<Time>> udaf = EarliestByOffset.earliest(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)));
 
     // When:
     final List<Struct> res = udaf.aggregate(new Time(123),
@@ -427,7 +456,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestBytes() {
     // Given:
-    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliestTimestamp();
+    final Udaf<Timestamp, Struct, Timestamp> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.TIMESTAMP)));
 
     // When:
     final Struct res = udaf.aggregate(new Timestamp(123), EarliestByOffset.createStruct(STRUCT_TIMESTAMP, new Timestamp(321)));
@@ -439,7 +469,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNBytes() {
     // Given:
-    final Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> udaf = EarliestByOffset.earliestBytes(3);
+    final Udaf<ByteBuffer, List<Struct>, List<ByteBuffer>> udaf = EarliestByOffset.earliest(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.BYTES)));
 
     // When:
     final List<Struct> res = udaf.aggregate(ByteBuffer.wrap(new byte[] { 123 }),
@@ -457,7 +488,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestString() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
 
     // When:
     final Struct res = udaf.aggregate("foo", EarliestByOffset.createStruct(STRUCT_STRING, "bar"));
@@ -469,7 +501,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldComputeEarliestNStrings() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliestStrings(3);
+    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliest(3);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
 
     // When:
     final List<Struct> res = udaf.aggregate("boo",
@@ -487,7 +520,8 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldNotAcceptNullAsEarliest() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
 
     // When:
     final Struct res = udaf
@@ -507,7 +541,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldAcceptNullAsEarliest() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString(false);
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliest(false);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+
 
     // When:
     final Struct res = udaf
@@ -528,7 +564,8 @@ public class EarliestByOffsetTest {
   public void shouldNotAcceptNullAsEarliestN() {
     // Given:
     final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset
-        .earliestStrings(1);
+        .earliest(1);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
 
     // When:
     final List<Struct> res = udaf
@@ -542,7 +579,9 @@ public class EarliestByOffsetTest {
   public void shouldAcceptNullAsEarliestN() {
     // Given:
     final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset
-        .earliestStrings(1, false);
+        .earliest(1, false);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+
 
     // When:
     final List<Struct> res = udaf
@@ -556,7 +595,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMapInitialized() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+
 
     final Struct init = udaf.initialize();
 
@@ -570,7 +611,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeAndMapInitialized() {
     // Given:
-    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliestString();
+    final Udaf<String, Struct, String> udaf = EarliestByOffset.earliest();
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+
 
     final Struct init1 = udaf.initialize();
     final Struct init2 = udaf.initialize();
@@ -586,7 +629,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMapInitializedN() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliestStrings(2);
+    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+
 
     final List<Struct> init = udaf.initialize();
 
@@ -600,7 +645,9 @@ public class EarliestByOffsetTest {
   @Test
   public void shouldMergeAndMapInitializedN() {
     // Given:
-    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliestStrings(2);
+    final Udaf<String, List<Struct>, List<String>> udaf = EarliestByOffset.earliest(2);
+    udaf.initializeTypeArguments(Collections.singletonList(SqlArgument.of(SqlTypes.STRING)));
+
 
     final List<Struct> init1 = udaf.initialize();
     final List<Struct> init2 = udaf.initialize();

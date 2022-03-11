@@ -41,13 +41,15 @@ class UdafFactoryInvoker implements FunctionSignature {
   private static final Logger LOG = LoggerFactory.getLogger(UdafFactoryInvoker.class);
 
   private final FunctionName functionName;
-  private final ParamType aggregateArgType;
-  private final ParamType aggregateReturnType;
   private final Optional<Metrics> metrics;
   private final List<ParamType> paramTypes;
   private final List<ParameterInfo> params;
   private final Method method;
   private final String description;
+  private final UdafTypes types;
+  private final String aggregateSchema;
+  private final String outputSchema;
+  private ParamType aggregateReturnType;
 
   UdafFactoryInvoker(
       final Method method,
@@ -70,10 +72,12 @@ class UdafFactoryInvoker implements FunctionSignature {
     if (!Modifier.isStatic(method.getModifiers())) {
       throw new KsqlException("UDAF factory methods must be static " + method);
     }
-    final UdafTypes types = new UdafTypes(method, functionName, typeParser);
+    this.types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
-    this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
-    this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
+    this.aggregateSchema = aggregateSchema;
+    this.outputSchema = outputSchema;
+    //this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
+    //this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
     this.metrics = Objects.requireNonNull(metrics);
     this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
@@ -95,10 +99,14 @@ class UdafFactoryInvoker implements FunctionSignature {
       }
 
       final SqlType aggregateSqlType = (SqlType) udaf.getAggregateSqlType()
-          .orElseGet(() -> SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType));
+          .orElseGet(() -> SchemaConverters.functionToSqlConverter()
+              .toSqlType(types.getAggregateSchema(aggregateSchema)));
       final SqlType returnSqlType = (SqlType) udaf.getReturnSqlType()
           .orElseGet(() ->
-              SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType));
+              SchemaConverters.functionToSqlConverter()
+                  .toSqlType(types.getOutputSchema(outputSchema)));
+      this.aggregateReturnType =
+          SchemaConverters.sqlToFunctionConverter().toFunctionType(returnSqlType);
 
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {

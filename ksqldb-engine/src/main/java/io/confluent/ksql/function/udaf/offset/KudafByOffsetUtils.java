@@ -20,12 +20,14 @@ import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTION
 import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_TIME_SCHEMA;
 
 import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 final class KudafByOffsetUtils {
 
+  static final AtomicLong sequence = new AtomicLong();
   static final String SEQ_FIELD = "SEQ";
   public static final String VAL_FIELD = "VAL";
 
@@ -102,6 +104,13 @@ final class KudafByOffsetUtils {
 
         return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);
       };
+
+  static Schema buildSchema(final Schema schema) {
+    return SchemaBuilder.struct().optional()
+        .field(SEQ_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
+        .field(VAL_FIELD, schema)
+        .build();
+  }
 
   static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {
     final Struct struct = new Struct(schema);

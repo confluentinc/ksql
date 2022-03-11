@@ -19,6 +19,9 @@ import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.nio.ByteBuffer;
 import java.sql.Date;
@@ -26,6 +29,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.Configurable;
 
 @UdafDescription(
@@ -47,47 +51,43 @@ public final class CollectListUdaf {
   }
 
   @UdafFactory(description = "collect values of a Bigint field into a single Array")
+  public static <T> TableUdaf<T, List<T>, List<T>> createCollectListT() {
+    return new Collect<>();
+  }
+
   public static TableUdaf<Long, List<Long>, List<Long>> createCollectListLong() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of an Integer field into a single Array")
   public static TableUdaf<Integer, List<Integer>, List<Integer>> createCollectListInt() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a Double field into a single Array")
   public static TableUdaf<Double, List<Double>, List<Double>> createCollectListDouble() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a String/Varchar field into a single Array")
   public static TableUdaf<String, List<String>, List<String>> createCollectListString() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a Boolean field into a single Array")
   public static TableUdaf<Boolean, List<Boolean>, List<Boolean>> createCollectListBool() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a Timestamp field into a single Array")
   public static TableUdaf<Timestamp, List<Timestamp>, List<Timestamp>>
       createCollectListTimestamp() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a Time field into a single Array")
   public static TableUdaf<Time, List<Time>, List<Time>> createCollectListTime() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a Date field into a single Array")
   public static TableUdaf<Date, List<Date>, List<Date>> createCollectListDate() {
     return new Collect<>();
   }
 
-  @UdafFactory(description = "collect values of a Bytes field into a single Array")
   public static TableUdaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> createCollectListBytes() {
     return new Collect<>();
   }
@@ -95,6 +95,7 @@ public final class CollectListUdaf {
   private static final class Collect<T> implements TableUdaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;
+    SqlType inputType;
 
     @Override
     public void configure(final Map<String, ?> map) {
@@ -110,6 +111,21 @@ public final class CollectListUdaf {
       if (this.limit < 0) {
         this.limit = Integer.MAX_VALUE;
       }
+    }
+
+    @Override
+    public void initializeTypeArguments(final List<SqlArgument> argTypeList) {
+      inputType = argTypeList.get(0).getSqlTypeOrThrow();
+    }
+
+    @Override
+    public Optional<SqlType> getAggregateSqlType() {
+      return Optional.of(SqlArray.of(inputType));
+    }
+
+    @Override
+    public Optional<SqlType> getReturnSqlType() {
+      return Optional.of(SqlArray.of(inputType));
     }
 
     @Override

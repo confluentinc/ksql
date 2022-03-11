@@ -9,6 +9,86 @@
   ],
   "tests": [
     {
+      "name": "collect_set with arrays, structs, and maps",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 ARRAY<STRUCT<A VARCHAR, M MAP<STRING, DOUBLE>>>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE OUTPUT AS SELECT ID, collect_set(F0) AS COLLECTED FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early1", "M": {"Early0": 2.345}}]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}}]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}}]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"COLLECTED": [[{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"COLLECTED": [[{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}], [{"A": "Early1", "M": {"Early0": 2.345}}]]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}}]]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}}]]}}
+      ]
+    },
+    {
+      "name": "collect_set maps",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE MAP<VARCHAR, BIGINT>) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_set(value) as collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": {"Record0": 1}}},
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": {"Record1": 100}}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": {"Record0": 100, "Record2": 2}}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": {"Record2": 2,"Record0": 100}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [{"Record0": 1}]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [{"Record0": 1},{"Record1": 100}]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [{"Record0": 100, "Record2": 2}]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [{"Record0": 100, "Record2": 2}]}}
+      ]
+    },
+    {
+      "name": "collect_set arrays",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<INT>) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_set(value) as collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": [0,0,1,0,-1]}},
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": [1,2,3,4,-1]}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": [0,0,1,0,-1]}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": [0,0,1,0,-1]}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [[0,0,1,0,-1]]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [[0,0,1,0,-1],[1,2,3,4,-1]]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [[0,0,1,0,-1]]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [[0,0,1,0,-1]]}}
+      ]
+    },
+    {
+      "name": "collect_set struct",
+      "format": ["AVRO", "JSON", "PROTOBUF"],
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE STRUCT<A VARCHAR, B BIGINT>) WITH (kafka_topic='test_topic',value_format='{FORMAT}');",
+        "CREATE TABLE S2 as SELECT ID, collect_set(value) as collected FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": {"A": "Record0", "B": 1}}},
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": {"A": "Record1", "B": 100}}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": {"A": "Record0", "B": 100}}},
+        {"topic": "test_topic", "key": 100, "value": {"VALUE": {"B": 100,"A": "Record0"}}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [{"A": "Record0", "B": 1}]}},
+        {"topic": "S2", "key": 0, "value": {"COLLECTED": [{"A": "Record0", "B": 1},{"A": "Record1", "B": 100}]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [{"A": "Record0", "B": 100}]}},
+        {"topic": "S2", "key": 100, "value": {"COLLECTED": [{"A": "Record0", "B": 100}]}}
+      ]
+    },
+    {
       "name": "collect_set int",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [

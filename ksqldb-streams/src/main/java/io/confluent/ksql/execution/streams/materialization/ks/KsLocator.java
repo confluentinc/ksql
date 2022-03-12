@@ -101,7 +101,7 @@ public final class KsLocator implements Locator {
     this.applicationId = requireNonNull(applicationId, "applicationId");
     this.sharedRuntimesEnabled = sharedRuntimesEnabled;
     this.queryId = requireNonNull(queryId, "queryId");
-    this.pullQueryKeySerializer = pullQueryKeySerializer;
+    this.pullQueryKeySerializer = requireNonNull(pullQueryKeySerializer, "pullQueryKeySerializer");
   }
 
   @Override

@@ -358,6 +358,50 @@
       ]
     },
     {
+      "name": "schema registry stream-test one partition protobuf",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, COUNT(1) AS CNT FROM INPUT GROUP BY ID, V0;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
+          {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry stream-test two partitions protobuf",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT ID, V0, COUNT(1) AS CNT FROM INPUT GROUP BY ID, V0;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
+          {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
       "name": "schema registry stream-test three partitions protobuf",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, V0 STRING KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=3);",
@@ -376,6 +420,50 @@
         {"query": [
           {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `CNT` BIGINT"}},
           {"row":{"columns":[10, "v10a", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test one partition protobuf",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=1);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "schema registry table-test two partitions protobuf",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, V0 STRING PRIMARY KEY, V1 STRING) WITH (kafka_topic='test_topic', format='PROTOBUF', PARTITIONS=2);",
+        "CREATE TABLE MATVIEW AS SELECT * FROM INPUT;",
+        "SELECT * FROM MATVIEW WHERE ID=10 and V0='v10a';"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  true
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": {"ID": "10", "v0": "v10a"}, "value": {"v1": "v10b"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `V0` STRING KEY, `V1` STRING"}},
+          {"row":{"columns":[10, "v10a", "v10b"]}}
         ]}
       ]
     },

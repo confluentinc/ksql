@@ -74,10 +74,8 @@ class UdafFactoryInvoker implements FunctionSignature {
     }
     this.types = new UdafTypes(method, functionName, typeParser);
     this.functionName = Objects.requireNonNull(functionName);
-    this.aggregateSchema = aggregateSchema;
-    this.outputSchema = outputSchema;
-    //this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
-    //this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
+    this.aggregateSchema = aggregateSchema; // This can be null if the annotation is not used.
+    this.outputSchema = outputSchema;       // This can be null if the annotation is not used.
     this.metrics = Objects.requireNonNull(metrics);
     this.params = types.getInputSchema(Objects.requireNonNull(inputSchema));
     this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());

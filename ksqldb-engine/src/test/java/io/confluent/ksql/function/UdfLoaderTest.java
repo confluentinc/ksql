@@ -982,41 +982,48 @@ public class UdfLoaderTest {
     assertThat(e.getMessage(), containsString("Must specify 'paramSchema' for STRUCT parameter in @UdafFactory."));
   }
 
-  //@Test
+  @Test
   public void shouldThrowIfMissingAggregateTypeSchema() throws Exception {
     // When:
+    UdafFactoryInvoker invoker = createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
+        of("test"),
+        "desc",
+        "",
+        "",
+        ""
+    );
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> createUdafLoader().createUdafFactoryInvoker(
-            UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
-            of("test"),
-            "desc",
-            "",
-            "",
-            "")
+        () -> invoker.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS,
+            Collections.emptyList())
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Must specify 'aggregateSchema' for STRUCT parameter in @UdafFactory."));
+    assertThat(e.getCause().getMessage(), containsString("Must specify 'aggregateSchema' for STRUCT"
+        + " parameter in @UdafFactory or implement getAggregateSqlType()/getReturnSqlType()."));
   }
 
-  //@Test
+  @Test
   public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
     // When:
+    UdafFactoryInvoker invoker = createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
+        of("test"),
+        "desc",
+        "",
+        "",
+        ""
+    );
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> createUdafLoader().createUdafFactoryInvoker(
-            UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
-            of("test"),
-            "desc",
-            "",
-            "",
-            ""
-        )
+        () -> invoker.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS,
+            Collections.emptyList())
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Must specify 'returnSchema' for STRUCT parameter in @UdafFactory."));
+    assertThat(e.getCause().getMessage(), containsString("Must specify 'returnSchema' for STRUCT"
+        + " parameter in @UdafFactory or implement getAggregateSqlType()/getReturnSqlType()."));
   }
 
   @Test
@@ -1370,11 +1377,51 @@ public class UdfLoaderTest {
   }
 
   public static Udaf<String, Struct, String> missingAggregateSchemaAnnotationUdaf() {
-    return null;
+    return new Udaf<String, Struct, String>() {
+      @Override
+      public Struct initialize() {
+        return null;
+      }
+
+      @Override
+      public Struct aggregate(String current, Struct aggregate) {
+        return null;
+      }
+
+      @Override
+      public Struct merge(Struct aggOne, Struct aggTwo) {
+        return null;
+      }
+
+      @Override
+      public String map(Struct agg) {
+        return null;
+      }
+    };
   }
 
   public static Udaf<String, String, Struct> missingOutputSchemaAnnotationUdaf() {
-    return null;
+    return  new Udaf<String, String, Struct>() {
+      @Override
+      public String initialize() {
+        return null;
+      }
+
+      @Override
+      public String aggregate(String current, String aggregate) {
+        return null;
+      }
+
+      @Override
+      public String merge(String aggOne, String aggTwo) {
+        return null;
+      }
+
+      @Override
+      public Struct map(String agg) {
+        return null;
+      }
+    };
   }
 
   private static UdafLoader createUdafLoader() {

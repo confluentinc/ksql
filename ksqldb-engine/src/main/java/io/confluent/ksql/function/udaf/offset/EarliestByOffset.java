@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
-//    name = "EARLIEST_BY_OFFSET_OLD",
 @UdafDescription(
     name = "EARLIEST_BY_OFFSET",
     description = EarliestByOffset.DESCRIPTION,

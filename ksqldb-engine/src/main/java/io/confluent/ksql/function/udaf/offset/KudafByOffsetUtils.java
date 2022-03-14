@@ -20,14 +20,12 @@ import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTION
 import static io.confluent.ksql.serde.connect.ConnectKsqlSchemaTranslator.OPTIONAL_TIME_SCHEMA;
 
 import java.util.Comparator;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 final class KudafByOffsetUtils {
 
-  static final AtomicLong sequence = new AtomicLong();
   static final String SEQ_FIELD = "SEQ";
   public static final String VAL_FIELD = "VAL";
 

@@ -286,6 +286,11 @@ property has the value `KSQL_PROCESSING_LOG`.
 Toggles whether or not the processing log should include rows in log
 messages. By default, this property has the value `false`.
 
+!!! important
+    In {{ site.ccloud }}, `ksql.logging.processing.rows.include` is set
+    to `true`, so the default behavior is to include row data in the
+    processing log. Contact support to disable this default setting.
+
 ## `ksql.logging.server.rate.limited.response.codes`
 
 A list of `code:qps` pairs, to limit the rate of server request

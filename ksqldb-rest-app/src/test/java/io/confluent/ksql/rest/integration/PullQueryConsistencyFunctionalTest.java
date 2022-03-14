@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.startsWith;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
@@ -87,6 +88,7 @@ import javax.ws.rs.core.MediaType;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -621,7 +623,7 @@ public class PullQueryConsistencyFunctionalTest {
 
   private void waitForTableRows() {
     TEST_HARNESS.verifyAvailableUniqueRows(
-      output.toUpperCase(),
+        Lists.newArrayList(new TopicPartition(output.toUpperCase(), 0)),
       USER_PROVIDER.data().size(),
       FormatFactory.KAFKA,
       FormatFactory.JSON,

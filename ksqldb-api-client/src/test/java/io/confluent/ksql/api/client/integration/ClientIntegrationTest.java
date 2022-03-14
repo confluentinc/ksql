@@ -66,6 +66,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
@@ -86,8 +87,11 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.PageViewDataProvider.Batch;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -105,6 +109,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -213,6 +218,8 @@ public class ClientIntegrationTest {
   private static final String TEST_CONNECTOR = "TEST_CONNECTOR";
   private static final String MOCK_SOURCE_CLASS = "org.apache.kafka.connect.tools.MockSourceConnector";
   private static final ConnectorType SOURCE_TYPE = new ConnectorTypeImpl("SOURCE");
+
+  private static final String PAGE_VIEW_CSAS = "PAGE_VIEW_CSAS";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -350,11 +357,27 @@ public class ClientIntegrationTest {
 
   private Vertx vertx;
   private Client client;
+  private String streamName;
+  private PageViewDataProvider pageViewDataProvider;
+  private PageViewDataProvider pageViewAdditionalDataProvider;
+  private PageViewDataProvider pageViewTwoRows;
 
   @Before
   public void setUp() {
     vertx = Vertx.vertx();
     client = createClient();
+
+    final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
+    pageViewDataProvider = new PageViewDataProvider(prefix);
+    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
+    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
+    TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
+
+    RestIntegrationTestUtil.createStream(REST_APP, pageViewDataProvider);
+    streamName = PAGE_VIEW_CSAS + "_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
+    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
+        + "SELECT * FROM " + pageViewDataProvider.sourceName() + ";"
+    );
   }
 
   @After
@@ -612,23 +635,52 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldRetryStreamPushQueryAfterError() throws Exception {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("ksql.query.push.v2.enabled", true);
+    properties.put("auto.offset.reset", "latest");
+    properties.put("ksql.query.push.v2.continuation.tokens.enabled", true);
+
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY_WITH_LIMIT, properties).get();
+
+//    REST_APP.getServiceContext().close();
+
+//    assertThatEventually(streamedQueryResult::isComplete, is(true));
+
+    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
+        FormatFactory.KAFKA, FormatFactory.JSON);
 
     // Then
-    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
-    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
-    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+    for (int i = 0; i < PUSH_QUERY_LIMIT_NUM_ROWS; i++) {
+      final Row row = streamedQueryResult.poll();
+      verifyStreamRowWithIndex(row, i);
+    }
 
-    shouldReceiveStreamRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
-    REST_APP.getServiceContext().close();
+    assertThat(((ClientImpl) client).getContinuationToken(), is(notNullValue()));
+    final String continuationToken = ((ClientImpl) client).getContinuationToken();
+    System.out.println(continuationToken);
+
     if (streamedQueryResult.isFailed() && streamedQueryResult.hasContinuationToken()) {
       streamedQueryResult.retry(1);
     }
 
 
 
-    assertThat(streamedQueryResult.isComplete(), is(true));
+//    // When
+//    final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY).get();
+//
+//    // Then
+//    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+//    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+//    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+//
+//    shouldReceiveStreamRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
+//    REST_APP.getServiceContext().close();
+//    if (streamedQueryResult.isFailed() && streamedQueryResult.hasContinuationToken()) {
+//      streamedQueryResult.retry(1);
+//    }
+//
+//    assertThat(streamedQueryResult.isComplete(), is(true));
   }
 
   @Test

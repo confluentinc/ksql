@@ -159,9 +159,11 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
       final int maxRetries) throws InterruptedException, ExecutionException {
     long waitMs = 100;
 
+    requestProperties.put("request.ksql.query.push.start.offsets", continuationToken.get());
     for (int i = 0; i < maxRetries; i++) {
       waitMs = waitMs * 2;
       Thread.sleep(waitMs);
+
       CompletableFuture<StreamedQueryResult> result =
           this.client.streamQuery(sql, requestProperties);
 

@@ -106,7 +106,7 @@ setting the ksqlDB property `ksql.logging.processing.rows.include` to
     to `true`, so the default behavior is to include row data in the
     processing log. Contact support to disable this default setting.
 
-If you set `ksql.logging.processing.rows.include` to `true`, ensure that the
+When `ksql.logging.processing.rows.include` is set to `true`, ensure that the
 log is configured to write to a destination where it is safe to write the data
 being processed. It's also important to set `log4j.additivity.processing=false`
 as shown in the previous example, to ensure that processing log events are not

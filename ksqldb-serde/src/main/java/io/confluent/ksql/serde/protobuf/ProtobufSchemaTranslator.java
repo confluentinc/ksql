@@ -29,11 +29,12 @@ import org.apache.kafka.connect.data.Schema;
  */
 class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
-  private final ProtobufData protobufData =
+  private ProtobufData protobufData =
       new ProtobufData(new ProtobufDataConfig(ImmutableMap.of()));
 
   @Override
   public void configure(final Map<String, ?> configs) {
+    protobufData = new ProtobufData(new ProtobufDataConfig(configs));
   }
 
   @Override

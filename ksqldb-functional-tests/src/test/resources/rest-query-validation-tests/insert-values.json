@@ -433,6 +433,20 @@
       ]
     },
     {
+      "name": "multi-key insert - AVRO",
+      "statements": [
+        "CREATE STREAM INPUT (COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR) WITH (kafka_topic='input_topic', VALUE_FORMAT='AVRO', KEY_FORMAT='AVRO', PARTITIONS=1);",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('1', 1, '1');",
+        "INSERT INTO INPUT (COL1, COL2, COL3) VALUES ('2', 2, '2');"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "input_topic", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
+        {"topic": "input_topic", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
+      ]
+    },
+    {
       "name": "AVRO struct key format",
       "statements": [
         "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",

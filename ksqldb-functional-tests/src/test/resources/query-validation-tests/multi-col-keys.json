@@ -345,26 +345,6 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid join condition: stream-table joins require to join on the table's primary key. Got S.K = T.K."
       }
-    },
-    {
-      "name": "multi-key insert - AVRO",
-      "statements": [
-        "CREATE STREAM INPUT (COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR) WITH (kafka_topic='input_topic', VALUE_FORMAT='AVRO', KEY_FORMAT='AVRO', PARTITIONS=1);",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
-        {"topic": "input_topic", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"COL1": "1", "COL2": 1}, "value": {"COL3": "1"}},
-        {"topic": "OUTPUT", "key": {"COL1": "2", "COL2": 2}, "value": {"COL3": "2"}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "INPUT", "type": "stream", "schema": "COL1 VARCHAR KEY, COL2 INT KEY, COL3 VARCHAR"}
-        ]
-      }
     }
   ]
 }

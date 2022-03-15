@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.serde.protobuf;
 
+import static io.confluent.connect.protobuf.ProtobufDataConfig.WRAPPER_FOR_RAW_PRIMITIVES_CONFIG;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.connect.protobuf.ProtobufData;
 import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 
@@ -29,12 +32,17 @@ import org.apache.kafka.connect.data.Schema;
  */
 class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
+  private static final Map<String, Object> BASE_CONFIGS =
+      ImmutableMap.of(WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, false);
+
   private ProtobufData protobufData =
-      new ProtobufData(new ProtobufDataConfig(ImmutableMap.of()));
+      new ProtobufData(new ProtobufDataConfig(BASE_CONFIGS));
 
   @Override
   public void configure(final Map<String, ?> configs) {
-    protobufData = new ProtobufData(new ProtobufDataConfig(configs));
+    final Map<String, Object> mergedConfigs = new HashMap<>(configs);
+    mergedConfigs.putAll(BASE_CONFIGS);
+    protobufData = new ProtobufData(new ProtobufDataConfig(mergedConfigs));
   }
 
   @Override

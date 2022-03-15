@@ -12,24 +12,24 @@
       "name": "collect_set with arrays, structs, and maps",
       "format": ["AVRO", "JSON"],
       "statements": [
-        "CREATE STREAM INPUT (ID BIGINT KEY, F0 ARRAY<STRUCT<A VARCHAR, M MAP<STRING, DOUBLE>>>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 ARRAY<STRUCT<A VARCHAR, M MAP<STRING, DOUBLE>, D DECIMAL(4,1)>>) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT ID, collect_set(F0) AS COLLECTED FROM INPUT GROUP BY ID;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]}},
-        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early1", "M": {"Early0": 2.345}}]}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}}]}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}}]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early0", "M": {"Early0": 1.234}, "D": 123.4}, {"A": "Early2", "M": {"Early2": 1.23456}}]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": [{"A": "Early1", "M": {"Early0": 2.345}, "D": 234.5}]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}, "D":  null}]}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": [{"A": "Later0", "M": {"Early0": 3.45}, "D":  0.1}]}},
         {"topic": "test_topic", "key": 1, "value": {"F0": [null]}},
         {"topic": "test_topic", "key": 1, "value": {"F0": null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"COLLECTED": [[{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}]]}},
-        {"topic": "OUTPUT", "key": 0, "value": {"COLLECTED": [[{"A": "Early0", "M": {"Early0": 1.234}}, {"A": "Early2", "M": {"Early2": 1.23456}}], [{"A": "Early1", "M": {"Early0": 2.345}}]]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}}]]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}}]]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}}], [null]]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}}], [null], null]}}
+        {"topic": "OUTPUT", "key": 0, "value": {"COLLECTED": [[{"A": "Early0", "M": {"Early0": 1.234}, "D": 123.4}, {"A": "Early2", "M": {"Early2": 1.23456}, "D": null}]]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"COLLECTED": [[{"A": "Early0", "M": {"Early0": 1.234}, "D": 123.4}, {"A": "Early2", "M": {"Early2": 1.23456}, "D": null}], [{"A": "Early1", "M": {"Early0": 2.345}, "D": 234.5}]]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}, "D": null}]]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}, "D": null}], [{"A": "Later0", "M": {"Early0": 3.45}, "D": 0.1}]]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}, "D": null}], [{"A": "Later0", "M": {"Early0": 3.45}, "D": 0.1}], [null]]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"COLLECTED": [[{"A": "Later0", "M": {"Early0": 3.45}, "D": null}], [{"A": "Later0", "M": {"Early0": 3.45}, "D": 0.1}], [null], null]}}
       ]
     },
     {

@@ -101,6 +101,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private static final int MAX_RETRIES = 10;
   private static final String UNKNOWN_VERSION = "<unknown>";
   private static final String NO_WARNING = "";
+  private static final int NO_ERROR = 0;
+  private static final int ERROR = -1;
 
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
@@ -244,7 +246,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   // called by '-f' command parameter
-  public void runScript(final String scriptFile) {
+  public int runScript(final String scriptFile) {
+    int error_code = NO_ERROR;
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
 
     try {
@@ -262,6 +265,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       handleLine(content);
     } catch (final Exception exception) {
+      error_code = ERROR;
+
       LOGGER.error("An error occurred while running a script file. Error = "
           + exception.getMessage(), exception);
 
@@ -270,10 +275,14 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
 
     terminal.flush();
+
+    return error_code;
   }
 
   // called by '-e' command parameter
-  public void runCommand(final String command) {
+  public int runCommand(final String command) {
+    int error_code = NO_ERROR;
+
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     try {
       // Commands executed by the '-e' parameter do not need to execute specific CLI
@@ -282,6 +291,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } catch (final EndOfFileException exception) {
       // Ignore - only used by runInteractively() to exit the CLI
     } catch (final Exception exception) {
+      error_code = ERROR;
       LOGGER.error("An error occurred while running a command. Error = "
           + exception.getMessage(), exception);
 
@@ -290,9 +300,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
 
     terminal.flush();
+
+    return error_code;
   }
 
-  public void runInteractively() {
+  public int runInteractively() {
     displayWelcomeMessage();
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     boolean eof = false;
@@ -311,6 +323,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       }
       terminal.flush();
     }
+
+    return NO_ERROR;
   }
 
   private void displayWelcomeMessage() {

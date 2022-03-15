@@ -161,6 +161,31 @@
       }
     },
     {
+      "name": "protobuf inference - wrapped primitives",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='PROTOBUF');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueFormat": "PROTOBUF",
+          "valueSchema": "syntax = \"proto3\"; import 'google/protobuf/wrappers.proto'; message ConfluentDefault1 {google.protobuf.BoolValue c1 = 1; google.protobuf.Int32Value c2 = 2; google.protobuf.Int64Value c3 = 3; google.protobuf.DoubleValue c4 = 4; google.protobuf.StringValue c5 = 5;}"
+        }
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"c1": {"value": true}, "c2": {"value": 1}, "c3": {"value": 400000000000}, "c4": {"value": 1.284765648}, "c5": {"value": "hello"}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C1": {"value": true}, "C2": {"value": 1}, "C3": {"value": 400000000000}, "C4": {"value": 1.284765648}, "C5": {"value": "hello"}}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "C1 STRUCT<VALUE BOOLEAN>, C2 STRUCT<VALUE INT>, C3 STRUCT<VALUE BIGINT>, C4 STRUCT<VALUE DOUBLE>, C5 STRUCT<VALUE STRING>"}
+        ]
+      }
+    },
+    {
       "name": "protobuf inference - partial schema",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY) WITH (kafka_topic='input', value_format='PROTOBUF');",

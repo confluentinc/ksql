@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function.udaf.array;
 
-import com.google.common.collect.Lists;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -23,6 +22,7 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,7 +89,7 @@ public final class CollectListUdaf {
 
     @Override
     public List<T> initialize() {
-      return Lists.newArrayList();
+      return new ArrayList<>();
     }
 
     @Override

@@ -23,10 +23,6 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
-import java.nio.ByteBuffer;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,44 +50,7 @@ public final class CollectListUdaf {
   public static <T> TableUdaf<T, List<T>, List<T>> createCollectListT() {
     return new Collect<>();
   }
-
-  public static TableUdaf<Long, List<Long>, List<Long>> createCollectListLong() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<Integer, List<Integer>, List<Integer>> createCollectListInt() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<Double, List<Double>, List<Double>> createCollectListDouble() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<String, List<String>, List<String>> createCollectListString() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<Boolean, List<Boolean>, List<Boolean>> createCollectListBool() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<Timestamp, List<Timestamp>, List<Timestamp>>
-      createCollectListTimestamp() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<Time, List<Time>, List<Time>> createCollectListTime() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<Date, List<Date>, List<Date>> createCollectListDate() {
-    return new Collect<>();
-  }
-
-  public static TableUdaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> createCollectListBytes() {
-    return new Collect<>();
-  }
-
+  
   private static final class Collect<T> implements TableUdaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;

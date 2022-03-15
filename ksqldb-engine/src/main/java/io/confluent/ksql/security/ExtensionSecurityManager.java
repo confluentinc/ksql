@@ -15,7 +15,11 @@
 
 package io.confluent.ksql.security;
 
+import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.FunctionLoaderUtils;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.function.udf.PluggableUdf;
+import java.lang.reflect.ReflectPermission;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.Permission;
@@ -93,6 +97,21 @@ public final class ExtensionSecurityManager extends SecurityManager {
     super.checkExec(cmd);
   }
 
+  @Override
+  public void checkPermission(final Permission perm) {
+    if (inUdfExecution()) {
+      if (perm instanceof ReflectPermission) {
+        throw new SecurityException("A UDF attempted to use reflection.");
+      }
+      /* if (perm instanceof RuntimePermission) {
+        System.out.println("Stopping system call");
+        new Exception().printStackTrace(System.out);
+        System.out.println("Done dumping stack");
+        throw new SecurityException("A UDF attempted to make a system call.");
+      } */
+    }
+    super.checkPermission(perm);
+  }
 
   private boolean inUdfExecution() {
     final Stack<Boolean> executing = UDF_IS_EXECUTING.get();
@@ -104,7 +123,15 @@ public final class ExtensionSecurityManager extends SecurityManager {
    * item in the class array.
    * @return true if caller is allowed
    */
+  @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
   private boolean validateCaller() {
-    return getClassContext()[2].equals(PluggableUdf.class);
+    final Class caller = getClassContext()[2];
+    return caller.equals(PluggableUdf.class)
+        || caller.equals(FunctionLoaderUtils.class)
+        || caller.equals(UdfLoader.class)
+        || caller.equals(BaseAggregateFunction.class)
+        || caller.getName().equals("io.confluent.ksql.function.UdafFactoryInvoker")
+        || caller.getName().equals("io.confluent.ksql.function.UdafAggregateFunction")
+        || caller.getName().equals("io.confluent.ksql.function.UdafTableAggregateFunction");
   }
 }

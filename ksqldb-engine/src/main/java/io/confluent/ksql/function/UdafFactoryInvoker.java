@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -89,8 +90,8 @@ class UdafFactoryInvoker implements FunctionSignature {
       final List<SqlArgument> argTypeList) {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
-
       udaf.initializeTypeArguments(argTypeList);
       if (udaf instanceof Configurable) {
         ((Configurable) udaf).configure(initArgs.config());
@@ -134,6 +135,8 @@ class UdafFactoryInvoker implements FunctionSignature {
     } catch (final Exception e) {
       LOG.error("Failed to invoke UDAF factory method", e);
       throw new KsqlException("Failed to invoke UDAF factory method", e);
+    } finally {
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
     }
   }
 

@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -87,12 +88,14 @@ class UdafFactoryInvoker implements FunctionSignature {
       final List<SqlArgument> argTypeList) {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
+      ExtensionSecurityManager.INSTANCE.pushInUdf();
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
-
       udaf.initializeTypeArguments(argTypeList);
+
       if (udaf instanceof Configurable) {
         ((Configurable) udaf).configure(initArgs.config());
       }
+      ExtensionSecurityManager.INSTANCE.popOutUdf();
 
       final SqlType aggregateSqlType = (SqlType) udaf.getAggregateSqlType()
           .orElseGet(() -> SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType));

@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.security;
 
+import io.confluent.ksql.function.FunctionLoaderUtils;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.function.udf.PluggableUdf;
+import java.lang.reflect.ReflectPermission;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.Permission;
@@ -93,6 +96,19 @@ public final class ExtensionSecurityManager extends SecurityManager {
     super.checkExec(cmd);
   }
 
+  @Override
+  public void checkPermission(final Permission perm) {
+    System.out.println("Checking permission " + perm);
+    if (inUdfExecution()) {
+      if (perm instanceof ReflectPermission) {
+        throw new SecurityException("A UDF attempted to use reflection.");
+      }
+      if (perm instanceof RuntimePermission) {
+        throw new SecurityException("A UDF attempted to make a system call.");
+      }
+    }
+    super.checkPermission(perm);
+  }
 
   private boolean inUdfExecution() {
     final Stack<Boolean> executing = UDF_IS_EXECUTING.get();
@@ -105,6 +121,11 @@ public final class ExtensionSecurityManager extends SecurityManager {
    * @return true if caller is allowed
    */
   private boolean validateCaller() {
-    return getClassContext()[2].equals(PluggableUdf.class);
+    final Class caller = getClassContext()[2];
+    System.out.println("Caller is " + caller);
+    return caller.equals(PluggableUdf.class)
+        || caller.equals(FunctionLoaderUtils.class)
+        || caller.equals(UdfLoader.class)
+        || caller.getName().equals("io.confluent.ksql.function.UdafFactoryInvoker");
   }
 }

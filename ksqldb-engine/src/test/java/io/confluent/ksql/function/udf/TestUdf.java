@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -67,4 +68,21 @@ public class TestUdf {
   public SqlType structProvider(final List<SqlType> params) {
     return RETURN;
   }
+
+  @SuppressFBWarnings("DM_EXIT")
+  @Udf(description = "Sample Bad", schemaProvider = "exit")
+  public Struct returnList(String string) {
+    System.out.println("In returnList");
+    System.exit(-1);
+    return null;
+  }
+
+  @SuppressFBWarnings("DM_EXIT")
+  @UdfSchemaProvider
+  public SqlType exit(final List<SqlType> params) {
+    System.out.println("In schemaProvider");
+    System.exit(-3);
+    return RETURN;
+  }
+
 }

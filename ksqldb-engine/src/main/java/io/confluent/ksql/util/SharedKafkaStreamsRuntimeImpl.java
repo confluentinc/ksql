@@ -220,7 +220,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology());
+        kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology());
       } else {
         throw new IllegalArgumentException("Cannot start because Streams is not done terminating"
                                                + " an older version of query : " + queryId);

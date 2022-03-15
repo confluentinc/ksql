@@ -329,11 +329,12 @@ public class UdfLoaderTest {
     // This will exit due to a bad getAggregateSqlType.
     final Exception e8 = assertThrows(
         KsqlException.class,
-        () ->
-            ((KsqlAggregateFunction) FUNC_REG
+        () -> {
+            KsqlAggregateFunction func = ((KsqlAggregateFunction) FUNC_REG
                 .getAggregateFunction(FunctionName.of("bad_test_udaf"),
                     SqlTypes.array(SqlTypes.BIGINT),
-                    AggregateFunctionInitArguments.EMPTY_ARGS)).getAggregateType()
+                    AggregateFunctionInitArguments.EMPTY_ARGS));
+        }
     );
     assertThat(e8.getCause().getMessage(), containsString("A UDF attempted to call System.exit"));
 

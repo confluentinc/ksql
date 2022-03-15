@@ -271,7 +271,7 @@ public final class BadTestUdaf {
       @Override
       public Optional<SqlType> getAggregateSqlType() {
         runBadCode();
-        return null;
+        return Optional.empty();
       }
     };
   }
@@ -302,7 +302,7 @@ public final class BadTestUdaf {
       @Override
       public Optional<SqlType> getReturnSqlType() {
         runBadCode();
-        return null;
+        return Optional.empty();
       }
     };
   }

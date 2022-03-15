@@ -979,7 +979,8 @@ public class UdfLoaderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Must specify 'paramSchema' for STRUCT parameter in @UdafFactory."));
+    assertThat(e.getMessage(), containsString("Must specify 'paramSchema' for STRUCT"
+        + " parameter in @UdafFactory or implement getAggregateSqlType()/getReturnSqlType()."));
   }
 
   @Test

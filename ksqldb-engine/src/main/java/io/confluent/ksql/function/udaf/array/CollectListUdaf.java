@@ -50,7 +50,7 @@ public final class CollectListUdaf {
   public static <T> TableUdaf<T, List<T>, List<T>> createCollectListT() {
     return new Collect<>();
   }
-  
+
   private static final class Collect<T> implements TableUdaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;

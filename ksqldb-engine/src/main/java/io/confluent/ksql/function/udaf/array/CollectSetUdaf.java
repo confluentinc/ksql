@@ -53,42 +53,6 @@ public final class CollectSetUdaf {
     return new Collect<>();
   }
 
-  public static Udaf<Long, List<Long>, List<Long>> createCollectSetLong() {
-    return new Collect<>();
-  }
-
-  public static Udaf<Integer, List<Integer>, List<Integer>> createCollectSetInt() {
-    return new Collect<>();
-  }
-
-  public static Udaf<Double, List<Double>, List<Double>> createCollectSetDouble() {
-    return new Collect<>();
-  }
-
-  public static Udaf<String, List<String>, List<String>> createCollectSetString() {
-    return new Collect<>();
-  }
-
-  public static Udaf<Boolean, List<Boolean>, List<Boolean>> createCollectSetBool() {
-    return new Collect<>();
-  }
-
-  public static Udaf<Timestamp, List<Timestamp>, List<Timestamp>> createCollectSetTimestamp() {
-    return new Collect<>();
-  }
-
-  public static Udaf<Time, List<Time>, List<Time>> createCollectSetTime() {
-    return new Collect<>();
-  }
-
-  public static Udaf<Date, List<Date>, List<Date>> createCollectSetDate() {
-    return new Collect<>();
-  }
-
-  public static Udaf<ByteBuffer, List<ByteBuffer>, List<ByteBuffer>> createCollectSetBytes() {
-    return new Collect<>();
-  }
-
   private static final class Collect<T> implements Udaf<T, List<T>, List<T>>, Configurable {
 
     private int limit = Integer.MAX_VALUE;

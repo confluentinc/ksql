@@ -583,7 +583,7 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag that enables the new planner for persistent queries. Default is false.";
 
   public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
-  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 8;
+  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
   public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
       "Controls how many runtimes queries are allocated over initially."
           + "this is only used when ksql.runtime.feature.shared.enabled is true.";

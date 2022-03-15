@@ -69,9 +69,14 @@ public final class Ksql {
       options.setPassword(readPassword());
     }
 
-    int error_code = 0;
+    int errorCode = 0;
     try {
-      error_code = new Ksql(options, System.getProperties(), KsqlRestClient::create, Cli::build).run();
+      errorCode = new Ksql(
+          options,
+          System.getProperties(),
+          KsqlRestClient::create,
+          Cli::build
+      ).run();
     } catch (final Exception e) {
       final String msg = ErrorMessageUtil.buildErrorMessage(e);
       LOGGER.error(msg);
@@ -79,7 +84,7 @@ public final class Ksql {
       System.exit(-1);
     }
 
-    System.exit(error_code);
+    System.exit(errorCode);
   }
 
   private static String readPassword() {

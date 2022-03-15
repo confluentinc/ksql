@@ -247,7 +247,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   // called by '-f' command parameter
   public int runScript(final String scriptFile) {
-    int error_code = NO_ERROR;
+    int errorCode = NO_ERROR;
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
 
     try {
@@ -265,7 +265,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
       handleLine(content);
     } catch (final Exception exception) {
-      error_code = ERROR;
+      errorCode = ERROR;
 
       LOGGER.error("An error occurred while running a script file. Error = "
           + exception.getMessage(), exception);
@@ -276,12 +276,12 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
     terminal.flush();
 
-    return error_code;
+    return errorCode;
   }
 
   // called by '-e' command parameter
   public int runCommand(final String command) {
-    int error_code = NO_ERROR;
+    int errorCode = NO_ERROR;
 
     RemoteServerSpecificCommand.validateClient(terminal.writer(), restClient);
     try {
@@ -291,7 +291,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } catch (final EndOfFileException exception) {
       // Ignore - only used by runInteractively() to exit the CLI
     } catch (final Exception exception) {
-      error_code = ERROR;
+      errorCode = ERROR;
       LOGGER.error("An error occurred while running a command. Error = "
           + exception.getMessage(), exception);
 
@@ -301,7 +301,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
     terminal.flush();
 
-    return error_code;
+    return errorCode;
   }
 
   public int runInteractively() {

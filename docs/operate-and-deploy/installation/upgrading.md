@@ -154,6 +154,10 @@ which may cause "spurious" result records.
 The use of GRACE PERIOD is highly recommended now that it is supported. It helps to reduce high
 disk usage when using small grace period values (default 24 hours if not set) and also provides
 better semantics for left/outer joins.
+	
+#### Headers syntax 
+
+Due to the new [HEADER syntax](https://docs.ksqldb.io/en/latest/reference/sql/data-definition/#headers) introduced with 0.24.0, existing custom struct fields named `HEADER` might lead to unexpected errors.
 
 ### Upgrading from ksqlDB 0.10.0 to 0.14.0
 

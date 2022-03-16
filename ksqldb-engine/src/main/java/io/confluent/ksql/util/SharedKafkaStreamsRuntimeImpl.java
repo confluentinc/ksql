@@ -23,9 +23,13 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.StateListener;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -42,6 +46,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   private final long shutdownTimeout;
   private final QueryErrorClassifier errorClassifier;
   private final int maxQueryErrorsQueueSize;
+  private final List<KafkaFuture<Void>>  topolgogiesToAdd;
 
   public SharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                        final QueryErrorClassifier errorClassifier,
@@ -56,6 +61,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     this.maxQueryErrorsQueueSize = maxQueryErrorsQueueSize;
     shutdownTimeout = shutdownTimeoutConfig;
     setupAndStartKafkaStreams(kafkaStreams);
+    topolgogiesToAdd = new ArrayList<>();
   }
 
   @Override
@@ -183,6 +189,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     if (kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
       if (kafkaStreams.state().isRunningOrRebalancing()) {
         try {
+          for (KafkaFuture<Void> toAdd : topolgogiesToAdd) {
+            toAdd.get();
+          }
           kafkaStreams.removeNamedTopology(queryId.toString(), !isCreateOrReplace)
               .all()
               .get();
@@ -220,18 +229,9 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
     log.info("Attempting to start query {} in runtime {}", queryId, getApplicationId());
     if (collocatedQueries.containsKey(queryId) && !collocatedQueries.get(queryId).everStarted) {
       if (!kafkaStreams.getTopologyByName(queryId.toString()).isPresent()) {
-        try {
-          kafkaStreams.addNamedTopology(collocatedQueries.get(queryId).getTopology())
-              .all()
-              .get();
-        } catch (ExecutionException | InterruptedException e) {
-          final Throwable t = e.getCause() == null ? e : e.getCause();
-          throw new IllegalStateException(String.format(
-                "Encountered an error when trying to start query %s in runtime: %s",
-                queryId,
-                getApplicationId()),
-              t);
-        }
+        final KafkaFuture<Void> toAdd = kafkaStreams
+            .addNamedTopology(collocatedQueries.get(queryId).getTopology()).all();
+        topolgogiesToAdd.add(toAdd);
       } else {
         throw new IllegalArgumentException("Cannot start because Streams is not done terminating"
                                                + " an older version of query : " + queryId);

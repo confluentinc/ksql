@@ -36,7 +36,10 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.Map;
@@ -134,14 +137,19 @@ public final class CreateSourceProperties {
     return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
   }
 
-  public Optional<FormatInfo> getKeyFormat(final SourceName name) {
+  public Optional<FormatInfo> getKeyFormat(final SourceName name, final KsqlConfig config) {
     final String keyFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.KEY_FORMAT_PROPERTY));
     return Optional.ofNullable(keyFormat)
-        .map(format -> FormatInfo.of(format, getKeyFormatProperties(keyFormat, name.text())));
+        .map(format ->
+            FormatInfo.of(format, getKeyFormatProperties(keyFormat, name.text(), config)));
   }
 
-  private Map<String, String> getKeyFormatProperties(final String keyFormat, final String name) {
+  public Map<String, String> getKeyFormatProperties(
+      final String keyFormat,
+      final String name,
+      final KsqlConfig config
+  ) {
     final Builder<String, String> builder = ImmutableMap.builder();
     final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
     if (schemaName != null) {
@@ -151,6 +159,11 @@ public final class CreateSourceProperties {
       // users to always generate valid, non-conflicting avro record definitions in
       // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
       builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+    }
+
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat)
+        && config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.KEY_DELIMITER_PROPERTY);
@@ -164,14 +177,17 @@ public final class CreateSourceProperties {
     return builder.build();
   }
 
-  public Optional<FormatInfo> getValueFormat() {
+  public Optional<FormatInfo> getValueFormat(final KsqlConfig config) {
     final String valueFormat = getFormatName()
         .orElse(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY));
     return Optional.ofNullable(valueFormat)
-        .map(format -> FormatInfo.of(format, getValueFormatProperties()));
+        .map(format -> FormatInfo.of(format, getValueFormatProperties(valueFormat, config)));
   }
 
-  public Map<String, String> getValueFormatProperties() {
+  public Map<String, String> getValueFormatProperties(
+      final String valueFormat,
+      final KsqlConfig config
+  ) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
     final String avroSchemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
@@ -180,6 +196,11 @@ public final class CreateSourceProperties {
             : avroSchemaName;
     if (schemaName != null) {
       builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
+    }
+
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)
+        && config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)) {
+      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
     final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);

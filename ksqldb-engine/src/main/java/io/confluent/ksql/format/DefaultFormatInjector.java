@@ -87,15 +87,14 @@ public class DefaultFormatInjector implements Injector {
 
     final CreateSource statement = original.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
+    final KsqlConfig config = getConfig(original);
 
-    final Optional<FormatInfo> keyFormat = properties.getKeyFormat(statement.getName());
-    final Optional<FormatInfo> valueFormat = properties.getValueFormat();
+    final Optional<FormatInfo> keyFormat = properties.getKeyFormat(statement.getName(), config);
+    final Optional<FormatInfo> valueFormat = properties.getValueFormat(config);
 
     if (keyFormat.isPresent() && valueFormat.isPresent()) {
       return Optional.empty();
     }
-
-    final KsqlConfig config = getConfig(original);
 
     final CreateSourceProperties injectedProps = properties.withFormats(
         keyFormat.map(FormatInfo::getFormat)

@@ -177,7 +177,7 @@ public final class TestCaseBuilderUtil {
       final LogicalSchema logicalSchema = statement.getElements().toLogicalSchema();
 
       final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
-          props, statement.getName());
+          props, statement.getName(), ksqlConfig);
       final Format keyFormat = FormatFactory.fromName(keyFormatInfo.getFormat());
       final SerdeFeatures keySerdeFeats = buildKeyFeatures(
           keyFormat, logicalSchema);
@@ -187,7 +187,7 @@ public final class TestCaseBuilderUtil {
               ? buildSchema(sql, logicalSchema.key(), keyFormatInfo, keyFormat, keySerdeFeats)
               : Optional.empty();
 
-      final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props);
+      final FormatInfo valFormatInfo = SourcePropertiesUtil.getValueFormat(props, ksqlConfig);
       final Format valFormat = FormatFactory.fromName(valFormatInfo.getFormat());
       final SerdeFeatures valSerdeFeats = buildValueFeatures(
           ksqlConfig, props, valFormat, logicalSchema);

@@ -115,9 +115,10 @@ public class SchemaRegisterInjector implements Injector {
     // statement properties
     final CreateSource statement = cs.getStatement();
     final LogicalSchema schema = statement.getElements().toLogicalSchema();
+    final KsqlConfig config = cs.getSessionConfig().getConfig(true);
 
     final FormatInfo keyFormatInfo = SourcePropertiesUtil.getKeyFormat(
-        statement.getProperties(), statement.getName());
+        statement.getProperties(), statement.getName(), config);
     final Format keyFormat = tryGetFormat(keyFormatInfo, true, cs.getStatementText());
     final SerdeFeatures keyFeatures = SerdeFeaturesFactory.buildKeyFeatures(
         schema,
@@ -125,13 +126,13 @@ public class SchemaRegisterInjector implements Injector {
     );
 
     final FormatInfo valueFormatInfo = SourcePropertiesUtil.getValueFormat(
-        statement.getProperties());
+        statement.getProperties(), config);
     final Format valueFormat = tryGetFormat(valueFormatInfo, false, cs.getStatementText());
     final SerdeFeatures valFeatures = SerdeFeaturesFactory.buildValueFeatures(
         schema,
         valueFormat,
         statement.getProperties().getValueSerdeFeatures(),
-        cs.getSessionConfig().getConfig(false)
+        config
     );
 
     final SchemaAndId rawKeySchema = (SchemaAndId) cs.getSessionConfig().getOverrides()
@@ -147,7 +148,7 @@ public class SchemaRegisterInjector implements Injector {
         keyFeatures,
         valueFormatInfo,
         valFeatures,
-        cs.getSessionConfig().getConfig(false),
+        config,
         cs.getStatementText(),
         false
     );

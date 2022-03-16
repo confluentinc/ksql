@@ -74,28 +74,35 @@ public final class AssertExecutor {
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
-          (cs, cfg) -> cs.getProperties().getKeyFormat(cs.getName()).map(FormatInfo::getFormat)
+          (cs, cfg) -> cs.getProperties().getKeyFormat(cs.getName(), cfg).map(FormatInfo::getFormat)
               .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
           "key format",
           CommonCreateConfigs.KEY_FORMAT_PROPERTY,
           CommonCreateConfigs.FORMAT_PROPERTY
-      )).add(new SourceProperty(
-          ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
-          (cs, cfg) -> cs.getProperties().getKeyFormat(cs.getName()).map(FormatInfo::getFormat)
-              .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
+      )).add(new SourceProperty( // TODO: verify this unrelated bugfix
+          ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties(),
+          (cs, cfg) -> cs.getProperties().getKeyFormatProperties(
+              cs.getProperties().getKeyFormat(cs.getName(), cfg).map(FormatInfo::getFormat)
+                  .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
+              cs.getName().text(),
+              cfg
+          ),
           "key format properties",
           CommonCreateConfigs.KEY_DELIMITER_PROPERTY,
           CommonCreateConfigs.KEY_SCHEMA_FULL_NAME
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
-          (cs, cfg) -> cs.getProperties().getValueFormat().map(FormatInfo::getFormat)
+          (cs, cfg) -> cs.getProperties().getValueFormat(cfg).map(FormatInfo::getFormat)
               .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG)),
           "value format",
           CommonCreateConfigs.VALUE_FORMAT_PROPERTY,
           CommonCreateConfigs.FORMAT_PROPERTY
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getProperties(),
-          (cs, cfg) -> cs.getProperties().getValueFormatProperties(),
+          (cs, cfg) -> cs.getProperties().getValueFormatProperties(
+              cs.getProperties().getValueFormat(cfg).map(FormatInfo::getFormat)
+                  .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG)),
+              cfg),
           "value format properties",
           CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
           CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME,

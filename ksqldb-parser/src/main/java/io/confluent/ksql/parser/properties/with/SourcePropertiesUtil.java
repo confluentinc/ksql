@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.properties.with;
 
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.util.KsqlConfig;
 
 public final class SourcePropertiesUtil {
 
@@ -30,9 +31,10 @@ public final class SourcePropertiesUtil {
    */
   public static FormatInfo getKeyFormat(
       final CreateSourceProperties properties,
-      final SourceName sourceName
+      final SourceName sourceName,
+      final KsqlConfig config
   ) {
-    return properties.getKeyFormat(sourceName)
+    return properties.getKeyFormat(sourceName, config)
         .orElseThrow(() -> new IllegalStateException("Key format not present"));
   }
 
@@ -41,8 +43,11 @@ public final class SourcePropertiesUtil {
    * always contain key and format values by the time they reach the engine for processing.
    * As a result, downstream code can assume these formats are present.
    */
-  public static FormatInfo getValueFormat(final CreateSourceProperties properties) {
-    return properties.getValueFormat()
+  public static FormatInfo getValueFormat(
+      final CreateSourceProperties properties,
+      final KsqlConfig config
+  ) {
+    return properties.getValueFormat(config)
         .orElseThrow(() -> new IllegalStateException("Value format not present"));
   }
 

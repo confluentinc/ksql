@@ -65,7 +65,7 @@ final class ProtobufSerdeFactory {
 
     final Optional<Schema> physicalSchema = properties.getSchemaId().isPresent() ? Optional.of(
         SerdeUtils.getAndTranslateSchema(srFactory, properties.getSchemaId()
-            .get(), new ProtobufSchemaTranslator())) : Optional.empty();
+            .get(), new ProtobufSchemaTranslator(properties))) : Optional.empty();
 
     final Supplier<Serializer<T>> serializer = () -> createSerializer(
         schema,

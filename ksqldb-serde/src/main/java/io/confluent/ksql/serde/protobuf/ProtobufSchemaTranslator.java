@@ -25,6 +25,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
 /**
@@ -32,16 +33,22 @@ import org.apache.kafka.connect.data.Schema;
  */
 class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
-  private static final Map<String, Object> BASE_CONFIGS =
-      ImmutableMap.of(WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, false);
+  private final ProtobufProperties properties;
+  private final Map<String, Object> baseConfigs;
 
-  private ProtobufData protobufData =
-      new ProtobufData(new ProtobufDataConfig(BASE_CONFIGS));
+  private ProtobufData protobufData;
+
+  ProtobufSchemaTranslator(final ProtobufProperties properties) {
+    this.properties = Objects.requireNonNull(properties, "properties");
+    this.baseConfigs = ImmutableMap.of(
+        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
+    this.protobufData = new ProtobufData(new ProtobufDataConfig(baseConfigs));
+  }
 
   @Override
   public void configure(final Map<String, ?> configs) {
     final Map<String, Object> mergedConfigs = new HashMap<>(configs);
-    mergedConfigs.putAll(BASE_CONFIGS);
+    mergedConfigs.putAll(baseConfigs);
     protobufData = new ProtobufData(new ProtobufDataConfig(mergedConfigs));
   }
 

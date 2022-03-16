@@ -51,6 +51,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.ErrorMessageUtil;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.ArrayList;
@@ -289,7 +290,8 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     final CreateSource csStmt = statement.getStatement();
     final CreateSourceProperties props = csStmt.getProperties();
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName());
+    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName(), config);
 
     if (!shouldInferSchema(props.getKeySchemaId(), statement, keyFormat, true)) {
       return Optional.empty();
@@ -311,7 +313,8 @@ public class DefaultSchemaInjector implements Injector {
       final ConfiguredStatement<CreateSource> statement
   ) {
     final CreateSourceProperties props = statement.getStatement().getProperties();
-    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props);
+    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
+    final FormatInfo valueFormat = SourcePropertiesUtil.getValueFormat(props, config);
 
     if (!shouldInferSchema(props.getValueSchemaId(), statement, valueFormat, false)) {
       return Optional.empty();

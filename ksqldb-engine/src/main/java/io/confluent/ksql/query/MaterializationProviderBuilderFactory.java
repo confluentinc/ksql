@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
@@ -25,8 +26,10 @@ import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
@@ -46,11 +49,6 @@ public final class MaterializationProviderBuilderFactory {
   private final ServiceContext serviceContext;
   private final KsMaterializationFactory ksMaterializationFactory;
   private final KsqlMaterializationFactory ksqlMaterializationFactory;
-  private KeyFormat pullQueryKeyFormat;
-
-  public void setPullQueryKeyFormat(final KeyFormat pullQueryKeyFormat) {
-    this.pullQueryKeyFormat = pullQueryKeyFormat;
-  }
 
   public MaterializationProviderBuilderFactory(
       final KsqlConfig ksqlConfig,
@@ -67,13 +65,13 @@ public final class MaterializationProviderBuilderFactory {
   }
 
   public MaterializationProviderBuilder materializationProviderBuilder(
-      final MaterializationInfo materializationInfo,
-      final PhysicalSchema querySchema,
-      final KeyFormat keyFormat,
-      final Map<String, Object> streamsProperties,
-      final String applicationId,
-      final String queryId
-  ) {
+          final MaterializationInfo materializationInfo,
+          final PhysicalSchema querySchema,
+          final KeyFormat keyFormat,
+          final Map<String, Object> streamsProperties,
+          final String applicationId,
+          final String queryId,
+          final KeyFormat pullQueryKeyFormat) {
     return (kafkaStreams, topology) -> buildMaterializationProvider(
         kafkaStreams,
         topology,
@@ -82,20 +80,38 @@ public final class MaterializationProviderBuilderFactory {
         keyFormat,
         streamsProperties,
         applicationId,
-        queryId
+        queryId,
+        pullQueryKeyFormat
     );
   }
 
+  private boolean isQuerySupported(final KeyFormat pullQueryKeyFormat,
+                                   final PhysicalSchema schema) {
+    final boolean isFormat = (pullQueryKeyFormat.getFormatInfo().getFormat()
+            .equalsIgnoreCase("KAFKA")
+            || pullQueryKeyFormat.getFormatInfo().getFormat().equalsIgnoreCase("DELIMITED"));
+    boolean notSupported = (isFormat && ((schema.keySchema().columns().size() != 1)
+            || schema.keySchema().columns().get(0).type().baseType() == SqlBaseType.STRUCT
+            || schema.keySchema().columns().get(0).type().baseType() == SqlBaseType.DECIMAL));
+    final SerdeFeatures features = pullQueryKeyFormat.getFeatures();
+    final boolean notSupportedNoneFormat = pullQueryKeyFormat.getFormatInfo().getFormat()
+            .equalsIgnoreCase("NONE") && (features.enabled(UNWRAP_SINGLES)
+            || schema.keySchema().columns().size() > 0);
+    notSupported = notSupported || notSupportedNoneFormat;
+
+    return !notSupported;
+  }
+
   private Optional<MaterializationProvider> buildMaterializationProvider(
-      final KafkaStreams kafkaStreams,
-      final Topology topology,
-      final MaterializationInfo materializationInfo,
-      final PhysicalSchema schema,
-      final KeyFormat keyFormat,
-      final Map<String, Object> streamsProperties,
-      final String applicationId,
-      final String queryId
-  ) {
+          final KafkaStreams kafkaStreams,
+          final Topology topology,
+          final MaterializationInfo materializationInfo,
+          final PhysicalSchema schema,
+          final KeyFormat keyFormat,
+          final Map<String, Object> streamsProperties,
+          final String applicationId,
+          final String queryId,
+          final KeyFormat pullQueryKeyFormat) {
     final Serializer<GenericKey> keySerializer = new GenericKeySerDe().create(
         keyFormat.getFormatInfo(),
         schema.keySchema(),
@@ -106,7 +122,7 @@ public final class MaterializationProviderBuilderFactory {
         Optional.empty()
     ).serializer();
 
-    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+    if (isQuerySupported(pullQueryKeyFormat, schema)) {
       final Serializer<GenericKey> pullQueryKeySerializer = new GenericKeySerDe().create(
               pullQueryKeyFormat.getFormatInfo(),
               schema.keySchema(),

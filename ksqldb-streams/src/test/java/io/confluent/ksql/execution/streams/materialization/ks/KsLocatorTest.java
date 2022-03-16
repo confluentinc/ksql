@@ -287,7 +287,7 @@ public class KsLocatorTest {
 
     // Then:
     Mockito.verify(kafkaStreamsNamedTopologyWrapper)
-        .queryMetadataForKey(STORE_NAME, KEY.getKey(), keySerializer, "queryId");
+        .queryMetadataForKey(STORE_NAME, KEY.getKey(), pullQueryKeySerializer, "queryId");
   }
 
   @Test

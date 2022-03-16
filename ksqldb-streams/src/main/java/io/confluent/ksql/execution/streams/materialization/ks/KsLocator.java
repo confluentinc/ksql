@@ -270,7 +270,7 @@ public final class KsLocator implements Locator {
   protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
     if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
-          .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
+          .queryMetadataForKey(storeName, key.getKey(), pullQueryKeySerializer, queryId);
     }
     return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), pullQueryKeySerializer);
   }

@@ -20,26 +20,17 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
-import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
 
 @UdfDescription(name="bad_test_udf", description = "test")
 @SuppressWarnings("unused")
-public class BadTestUdf { //implements Configurable {
-
-  @SuppressFBWarnings("DM_EXIT")
-  //@Override
-  public void configure(Map<String, ?> map) {
-    System.exit(-5);
-  }
-
+public class BadTestUdf {
   private static final SqlStruct RETURN =
       SqlStruct.builder().field("A", SqlTypes.STRING).build();
 
   @SuppressFBWarnings("DM_EXIT")
   @Udf(description = "Sample Bad", schemaProvider = "exit")
   public Struct returnList(String string) {
-    System.out.println("In returnList");
     System.exit(-1);
     return null;
   }
@@ -47,7 +38,6 @@ public class BadTestUdf { //implements Configurable {
   @SuppressFBWarnings("DM_EXIT")
   @UdfSchemaProvider
   public SqlType exit(final List<SqlType> params) {
-    System.out.println("In schemaProvider");
     System.exit(-3);
     return RETURN;
   }

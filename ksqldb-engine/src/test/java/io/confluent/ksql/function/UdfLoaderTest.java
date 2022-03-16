@@ -153,13 +153,6 @@ public class UdfLoaderTest {
     KsqlScalarFunction ksqlScalarFunction = function.getFunction(argList);
     final Kudf badFunction = ksqlScalarFunction.newInstance(ksqlConfig);
 
-    final Exception e0 = assertThrows(
-        java.lang.SecurityException.class,
-        () -> FUNC_REG.getUdfFactory(FunctionName.of("bad_test_udf"))
-            .getFunction(argList).newInstance(ksqlConfig)
-    );
-    assertThat(e0.getMessage(), containsString("A UDF attempted to call System.exit"));
-
     final Exception e1 = assertThrows(
         KsqlException.class,
         () -> ksqlScalarFunction.getReturnType(argList)

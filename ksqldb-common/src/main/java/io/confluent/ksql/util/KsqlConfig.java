@@ -454,6 +454,12 @@ public class KsqlConfig extends AbstractConfig {
           + " failing element to null and preserve the rest of the value, else if false, set the"
           + " the entire value to null.";
 
+  public static final String KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG =
+      "ksql.protobuf.unwrap.primitives";
+  public static final String KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG_DOC =
+      "Whether protobuf wrapped primitives should translate to a raw ksql primitive type, "
+          + "rather than a struct with a primitive type field named 'value'.";
+
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
   public static final Long KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT = 300_000L;
@@ -697,6 +703,15 @@ public class KsqlConfig extends AbstractConfig {
               Importance.LOW,
               Optional.empty(),
               KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG_DOC
           )
       );
 

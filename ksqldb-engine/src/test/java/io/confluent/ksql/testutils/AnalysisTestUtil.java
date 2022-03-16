@@ -43,12 +43,13 @@ public final class AnalysisTestUtil {
       final String queryStr,
       final MetaStore metaStore
   ) {
-    final boolean rowpartitionRowoffsetEnabled =
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
-    final boolean pullLimitClauseEnabled =
-            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED);
-
-    final Analyzer analyzer = new Analyzer(queryStr, metaStore, rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+    final Analyzer analyzer = new Analyzer(
+        queryStr,
+        metaStore,
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED),
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)
+    );
 
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
@@ -64,10 +65,12 @@ public final class AnalysisTestUtil {
         final String queryStr,
         final MetaStore metaStore,
         final boolean rowpartitionRowoffsetEnabled,
-        final boolean pullLimitClauseEnabled
+        final boolean pullLimitClauseEnabled,
+        final boolean unwrapProtobufPrimitives
     ) {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
-          metaStore, "", rowpartitionRowoffsetEnabled, pullLimitClauseEnabled);
+          metaStore, "", rowpartitionRowoffsetEnabled,
+          pullLimitClauseEnabled, unwrapProtobufPrimitives);
       final Statement statement =
           parseStatement(queryStr, metaStore, rowpartitionRowoffsetEnabled);
       final Query query = statement instanceof QueryContainer

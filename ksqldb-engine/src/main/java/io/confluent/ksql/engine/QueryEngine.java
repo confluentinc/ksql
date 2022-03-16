@@ -61,7 +61,8 @@ class QueryEngine {
       final MetaStore metaStore,
       final KsqlConfig config,
       final boolean rowpartitionRowoffsetEnabled,
-      final String statementText
+      final String statementText,
+      final boolean unwrapProtobufPrimitives
   ) {
     final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
     final Boolean pullLimitClauseEnabled = config.getBoolean(
@@ -71,7 +72,8 @@ class QueryEngine {
         new QueryAnalyzer(metaStore,
             outputPrefix,
             rowpartitionRowoffsetEnabled,
-            pullLimitClauseEnabled
+            pullLimitClauseEnabled,
+            unwrapProtobufPrimitives
         );
 
     final Analysis analysis;

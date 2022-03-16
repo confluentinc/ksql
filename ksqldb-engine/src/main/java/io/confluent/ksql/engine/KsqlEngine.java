@@ -57,6 +57,7 @@ import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
@@ -669,7 +670,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         getMetaStore(),
         "",
         getRowpartitionRowoffsetEnabled(ksqlConfig, configOverrides),
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED)
+        ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED),
+        getUnwrapProtobufPrimitives(ksqlConfig, configOverrides)
     );
 
     final Analysis analysis;
@@ -767,7 +769,20 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
   }
 
-  private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
+  private static boolean getUnwrapProtobufPrimitives(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> configOverrides
+  ) {
+    final Object unwrapProtobufPrimitives =
+        configOverrides.get(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG);
+    if (unwrapProtobufPrimitives != null) {
+      return ProtobufProperties.UNWRAP.equalsIgnoreCase(unwrapProtobufPrimitives.toString());
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG);
+  }
+
+  private static boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE);
   }
 }

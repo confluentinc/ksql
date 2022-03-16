@@ -65,7 +65,7 @@ public final class SourcePropertiesUtil {
       final PropertiesConfig props,
       final String name,
       final String keyFormat,
-      final KsqlConfig config
+      final boolean unwrapProtobufPrimitives
   ) {
     final Builder<String, String> builder = ImmutableMap.builder();
     final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
@@ -78,8 +78,7 @@ public final class SourcePropertiesUtil {
       builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat)
-        && config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat) && unwrapProtobufPrimitives) {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 
@@ -97,7 +96,7 @@ public final class SourcePropertiesUtil {
   static Map<String, String> getValueFormatProperties(
       final PropertiesConfig props,
       final String valueFormat,
-      final KsqlConfig config
+      final boolean unwrapProtobufPrimitives
   ) {
     final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
 
@@ -109,8 +108,7 @@ public final class SourcePropertiesUtil {
       builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
     }
 
-    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)
-        && config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)) {
+    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat) && unwrapProtobufPrimitives) {
       builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
     }
 

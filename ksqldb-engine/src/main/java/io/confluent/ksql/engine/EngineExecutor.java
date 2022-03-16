@@ -100,6 +100,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
@@ -811,7 +812,8 @@ final class EngineExecutor {
           metaStore,
           ksqlConfig,
           getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
-          statement.getStatementText()
+          statement.getStatementText(),
+          getUnwrapProtobufPrimitives(ksqlConfig, statement.getSessionConfig().getOverrides())
       );
 
       final LogicalPlanNode logicalPlan = new LogicalPlanNode(
@@ -1137,5 +1139,18 @@ final class EngineExecutor {
     }
 
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+  }
+
+  private static boolean getUnwrapProtobufPrimitives(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> configOverrides
+  ) {
+    final Object unwrapProtobufPrimitives =
+        configOverrides.get(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG);
+    if (unwrapProtobufPrimitives != null) {
+      return ProtobufProperties.UNWRAP.equalsIgnoreCase(unwrapProtobufPrimitives.toString());
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG);
   }
 }

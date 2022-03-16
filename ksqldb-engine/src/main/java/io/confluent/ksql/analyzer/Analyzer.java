@@ -102,24 +102,30 @@ class Analyzer {
   private final String topicPrefix;
   private final boolean rowpartitionRowoffsetEnabled;
   private final boolean pullLimitClauseEnabled;
+  private final boolean unwrapProtobufPrimitives;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param rowpartitionRowoffsetEnabled whether KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED
+   * @param rowpartitionRowoffsetEnabled whether {@link io.confluent.ksql.util.KsqlConfig#KSQL_ROWPARTITION_ROWOFFSET_ENABLED}
    *                                     is true
+   * @param pullLimitClauseEnabled whether {@link io.confluent.ksql.util.KsqlConfig#KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED}
+   *                               is true
+   * @param unwrapProtobufPrimitives whether {@link io.confluent.ksql.util.KsqlConfig#KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG}
+   *                                 is true
    */
   Analyzer(
       final MetaStore metaStore,
       final String topicPrefix,
       final boolean rowpartitionRowoffsetEnabled,
-      final boolean pullLimitClauseEnabled
-
+      final boolean pullLimitClauseEnabled,
+      final boolean unwrapProtobufPrimitives
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
     this.rowpartitionRowoffsetEnabled = rowpartitionRowoffsetEnabled;
     this.pullLimitClauseEnabled = pullLimitClauseEnabled;
+    this.unwrapProtobufPrimitives = unwrapProtobufPrimitives;
   }
 
   /**
@@ -192,13 +198,20 @@ class Analyzer {
       );
       final FormatInfo keyFmtInfo = buildFormatInfo(
           keyFormatName,
-          props.getKeyFormatProperties(sink.getName().text(), keyFormatName),
+          props.getKeyFormatProperties(
+              sink.getName().text(),
+              keyFormatName,
+              unwrapProtobufPrimitives),
           srcTopic.getKeyFormat().getFormatInfo()
       );
 
+      final String valueFormatName = formatName(
+          props.getValueFormat(),
+          srcTopic.getValueFormat().getFormatInfo()
+      );
       final FormatInfo valueFmtInfo = buildFormatInfo(
-          formatName(props.getValueFormat(), srcTopic.getValueFormat().getFormatInfo()),
-          props.getValueFormatProperties(),
+          valueFormatName,
+          props.getValueFormatProperties(valueFormatName, unwrapProtobufPrimitives),
           srcTopic.getValueFormat().getFormatInfo()
       );
 

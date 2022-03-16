@@ -143,7 +143,12 @@ public final class CreateSourceProperties {
       final String name,
       final KsqlConfig config
   ) {
-    return SourcePropertiesUtil.getKeyFormatProperties(props, keyFormat, name, config);
+    return SourcePropertiesUtil.getKeyFormatProperties(
+        props,
+        keyFormat,
+        name,
+        config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)
+    );
   }
 
   public Optional<FormatInfo> getValueFormat(final KsqlConfig config) {
@@ -157,7 +162,11 @@ public final class CreateSourceProperties {
       final String valueFormat,
       final KsqlConfig config
   ) {
-    return SourcePropertiesUtil.getValueFormatProperties(props, valueFormat, config);
+    return SourcePropertiesUtil.getValueFormatProperties(
+        props,
+        valueFormat,
+        config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)
+    );
   }
 
   public SerdeFeatures getValueSerdeFeatures() {

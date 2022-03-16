@@ -27,7 +27,6 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.Objects;
@@ -113,16 +112,18 @@ public final class CreateSourceAsProperties {
   public Map<String, String> getKeyFormatProperties(
       final String name,
       final String keyFormat,
-      final KsqlConfig config
+      final boolean unwrapProtobufPrimitives
   ) {
-    return SourcePropertiesUtil.getKeyFormatProperties(props, name, keyFormat, config);
+    return SourcePropertiesUtil.getKeyFormatProperties(
+        props, name, keyFormat, unwrapProtobufPrimitives);
   }
 
   public Map<String, String> getValueFormatProperties(
       final String valueFormat,
-      final KsqlConfig config
+      final boolean unwrapProtobufPrimitives
   ) {
-    return SourcePropertiesUtil.getValueFormatProperties(props, valueFormat, config);
+    return SourcePropertiesUtil.getValueFormatProperties(
+        props, valueFormat, unwrapProtobufPrimitives);
   }
 
   public CreateSourceAsProperties withKeyValueSchemaName(

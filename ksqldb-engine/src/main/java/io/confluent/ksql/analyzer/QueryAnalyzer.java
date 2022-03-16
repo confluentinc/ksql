@@ -36,15 +36,16 @@ public class QueryAnalyzer {
       final MetaStore metaStore,
       final String outputTopicPrefix,
       final boolean rowpartitionRowoffsetEnabled,
-      final boolean pullLimitClauseEnabled
+      final boolean pullLimitClauseEnabled,
+      final boolean unwrapProtobufPrimitives
   ) {
     this(
         new Analyzer(
                 metaStore,
                 outputTopicPrefix,
                 rowpartitionRowoffsetEnabled,
-                pullLimitClauseEnabled),
-
+                pullLimitClauseEnabled,
+                unwrapProtobufPrimitives),
         new PullQueryValidator(),
         new PushQueryValidator()
     );

@@ -13,8 +13,24 @@ Allow Ruby / Ruby on Rails developers to get started with ksqlDB.
 
 ## What is in scope
 
-* A lightweight but complete and configurable Ruby client.
-* Support for both synchronous and asynchronous queries.
+* A lightweight but complete Ruby client, kslqDB host and port will be configurable.
+* The Client will handle all the operations the Java one already does:
+
+- Receive query results one row at a time
+- Receive query results in a single batch
+- Terminate a push query
+- Insert a new row into a stream
+- Insert new rows in a streaming fashion
+- Create and manage new streams, tables, and persistent queries
+- List streams, tables, topics, and queries
+- Describe specific streams and tables
+- Get metadata about the ksqlDB cluster
+- Manage, list and describe connectors
+- Define variables for substitution
+- Execute Direct HTTP Requests
+
+* Pull and push queries will be performed against the `/query-stream` endpoint, and inserts to the `/inserts-stream` endpoint. All other requests to the `/ksql` endpoint. 
+
 * Documentation and examples
 
 ## What is not in scope
@@ -28,7 +44,21 @@ To be able to easily include ksqlDB in any Ruby / Ruby on Rails applications.
 
 ## Public APIS
 
-N/A
+* A class will expose a `config` method to configurate the connection between the client and ksqlDB, like so:
+
+```Ruby
+  KsqlDB::Client.configure do |config|
+    config.host = 'http://localhost'
+    config.port = 8088
+  end
+```
+
+* A class method like `streamQuery()` will be available to query results one row at a time.
+* A class method like `executeQuery()` will handle batched results queries.
+* A class method like `terminatePushQuery()` will allow push queries termination.
+
+More yet to come...
+
 
 ## Design
 

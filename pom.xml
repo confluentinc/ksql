@@ -110,7 +110,7 @@
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.7.1</antlr.version>
+        <antlr.version>4.9.2</antlr.version>
         <commons-text.version>1.8</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
@@ -132,7 +132,7 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.10</vertx.version>
+        <vertx.version>3.9.12</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -145,13 +145,15 @@
         <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.2.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
-        <mockito.version>3.8.0</mockito.version>
-        <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
-        <!-- We normally get this from common, but Vertx is built against 4.1.49.Final -->
-        <netty.version>4.1.69.Final</netty.version>
-        <!-- This matches the version in common -->
-        <netty-codec-http2-version>4.1.69.Final</netty-codec-http2-version>
-        <!-- Brought in by both schema registry and connect, we need to pick a version -->
+        <netty-tcnative-version>2.0.46.Final</netty-tcnative-version>
+        <!-- We normally get this from common, but Vertx is built against this -->
+        <!-- Note: `netty` depends on `tcnative` and if we bump `netty`
+             we might need to bump `tcnative`, too.
+             Please check top level `pom.xml` at https://github.com/netty/netty
+             for the netty version we bump to (ie, corresponding git tag),
+             to find the correct `tcnative` version. -->
+        <netty.version>4.1.72.Final</netty.version>
+        <netty-codec-http2-version>4.1.72.Final</netty-codec-http2-version>
         <jersey-common>2.34</jersey-common>
     </properties>
 
@@ -458,12 +460,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>${commons.compress.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
                 <version>${janino.version}</version>
@@ -638,7 +634,7 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>confluent-log4j</artifactId>
-            <version>1.2.17-cp6</version>
+            <version>1.2.17-cp9</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
@@ -659,9 +655,6 @@
                     <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
                         <tarLongFileMode>posix</tarLongFileMode>
-                        <descriptors>
-                            <descriptor>src/assembly/package.xml</descriptor>
-                        </descriptors>
                     </configuration>
                 </plugin>
                 <plugin>

@@ -101,11 +101,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
             .map(kv -> {
               if (kv.getRowMetadata().isPresent()
                   && kv.getRowMetadata().get().getConsistencyOffsetVector().isPresent()) {
-                LOG.info("Publisher adding consistency vector to response list "
-                             + kv.getRowMetadata().get().getConsistencyOffsetVector().get());
-                LOG.info(
-                    "Serialized consistency vector "
-                        + kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize());
                 return StreamedRow.consistencyToken(new ConsistencyToken(
                     kv.getRowMetadata().get().getConsistencyOffsetVector().get().serialize()));
               } else {

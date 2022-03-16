@@ -24,12 +24,17 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
+import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.query.FailureReason;
+import org.apache.kafka.streams.query.Position;
+import org.apache.kafka.streams.query.PositionBound;
 import org.apache.kafka.streams.query.QueryResult;
 import org.apache.kafka.streams.query.StateQueryRequest;
 import org.apache.kafka.streams.query.StateQueryResult;
@@ -39,7 +44,7 @@ import org.apache.kafka.streams.state.KeyValueIterator;
 /**
  * Kafka Streams impl of {@link MaterializedWindowedTable}.
  */
-class KsMaterializedSessionTableIQv2 implements MaterializedWindowedTable {
+class KsMaterializedSessionTableIQv2 implements StreamsMaterializedWindowedTable {
 
   private final KsStateStore stateStore;
 
@@ -52,12 +57,16 @@ class KsMaterializedSessionTableIQv2 implements MaterializedWindowedTable {
       final GenericKey key,
       final int partition,
       final Range<Instant> windowStart,
-      final Range<Instant> windowEnd
+      final Range<Instant> windowEnd,
+      final Optional<Position> position
   ) {
     try {
       final WindowRangeQuery<GenericKey, GenericRow> query = WindowRangeQuery.withKey(key);
-      final StateQueryRequest<KeyValueIterator<Windowed<GenericKey>, GenericRow>> request =
+      StateQueryRequest<KeyValueIterator<Windowed<GenericKey>, GenericRow>> request =
           inStore(stateStore.getStateStoreName()).withQuery(query);
+      if (position.isPresent()) {
+        request = request.withPositionBound(PositionBound.at(position.get()));
+      }
       final StateQueryResult<KeyValueIterator<Windowed<GenericKey>, GenericRow>> result =
           stateStore.getKafkaStreams().query(request);
 
@@ -99,7 +108,7 @@ class KsMaterializedSessionTableIQv2 implements MaterializedWindowedTable {
         return KsMaterializedQueryResult.rowIteratorWithPosition(
             builder.build().iterator(), queryResult.getPosition());
       }
-    } catch (final MaterializationException e) {
+    } catch (final NotUpToBoundException | MaterializationException e) {
       throw e;
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
@@ -110,15 +119,20 @@ class KsMaterializedSessionTableIQv2 implements MaterializedWindowedTable {
   public KsMaterializedQueryResult<WindowedRow> get(
       final int partition,
       final Range<Instant> windowStartBounds,
-      final Range<Instant> windowEndBounds) {
+      final Range<Instant> windowEndBounds,
+      final Optional<Position> position
+  ) {
     throw new MaterializationException("Table scan unsupported on session tables");
   }
 
-  private MaterializationException failedQueryException(final QueryResult<?> queryResult) {
-    return new MaterializationException(
-      "Failed to get value from materialized table: "
-        + queryResult.getFailureReason() + ": "
-        + queryResult.getFailureMessage()
-    );
+  private Exception failedQueryException(final QueryResult<?> queryResult) {
+    final String message = "Failed to get value from materialized table: "
+        + queryResult.getFailureReason() + ": " + queryResult.getFailureMessage();
+
+    if (queryResult.getFailureReason().equals(FailureReason.NOT_UP_TO_BOUND)) {
+      return new NotUpToBoundException(message);
+    } else {
+      return new MaterializationException(message);
+    }
   }
 }

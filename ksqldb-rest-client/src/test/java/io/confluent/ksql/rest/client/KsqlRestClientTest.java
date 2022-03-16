@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.client.KsqlRestClient.CCLOUD_CONNECT_PASSWO
 import static io.confluent.ksql.rest.client.KsqlRestClient.CCLOUD_CONNECT_USERNAME_HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.KsqlRestClient.KsqlClientSupplier;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
@@ -222,6 +224,18 @@ public class KsqlRestClientTest {
     verify(target).postKsqlRequest("some ksql;", Collections.emptyMap(), Optional.of(0L));
   }
 
+  @Test
+  public void shouldAllowCallingCreateWithoutNeedingACCloudApiKey() {
+    // This is a backwards compatibility check
+
+    final KsqlRestClient client = KsqlRestClient.create(SOME_SERVER_ADDRESS, LOCAL_PROPS, CLIENT_PROPS, Optional.empty());
+    assertThat(client, is(instanceOf(KsqlRestClient.class)));
+
+    // Also with new signature
+    final KsqlRestClient ccloudClient = KsqlRestClient.create(SOME_SERVER_ADDRESS, LOCAL_PROPS, CLIENT_PROPS, Optional.empty(), Optional.empty());
+    assertThat(ccloudClient, is(instanceOf(KsqlRestClient.class)));
+  }
+
   private KsqlRestClient clientWithServerAddresses(final String serverAddresses) {
     return clientWithServerAddresses(serverAddresses, Optional.empty());
   }
@@ -236,7 +250,8 @@ public class KsqlRestClientTest {
         CLIENT_PROPS,
         Optional.empty(),
         ccloudApiKey,
-        clientSupplier
+        clientSupplier,
+        ConsistencyLevel.EVENTUAL
     );
   }
 

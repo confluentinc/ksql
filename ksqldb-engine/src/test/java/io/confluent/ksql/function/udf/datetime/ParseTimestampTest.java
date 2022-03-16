@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
@@ -178,6 +179,36 @@ public class ParseTimestampTest {
     assertLikeSimpleDateFormat("01", "dd");
     assertLikeSimpleDateFormat("01", "HH");
     assertLikeSimpleDateFormat("01", "mm");
+  }
+
+  @Test
+  public void shouldHandleNullTimeStamp() {
+    // When:
+    final Object result = udf.parseTimestamp(null,
+        "yyyy-MM-dd HH:mm:ss", "UTC");
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleNullFormat() {
+    // When:
+    final Object result = udf.parseTimestamp("2018-08-15 17:10:43",
+        null, "UTC");
+
+    // Then:
+    assertThat(result, is(nullValue()));
+  }
+
+  @Test
+  public void shouldHandleNullTimeZone() {
+    // When:
+    final Object result = udf.parseTimestamp("2018-08-15 17:10:43",
+        "yyyy-MM-dd HH:mm:ss", null);
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 
   private void assertLikeSimpleDateFormat(final String value, final String format) throws Exception {

@@ -125,6 +125,8 @@ class QueryStreamWriter implements StreamingOutput {
 
       if (limitReached) {
         objectMapper.writeValue(out, StreamedRow.finalMessage("Limit Reached"));
+      } else if (complete) {
+        objectMapper.writeValue(out, StreamedRow.finalMessage("Query Completed"));
       }
 
       out.write("]\n".getBytes(StandardCharsets.UTF_8));

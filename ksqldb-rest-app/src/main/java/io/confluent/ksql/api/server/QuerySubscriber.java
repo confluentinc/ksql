@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_SERVER_ERROR;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.materialization.ks.NotUpToBoundException;
 import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -93,9 +94,19 @@ public class QuerySubscriber extends BaseSubscriber<KeyValueMetadata<List<?>, Ge
 
   @Override
   public void handleError(final Throwable t) {
-    log.error("Error in processing query", t);
-    final KsqlErrorMessage errorResponse = new KsqlErrorMessage(ERROR_CODE_SERVER_ERROR,
-        "Error in processing query. Check server logs for details.");
+    final StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append(t);
+    for (Throwable s: t.getSuppressed()) {
+      if (s instanceof NotUpToBoundException) {
+        stringBuilder.append(" Failed to get value from materialized table, reason: "
+                                 + "NOT_UP_TO_BOUND");
+      } else {
+        stringBuilder.append(s.getMessage());
+      }
+    }
+    final KsqlErrorMessage errorResponse = new KsqlErrorMessage(
+        ERROR_CODE_SERVER_ERROR, stringBuilder.toString());
+    log.error("Error in processing query {}", stringBuilder);
     queryStreamResponseWriter.writeError(errorResponse).end();
   }
 

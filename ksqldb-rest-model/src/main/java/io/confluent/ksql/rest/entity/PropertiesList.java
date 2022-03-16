@@ -108,6 +108,7 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PropertiesList extends KsqlEntity {
   public static final List<String> QueryLevelPropertyList = ImmutableList.of(
+      AUTO_OFFSET_RESET_CONFIG,
       KSQL_STRING_CASE_CONFIG_TOGGLE,
       KSQL_NESTED_ERROR_HANDLING_CONFIG,
       KSQL_QUERY_ERROR_MAX_QUEUE_SIZE,
@@ -117,6 +118,11 @@ public class PropertiesList extends KsqlEntity {
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG
   );
 
+  /**
+   * List os properties that can be changes via `ALTER SYSTEM` command.
+   * We use this "allow list" for security reasons.
+   * (Independent of LD.)
+   */
   public static final List<String> EditablePropertyList = ImmutableList.of(
       MAX_POLL_RECORDS_CONFIG,
       MAX_POLL_INTERVAL_MS_CONFIG,

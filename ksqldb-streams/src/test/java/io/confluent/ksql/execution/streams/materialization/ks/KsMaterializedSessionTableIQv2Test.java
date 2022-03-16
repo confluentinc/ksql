@@ -206,8 +206,8 @@ public class KsMaterializedSessionTableIQv2Test {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Iterator<WindowedRow> rowIterator =
-        table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
+    final Iterator<WindowedRow> rowIterator = table.get(
+        A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS).rowIterator;
 
     // Then:
     

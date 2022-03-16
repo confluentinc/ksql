@@ -37,6 +37,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.junit.BeforeClass;
@@ -126,8 +127,8 @@ public class ClusterTerminationTest {
   private static void terminateCluster(final List<String> deleteTopicList) {
 
     HttpResponse<Buffer> resp = RestIntegrationTestUtil
-        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1,
-            HttpMethod.POST, "/ksql/terminate", new ClusterTerminateRequest(deleteTopicList));
+        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.POST, "/ksql/terminate",
+                        new ClusterTerminateRequest(deleteTopicList), Optional.empty());
 
     assertThat(resp.statusCode(), is(OK.code()));
   }

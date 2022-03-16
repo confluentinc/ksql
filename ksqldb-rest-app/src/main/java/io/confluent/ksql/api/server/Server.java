@@ -323,6 +323,9 @@ public class Server {
       final ClientAuth clientAuth
   ) {
     options.setUseAlpn(true).setSsl(true);
+    if (ksqlRestConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_SNI_CHECK_ENABLE)) {
+      options.setSni(true);
+    }
 
     configureTlsKeyStore(ksqlRestConfig, options, keyStoreAlias);
     configureTlsTrustStore(ksqlRestConfig, options);

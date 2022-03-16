@@ -115,11 +115,8 @@ public class KsqlSchemaRegistryClientFactory {
     }
   
     final RestService restService = serviceSupplier.get();
-    if (sslContext != null) {
-      restService.setSslSocketFactory(sslContext.getSocketFactory());
-    }
-
-    return schemaRegistryClientFactory.create(
+    // This call sets a default sslSocketFactory.
+    final SchemaRegistryClient client = schemaRegistryClientFactory.create(
         restService,
         1000,
         ImmutableList.of(
@@ -127,5 +124,13 @@ public class KsqlSchemaRegistryClientFactory {
         schemaRegistryClientConfigs,
         httpHeaders
     );
+
+    // If we have an sslContext, we use it to set the sslSocketFactory on the restService client.
+    //  We need to do it in this order so that the override here is not reset by the constructor
+    //  above.
+    if (sslContext != null) {
+      restService.setSslSocketFactory(sslContext.getSocketFactory());
+    }
+    return client;
   }
 }

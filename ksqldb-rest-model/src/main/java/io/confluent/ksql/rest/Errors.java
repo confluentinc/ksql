@@ -19,9 +19,11 @@ import static io.netty.handler.codec.http.HttpHeaderNames.RETRY_AFTER;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.MISDIRECTED_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.PRECONDITION_REQUIRED;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
+import static io.netty.handler.codec.http.HttpResponseStatus.TOO_MANY_REQUESTS;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -35,6 +37,8 @@ import org.apache.kafka.common.errors.TopicAuthorizationException;
 public final class Errors {
 
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
+
+  public static final int ERROR_CODE_MISDIRECTED_REQUEST = toErrorCode(MISDIRECTED_REQUEST.code());
 
   public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.code());
   public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.code()) + 1;
@@ -69,6 +73,8 @@ public final class Errors {
   public static final int ERROR_CODE_SERVER_ERROR =
       toErrorCode(INTERNAL_SERVER_ERROR.code());
   
+  public static final int ERROR_CODE_TOO_MANY_REQUESTS = toErrorCode(TOO_MANY_REQUESTS.code());
+
   private final ErrorMessages errorMessages;
 
   public static int toStatusCode(final int errorCode) {
@@ -203,6 +209,13 @@ public final class Errors {
         .status(SERVICE_UNAVAILABLE.code())
         .entity(error)
         .build();
+  }
+
+  public static EndpointResponse tooManyRequests(final String msg) {
+    return EndpointResponse.create()
+      .status(TOO_MANY_REQUESTS.code())
+      .entity(new KsqlErrorMessage(ERROR_CODE_TOO_MANY_REQUESTS, msg))
+      .build();
   }
 
   public Errors(final ErrorMessages errorMessages) {

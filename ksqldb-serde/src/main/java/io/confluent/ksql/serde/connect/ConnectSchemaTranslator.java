@@ -16,12 +16,15 @@
 package io.confluent.ksql.serde.connect;
 
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 
 /**
  * Type for converting between Connect and Schema Registry schema types.
  */
 public interface ConnectSchemaTranslator {
+
+  void configure(Map<String, ?> configs);
 
   String name();
 

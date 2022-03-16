@@ -30,10 +30,10 @@ import org.apache.kafka.streams.kstream.Merger;
 
 public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, O> {
 
-  protected Optional<Sensor> aggregateSensor;
-  protected Optional<Sensor> mapSensor;
-  protected Optional<Sensor> mergeSensor;
-  protected Udaf<I, A, O> udaf;
+  protected final Optional<Sensor> aggregateSensor;
+  protected final Optional<Sensor> mapSensor;
+  protected final Optional<Sensor> mergeSensor;
+  protected final Udaf<I, A, O> udaf;
 
   protected UdafAggregateFunction(
       final String functionName,

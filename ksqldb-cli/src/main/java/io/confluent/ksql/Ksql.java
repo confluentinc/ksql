@@ -22,6 +22,7 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Console;
@@ -137,8 +138,10 @@ public final class Ksql {
     final String server = options.getServer();
     final Optional<BasicCredentials> creds = options.getUserNameAndPassword();
     final Optional<BasicCredentials> ccloudApiKey = options.getCCloudApiKey();
+    final ConsistencyLevel consistencyLevel = options.getConsistencyLevel();
 
-    return clientBuilder.build(server, localProps, clientProps, creds, ccloudApiKey);
+    return clientBuilder.build(
+        server, localProps, clientProps, creds, ccloudApiKey, consistencyLevel);
   }
 
   private static Map<String, String> stripClientSideProperties(final Map<String, String> props) {
@@ -155,7 +158,8 @@ public final class Ksql {
         Map<String, ?> localProperties,
         Map<String, String> clientProps,
         Optional<BasicCredentials> creds,
-        Optional<BasicCredentials> ccloudApiKey
+        Optional<BasicCredentials> ccloudApiKey,
+        ConsistencyLevel consistencyLevel
     );
   }
 

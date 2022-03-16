@@ -287,6 +287,11 @@ property has the value `KSQL_PROCESSING_LOG`.
 Toggles whether or not the processing log should include rows in log
 messages. By default, this property has the value `false`.
 
+!!! important
+    In {{ site.ccloud }}, `ksql.logging.processing.rows.include` is set
+    to `true`, so the default behavior is to include row data in the
+    processing log. Contact support to disable this default setting.
+
 ## `ksql.logging.server.rate.limited.response.codes`
 
 A list of `code:qps` pairs, to limit the rate of server request
@@ -308,6 +313,19 @@ This setting enables seeing the logs when the request rate is low
 and dropping them when they go over the threshold.
 A message will be logged every 5 seconds indicating if the rate limit
 is being hit, so an absence of this message means a complete set of logs.
+
+## `ksql.max.task.idle.ms`
+
+The maximum amount of time a task will idle without processing data when
+waiting for all of its input partition buffers to contain records. This can
+help avoid potential out-of-order processing when the task has multiple input
+streams, as in a join, for example.
+
+Setting this to a nonzero value may increase latency but will improve time
+synchronization.
+
+For more information, see
+[max.task.idle.ms](https://docs.confluent.io/platform/current/streams/developer-guide/config-streams.html#max-task-idle-ms).
 
 ## `ksql.metrics.tags.custom`
 

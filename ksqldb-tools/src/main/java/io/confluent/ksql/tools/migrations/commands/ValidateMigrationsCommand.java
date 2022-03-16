@@ -20,7 +20,7 @@ import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getLatestMigr
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.validateVersionIsMigrated;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.computeHashForFile;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDir;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.help.Discussion;
@@ -71,7 +71,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        getMigrationsDirFromConfigFile(getConfigFile())
+        getMigrationsDir(getConfigFile(), config)
     );
   }
 

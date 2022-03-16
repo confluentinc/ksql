@@ -41,10 +41,9 @@ public class ArrayExcept {
     }
     final Set<T> distinctRightValues = new HashSet<>(right);
     final Set<T> distinctLeftValues = new LinkedHashSet<>(left);
-    final List<T> result = distinctLeftValues
+    return distinctLeftValues
         .stream()
         .filter(e -> !distinctRightValues.contains(e))
         .collect(Collectors.toList());
-    return result;
   }
 }

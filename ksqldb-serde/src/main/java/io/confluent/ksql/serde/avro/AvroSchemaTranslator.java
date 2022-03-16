@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 import java.util.Objects;
 import org.apache.avro.SchemaParseException;
 import org.apache.kafka.connect.data.Schema;
@@ -31,7 +32,7 @@ import org.apache.kafka.connect.data.Schema;
  */
 class AvroSchemaTranslator implements ConnectSchemaTranslator {
 
-  private final AvroData avroData = new AvroData(new AvroDataConfig(ImmutableMap.of()));
+  private AvroData avroData = new AvroData(new AvroDataConfig(ImmutableMap.of()));
 
   private final AvroProperties formatProps;
 
@@ -42,6 +43,11 @@ class AvroSchemaTranslator implements ConnectSchemaTranslator {
   @Override
   public String name() {
     return AvroSchema.TYPE;
+  }
+
+  @Override
+  public void configure(final Map<String, ?> configs) {
+    avroData = new AvroData(new AvroDataConfig(configs));
   }
 
   @Override

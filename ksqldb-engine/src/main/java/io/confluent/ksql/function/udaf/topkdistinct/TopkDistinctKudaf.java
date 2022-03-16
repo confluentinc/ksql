@@ -33,8 +33,6 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     extends BaseAggregateFunction<T, List<T>, List<T>> {
 
   private final int tkVal;
-  private final Class<T> ttClass;
-  private final SqlType outputSchema;
 
   TopkDistinctKudaf(
       final String functionName,
@@ -55,8 +53,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     );
 
     this.tkVal = tkVal;
-    this.ttClass = ttClass;
-    this.outputSchema = Objects.requireNonNull(outputSchema);
+    Objects.requireNonNull(outputSchema);
   }
 
   @Override

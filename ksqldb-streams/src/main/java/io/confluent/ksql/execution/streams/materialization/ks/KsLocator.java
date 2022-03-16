@@ -130,7 +130,8 @@ public final class KsLocator implements Locator {
       final Set<HostInfo> standByHosts = partitionMetadata.getStandbyHosts();
       final int partition = partitionMetadata.getPartition();
       final Optional<Set<KsqlKey>> partitionKeys = partitionMetadata.getKeys();
-
+      LOG.debug("Active host {}, standby {}, partition {}.",
+               activeHost, standByHosts, partition);
       // For a given partition, find the ordered, filtered list of hosts to consider
       final List<KsqlNode> filteredHosts = getFilteredHosts(routingOptions, routingFilterFactory,
           activeHost, standByHosts, partition);
@@ -369,7 +370,6 @@ public final class KsLocator implements Locator {
         .collect(ImmutableList.toImmutableList());
 
     LOG.debug("Filtered and ordered hosts: {}", filteredHosts);
-
     return filteredHosts;
   }
 

@@ -60,6 +60,7 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
                 <exclude>org.slf4j:slf4j-log4j12</exclude> <!-- Already included by rest-app-->
+                <exclude>io.netty:*</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

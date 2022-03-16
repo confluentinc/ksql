@@ -363,7 +363,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DOC =
       "Enables the use of the consistency token to offer monotonic read consistency for pull "
           + "queries.";
-  public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = false;
+  public static final boolean KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED_DEFAULT = true;
 
   public static final String KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED
           = "ksql.query.pull.limit.clause.enabled";
@@ -436,6 +436,11 @@ public class KsqlConfig extends AbstractConfig {
       "How close the catchup consumer must be to the latest before it will stop the latest to join"
           + " with it.";
   public static final int KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DEFAULT = 50;
+
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED =
+      "ksql.query.push.v2.metrics.enabled";
+  public static final String KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC =
+      "Config to enable/disable collecting JMX metrics for push queries v2.";
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -571,9 +576,14 @@ public class KsqlConfig extends AbstractConfig {
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
 
+  public static final String KSQL_NEW_QUERY_PLANNER_ENABLED =
+      "ksql.new.query.planner.enabled";
+  private static final Boolean KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT = false;
+  private static final String KSQL_NEW_QUERY_PLANNER_ENABLED_DOC =
+      "Feature flag that enables the new planner for persistent queries. Default is false.";
 
   public static final String KSQL_SHARED_RUNTIMES_COUNT = "ksql.shared.runtimes.count";
-  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 8;
+  public static final Integer KSQL_SHARED_RUNTIMES_COUNT_DEFAULT = 2;
   public static final String KSQL_SHARED_RUNTIMES_COUNT_DOC =
       "Controls how many runtimes queries are allocated over initially."
           + "this is only used when ksql.runtime.feature.shared.enabled is true.";
@@ -636,6 +646,26 @@ public class KsqlConfig extends AbstractConfig {
   public static final long KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT = 30000;
   public static final String KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DOC
       = "The total time that the query cleanup spends trying to clean things up on shutdown.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE
+      = "ksql.transient.query.cleanup.service.enable";
+  public static final boolean KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT = true;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+      = "Enable transient query cleanup service.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS
+      = "ksql.transient.query.cleanup.service.initial.delay.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+      = "The time to delay the first execution of the transient query cleanup service in seconds.";
+
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS
+      = "ksql.transient.query.cleanup.service.period.seconds";
+  public static final Integer KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT
+      = 600;
+  public static final String KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
+      = "the period between successive executions of the transient query cleanup service.";
 
   public static final String KSQL_ENDPOINT_MIGRATE_QUERY_CONFIG
       = "ksql.endpoint.migrate.query";
@@ -1237,6 +1267,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW_DOC
         )
         .define(
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED,
+            Type.BOOLEAN,
+            true,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_V2_METRICS_ENABLED_DOC
+        )
+        .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
             Type.STRING,
             "",
@@ -1361,6 +1398,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED_DOC
         )
         .define(
+            KSQL_NEW_QUERY_PLANNER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_NEW_QUERY_PLANNER_ENABLED_DOC
+        )
+        .define(
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS,
             Type.LONG,
             KSQL_QUERY_CLEANUP_SHUTDOWN_TIMEOUT_MS_DEFAULT,
@@ -1387,6 +1431,27 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ENDPOINT_MIGRATE_QUERY_DEFAULT,
             Importance.LOW,
             KSQL_ENDPOINT_MIGRATE_QUERY_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE,
+            Type.BOOLEAN,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_INITIAL_DELAY_SECONDS_DOC
+        )
+        .define(
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS,
+            Type.INT,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DEFAULT,
+            Importance.LOW,
+            KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_PERIOD_SECONDS_DOC
         )
         .withClientSslSupport();
 

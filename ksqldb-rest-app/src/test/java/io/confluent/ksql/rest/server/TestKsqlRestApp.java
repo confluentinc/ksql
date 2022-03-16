@@ -46,6 +46,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -198,6 +199,20 @@ public class TestKsqlRestApp extends ExternalResource {
         ImmutableMap.of(),
         credentials,
         Optional.empty()
+    );
+  }
+
+  public KsqlRestClient buildKsqlClient(
+      final Optional<BasicCredentials> credentials,
+      final ConsistencyLevel consistencyLevel
+  ) {
+    return KsqlRestClient.create(
+        getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        credentials,
+        Optional.empty(),
+        consistencyLevel
     );
   }
 

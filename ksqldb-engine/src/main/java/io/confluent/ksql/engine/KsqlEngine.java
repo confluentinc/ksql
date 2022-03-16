@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toMap;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -33,6 +34,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.internal.TransientQueryCleanupListener;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -109,6 +111,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final QueryCleanupService cleanupService;
   private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
   private final MetricCollectors metricCollectors;
+  private TransientQueryCleanupService transientQueryCleanupService;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -152,10 +155,24 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final MetricCollectors metricCollectors
   ) {
     this.cleanupService = new QueryCleanupService();
+
     this.orphanedTransientQueryCleaner =
         new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
+    final Builder<QueryEventListener> registrationListeners =
+            ImmutableList.<QueryEventListener>builder()
+                    .addAll(queryEventListeners)
+                    .add(engineMetrics.getQueryEventListener())
+                    .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig));
+
+    if (getTransientQueryCleanupServiceEnabled(ksqlConfig)) {
+      this.transientQueryCleanupService = new TransientQueryCleanupService(
+              serviceContext,
+              ksqlConfig);
+      registrationListeners.add(new TransientQueryCleanupListener(transientQueryCleanupService));
+    }
+
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
@@ -163,11 +180,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         queryIdGenerator,
         cleanupService,
         ksqlConfig,
-        ImmutableList.<QueryEventListener>builder()
-            .addAll(queryEventListeners)
-            .add(engineMetrics.getQueryEventListener())
-            .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
-            .build(),
+        registrationListeners.build(),
         metricCollectors
     );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -186,6 +199,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     this.metricCollectors = metricCollectors;
 
     cleanupService.startAsync();
+    if (getTransientQueryCleanupServiceEnabled(ksqlConfig)) {
+      this.transientQueryCleanupService
+              .setQueryRegistry(this.primaryContext.getQueryRegistry());
+      this.transientQueryCleanupService.startAsync();
+    }
   }
 
   public int numberOfLiveQueries() {
@@ -285,11 +303,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
+  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan,
+                               final boolean restoreInProgress) {
     try {
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
-          .execute(plan.getPlan());
+          .execute(plan.getPlan(), restoreInProgress);
       return result;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -394,7 +413,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .executeStreamPullQuery(statement, excludeTombstones, endOffsets);
 
     QueryLogger.info(
-        "Streaming stream pull query results '{}'",
+        "Streaming stream pull query results '{}' from earliest to " + endOffsets,
         statement.getStatementText()
     );
 
@@ -454,16 +473,61 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         new ListOffsetsOptions(IsolationLevel.READ_UNCOMMITTED)
     );
 
+    final ImmutableMap<TopicPartition, Long> startOffsetsForStreamPullQuery =
+        getStartOffsetsForStreamPullQuery(admin, topicDescription);
+
     try {
       final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
           listOffsetsResult.all().get(10, TimeUnit.SECONDS);
       final Map<TopicPartition, Long> result = partitionResultMap
           .entrySet()
           .stream()
-          // special case where we expect no work at all on the partition, so we don't even
+          // Special case where we expect no work at all on the partition, so we don't even
           // need to check the committed offset (if we did, we'd potentially wait forever,
           // since Streams won't commit anything for an empty topic).
-          .filter(e -> e.getValue().offset() > 0L)
+          // Specifically, streams will never poll a record and will therefore do no work
+          // for a partition when the partition is empty, either because it has never had
+          // a record (end offset of 0), or because the log cleaner deleted all the records
+          // (start offsets == end offsets).
+          .filter(e -> e.getValue().offset() > 0L
+              && e.getValue().offset() > startOffsetsForStreamPullQuery.get(e.getKey()))
+          .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
+      return ImmutableMap.copyOf(result);
+    } catch (final InterruptedException e) {
+      log.error("Admin#listOffsets(" + topicDescription.name() + ") interrupted", e);
+      throw new KsqlServerException("Interrupted");
+    } catch (final ExecutionException e) {
+      log.error("Error executing Admin#listOffsets(" + topicDescription.name() + ")", e);
+      throw new KsqlServerException("Internal Server Error");
+    } catch (final TimeoutException e) {
+      log.error("Admin#listOffsets(" + topicDescription.name() + ") timed out", e);
+      throw new KsqlServerException("Backend timed out");
+    }
+  }
+
+  private ImmutableMap<TopicPartition, Long> getStartOffsetsForStreamPullQuery(
+      final Admin admin,
+      final TopicDescription topicDescription) {
+    final Map<TopicPartition, OffsetSpec> topicPartitions =
+        topicDescription
+            .partitions()
+            .stream()
+            .map(td -> new TopicPartition(topicDescription.name(), td.partition()))
+            .collect(toMap(identity(), tp -> OffsetSpec.earliest()));
+
+    final ListOffsetsResult listOffsetsResult = admin.listOffsets(
+        topicPartitions,
+        // Since stream pull queries are always ALOS, it will read uncommitted,
+        // so we should do the same when checking end offsets.
+        new ListOffsetsOptions(IsolationLevel.READ_UNCOMMITTED)
+    );
+
+    try {
+      final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
+          listOffsetsResult.all().get(10, TimeUnit.SECONDS);
+      final Map<TopicPartition, Long> result = partitionResultMap
+          .entrySet()
+          .stream()
           .collect(toMap(Entry::getKey, e -> e.getValue().offset()));
       return ImmutableMap.copyOf(result);
     } catch (final InterruptedException e) {
@@ -556,6 +620,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   @Override
   public void close() {
+    if (getTransientQueryCleanupServiceEnabled(getKsqlConfig())) {
+      transientQueryCleanupService.stopAsync();
+    }
     close(false);
   }
 
@@ -569,6 +636,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   ) {
     orphanedTransientQueryCleaner
         .cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
+  }
+
+  public void populateTransientQueryCleanupServiceWithOldCommands(
+          final Set<String> queryApplicationIds
+  ) {
+    this.transientQueryCleanupService.setLocalCommandsQueryAppIds(queryApplicationIds);
   }
 
   /**
@@ -609,6 +682,22 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         analysis,
         new QueryExecutionUtil.ColumnReferenceRewriter()::process
     );
+  }
+
+  public int reportNumberOfLeakedTopics() {
+    return transientQueryCleanupService.getNumLeakedTopics();
+  }
+
+  public int reportNumberOfLeakedStateDirs() {
+    return transientQueryCleanupService.getNumLeakedStateDirs();
+  }
+
+  public int reportNumLeakedTopicsAfterCleanup() {
+    return transientQueryCleanupService.getNumLeakedTopicsFailedToCleanUp();
+  }
+
+  public int reportNumLeakedStateDirsAfterCleanup() {
+    return transientQueryCleanupService.getNumLeakedStateDirsFailedToCleanUp();
   }
 
   private static final class CleanupListener implements QueryEventListener {
@@ -676,5 +765,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     }
 
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_ROWPARTITION_ROWOFFSET_ENABLED);
+  }
+
+  private boolean getTransientQueryCleanupServiceEnabled(final KsqlConfig ksqlConfig) {
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_QUERY_CLEANUP_SERVICE_ENABLE);
   }
 }

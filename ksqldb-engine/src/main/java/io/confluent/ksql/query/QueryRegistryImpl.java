@@ -60,8 +60,12 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryRegistryImpl implements QueryRegistry {
+  private final Logger log = LoggerFactory.getLogger(QueryRegistryImpl.class);
+
   private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(Optional.of(sourceName));
 
@@ -295,6 +299,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           sharedRuntimeId.get(),
           metricCollectors
       );
+      query.register();
     } else {
       query = queryBuilder.buildPersistentQueryInDedicatedRuntime(
           ksqlConfig,
@@ -442,7 +447,9 @@ public class QueryRegistryImpl implements QueryRegistry {
 
       // don't close the old query so that we don't delete the changelog
       // topics and the state store, instead use QueryMetadata#stop
-      oldQuery.stop(false);
+      log.info("Detected that query {} already exists so will replace it."
+          + "First will stop without resetting offsets", oldQuery.getQueryId());
+      oldQuery.stop(true);
       unregisterQuery(oldQuery);
     }
 

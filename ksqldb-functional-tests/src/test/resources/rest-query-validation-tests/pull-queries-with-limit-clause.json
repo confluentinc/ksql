@@ -72,7 +72,8 @@
           {"row":{"columns":["right",37.3952,-123.0813]}},
           {"row":{"columns":["think",37.3944,-123.0813]}},
           {"row":{"columns":["three",37.4049,-123.0822]}},
-          {"row":{"columns":["years",37.7857,-123.4011]}}
+          {"row":{"columns":["years",37.7857,-123.4011]}},
+          {"finalMessage":"Query Completed"}
         ]}
       ]
     },

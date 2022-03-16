@@ -544,13 +544,13 @@ public class HARoutingTest {
   @Test
   public void forwardingError_errorRow() {
     // Given:
-    locate(location2);
+    locate(location5);
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
-              is ("2"));
+              is ("4"));
           rowConsumer.accept(
               ImmutableList.of(
                   StreamedRow.header(queryId, logicalSchema),
@@ -570,7 +570,7 @@ public class HARoutingTest {
 
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
-    assertThat(Throwables.getRootCause(e).getMessage(), containsString("Row Error!"));
+    assertThat(Throwables.getRootCause(e).getSuppressed()[0].getMessage(), containsString("Row Error!"));
 
     final double fetch_count = getMetricValue("-partition-fetch-count");
     final double resubmission_count = getMetricValue("-partition-fetch-resubmission-count");
@@ -674,13 +674,13 @@ public class HARoutingTest {
   @Test
   public void forwardingError_noRows() {
     // Given:
-    locate(location2);
+    locate(location4);
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
-              is ("2"));
+              is ("4"));
           rowConsumer.accept(ImmutableList.of());
           return RestResponse.successful(200, 0);
         }
@@ -709,13 +709,13 @@ public class HARoutingTest {
   @Test
   public void forwardingError_invalidSchema() {
     // Given:
-    locate(location2);
+    locate(location5);
     when(ksqlClient.makeQueryRequest(eq(node2.location()), any(), any(), any(), any(), any()))
         .thenAnswer(i -> {
           Map<String, ?> requestProperties = i.getArgument(3);
           Consumer<List<StreamedRow>> rowConsumer = i.getArgument(4);
           assertThat(requestProperties.get(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS),
-              is ("2"));
+              is ("4"));
           rowConsumer.accept(
               ImmutableList.of(
                   StreamedRow.header(queryId, logicalSchema2),
@@ -735,7 +735,7 @@ public class HARoutingTest {
 
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
-    assertThat(Throwables.getRootCause(e).getMessage(),
+    assertThat(Throwables.getRootCause(e).getSuppressed()[0].getMessage(),
         containsString("Schemas logicalSchema2 from host node2 differs from schema logicalSchema"));
 
     final double fetch_count = getMetricValue("-partition-fetch-count");

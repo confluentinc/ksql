@@ -135,7 +135,7 @@ EMIT CHANGES;
 ```
 
 !!! Tip "See CASE in action"
-    - [Detect and analyze SSH attacks](https://confluentinc.github.io/ksqldb-recipes/cybersecurity/SSH-attack/#ksqldb-code)
+    - [Detect and analyze SSH attacks](https://developer.confluent.io/tutorials/SSH-attack/confluent.html#ksqldb-code)
 
 ## CAST
 Change the type of an expression to a different type.
@@ -429,9 +429,9 @@ SELECT column_name(s)
 ```
 
 !!! Tip "See INNER_JOIN in action"
-    - [Analyze datacenter power usage](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/datacenter/#ksqldb-code)
-    - [Build a dynamic pricing strategy](https://confluentinc.github.io/ksqldb-recipes/real-time-analytics/dynamic-pricing/#ksqldb-code)
-    - [Notify passengers of flight updates](https://confluentinc.github.io/ksqldb-recipes/customer-360/aviation/#ksqldb-code)
+    - [Analyze datacenter power usage](https://developer.confluent.io/tutorials/datacenter/confluent.html#ksqldb-code)
+    - [Build a dynamic pricing strategy](https://developer.confluent.io/tutorials/dynamic-pricing/confluent.html#ksqldb-code)
+    - [Notify passengers of flight updates](https://developer.confluent.io/tutorials/aviation/confluent.html#ksqldb-code)
     - [Streaming ETL pipeline](/tutorials/etl/#join-the-streams-together)
 
 ## INSERT INTO
@@ -733,8 +733,8 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
 ```
 
 !!! Tip "See WINDOWSTART in action"
-    - [Detect unusual credit card activity](https://confluentinc.github.io/ksqldb-recipes/anomaly-detection/credit-card-activity/#ksqldb-code)
-    - [Understand user behavior with clickstream data](https://confluentinc.github.io/ksqldb-recipes/customer-360/clickstream/#ksqldb-code)
+    - [Detect unusual credit card activity](https://developer.confluent.io/tutorials/credit-card-activity/confluent.html#ksqldb-code)
+    - [Understand user behavior with clickstream data](https://developer.confluent.io/tutorials/clickstream/confluent.html#ksqldb-code)
 
 ## NULLIF
 Returns NULL if two expressions are equal, otherwise it returns the first expression.

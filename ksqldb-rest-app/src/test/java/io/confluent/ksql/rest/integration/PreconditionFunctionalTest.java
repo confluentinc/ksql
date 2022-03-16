@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.KsqlServerPrecondition;
 import io.confluent.ksql.rest.server.TestKsqlRestAppWaitingOnPrecondition;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -94,8 +95,8 @@ public class PreconditionFunctionalTest {
   private void shouldServeClusterHealthCheckRequestsWhileWaitingForPrecondition(String subPath) {
 
     // When:
-    HttpResponse<Buffer> resp = RestIntegrationTestUtil
-        .rawRestRequest(REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET, "/chc/" + subPath, null);
+    HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(
+        REST_APP, HttpVersion.HTTP_1_1, HttpMethod.GET, "/chc/" + subPath, null, Optional.empty());
 
     // Then:
     assertThat(resp.statusCode(), is(OK.code()));
@@ -109,8 +110,9 @@ public class PreconditionFunctionalTest {
 
     @Override
     public Optional<KsqlErrorMessage> checkPrecondition(
-        final KsqlRestConfig restConfig,
-        final ServiceContext serviceContext) {
+      final KsqlRestConfig restConfig,
+      final ServiceContext serviceContext,
+      final KafkaTopicClient topicClient) {
       return fail();
     }
 

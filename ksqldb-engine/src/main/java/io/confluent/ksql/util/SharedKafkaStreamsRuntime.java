@@ -56,8 +56,7 @@ public abstract class SharedKafkaStreamsRuntime {
   }
 
   public abstract void register(
-      BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata,
-      QueryId queryId
+      BinPackedPersistentQueryMetadataImpl binpackedPersistentQueryMetadata
   );
 
   public boolean isError(final QueryId queryId) {
@@ -68,7 +67,7 @@ public abstract class SharedKafkaStreamsRuntime {
 
   public abstract void close();
 
-  public abstract void stop(QueryId queryId, boolean resetOffsets);
+  public abstract void stop(QueryId queryId, boolean isCreateOrReplace);
 
   public abstract void start(QueryId queryId);
 

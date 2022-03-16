@@ -70,21 +70,12 @@ Start by creating a `pom.xml` for your Java application:
             <name>ksqlDB</name>
             <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
         </repository>
-        <repository>
-            <id>confluent-packages</id>
-            <name>Confluent</name>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
-        </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
             <id>ksqlDB</id>
             <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>confluent-packages</id>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -740,12 +731,12 @@ Map<String, String> connectorProperties = ImmutableMap.of(
   "table.whitelist", "users",
   "key", "username"
 );
-client.createConnector("jdbc-connector", true, connectorProperties).get();
+client.createConnector("jdbc-connector", true, connectorProperties, false).get();
 ```
 
 Drop a connector:
 ```java
-client.dropConnector("jdbc-connector").get();
+client.dropConnector("jdbc-connector", true).get();
 ```
 
 List connectors:

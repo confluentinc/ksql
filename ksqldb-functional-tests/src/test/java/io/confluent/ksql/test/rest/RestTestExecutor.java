@@ -161,11 +161,11 @@ public class RestTestExecutor implements Closeable {
           && testCase.getInputConditions().get().getWaitForActivePushQuery();
       final Optional<InputConditionsParameters> postInputConditionRunnable;
       if (!waitForActivePushQueryToProduceInput) {
-        produceInputs(testCase.getInputsByTopic());
+        produceInputs(testCase);
         postInputConditionRunnable = Optional.empty();
       } else {
         postInputConditionRunnable = Optional.of(new InputConditionsParameters(
-            this::waitForActivePushQuery, () -> produceInputs(testCase.getInputsByTopic())));
+            this::waitForActivePushQuery, () -> produceInputs(testCase)));
       }
 
       if (!testCase.expectedError().isPresent()
@@ -248,16 +248,16 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private void produceInputs(final Map<String, List<Record>> inputs) {
-    inputs.forEach((topicName, records) -> {
+  private void produceInputs(final RestTestCase testCase) {
+    testCase.getInputsByTopic().forEach((topicName, records) -> {
 
       final TopicInfo topicInfo = topicInfoCache.get(topicName)
           .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
 
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
-          topicInfo.getKeySerializer(),
-          topicInfo.getValueSerializer()
+          topicInfo.getKeySerializer(testCase.getProperties()),
+          topicInfo.getValueSerializer(testCase.getProperties())
       )) {
         final List<Future<RecordMetadata>> futures = records.stream()
             .map(record -> new ProducerRecord<>(
@@ -449,8 +449,8 @@ public class RestTestExecutor implements Closeable {
           .verifyAvailableRecords(
               topicName,
               records.size(),
-              topicInfo.getKeyDeserializer(),
-              topicInfo.getValueDeserializer()
+              topicInfo.getKeyDeserializer(testCase.getProperties()),
+              topicInfo.getValueDeserializer(testCase.getProperties())
           );
 
       for (int idx = 0; idx < records.size(); idx++) {

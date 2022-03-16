@@ -142,18 +142,41 @@ public class TopicStreamWriterTest {
       recordedWrites.add(new String(bytes, off, len, Charsets.UTF_8));
     }
 
+    /**
+     * In JDK 13+ the behavior of PrintStream was changed so that newlines are flushed
+     * in the same write as the line itself when written using `println()` method. This
+     * method attempts to support both behaviors.
+     *
+     * @see <a href=
+     *  "https://github.com/openjdk/jdk/commit/346018251f22187b0508e11edd13833a3074c0cc">
+     *  8215412: Optimize PrintStream.println methods</a>
+     */
     void assertWrites(final List<String> expected) {
-
+      int newlines = 0;
       for (int i = 0; i < recordedWrites.size(); i++) {
         final String actual = recordedWrites.get(i);
-        if (expected.size() <= i) {
+        final int expectedOffset = i + newlines;
+        if (expected.size() <= expectedOffset) {
           break;
         }
 
-        assertThat(actual, containsString(expected.get(i)));
+        if (expected.get(expectedOffset).equals(System.lineSeparator())) {
+          if (i > 0 && recordedWrites.get(i - 1).endsWith(System.lineSeparator())) {
+            newlines++;
+            continue;
+          }
+        }
+
+        assertThat(actual, containsString(expected.get(i + newlines)));
       }
 
-      assertThat(recordedWrites, hasSize(expected.size()));
+      // check if the last expected row was a newline
+      if (expected.get(expected.size() - 1).equals(System.lineSeparator())
+          && recordedWrites.get(recordedWrites.size() - 1).endsWith(System.lineSeparator())) {
+        newlines++;
+      }
+
+      assertThat(recordedWrites, hasSize(expected.size() - newlines));
     }
   }
 }

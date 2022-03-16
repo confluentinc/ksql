@@ -16,8 +16,6 @@
 package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -33,11 +31,6 @@ import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.avro.AvroFormat;
-import io.confluent.ksql.serde.connect.ConnectProperties;
-import io.confluent.ksql.serde.delimited.DelimitedFormat;
-import io.confluent.ksql.serde.protobuf.ProtobufFormat;
-import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -130,11 +123,11 @@ public final class CreateSourceProperties {
   }
 
   public Optional<Integer> getKeySchemaId() {
-    return Optional.ofNullable(props.getInt(CommonCreateConfigs.KEY_SCHEMA_ID));
+    return SourcePropertiesUtil.getKeySchemaId(props);
   }
 
   public Optional<Integer> getValueSchemaId() {
-    return Optional.ofNullable(props.getInt(CommonCreateConfigs.VALUE_SCHEMA_ID));
+    return SourcePropertiesUtil.getValueSchemaId(props);
   }
 
   public Optional<FormatInfo> getKeyFormat(final SourceName name, final KsqlConfig config) {
@@ -150,31 +143,7 @@ public final class CreateSourceProperties {
       final String name,
       final KsqlConfig config
   ) {
-    final Builder<String, String> builder = ImmutableMap.builder();
-    final String schemaName = props.getString(CommonCreateConfigs.KEY_SCHEMA_FULL_NAME);
-    if (schemaName != null) {
-      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
-    } else if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
-      // ensure that the schema name for the key is unique to the sink - this allows
-      // users to always generate valid, non-conflicting avro record definitions in
-      // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
-      builder.put(ConnectProperties.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
-    }
-
-    if (ProtobufFormat.NAME.equalsIgnoreCase(keyFormat)
-        && config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)) {
-      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-    }
-
-    final String delimiter = props.getString(CommonCreateConfigs.KEY_DELIMITER_PROPERTY);
-    if (delimiter != null) {
-      builder.put(DelimitedFormat.DELIMITER, delimiter);
-    }
-
-    final Optional<Integer> keySchemaId = getKeySchemaId();
-    keySchemaId.ifPresent(id -> builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
-
-    return builder.build();
+    return SourcePropertiesUtil.getKeyFormatProperties(props, keyFormat, name, config);
   }
 
   public Optional<FormatInfo> getValueFormat(final KsqlConfig config) {
@@ -188,31 +157,7 @@ public final class CreateSourceProperties {
       final String valueFormat,
       final KsqlConfig config
   ) {
-    final ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-
-    final String avroSchemaName = props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME);
-    final String schemaName =
-        avroSchemaName == null ? props.getString(CommonCreateConfigs.VALUE_SCHEMA_FULL_NAME)
-            : avroSchemaName;
-    if (schemaName != null) {
-      builder.put(ConnectProperties.FULL_SCHEMA_NAME, schemaName);
-    }
-
-    if (ProtobufFormat.NAME.equalsIgnoreCase(valueFormat)
-        && config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)) {
-      builder.put(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP);
-    }
-
-    final String delimiter = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    if (delimiter != null) {
-      builder.put(DelimitedFormat.DELIMITER, delimiter);
-    }
-
-    final Optional<Integer> valueSchemaId = getValueSchemaId();
-    valueSchemaId.ifPresent(id ->
-        builder.put(ConnectProperties.SCHEMA_ID, String.valueOf(id)));
-
-    return builder.build();
+    return SourcePropertiesUtil.getValueFormatProperties(props, valueFormat, config);
   }
 
   public SerdeFeatures getValueSerdeFeatures() {

@@ -1,7 +1,9 @@
 package io.confluent.ksql.execution;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -425,7 +427,7 @@ public class ExpressionEvaluatorParityTest {
           = ((RecordProcessingError) errorMessageCaptor.getValue());
       if (error.get().getMessage() == null) {
         assertThat(processingError.getException().get().getMessage(),
-            CoreMatchers.any(String.class));
+            anyOf(CoreMatchers.any(String.class), nullValue()));
       } else {
         assertThat(processingError.getException().get().getMessage(),
             containsString(error.get().getMessage()));

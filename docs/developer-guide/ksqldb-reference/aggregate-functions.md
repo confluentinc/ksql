@@ -221,6 +221,18 @@ Rows that have `col1` set to `NULL` are ignored.
 ```sql title="Applies to: stream, table<br>Since: 0.16.0"
 STDDEV_SAMP(col1)
 ```
+!!! Note: This function has a bug and returns the square of the standard deviation rather than 
+the standard deviation.  Use `STDDEV_SAMPLE` instead.  
+
+Returns the sample standard deviation for the column.
+
+---
+
+## **`STDDEV_SAMPLE`**
+
+```sql title="Applies to: stream, table<br>Since: 0.25.0"
+STDDEV_SAMP(col1)
+```
 
 Returns the sample standard deviation for the column.
 

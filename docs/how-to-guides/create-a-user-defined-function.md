@@ -406,7 +406,8 @@ If a UDAF's aggregate or return types vary based on the input type, you can eith
 function annotated with @UdafFactory per type or override the following three methods
 `initializeTypeArguments(List<SqlArgument> argTypeList)`, `getAggregateSqlType()`, and
 `getReturnSqlType()`.  To see a concrete example in the ksqlDB codebase, check out the 
-implemenation of `latest_by_offset` or `collect_list`.
+implementation of [`latest_by_offset`](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/function/udaf/offset/LatestByOffset.java) 
+or [`collect_list`](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/function/udaf/array/CollectListUdaf.java).
 
 ## Add the uberjar to ksqlDB server
 

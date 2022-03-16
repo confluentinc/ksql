@@ -19,7 +19,6 @@ import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.FunctionLoaderUtils;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.function.udf.PluggableUdf;
-import java.lang.reflect.ReflectPermission;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.Permission;
@@ -95,22 +94,6 @@ public final class ExtensionSecurityManager extends SecurityManager {
       throw new SecurityException("A UDF attempted to execute the following cmd: " + cmd);
     }
     super.checkExec(cmd);
-  }
-
-  @Override
-  public void checkPermission(final Permission perm) {
-    if (inUdfExecution()) {
-      if (perm instanceof ReflectPermission) {
-        throw new SecurityException("A UDF attempted to use reflection.");
-      }
-      /* if (perm instanceof RuntimePermission) {
-        System.out.println("Stopping system call");
-        new Exception().printStackTrace(System.out);
-        System.out.println("Done dumping stack");
-        throw new SecurityException("A UDF attempted to make a system call.");
-      } */
-    }
-    super.checkPermission(perm);
   }
 
   private boolean inUdfExecution() {

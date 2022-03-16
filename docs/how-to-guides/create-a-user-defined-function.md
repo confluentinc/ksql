@@ -402,7 +402,7 @@ There are many things to observe in this class:
 
 #### Dynamic UDAFs
 
-If a UDAF's aggregate or return types vary based on the input type, one can either write a separate
+If a UDAF's aggregate or return types vary based on the input type, you can either write a separate
 function annotated with @UdafFactory per type or override the following three methods
 `initializeTypeArguments(List<SqlArgument> argTypeList)`, `getAggregateSqlType()`, and
 `getReturnSqlType()`.  To see a concrete example in the ksqlDB codebase, check out the 

@@ -239,8 +239,8 @@ When implementing dynamic returns for a UDTF function, if your method returns
 a value of type `List<T>`, the type referred to by the schema provider method
 is the type `T`, not the type `List<T>`.
 
-For dynamic UDAFs, the methods `aggregate` or `map` may depend on the input SQL type.
-Given this, implementations of the `Udaf` interface override some of the following three methods
+For dynamic UDAFs, the `aggregate` or `map` methods may depend on the input SQL type, so
+implementations of the `Udaf` interface override some of the following three methods:
 `initializeTypeArguments(List<SqlArgument> argTypeList)`, `getAggregateSqlType()`, and 
 `getReturnSqlType()`.
 

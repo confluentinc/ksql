@@ -46,7 +46,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   private final long shutdownTimeout;
   private final QueryErrorClassifier errorClassifier;
   private final int maxQueryErrorsQueueSize;
-  private final List<KafkaFuture<Void>>  topolgogiesToAdd;
+  private final List<KafkaFuture<Void>> topolgogiesToAdd;
 
   public SharedKafkaStreamsRuntimeImpl(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                        final QueryErrorClassifier errorClassifier,

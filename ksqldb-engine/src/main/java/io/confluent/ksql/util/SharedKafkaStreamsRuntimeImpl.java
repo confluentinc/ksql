@@ -191,6 +191,7 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
           for (KafkaFuture<Void> toAdd : topolgogiesToAdd) {
             toAdd.get();
           }
+          topolgogiesToAdd.clear();
           kafkaStreams.removeNamedTopology(queryId.toString(), !isCreateOrReplace)
               .all()
               .get();

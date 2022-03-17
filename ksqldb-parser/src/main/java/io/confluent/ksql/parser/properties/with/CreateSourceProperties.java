@@ -145,8 +145,8 @@ public final class CreateSourceProperties {
   ) {
     return SourcePropertiesUtil.getKeyFormatProperties(
         props,
-        keyFormat,
         name,
+        keyFormat,
         config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)
     );
   }

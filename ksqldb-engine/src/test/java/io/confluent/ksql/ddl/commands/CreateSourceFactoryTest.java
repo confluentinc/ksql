@@ -604,13 +604,13 @@ public class CreateSourceFactoryTest {
     // Then:
     verify(keyOptionsSupplier).build(
         schema,
-        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties(), SOME_NAME)),
+        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties(), SOME_NAME, ksqlConfig)),
         SerdeFeatures.of(),
         ksqlConfig
     );
     verify(valOptionsSupplier).build(
         schema,
-        FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties())),
+        FormatFactory.of(SourcePropertiesUtil.getValueFormat(statement.getProperties(), ksqlConfig)),
         statement.getProperties().getValueSerdeFeatures(),
         ksqlConfig
     );

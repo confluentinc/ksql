@@ -52,6 +52,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectProperties;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -72,6 +73,8 @@ public class CreateSourcePropertiesTest {
 
   @Mock
   private Function<String, Duration> durationParser;
+  @Mock
+  private KsqlConfig config;
 
   @Test
   public void shouldSetMinimumValidProps() {
@@ -93,8 +96,8 @@ public class CreateSourcePropertiesTest {
     assertThat(properties.getWindowType(), is(Optional.empty()));
     assertThat(properties.getKeySchemaId(), is(Optional.empty()));
     assertThat(properties.getValueSchemaId(), is(Optional.empty()));
-    assertThat(properties.getKeyFormat(SourceName.of("foo")), is(Optional.empty()));
-    assertThat(properties.getValueFormat(), is(Optional.empty()));
+    assertThat(properties.getKeyFormat(SourceName.of("foo"), config), is(Optional.empty()));
+    assertThat(properties.getValueFormat(config), is(Optional.empty()));
     assertThat(properties.getReplicas(), is(Optional.empty()));
     assertThat(properties.getPartitions(), is(Optional.empty()));
     assertThat(properties.getValueSerdeFeatures(), is(SerdeFeatures.of()));
@@ -305,7 +308,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormat()
+    assertThat(properties.getValueFormat(config)
         .map(FormatInfo::getProperties)
         .map(props -> props.get(ConnectProperties.FULL_SCHEMA_NAME)),
         is(Optional.of("schema")));
@@ -322,7 +325,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormat()
+    assertThat(properties.getValueFormat(config)
         .map(FormatInfo::getProperties)
         .map(props -> props.get(ConnectProperties.FULL_SCHEMA_NAME)),
         is(Optional.of("schema")));
@@ -514,8 +517,8 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("KAFKA"));
-    assertThat(props.getValueFormat().get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getFormat(), is("KAFKA"));
+    assertThat(props.getValueFormat(config).get().getFormat(), is("AVRO"));
   }
 
   @Test
@@ -531,9 +534,9 @@ public class CreateSourcePropertiesTest {
 
     // When / Then:
     assertThat(props.getKeyFormat(
-        SourceName.of("foo")).get().getProperties(),
+        SourceName.of("foo"), config).get().getProperties(),
         hasEntry(ConnectProperties.SCHEMA_ID, "123"));
-    assertThat(props.getValueFormat().get().getProperties(),
+    assertThat(props.getValueFormat(config).get().getProperties(),
         hasEntry(ConnectProperties.SCHEMA_ID, "456"));
   }
 
@@ -547,9 +550,9 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getFormat(), is("AVRO"));
     assertThat(props.getKeyFormat(
-        SourceName.of("foo")).get().getProperties(),
+        SourceName.of("foo"), config).get().getProperties(),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.FooKey"));
   }
 
@@ -564,9 +567,9 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("JSON_SR"));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getFormat(), is("JSON_SR"));
     assertThat(props.getKeyFormat(
-        SourceName.of("foo")).get().getProperties(),
+        SourceName.of("foo"), config).get().getProperties(),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchema"));
   }
 
@@ -581,9 +584,9 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // When // Then:
-    assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("AVRO"));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getFormat(), is("AVRO"));
     assertThat(props.getKeyFormat(
-        SourceName.of("foo")).get().getProperties(),
+        SourceName.of("foo"), config).get().getProperties(),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchemaName"));
   }
 

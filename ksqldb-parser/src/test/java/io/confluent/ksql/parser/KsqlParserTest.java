@@ -88,6 +88,7 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
 import java.util.List;
@@ -100,16 +101,24 @@ import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlParserTest {
+
+  @Mock
+  private FunctionRegistry functionRegistry;
+  @Mock
+  private KsqlConfig config;
 
   private MutableMetaStore metaStore;
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
+    metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   }
 
   @Test
@@ -485,7 +494,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("ORDERTIME")));
     assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
-    assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("AVRO")));
+    assertThat(result.getProperties().getValueFormat(config).map(FormatInfo::getFormat), equalTo(Optional.of("AVRO")));
   }
 
   @Test
@@ -500,7 +509,7 @@ public class KsqlParserTest {
     assertThat(Iterables.size(result.getElements()), equalTo(4));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
-    assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("JSON")));
+    assertThat(result.getProperties().getValueFormat(config).map(FormatInfo::getFormat), equalTo(Optional.of("JSON")));
   }
 
   @Test

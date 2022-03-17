@@ -130,7 +130,7 @@ public class CreateSourceAsPropertiesTest {
     );
 
     // When:
-    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
+    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME, false)
         .get(ConnectProperties.FULL_SCHEMA_NAME);
 
     // Then:
@@ -146,7 +146,7 @@ public class CreateSourceAsPropertiesTest {
     );
 
     // When:
-    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
+    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME, false)
         .get(ConnectProperties.FULL_SCHEMA_NAME);
 
     // Then:
@@ -161,7 +161,7 @@ public class CreateSourceAsPropertiesTest {
     );
 
     // When:
-    final String avroSchemaName = properties.getKeyFormatProperties("name", JsonFormat.NAME)
+    final String avroSchemaName = properties.getKeyFormatProperties("name", JsonFormat.NAME, false)
         .get(ConnectProperties.FULL_SCHEMA_NAME);
 
     // Then:
@@ -175,7 +175,7 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getValueFormatProperties().get(ConnectProperties.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormatProperties(AvroFormat.NAME, false).get(ConnectProperties.FULL_SCHEMA_NAME), is("schema"));
   }
 
   @Test
@@ -188,7 +188,7 @@ public class CreateSourceAsPropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormatProperties(),
+    assertThat(properties.getValueFormatProperties(AvroFormat.NAME, false),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "schema"));
   }
 
@@ -202,7 +202,7 @@ public class CreateSourceAsPropertiesTest {
             .build());
 
     // Then:
-    assertThat(props.getKeyFormatProperties("json_sr", "foo"),
+    assertThat(props.getKeyFormatProperties("json_sr", "foo", false),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "KeySchema"));
   }
 
@@ -384,9 +384,9 @@ public class CreateSourceAsPropertiesTest {
             .build());
 
     // When / Then:
-    assertThat(props.getKeyFormatProperties("foo", "Avro"),
+    assertThat(props.getKeyFormatProperties("foo", "Avro", false),
         hasEntry(ConnectProperties.SCHEMA_ID, "123"));
-    assertThat(props.getValueFormatProperties(), hasEntry(ConnectProperties.SCHEMA_ID, "456"));
+    assertThat(props.getValueFormatProperties("Avro", false), hasEntry(ConnectProperties.SCHEMA_ID, "456"));
   }
 
   @Test

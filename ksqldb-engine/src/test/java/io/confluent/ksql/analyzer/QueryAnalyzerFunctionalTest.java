@@ -51,11 +51,13 @@ public class QueryAnalyzerFunctionalTest {
 
   private static final boolean ROWPARTITION_ROWOFFSET_ENABLED = true;
   private static final boolean PULL_LIMIT_CLAUSE_ENABLED = true;
+  private static final boolean UNWRAP_PROTOBUF_PRIMITIVES = true;
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
-      new QueryAnalyzer(metaStore, "prefix-~", ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED);
+      new QueryAnalyzer(metaStore, "prefix-~",
+          ROWPARTITION_ROWOFFSET_ENABLED, PULL_LIMIT_CLAUSE_ENABLED, UNWRAP_PROTOBUF_PRIMITIVES);
 
   @Test
   public void shouldAnalyseTableFunctions() {

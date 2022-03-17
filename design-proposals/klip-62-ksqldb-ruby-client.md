@@ -26,10 +26,6 @@ Allow Ruby / Ruby on Rails developers to get started with ksqlDB.
 - Describe specific streams and tables
 - Get metadata about the ksqlDB cluster
 - Manage, list and describe connectors
-- Define variables for substitution
-- Execute Direct HTTP Requests
-
-* Pull and push queries will be performed against the `/query-stream` endpoint, and inserts to the `/inserts-stream` endpoint. All other requests to the `/ksql` endpoint. 
 
 * Documentation and examples
 
@@ -47,18 +43,21 @@ To be able to easily include ksqlDB in any Ruby / Ruby on Rails applications.
 * A class will expose a `config` method to configurate the connection between the client and ksqlDB, like so:
 
 ```Ruby
-  KsqlDB::Client.configure do |config|
-    config.host = 'http://localhost'
-    config.port = 8088
+  Ksql.configure do |config|
+    config.host = 'http://localhost:8088'
   end
 ```
 
-* A class method like `streamQuery()` will be available to query results one row at a time.
-* A class method like `executeQuery()` will handle batched results queries.
-* A class method like `terminatePushQuery()` will allow push queries termination.
+### Methods
 
-More yet to come...
-
+- **ksql** - Allows statement to be requested against the /ksql endpoint.
+- **close_query** - Allows closing persistent queries by requesting the /close-query endpoint.
+- **stream** - Allows to perform push queries, processing messages one at a time in a streaming fashion.
+- **query** - Allows to perform pull queries.
+- **cluster_status** - Allows to introspect the ksqlDB cluster status.
+- **health_check** - Allows to check the health of the ksqlDB server.
+- **info** - Allows to get information about the status of a ksqlDB Server.
+- **terminate** - Allows to terminate the cluster and clean up the resources, or to delete Kafka Topics.
 
 ## Design
 
@@ -68,11 +67,17 @@ More yet to come...
 ## Test plan
 
 Both unit and integration tests.
-All currenlty available ksqlDB statements will get properly tested.
+CREATE, DESCRIBE, DROP, INSERT, SELECT (both push and pull), SHOW and TERMINATE statements will get properly tested, to ensure the client always behaves as expected.
+
+The standard Ruby RSpec test suite will do.
+Testing requests will get performed against ksqlDB >= 0.22
 
 ## LOEs and Delivery Milestones
 
-TBD
+The Gem's under development and most of the endpoints are already covered.
+A first release is expected to be live by the end of March 2022.
+
+Any meaningfull future bug will get handled within a week.
 
 ## Compatibility Implications
 

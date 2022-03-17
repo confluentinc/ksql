@@ -118,6 +118,11 @@ public class PropertiesList extends KsqlEntity {
       FAIL_ON_DESERIALIZATION_ERROR_CONFIG
   );
 
+  /**
+   * List os properties that can be changes via `ALTER SYSTEM` command.
+   * We use this "allow list" for security reasons.
+   * (Independent of LD.)
+   */
   public static final List<String> EditablePropertyList = ImmutableList.of(
       MAX_POLL_RECORDS_CONFIG,
       MAX_POLL_INTERVAL_MS_CONFIG,

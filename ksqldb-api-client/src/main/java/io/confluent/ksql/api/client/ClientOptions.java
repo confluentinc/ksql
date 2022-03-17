@@ -16,6 +16,8 @@
 package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientOptionsImpl;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
+import java.util.Map;
 
 /**
  * Options for the ksqlDB {@link Client}.
@@ -144,6 +146,31 @@ public interface ClientOptions {
   ClientOptions setHttp2MultiplexingLimit(int http2MultiplexingLimit);
 
   /**
+   * Sets custom request headers to be sent with requests to the ksqlDB server.
+   * These headers are in addition to any automatic headers such as the
+   * authorization header.
+   *
+   * <p>If this method is called more than once, only the headers passed on
+   * the last invocation will be used. To update existing custom headers,
+   * use this method in combination with {@link ClientOptions#getRequestHeaders()}.
+   *
+   * <p>In case of overlap between these custom headers and automatic headers such
+   * as the authorization header, these custom headers take precedence.
+   *
+   * @param requestHeaders custom request headers
+   * @return a reference to this
+   */
+  ClientOptions setRequestHeaders(Map<String, String> requestHeaders);
+
+  /**
+   * Sets the consistency level to be used for Pull queries.
+   * @param consistencyLevel custom consistency level
+   * @return a reference to this
+   */
+  ClientOptions setConsistencyLevel(ConsistencyLevel consistencyLevel);
+
+
+  /**
    * Returns the host name of the ksqlDB server to connect to.
    *
    * @return host name
@@ -256,11 +283,25 @@ public interface ClientOptions {
   int getHttp2MultiplexingLimit();
 
   /**
+   * Returns a copy of the custom request headers to be sent with ksqlDB requests.
+   * If not set, then this method returns an empty map.
+   *
+   * @return custom request headers
+   */
+  Map<String, String> getRequestHeaders();
+
+  /**
    * Creates a copy of these {@code ClientOptions}.
    *
    * @return the copy
    */
   ClientOptions copy();
+
+  /**
+   * Returns the consistency level this client uses for Pull queries.
+   * @return consistency level
+   */
+  ConsistencyLevel getConsistencyLevel();
 
   static ClientOptions create() {
     return new ClientOptionsImpl();

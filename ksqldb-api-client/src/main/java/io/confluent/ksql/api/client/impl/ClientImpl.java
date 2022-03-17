@@ -36,7 +36,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
-import io.confluent.ksql.util.ConsistencyOffsetVector;
+import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
@@ -60,6 +60,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -128,7 +129,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(properties)) {
+    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
@@ -150,7 +151,7 @@ public class ClientImpl implements Client {
       final String sql,
       final Map<String, Object> properties
   ) {
-    if (ConsistencyOffsetVector.isConsistencyVectorEnabled(properties)) {
+    if (clientOptions.getConsistencyLevel() == ConsistencyLevel.MONOTONIC_SESSION) {
       requestProperties.put(
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
@@ -375,6 +376,36 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<Void> createConnector(
+      final String name,
+      final boolean isSource,
+      final Map<String, Object> properties,
+      final boolean ifNotExists
+  ) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String connectorConfigs = properties.entrySet()
+        .stream()
+        .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
+        .collect(Collectors.joining(","));
+    final String type = isSource ? "SOURCE" : "SINK";
+    final String ifNotExistsClause = ifNotExists ? "IF NOT EXISTS" : "";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql",
+                String.format("CREATE %s CONNECTOR %s %s WITH (%s);",
+                    type, ifNotExistsClause, name, connectorConfigs))
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleCreateConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
   public CompletableFuture<Void> dropConnector(final String name) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
@@ -382,6 +413,24 @@ public class ClientImpl implements Client {
         KSQL_ENDPOINT,
         new JsonObject()
             .put("ksql", "drop connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDropConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> dropConnector(final String name, final boolean ifExists) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+    final String ifExistsClause = ifExists ? "if exists " : "";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject()
+            .put("ksql", "drop connector " + ifExistsClause + name + ";")
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -555,6 +604,11 @@ public class ClientImpl implements Client {
         .exceptionHandler(cf::completeExceptionally);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
+    }
+    if (clientOptions.getRequestHeaders() != null) {
+      for (final Entry<String, String> entry : clientOptions.getRequestHeaders().entrySet()) {
+        request.putHeader(entry.getKey(), entry.getValue());
+      }
     }
     if (endRequest) {
       request.end(requestBody);

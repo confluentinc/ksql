@@ -30,7 +30,9 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
@@ -68,6 +70,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -178,13 +181,15 @@ public class PullQuerySingleNodeFunctionalTest {
     topic = USER_TOPIC + KsqlIdentifierTestUtil.uniqueIdentifierName();
     TEST_HARNESS.ensureTopics(1, topic);
 
-    TEST_HARNESS.produceRows(
+    final Multimap<GenericKey, RecordMetadata> producedRows = TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
         FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
+
+    LOG.info("Produced rows: " + producedRows.size());
 
     //Create stream
     makeAdminRequest(

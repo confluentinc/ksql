@@ -17,8 +17,10 @@ package io.confluent.ksql.execution.streams.materialization;
 
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
 import java.time.Instant;
+import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * Materialization of a table with a windowed key
@@ -35,8 +37,22 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  KsMaterializedQueryResult<WindowedRow> get(
-      GenericKey key, int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
+  default Iterator<WindowedRow> get(
+      GenericKey key,
+      int partition,
+      Range<Instant> windowStart,
+      Range<Instant> windowEnd
+  ) {
+    return get(key, partition, windowStart, windowEnd, Optional.empty());
+  }
+
+  Iterator<WindowedRow> get(
+      GenericKey key,
+      int partition,
+      Range<Instant> windowStart,
+      Range<Instant> windowEnd,
+      Optional<ConsistencyOffsetVector> consistencyVector
+  );
 
   /**
    * Get the values in table where the window start time is within the
@@ -47,6 +63,18 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  KsMaterializedQueryResult<WindowedRow> get(
-      int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
+  default Iterator<WindowedRow> get(
+      int partition,
+      Range<Instant> windowStart,
+      Range<Instant> windowEnd
+  ) {
+    return get(partition, windowStart, windowEnd, Optional.empty());
+  }
+
+  Iterator<WindowedRow> get(
+      int partition,
+      Range<Instant> windowStart,
+      Range<Instant> windowEnd,
+      Optional<ConsistencyOffsetVector> consistencyVector
+  );
 }

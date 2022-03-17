@@ -25,7 +25,7 @@ public final class PhysicalPlan {
   private final QueryId queryId;
   private final ExecutionStep<?> physicalPlan;
 
-  PhysicalPlan(
+  public PhysicalPlan(
       final QueryId queryId,
       final ExecutionStep<?> physicalPlan
   ) {

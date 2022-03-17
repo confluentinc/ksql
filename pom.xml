@@ -110,7 +110,7 @@
         <podam.version>6.0.2.RELEASE</podam.version>
         <airlift.version>0.29</airlift.version>
         <airline.version>2.6.0</airline.version>
-        <antlr.version>4.7.1</antlr.version>
+        <antlr.version>4.9.2</antlr.version>
         <commons-text.version>1.8</commons-text.version>
         <csv.version>1.4</csv.version>
         <commons.compress.version>1.21</commons.compress.version>
@@ -634,7 +634,7 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>confluent-log4j</artifactId>
-            <version>1.2.17-cp6</version>
+            <version>1.2.17-cp9</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
@@ -655,9 +655,6 @@
                     <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
                         <tarLongFileMode>posix</tarLongFileMode>
-                        <descriptors>
-                            <descriptor>src/assembly/package.xml</descriptor>
-                        </descriptors>
                     </configuration>
                 </plugin>
                 <plugin>

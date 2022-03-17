@@ -1057,7 +1057,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1079,7 +1079,7 @@ public class KsqlEngineTest {
 
     // Then:
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1105,7 +1105,7 @@ public class KsqlEngineTest {
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1127,7 +1127,7 @@ public class KsqlEngineTest {
     ksqlEngine.close();
 
     // Then:
-    verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.getQueryApplicationId());
   }
 
   @Test
@@ -1391,7 +1391,7 @@ public class KsqlEngineTest {
 
     // Then (there are no transient queries, so no internal topics should be deleted):
     awaitCleanupComplete();
-    verify(topicClient).deleteInternalTopics(query.get(0).getQueryApplicationId());
+    verify(topicClient, times(2)).deleteInternalTopics(query.get(0).getQueryApplicationId());
   }
 
   @Test

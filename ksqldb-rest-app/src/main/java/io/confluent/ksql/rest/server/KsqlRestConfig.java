@@ -163,9 +163,9 @@ public class KsqlRestConfig extends AbstractConfig {
 
   private static final String KSQL_CONFIG_PREFIX = "ksql.";
 
-  private static final String COMMAND_CONSUMER_PREFIX =
+  public static final String COMMAND_CONSUMER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.consumer.";
-  private static final String COMMAND_PRODUCER_PREFIX =
+  public static final String COMMAND_PRODUCER_PREFIX =
       KSQL_CONFIG_PREFIX + "server.command.producer.";
 
   public static final String ADVERTISED_LISTENER_CONFIG =
@@ -395,6 +395,12 @@ public class KsqlRestConfig extends AbstractConfig {
       "Whether or not to check the SNI against the Host header. If the values don't match, "
           + "returns a 421 mis-directed response. (NOTE: this check should not be enabled if "
           + "ksqlDB servers have mutual TLS enabled)";
+
+  public static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG = 
+      KSQL_CONFIG_PREFIX + "server.command.topic.rate.limit";
+  public static final double KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT = Double.MAX_VALUE;
+  private static final String KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC = 
+      "Sets the number of statements that can be executed against the command topic per second";
 
   private static final ConfigDef CONFIG_DEF;
 
@@ -749,7 +755,13 @@ public class KsqlRestConfig extends AbstractConfig {
             KSQL_SERVER_SNI_CHECK_ENABLE_DEFAULT,
             Importance.LOW,
             KSQL_SERVER_SNI_CHECK_ENABLE_DOC
-        );
+        ).define(
+        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG,
+        Type.DOUBLE,
+        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT,
+        Importance.LOW,
+        KSQL_COMMAND_TOPIC_RATE_LIMIT_CONFIG_DEFAULT_DOC
+      );
   }
 
   public KsqlRestConfig(final Map<?, ?> props) {

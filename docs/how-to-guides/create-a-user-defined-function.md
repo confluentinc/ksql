@@ -400,6 +400,15 @@ There are many things to observe in this class:
   you're using session windows, consider what good merge semantics are
   for your aggregation.
 
+#### Dynamic UDAFs
+
+If a UDAF's aggregate or return types vary based on the input type, you can either write a separate
+function annotated with @UdafFactory per type or override the following three methods
+`initializeTypeArguments(List<SqlArgument> argTypeList)`, `getAggregateSqlType()`, and
+`getReturnSqlType()`.  To see a concrete example in the ksqlDB codebase, check out the 
+implementation of [`latest_by_offset`](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/function/udaf/offset/LatestByOffset.java) 
+or [`collect_list`](https://github.com/confluentinc/ksql/blob/master/ksqldb-engine/src/main/java/io/confluent/ksql/function/udaf/array/CollectListUdaf.java).
+
 ## Add the uberjar to ksqlDB server
 
 In order for ksqlDB to be able to load your UDFs, they need to be

@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -41,8 +43,10 @@ import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerdeFactory;
+import io.confluent.ksql.serde.SchemaTranslator;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -348,6 +352,21 @@ public class InsertValuesExecutor {
     }
 
     if (latest.isPresent() && !latest.get().getSchema().equals(schema.canonicalString())) {
+      // Hack: skip comparing connect name. See https://github.com/confluentinc/ksql/issues/7211
+      // Avro schema are registered in source creation time as well data insertion time.
+      // CONNECT_META_DATA_CONFIG is configured to false in Avro Serializer, but it's true in
+      // AvroSchemaTranslator. It needs to be true to make ConnectSchema map type work. But
+      // enabling it breaks lots of history QTT test which implies backward compatibility issues.
+      // So we just bypass the connect name check here.
+      if (format instanceof AvroFormat) {
+        final SchemaTranslator translator = format
+            .getSchemaTranslator(keyFormat.getFormatInfo().getProperties());
+        translator.configure(ImmutableMap.of(AvroDataConfig.CONNECT_META_DATA_CONFIG, false));
+        final ParsedSchema parsedSchema = translator.toParsedSchema(keySchema);
+        if (latest.get().getSchema().equals(parsedSchema.canonicalString())) {
+          return;
+        }
+      }
       throw new KsqlException("Cannot INSERT VALUES into data source " + dataSource.getName()
           + ". ksqlDB generated schema would overwrite existing key schema."
           + "\n\tExisting Schema: " + latest.get().getSchema()

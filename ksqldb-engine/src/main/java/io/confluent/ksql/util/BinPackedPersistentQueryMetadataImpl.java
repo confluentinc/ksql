@@ -398,8 +398,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   @Override
   public void register() {
     sharedKafkaStreamsRuntime.register(
-        this,
-        queryId
+        this
     );
   }
 

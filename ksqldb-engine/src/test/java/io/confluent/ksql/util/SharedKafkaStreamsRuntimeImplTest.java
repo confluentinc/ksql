@@ -93,14 +93,16 @@ public class SharedKafkaStreamsRuntimeImplTest {
             streamProps
         );
 
-        sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata,
-            queryId);
-
         when(kafkaStreamsNamedTopologyWrapper.getTopologyByName(any())).thenReturn(Optional.empty());
         when(kafkaStreamsNamedTopologyWrapper.addNamedTopology(any())).thenReturn(addNamedTopologyResult);
         when(addNamedTopologyResult.all()).thenReturn(future);
         when(binPackedPersistentQueryMetadata.getTopologyCopy(any())).thenReturn(namedTopology);
+        when(binPackedPersistentQueryMetadata.getQueryId()).thenReturn(queryId);
+        when(binPackedPersistentQueryMetadata2.getQueryId()).thenReturn(queryId2);
+
+        sharedKafkaStreamsRuntimeImpl.register(
+            binPackedPersistentQueryMetadata
+        );
     }
 
     @Test
@@ -133,8 +135,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
 
         //Should not try to add error to query2's queue
         sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata2,
-            queryId2
+            binPackedPersistentQueryMetadata2
         );
 
         //When:
@@ -153,8 +154,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(queryErrorClassifier.classify(runtimeExceptionWithNoTask)).thenReturn(Type.USER);
 
         sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata2,
-            queryId2
+            binPackedPersistentQueryMetadata2
         );
 
         //When:
@@ -173,8 +173,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(queryErrorClassifier.classify(runtimeExceptionWithTaskAndNoTopology)).thenReturn(Type.USER);
 
         sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata2,
-            queryId2
+            binPackedPersistentQueryMetadata2
         );
 
         //When:
@@ -193,8 +192,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
         when(queryErrorClassifier.classify(runtimeExceptionWithTaskAndUnknownTopology)).thenReturn(Type.USER);
 
         sharedKafkaStreamsRuntimeImpl.register(
-            binPackedPersistentQueryMetadata2,
-            queryId2
+            binPackedPersistentQueryMetadata2
         );
 
         //When:
@@ -239,7 +237,7 @@ public class SharedKafkaStreamsRuntimeImplTest {
     @Test
     public void shouldNotStartOrAddedToStreamsIfOnlyRegistered() {
         //Given:
-        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2, queryId2);
+        sharedKafkaStreamsRuntimeImpl.register(binPackedPersistentQueryMetadata2);
 
         //When:
         sharedKafkaStreamsRuntimeImpl.stop(queryId2, false);

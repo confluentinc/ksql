@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.internal.ScalablePushQueryMetrics;
+import io.confluent.ksql.logicalplanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -45,12 +46,15 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
+import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Relation;
@@ -73,6 +77,7 @@ import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.physicalplanner.PhysicalPlanner;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.QueryPlannerOptions;
@@ -81,14 +86,19 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PlanNodeId;
+import io.confluent.ksql.planner.plan.VerifiableNode;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -163,10 +173,15 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
+    return execute(plan, false);
+  }
+
+  ExecuteResult execute(final KsqlPlan plan, final boolean restoreInProgress) {
     if (!plan.getQueryPlan().isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
-          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
+          .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet(),
+              restoreInProgress))
           .orElseThrow(
               () -> new IllegalStateException(
                   "DdlResult should be present if there is no physical plan."));
@@ -191,7 +206,8 @@ final class EngineExecutor {
     }
 
     final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources(),
+            restoreInProgress));
 
     // Return if the source to create already exists.
     if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
@@ -442,15 +458,13 @@ final class EngineExecutor {
     }
   }
 
-
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeTransientQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty(), engineContext.getMetaStore());
-    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.outputNode;
     engineContext.createQueryValidator().validateQuery(
         config,
         plans.physicalPlan,
@@ -475,7 +489,6 @@ final class EngineExecutor {
     );
   }
 
-  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   TransientQueryMetadata executeStreamPullQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones,
@@ -483,7 +496,7 @@ final class EngineExecutor {
   ) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty(), engineContext.getMetaStore());
-    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+    final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.outputNode;
     engineContext.createQueryValidator().validateQuery(
         config,
         plans.physicalPlan,
@@ -581,7 +594,7 @@ final class EngineExecutor {
     );
 
     final KsqlBareOutputNode outputNode =
-        (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
+        (KsqlBareOutputNode) plans.outputNode;
 
     final QueryPlan queryPlan = new QueryPlan(
         getSourceNames(outputNode),
@@ -610,8 +623,6 @@ final class EngineExecutor {
         .getBoolean(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED);
   }
 
-  // Known to be non-empty
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
@@ -653,7 +664,7 @@ final class EngineExecutor {
       );
 
       final KsqlStructuredDataOutputNode outputNode =
-          (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
+          (KsqlStructuredDataOutputNode) plans.outputNode;
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement,
@@ -698,6 +709,50 @@ final class EngineExecutor {
         Optional.empty();
   }
 
+  @SuppressWarnings({"NPathComplexity", "CyclomaticComplexity"})
+  private void throwIfUnsupported(final Query query) {
+    if (query.isPullQuery()) { // should have been checked previously?
+      throw new IllegalStateException();
+    }
+    if (query.getWhere().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support WHERE."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getGroupBy().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support GROUP BY."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getHaving().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support HAVING."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getWindow().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support WINDOWS."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getPartitionBy().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support PARTITION BY."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (query.getLimit().isPresent()) {
+      throw new UnsupportedOperationException("New query planner does not support LIMIT."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    final Relation fromClause = query.getFrom();
+    if (fromClause instanceof Join) {
+      throw new UnsupportedOperationException("New query planner does not support joins."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+    if (fromClause instanceof JoinedSource) {
+      throw new IllegalStateException(); // top level node should always be Join
+    }
+    if (query.getSelect().getSelectItems().size() > 2
+        || !(query.getSelect().getSelectItems().get(0) instanceof AllColumns)) {
+      throw new UnsupportedOperationException("New query planner does not support projections."
+          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+    }
+  }
+
   private ExecutorPlans planQuery(
       final ConfiguredStatement<?> statement,
       final Query query,
@@ -706,53 +761,152 @@ final class EngineExecutor {
       final MetaStore metaStore) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
-        query,
-        sink,
-        metaStore,
-        ksqlConfig,
-        getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
-        statement.getStatementText()
-    );
 
-    final LogicalPlanNode logicalPlan = new LogicalPlanNode(
-        statement.getStatementText(),
-        Optional.of(outputNode)
-    );
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED)) {
+      throwIfUnsupported(query);
 
-    final QueryId queryId = QueryIdUtil.buildId(
-        statement.getStatement(),
-        engineContext,
-        engineContext.idGenerator(),
-        outputNode,
-        ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
-        withQueryId
-    );
+      final LogicalPlan logicalPlan =
+          io.confluent.ksql.logicalplanner.LogicalPlanner.buildLogicalPlan(
+              metaStore,
+              query
+          );
 
-    if (withQueryId.isPresent()
-        && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
-      throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
-    }
-    final Optional<PersistentQueryMetadata> persistentQueryMetadata =
-        engineContext.getQueryRegistry().getPersistentQuery(queryId);
+      // begin stub
+      // stubbing output formats and schema for now
+      final KeyFormat keyFormat = KeyFormat.nonWindowed(
+          FormatInfo.of("KAFKA"),
+          SerdeFeatures.from(Collections.emptySet())
+      );
+      final ValueFormat valueFormat = ValueFormat.of(
+          FormatInfo.of("JSON"),
+          SerdeFeatures.from(Collections.emptySet())
+      );
+      final KsqlTopic sinkTopic = new KsqlTopic("OUTPUT", keyFormat, valueFormat);
 
-    final Optional<PlanInfo> oldPlanInfo;
+      final Builder schemaBuilder = LogicalSchema.builder();
+      logicalPlan.getRoot().getOutputSchema().forEach(
+          column -> {
+            if (column.name().text().equals("ID")) {
+              schemaBuilder.keyColumn(column.name(), column.type());
+            } else {
+              schemaBuilder.valueColumn(column.name(), column.type());
+            }
+          }
+      );
+      // end stub
 
-    if (persistentQueryMetadata.isPresent()) {
-      final ExecutionStep<?> oldPlan = persistentQueryMetadata.get().getPhysicalPlan();
-      oldPlanInfo = Optional.of(oldPlan.extractPlanInfo(new PlanInfoExtractor()));
+      return new ExecutorPlans(
+          new StubbedOutputNode(
+              ksqlConfig,
+              metaStore.getSource(logicalPlan.getSourceNames().stream().findFirst().get()),
+              sinkTopic,
+              schemaBuilder.build()
+          ),
+          PhysicalPlanner.buildPhysicalPlan(metaStore, logicalPlan)
+      );
     } else {
-      oldPlanInfo = Optional.empty();
+      final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
+          query,
+          sink,
+          metaStore,
+          ksqlConfig,
+          getRowpartitionRowoffsetEnabled(ksqlConfig, statement.getSessionConfig().getOverrides()),
+          statement.getStatementText()
+      );
+
+      final LogicalPlanNode logicalPlan = new LogicalPlanNode(
+          statement.getStatementText(),
+          Optional.of(outputNode)
+      );
+
+      final QueryId queryId = QueryIdUtil.buildId(
+          statement.getStatement(),
+          engineContext,
+          engineContext.idGenerator(),
+          outputNode,
+          ksqlConfig.getBoolean(KsqlConfig.KSQL_CREATE_OR_REPLACE_ENABLED),
+          withQueryId
+      );
+
+      if (withQueryId.isPresent()
+          && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
+        throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
+      }
+      final Optional<PersistentQueryMetadata> persistentQueryMetadata =
+          engineContext.getQueryRegistry().getPersistentQuery(queryId);
+
+      final Optional<PlanInfo> oldPlanInfo;
+
+      if (persistentQueryMetadata.isPresent()) {
+        final ExecutionStep<?> oldPlan = persistentQueryMetadata.get().getPhysicalPlan();
+        oldPlanInfo = Optional.of(oldPlan.extractPlanInfo(new PlanInfoExtractor()));
+      } else {
+        oldPlanInfo = Optional.empty();
+      }
+
+      final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
+          logicalPlan,
+          config,
+          metaStore,
+          queryId,
+          oldPlanInfo
+      );
+
+      return new ExecutorPlans(logicalPlan.getNode().get(), physicalPlan);
+    }
+  }
+
+  private static final class StubbedOutputNode extends KsqlStructuredDataOutputNode {
+    private StubbedOutputNode(
+        final KsqlConfig ksqlConfig,
+        final DataSource source,
+        final KsqlTopic sinkTopic,
+        final LogicalSchema sinkSchema) {
+      super(
+          new PlanNodeId("stubbedOutput"),
+          new StubbedVerifiableDataSourceNode(
+              new PlanNodeId("stubbedSource"),
+              source,
+              source.getName(),
+              false,
+              ksqlConfig
+          ),
+          sinkSchema,
+          Optional.empty(),
+          sinkTopic,
+          OptionalInt.empty(),
+          true,
+          SourceName.of(sinkTopic.getKafkaTopicName()),
+          false
+      );
     }
 
-    final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
-        logicalPlan,
-        config,
-        metaStore,
-        queryId,
-        oldPlanInfo
-    );
-    return new ExecutorPlans(logicalPlan, physicalPlan);
+  }
+
+  private static final class StubbedVerifiableDataSourceNode
+      extends DataSourceNode
+      implements VerifiableNode {
+
+    private StubbedVerifiableDataSourceNode(
+        final PlanNodeId id,
+        final DataSource dataSource,
+        final SourceName alias,
+        final boolean isWindowed,
+        final KsqlConfig ksqlConfig
+    ) {
+      super(id, dataSource, alias, isWindowed, ksqlConfig);
+    }
+
+    @Override
+    public void validateKeyPresent(final SourceName sinkName) {
+      // skip validation
+    }
+
+    @Override
+    public LogicalSchema getSchema() {
+      // return empty stub schema
+      return LogicalSchema.builder().build();
+    }
   }
 
   private LogicalPlanNode buildAndValidateLogicalPlan(
@@ -806,13 +960,13 @@ final class EngineExecutor {
 
   private static final class ExecutorPlans {
 
-    private final LogicalPlanNode logicalPlan;
+    private final OutputNode outputNode;
     private final PhysicalPlan physicalPlan;
 
     private ExecutorPlans(
-        final LogicalPlanNode logicalPlan,
+        final OutputNode outputNode,
         final PhysicalPlan physicalPlan) {
-      this.logicalPlan = Objects.requireNonNull(logicalPlan, "logicalPlan");
+      this.outputNode = Objects.requireNonNull(outputNode, "outputNode");
       this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlanNode");
     }
   }
@@ -918,10 +1072,12 @@ final class EngineExecutor {
       final DdlCommand ddlCommand,
       final String statementText,
       final boolean withQuery,
-      final Set<SourceName> withQuerySources
+      final Set<SourceName> withQuerySources,
+      final boolean restoreInProgress
   ) {
     try {
-      return engineContext.executeDdl(statementText, ddlCommand, withQuery, withQuerySources);
+      return engineContext.executeDdl(statementText, ddlCommand, withQuery, withQuerySources,
+          restoreInProgress);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

@@ -303,11 +303,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan) {
+  public ExecuteResult execute(final ServiceContext serviceContext, final ConfiguredKsqlPlan plan,
+                               final boolean restoreInProgress) {
     try {
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
-          .execute(plan.getPlan());
+          .execute(plan.getPlan(), restoreInProgress);
       return result;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -681,6 +682,22 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         analysis,
         new QueryExecutionUtil.ColumnReferenceRewriter()::process
     );
+  }
+
+  public int reportNumberOfLeakedTopics() {
+    return transientQueryCleanupService.getNumLeakedTopics();
+  }
+
+  public int reportNumberOfLeakedStateDirs() {
+    return transientQueryCleanupService.getNumLeakedStateDirs();
+  }
+
+  public int reportNumLeakedTopicsAfterCleanup() {
+    return transientQueryCleanupService.getNumLeakedTopicsFailedToCleanUp();
+  }
+
+  public int reportNumLeakedStateDirsAfterCleanup() {
+    return transientQueryCleanupService.getNumLeakedStateDirsFailedToCleanUp();
   }
 
   private static final class CleanupListener implements QueryEventListener {

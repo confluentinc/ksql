@@ -21,6 +21,7 @@ import io.confluent.connect.protobuf.ProtobufDataConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 
 /**
@@ -28,8 +29,13 @@ import org.apache.kafka.connect.data.Schema;
  */
 class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
-  private final ProtobufData protobufData =
+  private ProtobufData protobufData =
       new ProtobufData(new ProtobufDataConfig(ImmutableMap.of()));
+
+  @Override
+  public void configure(final Map<String, ?> configs) {
+    protobufData = new ProtobufData(new ProtobufDataConfig(configs));
+  }
 
   @Override
   public String name() {

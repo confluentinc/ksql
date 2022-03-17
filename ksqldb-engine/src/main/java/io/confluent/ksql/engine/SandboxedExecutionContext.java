@@ -160,14 +160,15 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   @Override
   public ExecuteResult execute(
       final ServiceContext serviceContext,
-      final ConfiguredKsqlPlan ksqlPlan
+      final ConfiguredKsqlPlan ksqlPlan,
+      final boolean restoreInProgress
   ) {
     try {
       final ExecuteResult result = EngineExecutor.create(
           engineContext,
           serviceContext,
           ksqlPlan.getConfig()
-      ).execute(ksqlPlan.getPlan());
+      ).execute(ksqlPlan.getPlan(), restoreInProgress);
 
       // Having a streams running in a sandboxed environment is not necessary
       if (!getKsqlConfig().getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {

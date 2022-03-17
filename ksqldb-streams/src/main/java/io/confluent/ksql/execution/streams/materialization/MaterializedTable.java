@@ -16,7 +16,9 @@
 package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializedQueryResult;
+import io.confluent.ksql.util.ConsistencyOffsetVector;
+import java.util.Iterator;
+import java.util.Optional;
 
 /**
  * Materialization of a table with a non-windowed key
@@ -30,7 +32,15 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the value, if one is exists.
    */
-  KsMaterializedQueryResult<Row> get(GenericKey key, int partition);
+  default Iterator<Row> get(GenericKey key, int partition) {
+    return get(key, partition, Optional.empty());
+  }
+
+  Iterator<Row> get(
+      GenericKey key,
+      int partition,
+      Optional<ConsistencyOffsetVector> consistencyVector
+  );
 
   /**
    * Scan the table for rows
@@ -38,7 +48,12 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the rows.
    */
-  KsMaterializedQueryResult<Row> get(int partition);
+  default Iterator<Row> get(int partition) {
+    return get(partition, Optional.empty());
+  }
+
+  Iterator<Row> get(
+      int partition, Optional<ConsistencyOffsetVector> consistencyVector);
 
   /**
    * RangeScan the table for rows
@@ -48,5 +63,18 @@ public interface MaterializedTable {
    * @param to last key in range
    * @return the rows.
    */
-  KsMaterializedQueryResult<Row> get(int partition, GenericKey from, GenericKey to);
+  default Iterator<Row> get(
+      int partition,
+      GenericKey from,
+      GenericKey to
+  ) {
+    return get(partition, from, to, Optional.empty());
+  }
+
+  Iterator<Row> get(
+      int partition,
+      GenericKey from,
+      GenericKey to,
+      Optional<ConsistencyOffsetVector> consistencyVector
+  );
 }

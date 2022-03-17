@@ -14,13 +14,12 @@ Allow Ruby / Ruby on Rails developers to get started with ksqlDB.
 ## What is in scope
 
 * A lightweight but complete Ruby client, kslqDB host and port will be configurable.
-* The Client will handle all the operations the Java one already does:
+* The Client will handle most of the operations the Java one does:
 
 - Receive query results one row at a time
 - Receive query results in a single batch
 - Terminate a push query
 - Insert a new row into a stream
-- Insert new rows in a streaming fashion
 - Create and manage new streams, tables, and persistent queries
 - List streams, tables, topics, and queries
 - Describe specific streams and tables

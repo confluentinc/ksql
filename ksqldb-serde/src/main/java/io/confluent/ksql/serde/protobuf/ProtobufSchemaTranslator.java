@@ -36,12 +36,15 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   private final ProtobufProperties properties;
   private final Map<String, Object> baseConfigs;
 
+  private Map<String, Object> updatedConfigs;
   private ProtobufData protobufData;
 
   ProtobufSchemaTranslator(final ProtobufProperties properties) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.baseConfigs = ImmutableMap.of(
         WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
+
+    this.updatedConfigs = baseConfigs;
     this.protobufData = new ProtobufData(new ProtobufDataConfig(baseConfigs));
   }
 
@@ -49,6 +52,8 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   public void configure(final Map<String, ?> configs) {
     final Map<String, Object> mergedConfigs = new HashMap<>(configs);
     mergedConfigs.putAll(baseConfigs);
+
+    updatedConfigs = mergedConfigs;
     protobufData = new ProtobufData(new ProtobufDataConfig(mergedConfigs));
   }
 
@@ -66,6 +71,6 @@ class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
   public ParsedSchema fromConnectSchema(final Schema schema) {
     // Bug in ProtobufData means `fromConnectSchema` throws on the second invocation if using
     // default naming.
-    return new ProtobufData().fromConnectSchema(schema);
+    return new ProtobufData(new ProtobufDataConfig(updatedConfigs)).fromConnectSchema(schema);
   }
 }

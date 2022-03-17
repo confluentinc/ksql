@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.query;
 
+import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -53,7 +54,9 @@ import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
@@ -235,6 +238,23 @@ final class QueryBuilder {
     return Optional.empty();
   }
 
+  private boolean isQuerySupported(final KeyFormat pullQueryKeyFormat,
+                                   final LogicalSchema schema) {
+    final boolean isFormat = (pullQueryKeyFormat.getFormatInfo().getFormat()
+            .equalsIgnoreCase("KAFKA")
+            || pullQueryKeyFormat.getFormatInfo().getFormat().equalsIgnoreCase("DELIMITED"));
+    boolean notSupported = (isFormat && ((schema.key().size() != 1)
+            || schema.key().get(0).type().baseType() == SqlBaseType.STRUCT
+            || schema.key().get(0).type().baseType() == SqlBaseType.DECIMAL));
+    final SerdeFeatures features = pullQueryKeyFormat.getFeatures();
+    final boolean notSupportedNoneFormat = pullQueryKeyFormat.getFormatInfo().getFormat()
+            .equalsIgnoreCase("NONE") && (features.enabled(UNWRAP_SINGLES)
+            || schema.key().size() > 0);
+    notSupported = notSupported || notSupportedNoneFormat;
+
+    return !notSupported;
+  }
+
   @SuppressWarnings("unchecked")
   private static Optional<ScalablePushRegistry> applyScalablePushProcessor(
       final LogicalSchema schema,
@@ -290,7 +310,7 @@ final class QueryBuilder {
     final KeyFormat keyFormat;
     final ValueFormat valueFormat;
     final KsqlTopic ksqlTopic;
-    final KeyFormat pullQueryKeyFormat;
+    KeyFormat pullQueryKeyFormat;
 
     switch (persistentQueryType) {
       // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
@@ -310,6 +330,9 @@ final class QueryBuilder {
         } else {
           dataSource = Iterables.getOnlyElement(sources);
           pullQueryKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
+          if (!isQuerySupported(pullQueryKeyFormat, logicalSchema)) {
+            pullQueryKeyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
+          }
         }
         keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
         valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
@@ -333,6 +356,7 @@ final class QueryBuilder {
     final Topology topology = streamsBuilder
             .build(PropertiesUtil.asProperties(streamsProperties));
 
+    final KeyFormat finalPullQueryKeyFormat = pullQueryKeyFormat;
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->
             materializationProviderBuilderFactory.materializationProviderBuilder(
@@ -342,7 +366,7 @@ final class QueryBuilder {
                 streamsProperties,
                 applicationId,
                 queryId.toString(),
-                pullQueryKeyFormat
+                finalPullQueryKeyFormat
             ));
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
@@ -411,7 +435,7 @@ final class QueryBuilder {
     final KeyFormat keyFormat;
     final ValueFormat valueFormat;
     final KsqlTopic ksqlTopic;
-    final KeyFormat pullQueryKeyFormat;
+    KeyFormat pullQueryKeyFormat;
 
     switch (persistentQueryType) {
       // CREATE_SOURCE does not have a sink, so the schema is obtained from the query source
@@ -431,6 +455,9 @@ final class QueryBuilder {
         } else {
           dataSource = Iterables.getOnlyElement(sources);
           pullQueryKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
+          if (!isQuerySupported(pullQueryKeyFormat, logicalSchema)) {
+            pullQueryKeyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
+          }
         }
         keyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
         valueFormat = sinkDataSource.get().getKsqlTopic().getValueFormat();
@@ -459,6 +486,7 @@ final class QueryBuilder {
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final NamedTopology topology = namedTopologyBuilder.build();
 
+    final KeyFormat finalPullQueryKeyFormat = pullQueryKeyFormat;
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
             materializationProviderBuilder = getMaterializationInfo(result).map(info ->
             materializationProviderBuilderFactory.materializationProviderBuilder(
@@ -468,7 +496,7 @@ final class QueryBuilder {
                     queryOverrides,
                     applicationId,
                     queryId.toString(),
-                    pullQueryKeyFormat));
+                    finalPullQueryKeyFormat));
 
     final Optional<ScalablePushRegistry> scalablePushRegistry = applyScalablePushProcessor(
         querySchema.logicalSchema(),

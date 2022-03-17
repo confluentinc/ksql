@@ -122,18 +122,16 @@ public final class MaterializationProviderBuilderFactory {
         Optional.empty()
     ).serializer();
 
-    if (isQuerySupported(pullQueryKeyFormat, schema)) {
-      final Serializer<GenericKey> pullQueryKeySerializer = new GenericKeySerDe().create(
-              pullQueryKeyFormat.getFormatInfo(),
-              schema.keySchema(),
-              ksqlConfig,
-              serviceContext.getSchemaRegistryClientFactory(),
-              "",
-              NoopProcessingLogContext.INSTANCE,
-              Optional.empty()
-      ).serializer();
-      ksMaterializationFactory.setPullQueryKeySerializer(pullQueryKeySerializer);
-    }
+    final Serializer<GenericKey> pullQueryKeySerializer = new GenericKeySerDe().create(
+            pullQueryKeyFormat.getFormatInfo(),
+            schema.keySchema(),
+            ksqlConfig,
+            serviceContext.getSchemaRegistryClientFactory(),
+            "",
+            NoopProcessingLogContext.INSTANCE,
+            Optional.empty()
+    ).serializer();
+    ksMaterializationFactory.setPullQueryKeySerializer(pullQueryKeySerializer);
 
     final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory
         .create(

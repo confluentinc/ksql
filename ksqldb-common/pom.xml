@@ -140,18 +140,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <!-- Not sure why, but if we allow forks for the failsafe plugin
-                 for this module using JDK17, we have issues with the classloader.
-                 Instead of blocking our migration to JDK17 I've just disabled forks
-                 for this module, which doesn't actually run any tests anyway so it
-                 shouldn't cause the build to slow down -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <configuration>
-                    <forkCount>0</forkCount>
-                </configuration>
-            </plugin>
         </plugins>
 
         <resources>

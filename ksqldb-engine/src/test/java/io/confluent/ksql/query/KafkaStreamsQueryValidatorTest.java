@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.physical.PhysicalPlan;
+import io.confluent.ksql.execution.ExecutionPlan;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -52,7 +52,7 @@ public class KafkaStreamsQueryValidatorTest {
   @Mock
   private  PersistentQueryMetadata persistentQueryMetadata2;
   @Mock
-  private PhysicalPlan plan;
+  private ExecutionPlan plan;
 
   private Collection<QueryMetadata> queries;
 

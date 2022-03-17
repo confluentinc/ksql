@@ -85,23 +85,6 @@ public final class MaterializationProviderBuilderFactory {
     );
   }
 
-  private boolean isQuerySupported(final KeyFormat pullQueryKeyFormat,
-                                   final PhysicalSchema schema) {
-    final boolean isFormat = (pullQueryKeyFormat.getFormatInfo().getFormat()
-            .equalsIgnoreCase("KAFKA")
-            || pullQueryKeyFormat.getFormatInfo().getFormat().equalsIgnoreCase("DELIMITED"));
-    boolean notSupported = (isFormat && ((schema.keySchema().columns().size() != 1)
-            || schema.keySchema().columns().get(0).type().baseType() == SqlBaseType.STRUCT
-            || schema.keySchema().columns().get(0).type().baseType() == SqlBaseType.DECIMAL));
-    final SerdeFeatures features = pullQueryKeyFormat.getFeatures();
-    final boolean notSupportedNoneFormat = pullQueryKeyFormat.getFormatInfo().getFormat()
-            .equalsIgnoreCase("NONE") && (features.enabled(UNWRAP_SINGLES)
-            || schema.keySchema().columns().size() > 0);
-    notSupported = notSupported || notSupportedNoneFormat;
-
-    return !notSupported;
-  }
-
   private Optional<MaterializationProvider> buildMaterializationProvider(
           final KafkaStreams kafkaStreams,
           final Topology topology,

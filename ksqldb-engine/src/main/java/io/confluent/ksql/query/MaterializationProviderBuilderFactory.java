@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.query;
 
-import static io.confluent.ksql.serde.SerdeFeature.UNWRAP_SINGLES;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
@@ -26,10 +25,8 @@ import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;

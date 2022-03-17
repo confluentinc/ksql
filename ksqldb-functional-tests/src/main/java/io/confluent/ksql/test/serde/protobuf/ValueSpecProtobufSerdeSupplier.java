@@ -28,15 +28,18 @@ import org.apache.kafka.connect.data.Schema;
 
 public class ValueSpecProtobufSerdeSupplier extends ConnectSerdeSupplier<ProtobufSchema> {
 
-  public ValueSpecProtobufSerdeSupplier() {
+  private final boolean unwrapPrimitives;
+
+  public ValueSpecProtobufSerdeSupplier(final boolean unwrapPrimitives) {
     super(ProtobufConverter::new);
+    this.unwrapPrimitives = unwrapPrimitives;
   }
 
   @Override
   protected Schema fromParsedSchema(final ProtobufSchema schema) {
     return new ProtobufData(new ProtobufDataConfig(ImmutableMap.of(
         SCHEMAS_CACHE_SIZE_CONFIG, 1,
-        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, false
+        WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, unwrapPrimitives
     ))).toConnectSchema(schema);
   }
 }

@@ -52,6 +52,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectProperties;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -644,5 +645,49 @@ public class CreateSourcePropertiesTest {
     assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldSetProtobufUnwrapPrimitives() {
+    // Given:
+    when(config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)).thenReturn(true);
+
+    // When:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("protobuf"))
+            .build());
+
+    // Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getProperties().size(), is(1));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getProperties(),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+
+    assertThat(props.getValueFormat(config).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat(config).get().getProperties().size(), is(1));
+    assertThat(props.getValueFormat(config).get().getProperties(),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+  }
+
+  @Test
+  public void shouldOmitProtobufUnwrapPrimitives() {
+    // Given:
+    when(config.getBoolean(KsqlConfig.KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG)).thenReturn(false);
+
+    // When:
+    final CreateSourceProperties props = CreateSourceProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .putAll(MINIMUM_VALID_PROPS)
+            .put(FORMAT_PROPERTY, new StringLiteral("protobuf"))
+            .build());
+
+    // Then:
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getKeyFormat(SourceName.of("foo"), config).get().getProperties().size(), is(0));
+
+    assertThat(props.getValueFormat(config).get().getFormat(), is("PROTOBUF"));
+    assertThat(props.getValueFormat(config).get().getProperties().size(), is(0));
   }
 }

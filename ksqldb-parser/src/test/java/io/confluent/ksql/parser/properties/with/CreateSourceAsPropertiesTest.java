@@ -29,7 +29,9 @@ import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
@@ -46,6 +48,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
@@ -405,5 +408,35 @@ public class CreateSourceAsPropertiesTest {
     assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldSetProtobufUnwrapPrimitives() {
+    // When:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .put(FORMAT_PROPERTY, new StringLiteral("protobuf"))
+            .build());
+
+    // Then:
+    assertThat(props.getKeyFormatProperties("foo", "protobuf", true),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+    assertThat(props.getValueFormatProperties("protobuf", true),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+  }
+
+  @Test
+  public void shouldOmitProtobufUnwrapPrimitives() {
+    // When:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.<String, Literal>builder()
+            .put(FORMAT_PROPERTY, new StringLiteral("protobuf"))
+            .build());
+
+    // Then:
+    assertThat(props.getKeyFormatProperties("foo", "protobuf", false),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
+    assertThat(props.getValueFormatProperties("protobuf", false),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }
 }

@@ -76,6 +76,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.connect.ConnectFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -902,7 +903,11 @@ public class DefaultSchemaInjectorTest {
     assertThat(result.getStatementText(), not(containsString("KEY_SCHEMA_ID=18")));
     assertThat(result.getStatementText(), not(containsString("VALUE_SCHEMA_ID=5")));
 
-    verify(schemaSupplier).getKeySchema(Optional.of(KAFKA_TOPIC), Optional.empty(), FormatInfo.of("PROTOBUF"), SerdeFeatures.of());
+    verify(schemaSupplier).getKeySchema(
+        Optional.of(KAFKA_TOPIC),
+        Optional.empty(),
+        FormatInfo.of("PROTOBUF", ImmutableMap.of(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP)),
+        SerdeFeatures.of());
     verify(schemaSupplier).getValueSchema(Optional.of(KAFKA_TOPIC), Optional.empty(), FormatInfo.of("AVRO"), SerdeFeatures.of());
   }
 
@@ -1020,7 +1025,8 @@ public class DefaultSchemaInjectorTest {
     verify(schemaSupplier).getKeySchema(
         Optional.of(KAFKA_TOPIC),
         Optional.empty(),
-        FormatInfo.of("PROTOBUF"),
+        FormatInfo.of("PROTOBUF",
+            ImmutableMap.of(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP)),
         SerdeFeatures.of()
     );
   }

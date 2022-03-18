@@ -79,7 +79,7 @@ public final class AssertExecutor {
           "key format",
           CommonCreateConfigs.KEY_FORMAT_PROPERTY,
           CommonCreateConfigs.FORMAT_PROPERTY
-      )).add(new SourceProperty( // TODO: verify this unrelated bugfix
+      )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getProperties(),
           (cs, cfg) -> cs.getProperties().getKeyFormatProperties(
               cs.getProperties().getKeyFormat(cs.getName(), cfg).map(FormatInfo::getFormat)

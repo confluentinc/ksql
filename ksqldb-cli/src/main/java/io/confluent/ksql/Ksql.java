@@ -70,14 +70,22 @@ public final class Ksql {
       options.setPassword(readPassword());
     }
 
+    int errorCode = 0;
     try {
-      new Ksql(options, System.getProperties(), KsqlRestClient::create, Cli::build).run();
+      errorCode = new Ksql(
+          options,
+          System.getProperties(),
+          KsqlRestClient::create,
+          Cli::build
+      ).run();
     } catch (final Exception e) {
       final String msg = ErrorMessageUtil.buildErrorMessage(e);
       LOGGER.error(msg);
       System.err.println(msg);
       System.exit(-1);
     }
+
+    System.exit(errorCode);
   }
 
   private static String readPassword() {
@@ -97,7 +105,7 @@ public final class Ksql {
     return password;
   }
 
-  void run() {
+  int run() {
     final Map<String, String> configProps = options.getConfigFile()
         .map(Ksql::loadProperties)
         .orElseGet(Collections::emptyMap);
@@ -115,16 +123,16 @@ public final class Ksql {
         cli.addSessionVariables(sessionVariables);
 
         if (options.getExecute().isPresent()) {
-          cli.runCommand(options.getExecute().get());
+          return cli.runCommand(options.getExecute().get());
         } else if (options.getScriptFile().isPresent()) {
           final File scriptFile = new File(options.getScriptFile().get());
           if (scriptFile.exists() && scriptFile.isFile()) {
-            cli.runScript(scriptFile.getPath());
+            return cli.runScript(scriptFile.getPath());
           } else {
             throw new KsqlException("No such script file: " + scriptFile.getPath());
           }
         } else {
-          cli.runInteractively();
+          return cli.runInteractively();
         }
       }
     }

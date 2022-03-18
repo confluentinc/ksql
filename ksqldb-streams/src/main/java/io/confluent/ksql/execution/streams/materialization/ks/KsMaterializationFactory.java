@@ -40,7 +40,6 @@ public final class KsMaterializationFactory {
   private final LocatorFactory locatorFactory;
   private final StateStoreFactory storeFactory;
   private final MaterializationFactory materializationFactory;
-  private Serializer<GenericKey> pullQueryKeySerializer;
 
   public KsMaterializationFactory() {
     this(
@@ -48,10 +47,6 @@ public final class KsMaterializationFactory {
         KsStateStore::new,
         KsMaterialization::new
     );
-  }
-
-  public void setPullQueryKeySerializer(final Serializer<GenericKey> pullQueryKeySerializer) {
-    this.pullQueryKeySerializer = pullQueryKeySerializer;
   }
 
   @VisibleForTesting
@@ -102,8 +97,7 @@ public final class KsMaterializationFactory {
         localHost,
         applicationId,
         ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED),
-        queryId,
-        pullQueryKeySerializer
+        queryId
     );
 
     final KsStateStore stateStore = storeFactory.create(
@@ -146,8 +140,7 @@ public final class KsMaterializationFactory {
         URL localHost,
         String applicationId,
         boolean sharedRuntimesEnabled,
-        String queryId,
-        Serializer<GenericKey> pullQueryKeySerializer
+        String queryId
     );
   }
 

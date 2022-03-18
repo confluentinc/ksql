@@ -238,8 +238,9 @@ final class QueryBuilder {
     return Optional.empty();
   }
 
-  private boolean isQuerySupported(final KeyFormat pullQueryKeyFormat,
-                                   final LogicalSchema schema) {
+  //This covers the queries that source-key format does not support.
+  private boolean isUnsupportedFormat(final KeyFormat pullQueryKeyFormat,
+                                      final LogicalSchema schema) {
     final boolean isFormat = (pullQueryKeyFormat.getFormatInfo().getFormat()
             .equalsIgnoreCase("KAFKA")
             || pullQueryKeyFormat.getFormatInfo().getFormat().equalsIgnoreCase("DELIMITED"));
@@ -330,7 +331,7 @@ final class QueryBuilder {
         } else {
           dataSource = Iterables.getOnlyElement(sources);
           pullQueryKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
-          if (!isQuerySupported(pullQueryKeyFormat, logicalSchema)) {
+          if (!isUnsupportedFormat(pullQueryKeyFormat, logicalSchema)) {
             pullQueryKeyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
           }
         }
@@ -455,7 +456,7 @@ final class QueryBuilder {
         } else {
           dataSource = Iterables.getOnlyElement(sources);
           pullQueryKeyFormat = dataSource.getKsqlTopic().getKeyFormat();
-          if (!isQuerySupported(pullQueryKeyFormat, logicalSchema)) {
+          if (!isUnsupportedFormat(pullQueryKeyFormat, logicalSchema)) {
             pullQueryKeyFormat = sinkDataSource.get().getKsqlTopic().getKeyFormat();
           }
         }

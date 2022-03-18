@@ -80,7 +80,6 @@ public final class KsLocator implements Locator {
   private final String applicationId;
   private final boolean sharedRuntimesEnabled;
   private final String queryId;
-  private final Serializer<GenericKey> pullQueryKeySerializer;
 
   KsLocator(
       final String stateStoreName,
@@ -90,8 +89,7 @@ public final class KsLocator implements Locator {
       final URL localHost,
       final String applicationId,
       final boolean sharedRuntimesEnabled,
-      final String queryId,
-      final Serializer<GenericKey> pullQueryKeySerializer
+      final String queryId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.topology = requireNonNull(topology, "topology");
@@ -101,7 +99,6 @@ public final class KsLocator implements Locator {
     this.applicationId = requireNonNull(applicationId, "applicationId");
     this.sharedRuntimesEnabled = sharedRuntimesEnabled;
     this.queryId = requireNonNull(queryId, "queryId");
-    this.pullQueryKeySerializer = requireNonNull(pullQueryKeySerializer, "pullQueryKeySerializer");
   }
 
   @Override
@@ -270,9 +267,9 @@ public final class KsLocator implements Locator {
   protected KeyQueryMetadata getKeyQueryMetadata(final KsqlKey key) {
     if (sharedRuntimesEnabled && kafkaStreams instanceof KafkaStreamsNamedTopologyWrapper) {
       return ((KafkaStreamsNamedTopologyWrapper) kafkaStreams)
-          .queryMetadataForKey(storeName, key.getKey(), pullQueryKeySerializer, queryId);
+          .queryMetadataForKey(storeName, key.getKey(), keySerializer, queryId);
     }
-    return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), pullQueryKeySerializer);
+    return kafkaStreams.queryMetadataForKey(storeName, key.getKey(), keySerializer);
   }
 
   /**

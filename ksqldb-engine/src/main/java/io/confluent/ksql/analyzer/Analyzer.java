@@ -107,12 +107,15 @@ class Analyzer {
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param rowpartitionRowoffsetEnabled whether {@link io.confluent.ksql.util.KsqlConfig#KSQL_ROWPARTITION_ROWOFFSET_ENABLED}
-   *                                     is true
-   * @param pullLimitClauseEnabled whether {@link io.confluent.ksql.util.KsqlConfig#KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED}
-   *                               is true
-   * @param unwrapProtobufPrimitives whether {@link io.confluent.ksql.util.KsqlConfig#KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG}
-   *                                 is true
+   * @param rowpartitionRowoffsetEnabled whether
+   *        {@link io.confluent.ksql.util.KsqlConfig#KSQL_ROWPARTITION_ROWOFFSET_ENABLED}
+   *        is true
+   * @param pullLimitClauseEnabled whether
+   *        {@link io.confluent.ksql.util.KsqlConfig#KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED}
+   *        is true
+   * @param unwrapProtobufPrimitives whether
+   *        {@link io.confluent.ksql.util.KsqlConfig#KSQL_PROTOBUF_UNWRAP_PRIMITIVES_CONFIG}
+   *        is true
    */
   Analyzer(
       final MetaStore metaStore,

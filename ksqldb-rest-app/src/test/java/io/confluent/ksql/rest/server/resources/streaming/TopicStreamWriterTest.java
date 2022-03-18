@@ -172,6 +172,7 @@ public class TopicStreamWriterTest {
 
       // check if the last expected row was a newline
       if (expected.get(expected.size() - 1).equals(System.lineSeparator())
+          && !recordedWrites.get(recordedWrites.size() - 1).equalsIgnoreCase(System.lineSeparator())
           && recordedWrites.get(recordedWrites.size() - 1).endsWith(System.lineSeparator())) {
         newlines++;
       }

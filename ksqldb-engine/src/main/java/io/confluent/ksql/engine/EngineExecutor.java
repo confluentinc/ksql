@@ -46,7 +46,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
-import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -716,40 +715,35 @@ final class EngineExecutor {
     }
     if (query.getWhere().isPresent()) {
       throw new UnsupportedOperationException("New query planner does not support WHERE."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     if (query.getGroupBy().isPresent()) {
       throw new UnsupportedOperationException("New query planner does not support GROUP BY."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     if (query.getHaving().isPresent()) {
       throw new UnsupportedOperationException("New query planner does not support HAVING."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     if (query.getWindow().isPresent()) {
       throw new UnsupportedOperationException("New query planner does not support WINDOWS."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     if (query.getPartitionBy().isPresent()) {
       throw new UnsupportedOperationException("New query planner does not support PARTITION BY."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     if (query.getLimit().isPresent()) {
       throw new UnsupportedOperationException("New query planner does not support LIMIT."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     final Relation fromClause = query.getFrom();
     if (fromClause instanceof Join) {
       throw new UnsupportedOperationException("New query planner does not support joins."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
+          + " Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
     if (fromClause instanceof JoinedSource) {
       throw new IllegalStateException(); // top level node should always be Join
-    }
-    if (query.getSelect().getSelectItems().size() > 2
-        || !(query.getSelect().getSelectItems().get(0) instanceof AllColumns)) {
-      throw new UnsupportedOperationException("New query planner does not support projections."
-          + "Set " + KsqlConfig.KSQL_NEW_QUERY_PLANNER_ENABLED + "=false.");
     }
   }
 

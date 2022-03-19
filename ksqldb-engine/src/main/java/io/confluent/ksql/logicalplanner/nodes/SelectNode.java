@@ -16,9 +16,17 @@
 package io.confluent.ksql.logicalplanner.nodes;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Iterators;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Select;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.UnknownColumnException;
 import java.util.Objects;
 
 public class SelectNode extends SingleInputNode<SelectNode> {
@@ -31,15 +39,41 @@ public class SelectNode extends SingleInputNode<SelectNode> {
     super(input);
     Objects.requireNonNull(selectClause, "selectClause");
 
-    // expression after check only works with '*''
-    if (selectClause.getSelectItems().size() > 1
-        || !(selectClause.getSelectItems().get(0) instanceof AllColumns)) {
-      throw new UnsupportedOperationException("Only `SELECT *` supported");
-    }
+    final ImmutableList<LogicalColumn> inputSchema = input.getOutputSchema();
+    final Builder<LogicalColumn> outputSchemaBuilder = ImmutableList.builder();
 
-    outputSchema = selectClause.getSelectItems().stream().flatMap(
-        s -> input.getOutputSchema().stream()
-    ).collect(ImmutableList.toImmutableList());
+    selectClause.getSelectItems().forEach(
+        s -> {
+          if (s instanceof AllColumns) {
+            outputSchemaBuilder.addAll(inputSchema);
+          } else {
+            final Expression e = ((SingleColumn) s).getExpression();
+            // to-do: maybe extend using
+            // `UnqualifiedColumnReferenceExp` and `QualifiedColumnReferenceExp`
+            if (e instanceof ColumnReferenceExp) {
+              final ColumnName columnName = ((ColumnReferenceExp) e).getColumnName();
+              final ImmutableList<LogicalColumn> matchingInputColumns = inputSchema.stream()
+                  .filter(logicalColumn -> logicalColumn.name().equals(columnName))
+                  .collect(ImmutableList.toImmutableList());
+              if (matchingInputColumns.isEmpty()) {
+                throw new UnknownColumnException("SELECT", (ColumnReferenceExp) e);
+
+              }
+              if (matchingInputColumns.size() > 1) {
+                throw new KsqlException("Ambiguous column " + columnName + " in SELECT clause");
+              }
+
+              outputSchemaBuilder.add(Iterators.getOnlyElement(matchingInputColumns.iterator()));
+            } else {
+              throw new UnsupportedOperationException(
+                  "New query planner only support column references, no expressions or aliases."
+              );
+            }
+          }
+        }
+    );
+
+    outputSchema = outputSchemaBuilder.build();
   }
 
   public ImmutableList<LogicalColumn> getOutputSchema() {

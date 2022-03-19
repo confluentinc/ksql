@@ -31,7 +31,9 @@ import io.confluent.ksql.logicalplanner.nodes.SelectNode;
 import io.confluent.ksql.logicalplanner.nodes.StreamSourceNode;
 import io.confluent.ksql.logicalplanner.nodes.TableSourceNode;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
@@ -77,18 +79,23 @@ public class LogicalToPhysicalPlanTranslator implements NodeVisiter<Node<?>, Exe
 
   private StreamSelect processSelectNode(final SelectNode selectNode) {
     final StreamSource inputStep = (StreamSource) process(selectNode.getInputNode());
-
     final LogicalSchema inputSchema = inputStep.getSourceSchema();
+
+    final ImmutableList<ColumnName> selectedColumns = selectNode.getOutputSchema().stream()
+        .map(LogicalColumn::name)
+        .collect(ImmutableList.toImmutableList());
 
     return ExecutionStepFactory.streamSelect(
         new Stacker().push("SELECT"),
         inputStep,
         inputSchema.key().stream().map(Column::name).collect(ImmutableList.toImmutableList()),
         inputSchema.value().stream()
+            .map(Column::name)
+            .filter(selectedColumns::contains)
             .map(
-              column -> SelectExpression.of(
-                column.name(),
-                new UnqualifiedColumnReferenceExp(column.name())
+              columnName -> SelectExpression.of(
+                  columnName,
+                new UnqualifiedColumnReferenceExp(columnName)
               )
             ).collect(ImmutableList.toImmutableList())
     );

@@ -61,6 +61,7 @@ import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -461,6 +462,7 @@ public class KsLocatorTest {
     assertThat(nodeList.stream().findFirst().get(), is(standByNode2));
   }
 
+  @Ignore
   @Test
   public void shouldGroupKeysByLocation() {
     // Given:

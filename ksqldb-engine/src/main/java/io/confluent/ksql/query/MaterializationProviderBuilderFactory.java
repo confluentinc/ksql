@@ -62,13 +62,13 @@ public final class MaterializationProviderBuilderFactory {
   }
 
   public MaterializationProviderBuilder materializationProviderBuilder(
-          final MaterializationInfo materializationInfo,
-          final PhysicalSchema querySchema,
-          final KeyFormat keyFormat,
-          final Map<String, Object> streamsProperties,
-          final String applicationId,
-          final String queryId,
-          final KeyFormat pullQueryKeyFormat) {
+      final MaterializationInfo materializationInfo,
+      final PhysicalSchema querySchema,
+      final KeyFormat keyFormat,
+      final Map<String, Object> streamsProperties,
+      final String applicationId,
+      final String queryId
+  ) {
     return (kafkaStreams, topology) -> buildMaterializationProvider(
         kafkaStreams,
         topology,
@@ -77,23 +77,22 @@ public final class MaterializationProviderBuilderFactory {
         keyFormat,
         streamsProperties,
         applicationId,
-        queryId,
-        pullQueryKeyFormat
+        queryId
     );
   }
 
   private Optional<MaterializationProvider> buildMaterializationProvider(
-          final KafkaStreams kafkaStreams,
-          final Topology topology,
-          final MaterializationInfo materializationInfo,
-          final PhysicalSchema schema,
-          final KeyFormat keyFormat,
-          final Map<String, Object> streamsProperties,
-          final String applicationId,
-          final String queryId,
-          final KeyFormat pullQueryKeyFormat) {
+      final KafkaStreams kafkaStreams,
+      final Topology topology,
+      final MaterializationInfo materializationInfo,
+      final PhysicalSchema schema,
+      final KeyFormat keyFormat,
+      final Map<String, Object> streamsProperties,
+      final String applicationId,
+      final String queryId
+  ) {
     final Serializer<GenericKey> keySerializer = new GenericKeySerDe().create(
-        pullQueryKeyFormat.getFormatInfo(),
+        keyFormat.getFormatInfo(),
         schema.keySchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),

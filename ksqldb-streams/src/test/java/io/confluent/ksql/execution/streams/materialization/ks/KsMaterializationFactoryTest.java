@@ -68,6 +68,7 @@ public class KsMaterializationFactoryTest {
   private Topology topology;
   @Mock
   private Serializer<GenericKey> keySerializer;
+
   @Mock
   private LocatorFactory locatorFactory;
   @Mock

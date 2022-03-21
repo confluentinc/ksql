@@ -464,6 +464,8 @@ public class KsLocatorTest {
 
   @Ignore
   @Test
+  //For issue #7174. Temporarily ignore this test. It will call getMetadataForAllPartitions().
+  //Formerly it called getMetadataForKeys().
   public void shouldGroupKeysByLocation() {
     // Given:
     getActiveStandbyMetadata(SOME_KEY, 0, ACTIVE_HOST_INFO, STANDBY_HOST_INFO1);

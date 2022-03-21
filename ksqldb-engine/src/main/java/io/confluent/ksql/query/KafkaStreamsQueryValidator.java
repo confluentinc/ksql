@@ -77,7 +77,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
       throw new KsqlException(String.format(
           "Configured cache usage (cache.max.bytes.buffering=%d) would put usage over the "
               + "configured limit (%d). Current usage is %d",
-          configured, usedByRunning, limit
+          configured, limit, usedByRunning
       ));
     }
   }

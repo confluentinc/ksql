@@ -25,7 +25,7 @@
   "testCase" : {
     "name" : "geo distance without radius",
     "properties": {
-      "use.big.decimal.for.floats": false
+      "use.exact.numeric.comparison": false
     },
     "inputs" : [ {
       "topic" : "test_topic",

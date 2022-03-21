@@ -16,8 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -86,9 +85,9 @@ public class TopicStreamWriterTest {
         "Value format: ",
         "KAFKA_STRING",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-0, value: value-0",
+        "rowtime: N/A, key: key-0, value: value-0, partition: 0",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-1, value: value-1",
+        "rowtime: N/A, key: key-1, value: value-1, partition: 0",
         System.lineSeparator()
     );
     out.assertWrites(expected);
@@ -119,9 +118,9 @@ public class TopicStreamWriterTest {
         "Value format: ",
         "KAFKA_STRING",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-0, value: value-0",
+        "rowtime: N/A, key: key-0, value: value-0, partition: 0",
         System.lineSeparator(),
-        "rowtime: N/A, key: key-2, value: value-2",
+        "rowtime: N/A, key: key-2, value: value-2, partition: 0",
         System.lineSeparator()
     );
     out.assertWrites(expected);
@@ -152,32 +151,9 @@ public class TopicStreamWriterTest {
      *  8215412: Optimize PrintStream.println methods</a>
      */
     void assertWrites(final List<String> expected) {
-      int newlines = 0;
-      for (int i = 0; i < recordedWrites.size(); i++) {
-        final String actual = recordedWrites.get(i);
-        final int expectedOffset = i + newlines;
-        if (expected.size() <= expectedOffset) {
-          break;
-        }
-
-        if (expected.get(expectedOffset).equals(System.lineSeparator())) {
-          if (i > 0 && recordedWrites.get(i - 1).endsWith(System.lineSeparator())) {
-            newlines++;
-            continue;
-          }
-        }
-
-        assertThat(actual, containsString(expected.get(i + newlines)));
-      }
-
-      // check if the last expected row was a newline
-      if (expected.get(expected.size() - 1).equals(System.lineSeparator())
-          && !recordedWrites.get(recordedWrites.size() - 1).equalsIgnoreCase(System.lineSeparator())
-          && recordedWrites.get(recordedWrites.size() - 1).endsWith(System.lineSeparator())) {
-        newlines++;
-      }
-
-      assertThat(recordedWrites, hasSize(expected.size() - newlines));
+      assertThat(
+          String.join("", recordedWrites),
+          equalTo(String.join("", expected)));
     }
   }
 }

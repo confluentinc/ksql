@@ -425,10 +425,10 @@ public class ExpressionEvaluatorParityTest {
       verify(processingLogger, times(1)).error(errorMessageCaptor.capture());
       RecordProcessingError processingError
           = ((RecordProcessingError) errorMessageCaptor.getValue());
-      if (error.get().getMessage() == null) {
-        assertThat(processingError.getException().get().getMessage(),
-            anyOf(CoreMatchers.any(String.class), nullValue()));
-      } else {
+      if (error.get().getMessage() != null) {
+        assertThat(
+            "processing error should have exception",
+            processingError.getException().isPresent());
         assertThat(processingError.getException().get().getMessage(),
             containsString(error.get().getMessage()));
       }

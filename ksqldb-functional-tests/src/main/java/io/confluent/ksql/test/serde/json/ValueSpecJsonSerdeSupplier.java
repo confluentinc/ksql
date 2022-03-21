@@ -53,7 +53,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       final Map<String, Object> properties
   ) {
     this.useSchemas = useSchemas;
-    mapper = (boolean) (properties.getOrDefault("use.big.decimal.for.floats", true))
+    mapper = (boolean) (properties.getOrDefault("use.exact.numeric.comparison", true))
         ? MAPPER : FLOAT_MAPPER;
   }
 

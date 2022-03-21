@@ -979,17 +979,17 @@ Given any ksqlDB type, returns the equivalent JSON string.
 ```sql title="Primitives types"
 TO_JSON_STRING(1) => "1"
 TO_JSON_STRING(15.3) => "15.3"
-TO_JSON_STRING("abc") => "abc"
+TO_JSON_STRING('abc') => "abc"
 TO_JSON_STRING(true) => "true"
-TO_JSON_STRING(PARSE_DATE("2021-10-11", "yyyy-MM-dd")) => "2021-10-11"
-TO_JSON_STRING(PARSE_TIME("13:25", "HH:mm")) => "13:25"
-TO_JSON_STRING(PARSE_TIMESTAMP("2021-06-31 12:18:39.446", "yyyy-MM-dd HH:mm:ss.SSS")) => "2021-06-30T12:18:39.446"
+TO_JSON_STRING(PARSE_DATE('2021-10-11', 'yyyy-MM-dd')) => "2021-10-11"
+TO_JSON_STRING(PARSE_TIME('13:25', 'HH:mm')) => "13:25"
+TO_JSON_STRING(PARSE_TIMESTAMP('2021-06-31 12:18:39.446', 'yyyy-MM-dd HH:mm:ss.SSS')) => "2021-06-30T12:18:39.446"
 TO_JSON_STRING(NULL) => "null"
 ```
 
 ```sql title="Compound types"
 TO_JSON_STRING(Array[1, 2, 3]) => "[1, 2, 3]"
-TO_JSON_STRING(Struct(id := 1, name := "A")) => '{"ID":1,"NAME":"A"}'
+TO_JSON_STRING(Struct(id := 1, name := 'A')) => '{"ID":1,"NAME":"A"}'
 TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => '{"c": 2, "d": 4}'
 TO_JSON_STRING(Array[Struct(json_key := 1, json_value := Map('c' := 2, 'd' := 3))]) => '[{"JSON_KEY": 1, "JSON_VALUE": {"c": 2, "d": 3}}]'
 ```

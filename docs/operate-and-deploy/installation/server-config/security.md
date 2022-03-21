@@ -605,9 +605,9 @@ details, and instructions on how to create suitable trust stores, please
 refer to the
 [Security Guide](https://docs.confluent.io/current/security/index.html).
 
-You can also prefix the SSL truststore configs with `ksql.streams.` in order
-to use separate trust stores for encrypted communication with Kafka and
-external communication with ksqlDB clients:
+To use separate trust stores for encrypted communication with {{ site.ak }}
+and external communication with ksqlDB clients, prefix the SSL truststore configs
+with `ksql.streams.`:
 
 ```properties
 security.protocol=SSL

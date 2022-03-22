@@ -113,12 +113,6 @@ public class BadTestUdtf {
   }
 
   @Udtf
-  public List<Double> listDoubleReturn(final double d) {
-    runBadCode();
-    return ImmutableList.of(d);
-  }
-
-  @Udtf
   public List<Boolean> listBooleanReturn(final boolean b)
       throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
     Class shutdown = Class.forName("java.lang.Shutdown");

@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client.impl;
 
 import static io.confluent.ksql.api.client.impl.DdlDmlRequestValidators.validateExecuteStatementRequest;
 import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
+import static io.netty.handler.codec.http.HttpHeaderNames.USER_AGENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,6 +37,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
@@ -602,6 +604,7 @@ public class ClientImpl implements Client {
         path,
         responseHandler)
         .exceptionHandler(cf::completeExceptionally);
+    request = configureUserAgent(request);
     if (clientOptions.isUseBasicAuth()) {
       request = configureBasicAuth(request);
     }
@@ -620,6 +623,11 @@ public class ClientImpl implements Client {
 
   private HttpClientRequest configureBasicAuth(final HttpClientRequest request) {
     return request.putHeader(AUTHORIZATION.toString(), basicAuthHeader);
+  }
+
+  private HttpClientRequest configureUserAgent(final HttpClientRequest request) {
+    final String clientVersion = AppInfo.getVersion();
+    return request.putHeader(USER_AGENT.toString(), "ksqlDB Java Client v" + clientVersion);
   }
 
   private <T extends CompletableFuture<?>> void handleStreamedResponse(

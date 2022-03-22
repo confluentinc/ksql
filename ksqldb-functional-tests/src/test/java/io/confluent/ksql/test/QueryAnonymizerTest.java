@@ -73,7 +73,6 @@ public class QueryAnonymizerTest {
 
   @RunWith(Parameterized.class)
   public static class AnonQuerySetIntersectionTestClass {
-    private static final Stream<TestCase> testCases = testFileLoader().load();
     private List<String> sqlTokens;
     private final QueryAnonymizer anon = new QueryAnonymizer();
     private final String statement;
@@ -91,7 +90,7 @@ public class QueryAnonymizerTest {
 
     @Parameterized.Parameters
     public static Collection<String> input() {
-      return testCases
+      return testFileLoader().load()
           .filter(statement -> !statement.expectedException().isPresent())
           .map(TestCase::statements)
           .flatMap(Collection::stream)

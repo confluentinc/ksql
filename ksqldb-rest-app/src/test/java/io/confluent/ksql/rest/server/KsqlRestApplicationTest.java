@@ -122,10 +122,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private KsqlServerPrecondition precondition2;
   @Mock
-  private ParsedStatement parsedStatement;
-  @Mock
-  private PreparedStatement<?> preparedStatement;
-  @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
   private HeartbeatAgent heartbeatAgent;
@@ -168,13 +164,9 @@ public class KsqlRestApplicationTest {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)).thenReturn(true);
     when(processingLogContext.getConfig()).thenReturn(processingLogConfig);
 
-    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(parsedStatement));
-    when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement) preparedStatement);
-
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
-    when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
-    
+
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
 

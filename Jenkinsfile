@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
-dockerfile {
+common {
     slackChannel = '#ksqldb-quality-oncall'
     upstreamProjects = 'confluentinc/schema-registry'
     extraDeployArgs = '-Ddocker.skip=true'

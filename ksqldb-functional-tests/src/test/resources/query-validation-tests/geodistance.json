@@ -2,6 +2,14 @@
   "tests": [
     {
       "name": "geo distance with radius",
+      "comments": [
+        "When upgrading to JDK17, the floating point comparisons were no longer identical",
+        "to the result set of JDK8. In order to make these tests pass in both implementations",
+        "we make sure that the comparison is done using only 6 decimal places"
+      ],
+      "properties": {
+        "use.exact.numeric.comparison": false
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint, LAT1 double, LON1 double, LAT2 double, LON2 double, RADIUS varchar) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM DISTANCE_STREAM AS select K, ID, geo_distance(LAT1, LON1, LAT2, LON2, RADIUS) as CALCULATED_DISTANCE from test;"
@@ -31,6 +39,9 @@
     },
     {
       "name": "geo distance without radius",
+      "properties": {
+        "use.exact.numeric.comparison": false
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID bigint, LAT1 double, LON1 double, LAT2 double, LON2 double) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM DISTANCE_STREAM AS select K, ID, geo_distance(LAT1, LON1, LAT2, LON2) as CALCULATED_DISTANCE from test;"
@@ -49,6 +60,9 @@
     {
       "name": "small distances in where",
       "issue": "https://github.com/confluentinc/ksql/issues/5636",
+      "properties": {
+        "use.exact.numeric.comparison": false
+      },
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS select GEO_DISTANCE(39.18660374, -76.73262144, 39.18660374, -76.73222145 ) AS D from INPUT WHERE  GEO_DISTANCE(39.18660374, -76.73262144, 39.18660374, -76.73222145 ) < 0.4;"

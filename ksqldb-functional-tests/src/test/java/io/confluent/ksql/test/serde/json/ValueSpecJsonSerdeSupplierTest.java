@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.serde.json.JsonSerdeUtils;
 import io.confluent.ksql.test.tools.TestJsonMapper;
@@ -42,8 +43,8 @@ public class ValueSpecJsonSerdeSupplierTest {
 
   @Before
   public void setUp() {
-    plainSerde = new ValueSpecJsonSerdeSupplier(false);
-    srSerde = new ValueSpecJsonSerdeSupplier(true);
+    plainSerde = new ValueSpecJsonSerdeSupplier(false, ImmutableMap.of());
+    srSerde = new ValueSpecJsonSerdeSupplier(true, ImmutableMap.of());
   }
 
   @Test

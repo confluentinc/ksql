@@ -128,7 +128,7 @@
         <really.executable.jar.version>1.5.0</really.executable.jar.version>
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
-        <apache.curator.version>2.9.0</apache.curator.version>
+        <apache.curator.version>5.2.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
@@ -701,6 +701,19 @@
                     </systemPropertyVariables>
                     <argLine>-verbose:gc -Xloggc:"${project.build.directory}/gc.log"</argLine>
                     <argLine>-Duser.timezone=UTC</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- we haven't yet fully migrated to JDK9 Jigsaw, but when compiling
+                    with JDKs that are >9 failsafe fails with many NoClassDefFoundErrors
+                    unless we disable this flag.
+
+                    You can also see (https://issues.apache.org/jira/browse/SUREFIRE-1809)
+                    for more details -->
+                    <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
 

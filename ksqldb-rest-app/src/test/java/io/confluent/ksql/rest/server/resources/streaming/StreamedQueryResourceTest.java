@@ -225,7 +225,6 @@ public class StreamedQueryResourceTest {
     when(queryExecutor.handleStatement(any(), any(), any(), any(), any(), any(), any(),
         anyBoolean()))
         .thenReturn(queryMetadataHolder);
-    when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
@@ -407,7 +406,6 @@ public class StreamedQueryResourceTest {
     testResource.configure(new KsqlConfig(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
     )));
-    when(queryMetadataHolder.getPullQueryResult()).thenReturn(Optional.of(pullQueryResult));
 
     // When:
     testResource.streamQuery(

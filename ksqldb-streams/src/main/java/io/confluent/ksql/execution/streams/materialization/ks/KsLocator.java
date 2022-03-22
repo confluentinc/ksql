@@ -119,9 +119,15 @@ public final class KsLocator implements Locator {
     // Depending on whether this is a key-based lookup, determine which metadata method to use.
     // If we don't have keys, find the metadata for all partitions since we'll run the query for
     // all partitions of the state store rather than a particular one.
-    final List<PartitionMetadata> metadata = keys.isEmpty() || isRangeScan
-        ? getMetadataForAllPartitions(filterPartitions, keySet)
-        : getMetadataForKeys(keys, filterPartitions);
+    //For issue #7174. Temporarily turn off metadata finding for a partition with keys
+    //if there are more than one key.
+    final List<PartitionMetadata> metadata;
+    if (keys.size() == 1 && keys.get(0).getKey().size() == 1 && !isRangeScan) {
+      metadata = getMetadataForKeys(keys, filterPartitions);
+    } else {
+      metadata = getMetadataForAllPartitions(filterPartitions, keySet);
+    }
+
     // Go through the metadata and group them by partition.
     for (PartitionMetadata partitionMetadata : metadata) {
       LOG.debug("Handling pull query for partition {} of state store {}.",

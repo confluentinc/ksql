@@ -672,9 +672,9 @@
                 <configuration>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
-                    <compilerVersion>11</compilerVersion>
-                    <source>11</source>
-                    <target>11</target>
+                    <compilerVersion>1.8</compilerVersion>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <compilerArgs>
                         <arg>-Xlint:all,-serial,-options,-path</arg>
                         <arg>-parameters</arg>

@@ -371,6 +371,12 @@ public class KsqlConfig extends AbstractConfig {
           = "Enables the use of LIMIT clause in pull queries";
   public static final boolean KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT = true;
 
+  public static final String KSQL_QUERY_PULL_FETCH_TIMEOUT
+      = "ksql.query.pull.fetch.timeout";
+  public static final String KSQL_QUERY_PULL_FETCH_TIMEOUT_DOC
+      = "Time in second the coordinator waits for results while fetching from standbys";
+  public static final long KSQL_QUERY_PULL_FETCH_TIMEOUT_DEFAULT = 10L;
+
   public static final String KSQL_QUERY_PUSH_V2_ENABLED
       = "ksql.query.push.v2.enabled";
   public static final String KSQL_QUERY_PUSH_V2_ENABLED_DOC =
@@ -1202,6 +1208,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_LIMIT_CLAUSE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_FETCH_TIMEOUT,
+            Type.LONG,
+            KSQL_QUERY_PULL_FETCH_TIMEOUT_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_FETCH_TIMEOUT_DOC
         )
         .define(
             KSQL_QUERY_PUSH_V2_ENABLED,

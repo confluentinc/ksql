@@ -73,7 +73,7 @@ Here's an example request that retrieves streaming data from
 curl -X "POST" "http://localhost:8088/query" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
-  "sql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
+  "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
   "streamsProperties": {}
 }'
 ```

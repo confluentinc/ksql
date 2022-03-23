@@ -69,7 +69,6 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
-import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
@@ -77,10 +76,14 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -94,7 +97,7 @@ import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PageViewDataProvider.Batch;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -135,6 +138,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.storage.StringConverter;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
@@ -224,6 +228,12 @@ public class ClientIntegrationTest {
 
   private static final String PAGE_VIEW_CSAS = "PAGE_VIEW_CSAS";
 
+  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("USERID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("PAGEID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("VIEWTIME"), SqlTypes.BIGINT)
+      .build();
+
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   // these properties are set together to allow us to verify that we can handle push queries
@@ -239,9 +249,14 @@ public class ClientIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS, 0L)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED, true)
+      .withProperty(KSQL_STREAMS_PREFIX + "max.poll.interval.ms", 5000)
+      .withProperty(KSQL_STREAMS_PREFIX + "session.timeout.ms", 10000)
       .build();
 
   @ClassRule
@@ -367,23 +382,13 @@ public class ClientIntegrationTest {
   private PageViewDataProvider pageViewDataProvider;
   private PageViewDataProvider pageViewAdditionalDataProvider;
   private PageViewDataProvider pageViewTwoRows;
+  private StreamPublisher<StreamedRow> publisher;
+  private QueryStreamSubscriber subscriber;
 
   @Before
   public void setUp() {
     vertx = Vertx.vertx();
     client = createClient();
-
-    final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
-    pageViewDataProvider = new PageViewDataProvider(prefix);
-    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
-    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
-    TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
-
-    RestIntegrationTestUtil.createStream(REST_APP, pageViewDataProvider);
-    streamName = PAGE_VIEW_CSAS + "_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
-    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
-        + "SELECT * FROM " + pageViewDataProvider.sourceName() + ";"
-    );
   }
 
   @After
@@ -641,52 +646,73 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldRetryStreamPushQueryAfterError() throws Exception {
+//    final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
+//    pageViewDataProvider = new PageViewDataProvider(prefix);
+//    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
+//    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
+//    TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
+//
+//    RestIntegrationTestUtil.createStream(REST_APP, pageViewDataProvider);
+//    streamName = PAGE_VIEW_CSAS + "_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
+//    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
+//        + "SELECT * FROM " + pageViewDataProvider.sourceName() + ";"
+//    );
+    streamName = PAGE_VIEW_CSAS + "_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
+    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
+        + "SELECT * FROM " + TEST_STREAM + ";"
+    );
+    final String PUSH_QUERY_V2_WITH_LIMIT =
+        "SELECT * FROM " + streamName + " EMIT CHANGES LIMIT " + TEST_NUM_ROWS * 2  + ";";
+
     final Map<String, Object> properties = new HashMap<>();
     properties.put("ksql.query.push.v2.enabled", true);
+    properties.put("ksql.query.push.v2.registry.installed", true);
     properties.put("auto.offset.reset", "latest");
     properties.put("ksql.query.push.v2.continuation.tokens.enabled", true);
 
+    assertAllPersistentQueriesRunning();
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY_WITH_LIMIT, properties).get();
+    final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2_WITH_LIMIT, properties).get();
 
-//    REST_APP.getServiceContext().close();
+//    assertThat(streamedQueryResult.columnNames(), is(ImmutableList.of("K", "LONG")));
+//    assertThat(streamedQueryResult.columnTypes(), is(RowUtil.columnTypesFromStrings(ImmutableList.of("STRUCT", "BIGINT"))));
+    assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
+    assertExpectedScalablePushQueries(1);
 
-//    assertThatEventually(streamedQueryResult::isComplete, is(true));
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+//    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
+//        FormatFactory.JSON, FormatFactory.JSON);
+    assertThatEventually(() -> oldStreamedQueryResult.hasContinuationToken(), is(true));
+    final String oldContinuationToken = oldStreamedQueryResult.getContinuationToken().get().get();
 
-    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
-        FormatFactory.KAFKA, FormatFactory.JSON);
+//    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+    shouldReceiveStreamRows(oldStreamedQueryResult, false, TEST_NUM_ROWS );
+//    final String newContinuationToken = oldStreamedQueryResult.getContinuationToken().get().get();
 
-    // Then
-    for (int i = 0; i < PUSH_QUERY_LIMIT_NUM_ROWS; i++) {
-      final Row row = streamedQueryResult.poll();
-      verifyStreamRowWithIndex(row, i);
+    // Continuation token should get updated
+    assertThatEventually(() -> oldContinuationToken.equals(oldStreamedQueryResult.getContinuationToken().get().get()), is(false));
+
+    try {
+      REST_APP.stop();
+    } catch(Exception exception) {
     }
+    REST_APP.start();
+    assertAllPersistentQueriesRunning();
 
-    assertThat(((ClientImpl) client).getContinuationToken(), is(notNullValue()));
-    final String continuationToken = ((ClientImpl) client).getContinuationToken();
-    System.out.println(continuationToken);
+    final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.retry().get();
 
-    if (streamedQueryResult.isFailed() && streamedQueryResult.hasContinuationToken()) {
-      streamedQueryResult.retry(1);
-    }
+    assertExpectedScalablePushQueries(1);
 
+//    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewAdditionalDataProvider,
+//        FormatFactory.JSON, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+    Thread.sleep(5000);
+    shouldReceiveStreamRows(newStreamedQueryResult, true, TEST_NUM_ROWS );
+    // produce more rows, assert that continuation token changed, then retry query from that
+    //
+    assertThatEventually(newStreamedQueryResult::isComplete, is(true));
+//    assertThatEventually(() -> streamedQueryResult.getContinuationToken().isPresent(), is(true));
 
-
-//    // When
-//    final StreamedQueryResult streamedQueryResult = client.streamQuery(PUSH_QUERY).get();
-//
-//    // Then
-//    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
-//    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
-//    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
-//
-//    shouldReceiveStreamRows(streamedQueryResult, true, PUSH_QUERY_LIMIT_NUM_ROWS);
-//    REST_APP.getServiceContext().close();
-//    if (streamedQueryResult.isFailed() && streamedQueryResult.hasContinuationToken()) {
-//      streamedQueryResult.retry(1);
-//    }
-//
-//    assertThat(streamedQueryResult.isComplete(), is(true));
   }
 
   @Test
@@ -1558,4 +1584,70 @@ public class ClientIntegrationTest {
     };
   }
 
+  private void assertExpectedScalablePushQueries(
+      final int expectedScalablePushQueries
+  ) {
+    assertThatEventually(() -> {
+      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
+        if (metadata.getSinkName().get().text().equals(AGG_TABLE)) {
+          continue;
+        }
+        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
+            < expectedScalablePushQueries
+            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
+          return false;
+        }
+      }
+      return true;
+    }, is(true));
+  }
+
+  private int compareByTimestamp(final StreamedRow sr1, final StreamedRow sr2) {
+    if (sr1.getHeader().isPresent()) {
+      return -1;
+    } else if (sr2.getHeader().isPresent()) {
+      return 1;
+    } else {
+      List<Object> cols1 = new ArrayList<>(sr1.getRow().get().getColumns());
+      List<Object> cols2 = new ArrayList<>(sr2.getRow().get().getColumns());
+      return Long.compare(((Number) cols1.get(2)).longValue(),
+          ((Number) cols2.get(2)).longValue());
+    }
+  }
+
+  private void assertAllPersistentQueriesRunning() {
+    assertThatEventually("persistent queries check", () -> {
+      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
+        if (metadata.getSinkName().get().text().equals(AGG_TABLE)) {
+          continue;
+        }
+        if (metadata.getState() != State.RUNNING) {
+          return false;
+        }
+      }
+      return true;
+    },
+        is(true),
+        60000,
+        TimeUnit.MILLISECONDS);
+  }
+
+  private void assertFirstBatchOfRows(final List<StreamedRow> orderedRows) {
+    assertThat(orderedRows.get(0).getHeader().get().getSchema(),
+        is(LOGICAL_SCHEMA));
+    assertThat(orderedRows.get(1),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_1", "PAGE_1", 1)))));
+    assertThat(orderedRows.get(2),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_2", "PAGE_2", 2)))));
+    assertThat(orderedRows.get(3),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_4", "PAGE_3", 3)))));
+    assertThat(orderedRows.get(4),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_3", "PAGE_4", 4)))));
+    assertThat(orderedRows.get(5),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_0", "PAGE_5", 5)))));
+    assertThat(orderedRows.get(6),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_2", "PAGE_5", 6)))));
+    assertThat(orderedRows.get(7),
+        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_3", "PAGE_5", 7)))));
+  }
 }

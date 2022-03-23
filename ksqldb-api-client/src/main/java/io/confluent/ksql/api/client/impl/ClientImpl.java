@@ -140,7 +140,7 @@ public class ClientImpl implements Client {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
     }
-    if (PushOffsetVector.isContinuationTokenEnabled(properties)) {
+    if (PushOffsetVector.isContinuationTokenEnabled(properties) && continuationToken.get() != null) {
       requestProperties.put(
               KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
               continuationToken.get());
@@ -148,7 +148,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,
         (ctx, rp, fut, req) -> new StreamQueryResponseHandler(
-            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, requestProperties,
+            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, properties, requestProperties,
             client));
     return cf;
   }

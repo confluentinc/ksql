@@ -52,7 +52,13 @@ public final class ClientTestUtil {
       }
     };
     publisher.subscribe(subscriber);
+//    while (subscriber.getValues().size() != 5) {
+//      continue;
+//    }
+
     assertThatEventually(subscriber::getValues, hasSize(numRows));
+    System.out.println("datavalues");
+    System.out.println(subscriber.values);
 
     rowsVerifier.accept(subscriber.getValues());
 

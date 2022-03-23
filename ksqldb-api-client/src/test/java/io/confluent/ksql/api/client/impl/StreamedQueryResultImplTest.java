@@ -88,7 +88,7 @@ public class StreamedQueryResultImplTest {
     }).when(subscriber).onError(any());
 
     queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(),
-        Collections.emptyList(), Optional.empty(), null, null, null);
+        Collections.emptyList(), Optional.empty(), null, null, null, null);
   }
 
   @Test

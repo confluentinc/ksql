@@ -43,6 +43,7 @@ public class StreamQueryResponseHandler
   private AtomicReference<String> serializedConsistencyVector;
   private AtomicReference<String> continuationToken;
   private String sql;
+  private Map<String, Object> properties;
   private Map<String, Object> requestProperties;
   private ClientImpl client;
 
@@ -51,6 +52,7 @@ public class StreamQueryResponseHandler
       final AtomicReference<String> serializedCV,
       final AtomicReference<String> continuationToken,
       final String sql,
+      final Map<String, Object> properties,
       final Map<String, Object> requestProperties,
       final ClientImpl client
   ) {
@@ -58,6 +60,7 @@ public class StreamQueryResponseHandler
     this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
     this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
     this.sql = Objects.requireNonNull(sql, "sql");
+    this.properties = Objects.requireNonNull(properties, "properties");
     this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
     this.client = Objects.requireNonNull(client, "client");
   }
@@ -69,8 +72,9 @@ public class StreamQueryResponseHandler
         queryResponseMetadata.queryId,
         queryResponseMetadata.columnNames,
         RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes),
-        Optional.ofNullable(continuationToken.get()),
+        Optional.ofNullable(continuationToken),
         sql,
+        properties,
         requestProperties,
         client
     );
@@ -80,6 +84,7 @@ public class StreamQueryResponseHandler
 
   @Override
   protected void handleRow(final Buffer buff) {
+    LOG.info("NATEA client row: {}", buff.toString());
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }
@@ -110,6 +115,7 @@ public class StreamQueryResponseHandler
         LOG.info("Response contains continuation token " + jsonObject);
         continuationToken.set((String) ((JsonObject) json).getMap().get(
                 "continuationToken"));
+
       } else {
         queryResult.handleError(new KsqlException(
             jsonObject.getString("message")

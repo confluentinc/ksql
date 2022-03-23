@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.api.client;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.vertx.core.Context;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
 
 /**
@@ -95,8 +97,10 @@ public interface StreamedQueryResult extends Publisher<Row> {
 
   boolean hasContinuationToken();
 
-  Optional<String> getContinuationToken();
+  Optional<AtomicReference<String>> getContinuationToken();
 
-  CompletableFuture<StreamedQueryResult> retry(int maxRetries)
-      throws InterruptedException, ExecutionException;
+  CompletableFuture<StreamedQueryResult> retry();
+
+  @VisibleForTesting
+  public Context getContext();
 }

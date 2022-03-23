@@ -15,6 +15,7 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.execution.ExecutionPlan;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
+import scala.Int;
 
 public class KafkaStreamsQueryValidator implements QueryValidator {
   @Override
@@ -69,10 +71,31 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
       return;
     }
     final long configured = getCacheMaxBytesBuffering(config);
-    final long usedByRunning = running.stream()
-        .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
-                .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
-        .sum();
+    long usedByRunning;
+    if (!config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+       usedByRunning = running.stream()
+          .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
+              .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
+          .sum();
+    } else {
+      usedByRunning = running.stream()
+          .filter(t -> !(t instanceof BinPackedPersistentQueryMetadataImpl))
+          .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
+              .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
+          .sum();
+      usedByRunning += running.stream()
+          .filter(t -> t instanceof BinPackedPersistentQueryMetadataImpl)
+          .collect(HashMap<String, Long>::new,
+              (r, e) ->
+                r.put(
+                    e.getQueryApplicationId(),
+                        (Long) e.getStreamsProperties().get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)),
+              (r, l) -> l.putAll(r))
+          .values()
+          .stream()
+          .mapToLong(t -> t)
+          .sum();
+    }
     if (configured + usedByRunning > limit) {
       throw new KsqlException(String.format(
           "Configured cache usage (cache.max.bytes.buffering=%d) would put usage over the "

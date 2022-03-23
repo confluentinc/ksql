@@ -73,7 +73,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
     final long configured = getCacheMaxBytesBuffering(config);
     long usedByRunning;
     if (!config.getConfig(true).getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-       usedByRunning = running.stream()
+      usedByRunning = running.stream()
           .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
               .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
           .sum();
@@ -87,9 +87,10 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
           .filter(t -> t instanceof BinPackedPersistentQueryMetadataImpl)
           .collect(HashMap<String, Long>::new,
               (r, e) ->
-                r.put(
-                    e.getQueryApplicationId(),
-                        (Long) e.getStreamsProperties().get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)),
+                  r.put(
+                      e.getQueryApplicationId(),
+                      (Long) e.getStreamsProperties()
+                          .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)),
               (r, l) -> l.putAll(r))
           .values()
           .stream()

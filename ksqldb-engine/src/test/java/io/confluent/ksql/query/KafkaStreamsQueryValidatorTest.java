@@ -95,7 +95,7 @@ public class KafkaStreamsQueryValidatorTest {
   @Test
   public void shouldNotThrowIfUnderLimit() {
     // Given:
-    final SessionConfig config = configWithLimits(5, OptionalLong.of(40));
+    final SessionConfig config = configWithLimits(5, OptionalLong.of(60));
 
     // When/Then (no throw)
     queryValidator.validateQuery(config, plan, queries);

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physicalplanner;
 
+import io.confluent.ksql.execution.ExecutionPlan;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -23,7 +24,6 @@ import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.logicalplanner.LogicalPlan;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
@@ -41,7 +41,7 @@ public final class PhysicalPlanner {
 
   private PhysicalPlanner() {}
 
-  public static PhysicalPlan buildPhysicalPlan(
+  public static ExecutionPlan buildPhysicalPlan(
       final MetaStore metaStore,
       final LogicalPlan logicalPlan
   ) {
@@ -65,6 +65,6 @@ public final class PhysicalPlanner {
         Optional.empty()// timestampColumn
     );
 
-    return new PhysicalPlan(new QueryId("query-id"), sink);
+    return new ExecutionPlan(new QueryId("query-id"), sink);
   }
 }

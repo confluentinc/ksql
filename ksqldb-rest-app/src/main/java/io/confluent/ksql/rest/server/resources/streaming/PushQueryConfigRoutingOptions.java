@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import java.util.Map;

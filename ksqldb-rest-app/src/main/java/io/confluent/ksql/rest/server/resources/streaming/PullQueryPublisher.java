@@ -22,7 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.execution.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.ConsistencyToken;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;

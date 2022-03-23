@@ -25,6 +25,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.execution.ExecutionPlan;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -33,6 +34,19 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.PlanInfoExtractor;
+import io.confluent.ksql.execution.pull.HARouting;
+import io.confluent.ksql.execution.pull.PullPhysicalPlan;
+import io.confluent.ksql.execution.pull.PullPhysicalPlanBuilder;
+import io.confluent.ksql.execution.pull.PullQueryQueuePopulator;
+import io.confluent.ksql.execution.pull.PullQueryResult;
+import io.confluent.ksql.execution.scalablepush.PushPhysicalPlan;
+import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanBuilder;
+import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanCreator;
+import io.confluent.ksql.execution.scalablepush.PushPhysicalPlanManager;
+import io.confluent.ksql.execution.scalablepush.PushQueryPreparer;
+import io.confluent.ksql.execution.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.execution.scalablepush.PushRouting;
+import io.confluent.ksql.execution.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
@@ -62,20 +76,6 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.physical.PhysicalPlan;
-import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.pull.PullPhysicalPlan;
-import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
-import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
-import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
-import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
-import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanCreator;
-import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanManager;
-import io.confluent.ksql.physical.scalablepush.PushQueryPreparer;
-import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
-import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.physicalplanner.PhysicalPlanner;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
@@ -466,7 +466,7 @@ final class EngineExecutor {
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.outputNode;
     engineContext.createQueryValidator().validateQuery(
         config,
-        plans.physicalPlan,
+        plans.executionPlan,
         engineContext.getQueryRegistry().getAllLiveQueries()
     );
     return engineContext.getQueryRegistry().createTransientQuery(
@@ -475,12 +475,12 @@ final class EngineExecutor {
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
         statement.getStatementText(),
-        plans.physicalPlan.getQueryId(),
+        plans.executionPlan.getQueryId(),
         getSourceNames(outputNode),
-        plans.physicalPlan.getPhysicalPlan(),
+        plans.executionPlan.getPhysicalPlan(),
         buildPlanSummary(
-            plans.physicalPlan.getQueryId(),
-            plans.physicalPlan.getPhysicalPlan()),
+            plans.executionPlan.getQueryId(),
+            plans.executionPlan.getPhysicalPlan()),
         outputNode.getSchema(),
         outputNode.getLimit(),
         outputNode.getWindowInfo(),
@@ -498,7 +498,7 @@ final class EngineExecutor {
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.outputNode;
     engineContext.createQueryValidator().validateQuery(
         config,
-        plans.physicalPlan,
+        plans.executionPlan,
         engineContext.getQueryRegistry().getAllLiveQueries()
     );
     return engineContext.getQueryRegistry().createStreamPullQuery(
@@ -507,12 +507,12 @@ final class EngineExecutor {
         engineContext.getProcessingLogContext(),
         engineContext.getMetaStore(),
         statement.getStatementText(),
-        plans.physicalPlan.getQueryId(),
+        plans.executionPlan.getQueryId(),
         getSourceNames(outputNode),
-        plans.physicalPlan.getPhysicalPlan(),
+        plans.executionPlan.getPhysicalPlan(),
         buildPlanSummary(
-            plans.physicalPlan.getQueryId(),
-            plans.physicalPlan.getPhysicalPlan()),
+            plans.executionPlan.getQueryId(),
+            plans.executionPlan.getPhysicalPlan()),
         outputNode.getSchema(),
         outputNode.getLimit(),
         outputNode.getWindowInfo(),
@@ -598,15 +598,15 @@ final class EngineExecutor {
     final QueryPlan queryPlan = new QueryPlan(
         getSourceNames(outputNode),
         Optional.empty(),
-        plans.physicalPlan.getPhysicalPlan(),
-        plans.physicalPlan.getQueryId(),
-        getApplicationId(plans.physicalPlan.getQueryId(),
+        plans.executionPlan.getPhysicalPlan(),
+        plans.executionPlan.getQueryId(),
+        getApplicationId(plans.executionPlan.getQueryId(),
             getSourceNames(outputNode))
     );
 
     engineContext.createQueryValidator().validateQuery(
         config,
-        plans.physicalPlan,
+        plans.executionPlan,
         engineContext.getQueryRegistry().getAllLiveQueries()
     );
 
@@ -675,15 +675,15 @@ final class EngineExecutor {
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
           outputNode.getSinkName(),
-          plans.physicalPlan.getPhysicalPlan(),
-          plans.physicalPlan.getQueryId(),
-          getApplicationId(plans.physicalPlan.getQueryId(),
+          plans.executionPlan.getPhysicalPlan(),
+          plans.executionPlan.getQueryId(),
+          getApplicationId(plans.executionPlan.getQueryId(),
               getSourceNames(outputNode))
       );
 
       engineContext.createQueryValidator().validateQuery(
           config,
-          plans.physicalPlan,
+          plans.executionPlan,
           engineContext.getQueryRegistry().getAllLiveQueries()
       );
 
@@ -838,7 +838,7 @@ final class EngineExecutor {
         oldPlanInfo = Optional.empty();
       }
 
-      final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
+      final ExecutionPlan executionPlan = queryEngine.buildPhysicalPlan(
           logicalPlan,
           config,
           metaStore,
@@ -846,7 +846,7 @@ final class EngineExecutor {
           oldPlanInfo
       );
 
-      return new ExecutorPlans(logicalPlan.getNode().get(), physicalPlan);
+      return new ExecutorPlans(logicalPlan.getNode().get(), executionPlan);
     }
   }
 
@@ -955,13 +955,13 @@ final class EngineExecutor {
   private static final class ExecutorPlans {
 
     private final OutputNode outputNode;
-    private final PhysicalPlan physicalPlan;
+    private final ExecutionPlan executionPlan;
 
     private ExecutorPlans(
         final OutputNode outputNode,
-        final PhysicalPlan physicalPlan) {
+        final ExecutionPlan executionPlan) {
       this.outputNode = Objects.requireNonNull(outputNode, "outputNode");
-      this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlanNode");
+      this.executionPlan = Objects.requireNonNull(executionPlan, "physicalPlanNode");
     }
   }
 

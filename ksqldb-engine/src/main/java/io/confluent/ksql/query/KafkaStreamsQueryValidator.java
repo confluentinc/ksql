@@ -15,7 +15,7 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.physical.PhysicalPlan;
+import io.confluent.ksql.execution.ExecutionPlan;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -31,7 +31,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   @Override
   public void validateQuery(
       final SessionConfig config,
-      final PhysicalPlan physicalPlan,
+      final ExecutionPlan executionPlan,
       final Collection<QueryMetadata> runningQueries
   ) {
     validateCacheBytesUsage(
@@ -47,7 +47,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   @Override
   public void validateTransientQuery(
       final SessionConfig config,
-      final PhysicalPlan physicalPlan,
+      final ExecutionPlan executionPlan,
       final Collection<QueryMetadata> runningQueries
   ) {
     validateCacheBytesUsage(

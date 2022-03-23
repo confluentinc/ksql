@@ -24,7 +24,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.physical.pull.PullQueryRow;
+import io.confluent.ksql.execution.pull.PullQueryRow;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;

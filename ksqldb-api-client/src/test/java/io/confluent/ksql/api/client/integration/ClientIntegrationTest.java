@@ -632,7 +632,7 @@ public class ClientIntegrationTest {
     makeKsqlRequest("CREATE STREAM " + streamName + " AS "
         + "SELECT * FROM " + TEST_STREAM + ";"
     );
-    final String PUSH_QUERY_V2_WITH_LIMIT =
+    final String PUSH_QUERY_V2 =
         "SELECT * FROM " + streamName + " EMIT CHANGES;";
 
     final Map<String, Object> properties = new HashMap<>();
@@ -644,7 +644,7 @@ public class ClientIntegrationTest {
     assertAllPersistentQueriesRunning();
 
     // When
-    final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2_WITH_LIMIT, properties).get();
+    final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2, properties).get();
 
     assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
@@ -674,6 +674,61 @@ public class ClientIntegrationTest {
     assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
+    assertExpectedScalablePushQueries(1);
+
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+
+    shouldReceiveStreamRows(newStreamedQueryResult, false, TEST_NUM_ROWS );
+  }
+
+  @Test
+  public void shouldRetryExecutePushQueryV2AfterNetworkFault() throws Exception {
+    final String streamName = "SPQV2";
+    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
+        + "SELECT * FROM " + TEST_STREAM + ";"
+    );
+    final String PUSH_QUERY_V2 =
+        "SELECT * FROM " + streamName + " EMIT CHANGES;";
+
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("ksql.query.push.v2.enabled", true);
+    properties.put("ksql.query.push.v2.registry.installed", true);
+    properties.put("auto.offset.reset", "latest");
+    properties.put("ksql.query.push.v2.continuation.tokens.enabled", true);
+
+    assertAllPersistentQueriesRunning();
+
+    // When
+    final BatchedQueryResult oldBatchedQueryResult = client.executeQuery(PUSH_QUERY_V2, properties);
+
+//    assertThat(oldBatchedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+//    assertThat(oldBatchedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(oldBatchedQueryResult.queryID(), is(notNullValue()));
+    assertExpectedScalablePushQueries(1);
+
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+
+    assertThatEventually(() -> oldBatchedQueryResult.hasContinuationToken(), is(true));
+    final String oldContinuationToken = oldBatchedQueryResult.getContinuationToken().get().get();
+
+    shouldReceiveStreamRows(oldBatchedQueryResult, false, TEST_NUM_ROWS );
+
+    // Continuation token should get updated
+    assertThatEventually(() -> oldContinuationToken.equals(oldBatchedQueryResult.getContinuationToken().get().get()), is(false));
+
+    // Mimic a network fault by abruptly stopping and starting the server
+    try {
+      REST_APP.stop();
+    } catch(Exception exception) {
+    }
+    REST_APP.start();
+    assertAllPersistentQueriesRunning();
+
+    final StreamedQueryResult newStreamedQueryResult = oldBatchedQueryResult.retry().get();
+
+    assertThat(oldBatchedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(oldBatchedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(oldBatchedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
 
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);

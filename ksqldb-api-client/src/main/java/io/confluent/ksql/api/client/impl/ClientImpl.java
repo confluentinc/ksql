@@ -140,7 +140,8 @@ public class ClientImpl implements Client {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
     }
-    if (PushOffsetVector.isContinuationTokenEnabled(properties) && continuationToken.get() != null) {
+    if (PushOffsetVector.isContinuationTokenEnabled(properties)
+        && continuationToken.get() != null) {
       requestProperties.put(
               KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
               continuationToken.get());
@@ -148,8 +149,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,
         (ctx, rp, fut, req) -> new StreamQueryResponseHandler(
-            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, properties, requestProperties,
-            client));
+            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, properties, client));
     return cf;
   }
 
@@ -168,14 +168,21 @@ public class ClientImpl implements Client {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
     }
-    final BatchedQueryResult result = new BatchedQueryResultImpl();
+    if (PushOffsetVector.isContinuationTokenEnabled(properties) && continuationToken.get() != null) {
+      requestProperties.put(
+          KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+          continuationToken.get());
+    }
+    final BatchedQueryResult result = new BatchedQueryResultImpl(
+        Optional.ofNullable(continuationToken), sql, properties, client
+    );
     makeQueryRequest(
         sql,
         properties,
         result,
         (context, recordParser, cf, request) -> new ExecuteQueryResponseHandler(
             context, recordParser, cf, clientOptions.getExecuteQueryMaxResultRows(),
-            serializedConsistencyVector)
+            serializedConsistencyVector, continuationToken)
     );
     return result;
   }
@@ -502,11 +509,6 @@ public class ClientImpl implements Client {
   @VisibleForTesting
   public String getSerializedConsistencyVector() {
     return serializedConsistencyVector.get();
-  }
-
-  @VisibleForTesting
-  public String getContinuationToken() {
-    return continuationToken.get();
   }
 
   @Override

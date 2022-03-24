@@ -44,7 +44,6 @@ public class StreamQueryResponseHandler
   private AtomicReference<String> continuationToken;
   private String sql;
   private Map<String, Object> properties;
-  private Map<String, Object> requestProperties;
   private ClientImpl client;
 
   StreamQueryResponseHandler(final Context context, final RecordParser recordParser,
@@ -53,7 +52,6 @@ public class StreamQueryResponseHandler
       final AtomicReference<String> continuationToken,
       final String sql,
       final Map<String, Object> properties,
-      final Map<String, Object> requestProperties,
       final ClientImpl client
   ) {
     super(context, recordParser, cf);
@@ -61,7 +59,6 @@ public class StreamQueryResponseHandler
     this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
     this.sql = Objects.requireNonNull(sql, "sql");
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.requestProperties = Objects.requireNonNull(requestProperties, "requestProperties");
     this.client = Objects.requireNonNull(client, "client");
   }
 
@@ -75,7 +72,6 @@ public class StreamQueryResponseHandler
         Optional.ofNullable(continuationToken),
         sql,
         properties,
-        requestProperties,
         client
     );
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
@@ -110,7 +106,12 @@ public class StreamQueryResponseHandler
         LOG.info("Response contains consistency vector " + jsonObject);
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
-      } else if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
+      } else {
+        queryResult.handleError(new KsqlException(
+            jsonObject.getString("message")
+        ));
+      }
+      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
         LOG.info("Response contains continuation token " + jsonObject);
         continuationToken.set((String) ((JsonObject) json).getMap().get(
                 "continuationToken"));

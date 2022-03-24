@@ -174,13 +174,17 @@ public class InsertValuesExecutor {
       // ClusterAuthorizationException is thrown when using idempotent producers
       // and either a topic write permission or a cluster-level idempotent write
       // permission (only applicable for broker versions no later than 2.8) is
-      // missing. In this case, we include the error message to help the user
+      // missing. In this case, we include additional context to help the user
       // distinguish this type of failure from other permissions exceptions
       // such as the ones thrown above when TopicAuthorizationException is caught.
       final Exception rootCause = new KsqlTopicAuthorizationException(
           AclOperation.WRITE,
           Collections.singletonList(dataSource.getKafkaTopicName()),
-          e.getMessage()
+          // Ideally we would forward e.getMessage() instead of the hard-coded
+          // message below, but until this error message is improved on the Kafka
+          // side, e.getMessage() is not helpful. (Today it is just "Cluster
+          // authorization failed.")
+          "The producer is not authorized to do idempotent sends"
       );
 
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);

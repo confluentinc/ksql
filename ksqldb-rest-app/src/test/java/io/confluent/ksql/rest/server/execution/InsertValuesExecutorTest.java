@@ -713,7 +713,7 @@ public class InsertValuesExecutorTest {
             new StringLiteral("str"),
             new LongLiteral(2L))
     );
-    doThrow(new ClusterAuthorizationException("The producer is not authorized to do idempotent sends"))
+    doThrow(new ClusterAuthorizationException("Cluster authorization failed"))
         .when(producer).send(any());
 
     // When:

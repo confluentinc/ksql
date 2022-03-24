@@ -97,6 +97,7 @@ public class ClientImpl implements Client {
    * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
    * this constructor.
    */
+
   public ClientImpl(final ClientOptions clientOptions) {
     this(clientOptions, Vertx.vertx(), true);
   }
@@ -140,7 +141,8 @@ public class ClientImpl implements Client {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
     }
-    if (PushOffsetVector.isContinuationTokenEnabled(properties) && continuationToken.get() != null) {
+    if (PushOffsetVector.isContinuationTokenEnabled(properties)
+        && continuationToken.get() != null) {
       requestProperties.put(
               KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
               continuationToken.get());
@@ -148,8 +150,7 @@ public class ClientImpl implements Client {
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,
         (ctx, rp, fut, req) -> new StreamQueryResponseHandler(
-            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, properties, requestProperties,
-            client));
+            ctx, rp, fut, serializedConsistencyVector, continuationToken, sql, properties, client));
     return cf;
   }
 
@@ -502,11 +503,6 @@ public class ClientImpl implements Client {
   @VisibleForTesting
   public String getSerializedConsistencyVector() {
     return serializedConsistencyVector.get();
-  }
-
-  @VisibleForTesting
-  public String getContinuationToken() {
-    return continuationToken.get();
   }
 
   @Override

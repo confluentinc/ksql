@@ -22,6 +22,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collection;
 import java.util.HashMap;
@@ -102,6 +103,11 @@ public class RuntimeAssignor {
 
 
   private String makeNewRuntime(final KsqlConfig config) {
+    if (runtimesToSources.size() >= config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_LIMIT)) {
+      throw new KsqlException(String.format("There are too many uses of the same topic. "
+          + "No topic for this cluster can be queried more than %s times.",
+          config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_LIMIT)));
+    }
     final String runtime = buildSharedRuntimeId(config, true, runtimesToSources.size());
     runtimesToSources.put(runtime, new HashSet<>());
     return runtime;

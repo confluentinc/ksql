@@ -1,10 +1,12 @@
 package io.confluent.ksql.engine;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,6 +22,7 @@ import java.util.HashSet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -127,6 +130,17 @@ public class RuntimeAssignorTest {
         KSQL_CONFIG
     );
     assertThat(runtime, not(equalTo(firstRuntime)));
+  }
+
+  @Test
+  public void shouldNotGetRuntimeForDifferentQueryIdAndSameSources() {
+    assertThrows(KsqlException.class, () -> runtimeAssignor.getRuntimeAndMaybeAddRuntime(
+        query2,
+        sources1,
+        new KsqlConfig(
+            ImmutableMap.of(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT, 1,
+                KsqlConfig.KSQL_SHARED_RUNTIMES_LIMIT, 1))
+    ));
   }
 
   @Test

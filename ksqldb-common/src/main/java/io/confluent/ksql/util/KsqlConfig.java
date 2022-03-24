@@ -588,6 +588,12 @@ public class KsqlConfig extends AbstractConfig {
       "Controls how many runtimes queries are allocated over initially."
           + "this is only used when ksql.runtime.feature.shared.enabled is true.";
 
+  public static final String KSQL_SHARED_RUNTIMES_LIMIT = "ksql.shared.runtimes.limit";
+  public static final Integer KSQL_SHARED_RUNTIMES_LIMIT_DEFAULT = 20;
+  public static final String KSQL_SHARED_RUNTIMES_LIMIT_DOC =
+      "Controls how many runtimes queries are allocated to be created."
+          + "this is only used when ksql.runtime.feature.shared.enabled is true.";
+
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -1389,6 +1395,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SHARED_RUNTIMES_COUNT_DEFAULT,
             Importance.MEDIUM,
             KSQL_SHARED_RUNTIMES_COUNT_DOC
+        )
+        .define(
+            KSQL_SHARED_RUNTIMES_LIMIT,
+            Type.INT,
+            KSQL_SHARED_RUNTIMES_LIMIT_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_SHARED_RUNTIMES_LIMIT_DOC
         )
         .define(
             KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED,

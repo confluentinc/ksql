@@ -17,19 +17,36 @@ package io.confluent.ksql.api.client.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.BatchedQueryResult;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class BatchedQueryResultImpl extends BatchedQueryResult {
 
   private final CompletableFuture<String> queryId;
+  private final Optional<AtomicReference<String>> continuationToken;
+  private final String sql;
+  private final Map<String, Object> properties;
+  private final ClientImpl client;
 
-  BatchedQueryResultImpl() {
+  BatchedQueryResultImpl(
+      final Optional<AtomicReference<String>> continuationToken,
+      final String sql,
+      final Map<String, Object> properties,
+      final ClientImpl client
+  ) {
     this.queryId = new CompletableFuture<>();
 
     this.exceptionally(t -> {
       queryId.completeExceptionally(t);
       return null;
     });
+    this.continuationToken = continuationToken;
+    this.sql = sql;
+    this.properties = properties;
+    this.client = client;
   }
 
   @Override
@@ -38,4 +55,21 @@ public class BatchedQueryResultImpl extends BatchedQueryResult {
     return queryId;
   }
 
+  @Override
+  public boolean hasContinuationToken() {
+    return this.continuationToken.isPresent() && this.continuationToken.get().get() != null;
+  }
+
+  @Override
+  public Optional<AtomicReference<String>> getContinuationToken() {
+    return this.continuationToken;
+  }
+
+  @Override
+  public BatchedQueryResult retry() {
+    if (!this.hasContinuationToken()) {
+      throw new KsqlClientException("Can only retry queries that have saved a continuation token.");
+    }
+    return this.client.executeQuery(sql, properties);
+  }
 }

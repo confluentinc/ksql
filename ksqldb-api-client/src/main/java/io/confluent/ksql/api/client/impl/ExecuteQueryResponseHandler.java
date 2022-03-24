@@ -44,17 +44,20 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
   private List<ColumnType> columnTypes;
   private Map<String, Integer> columnNameToIndex;
   private AtomicReference<String> serializedConsistencyVector;
+  private AtomicReference<String> continuationToken;
 
   ExecuteQueryResponseHandler(
       final Context context,
       final RecordParser recordParser,
       final BatchedQueryResult cf,
       final int maxRows,
-      final AtomicReference<String> serializedCV) {
+      final AtomicReference<String> serializedCV,
+      final AtomicReference<String> continuationToken) {
     super(context, recordParser, cf);
     this.maxRows = maxRows;
     this.rows = new ArrayList<>();
     this.serializedConsistencyVector = Objects.requireNonNull(serializedCV, "serializedCV");
+    this.continuationToken = Objects.requireNonNull(continuationToken, "continuationToken");
   }
 
   @Override
@@ -79,7 +82,14 @@ public class ExecuteQueryResponseHandler extends QueryResponseHandler<BatchedQue
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
       } else {
-        throw new RuntimeException("Could not decode JSON, expected consistency toke: " + json);
+        throw new RuntimeException("Could not decode JSON, expected consistency token: " + json);
+      }
+      if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
+        log.info("Response contains continuation token " + jsonObject);
+        continuationToken.set((String) ((JsonObject) json).getMap().get(
+            "continuationToken"));
+      } else {
+        throw new RuntimeException("Could not decode JSON, expected continuation token: " + json);
       }
     } else  if (json instanceof JsonArray) {
       final JsonArray values = new JsonArray(buff);

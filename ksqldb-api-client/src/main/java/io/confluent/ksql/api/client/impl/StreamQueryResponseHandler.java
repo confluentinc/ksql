@@ -84,7 +84,6 @@ public class StreamQueryResponseHandler
 
   @Override
   protected void handleRow(final Buffer buff) {
-    LOG.info("NATEA client row: {}", buff.toString());
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }

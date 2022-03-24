@@ -70,17 +70,15 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
+import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.integration.QueryStreamSubscriber;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -93,10 +91,8 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PageViewDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
@@ -225,14 +221,6 @@ public class ClientIntegrationTest {
   private static final String TEST_CONNECTOR = "TEST_CONNECTOR";
   private static final String MOCK_SOURCE_CLASS = "org.apache.kafka.connect.tools.MockSourceConnector";
   private static final ConnectorType SOURCE_TYPE = new ConnectorTypeImpl("SOURCE");
-
-  private static final String PAGE_VIEW_CSAS = "PAGE_VIEW_CSAS";
-
-  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("USERID"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("PAGEID"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("VIEWTIME"), SqlTypes.BIGINT)
-      .build();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -378,12 +366,6 @@ public class ClientIntegrationTest {
 
   private Vertx vertx;
   private Client client;
-  private String streamName;
-  private PageViewDataProvider pageViewDataProvider;
-  private PageViewDataProvider pageViewAdditionalDataProvider;
-  private PageViewDataProvider pageViewTwoRows;
-  private StreamPublisher<StreamedRow> publisher;
-  private QueryStreamSubscriber subscriber;
 
   @Before
   public void setUp() {
@@ -645,24 +627,13 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldRetryStreamPushQueryAfterError() throws Exception {
-//    final String prefix = "PAGE_VIEWS_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
-//    pageViewDataProvider = new PageViewDataProvider(prefix);
-//    pageViewAdditionalDataProvider = new PageViewDataProvider(prefix, Batch.BATCH2);
-//    pageViewTwoRows = new PageViewDataProvider(prefix, Batch.BATCH3);
-//    TEST_HARNESS.ensureTopics(2, pageViewDataProvider.topicName());
-//
-//    RestIntegrationTestUtil.createStream(REST_APP, pageViewDataProvider);
-//    streamName = PAGE_VIEW_CSAS + "_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
-//    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
-//        + "SELECT * FROM " + pageViewDataProvider.sourceName() + ";"
-//    );
-    streamName = PAGE_VIEW_CSAS + "_" + KsqlIdentifierTestUtil.uniqueIdentifierName();
+  public void shouldRetryStreamPushQueryV2AfterNetworkFault() throws Exception {
+    final String streamName = "SPQV2";
     makeKsqlRequest("CREATE STREAM " + streamName + " AS "
         + "SELECT * FROM " + TEST_STREAM + ";"
     );
     final String PUSH_QUERY_V2_WITH_LIMIT =
-        "SELECT * FROM " + streamName + " EMIT CHANGES LIMIT " + TEST_NUM_ROWS * 2  + ";";
+        "SELECT * FROM " + streamName + " EMIT CHANGES;";
 
     final Map<String, Object> properties = new HashMap<>();
     properties.put("ksql.query.push.v2.enabled", true);
@@ -671,27 +642,26 @@ public class ClientIntegrationTest {
     properties.put("ksql.query.push.v2.continuation.tokens.enabled", true);
 
     assertAllPersistentQueriesRunning();
+
     // When
     final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2_WITH_LIMIT, properties).get();
 
-//    assertThat(streamedQueryResult.columnNames(), is(ImmutableList.of("K", "LONG")));
-//    assertThat(streamedQueryResult.columnTypes(), is(RowUtil.columnTypesFromStrings(ImmutableList.of("STRUCT", "BIGINT"))));
+    assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
 
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
-//    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewDataProvider,
-//        FormatFactory.JSON, FormatFactory.JSON);
+
     assertThatEventually(() -> oldStreamedQueryResult.hasContinuationToken(), is(true));
     final String oldContinuationToken = oldStreamedQueryResult.getContinuationToken().get().get();
 
-//    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
     shouldReceiveStreamRows(oldStreamedQueryResult, false, TEST_NUM_ROWS );
-//    final String newContinuationToken = oldStreamedQueryResult.getContinuationToken().get().get();
 
     // Continuation token should get updated
     assertThatEventually(() -> oldContinuationToken.equals(oldStreamedQueryResult.getContinuationToken().get().get()), is(false));
 
+    // Mimic a network fault by abruptly stopping and starting the server
     try {
       REST_APP.stop();
     } catch(Exception exception) {
@@ -701,18 +671,14 @@ public class ClientIntegrationTest {
 
     final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.retry().get();
 
+    assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
 
-//    TEST_HARNESS.produceRows(pageViewDataProvider.topicName(), pageViewAdditionalDataProvider,
-//        FormatFactory.JSON, FormatFactory.JSON);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
-    Thread.sleep(5000);
-    shouldReceiveStreamRows(newStreamedQueryResult, true, TEST_NUM_ROWS );
-    // produce more rows, assert that continuation token changed, then retry query from that
-    //
-    assertThatEventually(newStreamedQueryResult::isComplete, is(true));
-//    assertThatEventually(() -> streamedQueryResult.getContinuationToken().isPresent(), is(true));
 
+    shouldReceiveStreamRows(newStreamedQueryResult, false, TEST_NUM_ROWS );
   }
 
   @Test
@@ -1294,8 +1260,11 @@ public class ClientIntegrationTest {
   }
 
   private static void verifyStreamRows(final List<Row> rows, final int numRows) {
+    List<Row> orderedRows = rows.stream()
+        .sorted(ClientTestUtil::compareRowByOrderedLong)
+        .collect(Collectors.toList());
     for (int i = 0; i < Math.min(numRows, rows.size()); i++) {
-      verifyStreamRowWithIndex(rows.get(i), i);
+      verifyStreamRowWithIndex(orderedRows.get(i), i);
     }
     if (rows.size() < numRows) {
       fail("Expected " + numRows + " but only got " + rows.size());
@@ -1310,7 +1279,10 @@ public class ClientIntegrationTest {
   }
 
   private static void verifyStreamRowWithIndex(final Row row, final int index) {
-    final KsqlArray expectedRow = TEST_EXPECTED_ROWS.get(index);
+    List<KsqlArray> orderedRows = TEST_EXPECTED_ROWS.stream()
+        .sorted(ClientTestUtil::compareKsqlArrayByOrderedLong)
+        .collect(Collectors.toList());
+    final KsqlArray expectedRow = orderedRows.get(index);
 
     // verify metadata
     assertThat(row.values(), equalTo(expectedRow));
@@ -1602,19 +1574,6 @@ public class ClientIntegrationTest {
     }, is(true));
   }
 
-  private int compareByTimestamp(final StreamedRow sr1, final StreamedRow sr2) {
-    if (sr1.getHeader().isPresent()) {
-      return -1;
-    } else if (sr2.getHeader().isPresent()) {
-      return 1;
-    } else {
-      List<Object> cols1 = new ArrayList<>(sr1.getRow().get().getColumns());
-      List<Object> cols2 = new ArrayList<>(sr2.getRow().get().getColumns());
-      return Long.compare(((Number) cols1.get(2)).longValue(),
-          ((Number) cols2.get(2)).longValue());
-    }
-  }
-
   private void assertAllPersistentQueriesRunning() {
     assertThatEventually("persistent queries check", () -> {
       for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
@@ -1630,24 +1589,5 @@ public class ClientIntegrationTest {
         is(true),
         60000,
         TimeUnit.MILLISECONDS);
-  }
-
-  private void assertFirstBatchOfRows(final List<StreamedRow> orderedRows) {
-    assertThat(orderedRows.get(0).getHeader().get().getSchema(),
-        is(LOGICAL_SCHEMA));
-    assertThat(orderedRows.get(1),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_1", "PAGE_1", 1)))));
-    assertThat(orderedRows.get(2),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_2", "PAGE_2", 2)))));
-    assertThat(orderedRows.get(3),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_4", "PAGE_3", 3)))));
-    assertThat(orderedRows.get(4),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_3", "PAGE_4", 4)))));
-    assertThat(orderedRows.get(5),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_0", "PAGE_5", 5)))));
-    assertThat(orderedRows.get(6),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_2", "PAGE_5", 6)))));
-    assertThat(orderedRows.get(7),
-        is(StreamedRow.pushRow(GenericRow.fromList(ImmutableList.of("USER_3", "PAGE_5", 7)))));
   }
 }

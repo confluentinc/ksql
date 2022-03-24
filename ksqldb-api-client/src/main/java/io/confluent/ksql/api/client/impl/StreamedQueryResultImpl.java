@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.api.client.impl;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
@@ -159,12 +159,10 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
 
   @Override
   public CompletableFuture<StreamedQueryResult> retry() {
+    if (!this.hasContinuationToken()) {
+      throw new KsqlClientException("Can only retry queries that have saved a continuation token.");
+    }
     return this.client.streamQuery(sql, properties);
-  }
-
-  @VisibleForTesting
-  public Context getContext() {
-    return ctx;
   }
 
   public static Row pollWithCallback(

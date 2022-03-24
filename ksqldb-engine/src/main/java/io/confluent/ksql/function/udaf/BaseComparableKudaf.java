@@ -26,11 +26,12 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.streams.kstream.Merger;
 
-public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFunction<T, T, T> {
+public abstract class BaseComparableKudaf<T extends Comparable<? super T>> extends
+    BaseAggregateFunction<T, T, T> {
 
   private final BiFunction<T, T, T> aggregatePrimitive;
 
-  public BaseNumberKudaf(
+  public BaseComparableKudaf(
       final String functionName,
       final Integer argIndexInValue,
       final SqlType outputSchema,
@@ -44,7 +45,7 @@ public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFun
         outputSchema,
         Collections.singletonList(
             new ParameterInfo(
-                "number",
+                "value",
                 SchemaConverters.sqlToFunctionConverter().toFunctionType(outputSchema),
                 "the value to aggregate",
                 false)

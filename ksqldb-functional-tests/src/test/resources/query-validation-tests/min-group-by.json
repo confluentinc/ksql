@@ -125,6 +125,102 @@
         {"topic": "S2", "key": 0,"value": {"MIN": "-01.79"}},
         {"topic": "S2", "key": 0,"value": {"MIN": "-01.79"}}
       ]
+    },
+    {
+      "name": "min date group by valid after 7.2.0",
+      "versions": {
+        "min": "7.2.0"
+      },
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE DATE) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value": -2147483647}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 5}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 100}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 6}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 300}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 2000}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1,"value": {"MIN":  null}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 100}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 6}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 6}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}}
+      ]
+    },
+    {
+      "name": "min timestamp group by valid after 7.2.0",
+      "versions": {
+        "min": "7.2.0"
+      },
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE TIMESTAMP) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value": -100}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 5}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 5}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 6}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 300}},
+        {"topic": "test_topic", "key": 0,"value": {"value": -2147483647}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1,"value": {"MIN":  null}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -100}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -100}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -100}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 5}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 5}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 5}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}},
+        {"topic": "S2", "key": 0,"value": {"MIN": -2147483647}}
+      ]
+    },
+    {
+      "name": "min time group by valid after 7.2.0",
+      "versions": {
+        "min": "7.2.0"
+      },
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE TIME) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE TABLE S2 as SELECT ID, min(value) as MIN FROM test group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 5}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 2647}},
+        {"topic": "test_topic", "key": 0,"value": {"value":  null}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 100}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 6}},
+        {"topic": "test_topic", "key": 100,"value": {"value": 300}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 1}},
+        {"topic": "test_topic", "key": 0,"value": {"value": 100}}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 1,"value": {"MIN":  null}},
+        {"topic": "S2", "key": 0,"value": {"MIN": 5}},
+        {"topic": "S2", "key": 0,"value": {"MIN": 5}},
+        {"topic": "S2", "key": 0,"value": {"MIN": 5}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 100}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 6}},
+        {"topic": "S2", "key": 100,"value": {"MIN": 6}},
+        {"topic": "S2", "key": 0,"value": {"MIN": 1}},
+        {"topic": "S2", "key": 0,"value": {"MIN": 1}}
+      ]
     }
   ]
 }

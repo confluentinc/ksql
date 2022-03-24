@@ -36,40 +36,40 @@ public class DecimalMaxKudafTest {
 
   @Test
   public void shouldFindCorrectMax() {
-    final DecimalMaxKudaf doubleMaxKudaf = getDecimalMaxKudaf(2);
+    final MaxKudaf<BigDecimal> decimalMaxKudaf = getMaxComparableKudaf(2);
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     BigDecimal currentMax = null;
     for (final double i: values) {
-      currentMax = doubleMaxKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMax);
+      currentMax = decimalMaxKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMax);
     }
     assertThat(currentMax, is(new BigDecimal(8.0, new MathContext(2))));
   }
 
   @Test
   public void shouldHandleNull() {
-    final DecimalMaxKudaf doubleMaxKudaf = getDecimalMaxKudaf(2);
+    final MaxKudaf<BigDecimal> decimalMaxKudaf = getMaxComparableKudaf(2);
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     BigDecimal currentMax = null;
 
     // null before any aggregation
-    currentMax = doubleMaxKudaf.aggregate(null, currentMax);
+    currentMax = decimalMaxKudaf.aggregate(null, currentMax);
     assertThat(null, equalTo(currentMax));
 
     // now send each value to aggregation and verify
     for (final double i: values) {
-      currentMax = doubleMaxKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMax);
+      currentMax = decimalMaxKudaf.aggregate(new BigDecimal(i, new MathContext(2)), currentMax);
     }
     assertThat(new BigDecimal(8.0, new MathContext(2)), equalTo(currentMax));
 
     // null should not impact result
-    currentMax = doubleMaxKudaf.aggregate(null, currentMax);
+    currentMax = decimalMaxKudaf.aggregate(null, currentMax);
     assertThat(new BigDecimal(8.0, new MathContext(2)), equalTo(currentMax));
   }
 
   @Test
   public void shouldFindCorrectMaxForMerge() {
-    final DecimalMaxKudaf doubleMaxKudaf = getDecimalMaxKudaf(3);
-    final Merger<GenericKey, BigDecimal> merger = doubleMaxKudaf.getMerger();
+    final MaxKudaf decimalMaxKudaf = getMaxComparableKudaf(3);
+    final Merger<GenericKey, BigDecimal> merger = decimalMaxKudaf.getMerger();
     final BigDecimal mergeResult1 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(12.0));
     assertThat(mergeResult1, equalTo(new BigDecimal(12.0, new MathContext(3))));
     final BigDecimal mergeResult2 = merger.apply(null, new BigDecimal(10.0), new BigDecimal(-12.0));
@@ -79,12 +79,12 @@ public class DecimalMaxKudafTest {
   }
 
 
-  private DecimalMaxKudaf getDecimalMaxKudaf(final int precision) {
+  private MaxKudaf getMaxComparableKudaf(final int precision) {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
         .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlDecimal.of(precision, 1)))
             , AggregateFunctionInitArguments.EMPTY_ARGS);
-    assertThat(aggregateFunction, instanceOf(DecimalMaxKudaf.class));
-    return  (DecimalMaxKudaf) aggregateFunction;
+    assertThat(aggregateFunction, instanceOf(MaxKudaf.class));
+    return  (MaxKudaf) aggregateFunction;
   }
 
 }

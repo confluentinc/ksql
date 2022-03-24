@@ -91,6 +91,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
@@ -699,6 +700,32 @@ public class InsertValuesExecutorTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(
         containsString("Authorization denied to Write on topic(s): [t1]"))));
+  }
+
+  @Test
+  public void shouldThrowOnClusterAuthorizationException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allAndPseudoColumnNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new ClusterAuthorizationException("The producer is not authorized to do idempotent sends"))
+        .when(producer).send(any());
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> executor.execute(statement, mock(SessionProperties.class), engine, serviceContext)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(
+        containsString("Authorization denied to Write on topic(s): [" + TOPIC_NAME + "]. "
+            + "Caused by: The producer is not authorized to do idempotent sends"))));
   }
 
   @Test

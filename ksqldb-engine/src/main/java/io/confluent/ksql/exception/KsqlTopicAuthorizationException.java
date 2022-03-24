@@ -28,10 +28,19 @@ public class KsqlTopicAuthorizationException extends TopicAuthorizationException
   public KsqlTopicAuthorizationException(
       final AclOperation operation,
       final Collection<String> topicNames) {
-    super(String.format("Authorization denied to %s on topic(s): [%s]",
-        StringUtils.capitalize(
-            operation.toString().toLowerCase()),
-            StringUtils.join(topicNames, ", ")));
+    this(operation, topicNames, "");
+  }
+
+  public KsqlTopicAuthorizationException(
+      final AclOperation operation,
+      final Collection<String> topicNames,
+      final String additionalContext) {
+    super(
+        String.format("Authorization denied to %s on topic(s): [%s]",
+            StringUtils.capitalize(operation.toString().toLowerCase()),
+            StringUtils.join(topicNames, ", "))
+        + (additionalContext.isEmpty() ? "" : ". Caused by: " + additionalContext)
+    );
   }
 
 }

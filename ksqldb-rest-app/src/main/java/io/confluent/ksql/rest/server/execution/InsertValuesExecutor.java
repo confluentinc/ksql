@@ -55,6 +55,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,6 +71,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.slf4j.Logger;
@@ -165,6 +167,20 @@ public class InsertValuesExecutor {
       final Exception rootCause = new KsqlTopicAuthorizationException(
           AclOperation.WRITE,
           e.unauthorizedTopics()
+      );
+
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
+    } catch (final ClusterAuthorizationException e) {
+      // ClusterAuthorizationException is thrown when using idempotent producers
+      // and either a topic write permission or a cluster-level idempotent write
+      // permission (only applicable for broker versions no later than 2.8) is
+      // missing. In this case, we include the error message to help the user
+      // distinguish this type of failure from other permissions exceptions
+      // such as the ones thrown above when TopicAuthorizationException is caught.
+      final Exception rootCause = new KsqlTopicAuthorizationException(
+          AclOperation.WRITE,
+          Collections.singletonList(dataSource.getKafkaTopicName()),
+          e.getMessage()
       );
 
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);

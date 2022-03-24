@@ -17,9 +17,7 @@ package io.confluent.ksql.api.client;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The result of a query (push or pull), returned as a single batch once the query has finished
@@ -45,9 +43,4 @@ public abstract class BatchedQueryResult extends CompletableFuture<List<Row>> {
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public abstract CompletableFuture<String> queryID();
 
-  public abstract boolean hasContinuationToken();
-
-  public abstract Optional<AtomicReference<String>> getContinuationToken();
-
-  public abstract BatchedQueryResult retry();
 }

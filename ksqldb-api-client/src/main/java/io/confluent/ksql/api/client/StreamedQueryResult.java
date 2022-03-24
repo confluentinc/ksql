@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.vertx.core.Context;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -99,4 +101,6 @@ public interface StreamedQueryResult extends Publisher<Row> {
 
   CompletableFuture<StreamedQueryResult> retry();
 
+  @VisibleForTesting
+  public Context getContext();
 }

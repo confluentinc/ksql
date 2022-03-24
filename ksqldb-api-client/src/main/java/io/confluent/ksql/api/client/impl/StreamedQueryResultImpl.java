@@ -46,6 +46,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private final Optional<AtomicReference<String>> continuationToken;
   private final String sql;
   private final Map<String, Object> properties;
+  private final Map<String, Object> requestProperties;
   private final ClientImpl client;
 
   StreamedQueryResultImpl(
@@ -56,6 +57,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
       final Optional<AtomicReference<String>> continuationToken,
       final String sql,
       final Map<String, Object> properties,
+      final Map<String, Object> requestProperties,
       final ClientImpl client
   ) {
     super(context);
@@ -66,6 +68,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     this.continuationToken = continuationToken;
     this.sql = sql;
     this.properties = properties;
+    this.requestProperties = requestProperties;
     this.client = client;
   }
 

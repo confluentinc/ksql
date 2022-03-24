@@ -25,7 +25,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.api.client.Row;
-import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -164,20 +163,6 @@ public class StreamedQueryResultImplTest {
 
   @Test
   public void shouldDeliverBufferedRowsIfComplete() throws Exception {
-    // Given
-    givenPublisherAcceptsOneRow();
-    completeQueryResult();
-
-    // When
-    final Row receivedRow = queryResult.poll();
-
-    // Then
-    assertThat(receivedRow, is(row));
-  }
-
-  @Test
-  public void shouldDeliverBufferedRowsAfterRetry() throws Exception {
-    StreamedQueryResult retried = queryResult.retry().get();
     // Given
     givenPublisherAcceptsOneRow();
     completeQueryResult();

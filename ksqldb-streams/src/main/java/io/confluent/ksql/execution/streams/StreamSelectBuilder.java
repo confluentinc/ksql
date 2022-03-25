@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -18,15 +18,12 @@ package io.confluent.ksql.execution.streams;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericKey.Builder;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
-import io.confluent.ksql.execution.transform.KsqlProcessingContext;
-import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -83,35 +80,28 @@ public final class StreamSelectBuilder {
     )) {
       return stream.withStream(
           stream.getStream().transform(
-                  () -> new KsTransformer<>(new KsqlTransformer<K, K>() {
-                    @Override
-                    public K transform(
-                        final K readOnlyKey,
-                        final GenericRow value,
-                        final KsqlProcessingContext ctx
-                    ) {
-                      if (keyIndices.isEmpty()) {
-                        return null;
-                      }
+            () -> new KsTransformer<>(
+                (readOnlyKey, value, ctx) -> {
+                  if (keyIndices.isEmpty()) {
+                    return null;
+                  }
 
-                      if (readOnlyKey instanceof GenericKey) {
-                        final GenericKey keys = (GenericKey) readOnlyKey;
-                        final Builder resultKeys = GenericKey.builder(keyIndices.size());
+                  if (readOnlyKey instanceof GenericKey) {
+                    final GenericKey keys = (GenericKey) readOnlyKey;
+                    final Builder resultKeys = GenericKey.builder(keyIndices.size());
 
-                        for (final int keyIndex : keyIndices) {
-                          resultKeys.append(keys.get(keyIndex));
-                        }
-
-                        return (K) resultKeys.build();
-                      } else {
-                        throw new UnsupportedOperationException();
-                      }
-
+                    for (final int keyIndex : keyIndices) {
+                      resultKeys.append(keys.get(keyIndex));
                     }
-                  },
-                  selectMapper.getTransformer(logger)
-              ),
-              selectName
+
+                    return (K) resultKeys.build();
+                  } else {
+                    throw new UnsupportedOperationException();
+                  }
+                },
+                selectMapper.getTransformer(logger)
+            ),
+            selectName
           ),
           selection.getSchema()
       );

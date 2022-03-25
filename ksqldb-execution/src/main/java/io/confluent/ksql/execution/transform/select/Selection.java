@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -64,12 +64,6 @@ public final class Selection<K> {
         : keyColumnNames;
 
     final List<Column> keyCols = sourceSchema.key();
-
-//    if (keyNames.size() != keyCols.size()) {
-//      throw new IllegalArgumentException("key name count mismatch. "
-//          + "names: " + keyNames + ", "
-//          + "keys: " + keyCols);
-//    }
 
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final ImmutableList<ColumnName> selectedKeyColumns = selectedKeys.orElse(keyCols.stream()

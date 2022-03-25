@@ -24,9 +24,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalColumn;
-import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.LogicalColumn;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 
 public class LogicalToPhysicalPlanTranslator

@@ -34,7 +34,6 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.json.PlanJsonMapper;

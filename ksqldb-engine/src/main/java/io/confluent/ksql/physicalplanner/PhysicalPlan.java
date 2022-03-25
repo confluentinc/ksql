@@ -13,8 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalplanner.nodes;
+package io.confluent.ksql.physicalplanner;
 
-public interface NodeVisiter<AcceptsT extends Node<?>, ReturnsT> {
-  ReturnsT process(AcceptsT node);
+import io.confluent.ksql.physicalplanner.nodes.Node;
+import java.util.Objects;
+
+public class PhysicalPlan {
+  private final Node<?> root;
+
+  PhysicalPlan(final Node<?> root) {
+    this.root = Objects.requireNonNull(root, "root");
+  }
+
+  public Node<?> getRoot() {
+    return root;
+  }
+
 }

@@ -22,6 +22,6 @@ public interface Node<AcceptsT extends Node<?>> {
 
   ImmutableList<LogicalColumn> getOutputSchema();
 
-  <ReturnsT> ReturnsT accept(NodeVisiter<AcceptsT, ReturnsT> visitor);
+  <ReturnsT> ReturnsT accept(NodeVisitor<AcceptsT, ReturnsT> visitor);
 
 }

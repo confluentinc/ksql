@@ -26,6 +26,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ExecutionPlan;
+import io.confluent.ksql.execution.ExecutionPlanner;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -59,6 +60,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.OutputRefinement;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -76,7 +78,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
-import io.confluent.ksql.physicalplanner.PhysicalPlanner;
+import io.confluent.ksql.physicalplanner.nodes.Node;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.QueryPlannerOptions;
@@ -760,27 +762,25 @@ final class EngineExecutor {
       throwIfUnsupported(query);
 
       final LogicalPlan logicalPlan =
-          io.confluent.ksql.logicalplanner.LogicalPlanner.buildLogicalPlan(
+          io.confluent.ksql.logicalplanner.LogicalPlanner.buildPlan(
               metaStore,
               query
           );
 
+      final io.confluent.ksql.physicalplanner.PhysicalPlan physicalPlan =
+          io.confluent.ksql.physicalplanner.PhysicalPlanner.buildPlan(
+              metaStore,
+              logicalPlan
+          );
+
       // begin stub
       // stubbing output formats and schema for now
-      final KeyFormat keyFormat = KeyFormat.nonWindowed(
-          FormatInfo.of("KAFKA"),
-          SerdeFeatures.from(Collections.emptySet())
-      );
-      final ValueFormat valueFormat = ValueFormat.of(
-          FormatInfo.of("JSON"),
-          SerdeFeatures.from(Collections.emptySet())
-      );
-      final KsqlTopic sinkTopic = new KsqlTopic("OUTPUT", keyFormat, valueFormat);
+      final Node<?> root = physicalPlan.getRoot();
 
       final Builder schemaBuilder = LogicalSchema.builder();
       logicalPlan.getRoot().getOutputSchema().forEach(
           column -> {
-            if (column.name().text().equals("ID")) {
+            if (root.keyColumnNames().contains(column.name())) {
               schemaBuilder.keyColumn(column.name(), column.type());
             } else {
               schemaBuilder.valueColumn(column.name(), column.type());
@@ -793,10 +793,10 @@ final class EngineExecutor {
           new StubbedOutputNode(
               ksqlConfig,
               metaStore.getSource(logicalPlan.getSourceNames().stream().findFirst().get()),
-              sinkTopic,
+              getSinkTopic(root.getFormats(), sink.get()),
               schemaBuilder.build()
           ),
-          PhysicalPlanner.buildPhysicalPlan(metaStore, logicalPlan)
+          ExecutionPlanner.buildPlan(metaStore, physicalPlan, sink.get())
       );
     } else {
       final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
@@ -848,6 +848,50 @@ final class EngineExecutor {
 
       return new ExecutorPlans(logicalPlan.getNode().get(), executionPlan);
     }
+  }
+
+  private static KsqlTopic getSinkTopic(
+      final Formats formats,
+      final Sink sink
+  ) {
+    final FormatInfo keyFormatInfo;
+    final FormatInfo valueFormatInfo;
+    final SerdeFeatures keyFeatures;
+    final SerdeFeatures valueFeatures;
+
+    final CreateSourceAsProperties properties = sink.getProperties();
+    final Optional<String> keyFormatName = properties.getKeyFormat();
+    if (keyFormatName.isPresent()) {
+      keyFormatInfo = FormatInfo.of(keyFormatName.get());
+      keyFeatures = SerdeFeatures.of(); // to-do
+    } else {
+      keyFormatInfo = formats.getKeyFormat();
+      keyFeatures = formats.getKeyFeatures();
+    }
+
+    final Optional<String> valueFormatName = properties.getValueFormat();
+    if (valueFormatName.isPresent()) {
+      valueFormatInfo = FormatInfo.of(valueFormatName.get());
+      valueFeatures = SerdeFeatures.of(); // to-do
+    } else {
+      valueFormatInfo = formats.getValueFormat();
+      valueFeatures = formats.getValueFeatures();
+    }
+
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(
+        keyFormatInfo,
+        keyFeatures
+    );
+    final ValueFormat valueFormat = ValueFormat.of(
+        valueFormatInfo,
+        valueFeatures
+    );
+
+    return new KsqlTopic(
+        sink.getName().text(),
+        keyFormat,
+        valueFormat
+    );
   }
 
   private static final class StubbedOutputNode extends KsqlStructuredDataOutputNode {

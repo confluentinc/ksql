@@ -29,7 +29,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownColumnException;
 import java.util.Objects;
 
-public class SelectNode extends SingleInputNode<SelectNode> {
+public final class SelectNode extends SingleInputNode<SelectNode> {
   final ImmutableList<LogicalColumn> outputSchema;
 
   public SelectNode(
@@ -84,7 +84,7 @@ public class SelectNode extends SingleInputNode<SelectNode> {
     return input;
   }
 
-  public <ReturnsT> ReturnsT accept(final NodeVisiter<SelectNode, ReturnsT> visitor) {
+  public <ReturnsT> ReturnsT accept(final NodeVisitor<SelectNode, ReturnsT> visitor) {
     return visitor.process(this);
   }
 }

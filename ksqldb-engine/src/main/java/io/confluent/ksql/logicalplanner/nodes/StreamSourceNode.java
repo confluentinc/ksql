@@ -18,13 +18,13 @@ package io.confluent.ksql.logicalplanner.nodes;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
-public class StreamSourceNode extends SourceNode<StreamSourceNode> {
+public final class StreamSourceNode extends SourceNode<StreamSourceNode> {
 
   public StreamSourceNode(final SourceName sourceName, final LogicalSchema simpleSchema) {
     super(sourceName, simpleSchema);
   }
 
-  public <ReturnsT> ReturnsT accept(final NodeVisiter<StreamSourceNode, ReturnsT> visitor) {
+  public <ReturnsT> ReturnsT accept(final NodeVisitor<StreamSourceNode, ReturnsT> visitor) {
     return visitor.process(this);
   }
 

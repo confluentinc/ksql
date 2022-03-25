@@ -13,22 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.logicalplanner.nodes;
+package io.confluent.ksql.physicalplanner.nodes;
 
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-
-public final class TableSourceNode extends SourceNode<TableSourceNode> {
-
-  public TableSourceNode(
-      final SourceName sourceName,
-      final LogicalSchema simpleSchema
-  ) {
-    super(sourceName, simpleSchema);
-  }
-
-  public <ReturnsT> ReturnsT accept(final NodeVisitor<TableSourceNode, ReturnsT> visitor) {
-    return visitor.process(this);
-  }
-
+public interface NodeVisitor<AcceptsT extends Node<?>, ReturnsT> {
+  ReturnsT process(AcceptsT node);
 }

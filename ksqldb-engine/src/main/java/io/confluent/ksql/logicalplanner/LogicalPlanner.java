@@ -29,11 +29,16 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import java.util.Objects;
 
+/**
+ * The {@code LogicalPlanner} takes a {@link Query} (ie, AST representation)
+ * and converts it into a {@link LogicalPlan} that is a graph of logical
+ * {@link io.confluent.ksql.logicalplanner.nodes.Node}s.
+ */
 public final class LogicalPlanner {
 
   private LogicalPlanner() {}
 
-  public static LogicalPlan buildLogicalPlan(
+  public static LogicalPlan buildPlan(
       final MetaStore metaStore,
       final Query query
   ) {

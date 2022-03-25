@@ -282,6 +282,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       if (sandbox) {
         throwOnNonQueryLevelConfigs(config.getOverrides());
         streams.addAll(sourceStreams.stream()
+            .filter(t -> t.getApplicationId().equals(sharedRuntimeId.get()))
             .map(SandboxedSharedKafkaStreamsRuntimeImpl::new)
             .collect(Collectors.toList()));
       }

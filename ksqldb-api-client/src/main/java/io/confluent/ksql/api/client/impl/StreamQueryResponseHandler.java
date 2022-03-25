@@ -27,7 +27,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
@@ -69,7 +68,7 @@ public class StreamQueryResponseHandler
         queryResponseMetadata.queryId,
         queryResponseMetadata.columnNames,
         RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes),
-        Optional.ofNullable(continuationToken),
+        continuationToken,
         sql,
         properties,
         client
@@ -106,10 +105,6 @@ public class StreamQueryResponseHandler
         LOG.info("Response contains consistency vector " + jsonObject);
         serializedConsistencyVector.set((String) ((JsonObject) json).getMap().get(
             "consistencyToken"));
-      } else {
-        queryResult.handleError(new KsqlException(
-            jsonObject.getString("message")
-        ));
       }
       if (jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken")) {
         LOG.info("Response contains continuation token " + jsonObject);

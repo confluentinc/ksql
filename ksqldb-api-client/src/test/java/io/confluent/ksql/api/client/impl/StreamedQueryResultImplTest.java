@@ -30,7 +30,6 @@ import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -89,7 +88,7 @@ public class StreamedQueryResultImplTest {
     }).when(subscriber).onError(any());
 
     queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(),
-        Collections.emptyList(), Optional.empty(), null, null, null);
+        Collections.emptyList(), null, null, null, null);
   }
 
   @Test
@@ -175,15 +174,15 @@ public class StreamedQueryResultImplTest {
   }
 
   @Test
-  public void shouldThrowOnRetryIfNoContinuationToken() {
+  public void shouldThrowOnContinueIfNoContinuationToken() {
     // When
     final Exception e = assertThrows(
         KsqlClientException.class,
-        () -> queryResult.retry().get()
+        () -> queryResult.continueFromLastContinuationToken().get()
     );
 
     // Then
-    assertThat(e.getMessage(), containsString("Can only retry queries that have saved a continuation token."));
+    assertThat(e.getMessage(), containsString("Can only continue queries that have saved a continuation token."));
   }
 
   @Test

@@ -28,7 +28,6 @@ import io.vertx.core.logging.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
@@ -43,7 +42,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
-  private final Optional<AtomicReference<String>> continuationToken;
+  private final AtomicReference<String> continuationToken;
   private final String sql;
   private final Map<String, Object> properties;
   private final ClientImpl client;
@@ -53,7 +52,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
       final String queryId,
       final List<String> columnNames,
       final List<ColumnType> columnTypes,
-      final Optional<AtomicReference<String>> continuationToken,
+      final AtomicReference<String> continuationToken,
       final String sql,
       final Map<String, Object> properties,
       final ClientImpl client
@@ -144,20 +143,20 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
     log.error("Unexpected error while polling: " + t);
   }
 
-  @Override
   public boolean hasContinuationToken() {
-    return this.continuationToken.isPresent() && this.continuationToken.get().get() != null;
+    return this.continuationToken.get() != "";
   }
 
-  @Override
-  public Optional<AtomicReference<String>> getContinuationToken() {
+
+  public AtomicReference<String> getContinuationToken() {
     return this.continuationToken;
   }
 
   @Override
-  public CompletableFuture<StreamedQueryResult> retry() {
+  public CompletableFuture<StreamedQueryResult> continueFromLastContinuationToken() {
     if (!this.hasContinuationToken()) {
-      throw new KsqlClientException("Can only retry queries that have saved a continuation token.");
+      throw new KsqlClientException(
+          "Can only continue queries that have saved a continuation token.");
     }
     return this.client.streamQuery(sql, properties);
   }

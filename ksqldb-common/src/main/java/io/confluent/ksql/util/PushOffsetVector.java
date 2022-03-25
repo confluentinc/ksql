@@ -165,14 +165,16 @@ public class PushOffsetVector implements OffsetVector {
     return Objects.equals(offsets.get(), that.offsets.get());
   }
 
-  public static boolean isContinuationTokenEnabled(final Map<String, Object> requestProperties) {
-    final Object continuationTokenEnabled
-            = requestProperties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
+  public static boolean isContinuationTokenEnabled(final Map<String, Object> properties) {
+    final Object pushV2Enabled
+            = properties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED);
+    final Object pushV2ALOSEnabled
+        = properties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
 
-    if (continuationTokenEnabled instanceof Boolean) {
-      return (boolean) continuationTokenEnabled;
+    if (pushV2Enabled instanceof Boolean && pushV2ALOSEnabled instanceof Boolean) {
+      return (boolean) pushV2Enabled && (boolean) pushV2ALOSEnabled;
     }
 
-    return KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED_DEFAULT;
+    return KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT;
   }
 }

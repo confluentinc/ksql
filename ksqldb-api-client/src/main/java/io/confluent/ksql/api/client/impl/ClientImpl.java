@@ -39,6 +39,7 @@ import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.PushOffsetVector;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
@@ -121,7 +122,7 @@ public class ClientImpl implements Client {
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
     this.sessionVariables = new HashMap<>();
     this.serializedConsistencyVector = new AtomicReference<>("");
-    this.continuationToken = new AtomicReference<>();
+    this.continuationToken = new AtomicReference<>("");
     this.requestProperties = new HashMap<>();
     this.client = this;
   }
@@ -141,11 +142,15 @@ public class ClientImpl implements Client {
           KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
           serializedConsistencyVector.get());
     }
-    if (PushOffsetVector.isContinuationTokenEnabled(properties)
-        && continuationToken.get() != null) {
-      requestProperties.put(
-              KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
-              continuationToken.get());
+    if (PushOffsetVector.isContinuationTokenEnabled(properties)) {
+      properties.put(
+          KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
+          true);
+      if (continuationToken.get() != "") {
+        requestProperties.put(
+            KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
+            continuationToken.get());
+      }
     }
     final CompletableFuture<StreamedQueryResult> cf = new CompletableFuture<>();
     makeQueryRequest(sql, properties, cf,

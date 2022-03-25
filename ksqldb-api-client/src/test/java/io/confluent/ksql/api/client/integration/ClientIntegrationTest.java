@@ -70,6 +70,7 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
+import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
@@ -628,11 +629,11 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldRetryStreamPushQueryV2AfterNetworkFault() throws Exception {
-    final String streamName = "SPQV2";
+    final String streamName = "SOURCE_SPQV2";
     makeKsqlRequest("CREATE STREAM " + streamName + " AS "
         + "SELECT * FROM " + TEST_STREAM + ";"
     );
-    final String PUSH_QUERY_V2_WITH_LIMIT =
+    final String PUSH_QUERY_V2 =
         "SELECT * FROM " + streamName + " EMIT CHANGES;";
 
     final Map<String, Object> properties = new HashMap<>();
@@ -644,7 +645,7 @@ public class ClientIntegrationTest {
     assertAllPersistentQueriesRunning();
 
     // When
-    final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2_WITH_LIMIT, properties).get();
+    final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2, properties).get();
 
     assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
@@ -653,13 +654,13 @@ public class ClientIntegrationTest {
 
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
 
-    assertThatEventually(() -> oldStreamedQueryResult.hasContinuationToken(), is(true));
-    final String oldContinuationToken = oldStreamedQueryResult.getContinuationToken().get().get();
+    assertThatEventually(() -> ((StreamedQueryResultImpl) oldStreamedQueryResult).hasContinuationToken(), is(true));
+    final String oldContinuationToken = ((StreamedQueryResultImpl) oldStreamedQueryResult).getContinuationToken().get();
 
     shouldReceiveStreamRows(oldStreamedQueryResult, false, TEST_NUM_ROWS );
 
     // Continuation token should get updated
-    assertThatEventually(() -> oldContinuationToken.equals(oldStreamedQueryResult.getContinuationToken().get().get()), is(false));
+    assertThatEventually(() -> oldContinuationToken.equals(((StreamedQueryResultImpl) oldStreamedQueryResult).getContinuationToken().get()), is(false));
 
     // Mimic a network fault by abruptly stopping and starting the server
     try {
@@ -669,7 +670,7 @@ public class ClientIntegrationTest {
     REST_APP.start();
     assertAllPersistentQueriesRunning();
 
-    final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.retry().get();
+    final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.continueFromLastContinuationToken().get();
 
     assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));

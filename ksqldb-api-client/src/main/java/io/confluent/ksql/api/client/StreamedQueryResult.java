@@ -17,9 +17,7 @@ package io.confluent.ksql.api.client;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
 
 /**
@@ -93,9 +91,16 @@ public interface StreamedQueryResult extends Publisher<Row> {
    */
   boolean isFailed();
 
-  boolean hasContinuationToken();
-
-  Optional<AtomicReference<String>> getContinuationToken();
-
-  CompletableFuture<StreamedQueryResult> retry();
+  /**
+   * Returns a new {@code StreamedQueryResult} which starts returning results from the last saved
+   * continuation token.
+   *
+   * <p>This method will only work for push queries V2 when continuation tokens have also been
+   * enabled. It will not work for regular push queries or pull queries. This method will throw an
+   * error if there is no continuation token saved.
+   *
+   * @return a new {@code StreamedQueryResult} that starts returning results from the last saved
+   * continuation token.
+   */
+  CompletableFuture<StreamedQueryResult> continueFromLastContinuationToken();
 }

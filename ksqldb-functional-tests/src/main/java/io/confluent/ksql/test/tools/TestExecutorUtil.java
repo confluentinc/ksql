@@ -490,14 +490,12 @@ public final class TestExecutorUtil {
           schemaInjector
               .map(injector -> injector.inject(withFormats))
               .orElse((ConfiguredStatement) withFormats);
-      final ConfiguredStatement<?> reformatted =
-          new SqlFormatInjector(executionContext).inject(withSchema);
 
       final KsqlPlan plan = executionContext
-          .plan(executionContext.getServiceContext(), reformatted);
+          .plan(executionContext.getServiceContext(), withSchema);
 
       return new PlannedStatement(
-          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+          ConfiguredKsqlPlan.of(rewritePlan(plan), withSchema.getSessionConfig())
       );
     }
 

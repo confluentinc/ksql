@@ -168,11 +168,11 @@ public class PushOffsetVector implements OffsetVector {
   public static boolean isContinuationTokenEnabled(final Map<String, Object> properties) {
     final Object pushV2Enabled
             = properties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED);
-    final Object pushV2ALOSEnabled
+    final Object pushV2AlosEnabled
         = properties.get(KsqlConfig.KSQL_QUERY_PUSH_V2_ALOS_ENABLED);
 
-    if (pushV2Enabled instanceof Boolean && pushV2ALOSEnabled instanceof Boolean) {
-      return (boolean) pushV2Enabled && (boolean) pushV2ALOSEnabled;
+    if (pushV2Enabled instanceof Boolean && pushV2AlosEnabled instanceof Boolean) {
+      return (boolean) pushV2Enabled && (boolean) pushV2AlosEnabled;
     }
 
     return KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED_DEFAULT;

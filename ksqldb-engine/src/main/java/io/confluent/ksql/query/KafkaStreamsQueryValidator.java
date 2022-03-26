@@ -24,12 +24,19 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 import scala.Int;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KafkaStreamsQueryValidator implements QueryValidator {
+  private static final Logger LOG = LoggerFactory.getLogger(KafkaStreamsQueryValidator.class);
+
   @Override
   public void validateQuery(
       final SessionConfig config,
@@ -83,19 +90,26 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
           .mapToLong(r -> new StreamsConfig(r.getStreamsProperties())
               .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
           .sum();
-      usedByRunning += running.stream()
-          .filter(t -> t instanceof BinPackedPersistentQueryMetadataImpl)
-          .collect(HashMap<String, Long>::new,
-              (r, e) ->
-                  r.put(
-                      e.getQueryApplicationId(),
-                      (Long) e.getStreamsProperties()
-                          .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)),
-              (r, l) -> l.putAll(r))
-          .values()
-          .stream()
-          .mapToLong(t -> t)
-          .sum();
+      final Set<String> runtimes = new HashSet<>();
+      Long maxCache = -1L;
+      for(final QueryMetadata queryMetadata: running) {
+        if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
+          if (maxCache == -1L) {
+            maxCache = (Long) queryMetadata.getStreamsProperties()
+                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+          }
+          if (!runtimes.contains(queryMetadata.getQueryApplicationId())) {
+            runtimes.add(queryMetadata.getQueryApplicationId());
+            usedByRunning += (Long) queryMetadata.getStreamsProperties()
+                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
+          } else {
+            if (!Objects.equals(maxCache, (Long) queryMetadata.getStreamsProperties()
+                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))){
+                LOG.warn("Inconsistent " + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG + " in shared runtimes");
+            }
+          }
+        }
+      }
     }
     if (configured + usedByRunning > limit) {
       throw new KsqlException(String.format(

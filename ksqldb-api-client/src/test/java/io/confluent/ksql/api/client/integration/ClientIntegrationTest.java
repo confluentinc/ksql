@@ -683,7 +683,7 @@ public class ClientIntegrationTest {
     assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
 
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_MORE_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
 
     shouldReceiveStreamRows(newStreamedQueryResult, false, TEST_MORE_NUM_ROWS, TEST_MORE_EXPECTED_ROWS);
   }

@@ -37,11 +37,12 @@ public class RuntimeAssignor {
   private final Map<String, Collection<SourceName>> runtimesToSources;
   private final Map<QueryId, String> idToRuntime;
   private final Logger log = LoggerFactory.getLogger(RuntimeAssignor.class);
+  private final int runtimes;
 
   public RuntimeAssignor(final KsqlConfig config) {
     runtimesToSources = new HashMap<>();
     idToRuntime = new HashMap<>();
-    final int runtimes = config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT);
+    runtimes = config.getInt(KsqlConfig.KSQL_SHARED_RUNTIMES_COUNT);
     for (int i = 0; i < runtimes; i++) {
       final String runtime = buildSharedRuntimeId(config, true, i);
       runtimesToSources.put(runtime, new HashSet<>());
@@ -49,6 +50,7 @@ public class RuntimeAssignor {
   }
 
   private RuntimeAssignor(final RuntimeAssignor other) {
+    runtimes = other.runtimes;
     this.runtimesToSources = new HashMap<>();
     this.idToRuntime = new HashMap<>(other.idToRuntime);
     for (Map.Entry<String, Collection<SourceName>> runtime
@@ -97,6 +99,10 @@ public class RuntimeAssignor {
       runtimesToSources.get(queryMetadata.getQueryApplicationId())
           .removeAll(queryMetadata.getSourceNames());
       idToRuntime.remove(queryMetadata.getQueryId());
+      if (runtimesToSources.get(queryMetadata.getQueryApplicationId()).isEmpty()
+          && runtimesToSources.size() >= runtimes) {
+        runtimesToSources.remove(queryMetadata.getQueryApplicationId());
+      }
     }
   }
 

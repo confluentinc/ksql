@@ -634,7 +634,7 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldRetryStreamPushQueryV2AfterNetworkFault() throws Exception {
+  public void shouldContinueStreamPushQueryV2AfterNetworkFault() throws Exception {
     final String streamName = "SOURCE_SPQV2";
     makeKsqlRequest("CREATE STREAM " + streamName + " AS "
         + "SELECT * FROM " + TEST_STREAM + ";"
@@ -660,7 +660,7 @@ public class ClientIntegrationTest {
 
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
 
-    assertThatEventually(() -> ((StreamedQueryResultImpl) oldStreamedQueryResult).hasContinuationToken(), is(true));
+    assertThatEventually(((StreamedQueryResultImpl) oldStreamedQueryResult)::hasContinuationToken, is(true));
     final String oldContinuationToken = ((StreamedQueryResultImpl) oldStreamedQueryResult).getContinuationToken().get();
 
     shouldReceiveStreamRows(oldStreamedQueryResult, false, TEST_NUM_ROWS );

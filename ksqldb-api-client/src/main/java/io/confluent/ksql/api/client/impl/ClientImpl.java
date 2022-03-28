@@ -146,7 +146,7 @@ public class ClientImpl implements Client {
       properties.put(
           KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED,
           true);
-      if (continuationToken.get() != "") {
+      if (!continuationToken.get().equalsIgnoreCase("")) {
         requestProperties.put(
             KsqlRequestConfig.KSQL_REQUEST_QUERY_PUSH_CONTINUATION_TOKEN,
             continuationToken.get());

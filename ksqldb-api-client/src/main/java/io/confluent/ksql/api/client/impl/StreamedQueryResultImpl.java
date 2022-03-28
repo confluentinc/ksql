@@ -144,10 +144,10 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   }
 
   public boolean hasContinuationToken() {
-    return this.continuationToken.get() != "";
+    return !this.continuationToken.get().equalsIgnoreCase("");
   }
 
-
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public AtomicReference<String> getContinuationToken() {
     return this.continuationToken;
   }

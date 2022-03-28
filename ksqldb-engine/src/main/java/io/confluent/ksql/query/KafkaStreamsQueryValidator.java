@@ -92,7 +92,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
           .sum();
       final Set<String> runtimes = new HashSet<>();
       Long maxCache = -1L;
-      for(final QueryMetadata queryMetadata: running) {
+      for (final QueryMetadata queryMetadata: running) {
         if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
           if (maxCache == -1L) {
             maxCache = (Long) queryMetadata.getStreamsProperties()
@@ -104,8 +104,10 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
                 .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
           } else {
             if (!Objects.equals(maxCache, (Long) queryMetadata.getStreamsProperties()
-                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))){
-                LOG.warn("Inconsistent " + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG + " in shared runtimes");
+                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))) {
+              LOG.warn("Inconsistent "
+                  + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG
+                  + " in shared runtimes");
             }
           }
         }

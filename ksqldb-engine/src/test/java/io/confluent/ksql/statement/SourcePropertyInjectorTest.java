@@ -33,7 +33,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
 @RunWith(MockitoJUnitRunner.class)
 public class SourcePropertyInjectorTest {
 
@@ -90,8 +89,6 @@ public class SourcePropertyInjectorTest {
     final ConfiguredStatement<CreateSource> configured = injector.inject(csStatement);
 
     // Then:
-    verify(originalCSProps).withUnwrapProtobufPrimitives(true);
-
     assertThat(configured.getStatement(), is(csWithUnwrapping));
   }
 
@@ -101,8 +98,6 @@ public class SourcePropertyInjectorTest {
     final ConfiguredStatement<CreateAsSelect> configured = injector.inject(csasStatement);
 
     // Then:
-    verify(originalCsasProps).withUnwrapProtobufPrimitives(true);
-
     assertThat(configured.getStatement(), is(csasWithUnwrapping));
   }
 

@@ -259,7 +259,8 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
         .buildNamedTopologyWrapper(streamsProperties);
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;
     for (final NamedTopology topology : liveTopologies) {
-      final BinPackedPersistentQueryMetadataImpl query = collocatedQueries.get(topology.name());
+      final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
+          .get(new QueryId(topology.name()));
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);

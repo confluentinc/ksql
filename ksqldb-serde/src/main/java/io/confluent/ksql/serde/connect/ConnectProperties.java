@@ -30,7 +30,7 @@ public abstract class ConnectProperties {
   public static final String FULL_SCHEMA_NAME = "fullSchemaName";
   public static final String SCHEMA_ID = "schemaId";
 
-  private final ImmutableMap<String, String> properties;
+  protected final ImmutableMap<String, String> properties;
 
   public ConnectProperties(final String formatName, final Map<String, String> formatProps) {
     this.properties = ImmutableMap.copyOf(formatProps);

@@ -29,7 +29,9 @@ import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_SCHEMA
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
@@ -46,6 +48,8 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.connect.ConnectProperties;
 import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
@@ -175,7 +179,8 @@ public class CreateSourceAsPropertiesTest {
         ImmutableMap.of(VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema")));
 
     // Then:
-    assertThat(properties.getValueFormatProperties().get(ConnectProperties.FULL_SCHEMA_NAME), is("schema"));
+    assertThat(properties.getValueFormatProperties(AvroFormat.NAME).get(ConnectProperties.FULL_SCHEMA_NAME),
+        is("schema"));
   }
 
   @Test
@@ -188,7 +193,7 @@ public class CreateSourceAsPropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getValueFormatProperties(),
+    assertThat(properties.getValueFormatProperties(ProtobufFormat.NAME),
         hasEntry(ConnectProperties.FULL_SCHEMA_NAME, "schema"));
   }
 
@@ -294,6 +299,10 @@ public class CreateSourceAsPropertiesTest {
         .addEqualityGroup(
             CreateSourceAsProperties.from(ImmutableMap.of())
         )
+        .addEqualityGroup(
+            CreateSourceAsProperties.from(ImmutableMap.of())
+                .withUnwrapProtobufPrimitives(true)
+        )
         .testEquals();
   }
 
@@ -386,7 +395,7 @@ public class CreateSourceAsPropertiesTest {
     // When / Then:
     assertThat(props.getKeyFormatProperties("foo", "Avro"),
         hasEntry(ConnectProperties.SCHEMA_ID, "123"));
-    assertThat(props.getValueFormatProperties(), hasEntry(ConnectProperties.SCHEMA_ID, "456"));
+    assertThat(props.getValueFormatProperties(AvroFormat.NAME), hasEntry(ConnectProperties.SCHEMA_ID, "456"));
   }
 
   @Test
@@ -405,5 +414,51 @@ public class CreateSourceAsPropertiesTest {
     assertThat(e.getMessage(), containsString("Cannot supply both 'VALUE_FORMAT' and 'FORMAT' properties, "
         + "as 'FORMAT' sets both key and value formats."));
     assertThat(e.getMessage(), containsString("Either use just 'FORMAT', or use 'KEY_FORMAT' and 'VALUE_FORMAT'."));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithUnwrapping() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")))
+        .withUnwrapProtobufPrimitives(true);
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+  }
+
+  @Test
+  public void shouldGetProtobufKeyFormatPropertiesWithoutUnwrapping() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")));
+
+    // When / Then:
+    assertThat(props.getKeyFormatProperties("foo", "PROTOBUF"),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithUnwrapping() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")))
+        .withUnwrapProtobufPrimitives(true);
+
+    // When / Then:
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
+        hasEntry(ProtobufProperties.UNWRAP_PRIMITIVES, ProtobufProperties.UNWRAP));
+  }
+
+  @Test
+  public void shouldGetProtobufValueFormatPropertiesWithoutUnwrapping() {
+    // Given:
+    final CreateSourceAsProperties props = CreateSourceAsProperties
+        .from(ImmutableMap.of(FORMAT_PROPERTY, new StringLiteral("PROTOBUF")));
+
+    // When / Then:
+    assertThat(props.getValueFormatProperties("PROTOBUF"),
+        not(hasKey(ProtobufProperties.UNWRAP_PRIMITIVES)));
   }
 }

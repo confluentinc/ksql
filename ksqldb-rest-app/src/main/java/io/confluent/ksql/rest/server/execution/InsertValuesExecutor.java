@@ -184,7 +184,10 @@ public class InsertValuesExecutor {
           // message below, but until this error message is improved on the Kafka
           // side, e.getMessage() is not helpful. (Today it is just "Cluster
           // authorization failed.")
-          "The producer is not authorized to do idempotent sends"
+          "The producer is not authorized to do idempotent sends. "
+              + "Check that you have write permissions to the specified topic, "
+              + "and disable idempotent sends by setting 'enable.idempotent=false' "
+              + " if necessary."
       );
 
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);

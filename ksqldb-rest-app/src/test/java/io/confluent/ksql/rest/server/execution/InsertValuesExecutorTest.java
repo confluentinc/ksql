@@ -725,7 +725,10 @@ public class InsertValuesExecutorTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(
         containsString("Authorization denied to Write on topic(s): [" + TOPIC_NAME + "]. "
-            + "Caused by: The producer is not authorized to do idempotent sends"))));
+            + "Caused by: The producer is not authorized to do idempotent sends. "
+            + "Check that you have write permissions to the specified topic, "
+            + "and disable idempotent sends by setting 'enable.idempotent=false' "
+            + " if necessary."))));
   }
 
   @Test

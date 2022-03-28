@@ -162,7 +162,7 @@ For example:
 {
   "name": "test only valid for versions at or after 5.4",
   "versions": {
-     "max": "5.4"  
+     "min": "5.4"  
   }  
 },
 {

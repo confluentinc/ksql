@@ -178,10 +178,8 @@ public final class KsqlEngineTestUtil {
         schemaInjector
             .map(injector -> injector.inject(withFormats))
             .orElse((ConfiguredStatement) withFormats);
-    final ConfiguredStatement<?> reformatted =
-        new SqlFormatInjector(executionContext).inject(withSchema);
     try {
-      return executionContext.execute(serviceContext, reformatted);
+      return executionContext.execute(serviceContext, withSchema);
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

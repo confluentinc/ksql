@@ -632,62 +632,7 @@ public class ClientIntegrationTest {
 
     assertThat(streamedQueryResult.isComplete(), is(true));
   }
-
-  @Test
-  public void shouldContinueStreamPushQueryV2AfterNetworkFault() throws Exception {
-    final String streamName = "SOURCE_SPQV2";
-    makeKsqlRequest("CREATE STREAM " + streamName + " AS "
-        + "SELECT * FROM " + TEST_STREAM + ";"
-    );
-    final String PUSH_QUERY_V2 =
-        "SELECT * FROM " + streamName + " EMIT CHANGES;";
-
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put("ksql.query.push.v2.enabled", true);
-    properties.put("ksql.query.push.v2.registry.installed", true);
-    properties.put("auto.offset.reset", "latest");
-    properties.put("ksql.query.push.v2.continuation.tokens.enabled", true);
-
-    assertAllPersistentQueriesRunning();
-
-    // When
-    final StreamedQueryResult oldStreamedQueryResult = client.streamQuery(PUSH_QUERY_V2, properties).get();
-
-    assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
-    assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
-    assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
-    assertExpectedScalablePushQueries(1);
-
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
-
-    assertThatEventually(((StreamedQueryResultImpl) oldStreamedQueryResult)::hasContinuationToken, is(true));
-    final String oldContinuationToken = ((StreamedQueryResultImpl) oldStreamedQueryResult).getContinuationToken().get();
-
-    shouldReceiveStreamRows(oldStreamedQueryResult, false, TEST_NUM_ROWS );
-
-    // Continuation token should get updated
-    assertThatEventually(() -> oldContinuationToken.equals(((StreamedQueryResultImpl) oldStreamedQueryResult).getContinuationToken().get()), is(false));
-
-    // Mimic a network fault by abruptly stopping and starting the server
-    try {
-      REST_APP.stop();
-    } catch(Exception exception) {
-    }
-    REST_APP.start();
-    assertAllPersistentQueriesRunning();
-
-    final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.continueFromLastContinuationToken().get();
-
-    assertThat(oldStreamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
-    assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
-    assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
-    assertExpectedScalablePushQueries(1);
-
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_MORE_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
-
-    shouldReceiveStreamRows(newStreamedQueryResult, false, TEST_MORE_NUM_ROWS, TEST_MORE_EXPECTED_ROWS);
-  }
-
+  
   @Test
   public void shouldHandleErrorResponseFromStreamQuery() {
     // When

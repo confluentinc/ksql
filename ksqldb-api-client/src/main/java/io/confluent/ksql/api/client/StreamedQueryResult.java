@@ -99,8 +99,7 @@ public interface StreamedQueryResult extends Publisher<Row> {
    * enabled. It will not work for regular push queries or pull queries. This method will throw an
    * error if there is no continuation token saved.
    *
-   * @return a new {@code StreamedQueryResult} that starts returning results from the last saved
-   * continuation token.
+   * @return a new {@code StreamedQueryResult} that continues from last continuation token.
    */
   CompletableFuture<StreamedQueryResult> continueFromLastContinuationToken();
 }

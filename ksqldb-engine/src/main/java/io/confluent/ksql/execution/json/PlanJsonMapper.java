@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.json;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
@@ -40,6 +41,7 @@ public enum PlanJsonMapper {
           new KsqlTypesSerializationModule(),
           new KsqlTypesDeserializationModule()
       )
+      .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
       .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
       .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
       .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)

@@ -25,9 +25,9 @@ import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.processor.ProcessorContext;
 
 /**
- * A Kafka-streams transformer
+ * A Kafka-streams value-transformer
  *
- * <p>Maps a implementation agnostic {@link KsqlTransformer} to a implementation specific {@link
+ * <p>Maps an implementation agnostic {@link KsqlTransformer} to a implementation specific {@link
  * ValueTransformerWithKey}.
  *
  * @param <K> the type of the key

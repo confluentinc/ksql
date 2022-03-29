@@ -1,34 +1,8 @@
 {
   "comments": [
-    "Tests covering general SELECT clause, a.k.a projection, handling",
-    "Manually tests `new query planner test` with all key combination:",
-    " - `name` only (as below)",
-    " - `id1` only",
-    " - `id2` only",
-    " - `id2, id1` (reverse order)"
+    "Tests covering general SELECT clause, a.k.a projection, handling"
   ],
   "tests": [
-    {
-      "name": "new query planner test",
-      "statements": [
-        "CREATE STREAM INPUT (id1 INT KEY, id2 INT KEY, name STRING, foo STRING) WITH (kafka_topic='test_topic', format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT name FROM INPUT;"
-      ],
-      "properties": {
-        "ksql.new.query.planner.enabled": "true"
-      },
-      "inputs": [
-        {"topic":  "test_topic", "key": {"id1": 1, "id2": 10}, "value": {"name": "a", "foo":  "b"}}
-      ],
-      "outputs": [
-        {"topic":  "OUTPUT", "key": null, "value": {"NAME": "a"}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "NAME STRING"}
-        ]
-      }
-    },
     {
       "name": "key column",
       "statements": [

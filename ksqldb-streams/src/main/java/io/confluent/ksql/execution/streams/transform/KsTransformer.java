@@ -25,6 +25,15 @@ import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Transformer;
 import org.apache.kafka.streams.processor.ProcessorContext;
 
+/**
+ * A Kafka-streams transformer
+ *
+ * <p>Maps two implementation agnostic {@link KsqlTransformer KsqlTransformers}
+ * (one for the key and one for the value) to an implementation specific {@link Transformer}.
+ *
+ * @param <KInT> the type of the key
+ * @param <KOutT> the return type for the key
+ */
 public class KsTransformer<KInT, KOutT>
     implements Transformer<KInT, GenericRow, KeyValue<KOutT, GenericRow>> {
 

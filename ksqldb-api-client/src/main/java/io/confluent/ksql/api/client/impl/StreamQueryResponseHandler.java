@@ -80,6 +80,7 @@ public class StreamQueryResponseHandler
   @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   protected void handleRow(final Buffer buff) {
+    LOG.info("NATEA client row {}", buff);
     if (queryResult == null) {
       throw new IllegalStateException("handleRow called before metadata processed");
     }

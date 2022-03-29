@@ -130,6 +130,7 @@ public class PushV2ClientContinueIntegrationTest {
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
+      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW, 0L)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED, true)
@@ -148,7 +149,6 @@ public class PushV2ClientContinueIntegrationTest {
   @BeforeClass
   public static void setUpClass() throws Exception {
     TEST_HARNESS.ensureTopics(TEST_TOPIC);
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
   }
 
@@ -208,10 +208,13 @@ public class PushV2ClientContinueIntegrationTest {
     // Mimic a network fault by abruptly stopping and starting the server
     try {
       REST_APP.stop();
-    } catch(Exception exception) {
+    } catch(Exception ignored) {
     }
     REST_APP.start();
     assertAllPersistentQueriesRunning();
+    // Wait for the existing connection to be unregistered
+//    assertThatEventually(
+//        () -> Iterables.getLast(REST_APP.getEngine().getPersistentQueries()).getScalablePushRegistry().get().latestNumRegistered(), is(0));
 
     // When
     final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.continueFromLastContinuationToken().get();
@@ -220,7 +223,7 @@ public class PushV2ClientContinueIntegrationTest {
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
-
+    Thread.sleep(1000);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_MORE_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
 
     // Then
@@ -395,6 +398,11 @@ public class PushV2ClientContinueIntegrationTest {
             < expectedScalablePushQueries
             || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
           return false;
+        }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
       }
       return true;

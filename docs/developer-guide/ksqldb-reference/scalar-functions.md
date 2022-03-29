@@ -779,15 +779,15 @@ Given a string, returns `true` if it can be parsed as a valid JSON value, `false
 
 Examples:
 
-```sql
-is_json_string("[1, 2, 3]") => true
-is_json_string("{}") => true
-is_json_string("1") => true
-is_json_string("\"abc\"") => true
-is_json_string("null") => true
-is_json_string("") => false
-is_json_string("abc") => false
-is_json_string(NULL) => false
+```sql title="Examples"
+IS_JSON_STRING('[1, 2, 3]') => true
+IS_JSON_STRING('{}') => true
+IS_JSON_STRING('1') => true
+IS_JSON_STRING('\"abc\"') => true
+IS_JSON_STRING('null') => true
+IS_JSON_STRING('') => false
+IS_JSON_STRING('abc') => false
+IS_JSON_STRING(NULL) => false
 ```
 
 ### `JSON_ARRAY_LENGTH`
@@ -804,14 +804,14 @@ or it does not contain valid JSON, or the JSON value is not an array.
 
 Examples:
 
-```sql
-json_array_length("[1, 2, 3]") => 3
-json_array_length("[1, [1, [2]], 3]") =>  3
-json_array_length("[]") => 0
-json_array_length("{}") => NULL
-json_array_length("123") => NULL
-json_array_length(NULL) => NULL
-json_array_length("abc") => throws "Invalid JSON format"
+```sql title="Examples"
+JSON_ARRAY_LENGTH('[1, 2, 3]') => 3
+JSON_ARRAY_LENGTH('[1, [1, [2]], 3]') =>  3
+JSON_ARRAY_LENGTH('[]') => 0
+JSON_ARRAY_LENGTH('{}') => NULL
+JSON_ARRAY_LENGTH('123') => NULL
+JSON_ARRAY_LENGTH(NULL) => NULL
+JSON_ARRAY_LENGTH('abc') => returns NULL and logs an "Invalid JSON format" exception in server log
 ```
 
 ### `JSON_CONCAT`
@@ -835,19 +835,19 @@ Similar to the PostgreSQL's `||` operator, this function merges only top-level o
 
 Examples:
 
-```
-json_concat("{\"a\": 1}", "{\"b\": 2}") // => "{\"a\": 1, \"b\": 2}"
-json_concat("{\"a\": {\"5\": 6}}", "{\"a\": {\"3\": 4}}") // => "{\"a\": {\"3\": 4}}"
-json_concat("{}", "{}") // => "{}"
-json_concat("[1, 2]", "[3, 4]") // => "[1,2,3,4]"
-json_concat("[1, [2]]", "[[[3]], [[[4]]]]") // => "[ 1, [2], [[3]], [[[4]]] ]"
-json_concat("null", "null") // => "[null, null]"
-json_concat("[1, 2]", "{\"a\": 1}") // => "[1, 2, {\"a\": 1}]"
-json_concat("[1, 2]", "3") // => "[1, 2, 3]"
-json_concat("1", "2") // => "[1, 2]"
-json_concat("[]", "[]") // => []
-json_concat("abc", "[1]") // => NULL
-json_concat(NULL, "[1]") // => NULL
+```sql title="Examples"
+JSON_CONCAT('{\"a\": 1}', '{\"b\": 2}') => '{"a":1,"b":2}'
+JSON_CONCAT('{\"a\": {\"5\": 6}}', '{\"a\": {\"3\": 4}}') => '{"a":{"3":4}}'
+JSON_CONCAT('{}', '{}') => '{}'
+JSON_CONCAT('[1, 2]', '[3, 4]') => '[1,2,3,4]'
+JSON_CONCAT('[1, [2]]', '[[[3]], [[[4]]]]') => '[ 1, [2], [[3]], [[[4]]] ]'
+JSON_CONCAT('null', 'null') => '[null, null]'
+JSON_CONCAT('[1, 2]', '{\"a\": 1}') => '[1,2,{"a":1}]'
+JSON_CONCAT('[1, 2]', '3') => '[1, 2, 3]'
+JSON_CONCAT('1', '2') => '[1, 2]'
+JSON_CONCAT('[]', '[]') => '[]'
+JSON_CONCAT('abc', '[1]') => NULL
+JSON_CONCAT(NULL, '[1]') => NULL
 ```
 
 ### `JSON_KEYS`
@@ -864,13 +864,13 @@ when the string is `NULL` or it does not contain valid JSON, or the JSON value i
 
 Examples:
 
-```sql
-json_keys("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // => ["a", "b", "d"]
-json_keys("{}") // => []
-json_keys("[]") // => NULL
-json_keys("123") // => NULL
-json_keys(NULL) // => NULL
-json_keys("") // => NULL
+```sql title="Examples"
+JSON_KEYS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => ['a', 'b', 'd']
+JSON_KEYS('{}') => []
+JSON_KEYS('[]') => NULL
+JSON_KEYS('123') => NULL
+JSON_KEYS(NULL) => NULL
+JSON_KEYS('') => NULL
 ```
 
 ### `JSON_RECORDS`
@@ -886,15 +886,13 @@ values. Returns `NULL` if the string can't be interpreted as a JSON object, i.e.
 it does not contain valid JSON, or the JSON value is not an object.
 
 
-Examples:
-
-```sql
-json_records("{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}") // {"a": "\"abc\"", "b": "{ \"c\": \"a\" }", "d": "1"}
-json_records("{}") // => []
-json_records("[]") // => NULL
-json_records("123") // => NULL
-json_records(NULL) // => NULL
-json_records("abc") // => NULL
+```sql title="Examples"
+JSON_RECORDS('{\"a\": \"abc\", \"b\": { \"c\": \"a\" }, \"d\": 1}') => {d=1, a="abc", b={"c":"a"}}
+JSON_RECORDS('{}') => {}
+JSON_RECORDS('[]') => NULL
+JSON_RECORDS('123') => NULL
+JSON_RECORDS(NULL) => NULL
+JSON_RECORDS('abc') => NULL
 ```
 
 ### `TO_JSON_STRING`
@@ -907,28 +905,22 @@ to_json_string(val) -> String
 
 Given any ksqlDB type returns the equivalent JSON string.
 
-Examples:
-
-**Primitives types**
-
-```sql
-to_json_string(1) // => "1"
-to_json_string(15.3) // => "15.3"
-to_json_string("abc") // => "\"abc\""
-to_json_string(true) // => "true"
-to_json_string(2021-10-11) // DATE type, => "\"2021-10-11\""
-to_json_string(13:25) // TIME type, => "\"13:25:10\""
-to_json_string(2021-06-31T12:18:39.446) // TIMESTAMP type, => "\"2021-06-31T12:18:39.446\""
-to_json_string(NULL) // => "null"
+```sql title="Primitives types"
+TO_JSON_STRING(1) => '1'
+TO_JSON_STRING(15.3) => '15.3'
+TO_JSON_STRING('abc') => '"abc"'
+TO_JSON_STRING(true) => 'true'
+TO_JSON_STRING(PARSE_DATE('2021-10-11', 'yyyy-MM-dd')) => '"2021-10-11"'
+TO_JSON_STRING(PARSE_TIME('13:25', 'HH:mm')) => '"13:25"'
+TO_JSON_STRING(PARSE_TIMESTAMP('2021-06-31 12:18:39.446', 'yyyy-MM-dd HH:mm:ss.SSS')) => '"2021-06-30T12:18:39.446"'
+TO_JSON_STRING(NULL) => 'null'
 ```
 
-**Compound types**
-
-```sql
-to_json_string(Array[1, 2, 3]) // => "[1, 2, 3]"
-to_json_string(Struct{id=1,name=A}) // => "{\"id\": 1, \"name\": \"a\"}"
-to_json_string(Map('c' := 2, 'd' := 4)) // => "{\"c\": 2, \"d\": 4}"
-to_json_string(Array[Struct{json_key=1 json_value=Map('c' := 2, 'd' := true)}]) // => "[{\"json_key\": 1, \"json_value\": {\"c\": 2, \"d\": true}}]"
+```sql title="Compound types"
+TO_JSON_STRING(Array[1, 2, 3]) => '[1, 2, 3]'
+TO_JSON_STRING(Struct(id := 1, name := 'A')) => '{"ID":1,"NAME":"A"}'
+TO_JSON_STRING(Map('c' := 2, 'd' := 4)) => '{"c": 2, "d": 4}'
+TO_JSON_STRING(Array[Struct(json_key := 1, json_value := Map('c' := 2, 'd' := 3))]) => '[{"JSON_KEY": 1, "JSON_VALUE": {"c": 2, "d": 3}}]'
 ```
 
 ### `INITCAP`

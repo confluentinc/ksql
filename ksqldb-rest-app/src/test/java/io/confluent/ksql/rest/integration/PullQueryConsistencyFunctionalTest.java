@@ -25,6 +25,7 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
+import static org.apache.kafka.streams.query.StateQueryRequest.inStore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -39,6 +40,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -48,6 +50,8 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ActiveStandbyEntity;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
+import io.confluent.ksql.rest.entity.KafkaTopicInfo;
+import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -70,26 +74,41 @@ import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import io.confluent.ksql.util.ConsistencyOffsetVector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.UserDataProvider;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.ws.rs.core.MediaType;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.query.QueryResult;
+import org.apache.kafka.streams.query.RangeQuery;
+import org.apache.kafka.streams.query.StateQueryRequest;
+import org.apache.kafka.streams.query.StateQueryResult;
+import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.ValueAndTimestamp;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -243,7 +262,7 @@ public class PullQueryConsistencyFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-    .withTimeout(2, TimeUnit.MINUTES)
+    .withTimeout(4, TimeUnit.MINUTES)
     .withLookingForStuckThread(true)
     .build();
 
@@ -268,8 +287,6 @@ public class PullQueryConsistencyFunctionalTest {
       timestampSupplier::getAndIncrement
     );
 
-    LOG.info("Produced rows: " + producedRows.size());
-
     //Create stream
     makeAdminRequest(
       REST_APP_0,
@@ -280,6 +297,7 @@ public class PullQueryConsistencyFunctionalTest {
         + "   value_format='JSON');",
       USER_CREDS
     );
+
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
     sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY1 + "';";
@@ -304,7 +322,96 @@ public class PullQueryConsistencyFunctionalTest {
     waitForStreamsMetadataToInitialize(
       REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), USER_CREDS);
 
-    waitForTableRows();
+    try {
+      waitForTableRows();
+    } catch (final Exception e) {
+      LOG.info("******************* Debug data ******************");
+      LOG.info("---> Produced rows: {}", producedRows);
+      logTopicOffsets();
+      logRocksDB();
+    }
+  }
+
+  private void logRocksDB() {
+    LOG.info("---> Logging RocksDB contents");
+    for (PersistentQueryMetadata persistentQueryMetadata :
+        REST_APP_0.getEngine().getPersistentQueries()) {
+      if (persistentQueryMetadata.getState() != State.RUNNING) {
+        LOG.info("---> Persistent query {} not  running yet", persistentQueryMetadata.getStatementString());
+      }
+      // Log RocksDB state
+      final RangeQuery<GenericKey, ValueAndTimestamp<GenericRow>> query = RangeQuery.withNoBounds();
+      StateQueryRequest<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
+          request = inStore("Aggregate-Aggregate-Materialize")
+          .withQuery(query);
+
+      final StateQueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>>
+          result = persistentQueryMetadata.getKafkaStreams().query(request);
+      for (int partition : result.getPartitionResults().keySet()) {
+        final QueryResult<KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>>> queryResult =
+            result.getPartitionResults().get(partition);
+        final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator =
+            queryResult.getResult();
+        List<KeyValue<GenericKey, ValueAndTimestamp<GenericRow>>> rows = Lists.newArrayList(iterator);
+        LOG.info("---> Rows {}", rows);
+      }
+    }
+  }
+
+  private void logTopicOffsets() {
+    LOG.info("---> Logging topic offsets");
+
+    final List<KsqlEntity> response = makeAdminRequestWithResponse(
+        REST_APP_0, "LIST ALL TOPICS;", USER_CREDS);
+
+    final Set<String> topics = new HashSet<>();
+    for (KafkaTopicInfo topic: ((KafkaTopicsList)response.get(0)).getTopics()) {
+      topics.add(topic.getName());
+    }
+
+    LOG.info("---> Topics = " + topics);
+
+    // Collect all application ids
+    List<String> queryApplicationIds = REST_APP_0.getEngine().getPersistentQueries().stream()
+        .map(QueryMetadata::getQueryApplicationId)
+        .collect(Collectors.toList());
+
+
+
+    final List<TopicPartition> topicPartitions = new ArrayList<>();
+    final Map<String, Integer> partitionCount =
+        TEST_HARNESS.getKafkaCluster().getPartitionCount(topics);
+    for (String topic : topics) {
+      for (int i = 0; i < partitionCount.get(topic); i++) {
+        final TopicPartition tp = new TopicPartition(topic, i);
+        topicPartitions.add(tp);
+      }
+    }
+
+    // Log offsets
+    for (String queryApplicationId : queryApplicationIds) {
+      Map<TopicPartition, Long> currentOffsets =
+          TEST_HARNESS.getKafkaCluster().getConsumerGroupOffset(queryApplicationId);
+      LOG.info("---> Current offsets: " + currentOffsets);
+      Map<TopicPartition, Long> endOffsets = TEST_HARNESS.getKafkaCluster().getEndOffsets(
+          topicPartitions, IsolationLevel.READ_COMMITTED);
+      LOG.info("---> End offsets: " + endOffsets);
+
+      for (final TopicPartition tp : topicPartitions) {
+        if (!currentOffsets.containsKey(tp) && endOffsets.get(tp) > 0) {
+          LOG.info("---> Haven't committed offsets yet for " + tp + " end offset " + endOffsets.get(tp));
+        }
+      }
+
+      for (final Map.Entry<TopicPartition, Long> entry : currentOffsets.entrySet()) {
+        final TopicPartition tp = entry.getKey();
+        final long currentOffset = entry.getValue();
+        final long endOffset = endOffsets.get(tp);
+
+        LOG.info("---> TopicPartition " + tp + " current offsets " + currentOffset + " end "
+                     + "offsets: " + endOffset);
+      }
+    }
   }
 
   @After

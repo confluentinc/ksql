@@ -19,9 +19,6 @@ import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -70,7 +67,6 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
-import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
@@ -82,7 +78,6 @@ import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -96,7 +91,6 @@ import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
-import io.confluent.ksql.util.StructuredTypesDataProvider.Batch;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
@@ -113,7 +107,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -156,13 +149,10 @@ import org.reactivestreams.Publisher;
 public class ClientIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
-  private static final StructuredTypesDataProvider TEST_MORE_DATA_PROVIDER =
-      new StructuredTypesDataProvider(Batch.BATCH2);
 
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
   private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
-  private static final int TEST_MORE_NUM_ROWS = TEST_MORE_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
       ImmutableList.of("K", "STR", "LONG", "DEC", "BYTES_", "ARRAY", "MAP", "STRUCT", "COMPLEX",
           "TIMESTAMP", "DATE", "TIME", "HEAD");
@@ -171,8 +161,6 @@ public class ClientIntegrationTest {
           "BYTES", "ARRAY", "MAP", "STRUCT", "STRUCT", "TIMESTAMP", "DATE", "TIME", "BYTES"));
   private static final List<KsqlArray> TEST_EXPECTED_ROWS =
       convertToClientRows(TEST_DATA_PROVIDER.data());
-  private static final List<KsqlArray> TEST_MORE_EXPECTED_ROWS =
-      convertToClientRows(TEST_MORE_DATA_PROVIDER.data());
   private static final Format KEY_FORMAT = FormatFactory.JSON;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
   private static final Supplier<Long> TS_SUPPLIER = () -> 0L;
@@ -244,14 +232,6 @@ public class ClientIntegrationTest {
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
-      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_LATEST_RESET_AGE_MS, 0L)
-      .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
-      .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
-      .withProperty(KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED, true)
-      .withProperty(KSQL_STREAMS_PREFIX + "max.poll.interval.ms", 5000)
-      .withProperty(KSQL_STREAMS_PREFIX + "session.timeout.ms", 10000)
       .build();
 
   @ClassRule
@@ -632,7 +612,7 @@ public class ClientIntegrationTest {
 
     assertThat(streamedQueryResult.isComplete(), is(true));
   }
-  
+
   @Test
   public void shouldHandleErrorResponseFromStreamQuery() {
     // When
@@ -1210,19 +1190,6 @@ public class ClientIntegrationTest {
         subscriberCompleted
     );
   }
-  private static void shouldReceiveStreamRows(
-      final Publisher<Row> publisher,
-      final boolean subscriberCompleted,
-      final int numRows,
-      List<KsqlArray> expectedRows
-  ) {
-    shouldReceiveRows(
-        publisher,
-        numRows,
-        rows -> verifyStreamRows(rows, numRows, expectedRows),
-        subscriberCompleted
-    );
-  }
 
   private static void verifyStreamRows(final List<Row> rows, final int numRows) {
     List<Row> orderedRows = rows.stream()
@@ -1242,104 +1209,9 @@ public class ClientIntegrationTest {
     assertThat(rows, hasSize(numRows));
 
   }
-  private static void verifyStreamRows(final List<Row> rows, final int numRows,
-      List<KsqlArray> expectedRows) {
-    List<Row> orderedRows = rows.stream()
-        .sorted(ClientTestUtil::compareRowByOrderedLong)
-        .collect(Collectors.toList());
-    for (int i = 0; i < Math.min(numRows, rows.size()); i++) {
-      verifyStreamRowWithIndex(orderedRows.get(i), i, expectedRows);
-    }
-    if (rows.size() < numRows) {
-      fail("Expected " + numRows + " but only got " + rows.size());
-    } else if (rows.size() > numRows) {
-      final List<Row> extra = rows.subList(numRows, rows.size());
-      fail("Expected " + numRows + " but got " + rows.size() + ". The extra rows were: " + extra);
-    }
-
-    // not strictly necessary after the other checks, but just to specify the invariant
-    assertThat(rows, hasSize(numRows));
-
-  }
 
   private static void verifyStreamRowWithIndex(final Row row, final int index) {
     List<KsqlArray> orderedRows = TEST_EXPECTED_ROWS.stream()
-        .sorted(ClientTestUtil::compareKsqlArrayByOrderedLong)
-        .collect(Collectors.toList());
-    final KsqlArray expectedRow = orderedRows.get(index);
-
-    // verify metadata
-    assertThat(row.values(), equalTo(expectedRow));
-    assertThat(row.columnNames(), equalTo(TEST_COLUMN_NAMES));
-    assertThat(row.columnTypes(), equalTo(TEST_COLUMN_TYPES));
-
-    // verify type-based getters
-    assertThat(row.getKsqlObject("K"), is(expectedRow.getKsqlObject(0)));
-    assertThat(row.getString("STR"), is(expectedRow.getString(1)));
-    assertThat(row.getLong("LONG"), is(expectedRow.getLong(2)));
-    assertThat(row.getDecimal("DEC"), is(expectedRow.getDecimal(3)));
-    assertThat(row.getBytes("BYTES_"), is(expectedRow.getBytes(4)));
-    assertThat(row.getKsqlArray("ARRAY"), is(expectedRow.getKsqlArray(5)));
-    assertThat(row.getKsqlObject("MAP"), is(expectedRow.getKsqlObject(6)));
-    assertThat(row.getKsqlObject("STRUCT"), is(expectedRow.getKsqlObject(7)));
-    assertThat(row.getKsqlObject("COMPLEX"), is(expectedRow.getKsqlObject(8)));
-
-    // verify index-based getters are 1-indexed
-    assertThat(row.getKsqlObject(1), is(row.getKsqlObject("K")));
-    assertThat(row.getString(2), is(row.getString("STR")));
-    assertThat(row.getLong(3), is(row.getLong("LONG")));
-    assertThat(row.getDecimal(4), is(row.getDecimal("DEC")));
-    assertThat(row.getBytes(5), is(row.getBytes("BYTES_")));
-    assertThat(row.getKsqlArray(6), is(row.getKsqlArray("ARRAY")));
-    assertThat(row.getKsqlObject(7), is(row.getKsqlObject("MAP")));
-    assertThat(row.getKsqlObject(8), is(row.getKsqlObject("STRUCT")));
-    assertThat(row.getKsqlObject(9), is(row.getKsqlObject("COMPLEX")));
-
-    // verify isNull() evaluation
-    assertThat(row.isNull("STR"), is(false));
-
-    // verify exception on invalid cast
-    assertThrows(ClassCastException.class, () -> row.getInteger("STR"));
-
-    // verify KsqlArray methods
-    final KsqlArray values = row.values();
-    assertThat(values.size(), is(TEST_COLUMN_NAMES.size()));
-    assertThat(values.isEmpty(), is(false));
-    assertThat(values.getKsqlObject(0), is(row.getKsqlObject("K")));
-    assertThat(values.getString(1), is(row.getString("STR")));
-    assertThat(values.getLong(2), is(row.getLong("LONG")));
-    assertThat(values.getDecimal(3), is(row.getDecimal("DEC")));
-    assertThat(values.getBytes(4), is(row.getBytes("BYTES_")));
-    assertThat(values.getKsqlArray(5), is(row.getKsqlArray("ARRAY")));
-    assertThat(values.getKsqlObject(6), is(row.getKsqlObject("MAP")));
-    assertThat(values.getKsqlObject(7), is(row.getKsqlObject("STRUCT")));
-    assertThat(values.getKsqlObject(8), is(row.getKsqlObject("COMPLEX")));
-    assertThat(values.toJsonString(), is((new JsonArray(values.getList())).toString()));
-    assertThat(values.toString(), is(values.toJsonString()));
-
-    // verify KsqlObject methods
-    final KsqlObject obj = row.asObject();
-    assertThat(obj.size(), is(TEST_COLUMN_NAMES.size()));
-    assertThat(obj.isEmpty(), is(false));
-    assertThat(obj.fieldNames(), contains(TEST_COLUMN_NAMES.toArray()));
-    assertThat(obj.getKsqlObject("K"), is(row.getKsqlObject("K")));
-    assertThat(obj.getString("STR"), is(row.getString("STR")));
-    assertThat(obj.getLong("LONG"), is(row.getLong("LONG")));
-    assertThat(obj.getDecimal("DEC"), is(row.getDecimal("DEC")));
-    assertThat(obj.getBytes("BYTES_"), is(row.getBytes("BYTES_")));
-    assertThat(obj.getKsqlArray("ARRAY"), is(row.getKsqlArray("ARRAY")));
-    assertThat(obj.getKsqlObject("MAP"), is(row.getKsqlObject("MAP")));
-    assertThat(obj.getKsqlObject("STRUCT"), is(row.getKsqlObject("STRUCT")));
-    assertThat(obj.getKsqlObject("COMPLEX"), is(row.getKsqlObject("COMPLEX")));
-    assertThat(obj.containsKey("DEC"), is(true));
-    assertThat(obj.containsKey("notafield"), is(false));
-    assertThat(obj.toJsonString(), is((new JsonObject(obj.getMap())).toString()));
-    assertThat(obj.toString(), is(obj.toJsonString()));
-  }
-
-  private static void verifyStreamRowWithIndex(final Row row, final int index,
-      List<KsqlArray> expectedRows) {
-    List<KsqlArray> orderedRows = expectedRows.stream()
         .sorted(ClientTestUtil::compareKsqlArrayByOrderedLong)
         .collect(Collectors.toList());
     final KsqlArray expectedRow = orderedRows.get(index);

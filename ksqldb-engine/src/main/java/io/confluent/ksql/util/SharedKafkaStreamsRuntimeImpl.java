@@ -24,6 +24,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.QueryMetadataImpl.TimeBoundedQueue;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +36,7 @@ import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.TaskId;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -251,11 +253,14 @@ public class SharedKafkaStreamsRuntimeImpl extends SharedKafkaStreamsRuntime {
   @Override
   public void restartStreamsRuntime() {
     log.info("Restarting runtime {}", getApplicationId());
+    final Collection<NamedTopology> liveTopologies = kafkaStreams.getAllTopologies();
+    kafkaStreams.close();
     final KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper = kafkaStreamsBuilder
         .buildNamedTopologyWrapper(streamsProperties);
-    kafkaStreams.close();
     kafkaStreams = kafkaStreamsNamedTopologyWrapper;
-    for (final BinPackedPersistentQueryMetadataImpl query : collocatedQueries.values()) {
+    for (final NamedTopology topology : liveTopologies) {
+      final BinPackedPersistentQueryMetadataImpl query = collocatedQueries
+          .get(new QueryId(topology.name()));
       kafkaStreamsNamedTopologyWrapper.addNamedTopology(query.getTopologyCopy(this));
     }
     setupAndStartKafkaStreams(kafkaStreamsNamedTopologyWrapper);

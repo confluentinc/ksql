@@ -130,7 +130,6 @@ public class PushV2ClientContinueIntegrationTest {
       .withProperty(KsqlConfig.KSQL_HEADERS_COLUMNS_ENABLED, true)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
-      .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_CATCHUP_CONSUMER_MSG_WINDOW, 0L)
       .withProperty(KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_REGISTRY_INSTALLED, true)
       .withProperty(KSQL_QUERY_PUSH_V2_CONTINUATION_TOKENS_ENABLED, true)
@@ -223,7 +222,7 @@ public class PushV2ClientContinueIntegrationTest {
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
-    Thread.sleep(1000);
+//    Thread.sleep(1000);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_MORE_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
 
     // Then

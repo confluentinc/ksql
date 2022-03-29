@@ -765,7 +765,6 @@ public class PushRouting implements AutoCloseable {
 
     @Override
     protected synchronized void handleValue(final QueryRow row) {
-      LOG.info("NATEA server row {}", row);
       if (closed) {
         return;
       }

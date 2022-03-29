@@ -110,7 +110,10 @@ public class StreamQueryResponseHandler
         LOG.info("Response contains continuation token " + jsonObject);
         continuationToken.set((String) ((JsonObject) json).getMap().get(
                 "continuationToken"));
-      } else {
+      }
+      if (!(jsonObject.getMap() != null && jsonObject.getMap().containsKey("consistencyToken"))
+          && !(jsonObject.getMap() != null && jsonObject.getMap().containsKey("continuationToken"))
+      ) {
         queryResult.handleError(new KsqlException(
             jsonObject.getString("message")
         ));

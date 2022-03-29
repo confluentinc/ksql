@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,7 +89,7 @@ public class StreamedQueryResultImplTest {
     }).when(subscriber).onError(any());
 
     queryResult = new StreamedQueryResultImpl(context, "queryId", Collections.emptyList(),
-        Collections.emptyList(), null, null, null, null);
+        Collections.emptyList(), new AtomicReference<>(""), null, null, null);
   }
 
   @Test

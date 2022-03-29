@@ -28,6 +28,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
@@ -144,7 +145,7 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   }
 
   public boolean hasContinuationToken() {
-    return !this.continuationToken.get().equalsIgnoreCase("");
+    return !Objects.equals(this.continuationToken.get(), "");
   }
 
   @SuppressFBWarnings(value = "EI_EXPOSE_REP")

@@ -125,7 +125,7 @@ public class ConsistencyOffsetVectorFunctionalTest {
 
 
   @BeforeClass
-  public static void setUpClass() {
+  public static void setUpClass() throws Exception {
     TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);

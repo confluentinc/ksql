@@ -943,7 +943,7 @@ JSON_KEYS('{}') => []
 JSON_KEYS('[]') => NULL
 JSON_KEYS('123') => NULL
 JSON_KEYS(NULL) => NULL
-JSON_KEYS("") => NULL
+JSON_KEYS('') => NULL
 ```
 
 ### `JSON_RECORDS`

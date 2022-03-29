@@ -84,7 +84,10 @@ public class PhysicalToExecutionPlanTranslator implements NodeVisitor<Node<?>, E
     return ExecutionStepFactory.streamSelect(
         new Stacker().push("SELECT"),
         inputStep,
-        selectNode.keyColumnNames(),
+        // to-do: remove hack -- why do we need to pass in the source keys?
+        // -> does not seem to make sense -- might require more refactoring
+        selectNode.getInputNode().keyColumnNames(), // to-do: remove workaround
+        Optional.of(selectNode.keyColumnNames()),
         selectExpressions
     );
   }

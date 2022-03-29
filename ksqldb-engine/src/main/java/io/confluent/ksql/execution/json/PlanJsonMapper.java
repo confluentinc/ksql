@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -44,7 +44,7 @@ public enum PlanJsonMapper {
       .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
       .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)
       .enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
-      .setSerializationInclusion(Include.NON_NULL);
+      .setSerializationInclusion(Include.NON_EMPTY);
 
   public ObjectMapper get() {
     return mapper.copy();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
-import io.confluent.ksql.execution.streams.transform.KsValueTransformer;
+import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -119,7 +119,7 @@ public final class StreamAggregateBuilder {
 
     final KTable<GenericKey, GenericRow> result = aggregated
         .transformValues(
-            () -> new KsValueTransformer<>(aggregator.getResultMapper()),
+            () -> new KsTransformer<>(aggregator.getResultMapper()),
             Named.as(StreamsUtil.buildOpName(
                 AggregateBuilderUtils.outputContext(aggregate)))
         );
@@ -183,7 +183,7 @@ public final class StreamAggregateBuilder {
     final KudafAggregator<Windowed<GenericKey>> aggregator = aggregateParams.getAggregator();
 
     KTable<Windowed<GenericKey>, GenericRow> reduced = aggregated.transformValues(
-        () -> new KsValueTransformer<>(aggregator.getResultMapper()),
+        () -> new KsTransformer<>(aggregator.getResultMapper()),
         Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
@@ -196,7 +196,7 @@ public final class StreamAggregateBuilder {
         );
 
     reduced = reduced.transformValues(
-        () -> new KsValueTransformer<>(new WindowBoundsPopulator()),
+        () -> new KsTransformer<>(new WindowBoundsPopulator()),
         Named.as(StreamsUtil.buildOpName(
             AggregateBuilderUtils.windowSelectContext(aggregate)
         ))

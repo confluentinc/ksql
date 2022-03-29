@@ -853,7 +853,7 @@ IS_JSON_STRING('{}') => true
 IS_JSON_STRING('1') => true
 IS_JSON_STRING('\"abc\"') => true
 IS_JSON_STRING('null') => true
-IS_JSON_STRING("") => false
+IS_JSON_STRING('') => false
 IS_JSON_STRING('abc') => false
 IS_JSON_STRING(NULL) => false
 ```

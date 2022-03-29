@@ -46,7 +46,6 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.RowUtil;
-import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -213,7 +212,6 @@ public class PushV2ClientContinueIntegrationTest {
     }
     REST_APP.start();
     assertAllPersistentQueriesRunning();
-    verifyNumActiveQueries(1);
 
     // When
     final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.continueFromLastContinuationToken().get();
@@ -415,10 +413,5 @@ public class PushV2ClientContinueIntegrationTest {
     is(true),
     60000,
     TimeUnit.MILLISECONDS);
-  }
-
-  private static void verifyNumActiveQueries(final int numQueries) {
-    final KsqlEngine engine = (KsqlEngine) REST_APP.getEngine();
-    assertThatEventually(engine::numberOfLiveQueries, is(numQueries));
   }
 }

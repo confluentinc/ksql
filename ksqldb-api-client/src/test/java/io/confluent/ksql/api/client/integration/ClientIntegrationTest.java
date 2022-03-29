@@ -67,7 +67,6 @@ import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
-import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -89,7 +88,6 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -129,7 +127,6 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.storage.StringConverter;
-import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
@@ -1192,11 +1189,8 @@ public class ClientIntegrationTest {
   }
 
   private static void verifyStreamRows(final List<Row> rows, final int numRows) {
-    List<Row> orderedRows = rows.stream()
-        .sorted(ClientTestUtil::compareRowByOrderedLong)
-        .collect(Collectors.toList());
     for (int i = 0; i < Math.min(numRows, rows.size()); i++) {
-      verifyStreamRowWithIndex(orderedRows.get(i), i);
+      verifyStreamRowWithIndex(rows.get(i), i);
     }
     if (rows.size() < numRows) {
       fail("Expected " + numRows + " but only got " + rows.size());
@@ -1211,10 +1205,7 @@ public class ClientIntegrationTest {
   }
 
   private static void verifyStreamRowWithIndex(final Row row, final int index) {
-    List<KsqlArray> orderedRows = TEST_EXPECTED_ROWS.stream()
-        .sorted(ClientTestUtil::compareKsqlArrayByOrderedLong)
-        .collect(Collectors.toList());
-    final KsqlArray expectedRow = orderedRows.get(index);
+    final KsqlArray expectedRow = TEST_EXPECTED_ROWS.get(index);
 
     // verify metadata
     assertThat(row.values(), equalTo(expectedRow));
@@ -1486,40 +1477,5 @@ public class ClientIntegrationTest {
         description.appendText("name: " + name);
       }
     };
-  }
-
-  private void assertExpectedScalablePushQueries(
-      final int expectedScalablePushQueries
-  ) {
-    assertThatEventually(() -> {
-      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
-        if (metadata.getSinkName().get().text().equals(AGG_TABLE)) {
-          continue;
-        }
-        if (metadata.getScalablePushRegistry().get().latestNumRegistered()
-            < expectedScalablePushQueries
-            || !metadata.getScalablePushRegistry().get().latestHasAssignment()) {
-          return false;
-        }
-      }
-      return true;
-    }, is(true));
-  }
-
-  private void assertAllPersistentQueriesRunning() {
-    assertThatEventually("persistent queries check", () -> {
-      for (final PersistentQueryMetadata metadata : REST_APP.getEngine().getPersistentQueries()) {
-        if (metadata.getSinkName().get().text().equals(AGG_TABLE)) {
-          continue;
-        }
-        if (metadata.getState() != State.RUNNING) {
-          return false;
-        }
-      }
-      return true;
-    },
-        is(true),
-        60000,
-        TimeUnit.MILLISECONDS);
   }
 }

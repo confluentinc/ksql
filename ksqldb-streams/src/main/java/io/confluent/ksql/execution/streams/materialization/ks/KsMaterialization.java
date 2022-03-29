@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.streams.materialization.StreamsMaterializedWi
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 
 /**
@@ -67,10 +66,6 @@ public final class KsMaterialization implements StreamsMaterialization {
     if (windowInfo.isPresent()) {
       throw new UnsupportedOperationException("Table has windowed key");
     }
-    if (stateStore.getKsqlConfig().getBoolean(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
-      return new KsMaterializedTableIQv2(stateStore);
-    }
     return new KsMaterializedTable(stateStore);
   }
 
@@ -85,25 +80,15 @@ public final class KsMaterialization implements StreamsMaterialization {
     final WindowType wndType = wndInfo.getType();
     switch (wndType) {
       case SESSION:
-        if (stateStore.getKsqlConfig().getBoolean(
-            KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
-          return new KsMaterializedSessionTableIQv2(stateStore);
-        } else {
-          return new KsMaterializedSessionTable(stateStore,
+        return new KsMaterializedSessionTable(stateStore,
             SessionStoreCacheBypass::fetch, SessionStoreCacheBypass::fetchRange);
-        }
 
       case HOPPING:
       case TUMBLING:
-        if (stateStore.getKsqlConfig().getBoolean(
-            KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED)) {
-          return new KsMaterializedWindowTableIQv2(stateStore, wndInfo.getSize().get());
-        } else {
-          return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get(),
+        return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get(),
             WindowStoreCacheBypass::fetch,
             WindowStoreCacheBypass::fetchAll,
             WindowStoreCacheBypass::fetchRange);
-        }
 
       default:
         throw new UnsupportedOperationException("Unknown window type: " + wndInfo);

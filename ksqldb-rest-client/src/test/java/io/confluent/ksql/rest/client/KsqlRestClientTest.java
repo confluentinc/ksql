@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.client.KsqlRestClient.KsqlClientSupplier;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.util.ClientConfig.ConsistencyLevel;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
@@ -250,8 +249,7 @@ public class KsqlRestClientTest {
         CLIENT_PROPS,
         Optional.empty(),
         ccloudApiKey,
-        clientSupplier,
-        ConsistencyLevel.EVENTUAL
+        clientSupplier
     );
   }
 

@@ -22,7 +22,6 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED;
 import static io.vertx.core.http.HttpMethod.POST;
 import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 import static io.vertx.core.http.HttpVersion.HTTP_2;
@@ -241,7 +240,6 @@ public class RestApiTest {
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PUSH_V2_NEW_LATEST_DELAY_MS, 0L)
       .withProperty(KsqlConfig.KSQL_QUERY_STREAM_PULL_QUERY_ENABLED, true)
-      .withProperty(KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
       .build();
 
   @ClassRule
@@ -899,16 +897,12 @@ public class RestApiTest {
     public void shouldExecutePullQueryOverRestWithNoBound() {
       // Given:
       final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
-      final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
-          .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
-          .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
-      final Map<String, Object> requestProperties = builder.build();
       final Supplier<List<String>> call = () -> {
         final String response = rawRestQueryRequest(
             "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
             MediaType.APPLICATION_JSON,
             Collections.emptyMap(),
-            requestProperties
+            Collections.emptyMap()
             );
         return Arrays.asList(response.split(System.lineSeparator()));
       };
@@ -925,67 +919,6 @@ public class RestApiTest {
       assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
                                          + "\"" + serializedCV + "\"}}]"));
       verifyConsistencyVector(messages.get(2), CONSISTENCY_OFFSET_VECTOR);
-    }
-
-    @Test
-    public void shouldExecutePullQueryOverRestWithBound() {
-      // Given:
-      final String clientCV = CONSISTENCY_OFFSET_VECTOR_BEFORE.serialize();
-      final String serverCV = CONSISTENCY_OFFSET_VECTOR.serialize();
-      final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
-          .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
-          .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, clientCV);
-      final Map<String, Object> requestProperties = builder.build();
-      final Supplier<List<String>> call = () -> {
-        final String response = rawRestQueryRequest(
-            "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-            MediaType.APPLICATION_JSON,
-            Collections.emptyMap(),
-            requestProperties
-        );
-        return Arrays.asList(response.split(System.lineSeparator()));
-      };
-
-
-      // When:
-      final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
-
-      // Then:
-      assertThat(messages, hasSize(HEADER + 2));
-      assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
-      assertThat(messages.get(0),
-                 endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-      assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}},"));
-      assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                         + "\"" + serverCV + "\"}}]"));
-      verifyConsistencyVector(messages.get(2), CONSISTENCY_OFFSET_VECTOR);
-    }
-
-    @Test
-    public void shouldFailPullQueryOverRestWithBound() {
-      // Given:
-      final String serializedCV = CONSISTENCY_OFFSET_VECTOR_AFTER.serialize();
-      final ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<String, Object>()
-          .put(KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true)
-          .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, serializedCV);
-      final Map<String, Object> requestProperties = builder.build();
-
-      // When:
-      final Supplier<List<String>> call = () -> {
-        final String response = rawRestQueryRequest(
-            "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-            MediaType.APPLICATION_JSON,
-            Collections.emptyMap(),
-            requestProperties
-        );
-        return Arrays.asList(response.split(System.lineSeparator()));
-      };
-
-      // Then:
-      final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
-      assertThat(messages, hasSize(HEADER + 1));
-      assertThat(messages.get(1), containsString("Failed to get value from materialized table, "
-          + "reason: NOT_UP_TO_BOUND"));
     }
 
     @Test
@@ -1097,56 +1030,6 @@ public class RestApiTest {
         }
       }
     }
-  }
-
-  @Test
-  public void shouldRoundTripCVPullQueryOverWebSocketWithJsonContentType() {
-    // Given:
-    final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
-    Map<String, Object> configOverrides =  ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
-
-    // When:
-    final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        MediaType.APPLICATION_JSON,
-        MediaType.APPLICATION_JSON,
-        Optional.of(configOverrides),
-        Optional.of(requestProperties)
-    );
-
-    // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
-    assertValidJsonMessages(messages);
-    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"" + serializedCV + "\"}}"));
-  }
-
-  @Test
-  public void shouldRoundTripCVPullQueryOverWebSocketWithV1ContentType() {
-    // Given:
-    final String serializedCV = CONSISTENCY_OFFSET_VECTOR.serialize();
-    Map<String, Object> configOverrides =  ImmutableMap.of(
-        KsqlConfig.KSQL_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR_ENABLED, true);
-    Map<String, Object> requestProperties = ImmutableMap.of(
-        KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR, "");
-
-    // When:
-    final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        KsqlMediaType.KSQL_V1_JSON.mediaType(),
-        Optional.of(configOverrides),
-        Optional.of(requestProperties)
-    );
-
-    // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 3));
-    assertValidJsonMessages(messages);
-    assertThat(messages.get(2), is("{\"consistencyToken\":{\"consistencyToken\":"
-                                       + "\"" + serializedCV + "\"}}"));
   }
 
   @Test

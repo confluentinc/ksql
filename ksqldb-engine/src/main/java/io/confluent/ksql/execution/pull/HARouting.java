@@ -358,10 +358,6 @@ public final class HARouting implements AutoCloseable {
         .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true)
         .put(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true)
         .put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS, partitions);
-    if (consistencyOffsetVector.isPresent()) {
-      builder.put(KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_CONSISTENCY_OFFSET_VECTOR,
-          consistencyOffsetVector.get().serialize());
-    }
     final Map<String, Object> requestProperties = builder.build();
     final RestResponse<Integer> response;
 

@@ -77,6 +77,7 @@ public class StreamQueryResponseHandler
     cf.complete(queryResult);
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   protected void handleRow(final Buffer buff) {
     if (queryResult == null) {

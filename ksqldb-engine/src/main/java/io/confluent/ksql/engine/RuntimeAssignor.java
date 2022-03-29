@@ -102,6 +102,8 @@ public class RuntimeAssignor {
       if (runtimesToSources.get(queryMetadata.getQueryApplicationId()).isEmpty()
           && runtimesToSources.size() > numDefaultRuntimes) {
         runtimesToSources.remove(queryMetadata.getQueryApplicationId());
+        log.info("Removing runtime {} form selection of possible runtimes",
+            queryMetadata.getQueryApplicationId());
       }
     }
   }

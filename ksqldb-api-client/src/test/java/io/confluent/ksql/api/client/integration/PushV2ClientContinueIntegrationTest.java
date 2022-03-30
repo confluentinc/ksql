@@ -211,9 +211,6 @@ public class PushV2ClientContinueIntegrationTest {
     }
     REST_APP.start();
     assertAllPersistentQueriesRunning();
-    // Wait for the existing connection to be unregistered
-//    assertThatEventually(
-//        () -> Iterables.getLast(REST_APP.getEngine().getPersistentQueries()).getScalablePushRegistry().get().latestNumRegistered(), is(0));
 
     // When
     final StreamedQueryResult newStreamedQueryResult = oldStreamedQueryResult.continueFromLastContinuationToken().get();
@@ -222,7 +219,7 @@ public class PushV2ClientContinueIntegrationTest {
     assertThat(oldStreamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
     assertThat(oldStreamedQueryResult.queryID(), is(notNullValue()));
     assertExpectedScalablePushQueries(1);
-//    Thread.sleep(1000);
+    
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_MORE_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT, TS_SUPPLIER, HEADERS_SUPPLIER);
 
     // Then

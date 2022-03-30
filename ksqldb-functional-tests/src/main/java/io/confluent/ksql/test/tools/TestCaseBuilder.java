@@ -69,7 +69,7 @@ public final class TestCaseBuilder {
         configs = Collections.singletonList(Optional.empty());
         overwrite = null;
       } else {
-        configs= test.config().stream().map(Optional::of).collect(Collectors.toList());
+        configs = test.config().stream().map(Optional::of).collect(Collectors.toList());
 
         overwrite = Iterables.getOnlyElement(
             test.properties().entrySet().stream()

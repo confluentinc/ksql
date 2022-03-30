@@ -62,17 +62,23 @@ public final class TestCaseBuilder {
           ? Collections.singletonList(Optional.empty())
           : test.formats().stream().map(Optional::of).collect(Collectors.toList());
 
-      final List<Optional<String>> configs = test.config().isEmpty()
-          ? Collections.singletonList(Optional.empty())
-          : test.config().stream().map(Optional::of).collect(Collectors.toList());
+      final List<Optional<String>> configs;
+      final Entry<String, Object> overwrite;
 
-      final Entry<String, Object> overwrite = Iterables.getOnlyElement(
-          test.properties().entrySet().stream()
-              .filter(e -> {
-                final Object v = e.getValue();
-                return v instanceof String && "{CONFIG}".equalsIgnoreCase((String) v);
-              })
-              .collect(Collectors.toList()));
+      if (test.config().isEmpty()) {
+        configs = Collections.singletonList(Optional.empty());
+        overwrite = null;
+      } else {
+        configs= test.config().stream().map(Optional::of).collect(Collectors.toList());
+
+        overwrite = Iterables.getOnlyElement(
+            test.properties().entrySet().stream()
+                .filter(e -> {
+                  final Object v = e.getValue();
+                  return v instanceof String && "{CONFIG}".equalsIgnoreCase((String) v);
+                })
+                .collect(Collectors.toList()));
+      }
 
       for (final Optional<String> format : formats) {
         for (final Optional<String> config : configs) {

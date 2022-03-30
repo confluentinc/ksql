@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -25,60 +25,63 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
+import java.sql.Date;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
-public class LongMinKudafTest {
+public class DateMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
-    final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
-    long currentMin = Long.MAX_VALUE;
-    for (final long i: values) {
-      currentMin = longMinKudaf.aggregate(i, currentMin);
+    final MinKudaf<Date> dateMinKudaf = getDateMinKudaf();
+    final Date[] values = new Date[]{new Date(3), new Date(5), new Date(8),
+        new Date(2), new Date(3), new Date(4), new Date(5)};
+    Date currentMin = null;
+    for (final Date i: values) {
+      currentMin = dateMinKudaf.aggregate(i, currentMin);
     }
-    assertThat(2L, equalTo(currentMin));
+    assertThat(new Date(2), equalTo(currentMin));
   }
 
   @Test
   public void shouldHandleNull() {
-    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
-    final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
-    Long currentMin = null;
+    final MinKudaf<Date> dateMinKudaf = getDateMinKudaf();
+    final Date[] values = new Date[]{new Date(3), new Date(5), new Date(8),
+        new Date(2), new Date(3), new Date(4), new Date(5)};
+    Date currentMin = null;
 
     // aggregate null before any aggregation
-    currentMin = longMinKudaf.aggregate(null, currentMin);
+    currentMin = dateMinKudaf.aggregate(null, currentMin);
     assertThat(null, equalTo(currentMin));
 
     // now send each value to aggregation and verify
-    for (final long i: values) {
-      currentMin = longMinKudaf.aggregate(i, currentMin);
+    for (final Date i: values) {
+      currentMin = dateMinKudaf.aggregate(i, currentMin);
     }
-    assertThat(2L, equalTo(currentMin));
+    assertThat(new Date(2), equalTo(currentMin));
 
     // null should not impact result
-    currentMin = longMinKudaf.aggregate(null, currentMin);
-    assertThat(2L, equalTo(currentMin));
+    currentMin = dateMinKudaf.aggregate(null, currentMin);
+    assertThat(new Date(2), equalTo(currentMin));
   }
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf longMinKudaf = getLongMinKudaf();
-    final Merger<GenericKey, Long> merger = longMinKudaf.getMerger();
-    final Long mergeResult1 = merger.apply(null, 10L, 12L);
-    assertThat(mergeResult1, equalTo(10L));
-    final Long mergeResult2 = merger.apply(null, 10L, -12L);
-    assertThat(mergeResult2, equalTo(-12L));
-    final Long mergeResult3 = merger.apply(null, -10L, 0L);
-    assertThat(mergeResult3, equalTo(-10L));
+    final MinKudaf dateMinKudaf = getDateMinKudaf();
+    final Merger<GenericKey, Date> merger = dateMinKudaf.getMerger();
+    final Date mergeResult1 = merger.apply(null, new Date(10), new Date(12));
+    assertThat(mergeResult1, equalTo(new Date(10L)));
+    final Date mergeResult2 = merger.apply(null, new Date(10), new Date(-12L));
+    assertThat(mergeResult2, equalTo(new Date(-12L)));
+    final Date mergeResult3 = merger.apply(null, new Date(-10), new Date(0));
+    assertThat(mergeResult3, equalTo(new Date(-10)));
 
   }
 
 
-  private MinKudaf getLongMinKudaf() {
+  private MinKudaf getDateMinKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.DATE)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
     return  (MinKudaf) aggregateFunction;

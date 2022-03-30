@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2022 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -24,63 +24,66 @@ import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.sql.Time;
 import java.util.Collections;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
-public class LongMinKudafTest {
+public class TimeMinKudafTest {
 
   @Test
   public void shouldFindCorrectMin() {
-    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
-    final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
-    long currentMin = Long.MAX_VALUE;
-    for (final long i: values) {
-      currentMin = longMinKudaf.aggregate(i, currentMin);
+    final MinKudaf<Time> timeMinKudaf = getTimeMinKudaf();
+    final Time[] values = new Time[]{new Time(3), new Time(5), new Time(8),
+        new Time(2), new Time(3), new Time(4), new Time(5)};
+    Time currentMin = null;
+    for (final Time i: values) {
+      currentMin = timeMinKudaf.aggregate(i, currentMin);
     }
-    assertThat(2L, equalTo(currentMin));
+    assertThat(new Time(2), equalTo(currentMin));
   }
 
   @Test
   public void shouldHandleNull() {
-    final MinKudaf<Long> longMinKudaf = getLongMinKudaf();
-    final long[] values = new long[]{3L, 5L, 8L, 2L, 3L, 4L, 5L};
-    Long currentMin = null;
+    final MinKudaf<Time> timeMinKudaf = getTimeMinKudaf();
+    final Time[] values = new Time[]{new Time(3), new Time(5), new Time(8),
+        new Time(2), new Time(3), new Time(4), new Time(5)};
+    Time currentMin = null;
 
     // aggregate null before any aggregation
-    currentMin = longMinKudaf.aggregate(null, currentMin);
+    currentMin = timeMinKudaf.aggregate(null, currentMin);
     assertThat(null, equalTo(currentMin));
 
     // now send each value to aggregation and verify
-    for (final long i: values) {
-      currentMin = longMinKudaf.aggregate(i, currentMin);
+    for (final Time i: values) {
+      currentMin = timeMinKudaf.aggregate(i, currentMin);
     }
-    assertThat(2L, equalTo(currentMin));
+    assertThat(new Time(2), equalTo(currentMin));
 
     // null should not impact result
-    currentMin = longMinKudaf.aggregate(null, currentMin);
-    assertThat(2L, equalTo(currentMin));
+    currentMin = timeMinKudaf.aggregate(null, currentMin);
+    assertThat(new Time(2), equalTo(currentMin));
   }
 
   @Test
   public void shouldFindCorrectMinForMerge() {
-    final MinKudaf longMinKudaf = getLongMinKudaf();
-    final Merger<GenericKey, Long> merger = longMinKudaf.getMerger();
-    final Long mergeResult1 = merger.apply(null, 10L, 12L);
-    assertThat(mergeResult1, equalTo(10L));
-    final Long mergeResult2 = merger.apply(null, 10L, -12L);
-    assertThat(mergeResult2, equalTo(-12L));
-    final Long mergeResult3 = merger.apply(null, -10L, 0L);
-    assertThat(mergeResult3, equalTo(-10L));
+    final MinKudaf timeMinKudaf = getTimeMinKudaf();
+    final Merger<GenericKey, Time> merger = timeMinKudaf.getMerger();
+    final Time mergeResult1 = merger.apply(null, new Time(10), new Time(12));
+    assertThat(mergeResult1, equalTo(new Time(10L)));
+    final Time mergeResult2 = merger.apply(null, new Time(10), new Time(-12L));
+    assertThat(mergeResult2, equalTo(new Time(-12L)));
+    final Time mergeResult3 = merger.apply(null, new Time(-10), new Time(0));
+    assertThat(mergeResult3, equalTo(new Time(-10)));
 
   }
 
 
-  private MinKudaf getLongMinKudaf() {
+  private MinKudaf getTimeMinKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT)),
+        .createAggregateFunction(Collections.singletonList(SqlArgument.of(SqlTypes.TIME)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(MinKudaf.class));
-    return  (MinKudaf) aggregateFunction;
+    return (MinKudaf) aggregateFunction;
   }
 }

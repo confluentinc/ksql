@@ -46,23 +46,23 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
     final SqlType argSchema = argTypeList.get(0).getSqlTypeOrThrow();
     switch (argSchema.baseType()) {
       case INTEGER:
-        return new IntegerMaxKudaf(FUNCTION_NAME, initArgs.udafIndex());
       case BIGINT:
-        return new LongMaxKudaf(FUNCTION_NAME, initArgs.udafIndex());
       case DOUBLE:
-        return new DoubleMaxKudaf(FUNCTION_NAME, initArgs.udafIndex());
       case DECIMAL:
-        return new DecimalMaxKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
+      case DATE:
+      case TIME:
+      case TIMESTAMP:
+        return new MaxKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
       default:
-        throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
-            + " argument type exists!");
+        throw new KsqlException("No MAX aggregate function with " + argTypeList.get(0) + " "
+            + "argument type exists!");
 
     }
   }
 
   @Override
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "NUMERICAL_ARGS is ImmutableList")
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "NUMERICAL_TIME is ImmutableList")
   public List<List<ParamType>> supportedArgs() {
-    return NUMERICAL_ARGS;
+    return NUMERICAL_TIME;
   }
 }

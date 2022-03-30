@@ -8,6 +8,12 @@ keywords: ksqldb, changelog
 
 Version 0.24.0
 --------------
+
+- [Announcing ksqlDB 0.24.0](https://www.confluent.io/blog/announcing-ksqldb-0-24-0/)
+- [ksqlDB v0.24.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0240-2022-02-11)
+
+Version 0.23.1
+--------------
 - [ksqlDB v0.24.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0240-2022-02-11)
 
 Version 0.22.0

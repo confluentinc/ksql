@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.Row;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,6 +77,14 @@ public final class ClientTestUtil {
 
   public static void awaitLatch(CountDownLatch latch) throws Exception {
     assertThat(latch.await(2000, TimeUnit.MILLISECONDS), is(true));
+  }
+
+  public static int compareRowByOrderedLong(final Row row1, final Row row2) {
+    return Long.compare(row1.getLong("LONG"), row2.getLong("LONG"));
+  }
+
+  public static int compareKsqlArrayByOrderedLong(final KsqlArray row1, final KsqlArray row2) {
+    return Long.compare(row1.getLong(2), row2.getLong(2));
   }
 
   public static class TestSubscriber<T> implements Subscriber<T> {

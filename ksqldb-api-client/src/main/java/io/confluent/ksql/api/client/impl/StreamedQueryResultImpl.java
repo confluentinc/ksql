@@ -20,12 +20,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.StreamedQueryResult;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.vertx.core.Context;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Subscriber;
 
 public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements StreamedQueryResult {
@@ -38,18 +43,30 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
   private final PollableSubscriber pollableSubscriber;
   private volatile boolean polling;
   private boolean subscribing;
+  private final AtomicReference<String> continuationToken;
+  private final String sql;
+  private final Map<String, Object> properties;
+  private final ClientImpl client;
 
   StreamedQueryResultImpl(
       final Context context,
       final String queryId,
       final List<String> columnNames,
-      final List<ColumnType> columnTypes
+      final List<ColumnType> columnTypes,
+      final AtomicReference<String> continuationToken,
+      final String sql,
+      final Map<String, Object> properties,
+      final ClientImpl client
   ) {
     super(context);
     this.queryId = queryId;
     this.columnNames = ImmutableList.copyOf(columnNames);
     this.columnTypes = ImmutableList.copyOf(columnTypes);
     this.pollableSubscriber = new PollableSubscriber(ctx, this::handleErrorWhilePolling);
+    this.continuationToken = continuationToken;
+    this.sql = sql;
+    this.properties = properties;
+    this.client = client;
   }
 
   @Override
@@ -125,6 +142,24 @@ public class StreamedQueryResultImpl extends BufferedPublisher<Row> implements S
 
   private void handleErrorWhilePolling(final Throwable t) {
     log.error("Unexpected error while polling: " + t);
+  }
+
+  public boolean hasContinuationToken() {
+    return !Objects.equals(this.continuationToken.get(), "");
+  }
+
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
+  public AtomicReference<String> getContinuationToken() {
+    return this.continuationToken;
+  }
+
+  @Override
+  public CompletableFuture<StreamedQueryResult> continueFromLastContinuationToken() {
+    if (!this.hasContinuationToken()) {
+      throw new KsqlClientException(
+          "Can only continue queries that have saved a continuation token.");
+    }
+    return this.client.streamQuery(sql, properties);
   }
 
   public static Row pollWithCallback(

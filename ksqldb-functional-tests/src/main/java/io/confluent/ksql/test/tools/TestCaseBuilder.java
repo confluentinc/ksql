@@ -66,6 +66,14 @@ public final class TestCaseBuilder {
           ? Collections.singletonList(Optional.empty())
           : test.config().stream().map(Optional::of).collect(Collectors.toList());
 
+      final Entry<String, Object> overwrite = Iterables.getOnlyElement(
+          test.properties().entrySet().stream()
+              .filter(e -> {
+                final Object v = e.getValue();
+                return v instanceof String && "{CONFIG}".equalsIgnoreCase((String) v);
+              })
+              .collect(Collectors.toList()));
+
       for (final Optional<String> format : formats) {
         for (final Optional<String> config : configs) {
           final TestLocation location = testLocator.apply(test.name());
@@ -73,15 +81,6 @@ public final class TestCaseBuilder {
           final Map<String, Object> updatedProperties = new HashMap<>(test.properties());
           final Optional<String> cfg;
           if (config.isPresent()) {
-
-            final Entry<String, Object> overwrite = Iterables.getOnlyElement(
-                test.properties().entrySet().stream()
-                  .filter(e -> {
-                    final Object v = e.getValue();
-                    return v instanceof String && "{CONFIG}".equalsIgnoreCase((String) v);
-                  })
-                  .collect(Collectors.toList()));
-
             updatedProperties.put(overwrite.getKey(), config.get());
             cfg = Optional.of(overwrite.getKey() + "=" + config.get());
           } else {

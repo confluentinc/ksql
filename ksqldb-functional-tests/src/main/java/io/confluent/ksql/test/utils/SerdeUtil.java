@@ -29,6 +29,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
@@ -37,6 +38,7 @@ import io.confluent.ksql.serde.json.JsonSchemaFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.serde.protobuf.ProtobufFormat;
+import io.confluent.ksql.serde.protobuf.ProtobufProperties;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.json.ValueSpecJsonSerdeSupplier;
@@ -65,13 +67,16 @@ public final class SerdeUtil {
   }
 
   public static SerdeSupplier<?> getSerdeSupplier(
-      final Format format,
+      final FormatInfo formatInfo,
       final LogicalSchema schema,
       final Map<String, Object> properties
   ) {
+    final Format format = FormatFactory.of(formatInfo);
     switch (format.name()) {
       case AvroFormat.NAME:       return new ValueSpecAvroSerdeSupplier();
-      case ProtobufFormat.NAME:   return new ValueSpecProtobufSerdeSupplier();
+      case ProtobufFormat.NAME:
+        return new ValueSpecProtobufSerdeSupplier(
+            new ProtobufProperties(formatInfo.getProperties()).getUnwrapPrimitives());
       case JsonFormat.NAME:       return new ValueSpecJsonSerdeSupplier(false, properties);
       case JsonSchemaFormat.NAME: return new ValueSpecJsonSerdeSupplier(true, properties);
       case DelimitedFormat.NAME:  return new StringSerdeSupplier();
@@ -117,7 +122,7 @@ public final class SerdeUtil {
       final LogicalSchema schema,
       final Map<String, Object> properties) {
     final SerdeSupplier<T> inner = (SerdeSupplier<T>) getSerdeSupplier(
-        FormatFactory.of(keyFormat.getFormatInfo()),
+        keyFormat.getFormatInfo(),
         schema,
         properties);
 

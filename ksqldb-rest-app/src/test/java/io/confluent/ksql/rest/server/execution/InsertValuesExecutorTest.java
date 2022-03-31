@@ -692,7 +692,8 @@ public class InsertValuesExecutorTest {
     givenDataSourceWithSchema("source_table_1", SCHEMA,
         SerdeFeatures.of(), SerdeFeatures.of(), true, true);
     final KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final ConfiguredStatement<InsertValues> statement = ConfiguredStatement.of(
+    final ConfiguredStatement<
+        InsertValues> statement = ConfiguredStatement.of(
         PreparedStatement.of(
             "",
             new InsertValues(SourceName.of("TOPIC"),

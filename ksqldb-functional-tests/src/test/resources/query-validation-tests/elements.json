@@ -1043,7 +1043,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 2, Col: 35: SELECT column 'UNKNOWN' cannot be resolved."
+        "message": "SELECT column 'UNKNOWN' cannot be resolved."
       }
     },
     {
@@ -1055,7 +1055,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 3, Col: 38: SELECT column 'UNKNOWN' cannot be resolved."
+        "message": "SELECT column 'UNKNOWN' cannot be resolved."
       }
     },
     {

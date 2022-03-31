@@ -91,23 +91,25 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
               .getLong(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))
           .sum();
       final Set<String> runtimes = new HashSet<>();
-      Long maxCache = -1L;
-      for (final QueryMetadata queryMetadata: running) {
+      long cacheSizeBytesPerRuntime = -1L;
+      for (final QueryMetadata queryMetadata : running) {
         if (queryMetadata instanceof BinPackedPersistentQueryMetadataImpl) {
-          if (maxCache == -1L) {
-            maxCache = (Long) queryMetadata.getStreamsProperties()
+          if (cacheSizeBytesPerRuntime == -1L) {
+            cacheSizeBytesPerRuntime = (long) queryMetadata.getStreamsProperties()
                 .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
           }
           if (!runtimes.contains(queryMetadata.getQueryApplicationId())) {
             runtimes.add(queryMetadata.getQueryApplicationId());
-            usedByRunning += (Long) queryMetadata.getStreamsProperties()
+            usedByRunning += (long) queryMetadata.getStreamsProperties()
                 .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG);
           } else {
-            if (!Objects.equals(maxCache, (Long) queryMetadata.getStreamsProperties()
-                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG))) {
+            if (cacheSizeBytesPerRuntime == (long) queryMetadata.getStreamsProperties()
+                .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG)) {
               LOG.warn("Inconsistent "
                   + StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG
-                  + " in shared runtimes");
+                  + " in shared runtimes {} and {}", cacheSizeBytesPerRuntime,
+                  queryMetadata.getStreamsProperties()
+                      .get(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG));
             }
           }
         }

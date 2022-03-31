@@ -45,6 +45,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.SourcePropertyInjector;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -232,7 +233,9 @@ public final class TestCaseBuilderUtil {
           final ConfiguredStatement<?> configured =
               ConfiguredStatement.of(prepare, SessionConfig.of(ksqlConfig, Collections.emptyMap()));
           final ConfiguredStatement<?> withFormats = new DefaultFormatInjector().inject(configured);
-          topics.add(extractTopic.apply(withFormats));
+          final ConfiguredStatement<?> withSourceProps =
+              new SourcePropertyInjector().inject(withFormats);
+          topics.add(extractTopic.apply(withSourceProps));
         }
       }
 

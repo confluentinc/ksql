@@ -2719,23 +2719,23 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "PROTOBUF"}}
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "PROTOBUF", "properties": {"unwrapPrimitives": "true"}}}
         ],
         "topics" : {
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-              "keyFormat" : {"format" : "PROTOBUF"},
+              "keyFormat" : {"format" : "PROTOBUF", "properties" : {"unwrapPrimitives" : "true"}},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
-              "keyFormat" : {"format" : "PROTOBUF"},
+              "keyFormat" : {"format" : "PROTOBUF", "properties" : {"unwrapPrimitives" : "true"}},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
-              "keyFormat" : {"format" : "PROTOBUF"},
+              "keyFormat" : {"format" : "PROTOBUF", "properties" : {"unwrapPrimitives" : "true"}},
               "valueFormat" : {"format" : "JSON"}
             }
           ]

@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.test.util.KsqlTestFolder;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.MockSystem;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -160,12 +161,14 @@ public class RestoreCommandTopicMultipleKafkasIntegrationTest {
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
 
     // Restore the command topic
-    KsqlRestoreCommandTopic.main(
+    KsqlRestoreCommandTopic.mainInternal(
         new String[]{
             "--yes",
             "--config-file", propertiesFile.toString(),
             backupFile.toString()
-        });
+        },
+        new MockSystem()
+    );
 
     // Re-load the command topic
     REST_APP.stop();

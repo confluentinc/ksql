@@ -21,6 +21,7 @@ import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.util.JavaSystem;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.FileInputStream;
@@ -49,7 +50,7 @@ public final class DataGen {
 
   public static void main(final String[] args) {
     try {
-      run(args);
+      run(new JavaSystem(), args);
     } catch (final Arguments.ArgumentParseException exception) {
       System.err.println(exception.getMessage());
       usage();
@@ -60,7 +61,10 @@ public final class DataGen {
     }
   }
 
-  static void run(final String... args) throws Throwable {
+  static void run(
+      final io.confluent.ksql.util.System system,
+      final String... args
+  ) throws Throwable {
     final Arguments arguments = new Arguments.Builder()
         .parseArgs(args)
         .build();
@@ -94,7 +98,7 @@ public final class DataGen {
         service.take().get();
       } catch (final InterruptedException e) {
         System.err.println("Interrupted waiting for threads to exit.");
-        System.exit(1);
+        system.exit(1);
       } catch (final ExecutionException e) {
         throw e.getCause();
       }

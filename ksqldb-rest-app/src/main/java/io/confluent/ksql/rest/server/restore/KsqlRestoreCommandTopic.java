@@ -30,6 +30,7 @@ import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionExc
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
+import io.confluent.ksql.util.JavaSystem;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
@@ -200,9 +201,16 @@ public class KsqlRestoreCommandTopic {
    * Main command to restore the KSQL command topic.
    */
   public static void main(final String[] args) throws Exception {
+    mainInternal(args, new JavaSystem());
+  }
+
+  public static void mainInternal(
+      final String[] args,
+      final io.confluent.ksql.util.System system
+  ) throws Exception {
     final RestoreOptions restoreOptions = RestoreOptions.parse(args);
     if (restoreOptions == null) {
-      System.exit(1);
+      system.exit(1);
     }
 
     final File configFile = restoreOptions.getConfigFile();
@@ -213,7 +221,7 @@ public class KsqlRestoreCommandTopic {
       checkFileExists(backupFile);
     } catch (final Exception e) {
       System.err.println(e.getMessage());
-      System.exit(2);
+      system.exit(2);
     }
 
     final KsqlConfig serverConfig = loadServerConfig(configFile);
@@ -221,7 +229,7 @@ public class KsqlRestoreCommandTopic {
 
     // Stop and ask the user to type 'yes' to continue to warn users about the restore process
     if (!restoreOptions.isAutomaticYes() && !promptQuestion()) {
-      System.exit(0);
+      system.exit(0);
     }
 
     System.out.println("Loading backup file ...");
@@ -233,7 +241,7 @@ public class KsqlRestoreCommandTopic {
     } catch (final Exception e) {
       System.err.println(String.format(
           "Failed loading backup file.%nError = %s", e.getMessage()));
-      System.exit(1);
+      system.exit(1);
     }
 
     System.out.println(String.format(
@@ -248,7 +256,7 @@ public class KsqlRestoreCommandTopic {
     } catch (final Exception e) {
       System.err.println(String.format(
           "Failed restoring command topic.%nError = %s", e.getMessage()));
-      System.exit(1);
+      system.exit(1);
     }
 
     System.out.println(String.format(

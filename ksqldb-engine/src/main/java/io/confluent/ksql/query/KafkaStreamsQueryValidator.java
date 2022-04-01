@@ -15,8 +15,8 @@
 package io.confluent.ksql.query;
 
 import io.confluent.ksql.config.SessionConfig;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.execution.ExecutionPlan;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
-import scala.Int;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

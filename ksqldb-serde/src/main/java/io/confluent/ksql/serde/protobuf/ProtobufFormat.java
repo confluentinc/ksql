@@ -65,7 +65,7 @@ public class ProtobufFormat extends ConnectFormat {
       final Map<String, String> formatProps
   ) {
     FormatProperties.validateProperties(name(), formatProps, getSupportedProperties());
-    return new ProtobufSchemaTranslator();
+    return new ProtobufSchemaTranslator(new ProtobufProperties(formatProps));
   }
 
   @Override

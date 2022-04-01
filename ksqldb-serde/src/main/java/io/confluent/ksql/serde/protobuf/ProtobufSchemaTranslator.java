@@ -32,14 +32,11 @@ import org.apache.kafka.connect.data.Schema;
  */
 class ProtobufSchemaTranslator implements ConnectSchemaTranslator {
 
-  private final ProtobufProperties properties;
   private final Map<String, Object> protobufDataConfig;
-
-  private Map<String, Object> updatedConfigs;
-  private ProtobufData protobufData;
+  private final ProtobufData protobufData;
 
   ProtobufSchemaTranslator(final ProtobufProperties properties) {
-    this.properties = Objects.requireNonNull(properties, "properties");
+    Objects.requireNonNull(properties, "properties");
     this.protobufDataConfig = ImmutableMap.of(
         WRAPPER_FOR_RAW_PRIMITIVES_CONFIG, properties.getUnwrapPrimitives());
 

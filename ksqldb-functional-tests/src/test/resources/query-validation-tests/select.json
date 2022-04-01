@@ -144,7 +144,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 2, Col: 36: SELECT column 'BOB' cannot be resolved."
+        "message": "SELECT column 'BOB' cannot be resolved."
       }
     },
     {
@@ -155,7 +155,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Line: 2, Col: 36: SELECT column 'I.BOB' cannot be resolved."
+        "message": "SELECT column 'I.BOB' cannot be resolved."
       }
     }
   ]

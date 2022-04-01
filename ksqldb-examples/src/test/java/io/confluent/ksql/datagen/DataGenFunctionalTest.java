@@ -193,6 +193,6 @@ public class DataGenFunctionalTest {
         .map(e -> e.getKey() + "=" + e.getValue())
         .toArray(String[]::new);
 
-    DataGen.runInternal(new MockSystem(), argArray);
+    DataGen.run(new MockSystem(), argArray);
   }
 }

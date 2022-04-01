@@ -53,8 +53,8 @@ public class ProtobufFormat extends ConnectFormat {
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {
-    FormatProperties.validateProperties(name(), formatProps, ImmutableSet.of());
-    return new ProtobufSchemaTranslator();
+    FormatProperties.validateProperties(name(), formatProps, getSupportedProperties());
+    return new ProtobufSchemaTranslator(new ProtobufProperties(formatProps));
   }
 
   @Override
@@ -66,6 +66,7 @@ public class ProtobufFormat extends ConnectFormat {
       final Class<T> targetType,
       final boolean isKey
   ) {
-    return ProtobufSerdeFactory.createSerde(connectSchema, config, srFactory, targetType, isKey);
+    return new ProtobufSerdeFactory(new ProtobufProperties(formatProps))
+        .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

@@ -432,7 +432,7 @@ public class TopicInfoCache {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Serializer<Object> getValueSerializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
+          .getSerdeSupplier(valueFormat.getFormatInfo(), schema);
 
       final Serializer<?> serializer = valueSerdeSupplier.getSerializer(srClient, false);
 
@@ -465,7 +465,7 @@ public class TopicInfoCache {
 
     public Deserializer<?> getValueDeserializer() {
       final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil
-          .getSerdeSupplier(FormatFactory.of(valueFormat.getFormatInfo()), schema);
+          .getSerdeSupplier(valueFormat.getFormatInfo(), schema);
 
       final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(srClient, false);
 

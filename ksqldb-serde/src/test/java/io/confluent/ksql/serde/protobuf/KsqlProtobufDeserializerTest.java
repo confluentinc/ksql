@@ -187,12 +187,13 @@ public class KsqlProtobufDeserializerTest {
       final ConnectSchema schema,
       final Class<T> targetType
   ) {
-    final Deserializer<T> deserializer = ProtobufSerdeFactory.createSerde(
-        schema,
-        KSQL_CONFIG,
-        () -> schemaRegistryClient,
-        targetType,
-        false).deserializer();
+    final Deserializer<T> deserializer = new ProtobufSerdeFactory(new ProtobufProperties(Collections.emptyMap()))
+        .createSerde(
+            schema,
+            KSQL_CONFIG,
+            () -> schemaRegistryClient,
+            targetType,
+            false).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);
 

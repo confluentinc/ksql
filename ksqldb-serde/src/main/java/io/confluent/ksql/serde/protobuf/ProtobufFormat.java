@@ -50,6 +50,11 @@ public class ProtobufFormat extends ConnectFormat {
   }
 
   @Override
+  public Set<String> getSupportedProperties() {
+    return ProtobufProperties.SUPPORTED_PROPERTIES;
+  }
+
+  @Override
   protected ConnectSchemaTranslator getConnectSchemaTranslator(
       final Map<String, String> formatProps
   ) {

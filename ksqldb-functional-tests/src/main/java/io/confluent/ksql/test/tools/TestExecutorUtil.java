@@ -34,7 +34,6 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.json.PlanJsonMapper;
@@ -490,14 +489,12 @@ public final class TestExecutorUtil {
           schemaInjector
               .map(injector -> injector.inject(withFormats))
               .orElse((ConfiguredStatement) withFormats);
-      final ConfiguredStatement<?> reformatted =
-          new SqlFormatInjector(executionContext).inject(withSchema);
 
       final KsqlPlan plan = executionContext
-          .plan(executionContext.getServiceContext(), reformatted);
+          .plan(executionContext.getServiceContext(), withSchema);
 
       return new PlannedStatement(
-          ConfiguredKsqlPlan.of(rewritePlan(plan), reformatted.getSessionConfig())
+          ConfiguredKsqlPlan.of(rewritePlan(plan), withSchema.getSessionConfig())
       );
     }
 
